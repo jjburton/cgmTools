@@ -601,22 +601,39 @@ _d_scaleSpace = {'beak':
 def mirror_self(self,primeAxis = 'Left'):
     _str_func = 'mirror_self'
     _idx_state = self.getState(False)
-    
+    ml_done = []
     log.debug("|{0}| >> define...".format(_str_func)+ '-'*80)
-    ml_mirrorHandles = self.msgList_get('defineSubHandles')
-    r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+    ml_mirrorDefineHandles = self.msgList_get('defineSubHandles')
+    for mObj in ml_mirrorDefineHandles:
+        ml_done.append(mObj)
+    r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorDefineHandles],
                                              mode = '',primeAxis = primeAxis.capitalize() )    
     
     if _idx_state > 0:
         log.debug("|{0}| >> form...".format(_str_func)+ '-'*80)
-        ml_mirrorHandles = self.msgList_get('formHandles')
-        r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+        ml_mirrorFormHandles = self.msgList_get('formHandles')
+        ml_use = []
+        for mObj in ml_mirrorFormHandles:
+            if mObj not in ml_done:
+                ml_use.append(mObj)
+            else:
+                ml_done.append(mObj)
+                
+        r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_use],
                                                      mode = '',primeAxis = primeAxis.capitalize() )
     
     if _idx_state > 1:
         log.debug("|{0}| >> prerig...".format(_str_func)+ '-'*80)        
-        ml_mirrorHandles = self.msgList_get('prerigHandles') + self.msgList_get('jointHandles')
-        r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
+        ml_mirrorPreHandles = self.msgList_get('prerigHandles') + self.msgList_get('jointHandles')
+        
+        ml_use = []
+        for mObj in ml_mirrorPreHandles:
+            if mObj not in ml_done:
+                ml_use.append(mObj)
+            else:
+                ml_done.append(mObj)
+                
+        r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_use],
                                                  mode = '',primeAxis = primeAxis.capitalize() )
 
 @cgmGEN.Timer
@@ -2184,7 +2201,7 @@ def form(self):
             
             pprint.pprint(d_jawHandles)
             pprint.pprint(d_jawCurves)
-          
+        
 
             
             """
@@ -2201,6 +2218,240 @@ def form(self):
                 l_order.extend(['smileLeft','smileRight'])
                 _d_pairs['smileLeft']='smileRight'"""
         
+        #Main setup -----------------------------------------------------
+        if self.noseSetup:
+            log.debug("|{0}| >>  nose setup...".format(_str_func))
+            _str_noseSetup = self.getEnumValueString('noseSetup')
+            _d_pairs = {}
+
+            
+            d_noseCurves = {}
+            d_noseHandles = {'bridge':
+                            {'center':
+                             {0:{},
+                              1:{0:'bridge'},
+                              2:{}},
+                             'left':
+                             {0:{},
+                              1:{1:'bridgeOuterLeft',
+                                 3:'bridgeLeft'},
+                              2:{},
+                              3:{0:'sneerLeft',
+                                 2:'noseTopLeft'},
+                              4:{}},
+                             'right':
+                             {0:{},
+                              1:{1:'bridgeOuterRight',
+                                 3:'bridgeRight'},
+                              2:{},
+                              3:{0:'sneerRight',
+                                 2:'noseTopRight'},
+                              4:{}}},
+                            
+                            'bulb':
+                            {'center':
+                             {0:{0:'noseBase'},
+                              1:{0:'noseUnder'}},
+                             'left':
+                             {0:{0:'nostrilBaseLeft',
+                                 2:'noseBaseLeft'
+                                 },
+                              1:{0:'nostrilBaseLeft',
+                                 1:'nostrilLineOuterLeft',
+                                 2:'nostrilLineInnerLeft'},
+                              2:{},
+                              3:{},
+                              4:{}},
+                             }}
+                             
+            #'chin':
+            #{'center':{0:{0:{}}}}}
+            #pprint.pprint(d_noseHandles)
+            #return
+            
+            
+            #Position gather ---------------------------------------------------------------------
+            
+            #We need some base positions....
+            d_handlePosDat['chin'] = {}
+            d_handlePosDat['chin']['center'] = {}
+            d_handlePosDat['chin']['center'][0] = {}
+            
+            _d_chin = d_handlePosDat['chin']['center'][0]
+            
+            
+            _d_chin[0] = DGETAVG([d_defPos['chinLeft'],
+                                  d_defPos['chinRight']])
+            
+            _d_chin[2] = DGETAVG([d_defPos['noseFrontLeft'],
+                                  d_defPos['noseFrontRight']])
+            
+            _d_chin[1]= DGETAVG([_d_chin[0],
+                               _d_chin[2]])
+            _d_chin[3] = DGETAVG([d_handlePosDat['chin']['center'][0][2],
+                                  d_defPos['noseNeck']])            
+            
+            
+            """
+            {section: side : curve idx: handle idx}
+            
+            """
+            #Sides...
+            d_handlePosDat['cheek'] = {}#...declare
+            _d_handle_pos = d_handlePosDat['cheek']#...connect
+            
+            for side in 'left','right':
+                _d_tmp = {}
+                _d_handle_pos[side] = _d_tmp
+                d_handlePosDat['chin'][side]= {}#...declare
+                _l_clean = []
+                
+                _cap = STR.capFirst(side)
+            
+                crv_noseLeft = CORERIG.create_at(create='curve',l_pos = [d_defPos['noseTop'+_cap],
+                                                                        d_defPos['nose'+_cap],
+                                                                        d_defPos['noseNeck']
+                                                                        ])
+                _l_clean.append(crv_noseLeft)
+                
+                #...cheek 0....
+                _d_tmp[0] = {}
+                
+                _d_tmp[0][1] = DGETAVG([d_defPos['orbFront'+_cap],
+                                           d_defPos['orb'+_cap]])
+                _d_tmp[0][3] = DGETAVG([d_defPos['orb'+_cap],
+                                           d_defPos['noseTop'+_cap]])
+                
+                #...cheek 1...
+                _d_tmp[1] = {}
+                
+                _d_tmp[1][2] = DGETAVG([d_defPos['orb'+_cap],
+                                        d_defPos['cheek'+_cap]])
+                
+                _d_tmp[1][1] = DGETAVG([_d_tmp[1][2],
+                                        d_defPos['cheekBone'+_cap]])
+                
+                _d_tmp[1][4] = CRVPCT(crv_noseLeft,.2)
+                
+                _d_tmp[1][3] = DGETAVG([_d_tmp[1][4],
+                                        _d_tmp[1][2]])
+                
+                
+                #...cheek 2...
+                _d_tmp[2] = {}
+                
+                #_d_tmp[2][4] = CRVPCT(crv_noseLeft,.4)
+                
+                _d_tmp[2][1] = DGETAVG([d_defPos['smile'+_cap],
+                                           d_defPos['cheek'+_cap]])
+                _d_tmp[2][3] = DGETAVG([d_defPos['cheek'+_cap],
+                                        d_defPos['nose'+_cap]])#_d_tmp[2][4]])
+                
+                #...cheek 3...
+                _d_tmp[3] = {}
+                
+                crv_chinSplit = CORERIG.create_at(create='curveLinear',l_pos = [d_defPos['smile'+_cap],
+                                                                        d_defPos['chin'+_cap],
+                                                                        d_handlePosDat['chin']['center'][0][0]
+                                                                        ])
+                _l_clean.append(crv_chinSplit)
+                
+                _d_tmp[3][0] = CRVPCT(crv_chinSplit,.3)
+                
+                crv_cheek3Split = CORERIG.create_at(create='curve',l_pos = [_d_tmp[3][0],
+                                                                            d_defPos['noseNeck'+_cap],
+                                                                            d_defPos['nose'+_cap],
+                                                                            ])
+                _l_clean.append(crv_cheek3Split)
+                
+                _d_tmp[3][1] = CRVPCT(crv_cheek3Split,.2)
+                _d_tmp[3][4] = CRVPCT(crv_noseLeft,.6)
+                
+                
+                #...cheek 4...
+                _d_tmp[4] = {}
+                
+                crv_4Find = CORERIG.create_at(create='curve',l_pos = [d_defPos['cheek'+_cap],
+                                                                        d_defPos['noseNeck'+_cap],
+                                                                        d_handlePosDat['chin']['center'][0][3],
+                                                                        ])
+                _l_clean.append(crv_4Find)
+                
+                _d_tmp[4][0] = CRVPCT(crv_chinSplit,.5)
+                _d_tmp[4][3]  = CRVPCT(crv_noseLeft,.8)
+                _d_tmp[4][2]  =  DGETAVG([d_defPos['noseNeck'+_cap],
+                                            d_defPos['noseFront'+_cap]])
+                _d_tmp[4][1]  = DGETAVG([_d_tmp[4][0] ,
+                                         _d_tmp[4][2] ])
+                
+           
+                
+                #...chin...
+                _d_tmp = d_handlePosDat['chin'][side]
+                _d_tmp[0] = {}
+                
+                _d_tmp[0][4] = CRVPCT(crv_noseLeft,.9)
+                _d_tmp[0][1] = DGETAVG([ d_defPos['chin'+_cap],
+                                         d_defPos['noseFront'+_cap]])
+                _d_tmp[0][3] = DGETAVG([d_defPos['noseFront'+_cap],
+                                        d_handlePosDat['chin'][side][0][4]])             
+                
+                
+                mc.delete(_l_clean)
+                
+                
+            
+            
+            
+            for section,d_section in d_handlePosDat.iteritems():
+                for side,d_crv in d_section.iteritems():
+                    for i,d_pos in d_crv.iteritems():
+                        for ii,p in d_pos.iteritems():
+                            _key = "{0}_{1}_{2}_{3}".format(section,i,ii,side)
+                            
+                            if side == 'left':d_pairs[_key] =  "{0}_{1}_{2}_{3}".format(section,i,ii,'right')
+                            
+                            l_order.append(_key)
+                            
+                            d_use = copy.copy(d_handleBase)
+                            d_use['color'] = d_color[side]
+                            d_use['pos'] = p
+                            
+                            d_creation[_key] = d_use
+                            
+                            d_noseHandles[section][side][i][ii] = _key
+                            #LOC.create(position=p,name = "{0}_loc".format(_key))
+                            
+                        
+            for section,d_section in d_noseHandles.iteritems():
+                d_noseCurves[section] = {}
+                for side,d_crv in d_section.iteritems():
+                    d_noseCurves[section][side] = {}
+                    for i,d_handle in d_crv.iteritems():
+                        k_crv = "{0}_{1}_{2}".format(section,i,side)
+                        d_noseCurves[section][side][i] = {'key':k_crv,
+                                                         'handles':[]}
+                        
+                        for ii,handle in d_handle.iteritems():
+                            d_noseCurves[section][side][i]['handles'].append(handle)
+                            
+                        d_curveCreation[k_crv] = {'keys':d_noseCurves[section][side][i]['handles'],
+                                                  'rebuild':True}
+                            
+                            
+            
+            md_loftCreation['nose'] =  {'keys':['cheek_0_left','cheek_1_left','cheek_2_left',
+                                               'cheek_3_left','cheek_4_left',
+                                               'chin_0_left','chin_0_center','chin_0_right',
+                                               'cheek_4_right','cheek_3_right','cheek_2_right',
+                                               'cheek_1_right','cheek_0_right'],
+                                       'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
+                                       'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                       'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                       'kws':{'noRebuild':True}}
+            
+            pprint.pprint(d_noseHandles)
+            pprint.pprint(d_noseCurves)        
            
         
         # ==========================================================================================

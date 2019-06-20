@@ -1201,7 +1201,8 @@ def getControlShader(direction = 'center', controlType = 'main',
             if proxy and controlType not in ['pupil']:
                 #_rgb = [v * .75 for v in _rgb]
                 _hsv = [v for v in get_HSV_fromRGB(_rgb[0],_rgb[1],_rgb[2])]
-                #_hsv[1] = .8
+                _hsv[1] = .6
+                _hsv[2] = .8                
                 #_hsv = [v * .5]
                 _rgb = get_RGB_fromHSV(_hsv[0],_hsv[1],_hsv[2])
                 ATTR.set(_node,'diffuse',.1)
@@ -1210,6 +1211,7 @@ def getControlShader(direction = 'center', controlType = 'main',
             ATTR.set(_node,'colorG',_rgb[1])
             ATTR.set(_node,'colorB',_rgb[2])
             ATTR.set(_node,'diffuse',.497)
+            
             ATTR.set(_node,'ambientColorR',_rgb[0]*.5)
             ATTR.set(_node,'ambientColorG',_rgb[1]*.5)
             ATTR.set(_node,'ambientColorB',_rgb[2]*.5)

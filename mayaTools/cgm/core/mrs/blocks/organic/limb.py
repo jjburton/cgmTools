@@ -4704,12 +4704,15 @@ def rig_shapes(self):
                 if self.b_cullFKEnd:
                     log.debug("|{0}| >> Last fk shape and b_cullFKEnd...".format(_str_func))                
                     continue
+                
             try:mJnt = ml_fkJoints[i]
             except:continue
 
 
             if mBlock.buildLeverEnd and mJnt == ml_fkJoints[self.int_handleEndIdx]:#-2
-                mDag = ml_fkJoints[self.int_handleEndIdx+1].doCreateAt(setClass=True)
+                #mDag = ml_fkJoints[self.int_handleEndIdx+1].doCreateAt(setClass=True)
+                mDag = ml_fkJoints[self.int_handleEndIdx].doCreateAt(setClass=True)
+                mDag.p_position = ml_fkJoints[self.int_handleEndIdx+1].p_position
                 CORERIG.shapeParent_in_place(mDag.mNode,mShape.mNode, True, replaceShapes=True)            
                 
                 mDag.p_parent = mIKCrv
