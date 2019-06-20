@@ -1738,6 +1738,41 @@ def create_simpleFormLoftMesh(self, targets = None,
                 ATTR.set(_rebuildNode,a,v)
                 
             toName = [_loftNode]
+            
+        elif polyType == 'faceNurbsLoft':
+            _res_body = mc.loft(targets, o = True, d = 1, po = 0, c = False,autoReverse=False)
+            mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)                    
+            _loftNode = _res_body[1]
+            #_inputs = mc.listHistory(mLoftSurface.mNode,pruneDagObjects=True)
+            #_rebuildNode = _inputs[0]
+            
+            #rebuildSurface -ch 1 -rpo 1 -rt 0 -end 1 -kr 0 -kcp 0 -kc 0 -su 4 -du 3 -sv 4 -dv 3 -tol 0.01 -fr 0  -dir 2 "jaw_shapeApprox";
+            
+            _rebuildNode = mc.rebuildSurface(mLoftSurface.mNode,
+                                             ch=1, rpo=1, rt=0,end=1,kr=0,kcp=0,kc=0,
+                                             su=4,du=3,sv=4,dv=3,tol=0.01,
+                                             fr=0,dir =2)[1]
+            
+            #mLoftSurface = cgmMeta.validateObjArg(_res_body[0],'cgmObject',setClass= True)
+            
+            if kws.get('noRebuild') is not True and _b_noReverse is not True:
+                mc.reverseSurface(mLoftSurface.mNode, direction=1,rpo=True)
+            
+            _len = len(targets)*2
+            _d = {
+                'keepCorners':False,
+                  'rebuildType':0,
+                  'degreeU':1,
+                  'degreeV':3,
+                  'keepControlPoints':False,
+                  'spansU':_len,
+                  'spansV':_len}#General}
+            _d.update(d_rebuild)
+            
+            for a,v in _d.iteritems():
+                ATTR.set(_rebuildNode,a,v)
+                
+            toName = [_loftNode]        
                 
         else:
             _res_body = mc.loft(targets, o = True, d = 3, po = 0,autoReverse=False)
@@ -1769,7 +1804,7 @@ def create_simpleFormLoftMesh(self, targets = None,
         for s in mLoftSurface.getShapes(asMeta=True):
             s.overrideDisplayType = 2    
         
-        if polyType not in ['faceLoft']:
+        if polyType not in ['faceLoft','faceNurbsLoft']:
             log.debug("|{0}| >> Linear/Cubic...".format(_str_func))        
             if polyType in ['bezier','noMult']:
                 _arg = "{0}.out_degreeBez = if {1} == 0:1 else 3".format(targets[0],

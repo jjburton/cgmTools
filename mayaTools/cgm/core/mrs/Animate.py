@@ -1806,7 +1806,7 @@ def buildTab_mrs(self,parent):
     buildFrame_mrsList(self,_columnBelow)    
     buildFrame_mrsAnim(self,_columnBelow)
     buildFrame_mrsTimeContext(self,_columnBelow)            
-    #buildFrame_poses(self,_columnBelow)    
+    buildFrame_poses(self,_columnBelow)    
     buildFrame_mrsTween(self,_columnBelow)
     buildFrame_mrsHold(self,_columnBelow)        
     buildFrame_mrsMirror(self,_columnBelow)
@@ -3121,7 +3121,7 @@ def buildFrame_poses(self,parent):
     _frame = mUI.MelFrameLayout(parent,label = 'Poses',vis=True,
                                 collapse=mVar_frame.value,
                                 collapsable=True,
-                                enable=False,
+                                enable=1,
                                 ann="Thanks Red9!",
                                 useTemplate = 'cgmUIHeaderTemplate',
                                 expandCommand = lambda:mVar_frame.setValue(0),
