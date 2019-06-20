@@ -296,8 +296,11 @@ class DataMap(object):
 
         # for some reason this can cause a hard Maya hang!!!!
         # trying to track it down but if you experience it comment this one line out!
-        euler = map(math.degrees, rots.asEulerRotation())
-
+        #euler = map(math.degrees, rots.asEulerRotation())
+        #euler = map(math.degrees, list(rots.asEulerRotation()))
+        #_eulers = rots.asEulerRotation()
+        #euler = map(math.degrees, _eulers)
+        euler = {}
         return {'translation': [trans.x, trans.y, trans.z],
                 'quaternion': [rots.x, rots.y, rots.z, rots.w],
                 'euler': euler}
