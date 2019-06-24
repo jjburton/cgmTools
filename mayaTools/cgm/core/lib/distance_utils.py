@@ -536,6 +536,24 @@ def get_average_position(posList):
         posZ.append(posBuffer[2])
     return [float(sum(posX)/len(posList)), float(sum(posY)/len(posList)), float(sum(posZ)/len(posList))]
 
+def get_pos_by_linearPct(point1,point2,f=.5):
+    """
+    Get the pct distance between two points by vector distance
+    
+    :parameters:
+        pos1
+        pos2
+        pct
+
+    :returns
+        pos(double3)
+    """       
+    vec = MATHUTILS.get_vector_of_two_points(point1,point2)
+    d = get_distance_between_points(point1,point2)
+    
+    return get_pos_by_vec_dist(point1,vec,d*f)
+    
+
 
 def get_pos_by_vec_dist(startPos,vec,distance = 1):
     """

@@ -72,6 +72,7 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.ik_utils as IK
 import cgm.core.rig.skin_utils as RIGSKIN
 import cgm.core.lib.string_utils as STR
+import cgm.core.lib.surface_Utils as SURF
 
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
     reload(m)
@@ -1938,6 +1939,7 @@ def form(self):
         
         DGETAVG = DIST.get_average_position
         CRVPCT = CURVES.getPercentPointOnCurve
+        DPCTDIST = DIST.get_pos_by_linearPct
         
         pSmileR = False
         pSmileL = False
@@ -1952,12 +1954,334 @@ def form(self):
         
         
         #Main setup -----------------------------------------------------
+        #Main setup -----------------------------------------------------
+        if self.noseSetup:
+            log.debug("|{0}| >>  nose setup...".format(_str_func))
+            _str_noseSetup = self.getEnumValueString('noseSetup')
+            _d_pairs = {}
+
+            d_handlePosDat_nose = {}
+            
+            d_noseCurves = {}
+            d_noseHandles = {'bridge':
+                            {'center':
+                             {0:{},
+                              1:{0:'bridge'},
+                              2:{},
+                              3:{0:'noseTop'}},
+                             'left':
+                             {0:{},
+                              1:{0:'bridgeOuterLeft',
+                                 2:'bridgeLeft'},
+                              2:{},
+                              3:{0:'sneerLeft',
+                                 2:'noseTopLeft'},},
+                             'right':
+                             {0:{},
+                              1:{0:'bridgeOuterRight',
+                                 2:'bridgeRight'},
+                              2:{},
+                              3:{0:'sneerRight',
+                                 2:'noseTopRight'},}},
+                            
+                            'bulb':
+                            {'center':
+                             {0:{0:'noseBase'},
+                              1:{0:'noseUnder'},
+                              2:{},
+                              3:{0:'noseTip'},
+                              4:{},
+                              5:{0:'bulb'}},
+                             'left':
+                             {0:{0:'nostrilBaseLeft',
+                                 2:'noseBaseLeft'
+                                 },
+                              1:{0:'nostrilBaseLeft',
+                                 1:'nostrilLineOuterLeft',
+                                 2:'nostrilLineInnerLeft'},
+                              2:{},
+                              3:{0:'nostrilLeft',
+                                 3:'noseTipLeft'},
+                              4:{},
+                              5:{0:'nostrilTopLeft',
+                                 2:'bulbLeft'}},
+                             'right':
+                             {0:{0:'nostrilBaseRight',
+                                 2:'noseBaseRight'
+                                 },
+                              1:{0:'nostrilBaseRight',
+                                 1:'nostrilLineOuterRight',
+                                 2:'nostrilLineInnerRight'},
+                              2:{},
+                              3:{0:'nostrilRight',
+                                 3:'noseTipRight'},
+                              4:{},
+                              5:{0:'nostrilTopRight',
+                                 2:'bulbRight'}},
+                             }}
+            
+            #Position gather ---------------------------------------------------------------------
+            #We need some base positions....
+            #bulb...
+            d_handlePosDat_nose['bulb'] = {}
+            d_handlePosDat_nose['bulb']['center'] = {}
+            d_handlePosDat_nose['bulb']['center'][2] = {}
+            
+            d_handlePosDat_nose['bulb']['center'][2][0] = DGETAVG([d_defPos['noseUnder'],
+                                                              d_defPos['noseTip']])
+            
+            #d_handlePosDat_nose['bulb']['center'][4] = {}
+            """d_handlePosDat_nose['bulb']['center'][0][0] = DGETAVG([d_defPos['noseTip'],
+                                                           d_defPos['bulb']])"""
+            
+            
+            #bridge...
+            d_handlePosDat_nose['bridge'] = {}
+            d_handlePosDat_nose['bridge']['center'] = {}
+            
+            d_handlePosDat_nose['bridge']['center'][0] = {}
+            d_handlePosDat_nose['bridge']['center'][0][0] = DGETAVG([d_defPos['bulb'],
+                                                                d_defPos['bridge']])
+            
+            d_handlePosDat_nose['bridge']['center'][2] = {}
+            d_handlePosDat_nose['bridge']['center'][2][0] = DGETAVG([d_defPos['noseTop'],
+                                                                d_defPos['bridge']])            
+            
+
+
+            """
+            {section: side : curve idx: handle idx}
+            
+            """
+            #Sides...
+            _d_pos_bulb = d_handlePosDat_nose['bulb']#...connect
+            _d_pos_bridge = d_handlePosDat_nose['bridge']#...connect
+            _l_clean = []
+            
+
+            
+            for side in 'left','right':
+                _cap = STR.capFirst(side)
+                
+                #Bulb...-----------------------------------------------------------------------------
+                #_d_pos_bulb[side] = {}#...declare
+                _d_tmp = {}
+                _d_pos_bulb[side] = _d_tmp#...declare
+                
+                #Bulb 0...
+                _d_tmp[0] = {}
+                
+                _d_tmp[0][1] = DGETAVG([d_defPos['noseBase'+_cap],
+                                        d_defPos['nostrilBase'+_cap]])
+                
+                #We need some tmp stuff to find some curves
+                
+                #Bulb 2...after
+                
+                #Bulb 3...
+                _d_tmp[3] = {}
+                _d_tmp[3][1] = DPCTDIST(d_defPos['nostril'+_cap],
+                                        d_defPos['noseTip'+_cap],
+                                        .3)
+                _d_tmp[3][2] = DPCTDIST(d_defPos['nostril'+_cap],
+                                        d_defPos['noseTip'+_cap],
+                                        .6)
+                
+                _d_tmp[3][4] = DGETAVG([d_defPos['noseTip'+_cap],
+                                        d_defPos['noseTip']])
+                
+                #Bulb 4...after
+                
+                
+                #Bulb 5
+                _d_tmp[5] = {}
+                
+                _d_tmp[5][1] = DGETAVG([d_defPos['nostrilTop'+_cap],
+                                        d_defPos['bulb'+_cap]])
+                _d_tmp[5][3] = DGETAVG([d_defPos['bulb'],
+                                        d_defPos['bulb'+_cap]])                                
+                
+                
+                #Bridge...-----------------------------------------------------------------------------
+                _d_tmp = {}
+                _d_pos_bridge[side] = _d_tmp#...declare                
+                
+                #Bridge 0...
+                _d_tmp[0] = {}
+                
+                _d_tmp[0][0] = DGETAVG([d_defPos['bridgeOuter'+_cap],
+                                           d_defPos['nostrilTop'+_cap]])
+                _d_tmp[0][2] = DGETAVG([d_defPos['bridge'+_cap],
+                                           d_defPos['bulb'+_cap]])
+                
+                _d_tmp[0][1] = DGETAVG([_d_tmp[0][0],
+                                       _d_tmp[0][2]])
+                
+                #Bridge 1...
+                _d_tmp[1] = {}
+                _d_tmp[1][1] = DGETAVG([d_defPos['bridgeOuter'+_cap],
+                                           d_defPos['bridge'+_cap]])
+
+                #Bridge 2...
+                _d_tmp[2] = {}
+                
+                _d_tmp[2][0] = DGETAVG([d_defPos['bridgeOuter'+_cap],
+                                           d_defPos['sneer'+_cap]])
+                _d_tmp[2][2] = DGETAVG([d_defPos['bridge'+_cap],
+                                           d_defPos['noseTop'+_cap]])
+                _d_tmp[2][1] = DGETAVG([_d_tmp[2][0],
+                                       _d_tmp[2][2]])                
+                
+                #Bridge 3...
+                _d_tmp[3] = {}
+                _d_tmp[3][1] = DGETAVG([d_defPos['noseTop'+_cap],
+                                        d_defPos['sneer'+_cap]])                
+                
+
+            crv_bulbBase = CORERIG.create_at(create='curve',l_pos = [d_defPos['nostrilBaseRight'],
+                                                                     d_defPos['nostrilLineOuterRight'],
+                                                                     d_defPos['nostrilLineInnerRight'],
+                                                                     d_defPos['noseUnder'],
+                                                                     d_defPos['nostrilLineInnerLeft'],
+                                                                     d_defPos['nostrilLineOuterLeft'],
+                                                                     d_defPos['nostrilBaseLeft'],
+                                                                     ])                            
+            _l_clean.append(crv_bulbBase)
+            
+            
+            #We need a tmp loft for the bulb to get some data...
+            l_bulbCurves = [crv_bulbBase,
+                            md_dCurves['noseCross'].mNode,
+                            md_dCurves['noseBulb'].mNode
+                            ]
+            
+            _res_tmp = mc.loft(l_bulbCurves,
+                               o = True, d = 1, po = 0, c = False,u=False, autoReverse=0,ch=True)
+                                
+            str_meshShape = TRANS.shapes_get(_res_tmp[0])[0]
+            l_knots = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
+            
+            pprint.pprint(l_knots)
+            
+            crv_bulb_2 = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,MATH.average(l_knots[:2])),
+                                           ch = 0, rn = 0, local = 0)[0]
+            
+            crv_bulb_4 = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,MATH.average(l_knots[1:])),
+                                           ch = 0, rn = 0, local = 0)[0]
+            
+            
+            
+            #_l_pos = CURVES.getUSplitList(_crv,_split,rebuild=1)
+            _l_clean.extend([crv_bulb_2,crv_bulb_4] + _res_tmp)
+            #Splitting out values for the generated curves
+            
+            for i,crv in enumerate([crv_bulb_2,crv_bulb_4]):
+                if not i:
+                    _split = 11
+                    _idx = 2
+                else:
+                    _split = 9
+                    _idx = 4
+                
+                _l_split =  CURVES.getUSplitList(crv,_split,rebuild=1)
+                
+                _mid = MATH.get_midIndex(_split)
+                
+                _midV = _l_split[_mid]
+                
+                _l_right = _l_split[:_mid]
+                _l_left = _l_split[_mid+1:]
+                _l_left.reverse()
+                
+                _d_pos_bulb['center'][_idx] = {0:_midV}
+                _d_pos_bulb['right'][_idx] = {}
+                _d_pos_bulb['left'][_idx] = {}
+                
+                for ii,v in enumerate(_l_right):
+                    _d_pos_bulb['right'][_idx][ii] = v
+                    
+                for ii,v in enumerate(_l_left):
+                    _d_pos_bulb['left'][_idx][ii] = v                
+                
+            
+            
+                
+                
+            for section,d_section in d_handlePosDat_nose.iteritems():
+                for side,d_crv in d_section.iteritems():
+                    for i,d_pos in d_crv.iteritems():
+                        for ii,p in d_pos.iteritems():
+                            _key = "{0}_{1}_{2}_{3}".format(section,i,ii,side)
+                            
+                            if side == 'left':d_pairs[_key] =  "{0}_{1}_{2}_{3}".format(section,i,ii,'right')
+                            
+                            l_order.append(_key)
+                            
+                            d_use = copy.copy(d_handleBase)
+                            d_use['color'] = d_color[side]
+                            d_use['pos'] = p
+                            
+                            d_creation[_key] = d_use
+                            
+                            d_noseHandles[section][side][i][ii] = _key
+                            #LOC.create(position=p,name = "{0}_loc".format(_key))
+                            
+            
+            #Loop to gather handles
+            for section,d_section in d_noseHandles.iteritems():
+                d_noseCurves[section] = {}
+                
+                #Loop to gather handles
+                l_crvIdx = []
+                for side,d_crv in d_section.iteritems():
+                    d_noseCurves[section][side] = {}
+
+                    for i,d_handle in d_crv.iteritems():
+                        if i not in l_crvIdx:
+                            l_crvIdx.append(i)
+                        k_crv = "{0}_{1}_{2}".format(section,i,side)
+                        d_noseCurves[section][side][i] = {'key':k_crv,
+                                                         'handles':[]}
+                        for ii,handle in d_handle.iteritems():
+                            d_noseCurves[section][side][i]['handles'].append(handle)
+                            
+                
+                #Now we need to sort those handles
+                for i in l_crvIdx:
+                    if not d_noseCurves[section]['right'].get(i):
+                        continue
+                    k_crv = "{0}_{1}".format(section,i)
+                    
+                    l_r = d_noseCurves[section]['right'][i]['handles']
+                    l_c = d_noseCurves[section]['center'][i]['handles']
+                    l_l = d_noseCurves[section]['left'][i]['handles']
+                    l_l.reverse()
+                    
+                    d_curveCreation[k_crv] = {'keys':l_r + l_c + l_l,
+                                              'rebuild':0}
+                
+                            
+                            
+                            
+                            
+            
+            md_loftCreation['nose'] =  {'keys':['bulb_0','bulb_1','bulb_2','bulb_3','bulb_4','bulb_5',
+                                                'bridge_0','bridge_1','bridge_2','bridge_3'],
+                                       'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
+                                       'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                       'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                       'kws':{'noRebuild':True}}
+            
+            #pprint.pprint(d_noseHandles)
+            #pprint.pprint(d_curveCreation)
+            mc.delete(_l_clean)
+        
         if self.jawSetup:
             log.debug("|{0}| >>  Jaw setup...".format(_str_func))
             _str_jawSetup = self.getEnumValueString('jawSetup')
             
             _d_pairs = {}
-
+            d_handlePosDat_jaw = {}
             
             _d_curveCreateDat = {
                 'cheek_0':{'h':{0:'orbFront',2:'orb',4:'jawTop'}},
@@ -2022,11 +2346,11 @@ def form(self):
             #Position gather ---------------------------------------------------------------------
             
             #We need some base positions....
-            d_handlePosDat['chin'] = {}
-            d_handlePosDat['chin']['center'] = {}
-            d_handlePosDat['chin']['center'][0] = {}
+            d_handlePosDat_jaw['chin'] = {}
+            d_handlePosDat_jaw['chin']['center'] = {}
+            d_handlePosDat_jaw['chin']['center'][0] = {}
             
-            _d_chin = d_handlePosDat['chin']['center'][0]
+            _d_chin = d_handlePosDat_jaw['chin']['center'][0]
             
             
             _d_chin[0] = DGETAVG([d_defPos['chinLeft'],
@@ -2037,7 +2361,7 @@ def form(self):
             
             _d_chin[1]= DGETAVG([_d_chin[0],
                                _d_chin[2]])
-            _d_chin[3] = DGETAVG([d_handlePosDat['chin']['center'][0][2],
+            _d_chin[3] = DGETAVG([d_handlePosDat_jaw['chin']['center'][0][2],
                                   d_defPos['jawNeck']])            
             
             
@@ -2046,13 +2370,13 @@ def form(self):
             
             """
             #Sides...
-            d_handlePosDat['cheek'] = {}#...declare
-            _d_handle_pos = d_handlePosDat['cheek']#...connect
+            d_handlePosDat_jaw['cheek'] = {}#...declare
+            _d_handle_pos = d_handlePosDat_jaw['cheek']#...connect
             
             for side in 'left','right':
                 _d_tmp = {}
                 _d_handle_pos[side] = _d_tmp
-                d_handlePosDat['chin'][side]= {}#...declare
+                d_handlePosDat_jaw['chin'][side]= {}#...declare
                 _l_clean = []
                 
                 _cap = STR.capFirst(side)
@@ -2101,7 +2425,7 @@ def form(self):
                 
                 crv_chinSplit = CORERIG.create_at(create='curveLinear',l_pos = [d_defPos['smile'+_cap],
                                                                         d_defPos['chin'+_cap],
-                                                                        d_handlePosDat['chin']['center'][0][0]
+                                                                        d_handlePosDat_jaw['chin']['center'][0][0]
                                                                         ])
                 _l_clean.append(crv_chinSplit)
                 
@@ -2122,7 +2446,7 @@ def form(self):
                 
                 crv_4Find = CORERIG.create_at(create='curve',l_pos = [d_defPos['cheek'+_cap],
                                                                         d_defPos['jawNeck'+_cap],
-                                                                        d_handlePosDat['chin']['center'][0][3],
+                                                                        d_handlePosDat_jaw['chin']['center'][0][3],
                                                                         ])
                 _l_clean.append(crv_4Find)
                 
@@ -2136,14 +2460,14 @@ def form(self):
            
                 
                 #...chin...
-                _d_tmp = d_handlePosDat['chin'][side]
+                _d_tmp = d_handlePosDat_jaw['chin'][side]
                 _d_tmp[0] = {}
                 
                 _d_tmp[0][4] = CRVPCT(crv_jawLeft,.9)
                 _d_tmp[0][1] = DGETAVG([ d_defPos['chin'+_cap],
                                          d_defPos['jawFront'+_cap]])
                 _d_tmp[0][3] = DGETAVG([d_defPos['jawFront'+_cap],
-                                        d_handlePosDat['chin'][side][0][4]])             
+                                        d_handlePosDat_jaw['chin'][side][0][4]])             
                 
                 
                 mc.delete(_l_clean)
@@ -2152,7 +2476,7 @@ def form(self):
             
             
             
-            for section,d_section in d_handlePosDat.iteritems():
+            for section,d_section in d_handlePosDat_jaw.iteritems():
                 for side,d_crv in d_section.iteritems():
                     for i,d_pos in d_crv.iteritems():
                         for ii,p in d_pos.iteritems():
@@ -2218,240 +2542,7 @@ def form(self):
                 l_order.extend(['smileLeft','smileRight'])
                 _d_pairs['smileLeft']='smileRight'"""
         
-        #Main setup -----------------------------------------------------
-        if self.noseSetup:
-            log.debug("|{0}| >>  nose setup...".format(_str_func))
-            _str_noseSetup = self.getEnumValueString('noseSetup')
-            _d_pairs = {}
-
-            
-            d_noseCurves = {}
-            d_noseHandles = {'bridge':
-                            {'center':
-                             {0:{},
-                              1:{0:'bridge'},
-                              2:{}},
-                             'left':
-                             {0:{},
-                              1:{1:'bridgeOuterLeft',
-                                 3:'bridgeLeft'},
-                              2:{},
-                              3:{0:'sneerLeft',
-                                 2:'noseTopLeft'},
-                              4:{}},
-                             'right':
-                             {0:{},
-                              1:{1:'bridgeOuterRight',
-                                 3:'bridgeRight'},
-                              2:{},
-                              3:{0:'sneerRight',
-                                 2:'noseTopRight'},
-                              4:{}}},
-                            
-                            'bulb':
-                            {'center':
-                             {0:{0:'noseBase'},
-                              1:{0:'noseUnder'}},
-                             'left':
-                             {0:{0:'nostrilBaseLeft',
-                                 2:'noseBaseLeft'
-                                 },
-                              1:{0:'nostrilBaseLeft',
-                                 1:'nostrilLineOuterLeft',
-                                 2:'nostrilLineInnerLeft'},
-                              2:{},
-                              3:{},
-                              4:{}},
-                             }}
-                             
-            #'chin':
-            #{'center':{0:{0:{}}}}}
-            #pprint.pprint(d_noseHandles)
-            #return
-            
-            
-            #Position gather ---------------------------------------------------------------------
-            
-            #We need some base positions....
-            d_handlePosDat['chin'] = {}
-            d_handlePosDat['chin']['center'] = {}
-            d_handlePosDat['chin']['center'][0] = {}
-            
-            _d_chin = d_handlePosDat['chin']['center'][0]
-            
-            
-            _d_chin[0] = DGETAVG([d_defPos['chinLeft'],
-                                  d_defPos['chinRight']])
-            
-            _d_chin[2] = DGETAVG([d_defPos['noseFrontLeft'],
-                                  d_defPos['noseFrontRight']])
-            
-            _d_chin[1]= DGETAVG([_d_chin[0],
-                               _d_chin[2]])
-            _d_chin[3] = DGETAVG([d_handlePosDat['chin']['center'][0][2],
-                                  d_defPos['noseNeck']])            
-            
-            
-            """
-            {section: side : curve idx: handle idx}
-            
-            """
-            #Sides...
-            d_handlePosDat['cheek'] = {}#...declare
-            _d_handle_pos = d_handlePosDat['cheek']#...connect
-            
-            for side in 'left','right':
-                _d_tmp = {}
-                _d_handle_pos[side] = _d_tmp
-                d_handlePosDat['chin'][side]= {}#...declare
-                _l_clean = []
-                
-                _cap = STR.capFirst(side)
-            
-                crv_noseLeft = CORERIG.create_at(create='curve',l_pos = [d_defPos['noseTop'+_cap],
-                                                                        d_defPos['nose'+_cap],
-                                                                        d_defPos['noseNeck']
-                                                                        ])
-                _l_clean.append(crv_noseLeft)
-                
-                #...cheek 0....
-                _d_tmp[0] = {}
-                
-                _d_tmp[0][1] = DGETAVG([d_defPos['orbFront'+_cap],
-                                           d_defPos['orb'+_cap]])
-                _d_tmp[0][3] = DGETAVG([d_defPos['orb'+_cap],
-                                           d_defPos['noseTop'+_cap]])
-                
-                #...cheek 1...
-                _d_tmp[1] = {}
-                
-                _d_tmp[1][2] = DGETAVG([d_defPos['orb'+_cap],
-                                        d_defPos['cheek'+_cap]])
-                
-                _d_tmp[1][1] = DGETAVG([_d_tmp[1][2],
-                                        d_defPos['cheekBone'+_cap]])
-                
-                _d_tmp[1][4] = CRVPCT(crv_noseLeft,.2)
-                
-                _d_tmp[1][3] = DGETAVG([_d_tmp[1][4],
-                                        _d_tmp[1][2]])
-                
-                
-                #...cheek 2...
-                _d_tmp[2] = {}
-                
-                #_d_tmp[2][4] = CRVPCT(crv_noseLeft,.4)
-                
-                _d_tmp[2][1] = DGETAVG([d_defPos['smile'+_cap],
-                                           d_defPos['cheek'+_cap]])
-                _d_tmp[2][3] = DGETAVG([d_defPos['cheek'+_cap],
-                                        d_defPos['nose'+_cap]])#_d_tmp[2][4]])
-                
-                #...cheek 3...
-                _d_tmp[3] = {}
-                
-                crv_chinSplit = CORERIG.create_at(create='curveLinear',l_pos = [d_defPos['smile'+_cap],
-                                                                        d_defPos['chin'+_cap],
-                                                                        d_handlePosDat['chin']['center'][0][0]
-                                                                        ])
-                _l_clean.append(crv_chinSplit)
-                
-                _d_tmp[3][0] = CRVPCT(crv_chinSplit,.3)
-                
-                crv_cheek3Split = CORERIG.create_at(create='curve',l_pos = [_d_tmp[3][0],
-                                                                            d_defPos['noseNeck'+_cap],
-                                                                            d_defPos['nose'+_cap],
-                                                                            ])
-                _l_clean.append(crv_cheek3Split)
-                
-                _d_tmp[3][1] = CRVPCT(crv_cheek3Split,.2)
-                _d_tmp[3][4] = CRVPCT(crv_noseLeft,.6)
-                
-                
-                #...cheek 4...
-                _d_tmp[4] = {}
-                
-                crv_4Find = CORERIG.create_at(create='curve',l_pos = [d_defPos['cheek'+_cap],
-                                                                        d_defPos['noseNeck'+_cap],
-                                                                        d_handlePosDat['chin']['center'][0][3],
-                                                                        ])
-                _l_clean.append(crv_4Find)
-                
-                _d_tmp[4][0] = CRVPCT(crv_chinSplit,.5)
-                _d_tmp[4][3]  = CRVPCT(crv_noseLeft,.8)
-                _d_tmp[4][2]  =  DGETAVG([d_defPos['noseNeck'+_cap],
-                                            d_defPos['noseFront'+_cap]])
-                _d_tmp[4][1]  = DGETAVG([_d_tmp[4][0] ,
-                                         _d_tmp[4][2] ])
-                
-           
-                
-                #...chin...
-                _d_tmp = d_handlePosDat['chin'][side]
-                _d_tmp[0] = {}
-                
-                _d_tmp[0][4] = CRVPCT(crv_noseLeft,.9)
-                _d_tmp[0][1] = DGETAVG([ d_defPos['chin'+_cap],
-                                         d_defPos['noseFront'+_cap]])
-                _d_tmp[0][3] = DGETAVG([d_defPos['noseFront'+_cap],
-                                        d_handlePosDat['chin'][side][0][4]])             
-                
-                
-                mc.delete(_l_clean)
-                
-                
-            
-            
-            
-            for section,d_section in d_handlePosDat.iteritems():
-                for side,d_crv in d_section.iteritems():
-                    for i,d_pos in d_crv.iteritems():
-                        for ii,p in d_pos.iteritems():
-                            _key = "{0}_{1}_{2}_{3}".format(section,i,ii,side)
-                            
-                            if side == 'left':d_pairs[_key] =  "{0}_{1}_{2}_{3}".format(section,i,ii,'right')
-                            
-                            l_order.append(_key)
-                            
-                            d_use = copy.copy(d_handleBase)
-                            d_use['color'] = d_color[side]
-                            d_use['pos'] = p
-                            
-                            d_creation[_key] = d_use
-                            
-                            d_noseHandles[section][side][i][ii] = _key
-                            #LOC.create(position=p,name = "{0}_loc".format(_key))
-                            
-                        
-            for section,d_section in d_noseHandles.iteritems():
-                d_noseCurves[section] = {}
-                for side,d_crv in d_section.iteritems():
-                    d_noseCurves[section][side] = {}
-                    for i,d_handle in d_crv.iteritems():
-                        k_crv = "{0}_{1}_{2}".format(section,i,side)
-                        d_noseCurves[section][side][i] = {'key':k_crv,
-                                                         'handles':[]}
-                        
-                        for ii,handle in d_handle.iteritems():
-                            d_noseCurves[section][side][i]['handles'].append(handle)
-                            
-                        d_curveCreation[k_crv] = {'keys':d_noseCurves[section][side][i]['handles'],
-                                                  'rebuild':True}
-                            
-                            
-            
-            md_loftCreation['nose'] =  {'keys':['cheek_0_left','cheek_1_left','cheek_2_left',
-                                               'cheek_3_left','cheek_4_left',
-                                               'chin_0_left','chin_0_center','chin_0_right',
-                                               'cheek_4_right','cheek_3_right','cheek_2_right',
-                                               'cheek_1_right','cheek_0_right'],
-                                       'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
-                                       'uDriver':'{0}.numJawSplit_u'.format(_short),
-                                       'vDriver':'{0}.numJawSplit_v'.format(_short),
-                                       'kws':{'noRebuild':True}}
-            
-            pprint.pprint(d_noseHandles)
-            pprint.pprint(d_noseCurves)        
+        
            
         
         # ==========================================================================================
