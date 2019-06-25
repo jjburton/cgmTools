@@ -178,6 +178,9 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  #Lips...
                  'lipSealSetup':'none:default',
                  'numLipControls':'int',
+                 'numLipShapersUpr':'int',
+                 'numLipShapersLwr':'int',
+                 
                  'numJointsLipUpr':'int',
                  'numJointsLipLwr':'int',
                  'paramUprStart':'float',
@@ -205,6 +208,8 @@ d_defaultSettings = {'version':__version__,
                      'visLabels':True,
                      'numJawSplit_u':22,
                      'numJawSplit_v':6,
+                     'numLipShapersUpr':6,
+                     'numLipShapersLwr':6,
                      
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
@@ -479,30 +484,30 @@ _d_scaleSpace = {'beak':
                 
                  ,
     'human':
-    {'bridge': [0, 0.7365867340472114, 1.0030996597926345],
+    {'bridge': [0, 0.7365867340472114, 1.0030996597926332],
      'bridgeOuterLeft': [0.13949252389112712,
                          0.5837717540493443,
-                         0.8367171328970846],
+                         0.8367171328970837],
      'bridgeOuterRight': [-0.13949252389112712,
                           0.5837717540493443,
-                          0.8367171328970846],
-     'bridgeRight': [-0.0752047483816883, 0.7270662266989021, 0.9835762575207583],
-     'bulb': [0, 0.5240699068480765, 1.3901734896052216],
-     'bulbRight': [-0.11468922985910648, 0.4988461562971267, 1.2372688699933763],
+                          0.8367171328970837],
+     'bridgeRight': [-0.07520474838168828, 0.7270662266989021, 0.9835762575207574],
+     'bulb': [0, 0.5240699068480765, 1.3901734896052207],
+     'bulbRight': [-0.11468922985910648, 0.4988461562971267, 1.2372688699933758],
      'cheekBoneRight': [-0.4552455251816405,
                         0.3524273607183872,
-                        0.7305402042245501],
-     'cheekRight': [-0.7548138362346037, -0.0135475526453952, 0.10398873890517968],
-     'chinRight': [-0.1614409523259761, -0.7468972693510736, 0.9476328668755754],
+                        0.7305402042245492],
+     'cheekRight': [-0.7548138362346037, -0.0135475526453952, 0.10398873890517879],
+     'chinRight': [-0.1614409523259761, -0.7468972693510736, 0.947632866875574],
      'cornerBackRight': [-0.28625966490909616,
                          -0.23679384075461485,
                          0.6385293062014132],
      'cornerBagRight': [-0.3062596649090961,
                         -0.23679384075461485,
-                        0.5885293062014116],
+                        0.5885293062014108],
      'cornerFrontRight': [-0.3062596649090961,
                           -0.23679384075461485,
-                          0.7385293062014116],
+                          0.7385293062014107],
      'cornerLwrRight': [-0.29821787815454764,
                         -0.33065820535748713,
                         0.7786768690864982],
@@ -511,89 +516,95 @@ _d_scaleSpace = {'beak':
                          0.7230461841801437],
      'cornerUprRight': [-0.30667137028392527,
                         -0.1529287167356017,
-                        0.7934864476056918],
+                        0.7934864476056909],
      'jawFrontRight': [-0.17999508832537225,
                        -0.9719119178444089,
                        0.7578889161402307],
-     'jawNeck': [0, -0.8881111221874534, -0.10000000000000253],
+     'jawNeck': [0, -0.8881111221874534, -0.10000000000000342],
      'jawNeckRight': [-0.539036874461076,
                       -0.6726205915006354,
-                      -0.08258840573581794],
-     'jawRight': [-0.7651724059447822, -0.3164820148480878, -0.706742753582603],
-     'jawTopRight': [-0.9969301781281826, 0.7911406527910891, -0.862765618498618],
+                      -0.08258840573581838],
+     'jawRight': [-0.7651724059447822, -0.3164820148480878, -0.7067427535826039],
+     'jawTopRight': [-0.9969301781281826, 0.7911406527910891, -0.8627656184986184],
      'lwrBack': [0, -0.19957702569902835, 0.8578025218313079],
      'lwrBackRight': [-0.09999999999999999,
                       -0.19957702569902835,
-                      0.8312374301041365],
+                      0.8312374301041356],
      'lwrFront': [0, -0.19957702569902835, 0.9812374301041378],
      'lwrFrontRight': [-0.09999999999999999,
                        -0.19957702569902835,
-                       0.9312374301041366],
-     'lwrGum': [0, -0.3675198991968216, 0.7608199444737869],
-     'lwrOver': [0, -0.43009829085550066, 0.9333321698811532],
+                       0.9312374301041357],
+     'lwrGum': [0, -0.4050106397762363, 0.7101662861302107],
+     'lwrOver': [0, -0.43009829085550066, 0.9333321698811523],
      'lwrOverRight': [-0.14114921069235795,
                       -0.40910262091812655,
-                      0.9054754675656369],
-     'lwrPeak': [0, -0.28145464592647684, 1.0325640693178357],
+                      0.9054754675656356],
+     'lwrPeak': [0, -0.28145464592647684, 1.0325640693178344],
      'lwrPeakRight': [-0.11879611628814471,
                       -0.2762527299064921,
-                      0.9856467769551176],
-     'noseBase': [0, 0.15984447456211726, 1.1225285802452478],
+                      0.9856467769551167],
+     'mouthBagBack': [0, -0.1682872287475199, -0.5303918321125718],
+     'mouthBagBottom': [0, -0.6273181063579649, -0.07760146037222282],
+     'mouthBagRight': [-0.5274779924958036,
+                       -0.17152047717288,
+                       -0.1334743803977605],
+     'mouthBagTop': [0, 0.3950271775166314, -0.06793996224606946],
+     'noseBase': [0, 0.15984447456211726, 1.1225285802452465],
      'noseBaseRight': [-0.06447592850531289,
                        0.2013173640764272,
-                       1.0687523205093914],
-     'noseTip': [0, 0.3805325402582582, 1.4355435576859925],
+                       1.0687523205093905],
+     'noseTip': [0, 0.3805325402582582, 1.4355435576859916],
      'noseTipRight': [-0.12175008451239278,
                       0.34132424799971517,
                       1.2811248605594763],
-     'noseTop': [0, 0.9250453592947459, 0.8484752751013818],
-     'noseTopRight': [-0.07398231796050099,
+     'noseTop': [0, 0.9250453592947459, 0.8484752751013809],
+     'noseTopRight': [-0.07398231796050096,
                       0.8846985812493671,
-                      0.8092251486208957],
+                      0.8092251486208948],
      'noseUnder': [0, 0.2255249531889234, 1.2590827521178323],
      'nostrilBaseRight': [-0.17840265418137208,
                           0.20201759620469062,
                           0.9279836834010364],
      'nostrilLineInnerLeft': [0.05220606107410563,
                               0.24410677272582504,
-                              1.168736283399869],
+                              1.1687362833998676],
      'nostrilLineInnerRight': [-0.05220606107410563,
                                0.24410677272582504,
-                               1.168736283399869],
+                               1.1687362833998676],
      'nostrilLineOuterRight': [-0.1403097181284395,
                                0.277964514108767,
-                               1.1045421946505138],
+                               1.104542194650513],
      'nostrilRight': [-0.29213419777709765,
                       0.29438972478670067,
-                      0.8434804420811006],
+                      0.8434804420810997],
      'nostrilTopRight': [-0.21669630246982277,
                          0.41844683344454126,
-                         0.8235378198554115],
+                         0.8235378198554102],
      'orbFrontRight': [-0.46951524910375025,
                        0.5835603299980932,
-                       0.6025409869886396],
-     'orbRight': [-0.7916816805290654, 0.7847957495560784, 0.20855368016648157],
+                       0.6025409869886382],
+     'orbRight': [-0.7916816805290654, 0.7847957495560784, 0.20855368016648068],
      'smileRight': [-0.45059839999917634,
                     -0.23096933114542395,
-                    0.6535786299993371],
-     'sneerRight': [-0.14101534953672315, 0.7249906642449702, 0.7062305133770401],
-     'uprBack': [0, -0.1914104378629098, 0.8619720386817651],
+                    0.6535786299993362],
+     'sneerRight': [-0.14101534953672315, 0.7249906642449702, 0.7062305133770392],
+     'uprBack': [0, -0.1914104378629098, 0.8619720386817642],
      'uprBackRight': [-0.09999999999999999,
                       -0.1914104378629098,
                       0.816796936835106],
      'uprFront': [0, -0.1914104378629098, 0.9667969368351086],
      'uprFrontRight': [-0.09999999999999999,
                        -0.1914104378629098,
-                       0.9167969368351052],
-     'uprGum': [0, 0.008589562137089501, 0.8326398323704343],
+                       0.9167969368351043],
+     'uprGum': [0, 0.056504646743022136, 0.7786976244523256],
      'uprOver': [0, 0.014046671071223926, 1.0801305041861746],
      'uprOverRight': [-0.1277698904501184,
                       -0.0017240145500210247,
-                      1.0364692906386281],
-     'uprPeak': [0, -0.10848970608268971, 1.1026890245980843],
+                      1.0364692906386268],
+     'uprPeak': [0, -0.10848970608268971, 1.1026890245980834],
      'uprPeakRight': [-0.1252550253791018,
                       -0.11449613164451478,
-                      1.0483478230802294]}
+                      1.0483478230802286]}
 }
 
 #=============================================================================================================
@@ -838,8 +849,6 @@ def define(self):
         if _str_pose in ['canine','beak']:
             l_sideKeys.extend(['uprPeakOut','uprFrontOut','uprBackOut','uprGumOut','uprOverOut',
                                'lwrPeakOut','lwrFrontOut','lwrBackOut','lwrGumOut','lwrOverOut'])
-            #l_centerKeys.extend(['uprOver','lwrOver'])
-        
         
         for k in l_centerKeys:
             _d[k] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
@@ -887,29 +896,11 @@ def define(self):
         d_toParent['lwrFrontLeft'] = 'lwrFront'
         d_toParent['lwrFrontRight'] = 'lwrFront'        
         
-        #pprint.pprint(d_toParent)
-        #return
-        
-        #d_toParent['uprPeak'] = 'uprFront'
-        #d_toParent['uprBack'] = 'uprFront'
-        #d_toParent['uprPeakLeft'] = 'uprFront'
-        #d_toParent['uprPeakRight'] = 'uprFront'
-        #d_toParent['uprGum'] = 'uprFront'
-        
-        #d_toParent['cornerBagLeft'] = 'cornerFrontLeft'
-        #d_toParent['cornerBackLeft'] = 'cornerFrontLeft'
-        #d_toParent['cornerPeakLeft'] = 'cornerFrontLeft'
-        #d_toParent['cornerBagRight'] = 'cornerFrontRight'
-        #d_toParent['cornerBackRight'] = 'cornerFrontRight'
-        #d_toParent['cornerPeakRight'] = 'cornerFrontRight'
-        
         for s in 'Left','Right':
             for k in ['cornerUpr','cornerLwr','cornerBag',
                       'cornerBack','cornerPeak']:
                 d_toParent[k+s] = 'cornerFront'+s
             
-        
-        
         l_mainHandles.extend(['cornerFrontLeft','cornerFrontRight',
                               'lwrFrontLeft','lwrFrontRight',
                               'uprFrontLeft','uprFrontRight',
@@ -921,21 +912,21 @@ def define(self):
         
         
         #Curve Mapping 
-        _d_curveCreation = {'peakUpr':{'keys':['cornerFrontRight','uprPeakRight','uprPeak',
+        _d_curveCreation = {'uprPeak':{'keys':['cornerFrontRight','uprPeakRight','uprPeak',
                                                'uprPeakLeft','cornerFrontLeft'],
                                        'rebuild':0},
-                            'peakLwr':{'keys':['cornerFrontRight','lwrPeakRight','lwrPeak','lwrPeakLeft','cornerFrontLeft'],
+                            'lwrPeak':{'keys':['cornerFrontRight','lwrPeakRight','lwrPeak','lwrPeakLeft','cornerFrontLeft'],
                                        'color':'greenWhite',                                       
                                        'rebuild':0},
-                            'lipUpr':{'keys':['cornerFrontRight','uprFrontRight','uprFront','uprFrontLeft','cornerFrontLeft'],
+                            'uprLip':{'keys':['cornerFrontRight','uprFrontRight','uprFront','uprFrontLeft','cornerFrontLeft'],
                                        'rebuild':0},
-                            'lipLwr':{'keys':['cornerFrontRight','lwrFrontRight','lwrFront','lwrFrontLeft','cornerFrontLeft'],
+                            'lwrLip':{'keys':['cornerFrontRight','lwrFrontRight','lwrFront','lwrFrontLeft','cornerFrontLeft'],
                                        'color':'greenWhite',                                       
                                        'rebuild':0},
                             
-                            'lipBackUpr':{'keys':['cornerBackRight','uprBackRight','uprBack','uprBackLeft','cornerBackLeft'],
+                            'uprLipBack':{'keys':['cornerBackRight','uprBackRight','uprBack','uprBackLeft','cornerBackLeft'],
                                        'rebuild':0},
-                            'lipBackLwr':{'keys':['cornerBackRight','lwrBackRight','lwrBack',
+                            'lwrLipBack':{'keys':['cornerBackRight','lwrBackRight','lwrBack',
                                                   'lwrBackLeft','cornerBackLeft'],
                                           'color':'greenWhite',                                       
                                           'rebuild':0},                            
@@ -980,7 +971,6 @@ def define(self):
                             'smileCrossRight':{'keys':['cornerPeakRight','smileRight'],
                                              'color':'yellowWhite',                                             
                                              'rebuild':0},                            
-                            
                             }
         
         _d_curveCreation['lipCrossLwr']['keys'].append('lwrOver')
@@ -1027,34 +1017,34 @@ def define(self):
                                              'rebuild':1}
             
             
-            _d_curveCreation['lipUprOver'] = {'keys':['cornerPeakRight','cornerUprRight',
+            _d_curveCreation['uprLipOver'] = {'keys':['cornerPeakRight','cornerUprRight',
                                                       'uprOverOutRight','uprOverRight','uprOver',
                                                       'uprOverLeft','uprOverOutLeft',
                                                       'cornerUprLeft','cornerPeakLeft'],
                                        'rebuild':0}
-            _d_curveCreation['lipLwrOver'] = {'keys':['cornerPeakRight','cornerLwrRight',
+            _d_curveCreation['lwrLipOver'] = {'keys':['cornerPeakRight','cornerLwrRight',
                                                       'lwrOverOutRight','lwrOverRight','lwrOver',
                                                       'lwrOverLeft','lwrOverOutLeft',
                                                       'cornerLwrLeft','cornerPeakLeft'],
                                        'rebuild':0}
             
-            _d_curveCreation['peakUpr']['keys'].insert(1,'uprPeakOutRight')
-            _d_curveCreation['peakUpr']['keys'].insert(-1,'uprPeakOutLeft')
+            _d_curveCreation['uprPeak']['keys'].insert(1,'uprPeakOutRight')
+            _d_curveCreation['uprPeak']['keys'].insert(-1,'uprPeakOutLeft')
             
-            _d_curveCreation['lipBackUpr']['keys'].insert(1,'uprBackOutRight')
-            _d_curveCreation['lipBackUpr']['keys'].insert(-1,'uprBackOutLeft')
+            _d_curveCreation['uprLipBack']['keys'].insert(1,'uprBackOutRight')
+            _d_curveCreation['uprLipBack']['keys'].insert(-1,'uprBackOutLeft')
             
-            _d_curveCreation['lipUpr']['keys'].insert(1,'uprFrontOutRight')
-            _d_curveCreation['lipUpr']['keys'].insert(-1,'uprFrontOutLeft')
+            _d_curveCreation['uprLip']['keys'].insert(1,'uprFrontOutRight')
+            _d_curveCreation['uprLip']['keys'].insert(-1,'uprFrontOutLeft')
             
-            _d_curveCreation['peakLwr']['keys'].insert(1,'lwrPeakOutRight')
-            _d_curveCreation['peakLwr']['keys'].insert(-1,'lwrPeakOutLeft')
+            _d_curveCreation['lwrPeak']['keys'].insert(1,'lwrPeakOutRight')
+            _d_curveCreation['lwrPeak']['keys'].insert(-1,'lwrPeakOutLeft')
             
-            _d_curveCreation['lipBackLwr']['keys'].insert(1,'lwrBackOutRight')
-            _d_curveCreation['lipBackLwr']['keys'].insert(-1,'lwrBackOutLeft')
+            _d_curveCreation['lwrLipBack']['keys'].insert(1,'lwrBackOutRight')
+            _d_curveCreation['lwrLipBack']['keys'].insert(-1,'lwrBackOutLeft')
             
-            _d_curveCreation['lipLwr']['keys'].insert(1,'lwrFrontOutRight')
-            _d_curveCreation['lipLwr']['keys'].insert(-1,'lwrFrontOutLeft')
+            _d_curveCreation['lwrLip']['keys'].insert(1,'lwrFrontOutRight')
+            _d_curveCreation['lwrLip']['keys'].insert(-1,'lwrFrontOutLeft')
             
             if self.noseSetup:
                 _d_curveCreation['lipCrossUprOutLeft']['keys'].extend(['snoutTopLeft','bridgeOuterLeft'])
@@ -1069,12 +1059,12 @@ def define(self):
                                                  'color':'yellowWhite',
                                                   'rebuild':0}"""
             
-            _d_curveCreation['lipUprOver'] = {'keys':['cornerPeakRight','cornerUprRight',
+            _d_curveCreation['uprLipOver'] = {'keys':['cornerPeakRight','cornerUprRight',
                                                       'uprOverRight','uprOver',
                                                       'uprOverLeft',
                                                       'cornerUprLeft','cornerPeakLeft'],
                                        'rebuild':0}
-            _d_curveCreation['lipLwrOver'] = {'keys':['cornerPeakRight','cornerLwrRight',
+            _d_curveCreation['lwrLipOver'] = {'keys':['cornerPeakRight','cornerLwrRight',
                                                       'lwrOverRight','lwrOver',
                                                       'lwrOverLeft',
                                                       'cornerLwrLeft','cornerPeakLeft'],
@@ -1166,6 +1156,60 @@ def define(self):
             d_curveCreation['underLipRight'] = {'keys':['lwrPeakRight','underLipRight',],
                                                 'color':'yellowWhite',
                                                 'rebuild':0}"""
+    #mouthbag ================================================================================
+    if self.lipSetup:
+        log.debug(cgmGEN.logString_sub(_str_func,'Mouth bag: {0}'.format(_str_lipSetup)))
+        
+        #Declarations of keys...---------------------------------------------------------------------
+        _d_pairs = {}
+        _d = {}
+        l_sideKeys = ['mouthBag']
+   
+        l_centerKeys = ['mouthBagTop','mouthBagBottom','mouthBagBack']
+        
+        for k in l_centerKeys:
+            _d[k] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
+            
+        for k in l_sideKeys:
+            _d[k+'Left'] =  {'color':'blueBright','tagOnly':1,'arrow':0,'jointLabel':0,'vectorLine':0}
+            _d[k+'Right'] =  {'color':'redBright','tagOnly':1,'arrow':0,'jointLabel':0,'vectorLine':0}
+        
+        #Mirror map left/right----------------------------------------------------------------
+        for k in l_sideKeys:
+            _d_pairs[k+'Left'] = k+'Right'
+        d_pairs.update(_d_pairs)#push to master list...        
+        
+        #Process scaleSpace------------------------------------------------------------------
+        get_handleScaleSpaces(_d,_d_scaleSpace,_str_pose,'Left','Right')
+   
+        _keys = _d.keys()
+        _keys.sort()
+        l_order.extend(_keys)
+        d_creation.update(_d)
+        
+
+        #Curve Mapping 
+        _d_curveCreation = {'bagTop':{'keys':['mouthBagLeft','mouthBagTop','mouthBagRight'],
+                                       'rebuild':0},
+                            'bagBottom':{'keys':['mouthBagLeft','mouthBagBottom','mouthBagRight'],
+                                         'rebuild':0},
+                            'bagCrossHorizontal':{'keys':['mouthBagLeft','mouthBagBack','mouthBagRight'],
+                                                  'rebuild':0},
+                            'bagCrossVertical':{'keys':['mouthBagTop','mouthBagBack','mouthBagBottom'],
+                                                  'rebuild':0},                            
+                            }
+        
+        d_curveCreation.update(_d_curveCreation)
+        
+        
+        if self.lipSetup:
+            d_curveCreation['bagCrossHorizontal']['keys'].insert(0,'cornerBagLeft')
+            d_curveCreation['bagCrossHorizontal']['keys'].append('cornerBagRight')
+
+            d_curveCreation['bagCrossVertical']['keys'].insert(0,'uprGum')
+            d_curveCreation['bagCrossVertical']['keys'].append('lwrGum')
+            
+            
     #nose ================================================================================
     if self.noseSetup:
         _str_noseSetup = self.getEnumValueString('noseSetup')
@@ -1674,27 +1718,27 @@ def define2(self):
                         ])
         
         """
-        'lipUpr':{'keys':['mouthLeft','lipUpr','mouthRight'],
+        'uprLip':{'keys':['mouthLeft','uprLip','mouthRight'],
                                       'rebuild':0},
-                            'lipLwr':{'keys':['mouthLeft','lipLwr','mouthRight'],
+                            'lwrLip':{'keys':['mouthLeft','lwrLip','mouthRight'],
                                       'rebuild':0},
         """
         
         
-        _d_curveCreation = {'peakUpr':{'keys':['cornerPeakRight','uprPeak','cornerPeakLeft'],
+        _d_curveCreation = {'uprPeak':{'keys':['cornerPeakRight','uprPeak','cornerPeakLeft'],
                                        'rebuild':0},
-                            'peakLwr':{'keys':['cornerPeakRight','lwrPeak','cornerPeakLeft'],
+                            'lwrPeak':{'keys':['cornerPeakRight','lwrPeak','cornerPeakLeft'],
                                        'color':'greenWhite',                                       
                                        'rebuild':0},
-                            'lipUpr':{'keys':['cornerFrontRight','uprFront','cornerFrontLeft'],
+                            'uprLip':{'keys':['cornerFrontRight','uprFront','cornerFrontLeft'],
                                        'rebuild':0},
-                            'lipLwr':{'keys':['cornerFrontRight','lwrFront','cornerFrontLeft'],
+                            'lwrLip':{'keys':['cornerFrontRight','lwrFront','cornerFrontLeft'],
                                        'color':'greenWhite',                                       
                                        'rebuild':0},
                             
-                            'lipBackUpr':{'keys':['cornerBackRight','uprBack','cornerBackLeft'],
+                            'uprLipBack':{'keys':['cornerBackRight','uprBack','cornerBackLeft'],
                                        'rebuild':0},
-                            'lipBackLwr':{'keys':['cornerBackRight','lwrBack','cornerBackLeft'],
+                            'lwrLipBack':{'keys':['cornerBackRight','lwrBack','cornerBackLeft'],
                                           'color':'greenWhite',                                       
                                           'rebuild':0},                            
                             'lipCrossUpr':{'keys':['uprGum','uprBack','uprFront','uprPeak'],
@@ -1875,6 +1919,7 @@ def formDelete(self):
     ml_defSubHandles = self.msgList_get('defineSubHandles')
     for mObj in ml_defSubHandles:
         mObj.template = False    
+        mObj.v = 1    
             
     try:self.defineLoftMesh.template = False
     except:pass
@@ -1954,7 +1999,232 @@ def form(self):
         
         
         #Main setup -----------------------------------------------------
-        #Main setup -----------------------------------------------------
+        if self.lipSetup:
+            log.debug("|{0}| >>  lip setup...".format(_str_func))
+            _str_lipSetup = self.getEnumValueString('lipSetup')
+            
+            #For now we just need to generate some extra data for one of our curves...the others we'll just use the define curves for
+            
+            #We need to generate a couple of positions
+            
+            p_lipCornerAdd_l = DGETAVG([d_defPos['cornerFrontLeft'],
+                                        d_defPos['cornerPeakLeft']])
+            p_lipCornerAdd_r = DGETAVG([d_defPos['cornerFrontRight'],
+                                        d_defPos['cornerPeakRight']])            
+            
+            
+            d_lipDat = {'upr':{'count':self.numLipShapersUpr},
+                        'lwr':{'count':self.numLipShapersLwr},
+                        }
+            
+            
+            _l_clean = []
+            d_uprHandles = {}
+            for tag in 'upr','lwr':
+                
+                #Get our base curves...
+                d_baseCurves = {}
+                d_handlePosDat_lips = {}
+                
+                for t in ['LipOver','Lip','LipBack']:
+                    d_baseCurves[t] = md_dCurves[tag+t].mNode
+                
+                #We need to redfine the lipCurve... ---------------------------------------------
+                l_pos = [p_lipCornerAdd_r,
+                         d_defPos['cornerFrontRight'],
+                         d_defPos[tag+'PeakRight'],
+                         d_defPos[tag+'Peak'],
+                         d_defPos[tag+'PeakLeft'],
+                         d_defPos['cornerFrontLeft'],
+                         p_lipCornerAdd_l,
+                         ]
+                
+                crv_lip = CORERIG.create_at(create='curve',l_pos = l_pos,baseName = tag+'Peak') 
+                d_baseCurves['Peak'] = crv_lip
+                _l_clean.append(crv_lip)
+                
+                #Now we need a gum curve ...-----------------------------
+                l_pos = [d_defPos['cornerBagRight'],
+                         d_defPos[tag+'Gum'],
+                         d_defPos['cornerBagLeft'],
+                         ]                
+                crv_gumLine = CORERIG.create_at(create='curve',l_pos = l_pos,baseName = tag+'Gum') 
+                d_baseCurves['Gum'] = crv_gumLine
+                _l_clean.append(crv_gumLine)
+                
+
+               
+                _count = d_lipDat[tag]['count']
+                if MATH.is_even(_count):
+                    b_even = True
+                    log.debug("|{0}| >>  lips | Even...".format(_str_func))
+                else:
+                    b_even = False
+                    log.debug("|{0}| >>  lips | odd...".format(_str_func))
+                
+                _keyCenter = None
+                l_keys_crv = []
+                l_curveOrder = ['LipOver','Peak','Lip','LipBack','Gum']
+                
+                
+                
+                if tag == 'upr':
+                    #Now we need a mouthBagUp
+                    l_pos = [d_defPos['mouthBagRight'],
+                             d_defPos['mouthBagTop'],
+                             d_defPos['mouthBagLeft'],
+                             ]                
+                    _crv = CORERIG.create_at(create='curve',l_pos = l_pos,baseName = tag+'bagTop') 
+                    d_baseCurves['bagTop'] = _crv
+                    _l_clean.append(_crv)                    
+                    l_curveOrder.append('bagTop')
+                    
+                    #Now we need a mouthBagBack
+                    l_pos = [d_defPos['mouthBagRight'],
+                             d_defPos['mouthBagBack'],
+                             d_defPos['mouthBagLeft'],
+                             ]                
+                    _crv = CORERIG.create_at(create='curve',l_pos = l_pos,baseName = tag+'bagBack') 
+                    d_baseCurves['bagBack'] = _crv
+                    _l_clean.append(_crv)                
+                         
+                    l_curveOrder.append('bagBack')
+                    
+                else:
+                    #Now we need a mouthBagUp
+                    l_pos = [d_defPos['mouthBagRight'],
+                             d_defPos['mouthBagBottom'],
+                             d_defPos['mouthBagLeft'],
+                             ]
+                    
+                    _crv = CORERIG.create_at(create='curve',l_pos = l_pos,baseName = tag+'bagBottom') 
+                    d_baseCurves['bagBottom'] = _crv
+                    _l_clean.append(_crv)                    
+                    l_curveOrder.append('bagBottom')                    
+                    
+                    
+                for k in l_curveOrder:
+                    crv = d_baseCurves[k]
+                    _l_split =  CURVES.getUSplitList(crv,_count,rebuild=1)
+                    
+                    if tag == 'lwr':#Get rid of the ends because we share...
+                        _l_split.pop(0)
+                        _l_split.pop(-1)
+                    if tag == 'upr' and k == 'bagBack':
+                        _l_split.pop(0)
+                        _l_split.pop(-1)                        
+                        
+                        
+                    #Now to split the positional data by left right
+                    _mid = MATH.get_midIndex(len(_l_split))
+                    
+                    if b_even:
+                        _l_right = _l_split[:_mid]
+                        _l_left = _l_split[_mid:]
+                        
+                    else:
+                        _midV = _l_split[_mid]
+                        _l_right = _l_split[:_mid]
+                        _l_left = _l_split[_mid+1:]
+                        
+                        
+                        _keyCenter = "{0}_{1}_center".format(tag,k)
+                        d_use = copy.copy(d_handleBase)
+                        d_use['color'] = d_color['center']
+                        d_use['pos'] = _midV
+                        d_creation[_keyCenter] = d_use
+                        l_order.append(_keyCenter)
+                        
+                    _l_left.reverse()#reverse dat for mirror indexing
+                        
+                    #Now we need to split out our handle create dat
+                    l_handlesLeft = []
+                    l_handlesRight = []
+                    
+                    for i,p in enumerate(_l_right):
+                        _key_l = "{0}_{1}_{2}_left".format(tag,k,i)
+                        _key_r = "{0}_{1}_{2}_right".format(tag,k,i)
+                        
+                        d_pairs[_key_r] = _key_l
+                        
+                        l_order.extend([_key_l,_key_r])
+                        
+                        #Right...
+                        d_use = copy.copy(d_handleBase)
+                        d_use['color'] = d_color['right']
+                        d_use['pos'] = p
+                        d_creation[_key_r] = d_use
+                        l_handlesRight.append(_key_r)
+                        
+                        #Left...
+                        d_use = copy.copy(d_handleBase)
+                        d_use['color'] = d_color['left']
+                        d_use['pos'] = _l_left[i]
+                        d_creation[_key_l] = d_use
+                        
+                        l_handlesLeft.append(_key_l)
+                    
+                    #Then curve create dat...
+                    _keys = copy.copy(l_handlesRight)
+                    if _keyCenter:
+                        _keys.append(_keyCenter)
+                    l_handlesLeft.reverse()
+                    _keys.extend(l_handlesLeft)
+                    
+                    if tag == 'upr':
+                        d_uprHandles[k] = copy.copy(_keys)
+                    else:
+                        k_use = k
+                        if k_use == 'bagBottom':
+                            k_use = 'bagTop'
+                        _keys.insert(0,d_uprHandles[k_use][0])
+                        _keys.append(d_uprHandles[k_use][-1])
+                        
+                    
+                    k_crv = "{0}_{1}".format(tag,k)
+                    l_keys_crv.append(k_crv)
+                    d_curveCreation[k_crv] = {'keys':_keys,
+                                              'rebuild':0}
+                    
+                    
+                    
+                    #Setup base loft list
+
+                    #for i,p in enumerate(_l_split):
+                        #LOC.create(position=p,name = "{0}_{1}_{2}_loc".format(tag,k,i))
+                        
+                if tag == 'lwr':
+                    l_keys_crv.append('upr_bagBack')
+                md_loftCreation[tag+'Lip'] =  {'keys':l_keys_crv,
+                                               'rebuild':{'spansU':7,'spansV':7,'degreeU':3},
+                                               'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                               'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                               'kws':{'noRebuild':True}}                
+            #return
+
+       
+            """
+            
+            _res_tmp = mc.loft(l_bulbCurves,
+                               o = True, d = 1, po = 0, c = False,u=False, autoReverse=0,ch=True)
+                                
+            str_meshShape = TRANS.shapes_get(_res_tmp[0])[0]
+            l_knots = SURF.get_dat(str_meshShape, uKnots=True)['uKnots']
+            
+            pprint.pprint(l_knots)
+            
+            crv_bulb_2 = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,MATH.average(l_knots[:2])),
+                                           ch = 0, rn = 0, local = 0)[0]
+            
+            crv_bulb_4 = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,MATH.average(l_knots[1:])),
+                                           ch = 0, rn = 0, local = 0)[0]
+            """
+
+            mc.delete(_l_clean)        
+        
+        
+        
+        
         if self.noseSetup:
             log.debug("|{0}| >>  nose setup...".format(_str_func))
             _str_noseSetup = self.getEnumValueString('noseSetup')
@@ -2203,10 +2473,6 @@ def form(self):
                 for ii,v in enumerate(_l_left):
                     _d_pos_bulb['left'][_idx][ii] = v                
                 
-            
-            
-                
-                
             for section,d_section in d_handlePosDat_nose.iteritems():
                 for side,d_crv in d_section.iteritems():
                     for i,d_pos in d_crv.iteritems():
@@ -2260,11 +2526,7 @@ def form(self):
                     d_curveCreation[k_crv] = {'keys':l_r + l_c + l_l,
                                               'rebuild':0}
                 
-                            
-                            
-                            
-                            
-            
+
             md_loftCreation['nose'] =  {'keys':['bulb_0','bulb_1','bulb_2','bulb_3','bulb_4','bulb_5',
                                                 'bridge_0','bridge_1','bridge_2','bridge_3'],
                                        'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
@@ -2472,10 +2734,6 @@ def form(self):
                 
                 mc.delete(_l_clean)
                 
-                
-            
-            
-            
             for section,d_section in d_handlePosDat_jaw.iteritems():
                 for side,d_crv in d_section.iteritems():
                     for i,d_pos in d_crv.iteritems():
@@ -2545,6 +2803,128 @@ def form(self):
         
            
         
+        
+        # ==========================================================================================
+        # Bridges
+        # ==========================================================================================        
+        log.debug(cgmGEN.logString_sub(_str_func,'Bridges'))
+
+        if self.noseSetup and self.lipSetup:
+            log.debug(cgmGEN.logString_sub(_str_func,'over lip'))
+            
+            #Need a nose curve
+            d_curveCreation['overLipTop'] = {'keys':['nostrilRight',
+                                                     'bulb_2_0_right',
+                                                     'nostrilBaseRight',
+                                                     'bulb_0_1_right',
+                                                     'noseBaseRight',
+                                                     'noseBase',
+                                                     'noseBaseLeft',
+                                                     'bulb_0_1_left',
+                                                     'nostrilBaseLeft',
+                                                     'bulb_2_0_left',
+                                                     'nostrilLeft'],
+                                             'rebuild':0}
+            md_loftCreation['uprLip']['keys'].insert(0,'overLipTop')
+            """
+            md_loftCreation['overLip'] =  {'keys':['overLipTop'],
+                                       'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
+                                       'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                       'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                       'kws':{'noRebuild':True}}"""
+            
+            #Smile/Nose -----------------------------------------------------
+            log.debug(cgmGEN.logString_sub(_str_func,'noseToCheek'))
+            
+            d_curveCreation['noseToCheekLeftStart'] = {'keys':['sneerLeft',
+                                                          'bridge_2_0_left',
+                                                          'bridgeOuterLeft',
+                                                          'bridge_0_0_left',
+                                                          'nostrilTopLeft'],
+                                                       'rebuild':1}
+            d_curveCreation['noseToCheekRightStart'] = {'keys':['sneerRight',
+                                                          'bridge_2_0_right',
+                                                          'bridgeOuterRight',
+                                                          'bridge_0_0_right',
+                                                          'nostrilTopRight'],
+                                                       'rebuild':1}
+            
+            d_curveCreation['noseToCheekLeftEnd'] = {'keys':['orbFrontLeft','cheekBoneLeft'],
+                                                     'rebuild':0}
+            d_curveCreation['noseToCheekRightEnd'] = {'keys':['orbFrontRight', 'cheekBoneRight'],
+                                                       'rebuild':0}
+            
+            md_loftCreation['noseJoinLeft'] =  {'keys':['noseToCheekLeftStart',
+                                                        'noseToCheekLeftEnd'],
+                                             'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
+                                             'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                             'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                             'kws':{'noRebuild':True}}
+            
+            md_loftCreation['noseJoinRight'] =  {'keys':['noseToCheekRightStart',
+                                                        'noseToCheekRightEnd'],
+                                             'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
+                                             'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                             'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                             'kws':{'noRebuild':True}}            
+            
+            #...smile -----------------------------------------------------------------------
+            d_curveCreation['smilePatchLeftStart'] = {'keys':['nostrilTopLeft',
+                                                              'bulb_4_0_left',
+                                                              'nostrilLeft',
+                                                              'upr_LipOver_0_left'],
+                                                       'rebuild':1}
+            d_curveCreation['smilePatchRightStart'] = {'keys':['nostrilTopRight',
+                                                              'bulb_4_0_right',
+                                                              'nostrilRight',
+                                                              'upr_LipOver_0_right'],
+                                                       'rebuild':1}
+            
+            d_curveCreation['smilePatchLeftEnd'] = {'keys':['cheekBoneLeft', 'smileLeft'],
+                                                     'rebuild':0}
+            d_curveCreation['smilePatchRightEnd'] = {'keys':['cheekBoneRight', 'smileRight'],
+                                                       'rebuild':0}
+            
+            md_loftCreation['smilePatchLeft'] =  {'keys':['smilePatchLeftStart',
+                                                          'smilePatchLeftEnd'],
+                                               'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
+                                               'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                               'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                               'kws':{'noRebuild':True}}
+            
+            md_loftCreation['smilePatchRight'] =  {'keys':['smilePatchRightStart',
+                                                           'smilePatchRightEnd'],
+                                                'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
+                                                'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                                'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                                'kws':{'noRebuild':True}}                        
+            
+            
+        if self.jawSetup and self.lipSetup:
+            log.debug(cgmGEN.logString_sub(_str_func,'lip to Chin'))
+            
+            #Need a nose curve
+            d_curveCreation['lipToChinEnd'] = {'keys':['smileRight',
+                                                       'cheek_3_0_right',
+                                                       'cheek_4_0_right',
+                                                       'chinRight',
+                                                       'chin_0_0_center',
+                                                       'chinLeft',
+                                                       'cheek_4_0_left',
+                                                       'cheek_3_0_left',
+                                                       'smileLeft'],
+                                             'rebuild':0}
+            
+            #md_loftCreation['uprLip']['keys'].insert(0,'overLipTop')
+            
+            md_loftCreation['lipToChin'] =  {'keys':[md_loftCreation['lwrLip']['keys'][0],
+                                                     'lipToChinEnd'],
+                                             'rebuild':{'spansU':30,'spansV':5,'degreeU':3},
+                                             'uDriver':'{0}.numJawSplit_u'.format(_short),
+                                             'vDriver':'{0}.numJawSplit_v'.format(_short),
+                                             'kws':{'noRebuild':True}}
+        
+        
         # ==========================================================================================
         # Final bits
         # ==========================================================================================
@@ -2595,7 +2975,7 @@ def form(self):
         idx_ctr = 0
         idx_side = 0
         d = {}
-        
+                
         for tag,mHandle in md_handles.iteritems():
             if cgmGEN.__mayaVersion__ >= 2018:
                 mController = mHandle.controller_get()
@@ -2616,7 +2996,19 @@ def form(self):
                 mHandle.mirrorIndex = idx_ctr
                 idx_ctr +=1
             mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
-    
+            
+            
+        #Hiding unused define handles
+        l_dTagsUsed = []
+        for k,dat in d_curveCreation.iteritems():
+            for t in dat['keys']:
+                if t not in l_dTagsUsed:
+                    l_dTagsUsed.append(t)
+                    
+        for mHandle in ml_defineHandles:
+            if mHandle.getMayaAttr('handleTag') not in l_dTagsUsed:
+                mHandle.v=False
+                
         #Self mirror wiring -------------------------------------------------------
         for k,m in d_pairs.iteritems():
             log.debug("{0} -|- {1}".format(k,m))
@@ -2632,72 +3024,9 @@ def form(self):
                 log.error('Mirror error: {0}'.format(err))
         
         
-        
         self.msgList_connect('formHandles',ml_subHandles)#Connect
         self.msgList_connect('formCurves',md_res['ml_curves'])#Connect        
         return
-        
-        
-        
-            
-        #Build our brow loft --------------------------------------------------------------------------
-        log.debug("|{0}| >> Loft...".format(_str_func)+'-'*40) 
-        self.UTILS.create_simpleFormLoftMesh(self,
-                                                 [md_loftCurves['browLine'].mNode,
-                                                  md_loftCurves['browUpr'].mNode],
-                                                 mFormNull,
-                                                 polyType = 'bezier',
-                                                 baseName = 'brow')
-        
-        #Build our brow loft --------------------------------------------------------------------------
-        log.debug("|{0}| >> Visualize brow...".format(_str_func)+'-'*40)
-        md_directCurves = {}
-        for tag in ['browLeft','browRight']:
-            mCrv = md_loftCurves[tag]
-            ml_temp = []
-            for k in ['start','mid','end']:
-                mLoc = cgmMeta.asMeta(self.doCreateAt())
-                mJointLabel = mHandleFactory.addJointLabel(mLoc,k)
-                
-                self.connectChildNode(mLoc, tag+k.capitalize()+'formHelper','block')
-                
-                mLoc.rename("{0}_{1}_formHelper".format(tag,k))
-                
-                mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,
-                                                                             turnOnPercentage=True))
-                
-                mPointOnCurve.doConnectIn('parameter',"{0}.{1}".format(self.mNode,"param{0}".format(k.capitalize())))
-            
-            
-                mPointOnCurve.doConnectOut('position',"{0}.translate".format(mLoc.mNode))
-            
-                mLoc.p_parent = mNoTransformNull
-                ml_temp.append(mLoc)
-                #mLoc.v=False
-                #mc.pointConstraint(mTrackLoc.mNode,mTrackGroup.mNode)
-                
-            #Joint curves......
-            _crv = mc.curve(d=1,p=[mObj.p_position for mObj in ml_temp])
-            
-            #CORERIG.create_at(create='curve',l_pos = l_pos)
-            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-            mCrv.p_parent = mNoTransformNull
-            mHandleFactory.color(mCrv.mNode)
-            mCrv.rename('{0}_jointCurve'.format(tag))            
-            mCrv.v=False
-            md_loftCurves[tag] = mCrv
-        
-            self.connectChildNode(mCrv, tag+'JointCurve','block')
-        
-            l_clusters = []
-            for i,cv in enumerate(mCrv.getComponents('cv')):
-                _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_temp[i].p_nameBase,i))
-                TRANS.parent_set( _res[1], ml_temp[i].mNode)
-                l_clusters.append(_res)
-                ATTR.set(_res[1],'visibility',False)
-                
-            mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,ch=1,s=8,
-                            n="reparamRebuild")
 
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
