@@ -752,7 +752,7 @@ def get_splitValueList(minU = 0,
             l_uValues.append(maxU)
         log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  
 
-    if cullStartEnd and len(l_uValues)>3:
+    if cullStartEnd and len(l_uValues)>2:
         l_uValues = l_uValues[1:-1]
 
     return l_uValues
