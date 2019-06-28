@@ -1989,8 +1989,8 @@ def form(self):
             
         for mObj in self.msgList_get('defineCurves'):
             md_dCurves[mObj.handleTag] = mObj
-            mObj.template=1
-            #mObj.v = 0
+            #mObj.template=1
+            mObj.v = 0
             
             
         #pprint.pprint(vars())
@@ -3102,6 +3102,9 @@ def form(self):
             _l_clean.extend(l_crvs)
             
             
+
+            d_uprHandles = {}
+            
             #Get our handle values...
             tag = 'overJoin'
             l_keys_crv = []
@@ -3139,7 +3142,8 @@ def form(self):
                 _l_left.reverse()#reverse dat for mirror indexing
                     
                 #Now we need to split out our handle create dat
-
+                
+                
                 
                 for ii,p in enumerate(_l_right):
                     if crv == l_crvs[-1] and p == _l_right[0]:
@@ -3149,7 +3153,7 @@ def form(self):
                     _key_l = "{0}_{1}_{2}_left".format(tag,i,ii)
                     _key_r = "{0}_{1}_{2}_right".format(tag,i,ii)
                     
-                    d_pairs[_key_r] = _key_l
+                    d_pairs[_key_l] = _key_r
                     
                     l_order.extend([_key_l,_key_r])
                     
@@ -3183,6 +3187,8 @@ def form(self):
 
                 #_keys.insert(0,d_bridgeDat['upr']['right']['handles'][-1])
                 #_keys.append(d_bridgeDat['upr']['left']['handles'][-1])
+                
+                d_uprHandles[i] = copy.copy(_keys)
                     
                 k_crv = "{0}_{1}".format(tag,i)
                 l_keys_crv.append(k_crv)
@@ -3265,8 +3271,8 @@ def form(self):
                 _l_split =  CURVES.getUSplitList(crv,d_lipDat['lwr']['count'],rebuild=1)
                 
                 #Pop start and end as we'll use the upr handles
-                #_l_split.pop(0)
-                #_l_split.pop(-1)
+                _l_split.pop(0)
+                _l_split.pop(-1)
                     
                 #Now to split the positional data by left right
                 _mid = MATH.get_midIndex(len(_l_split))
@@ -3300,7 +3306,7 @@ def form(self):
                     _key_l = "{0}_{1}_{2}_left".format(tag,i,ii)
                     _key_r = "{0}_{1}_{2}_right".format(tag,i,ii)
                     
-                    d_pairs[_key_r] = _key_l
+                    d_pairs[_key_l] = _key_r
                     
                     l_order.extend([_key_l,_key_r])
                     
@@ -3334,7 +3340,10 @@ def form(self):
 
                 #_keys.insert(0,d_bridgeDat['upr']['right']['handles'][-1])
                 #_keys.append(d_bridgeDat['upr']['left']['handles'][-1])
-                    
+                _keys.insert(0,d_uprHandles[i][0])
+                _keys.append(d_uprHandles[i][-1])
+                
+                
                 k_crv = "{0}_{1}".format(tag,i)
                 l_keys_crv.append(k_crv)
                 d_curveCreation[k_crv] = {'keys':_keys,
@@ -3647,7 +3656,7 @@ def form(self):
                         _key_l = "{0}_{1}_{2}_left".format(tag,i,ii)
                         _key_r = "{0}_{1}_{2}_right".format(tag,i,ii)
                         
-                        d_pairs[_key_r] = _key_l
+                        d_pairs[_key_l] = _key_r
                         
                         l_order.extend([_key_l,_key_r])
                         
