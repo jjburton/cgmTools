@@ -657,6 +657,32 @@ def normalizeListToSum(L, normalizeTo=1.0):
     normSum = [float(i)/sum(L) for i in L]
     return [i * normalizeTo for i in normSum]
 
+def get_evenSplitDict(L):
+    """
+    Generate a split side list. Assumes right to left values, splits mid out if odd
+    """
+    _len = len(L)
+    _mid = get_midIndex(_len)
+    
+    _midV = L[_mid]
+    
+    if is_even(_len):
+        _l_right = L[:_mid]
+        _l_left = L[_mid:]
+        _res = {'start':_l_right,
+                'end':_l_left}
+    else:
+        _midV = L[_mid]
+        _l_right = L[:_mid]
+        _l_left = L[_mid+1:]
+        _res = {'center':[_midV],
+                'start':_l_right,
+                'end':_l_left}
+        
+    return _res
+        
+
+
 def get_splitValueList(minU = 0,
                        maxU = 1,
                        points = 3,

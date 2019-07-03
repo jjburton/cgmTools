@@ -1083,7 +1083,19 @@ def call_optionVar_ui():
     reload(SNAPCALLS)    
     SNAPCALLS.ui_optionVars()
 
-
+def uiSection_utils(parent = None, selection = None, pairSelected = True):
+    #>>Arrange ----------------------------------------------------------------------------------------
+    _utils= mc.menuItem(parent=parent,subMenu = True,tearOff=True,
+                          l = 'Utils',
+                          ann = "General Utilities")    
+    
+    mc.menuItem(parent=_utils,
+              l = 'Sort Dag',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(ARRANGE.dag_sort),                                               
+              ann = "Sort dag nodes in the outliner")
+    
+    
 def uiSection_snap(parent, selection = None ):
     _str_func = 'uiSection_snap'
         

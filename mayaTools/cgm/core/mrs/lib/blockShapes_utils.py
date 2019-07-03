@@ -60,6 +60,9 @@ import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 import cgm.core.lib.shapeCaster as SHAPECASTER
+import cgm.core.rig.general_utils as RIGGEN
+import cgm.core.lib.string_utils as STR
+
 reload(SHAPECASTER)
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
@@ -74,7 +77,8 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.1.09122018'
 def log_start(str_func):
     log.debug("|{0}| >> ...".format(str_func)+'/'*60)
-    
+
+@cgmGEN.Timer
 def color(self, target = None, side = None, controlType = None, transparent = None,shaderOnly =True):
     _str_func = 'color'
     log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
@@ -1789,6 +1793,252 @@ def pivotHelper(self,mHandle=None,
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 
+def backup(self,ml_handles = None):
+    try:
+        _str_func = 'segment_handles'
+        log_start(_str_func)
+        
+        mBlock = self.mBlock
+        mRigNull = self.mRigNull
+        _offset = self.v_offset
+        _jointOrientation = self.d_orientation['str']
+        
+        if not ml_handles:
+            raise ValueError,"{0} | ml_handles required".format(_str_func)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
+
+def create_face_anchor(self, pos,mSurface,tag,k,side=None,controlType = 'main',nameDict=None, size = 1.0,mStateNull=None):
+    mHandle = cgmMeta.validateObjArg(self.doCreateAt(),'cgmControl',setClass=1)
+    
+    #Position 
+    datClose = DIST.get_closest_point_data(mSurface.mNode, targetPoint=pos)
+    pClose = datClose['position']
+    
+    mHandle.p_position = pClose
+    
+    mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
+                        aimVector = [0,0,1], upVector = [0,1,0],
+                        worldUpObject = self.mNode,
+                        worldUpType = 'objectrotation', 
+                        worldUpVector = [0,1,0]))
+    
+    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',self.controlOffset * 2)
+    
+    mBall = cgmMeta.validateObjArg( CURVES.create_fromName('semiSphere', size = size), 
+                                      'cgmControl',setClass=1)
+    mBall.doSnapTo(mHandle)
+    mBall.p_position = pBall
+    
+    _crvLinear = CORERIG.create_at(create='curveLinear',
+                                   l_pos=[pClose,pBall])
+    
+    CORERIG.shapeParent_in_place(mHandle.mNode, mBall.mNode,False)
+    CORERIG.shapeParent_in_place(mHandle.mNode, _crvLinear,False)            
+
+    mHandle._verifyMirrorable()
+    
+    if mStateNull:mHandle.p_parent = mStateNull
+    
+    if nameDict:
+        RIGGEN.store_and_name(mHandle,nameDict)
+    else:
+        mHandle.doStore('cgmName',tag)
+        mHandle.doStore('cgmType','anchor')
+        mHandle.doName()
+        
+    _key = tag
+    if k:
+        _key = _key+k.capitalize()
+        
+    color(self,mHandle.mNode, side = side, controlType=controlType)
+
+    return mHandle
+
+def create_face_handle(self, pos, tag, k, side,
+                       controlType = 'main',
+                       mainShape = 'squareRounded',
+                       mHandleShape = None,
+                       mSurface = None,
+                       jointShape = 'axis3d',
+                       jointSize = None,
+                       size = 1.0,
+                       offset = 1,
+                       mStateNull = None,
+                       mNoTransformNull = None,
+                       mDriver = None,
+                       mode = None,
+                       plugShape = 'prerigHelper',
+                       plugDag = 'jointHelper',
+                       attachToSurf = False,
+                       aimGroup = 0,nameDict = None):
+    
+    #Main handle ==================================================================================
+    #Create...
+    _mainSize = size
+    if controlType == 'sub':
+        _mainSize = size*.7
+        
+    if mHandleShape:
+        mHandle = mHandleShape
+    else:
+        mHandle = cgmMeta.validateObjArg( CURVES.create_fromName(mainShape, size = _mainSize), 
+                                      'cgmControl',setClass=1)
+        mHandle._verifyMirrorable()
+        mHandle.doSnapTo(self)
+        if pos:mHandle.p_position = pos
+    
+    mHandle.p_parent = mStateNull
+    
+    #Name...
+    if nameDict:
+        dUse = copy.copy(nameDict)
+        dUse['cgmType'] = plugShape
+        
+        RIGGEN.store_and_name(mHandle,dUse)
+    else:
+        mHandle.doStore('cgmName',tag)
+        mHandle.doStore('cgmType', plugShape)
+        mHandle.doName()
+        
+        
+    _key = tag
+    if k:
+        _key = _key+k.capitalize()
+    """
+    mMasterGroup = mHandle.doGroup(True,True,
+                                   asMeta=True,
+                                   typeModifier = 'master',
+                                   setClass='cgmObject')"""
+
+
+    color(self, mHandle.mNode,side = side, controlType=controlType)
+    mStateNull.connectChildNode(mHandle, _key+STR.capFirst(plugShape),'block')
+    
+    if mSurface:
+        mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
+                                aimVector = [0,0,1], upVector = [0,1,0],
+                                worldUpObject = self.mNode,
+                                worldUpType = 'objectrotation', 
+                                worldUpVector = [0,1,0]))
+    
+    #Main handle ==================================================================================
+    #Create...
+    if jointSize is None:
+        jointSize = size/2.0
+        
+    mDagHelper = cgmMeta.validateObjArg( CURVES.create_fromName(jointShape, size = jointSize,
+                                                                bakeScale=1), 
+                                      'cgmControl',setClass=1)
+    
+    if jointShape in ['axis3d']:
+        mDagHelper.addAttr('cgmColorLock',True,lock=True,hidden=True)            
+    else:
+        color(self, mDagHelper.mNode,side = side, controlType=controlType)
+        
+    mDagHelper._verifyMirrorable()
+    mDagHelper.doSnapTo(self)
+    
+    if not mHandleShape:
+        mDagHelper.p_orient = mHandle.p_orient
+        mDagHelper.p_parent = mStateNull
+    
+    if pos:mDagHelper.p_position = pos
+    
+    #Name...
+    if nameDict:
+        dUse = copy.copy(nameDict)
+        dUse['cgmType'] = plugDag               
+        RIGGEN.store_and_name(mDagHelper,dUse)
+    else:
+        mDagHelper.doStore('cgmName',tag)
+        mDagHelper.doStore('cgmType',plugDag)
+        mDagHelper.doName()
+        
+        
+
+    """
+    mMasterGroup = mDagHelper.doGroup(True,True,
+                                   asMeta=True,
+                                   typeModifier = 'master',
+                                   setClass='cgmObject')"""
+
+
+    mStateNull.connectChildNode(mDagHelper, _key+STR.capFirst(plugDag),'block')
+    
+    
+    if mSurface:
+        if attachToSurf:
+            #Attach group... -------------------------------------------------------------------------------
+            mTrack = mHandle.doCreateAt()
+            mTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
+            mTrack.p_parent = mNoTransformNull
+        
+            _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mSurface.mNode,None,driver= mDriver)
+            md = _res[-1]
+            mFollicle = md['mFollicle']
+            for k in ['mDriverLoc','mFollicle']:
+                md[k].p_parent = mNoTransformNull
+                md[k].v = False
+                
+            mTrack.p_position = md['mFollicle'].p_position
+            mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
+                
+            mDepth = mTrack.doCreateAt(setClass=1)
+            mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))
+            mDepth.p_parent = mTrack
+            
+            mDagHelper.p_parent = mDepth
+            
+            if mode == 'handle':
+                mPush = mTrack.doCreateAt(setClass=1)
+                mPush.rename("{0}_pushDriver".format(mHandle.p_nameBase))
+                
+                mPush.p_parent = mTrack
+                mHandle.p_parent = mPush
+                ATTR.connect('{0}.controlOffset'.format(self.mNode), "{0}.tz".format(mPush.mNode))
+            
+            else:
+                mHandle.p_parent = mTrack
+                mHandle.p_position = mTrack.p_position
+                mDagHelper.resetAttrs()
+                
+            ATTR.connect('{0}.jointDepth'.format(self.mNode), "{0}.tz".format(mDepth.mNode))
+        else:
+            _dat = DIST.get_closest_point_data(mSurface.mNode, targetObj=mHandle)
+            
+            mHandle.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.controlOffset)
+            mDagHelper.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.jointDepth)
+            
+    
+
+    if aimGroup:
+        mHandle.doGroup(True,True,
+                        asMeta=True,
+                        typeModifier = 'aim',
+                        setClass='cgmObject')
+
+    mDagHelper.doStore('shapeHelper',mHandle)
+    mHandle.doStore('dagHelper',mDagHelper)
+    
+    return mHandle,mDagHelper
+
+def create_visualTrack(self,mHandle, mTarget,tag='track',mParent = None):
+    _str_func = 'create_visualTrack'
+    log.debug("|{0}| >> visualConnection ".format(_str_func, tag))
+    trackcrv,clusters = CORERIG.create_at([mHandle.mNode,
+                                           mTarget.mNode],#ml_handleJoints[1]],
+                                          'linearTrack',
+                                          baseName = '{0}_midTrack'.format(tag))
+
+    mTrackCrv = cgmMeta.asMeta(trackcrv)
+    if mParent:mTrackCrv.p_parent = mParent
+    color(self, trackcrv, controlType = 'sub')
+
+    for s in mTrackCrv.getShapes(asMeta=True):
+        s.overrideEnabled = 1
+        s.overrideDisplayType = 2    
+    
 def backup(self,ml_handles = None):
     try:
         _str_func = 'segment_handles'

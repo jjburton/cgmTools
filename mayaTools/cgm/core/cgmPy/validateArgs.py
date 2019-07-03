@@ -585,7 +585,7 @@ def mNodeString(arg):
     except:return arg
     
 def mNodeStringList(l):
-    l = listArg(l)
+    l = listArg(l) or []
     
     _res = []
     for o in l:
