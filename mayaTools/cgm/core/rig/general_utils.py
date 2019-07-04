@@ -584,6 +584,8 @@ def check_nameMatches(self,mlControls,justReport = False):
 def store_and_name(mObj,d):
     _str_func = 'store_and_name'
     for t,v in d.iteritems():
+        if v in [None]:
+            continue
         log.debug("|{0}| >> {1} | {2}.".format(_str_func,t,v))            
         mObj.doStore(t,v)
     mObj.doName()

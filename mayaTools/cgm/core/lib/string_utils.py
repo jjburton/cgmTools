@@ -35,8 +35,8 @@ def levenshtein(s1, s2):
     return previous_row[-1]
 
 def capFirst(s1):
-    return "{0}{1}".format(s1[0].capitalize(),s1[1:])
-
+    try:return "{0}{1}".format(s1[0].capitalize(),s1[1:])
+    except:return s1
 
 def camelCase(arg = None):
     """

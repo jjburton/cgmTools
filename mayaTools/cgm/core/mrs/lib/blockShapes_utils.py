@@ -78,7 +78,7 @@ __version__ = 'alpha.1.09122018'
 def log_start(str_func):
     log.debug("|{0}| >> ...".format(str_func)+'/'*60)
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def color(self, target = None, side = None, controlType = None, transparent = None,shaderOnly =True):
     _str_func = 'color'
     log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
@@ -1808,7 +1808,8 @@ def backup(self,ml_handles = None):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 
-def create_face_anchor(self, pos,mSurface,tag,k,side=None,controlType = 'main',nameDict=None, size = 1.0,mStateNull=None):
+def create_face_anchor(self, pos, mSurface,tag,k,side=None,controlType = 'main',orientToSurf = False,
+                       nameDict=None, size = 1.0,mStateNull=None):
     mHandle = cgmMeta.validateObjArg(self.doCreateAt(),'cgmControl',setClass=1)
     
     #Position 
@@ -1817,11 +1818,12 @@ def create_face_anchor(self, pos,mSurface,tag,k,side=None,controlType = 'main',n
     
     mHandle.p_position = pClose
     
-    mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
-                        aimVector = [0,0,1], upVector = [0,1,0],
-                        worldUpObject = self.mNode,
-                        worldUpType = 'objectrotation', 
-                        worldUpVector = [0,1,0]))
+    if orientToSurf:
+        mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
+                            aimVector = [0,0,1], upVector = [0,1,0],
+                            worldUpObject = self.mNode,
+                            worldUpType = 'objectrotation', 
+                            worldUpVector = [0,1,0]))
     
     pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',self.controlOffset * 2)
     
@@ -1871,6 +1873,7 @@ def create_face_handle(self, pos, tag, k, side,
                        plugShape = 'prerigHelper',
                        plugDag = 'jointHelper',
                        attachToSurf = False,
+                       orientToDriver = False,
                        aimGroup = 0,nameDict = None):
     
     #Main handle ==================================================================================
@@ -1915,7 +1918,7 @@ def create_face_handle(self, pos, tag, k, side,
     color(self, mHandle.mNode,side = side, controlType=controlType)
     mStateNull.connectChildNode(mHandle, _key+STR.capFirst(plugShape),'block')
     
-    if mSurface:
+    if mSurface and not orientToDriver:
         mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
                                 aimVector = [0,0,1], upVector = [0,1,0],
                                 worldUpObject = self.mNode,
@@ -2004,11 +2007,15 @@ def create_face_handle(self, pos, tag, k, side,
                 mDagHelper.resetAttrs()
                 
             ATTR.connect('{0}.jointDepth'.format(self.mNode), "{0}.tz".format(mDepth.mNode))
+            
+            if orientToDriver:
+                mc.orientConstraint(mDriver.mNode, mTrack.mNode,maintainOffset = True)
         else:
             _dat = DIST.get_closest_point_data(mSurface.mNode, targetObj=mHandle)
             
             mHandle.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.controlOffset)
             mDagHelper.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.jointDepth)
+            
             
     
 
