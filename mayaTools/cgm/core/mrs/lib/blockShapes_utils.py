@@ -1869,6 +1869,7 @@ def create_face_handle(self, pos, tag, k, side,
                        mStateNull = None,
                        mNoTransformNull = None,
                        mDriver = None,
+                       mAttachCrv = None,
                        mode = None,
                        plugShape = 'prerigHelper',
                        plugDag = 'jointHelper',
@@ -1937,7 +1938,7 @@ def create_face_handle(self, pos, tag, k, side,
     if jointShape in ['axis3d']:
         mDagHelper.addAttr('cgmColorLock',True,lock=True,hidden=True)            
     else:
-        color(self, mDagHelper.mNode,side = side, controlType=controlType)
+        color(self, mDagHelper.mNode,side = side, controlType='sub')
         
     mDagHelper._verifyMirrorable()
     mDagHelper.doSnapTo(self)
@@ -1969,8 +1970,8 @@ def create_face_handle(self, pos, tag, k, side,
 
     mStateNull.connectChildNode(mDagHelper, _key+STR.capFirst(plugDag),'block')
     
-    
-    if mSurface:
+        
+    if mSurface or mAttachCrv:
         if attachToSurf:
             #Attach group... -------------------------------------------------------------------------------
             mTrack = mHandle.doCreateAt()
@@ -2003,16 +2004,32 @@ def create_face_handle(self, pos, tag, k, side,
             
             else:
                 mHandle.p_parent = mTrack
-                mHandle.p_position = mTrack.p_position
-                mDagHelper.resetAttrs()
                 
+                if mAttachCrv:
+                    mCrvTrack = mHandle.doCreateAt()
+                    mCrvTrack.rename("{0}_crvDriver".format(mHandle.p_nameBase))
+                    mCrvTrack.p_parent = mNoTransformNull
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mCrvTrack.mNode,mAttachCrv.mNode,'conPoint')
+                    TRANS.parent_set(_res[0], mNoTransformNull.mNode)                    
+                    
+                    log.debug(cgmGEN.logString_msg('attachCrv'))
+                    mDagHelper.p_parent = mCrvTrack
+                    mDagHelper.resetAttrs()
+                    
+                    if orientToDriver:
+                        mc.orientConstraint(mDriver.mNode, mCrvTrack.mNode,maintainOffset = False)
+                    mHandle.resetAttrs('translate')
+                    
+                else:
+                    mHandle.p_position = mTrack.p_position                    
+                    mDagHelper.resetAttrs()
             ATTR.connect('{0}.jointDepth'.format(self.mNode), "{0}.tz".format(mDepth.mNode))
             
             if orientToDriver:
-                mc.orientConstraint(mDriver.mNode, mTrack.mNode,maintainOffset = True)
+                mc.orientConstraint(mDriver.mNode, mTrack.mNode,maintainOffset = False)
         else:
             _dat = DIST.get_closest_point_data(mSurface.mNode, targetObj=mHandle)
-            
             mHandle.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.controlOffset)
             mDagHelper.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.jointDepth)
             
