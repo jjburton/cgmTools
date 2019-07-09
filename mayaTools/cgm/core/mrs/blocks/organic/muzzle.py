@@ -171,6 +171,8 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  'teethSetup':'none:oneJoint:twoJoint',
                  'cheekSetup':'none:single',
                  'tongueSetup':'none:single:ribbon',
+                 'sneerSetup':'none:single',
+                 
                  #Jaw...
                  'uprJawSetup':'none:default',
                  'chinSetup':'none:single',
@@ -211,6 +213,8 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  #Tongue...
                  'numJointsTongue':'int',
                  'jointDepth':'float',
+                 'jointDepthLip':'float',
+                 
                  'jointRadius':'float',                 
                  'controlOffset':'float',                 
                  }
@@ -246,7 +250,9 @@ d_defaultSettings = {'version':__version__,
                      'numBridgeSplit':1,
                      'numLipOverSplit':3,
                      'numLipUnderSplit':2,
-                     'jointDepth':-.01,
+                     'jointDepth':-.41,
+                     'jointDepthLip':-.41,
+                     
                      'controlOffset':1,
                      'jointRadius':1.0,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
@@ -3456,6 +3462,8 @@ def prerig(self):
         _size = MATH.average(self.baseSize[1:])
         _size_base = _size * .25
         _size_sub = _size_base * .5
+        _size_anchor = _size_sub/4
+        
         _muzzleSize = _offset * 4.0
         
         #mRoot = self.getMessageAsMeta('rootHelper')
@@ -3493,12 +3501,461 @@ def prerig(self):
         
         d_baseHandeKWS = {'mStateNull' : mStateNull,
                           'mNoTransformNull' : mNoTransformNull,
-                          'jointSize': _offset * 4.0}
+                          'jointSize': self.jointRadius}
         
         #==================================================================================================
         # Processing 
         #==================================================================================================
         #Main setup -----------------------------------------------------
+        if self.jawSetup:#   Jaw setup ============================================================
+            log.debug(cgmGEN.logString_sub(_str_func,'jaw'))
+            
+            #Shape...
+            l_jaw = ['jawTopRight',
+                     'jawRight',
+                     'jawNeckRight',
+                     'jawFrontRight',
+                     'jawFrontLeft',
+                     'jawNeckLeft',
+                     'jawLeft',
+                     'jawTopLeft']
+                                
+            _crv = CORERIG.create_at(create='curve',l_pos=[md_dHandles[k].p_position for k in l_jaw])
+            #md_dCurves['jawLine'].mNode
+            _shape = mc.offsetCurve(_crv,rn=0,cb=1,st=1,cl=1,cr=0,ch=0,
+                                    d=1,tol=.0001,sd=1,ugn=0,
+                                    distance =-_offset*2.0)
+            mc.delete(_crv)
+        
+            mShape = cgmMeta.validateObjArg(_shape[0],'cgmControl',setClass=1)            
+            mHandleFactory.color(mShape.mNode,side = 'center', controlType='main')
+        
+            _d_name = {'cgmName':'jaw',
+                       'cgmType':'jointHelper'}
+            
+            _d_kws = copy.copy(d_baseHandeKWS)
+            _d_kws['jointSize'] *= 2 
+            mShape,mDag = BLOCKSHAPES.create_face_handle(self, None,'jaw',None,'center',
+                                                         mHandleShape=mShape,
+                                                         size = _muzzleSize,
+                                                         nameDict=_d_name,
+                                                         aimGroup=0,
+                                                         **_d_kws)            
+            
+            
+            md_jointHandles['jawLower'] = mDag
+            mDag.p_position = DGETAVG([md_dHandles['jawRight'].p_position,
+                                                              md_dHandles['jawLeft'].p_position])
+
+            ml_jointHandles.append(mDag)            
+            ml_handles.append(mShape)
+        
+            md_handles['jaw'] = mShape
+            md_handles['jawJoint'] = mDag
+            md_mirrorDat['center'].extend([mShape,mDag])
+            
+            mDag.p_parent = mStateNull
+        
+        if self.chinSetup:# chin setup ============================================================
+            log.debug(cgmGEN.logString_sub(_str_func,'chin setup'))
+            str_chinSetup = self.getEnumValueString('chinSetup')
+            
+            if str_chinSetup == 'single':
+                log.debug(cgmGEN.logString_msg(_str_func, str_chinSetup))
+                mSurf =  self.jawFormLoft
+                
+                _tag = 'chin'                
+                _dTmp = {'cgmName':_tag}
+                #_dTmp = copy.copy(_d_name)
+                #_dTmp['cgmName'] = _tag
+                
+                p_chinBase = DGETAVG([d_basePosDat['chinLeft'],
+                                      d_basePosDat['chinRight']])
+                
+                d_handleKWS = {
+                    'mode' : 'handle',
+                    'mSurface':mSurf,
+                    'handleShape' :'semiSphere',
+                    'handleSize' : _size_sub,
+                    'anchorSize' : _size_anchor,
+                    'orientToDriver':True,
+                    'attachToSurf':True,
+                    'nameDict':_dTmp,
+                    'md_mirrorDat':md_mirrorDat,
+                    'ml_handles':ml_handles,
+                    'md_handles':md_handles,
+                    'ml_jointHandles':ml_jointHandles,
+                }
+                d_handleKWS.update(d_baseHandeKWS)
+
+                mAnchor,mShape,mDag = BLOCKSHAPES.create_face_anchorHandleCombo(self,
+                                                                                p_chinBase,
+                                                                                _tag,
+                                                                                None,
+                                                                                'center',
+                                                                                **d_handleKWS)
+                #ml_handles.extend([mAnchor,mShape,mDag])                
+                #md_handles[_tag] = mShape
+                #md_handles[_tag+'Joint'] = mDag
+                #ml_jointHandles.append(mDag)
+                #md_mirrorDat['center'].extend([mAnchor,mShape,mDag])
+                BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['jawJoint'],
+                                               _tag,mNoTransformNull)
+                """
+                mShape,mDag = BLOCKSHAPES.create_face_handle(self,
+                                                             p_chinBase,
+                                                             _tag,
+                                                             None,
+                                                             'center',
+                                                             mSurface=mSurf,
+                                                             mainShape='semiSphere',
+                                                             size = _size_sub,
+                                                             nameDict=_dTmp,
+                                                             **d_baseHandeKWS)            
+                                                             """
+
+            else:
+                raise ValueError,"Invalid chinSetup: {0}".format(str_chinSetup)
+            
+        if self.muzzleSetup:#Muzzle ============================================================
+            log.debug(cgmGEN.logString_sub(_str_func,'muzzle'))
+            
+            _d_name = {'cgmName':'muzzle',
+                       'cgmType':'jointHelper'}
+            
+            
+            pMuzzleBase = md_dHandles['bridge'].p_position
+            pMuzzleBase = DIST.get_pos_by_vec_dist(pMuzzleBase, 
+                                                   vec_selfUp,
+                                                   _offset*2)
+            
+            p = DIST.get_pos_by_vec_dist(pMuzzleBase, 
+                                                          vec_self,
+                                                          -_offset*4)
+            
+            mShape = cgmMeta.asMeta(CURVES.create_fromName('pyramid',size = _muzzleSize, direction = 'z+'))
+
+            mShape,mDag = BLOCKSHAPES.create_face_handle(self, p,'muzzle',None,'center',
+                                                         mHandleShape=mShape,
+                                                         size = _muzzleSize,
+                                                         nameDict=_d_name,
+                                                         aimGroup=0,
+                                                         **d_baseHandeKWS)
+            BLOCKSHAPES.color(self,mShape)
+            
+            
+            TRANS.scale_to_boundingBox(mShape.mNode, [_muzzleSize,_muzzleSize,_muzzleSize/1.5])
+            mShape.p_position = DIST.get_pos_by_vec_dist(pMuzzleBase, 
+                                                         vec_self,
+                                                         _offset*2)
+            
+            mShape.p_parent = mStateNull
+            mDag.p_parent = mStateNull
+            
+            ml_handles.append(mShape)
+            md_handles['muzzle'] = mShape
+            md_handles['muzzleJoint'] = mDag
+            ml_jointHandles.append(mDag)
+            md_jointHandles['muzzle'] = mDag
+            
+            md_mirrorDat['center'].extend([mShape,mDag])
+            
+            
+
+        if self.sneerSetup:# Nose setup ============================================================
+            log.debug(cgmGEN.logString_sub(_str_func,'sneer setup'))
+            str_sneerSetup = self.getEnumValueString('sneerSetup')
+            
+            _d_name = {'cgmName':'sneer',
+                       'cgmType':'handleHelper'}            
+        
+            if str_sneerSetup == 'single':
+                mSurf =  self.noseFormLoft
+
+                #d_pairs['nostrilLeft'] = 'nostrilRight'
+                #d_pairs['nostrilLeftJoint'] = 'nostrilRightJoint'
+                
+                for side in ['left','right']:
+                    #Get our position
+                    _cap = side.capitalize()
+                    _tag = 'sneer'+_cap
+                    log.debug(cgmGEN.logString_msg(_str_func, 'sneer | {0}'.format(_tag)))
+                    mSurf = self.getMessageAsMeta('uprJoin{0}FormLoft'.format(_cap))
+                    _dTmp = {'cgmName':'sneer',
+                             'cgmDirection':side}
+                    
+                    d_handleKWS = {
+                        'mode' : 'handle',
+                        'mSurface':mSurf,
+                        'handleShape' :'semiSphere',
+                        'handleSize' : _size_sub,
+                        'anchorSize' : _size_anchor,
+                        'orientToDriver':True,
+                        'orientToSurf':False,
+                        
+                        'attachToSurf':True,
+                        'nameDict':_dTmp,
+                        'md_mirrorDat':md_mirrorDat,
+                        'ml_handles':ml_handles,
+                        'md_handles':md_handles,
+                        'ml_jointHandles':ml_jointHandles,
+                    }
+                    d_handleKWS.update(d_baseHandeKWS)
+    
+                    mAnchor,mShape,mDag = BLOCKSHAPES.create_face_anchorHandleCombo(self,
+                                                                                    d_basePosDat['sneer'+_cap],
+                                                                                    _tag,
+                                                                                    None,
+                                                                                    side,
+                                                                                    **d_handleKWS)                        
+
+        
+        if self.noseSetup:# Nose setup ============================================================
+            log.debug(cgmGEN.logString_sub(_str_func,'nose setup'))
+            str_noseSetup = self.getEnumValueString('noseSetup')
+            
+            _d_name = {'cgmName':'nose',
+                       'cgmType':'handleHelper'}            
+        
+            if str_noseSetup == 'simple':
+                log.debug(cgmGEN.logString_msg(_str_func, str_noseSetup))
+                mSurf =  self.noseFormLoft
+                
+                #NoseBase -------------------------------------------------------------------
+                _tag = 'noseBase'                
+                _dTmp = copy.copy(_d_name)
+                _dTmp['cgmName'] = _tag
+                
+                p_noseBase = DGETAVG([d_basePosDat['nostrilLeft'],
+                                      d_basePosDat['nostrilRight']])
+                
+                mShape,mDag = BLOCKSHAPES.create_face_handle(self,
+                                                             p_noseBase,
+                                                             'noseBase',
+                                                             None,
+                                                             'center',
+                                                             mainShape='loftWideDown',
+                                                             size = _size_sub*2.0,
+                                                             nameDict=_dTmp,
+                                                             **d_baseHandeKWS)
+                    
+                mShape.p_position = DGETAVG([d_basePosDat['noseTipLeft'],
+                                             d_basePosDat['noseTipRight']])
+                
+                ml_handles.append(mShape)                
+                md_handles[_tag] = mShape
+                md_handles[_tag+'Joint'] = mDag
+                ml_jointHandles.append(mDag)
+                md_mirrorDat['center'].extend([mShape,mDag])
+                
+                vec_nose = MATH.get_vector_of_two_points(p_noseBase, d_basePosDat['noseTip'])
+                
+                if self.numJointsNoseTip:#NoseTip ----------------------------------------------------
+                    log.debug(cgmGEN.logString_msg(_str_func, 'nosetip...'))
+                    _tag = 'noseTip'
+                    _dTmp = copy.copy(_d_name)
+                    _dTmp['cgmName'] = 'noseTip'
+                    
+                    
+                    
+                    d_handleKWS = {
+                        'mode' : 'handle',
+                        'mSurface':mSurf,
+                        'handleShape' :'semiSphere',
+                        'handleSize' : _size_sub,
+                        'anchorSize' : _size_anchor,
+                        'orientToDriver':True,
+                        'attachToSurf':True,
+                        'nameDict':_dTmp,
+                        'md_mirrorDat':md_mirrorDat,
+                        'ml_handles':ml_handles,
+                        'md_handles':md_handles,
+                        'ml_jointHandles':ml_jointHandles,
+                    }
+                    d_handleKWS.update(d_baseHandeKWS)
+    
+                    mAnchor,mShape,mDag = BLOCKSHAPES.create_face_anchorHandleCombo(self,
+                                                                                    d_basePosDat['noseTip'],
+                                                                                    'noseTip',
+                                                                                    None,
+                                                                                    'center',
+                                                                                    **d_handleKWS)
+                    
+                    
+                    
+                    """
+                    mShape,mDag = BLOCKSHAPES.create_face_handle(self,
+                                                                 d_basePosDat['noseTip'],
+                                                                 'noseTip',
+                                                                 None,
+                                                                 'center',
+                                                                 #mSurface = mSurf,
+                                                                 mainShape='semiSphere',
+                                                                 size = _size_sub,
+                                                                 nameDict=_dTmp,
+                                                                 **d_baseHandeKWS)            
+
+                    ml_handles.append(mShape)                
+                    md_handles[_tag] = mShape
+                    md_handles[_tag+'Joint'] = mDag
+                    ml_jointHandles.append(mDag)
+                    
+                    mShape.p_parent = mNoTransformNull
+                    
+                    md_mirrorDat['center'].extend([mShape,mDag])
+
+
+                    mShape.p_position = DIST.get_pos_by_vec_dist( d_basePosDat['noseTip'],
+                                                                  vec_nose,
+                                                                  self.controlOffset)
+                    mDag.p_position = DIST.get_pos_by_vec_dist( d_basePosDat['noseTip'],
+                                                                vec_nose,
+                                                                self.jointDepth)"""
+                    
+                    
+                    
+                    BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['noseBaseJoint'],_tag,mNoTransformNull)
+                    
+                if self.numJointsNostril:#Nostrils --------------------------------------
+                    #d_pairs['nostrilLeft'] = 'nostrilRight'
+                    #d_pairs['nostrilLeftJoint'] = 'nostrilRightJoint'
+                    
+                    for side in ['left','right']:
+                        #Get our position
+                        _tag = 'nostril'+side.capitalize()
+                        log.debug(cgmGEN.logString_msg(_str_func, 'nosetip | {0}'.format(_tag)))
+                        _dTmp = {'cgmName':'nostril',
+                                 'cgmDirection':side}
+                            
+                        d_handleKWS = {
+                            'mode' : 'handle',
+                            'mSurface':mSurf,
+                            'handleShape' :'semiSphere',
+                            'handleSize' : _size_sub,
+                            'anchorSize' : _size_anchor,
+                            'orientToDriver':True,
+                            'orientToSurf':True,
+                            
+                            'attachToSurf':True,
+                            'nameDict':_dTmp,
+                            'md_mirrorDat':md_mirrorDat,
+                            'ml_handles':ml_handles,
+                            'md_handles':md_handles,
+                            'ml_jointHandles':ml_jointHandles,
+                        }
+                        d_handleKWS.update(d_baseHandeKWS)
+        
+                        mAnchor,mShape,mDag = BLOCKSHAPES.create_face_anchorHandleCombo(self,
+                                                                                        d_basePosDat['nostril'+side.capitalize()],
+                                                                                        _tag,
+                                                                                        None,
+                                                                                        side,
+                                                                                        **d_handleKWS)                        
+                        
+                        """
+                        mShape,mDag = BLOCKSHAPES.create_face_handle(self,
+                                                                     d_basePosDat['nostril'+side.capitalize()],
+                                                                     _tag,
+                                                                     None,
+                                                                     'center',
+                                                                     controlType = 'sub',
+                                                                     mSurface = mSurf,
+                                                                     mainShape='semiSphere',
+                                                                     size= _size_sub/2.0,
+                                                                     nameDict=_dTmp,
+                                                                     **d_baseHandeKWS)            
+    
+                        ml_handles.append(mShape)                
+                        md_handles[_tag] = mShape
+                        md_handles[_tag+'Joint'] = mDag
+                        ml_jointHandles.append(mDag)
+                        md_mirrorDat[side].extend([mShape,mDag])
+                        
+                        mShape.p_parent = mDag"""
+                        
+                        BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['noseBaseJoint'],
+                                                       _tag,mNoTransformNull)
+
+                        
+
+        
+        
+
+        if self.cheekSetup:# cheek setup ============================================================
+            log.debug(cgmGEN.logString_sub(_str_func,'Cheek setup'))
+            str_cheekSetup = self.getEnumValueString('cheekSetup')
+            
+            if str_cheekSetup == 'single':
+                log.debug(cgmGEN.logString_msg(_str_func, 'single'))
+                
+                mSurf =  self.jawFormLoft
+                
+                _d_name = {'cgmName':'cheek',
+                           'cgmType':'handleHelper'}
+                
+                d_pairs['cheekLeft'] = 'cheekRight'
+                d_pairs['cheekLeftJoint'] = 'cheekRightJoint'                
+                
+                for side in ['left','right']:
+                    #Get our position
+                    _tag = 'cheek'+side.capitalize()
+                    log.debug(cgmGEN.logString_msg(_str_func, 'cheek | {0}'.format(_tag)))
+                    _dTmp = copy.copy(_d_name)
+                    _dTmp['cgmDirection'] = side
+                    
+                    
+                    d_handleKWS = {
+                        'mode' : 'handle',
+                        'mSurface':mSurf,
+                        'handleShape' :'semiSphere',
+                        'handleSize' : _size_sub,
+                        'anchorSize' : _size_anchor,
+                        'orientToSurf':True,
+                        'orientToDriver':True,
+                        'attachToSurf':True,
+                        'nameDict':_dTmp,
+                        'md_mirrorDat':md_mirrorDat,
+                        'ml_handles':ml_handles,
+                        'md_handles':md_handles,
+                        'ml_jointHandles':ml_jointHandles,
+                    }
+                    d_handleKWS.update(d_baseHandeKWS)
+    
+                    mAnchor,mShape,mDag = BLOCKSHAPES.create_face_anchorHandleCombo(self,
+                                                                                    d_basePosDat[_tag],
+                                                                                    _tag,
+                                                                                    None,
+                                                                                    side,
+                                                                                    **d_handleKWS)                    
+                    
+                    """
+                    mShape,mDag = BLOCKSHAPES.create_face_handle(self,
+                                                                 d_basePosDat[_tag],
+                                                                 _tag,
+                                                                 None,
+                                                                 side,
+                                                                 controlType = 'sub',
+                                                                 mSurface = mSurf,
+                                                                 mainShape='semiSphere',
+                                                                 size= _size_sub,
+                                                                 nameDict=_dTmp,
+                                                                 **d_baseHandeKWS)            
+
+                    ml_handles.append(mShape)                
+                    md_handles[_tag] = mShape
+                    md_handles[_tag+'Joint'] = mDag
+                    ml_jointHandles.append(mDag)
+                    
+                    mShape.p_parent = mDag
+                    md_mirrorDat[side].extend([mShape,mDag])"""
+                    
+                    BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['jawJoint'],
+                                                   _tag,mNoTransformNull)
+    
+            else:
+                raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekSetup)   
+
+        
         if self.lipSetup:
             log.debug(cgmGEN.logString_sub(_str_func, 'lipSetup'))
             
@@ -3774,6 +4231,7 @@ def prerig(self):
                                                                       jointShape='locatorForm',
                                                                       controlType='main',#_controlType,
                                                                       mode='handle',
+                                                                      depthAttr = 'jointDepthLip',
                                                                       plugDag= 'preDag',
                                                                       plugShape= 'preShape',
                                                                       attachToSurf=True,
@@ -3806,6 +4264,8 @@ def prerig(self):
                                                                           mSurface=mLipLoft,
                                                                           mainShape=_shapeUse,
                                                                           jointShape='locatorForm',
+                                                                          depthAttr = 'jointDepthLip',
+                                                                          
                                                                           controlType='main',#_controlType,
                                                                           mode='handle',
                                                                           plugDag= 'preDag',
@@ -4099,298 +4559,8 @@ def prerig(self):
             ml_resCurves.extend(md_res['ml_curves'])
             
         
-        if self.muzzleSetup:#Muzzle ------------------------------------------------------------------------
-            log.debug(cgmGEN.logString_sub(_str_func,'muzzle'))
-            
-            _d_name = {'cgmName':'muzzle',
-                       'cgmType':'jointHelper'}
-            
-            
-            pMuzzleBase = md_dHandles['bridge'].p_position
-            pMuzzleBase = DIST.get_pos_by_vec_dist(pMuzzleBase, 
-                                                   vec_selfUp,
-                                                   _offset*2)
-            
-            p = DIST.get_pos_by_vec_dist(pMuzzleBase, 
-                                                          vec_self,
-                                                          -_offset*4)
-            
-            mShape = cgmMeta.asMeta(CURVES.create_fromName('pyramid',size = _muzzleSize, direction = 'z+'))
+       
 
-            mShape,mDag = BLOCKSHAPES.create_face_handle(self, p,'muzzle',None,'center',
-                                                         mHandleShape=mShape,
-                                                         size = _muzzleSize,
-                                                         nameDict=_d_name,
-                                                         aimGroup=0,
-                                                         **d_baseHandeKWS)
-            BLOCKSHAPES.color(self,mShape)
-            
-            
-            TRANS.scale_to_boundingBox(mShape.mNode, [_muzzleSize,_muzzleSize,_muzzleSize/2.0])
-            mShape.p_position = DIST.get_pos_by_vec_dist(pMuzzleBase, 
-                                                         vec_self,
-                                                         _offset*2)
-            
-            mShape.p_parent = mDag
-            mDag.p_parent = mStateNull
-            
-            ml_handles.append(mShape)
-            md_handles['muzzle'] = mShape
-            md_handles['muzzleJoint'] = mDag
-            ml_jointHandles.append(mDag)
-            md_jointHandles['muzzle'] = mDag
-            
-            md_mirrorDat['center'].extend([mShape,mDag])
-            
-            
-        if self.jawSetup:#   Jaw setup ============================================================
-            log.debug(cgmGEN.logString_sub(_str_func,'jaw'))
-            
-            #Shape...
-            l_jaw = ['jawTopRight',
-                     'jawRight',
-                     'jawNeckRight',
-                     'jawFrontRight',
-                     'jawFrontLeft',
-                     'jawNeckLeft',
-                     'jawLeft',
-                     'jawTopLeft']
-                                
-            _crv = CORERIG.create_at(create='curve',l_pos=[md_dHandles[k].p_position for k in l_jaw])
-            #md_dCurves['jawLine'].mNode
-            _shape = mc.offsetCurve(_crv,rn=0,cb=1,st=1,cl=1,cr=0,ch=0,
-                                    d=1,tol=.0001,sd=1,ugn=0,
-                                    distance =-_offset*2.0)
-            mc.delete(_crv)
-        
-            mShape = cgmMeta.validateObjArg(_shape[0],'cgmControl',setClass=1)            
-            mHandleFactory.color(mShape.mNode,side = 'center', controlType='main')
-        
-            _d_name = {'cgmName':'jaw',
-                       'cgmType':'jointHelper'}
-
-            mShape,mDag = BLOCKSHAPES.create_face_handle(self, None,'jaw',None,'center',
-                                                         mHandleShape=mShape,
-                                                         size = _muzzleSize,
-                                                         nameDict=_d_name,
-                                                         aimGroup=0,
-                                                         **d_baseHandeKWS)            
-            
-            
-            md_jointHandles['jawLower'] = mDag
-            mDag.p_position = DGETAVG([md_dHandles['jawRight'].p_position,
-                                                              md_dHandles['jawLeft'].p_position])
-
-            ml_jointHandles.append(mDag)            
-            ml_handles.append(mShape)
-        
-            md_handles['jaw'] = mShape
-            md_handles['jawJoint'] = mDag
-            md_mirrorDat['center'].extend([mShape,mDag])
-            
-            mDag.p_parent = mStateNull
-        
-        
-        if self.noseSetup:# Nose setup ============================================================
-            log.debug(cgmGEN.logString_sub(_str_func,'nose setup'))
-            str_noseSetup = self.getEnumValueString('noseSetup')
-            
-            _d_name = {'cgmName':'nose',
-                       'cgmType':'handleHelper'}            
-        
-            if str_noseSetup == 'simple':
-                log.debug(cgmGEN.logString_msg(_str_func, str_noseSetup))
-                mSurf =  self.noseFormLoft
-                
-                #NoseBase -------------------------------------------------------------------
-                _tag = 'noseBase'                
-                _dTmp = copy.copy(_d_name)
-                _dTmp['cgmName'] = _tag
-                
-                p_noseBase = DGETAVG([d_basePosDat['nostrilLeft'],
-                                      d_basePosDat['nostrilRight']])
-                
-                mShape,mDag = BLOCKSHAPES.create_face_handle(self,
-                                                             p_noseBase,
-                                                             'noseBase',
-                                                             None,
-                                                             'center',
-                                                             mainShape='loftWideDown',
-                                                             size = _size_sub*2.0,
-                                                             nameDict=_dTmp,
-                                                             **d_baseHandeKWS)
-                    
-                mShape.p_position = DGETAVG([d_basePosDat['noseTipLeft'],
-                                             d_basePosDat['noseTipRight']])
-                
-                ml_handles.append(mShape)                
-                md_handles[_tag] = mShape
-                md_handles[_tag+'Joint'] = mDag
-                ml_jointHandles.append(mDag)
-                md_mirrorDat['center'].extend([mShape,mDag])
-                
-                vec_nose = MATH.get_vector_of_two_points(p_noseBase, d_basePosDat['noseTip'])
-                
-                if self.numJointsNoseTip:#NoseTip ----------------------------------------------------
-                    log.debug(cgmGEN.logString_msg(_str_func, 'nosetip...'))
-                    _tag = 'noseTip'
-                    _dTmp = copy.copy(_d_name)
-                    _dTmp['cgmName'] = 'noseTip'
-                    
-                    mShape,mDag = BLOCKSHAPES.create_face_handle(self,
-                                                                 d_basePosDat['noseTip'],
-                                                                 'noseTip',
-                                                                 None,
-                                                                 'center',
-                                                                 #mSurface = mSurf,
-                                                                 mainShape='semiSphere',
-                                                                 size = _size_sub,
-                                                                 nameDict=_dTmp,
-                                                                 **d_baseHandeKWS)            
-
-                    ml_handles.append(mShape)                
-                    md_handles[_tag] = mShape
-                    md_handles[_tag+'Joint'] = mDag
-                    ml_jointHandles.append(mDag)
-                    
-                    mShape.p_parent = mNoTransformNull
-                    
-                    md_mirrorDat['center'].extend([mShape,mDag])
-
-
-                    mShape.p_position = DIST.get_pos_by_vec_dist( d_basePosDat['noseTip'],
-                                                                  vec_nose,
-                                                                  self.controlOffset)
-                    mDag.p_position = DIST.get_pos_by_vec_dist( d_basePosDat['noseTip'],
-                                                                vec_nose,
-                                                                self.jointDepth)
-                    
-                    
-                    BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['noseBaseJoint'],_tag,mNoTransformNull)
-                    
-                if self.numJointsNostril:#Nostrils --------------------------------------
-                    d_pairs['nostrilLeft'] = 'nostrilRight'
-                    d_pairs['nostrilLeftJoint'] = 'nostrilRightJoint'
-                    
-                    for side in ['left','right']:
-                        #Get our position
-                        _tag = 'nostril'+side.capitalize()
-                        log.debug(cgmGEN.logString_msg(_str_func, 'nosetip | {0}'.format(_tag)))
-                        
-                        
-                        mShape,mDag = BLOCKSHAPES.create_face_handle(self,
-                                                                     d_basePosDat['nostril'+side.capitalize()],
-                                                                     _tag,
-                                                                     None,
-                                                                     'center',
-                                                                     controlType = 'sub',
-                                                                     mSurface = mSurf,
-                                                                     mainShape='semiSphere',
-                                                                     size= _size_sub/2.0,
-                                                                     nameDict=_dTmp,
-                                                                     **d_baseHandeKWS)            
-    
-                        ml_handles.append(mShape)                
-                        md_handles[_tag] = mShape
-                        md_handles[_tag+'Joint'] = mDag
-                        ml_jointHandles.append(mDag)
-                        md_mirrorDat[side].extend([mShape,mDag])
-                        
-                        mShape.p_parent = mDag
-                        BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['noseBaseJoint'],
-                                                       _tag,mNoTransformNull)
-
-                        
-
-        
-        
-
-        if self.cheekSetup:# cheek setup ============================================================
-            log.debug(cgmGEN.logString_sub(_str_func,'Cheek setup'))
-            str_cheekSetup = self.getEnumValueString('cheekSetup')
-            
-            if str_cheekSetup == 'single':
-                log.debug(cgmGEN.logString_msg(_str_func, 'single'))
-                
-                mSurf =  self.jawFormLoft
-                
-                _d_name = {'cgmName':'cheek',
-                           'cgmType':'handleHelper'}
-                
-                d_pairs['cheekLeft'] = 'cheekRight'
-                d_pairs['cheekLeftJoint'] = 'cheekRightJoint'                
-                
-                for side in ['left','right']:
-                    #Get our position
-                    _tag = 'cheek'+side.capitalize()
-                    log.debug(cgmGEN.logString_msg(_str_func, 'cheek | {0}'.format(_tag)))
-                    _dTmp = copy.copy(_d_name)
-                    _dTmp['cgmDirection'] = side                    
-                    
-                    mShape,mDag = BLOCKSHAPES.create_face_handle(self,
-                                                                 d_basePosDat[_tag],
-                                                                 _tag,
-                                                                 None,
-                                                                 side,
-                                                                 controlType = 'sub',
-                                                                 mSurface = mSurf,
-                                                                 mainShape='semiSphere',
-                                                                 size= _size_sub,
-                                                                 nameDict=_dTmp,
-                                                                 **d_baseHandeKWS)            
-
-                    ml_handles.append(mShape)                
-                    md_handles[_tag] = mShape
-                    md_handles[_tag+'Joint'] = mDag
-                    ml_jointHandles.append(mDag)
-                    
-                    mShape.p_parent = mDag
-                    md_mirrorDat[side].extend([mShape,mDag])
-                    
-                    BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['jawJoint'],
-                                                   _tag,mNoTransformNull)
-    
-            else:
-                raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekSetup)        
-        
-        if self.chinSetup:# chin setup ============================================================
-            log.debug(cgmGEN.logString_sub(_str_func,'chin setup'))
-            str_chinSetup = self.getEnumValueString('chinSetup')
-            
-            if str_cheekSetup == 'single':
-                log.debug(cgmGEN.logString_msg(_str_func, str_chinSetup))
-                mSurf =  self.jawFormLoft
-                
-                _tag = 'chin'                
-                _dTmp = copy.copy(_d_name)
-                _dTmp['cgmName'] = _tag
-                
-                p_chinBase = DGETAVG([d_basePosDat['chinLeft'],
-                                      d_basePosDat['chinRight']])
-                
-                mShape,mDag = BLOCKSHAPES.create_face_handle(self,
-                                                             p_chinBase,
-                                                             _tag,
-                                                             None,
-                                                             'center',
-                                                             mSurface=mSurf,
-                                                             mainShape='semiSphere',
-                                                             size = _size_sub,
-                                                             nameDict=_dTmp,
-                                                             **d_baseHandeKWS)            
-                    
-
-                
-                ml_handles.append(mShape)                
-                md_handles[_tag] = mShape
-                md_handles[_tag+'Joint'] = mDag
-                ml_jointHandles.append(mDag)
-                md_mirrorDat['center'].extend([mShape,mDag])
-                BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['jawJoint'],
-                                               _tag,mNoTransformNull)                
-
-            else:
-                raise ValueError,"Invalid chinSetup: {0}".format(str_chinSetup)
             
         
         #Mirror setup --------------------------------
@@ -4501,15 +4671,15 @@ def skeleton_build(self, forceNew = True):
         
         _d_lip = {'cgmName':'lip'}
         
-        for d in 'upper','lower':
+        for d in 'upr','lwr':
             log.debug("|{0}| >>  lip {1}...".format(_str_func,d)+ '-'*20)
             d_dir = copy.copy(_d_lip)
             d_dir['cgmPosition'] = d
         
             for side in ['right','center','left']:
                 d_dir['cgmDirection'] = side
-                key = 'lip'+d.capitalize()+side.capitalize()        
-                mHandles = mPrerigNull.msgList_get('{0}PrerigJointHandles'.format(key))
+                key = d+'Lip'+side.capitalize()        
+                mHandles = mPrerigNull.msgList_get('{0}JointHelpers'.format(key))
                 ml = []
                 for mHandle in mHandles:
                     mJnt = create_jointFromHandle(mHandle,mJaw)
@@ -4581,6 +4751,23 @@ def skeleton_build(self, forceNew = True):
                 
         else:
             raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekSetup)
+    
+    if self.sneerSetup:
+        log.debug("|{0}| >>  sneerSetup".format(_str_func)+ '-'*40)
+        str_sneerSetup = self.getEnumValueString('sneerSetup')
+        if str_sneerSetup == 'single':
+            log.debug("|{0}| >>  sneerSetup: {1}".format(_str_func,str_sneerSetup))
+            
+            for side in ['left','right']:
+                _tag = 'sneer'+side.capitalize()
+                log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
+                mJnt = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}JointHelper'.format(_tag)),
+                                              mJaw)
+                mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt)
+                ml_joints.append(mJnt)
+                
+        else:
+            raise ValueError,"Invalid cheekSetup: {0}".format(str_sneerSetup)    
                 
     #>> ===========================================================================
     mRigNull.msgList_connect('moduleJoints', ml_joints)

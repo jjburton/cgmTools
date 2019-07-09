@@ -1825,7 +1825,7 @@ def create_face_anchor(self, pos, mSurface,tag,k,side=None,controlType = 'main',
                             worldUpType = 'objectrotation', 
                             worldUpVector = [0,1,0]))
     
-    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',self.controlOffset * 2)
+    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',(self.controlOffset + size) * 3)
     
     mBall = cgmMeta.validateObjArg( CURVES.create_fromName('semiSphere', size = size), 
                                       'cgmControl',setClass=1)
@@ -1868,6 +1868,7 @@ def create_face_handle(self, pos, tag, k, side,
                        offset = 1,
                        mStateNull = None,
                        mNoTransformNull = None,
+                       depthAttr = 'jointDepth',
                        mDriver = None,
                        mAttachCrv = None,
                        mode = None,
@@ -2024,14 +2025,14 @@ def create_face_handle(self, pos, tag, k, side,
                 else:
                     mHandle.p_position = mTrack.p_position                    
                     mDagHelper.resetAttrs()
-            ATTR.connect('{0}.jointDepth'.format(self.mNode), "{0}.tz".format(mDepth.mNode))
+            ATTR.connect('{0}.{1}'.format(self.mNode,depthAttr), "{0}.tz".format(mDepth.mNode))
             
             if orientToDriver:
                 mc.orientConstraint(mDriver.mNode, mTrack.mNode,maintainOffset = False)
         else:
             _dat = DIST.get_closest_point_data(mSurface.mNode, targetObj=mHandle)
             mHandle.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.controlOffset)
-            mDagHelper.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.jointDepth)
+            mDagHelper.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.getMayaAttr(depthAttr))
             
             
     
@@ -2046,6 +2047,78 @@ def create_face_handle(self, pos, tag, k, side,
     mHandle.doStore('dagHelper',mDagHelper)
     
     return mHandle,mDagHelper
+
+def create_face_anchorHandleCombo(self, pos, tag, k, side,
+                                controlType = 'main',
+                                mHandleShape = None,
+                                mSurface = None,
+                                jointShape = 'axis3d',
+                                jointSize = None,
+                                handleSize = 1.0,
+                                handleShape = 'squareRounded',
+                                size = 1.0,
+                                offset = 1,
+                                mStateNull = None,
+                                mNoTransformNull = None,
+                                mDriver = None,
+                                mAttachCrv = None,
+                                mode = None,
+                                depthAttr = 'jointDepth',
+                                plugShape = 'prerigHelper',
+                                plugDag = 'jointHelper',
+                                attachToSurf = False,
+                                orientToDriver = False,
+                                aimGroup = 0,nameDict = None,
+                                anchorSize = 1.0,
+                                orientToSurf = False,**kws):
+                                    
+    d_anchor = copy.copy(nameDict)
+    d_anchor['cgmType'] = 'preAnchor'
+    
+    mAnchor = create_face_anchor(self, pos, mSurface,tag,k,side,controlType,orientToSurf,
+                                 d_anchor, anchorSize,mStateNull)
+    
+    d_use = mAnchor.getNameDict(ignore=['cgmType'])
+    
+    mShape, mDag = create_face_handle(self,mAnchor.p_position,
+                                      tag,
+                                      None,
+                                      side,
+                                      mDriver=mAnchor,
+                                      mSurface=mSurface,
+                                      mHandleShape = mHandleShape,
+                                      mainShape = handleShape,
+                                      jointShape=jointShape,
+                                      jointSize = jointSize,
+                                      controlType=controlType,
+                                      mode=mode,
+                                      plugDag= plugDag,
+                                      plugShape= plugShape,
+                                      depthAttr = depthAttr,
+                                      attachToSurf=attachToSurf,
+                                      orientToDriver = orientToDriver,
+                                      nameDict= d_use,
+                                      mStateNull = mStateNull,
+                                      mNoTransformNull=mNoTransformNull)
+    
+    try:kws.get('ml_handles').extend([mAnchor,mShape,mDag])
+    except:pass
+    
+    try:kws.get('md_handles')[tag] = mShape
+    except:pass
+    
+    try:kws.get('md_handles')[tag+'Joint'] = mDag
+    except:pass
+    
+    try:kws.get('ml_jointHandles').append(mDag)
+    except:pass
+    
+    try:kws.get('md_mirrorDat')[side].extend([mAnchor,mShape,mDag])    
+    except:pass
+    
+    
+    return mAnchor,mShape,mDag
+    
 
 def create_visualTrack(self,mHandle, mTarget,tag='track',mParent = None):
     _str_func = 'create_visualTrack'
