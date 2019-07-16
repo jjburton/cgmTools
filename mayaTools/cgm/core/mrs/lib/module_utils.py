@@ -789,6 +789,9 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         except Exception,err:
             log.error("{0} | {1}".format(self,err))        
     
+    
+    _isReferenced = self.isReferenced()
+    
     def addMObj(mObj,mList):
         if mObj not in mList:
             _mClass = mObj.getMayaAttr('mClass')
@@ -798,7 +801,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 if mObj in ml_objs:
                     ml_objs.remove(mObj)
                 else:
-                    if rewire:
+                    if rewire and not _isReferenced:
                         log.warning("|{0}| >> Repair on. Connecting: {1}".format(_str_func,mObj))
                         mRigNull.msgList_append('controlsAll',mObj)
                         mRigNull.moduleSet.append(mObj.mNode)                        
@@ -806,10 +809,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                         log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
             log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
             mList.append(mObj)
-                
-                    
 
-    
     mRigNull = self.rigNull
     try:ml_objs = mRigNull.moduleSet.getMetaList() or []
     except:ml_objs = []
@@ -898,7 +898,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         #raise ValueError,("|{0}| >> Resolve missing controls! | {1}".format(_str_func, ml_objs))
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
-    if rewire:
+    if rewire and not _isReferenced:
         log.warning("|{0}| >> rewire... ".format(_str_func))        
         for mObj in ml_controls:
             if not mObj.getMessageAsMeta('rigNull'):

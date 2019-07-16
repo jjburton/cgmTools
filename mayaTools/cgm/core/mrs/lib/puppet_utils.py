@@ -247,6 +247,10 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
     _str_func = ' mirror_verify'.format(self)
     log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
     
+    if self.isReferenced():
+        log.debug("|{0}| >> can't process referenced asset | {1}".format(_str_func,self))        
+        return 
+    
     controls_get(self,True,rewire=True)#Wire pass
     
     md_data = {}
@@ -1270,6 +1274,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     ignore = VALID.listArg(ignore)
+    _isReferenced = self.isReferenced()
     
     ml_objs = []
     #try:ml_objs = self.puppetSet.getMetaList() or []
@@ -1338,7 +1343,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 addMObj(mSpace,_ml)
                 ml_controls.append(mSpace)
     
-    if rewire:
+    if rewire and not _isReferenced:
         log.warning("|{0}| >> rewire... ".format(_str_func))        
         for mObj in ml_controls:
             if not mObj.getMessageAsMeta('cgmOwner'):
@@ -1411,7 +1416,7 @@ def controls_get(self,walk=False,rewire=False,core=False):
         _res.extend( mModule.atUtils('controls_get',rewire=rewire))
         _resCore.extend( mModule.atUtils('controls_get',core=True))
         
-    if rewire:
+    if rewire and not self.isReferenced():
         ATTR.set_message(self.mNode, 'mControlsAll', [mObj.mNode for mObj in _res])
         ATTR.set_message(self.mNode, 'mControlsCoreAll', [mObj.mNode for mObj in _resCore])
     if core:

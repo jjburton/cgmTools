@@ -79,7 +79,21 @@ def ngskin():
         log.warning("Failed to load. Go get it. | {0}".format(err))
         webbrowser.open("http://www.ngskintools.com/")
 
+def mrsShots():
+    try:
+        import pyunify.ui.shotUI as shotUI
+        reload(shotUI)
+        x = shotUI.ShotUI()
+    except Exception,err:
+        log.warning("[DEV] failed to load. | {0}".format(err))
 
+def mrsScene():
+    try:
+        import pyunify.ui.fileUI as fileUI
+        reload(fileUI)
+        x = fileUI.FileUI()
+    except Exception,err:
+        log.warning("[DEV] failed to load. | {0}".format(err))
 
 def loadPuppetBox( *a ):
     from cgm.tools import puppetBox

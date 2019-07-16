@@ -2125,7 +2125,9 @@ def uiCB_contextualAction(self,**kws):
     _ml_controls = self.mDat.context_get(mirrorQuery=_mirrorQuery,**kws)
     
     #First we see if we have a current only function or current time ========================
-    if _mode == 'mirrorVerify':
+    if _mode == 'simpleRes':
+        return _ml_controls
+    elif _mode == 'mirrorVerify':
         if not self.mDat.d_context.get('mPuppets'):
             log.warning("No puppets in context.")
             endCall(self,False)
@@ -2151,7 +2153,6 @@ def uiCB_contextualAction(self,**kws):
             return log.error("Nothing found in context: {0} ".format(_context))
             
             
-        #_l_controls = get_contextualControls(self,_mirrorQuery,**kws)
         _contextTime = 'current'
         
         if _mode == 'report':
@@ -2246,7 +2247,7 @@ def uiCB_contextualAction(self,**kws):
             elif _mode == 'holdCurrentTime':
                 ml_hold.holdRange(True,False)
             elif _mode == 'holdAverageTime':
-                ml_hold.holdRange(False,True)                
+                ml_hold.holdRange(False,True)
             return endCall(self)
         elif _mode == 'mirrorSelect':
             mc.select(_l_controls)
@@ -2257,8 +2258,6 @@ def uiCB_contextualAction(self,**kws):
                 for mObj in  self.mDat.d_context['mControlsMirror']:
                     l_sel.append(mObj.mNode)
             elif _context == 'part':
-                #pprint.pprint( self.mDat.d_context['mModulesMirror'] )
-                #return
                 for mPart in self.mDat.d_context['mModulesMirror']:
                     l_sel.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart)])
             else:
@@ -2488,7 +2487,7 @@ def uiCB_contextualAction(self,**kws):
                                     mc.setKeyframe(c,time = f)
                                 
                         
-                    elif _mode in ['key','bdKey''delete']:
+                    elif _mode in ['key','bdKey','delete']:
                         mc.select(controls)
                         if _mode == 'key':
                             setKey('default')
@@ -2496,6 +2495,8 @@ def uiCB_contextualAction(self,**kws):
                             setKey('breakdown')
                         elif _mode == 'delete':
                             deleteKey()
+                        print(controls)
+                            
                     elif _mode in ['mirrorPush','mirrorPull',
                                    'symLeft','symRight','mirrorFlip']:
                         log.debug(cgmGEN._str_subLine)
@@ -4544,8 +4545,8 @@ def uiCB_tweenSliderDrop(self):
     log.info("Last drag value: {0}".format(self.cgmUISlider_tween.getValue()))
     self.cgmUISlider_tween.setValue(0)
     self.keySel = {}#...clear thiss
-    if not self._sel:
-        return log.error("Nothing in context")    
+    if not self.mDat._sel:
+        return #log.error("Nothing in context")    
     mc.select(self._sel)
     #if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
     return     
@@ -4606,7 +4607,7 @@ def uiCB_tweenSlider(self):
                 mc.keyTangent(curve, time=(next,), itt=itt)
                 mc.keyTangent(curve, time=(prev,), ott=ott)
 
-    if not self._sel:
+    if not self.mDat._sel:
         return     
     v_tween = self.cgmUISlider_tween.getValue()
     if v_tween > 0:
@@ -4730,17 +4731,16 @@ def uiCB_resetSliderDrop(self):
     """
     mc.undoInfo(closeChunk=True)
     if self.b_autoKey:mc.autoKeyframe(state=True)
-    log.info("Last drag value: {0}".format(self.cgmUISlider_tween.getValue()))
     self.cgmUISlider_reset.setValue(0)
     #pprint.pprint(self.d_resetDat)
     self.d_resetDat = {}#...clear thiss
-    if not self._sel:
-        return log.error("Nothing in context")
-    
-    mc.select(self._sel)
+    if not self.mDat._sel:
+        return
+    mc.select(self.mDat._sel)
     #if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
     return     
     
+@cgmGEN.Timer
 def uiCB_resetSlider(self):
     _str_func='cgmUICB_tweenSlider'
     
@@ -4753,10 +4753,17 @@ def uiCB_resetSlider(self):
         mc.undoInfo(openChunk=True)
         if self.b_autoKey:mc.autoKeyframe(state=False)
         
-        uiCB_contextualAction(self,mode='select')
+        #uiCB_contextualAction(self,mode='select')
+        _ml_controls = uiCB_contextualAction(self,mode='simpleRes')#self.mDat.context_get(mirrorQuery=_mirrorQuery,**kws)
+        _selAttrs = SEARCH.get_selectedFromChannelBox(True)
         
-        for i,mCtrl in enumerate(self.mDat.d_context['mControls']):
-            attrs = mc.listAttr(mCtrl.mNode, keyable=True, unlocked=True) or False
+        for mCtrl in _ml_controls:
+            if _selAttrs:
+                attrs = _selAttrs
+                
+            else:
+                attrs = mc.listAttr(mCtrl.mNode, keyable=True, unlocked=True) or False
+                
             self.d_resetDat[mCtrl] = {}
             _short = mCtrl.mNode
             for a in attrs:
@@ -4771,18 +4778,25 @@ def uiCB_resetSlider(self):
                     pass
                 
         
-    if not self._sel:
+    if not self.mDat._sel:
         return
     
     v_reset = self.cgmUISlider_reset.getValue()
+    #log.info("value: {0}".format(v_reset))
     
     for mCtrl,aDat in self.d_resetDat.iteritems():
         for a,vDat in aDat.iteritems():
-            #print("{0} | {1} | {2}".format(mCtrl.mNode,a,vDat['default']))
-            current = vDat['value']
-            setValue = current + ((vDat['default'] - current)*v_reset)
-            #ATTR.set(mCtrl.mNode,a,setValue)
-            mCtrl.__setattr__(a,setValue)
+            try:
+                
+                #print("{0} | {1} | {2}".format(mCtrl.mNode,a,vDat['default']))
+                current = vDat['value']
+                setValue = current + ((vDat['default'] - current)*v_reset)
+                #ATTR.set(mCtrl.mNode,a,setValue)
+                mCtrl.__setattr__(a,setValue)
+            except Exception,err:
+                log.error("Attr fail: {0}.{1}".format(mCtrl,a))
+                self.d_resetDat[mCtrl].pop(a)
+                
             
 #==============================================================================================
 #Marking menu

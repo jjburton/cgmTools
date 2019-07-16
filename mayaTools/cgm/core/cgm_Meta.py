@@ -6911,7 +6911,8 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
     _mClass = ATTR.get(_argShort,'mClass')
 
     _UUID2016 = False#...a flag to see if we need a reg UUID attr 
-    try:_UUID2016= mc.ls(_argShort, uuid=True)[0]
+    try:
+        _UUID2016 = mc.ls(_argShort, uuid=True)[0]
     except:pass
 
     if _UUID2016:
@@ -6919,7 +6920,7 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
         _UUID = _UUID2016
         try:
             ATTR.delete(_argShort,'UUID')				    
-            log.debug("Clearing attr UUID...")
+            log.debug("Clearing attr UUID: {0}".format(arg))
         except:pass
     else:
         _UUID = ATTR.get(_argShort,'UUID')

@@ -42,6 +42,7 @@ from cgm.core.tools import meshTools
 from cgm.core.lib import node_utils as NODES
 import cgm.core.lib.sdk_utils as SDK
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
+reload(TOOLCALLS)
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.projects.CGM as CGMPROJECTS
 from cgm.core.tools import attrTools as ATTRTOOLS
@@ -666,6 +667,16 @@ def uiSection_mrs(parent):
                 l='mrsBuilder',
                 ann = "WIP",
                 c=lambda *a:TOOLCALLS.mrsUI())
+    
+    mc.menuItem(parent = parent,
+                l='Shots',
+                ann = "WIP",
+                c=lambda *a:TOOLCALLS.mrsShots())
+    mc.menuItem(parent = parent,
+                l='Scene',
+                ann = "WIP",
+                c=lambda *a:TOOLCALLS.mrsScene())
+    
     mc.menuItem(parent = parent,
                 l='MRS Documentation',
                 ann = "Access to MRS Docmenation || Subscription required.",
