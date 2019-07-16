@@ -77,7 +77,7 @@ from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_convertRotationOrder,
                                    ml_copyAnim)
 #>>> Root settings =============================================================
-__version__ = '1.04222019'
+__version__ = '1.07162019'
 __toolname__ ='MRSAnimate'
 _d_contexts = {'control':{'short':'ctrl'},
                'part':{},
@@ -158,7 +158,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
         self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
         self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)
-        self.uiMenu_picker = mUI.MelMenu( l='Picker',pmc=lambda *a:self.buildMenu_picker(True), tearOff=1)                
+        #self.uiMenu_picker = mUI.MelMenu( l='Picker',pmc=lambda *a:self.buildMenu_picker(True), tearOff=1)                
         self.uiMenu_help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help()) 
         
         
@@ -196,9 +196,7 @@ class ui(cgmUI.cgmGUI):
         except:
             return log.error("No blocklist")
         
-        
         _ml,_l_strings = BLOCKGEN.get_uiModuleScollList_dat(showSide=1,presOnly=1)
-        
         
         def getString(pre,string):
             i = 1
