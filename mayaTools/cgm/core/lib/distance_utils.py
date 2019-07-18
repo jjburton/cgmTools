@@ -1059,7 +1059,7 @@ def get_closest_point_data(targetSurface = None, targetObj = None, targetPoint =
                 _res['normalizedU'] = _norm['uValue']
                 _res['normalizedV'] = _norm['vValue']
                 
-                _res['normal'] = mc.pointOnSurface(_shape, u = _u, v= _v, normal=True)
+                _res['normal'] = mc.pointOnSurface([targetSurface], u = _u, v= _v, normal=True)
                 _res['normalizedNormal'] = mc.pointOnSurface([targetSurface],u = _u, v= _v,
                                                              normalizedNormal=True)
                 

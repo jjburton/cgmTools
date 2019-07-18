@@ -1872,8 +1872,8 @@ def create_face_handle(self, pos, tag, k, side,
                        mDriver = None,
                        mAttachCrv = None,
                        mode = None,
-                       plugShape = 'prerigHelper',
-                       plugDag = 'jointHelper',
+                       plugShape = 'shapeHelper',
+                       plugDag = 'dagHelper',
                        attachToSurf = False,
                        orientToDriver = False,
                        aimGroup = 0,nameDict = None):
@@ -2033,9 +2033,6 @@ def create_face_handle(self, pos, tag, k, side,
             _dat = DIST.get_closest_point_data(mSurface.mNode, targetObj=mHandle)
             mHandle.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.controlOffset)
             mDagHelper.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.getMayaAttr(depthAttr))
-            
-            
-    
 
     if aimGroup:
         mHandle.doGroup(True,True,
@@ -2064,8 +2061,8 @@ def create_face_anchorHandleCombo(self, pos, tag, k, side,
                                 mAttachCrv = None,
                                 mode = None,
                                 depthAttr = 'jointDepth',
-                                plugShape = 'prerigHelper',
-                                plugDag = 'jointHelper',
+                                plugShape = 'shapeHelper',
+                                plugDag = 'dagHelper',
                                 attachToSurf = False,
                                 orientToDriver = False,
                                 aimGroup = 0,nameDict = None,
