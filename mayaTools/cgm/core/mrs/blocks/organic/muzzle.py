@@ -5833,8 +5833,8 @@ def rig_frame(self):
                                              **_kws_attr)
             mPlug_jawTYNeg = cgmMeta.cgmAttr(mJaw.mNode,
                                              "cheek_tyNeg",attrType = 'float',
-                                             value = -3.0,
-                                             defaultValue=-3.0,
+                                             value = 3.0,
+                                             defaultValue=3.0,
                                              **_kws_attr)
             
             
