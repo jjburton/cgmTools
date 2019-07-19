@@ -5639,11 +5639,18 @@ def rig_frame(self):
             mLeftCorner = self.md_handles['lipUpr']['left'][0]
             mRightCorner = self.md_handles['lipUpr']['right'][0]
             mUprCenter = self.md_handles['lipUpr']['center'][0]
-            mLwrCenter = self.md_handles['lipLwr']['center'][0]        
-            ml_uprLip = self.md_handles['lipUpr']['right'][1:] + self.md_handles['lipUpr']['left'][1:]
-            ml_lwrLip = self.md_handles['lipLwr']['right'] + self.md_handles['lipLwr']['left']
-            ml_uprChain = self.md_handles['lipUpr']['right'][1:] + [mUprCenter] +self.md_handles['lipUpr']['left'][1:]
-            ml_lwrChain = self.md_handles['lipLwr']['right'] + [mLwrCenter] + self.md_handles['lipLwr']['left']
+            mLwrCenter = self.md_handles['lipLwr']['center'][0]
+            
+            ml_uprLeft = self.md_handles['lipUpr']['left'][1:]
+            ml_lwrLeft = self.md_handles['lipLwr']['left']
+            
+            for ml in ml_uprLeft,ml_lwrLeft:
+                ml.reverse()
+            
+            ml_uprLip = self.md_handles['lipUpr']['right'][1:] + ml_uprLeft#self.md_handles['lipUpr']['left'][1:]
+            ml_lwrLip = self.md_handles['lipLwr']['right'] + ml_lwrLeft#self.md_handles['lipLwr']['left']
+            ml_uprChain = self.md_handles['lipUpr']['right'][1:] + [mUprCenter] + ml_uprLeft#self.md_handles['lipUpr']['left'][1:]
+            ml_lwrChain = self.md_handles['lipLwr']['right'] + [mLwrCenter] + ml_lwrLeft#self.md_handles['lipLwr']['left']
             
     
             for mHandle in mLeftCorner,mRightCorner:
@@ -5723,7 +5730,7 @@ def rig_frame(self):
 
                 
                 ml_lwrLeft = self.md_handles['lipLwr']['left']
-                ml_lwrRight = self.md_handles['lipLwr']['right']                
+                ml_lwrRight = self.md_handles['lipLwr']['right']
                 d_lipAim = {'upr':{'left':self.md_handles['lipUpr']['left'][1:],
                                    'right':self.md_handles['lipUpr']['right'][1:]},
                             'lwr':{'left':self.md_handles['lipLwr']['left'],
@@ -5813,7 +5820,7 @@ def rig_frame(self):
     
         if self.str_cheekSetup:
             log.debug("|{0}| >> cheek setup...".format(_str_func)+ '-'*40)
-            _kws_attr = {'hidden':False, 'lock':True}
+            _kws_attr = {'hidden':False, 'lock':False}
             mPlug_jawRXPos = cgmMeta.cgmAttr(mJaw.mNode,
                                              "cheek_rxPos",attrType = 'float',
                                              value = 30,
@@ -5826,8 +5833,8 @@ def rig_frame(self):
                                              **_kws_attr)
             mPlug_jawTYNeg = cgmMeta.cgmAttr(mJaw.mNode,
                                              "cheek_tyNeg",attrType = 'float',
-                                             value = 2.0,
-                                             defaultValue=1.0,
+                                             value = -3.0,
+                                             defaultValue=-3.0,
                                              **_kws_attr)
             
             
@@ -6123,13 +6130,15 @@ def rig_lipSegments(self):
               'sealDriver2':mRightCorner,
               'sealDriverMid':mMidDag,#mUprCenter
               'sealSplit':True,
-              'specialMode':'endsToInfluences',
+              'specialMode':'noStartEnd',#'endsToInfluences',
               'moduleInstance':mModule,
               'msgDriver':'driverJoint'}    
     
     #pprint.pprint(d_test)
     IK.ribbon_seal(**d_lips)
     
+    mc.parentConstraint(mLeftCorner.mNode, ml_uprRig[-1].masterGroup.mNode, maintainOffset = True)
+    mc.parentConstraint(mRightCorner.mNode, ml_uprRig[0].masterGroup.mNode, maintainOffset = True)
     
     for mObj in ml_uprRig + ml_lwrRig:
         mObj.driverJoint.p_parent = mDeformNull
