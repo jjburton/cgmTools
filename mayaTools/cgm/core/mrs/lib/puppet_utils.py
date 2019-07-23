@@ -1377,6 +1377,31 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         return ml_controls
     return md_controls,ml_controls
 
+#@cgmGEN.Timer
+def controls_checkDups(self):
+    ml_controls = controls_get(self,True)
+    
+    l_strings = []
+    mObjs = []
+    mDups = []
+    for i,mObj in enumerate(ml_controls):
+        _str = mObj.p_nameShort
+        if _str in l_strings:
+            log.warning(cgmGEN._str_subLine)
+            _idx = l_strings.index(_str)
+            log.warning("Obj: {0}".format(mObj))
+            log.warning("Owner: {0} | {1}".format(_str,mObjs[_idx]))
+            mDups.append(mObj)
+        else:
+            pass
+        mObjs.append(mObj)
+        
+    if not mDups:
+        return log.warning("Puppet has no dups: {0}".format(self.mNode))
+    return mDups
+        
+
+
 @cgmGEN.Timer
 def controls_get(self,walk=False,rewire=False,core=False):
     _str_func = ' controls_get'

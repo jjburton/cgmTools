@@ -1148,7 +1148,6 @@ class dat(object):
             
             self.d_timeContext['partControls'] = {}
             log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
-            
             _context = kws.get('context') or self.var_mrsContext.value
             _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
             _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
@@ -1172,6 +1171,7 @@ class dat(object):
             b_children = kws.get('children') or self.cgmVar_mrsContext_children.value
             b_siblings = kws.get('siblings') or self.cgmVar_mrsContext_siblings.value
             b_mirror = kws.get('mirror') or self.cgmVar_mrsContext_mirror.value            
+            b_core = kws.get('core') or self.cgmVar_mrsContext_core.value
 
             if _context == 'control' and b_siblings:
                 if b_mirror:
@@ -1214,14 +1214,33 @@ class dat(object):
                         for mPart in self.d_context['mModules']:
                             mMirror = self.dat[mPart]['mMirror']
                             if mMirror:
+                                d_mModule = self.module_get(mMirror)
+                                ml_add = d_mModule['mControls']
+                                if b_core:
+                                    ml_core =  d_mModule.get('mCore')
+                                    if ml_core:
+                                        ml_add = ml_core
+                                        
+                                    _l = [mObj.mNode for mObj in ml_add]
+                                    ls.extend(_l)
+                                    addSourceControls(self,mPart,_l)                                
+                                """
                                 _ml = self.dat[mMirror]['mControls']
                                 _l = [mObj.mNode for mObj in _ml]
                                 ls.extend(_l)
-                                addSourceControls(self,mPart,_l)
+                                addSourceControls(self,mPart,_l)"""
      
                     else:
                         for mPart in self.d_context['mModules']:
-                            _l = [mObj.mNode for mObj in self.dat[mPart]['mControls']]
+                            d_mModule = self.module_get(mModule)
+                            ml_add = d_mModule['mControls']
+                            if b_core:
+                                ml_core =  d_mModule.get('mCore')
+                                if ml_core:
+                                    ml_add = ml_core
+                            
+                            _l = [mObj.mNode for mObj in ml_add]
+                            #_l = [mObj.mNode for mObj in self.dat[mPart]['mControls']]
                             ls.extend(_l)
                             addSourceControls(self,mPart,_l)
                             
@@ -1238,7 +1257,14 @@ class dat(object):
                                 addSourceControls(self,mPart,_l)"""
                                 
                     for mPuppet in self.d_context['mPuppets']:
-                        _l =  [mObj.mNode for mObj in self.dat[mPuppet]['mControls']]
+                        d_ = self.puppet_get(mPuppet)
+                        ml = []
+                        if b_core:
+                            ml.extend(d_['mCore'])
+                        else:
+                            ml.extend(d_['mControls'])                        
+                        
+                        _l =  [mObj.mNode for mObj in ml]
                         addSourceControls(self,mPuppet,_l)
                         ls.extend(_l)
                         """

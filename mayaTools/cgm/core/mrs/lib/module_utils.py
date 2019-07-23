@@ -876,7 +876,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 ml_controls.append(mSpace)
     
     ml_core = []
-    for k in 'root','fk','ik','segmentHandles','face':
+    for k in 'settings','cog','root','settings','fk','ik','segmentHandles','face':
         ml = md_controls.get(k)
         if ml:ml_core.extend(ml)
     

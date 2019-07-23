@@ -79,7 +79,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.04302019'
+__version__ = '1.07232019'
 _sidePadding = 25
 
 def check_cgm():
@@ -830,7 +830,10 @@ class ui(cgmUI.cgmGUI):
                         ann = "Please don't mess with this if you don't know what you're doing ",
                         c = cgmGEN.Callback(self.uiFunc_contextPuppetCall,'mirror_verify'),
                         )
-
+        mUI.MelMenuItem(_subCalls, l="Check dups",
+                        ann = "Check puppet for duplicate strings",
+                        c = cgmGEN.Callback(self.uiFunc_contextPuppetCall,'controls_checkDups'),
+                        )
         mUI.MelMenuItem(_subCalls, l="Gather space drivers",
                                 ann = "Gather world and puppet space drivers ",
                                 c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'collect_worldSpaceObjects'),
