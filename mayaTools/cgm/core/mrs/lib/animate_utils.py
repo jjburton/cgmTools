@@ -1232,7 +1232,7 @@ class dat(object):
      
                     else:
                         for mPart in self.d_context['mModules']:
-                            d_mModule = self.module_get(mModule)
+                            d_mModule = self.module_get(mPart)
                             ml_add = d_mModule['mControls']
                             if b_core:
                                 ml_core =  d_mModule.get('mCore')
