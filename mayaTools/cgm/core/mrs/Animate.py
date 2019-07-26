@@ -114,6 +114,8 @@ class ui(cgmUI.cgmGUI):
     DEFAULT_SIZE = 300,500
     TOOLNAME = '{0}.cgmUI'.format(__toolname__)
     
+    is_dragging_tween = False
+
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func))        
@@ -4540,6 +4542,10 @@ def uiCB_tweenSliderDrop(self):
     uiCB_contextualAction(self,**{'mode':mode,'tweenValue':v_tween})
     """
 
+    if self.is_dragging_tween:
+        self.is_dragging_tween = False
+        mc.undoInfo(closeChunk=True)
+
     log.info("Last drag value: {0}".format(self.cgmUISlider_tween.getValue()))
     self.cgmUISlider_tween.setValue(0)
     self.keySel = {}#...clear thiss
@@ -4548,10 +4554,15 @@ def uiCB_tweenSliderDrop(self):
     mc.select(self._sel)
     #if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
     return     
-    
+
 def uiCB_tweenSlider(self):
     _str_func='cgmUICB_tweenSlider'
     
+    if not self.is_dragging_tween:
+        mc.undoInfo(openChunk=True)
+        self._sel = mc.ls(sl=True)
+        self.is_dragging_tween = True        
+
     try:self.keySel
     except:self.keySel = {}
     
