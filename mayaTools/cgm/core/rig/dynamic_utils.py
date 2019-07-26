@@ -10,6 +10,7 @@ from cgm.core.cgmPy.validateArgs import simpleAxis
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.cgm_Meta as cgmMeta
 import pprint
+import copy
 import maya.mel as mel
 
 
@@ -169,17 +170,19 @@ class cgmDynFK(cgmMeta.cgmObject):
     baseName = None
     fwd = None
     up = None
+    startFrame = None
     
     def __init__(self,node = None, name = None,
                  objs = None, fwd = 'z+', up = 'y+',
                  hairSystem=None, baseName = 'hair',
+                 startFrame = -50,
                  *args,**kws):
         """ 
 
         """
         ### input check  
         _sel = mc.ls(sl=1)
-        if not objs:
+        if not objs and node is None:
             if _sel:objs = _sel
         
         super(cgmDynFK, self).__init__(node = node,name = name,nodeType = 'transform') 
@@ -203,10 +206,11 @@ class cgmDynFK(cgmMeta.cgmObject):
         
         self.fwd = fwd
         self.up = up
-                
+        self.startFrame = startFrame
         self.baseName = baseName
         
-        self.rename("{0}_dynFK".format(self.baseName))
+        if not node:
+            self.rename("{0}_dynFK".format(self.baseName))
                 
         if objs:self.chain_create(objs, fwd, up, name)        
         
@@ -218,14 +222,41 @@ class cgmDynFK(cgmMeta.cgmObject):
     def get_nextIdx(self):
         return ATTR.get_nextAvailableSequentialAttrIndex(self.mNode, "chain")
         
+    def chain_rebuild(self, idx = None, objs = None):
+        pass
+    
+    def chain_deleteByIdx(self, idx = None):
+        if idx is None:
+            return log.warning("Must have an idx to remove")
+        
+        mGrp = self.getMessageAsMeta("chain_{0}".format(idx))
+        if mGrp:
+            mGrp.delete()
+            return log.info("Removed idx: {0}".format(idx))
+        else:
+            return log.warning("No chain found at idx: {0}".format(idx))
+            
+    def chain_removeAll(self):
+        ml = self.msgList_get('chain')
+        for i,mGrp in enumerate(ml):
+            log.warning("Removing: {0} | {1}".format(i,mGrp.mNode))
+            mGrp.delete()
+        
+        self.msgList_purge('chain')
+        
     def chain_create(self, objs = None,
                      fwd = None, up=None,
                      name = None):
         
         _str_func = 'chain_create'
         
-        ml = cgmMeta.asMeta( objs )
-
+        if not objs:
+            _sel = mc.ls(sl=1)
+            if _sel:objs = _sel
+            
+        ml = cgmMeta.asMeta( objs, noneValid = True )
+        ml_baseTargets = copy.copy(ml)
+        
         if not ml:
             return log.warning("No objects passed. Unable to chain_create")
             
@@ -256,20 +287,25 @@ class cgmDynFK(cgmMeta.cgmObject):
         #Curve positions...
         l_pos = []
         
-            
+        if len(ml) < 2:
+            log.debug(cgmGEN.logString_msg(_str_func, 'Single count. Adding extra handle.'))
+            mLoc = ml[0].doLoc()
+            mLoc.rename("chain_{0}_{1}_end_loc".format(_idx, name))
+            mLoc.p_position = ml[0].getPositionByAxisDistance(fwdAxis.p_string,1.0)
+            ml.append(mLoc)
+            mLoc.p_parent = mGrp
+        
         for obj in ml:
             l_pos.append(obj.p_position)
             
-        if len(ml)>1:
-            l_pos.append( DIST.get_pos_by_axis_dist(ml[-1],
-                                                           fwdAxis.p_string,
-                                                           DIST.get_distance_between_points(l_pos[-1],l_pos[-2])) )
-    
-            l_pos.insert(0, DIST.get_pos_by_axis_dist(ml[0],
-                                                      fwdAxis.inverse.p_string,
-                                                      DIST.get_distance_between_points(l_pos[0],l_pos[1])*.5) )
-        else:
-            pass
+        l_pos.append( DIST.get_pos_by_axis_dist(ml[-1],
+                                                fwdAxis.p_string,
+                                                DIST.get_distance_between_points(l_pos[-1],l_pos[-2])) )
+
+        l_pos.insert(0, DIST.get_pos_by_axis_dist(ml[0],
+                                                  fwdAxis.inverse.p_string,
+                                                  DIST.get_distance_between_points(l_pos[0],l_pos[1])*.5) )
+
 
         crv = CORERIG.create_at(create='curve',l_pos= l_pos, baseName = name)
         
@@ -277,10 +313,19 @@ class cgmDynFK(cgmMeta.cgmObject):
         # make the dynamic setup
         log.debug(cgmGEN.logString_sub(_str_func,'dyn setup'))
         b_existing = False
+        
         if self.hairSystem != None:
             log.info(cgmGEN.logString_msg(_str_func,'Using existing system: {0}'.format(self.hairSystem)))
             mc.select(self.hairSystem, add=True)
             b_existing = True
+        else:
+            mHairSys = self.getMessageAsMeta('mHairSysShape')
+            if mHairSys:
+                self.hairSystem = mHairSys.mNode                
+                mHairSysDag = mHairSys.getTransform(asMeta=1)
+                log.info(cgmGEN.logString_msg(_str_func,'Using existing system: {0}'.format(self.hairSystem)))
+                mc.select(mHairSysDag.mNode, add=True)
+                b_existing = True            
             
         mel.eval('makeCurvesDynamic 2 { "0", "0", "1", "1", "0" }')
 
@@ -288,13 +333,14 @@ class cgmDynFK(cgmMeta.cgmObject):
         follicle = mc.listRelatives(crv,parent=True)[0]
         mFollicle = cgmMeta.asMeta(follicle)
         mFollicle.rename("{0}_foll".format(name))
-        mFollicle.getParent(asMeta=1).p_parent = self
+        mFollicle.getParent(asMeta=1).p_parent = mGrp
+        mFollicleShape = mFollicle.getShapes(1)[0]
         
         _follicle = mFollicle.mNode
         mGrp.connectChildNode(mFollicle.mNode,'mFollicle','group')
         
         
-        follicleShape = mc.listRelatives(mFollicle.mNode, shapes=True)[0]
+        follicleShape = mFollicleShape.mNode#mc.listRelatives(mFollicle.mNode, shapes=True)[0]
         _hairSystem = mc.listRelatives( mc.listConnections('%s.currentPosition' % follicleShape)[0],
                                         shapes=True)[0]
         if not b_existing:
@@ -317,6 +363,9 @@ class cgmDynFK(cgmMeta.cgmObject):
             self.connectChildNode(mNucleus.mNode,'mNucleus','owner')
             mNucleus.p_parent=self
             
+            if self.startFrame is not None:
+                mNucleus.startFrame = self.startFrame
+            
         
         ml[0].getParent(asMeta=1).select()
         mCrv = cgmMeta.asMeta(outCurve)
@@ -326,7 +375,8 @@ class cgmDynFK(cgmMeta.cgmObject):
         #self.outCurves.append(outCurve)
         
         # set default properties
-        mc.setAttr( '%s.pointLock' % follicleShape, 1 )
+        mFollicleShape.pointLock = 1
+        #mc.setAttr( '%s.pointLock' % follicleShape, 1 )
         mc.parentConstraint(ml[0].getParent(), _follicle, mo=True)
         
         # create locators on objects
@@ -400,6 +450,8 @@ class cgmDynFK(cgmMeta.cgmObject):
         mGrp.msgList_connect('mAims',ml_aims)
         mGrp.msgList_connect('mParents',ml_prts)
         mGrp.msgList_connect('mTargets',ml)
+        mGrp.msgList_connect('mBaseTargets',ml_baseTargets)
+        
         
 
     def report(self):
@@ -432,14 +484,67 @@ class cgmDynFK(cgmMeta.cgmObject):
         pprint.pprint(_res)
         return _res
     
+    def profile_load(self,arg='default'):
+        mNucleus=self.getMessageAsMeta('mNucleus')
+        mHairSysShape=self.getMessageAsMeta('mHairSysShape')
+        if not mNucleus and mHairSysShape:
+            return log.warning("Nucleus and hairShape required for profile load")
+        
+        _d = d_chainProfiles.get(arg)
+        if not _d:
+            return log.warning("Profile has no data: {0}".format(arg))
+        
+        
+        d_n = _d.get('n') or {}
+        d_hs = _d.get('hs') or {}
+        
+        pprint.pprint(_d)
+        _nucleus = mNucleus.mNode
+        for a,v in d_n.iteritems():
+            log.debug("Nucleus || {0} | {1}".format(a,v))
+            try:
+                mNucleus.__setattr__(a,v)
+            except Exception,err:
+                log.warning("Nucleus | Failed to set: {0} | {1} | {2}".format(a,v,err))
+                
+        for a,v in d_hs.iteritems():
+            log.debug("mHairSys || {0} | {1}".format(a,v))            
+            try:
+                mHairSysShape.__setattr__(a,v)
+            except Exception,err:
+                log.warning("mHairSys | Failed to set: {0} | {1} | {2}".format(a,v,err))
+        
+        return True
+                
     def delete(self):
         pass        
         
         
         
-d_profiles = {'default':{'n':{'subSteps':12,
-                              'maxCollisionIterations':49,
-                              'gravity':98}}}
+d_chainProfiles = {'default':
+                   {'n':
+                    {'subSteps':12,
+                    'maxCollisionIterations':49,
+                    'gravity':98,
+                    'gravityDirection':[0,-1,0]},
+                    'hs':
+                    {'bendFollow':1.0,
+                     'hairWidth':1.2,
+                     'solverDisplay':1,
+                     'stretchResistance':105,
+                     'drag':.1,
+                     'tangentalDrag':.1,
+                     }
+                    },
+                   'wind':
+                   {'n':
+                    {'windSpeed':900,
+                                'windDirection':[0,0,-1],
+                                'windNoise':5},
+                    'hs':{'intensity':1.0,
+                          'frequency':5.0,
+                          'speed':.2}}}
+
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
