@@ -141,6 +141,9 @@ class ui(cgmUI.cgmGUI):
         self._l_contextTime = _l_contextTime
         self._l_contextKeys = _l_contextKeys
         
+        try:self.var_poseMatchMethod
+        except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
+            
         try:self.var_mrsContext
         except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                           defaultValue = _l_contexts[0])
@@ -295,6 +298,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options
         
+        parent = self.uiMenu_FirstMenu
         _mDev = mUI.MelMenuItem(self.uiMenu_FirstMenu, l="Dev",subMenu=True)
         mUI.MelMenuItem(_mDev, l="Puppet - Mirror verify",
                         ann = "Please don't mess with this if you don't know what you're doing ",
@@ -304,7 +308,26 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(uiCB_contextualAction,self,**{'mode':'upToDate','context':'puppet'}))
         mUI.MelMenuItem(_mDev,l="Reset Buffer",
                         ann = "Reset anim buffer",
-                        c = cgmGEN.Callback(uiCB_bufferDat,self,True))                        
+                        c = cgmGEN.Callback(uiCB_bufferDat,self,True))
+        
+        
+        #MatchMode ...
+        uiPoseMatchMode = mc.menuItem(p=parent, l='Pose Match Method ', subMenu=True)
+        
+        uiRC = mc.radioMenuItemCollection()
+        _v = self.var_poseMatchMethod.value
+        
+        for i,item in enumerate(['base','metaData','stripPrefix','index','mirrorIndex','mirrorIndex_ID']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(p=uiPoseMatchMode,collection = uiRC,
+                        label=item,
+                        c = cgmGEN.Callback(self.var_poseMatchMethod.setValue,item),
+                        rb = _rb)        
+        
+        
+        
     
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
@@ -1565,7 +1588,7 @@ class ui(cgmUI.cgmGUI):
         log.info('PosePath : %s' % path)
         poseNode = r9Pose.PoseData(self.filterSettings)
         #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
-        poseNode.matchMethod = self.matchMethod
+        poseNode.matchMethod = self.var_poseMatchMethod.value#self.matchMethod
 
         nodes = self.get_poseNodes()
 

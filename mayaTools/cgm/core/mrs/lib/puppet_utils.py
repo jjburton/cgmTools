@@ -1379,25 +1379,42 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
 
 #@cgmGEN.Timer
 def controls_checkDups(self):
+    _str_func = controls_checkDups
     ml_controls = controls_get(self,True)
     
     l_strings = []
     mObjs = []
     mDups = []
+    d_strToObj = {}
+    
     for i,mObj in enumerate(ml_controls):
-        _str = mObj.p_nameShort
-        if _str in l_strings:
+        log.debug("Checking: {0} | Obj: {1}".format(i,mObj))
+        
+        _str = mObj.p_nameBase
+        mOwner = d_strToObj.get(_str)
+        if mOwner:
+            
             log.warning(cgmGEN._str_subLine)
             _idx = l_strings.index(_str)
+            log.warning("key | {0} ".format(_str))
+            
             log.warning("Obj: {0}".format(mObj))
-            log.warning("Owner: {0} | {1}".format(_str,mObjs[_idx]))
+            log.warning("mirrorIndex: {1} | Obj Name: {0}".format(mObj.p_nameShort,mObj.mirrorIndex))
+            
+            log.warning("Owner: {0}".format(mOwner))
+            log.warning("mirrorIndex: {1} | Name: {0}".format(mOwner.p_nameShort,mOwner.mirrorIndex))
             mDups.append(mObj)
         else:
-            pass
+            d_strToObj[_str] = mObj
+            l_strings.append(_str)
         mObjs.append(mObj)
         
     if not mDups:
         return log.warning("Puppet has no dups: {0}".format(self.mNode))
+    
+    log.info(cgmGEN.logString_msg(_str_func,'dups:'))
+    for mObj in mDups:
+        print("idx: {0} | {1}".format(mObj.mirrorIndex,mObj))
     return mDups
         
 
@@ -1409,7 +1426,7 @@ def controls_get(self,walk=False,rewire=False,core=False):
     if not core and not walk and not rewire:
         return _res
     
-    if not rewire:
+    if not rewire and not walk:
         if not core:
             try:
                 _res = self.mControlsAll
