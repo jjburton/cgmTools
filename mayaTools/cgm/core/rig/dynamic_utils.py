@@ -163,10 +163,6 @@ class chain(object):
     
     
 class cgmDynFK(cgmMeta.cgmObject):
-    hairSystem = None
-    mHairSystem = None
-    nucleus = None
-    mNucleus = None
     baseName = None
     fwd = None
     up = None
@@ -199,10 +195,6 @@ class cgmDynFK(cgmMeta.cgmObject):
 
         if kws:log.debug("kws: %s"%str(kws))
         if args:log.debug("args: %s"%str(args))
-        
-        if hairSystem:
-            self.hairSystem = hairSystem
-            self.mHairSystem = cgmMeta.asMeta(hairSystem,noneValid=True)
         
         self.fwd = fwd
         self.up = up
@@ -314,18 +306,12 @@ class cgmDynFK(cgmMeta.cgmObject):
         log.debug(cgmGEN.logString_sub(_str_func,'dyn setup'))
         b_existing = False
         
-        if self.hairSystem != None:
-            log.info(cgmGEN.logString_msg(_str_func,'Using existing system: {0}'.format(self.hairSystem)))
-            mc.select(self.hairSystem, add=True)
-            b_existing = True
-        else:
-            mHairSys = self.getMessageAsMeta('mHairSysShape')
-            if mHairSys:
-                self.hairSystem = mHairSys.mNode                
-                mHairSysDag = mHairSys.getTransform(asMeta=1)
-                log.info(cgmGEN.logString_msg(_str_func,'Using existing system: {0}'.format(self.hairSystem)))
-                mc.select(mHairSysDag.mNode, add=True)
-                b_existing = True            
+        mHairSys = self.getMessageAsMeta('mHairSysShape')
+        if mHairSys:
+            mHairSysDag = mHairSys.getTransform(asMeta=1)
+            log.info(cgmGEN.logString_msg(_str_func,'Using existing system: {0}'.format(mHairSys.mNode)))
+            mc.select(mHairSysDag.mNode, add=True)
+            b_existing = True            
             
         mel.eval('makeCurvesDynamic 2 { "0", "0", "1", "1", "0" }')
 
@@ -339,7 +325,6 @@ class cgmDynFK(cgmMeta.cgmObject):
         _follicle = mFollicle.mNode
         mGrp.connectChildNode(mFollicle.mNode,'mFollicle','group')
         
-        
         follicleShape = mFollicleShape.mNode#mc.listRelatives(mFollicle.mNode, shapes=True)[0]
         _hairSystem = mc.listRelatives( mc.listConnections('%s.currentPosition' % follicleShape)[0],
                                         shapes=True)[0]
@@ -352,16 +337,15 @@ class cgmDynFK(cgmMeta.cgmObject):
             self.connectChildNode(mHairSys.mNode,'mHairSysShape','owner')
             
             mHairSysDag.p_parent = self
-            self.hairSystem = mHairSys.mNode
             
         outCurve = mc.listConnections('%s.outCurve' % _follicle)[0]
         outCurveShape = mc.listRelatives(outCurve, shapes=True)[0]
-        _nucleus = mc.listConnections( '%s.currentState' % self.hairSystem )[0]
+        _nucleus = mc.listConnections( '%s.currentState' % mHairSys.mNode )[0]
         if not b_existing:
             mNucleus = cgmMeta.asMeta(_nucleus)
-            mNucleus.rename("{0}_nucleus".format(self.baseName))            
-            self.connectChildNode(mNucleus.mNode,'mNucleus','owner')
-            mNucleus.p_parent=self
+            mNucleus.rename("cgmDynFK_nucleus")            
+            self.connectChildNode(mNucleus.mNode,'mNucleus')
+            #self.connectChildNode(mNucleus.mNode,'mNucleus','owner')
             
             if self.startFrame is not None:
                 mNucleus.startFrame = self.startFrame
@@ -455,8 +439,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         
 
     def report(self):
-        _d = {'hairSystem':self.hairSystem,
-              'up':self.up,
+        _d = {'up':self.up,
               'fwd':self.fwd,
               'baseName':self.baseName}
         

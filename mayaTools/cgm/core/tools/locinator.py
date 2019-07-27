@@ -183,7 +183,7 @@ def get_objDat(obj=None, mode = 'self', report = False):
 
 def bake_match(targets = None, move = True, rotate = True, boundingBox = False, pivot = 'rp',
                timeMode = 'slider',timeRange = None, keysMode = 'loc', keysDirection = 'all',
-               matchMode = 'self'):
+               matchMode = 'self',dynMode=None):
     """
     Updates an tagged loc or matches a tagged object
     
@@ -218,13 +218,17 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     
     #log.info("|{0}| >> Not updatable: {1}".format(_str_func,NAMES.get_short(_obj)))  
     _targets = VALID.objStringList(l_args=targets,isTransform=True,noneValid=False,calledFrom=_str_func)
-    
+        
     if not _targets:raise ValueError,"|{0}| >> no targets.".format(_str_func)
     if not move and not rotate:raise ValueError,"|{0}| >> Move and rotate both False".format(_str_func)
     
+    if dynMode is None:
+        try:dynMode = cgmMeta.cgmOptionVar('cgmVar_dynMode').getValue()
+        except:pass
+        
     log.info("|{0}| >> Targets: {1}".format(_str_func,_targets))
     log.info("|{0}| >> move: {1} | rotate: {2} | boundingBox: {3}".format(_str_func,move,rotate,boundingBox))    
-    log.info("|{0}| >> timeMode: {1} | keysMode: {2} | keysDirection: {3}".format(_str_func,timeMode,keysMode,keysDirection))
+    log.info("|{0}| >> timeMode: {1} | keysMode: {2} | keysDirection: {3} | dynMode: {4}".format(_str_func,timeMode,keysMode,keysDirection,dynMode))
     
     _l_toDo = []
     _d_toDo = {}
@@ -393,7 +397,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     _progressBar = cgmUI.doStartMayaProgressBar(len(_keysToProcess),"Processing...")
     _autoKey = mc.autoKeyframe(q=True,state=True)
     if _autoKey:mc.autoKeyframe(state=False)
-    mc.refresh(su=1)
+    if not dynMode:mc.refresh(su=1)
     try:
         for i,f in enumerate(_keysToProcess):
             mc.currentTime(f)
@@ -418,7 +422,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     except Exception,err:
         log.error(err)
     finally:
-        mc.refresh(su=0)
+        if not dynMode:mc.refresh(su=0)
         cgmUI.doEndMayaProgressBar(_progressBar)
     mc.currentTime(_d_keyDat['currentTime'])
     if _autoKey:mc.autoKeyframe(state=True)
@@ -470,6 +474,8 @@ def uiRadial_create(self,parent,direction = None):
 def uiSetupOptionVars(self):
     self.var_matchModeMove = cgmMeta.cgmOptionVar('cgmVar_matchModeMove', defaultValue = 1)
     self.var_matchModeRotate = cgmMeta.cgmOptionVar('cgmVar_matchModeRotate', defaultValue = 1)
+    self.var_dynMode = cgmMeta.cgmOptionVar('cgmVar_dynMode', defaultValue = 0)
+    
     #self.var_matchModePivot = cgmMeta.cgmOptionVar('cgmVar_matchModePivot', defaultValue = 0)
     self.var_matchMode = cgmMeta.cgmOptionVar('cgmVar_matchMode', defaultValue = 2)
     self.var_locinatorTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_locinatorTargetsBuffer',defaultValue = [''])
@@ -489,6 +495,7 @@ def uiFunc_change_matchMode(self,arg):
     else:
         self.var_matchMode.value = 2        
         raise ValueError,"|{0}| >> Unknown matchMode: {1}".format(sys._getframe().f_code.co_name,arg)
+    
         
 def uiOptionMenu_matchMode(self, parent):
     try:#>>> KeyMode ================================================================================
@@ -506,7 +513,23 @@ def uiOptionMenu_matchMode(self, parent):
             mc.menuItem(p=uiMatch,collection = uiRC,
                         label=item,
                         c = cgmGen.Callback(uiFunc_change_matchMode,self,i),
-                        rb = _rb) 
+                        rb = _rb)
+            
+        #Dyn mode...
+        uiDyn = mc.menuItem(p=parent, l='Dyn Mode ', subMenu=True)        
+        uiRC = mc.radioMenuItemCollection()
+        _v = self.var_dynMode.value
+        
+        for i in range(2):
+            if i == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(p=uiDyn,collection = uiRC,
+                        label=bool(i),
+                        c = cgmGen.Callback(self.var_dynMode.setValue,i),
+                        rb = _rb)
+            
+        #self.var_dynMode = cgmMeta.cgmOptionVar('cgmVar_dynMode', defaultValue = 0)
         """    
         #>>> Match pivot ================================================================================    
         uiMenu = mc.menuItem(p=uiMatch, l='Pivot', subMenu=True)    
@@ -523,6 +546,7 @@ def uiOptionMenu_matchMode(self, parent):
                         rb = _rb)         """
     except Exception,err:
         log.error("|{0}| failed to load. err: {1}".format(_str_section,err)) 
+        
         
 def uiBuffer_control(self, parent):
     try:#>>> KeyMode ================================================================================
