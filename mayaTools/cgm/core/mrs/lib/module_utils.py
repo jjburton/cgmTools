@@ -71,7 +71,8 @@ def get_partName(self):
     
     try:#Quick select sets ================================================================
         _d = NAMETOOLS.get_objNameDict(self.mNode)
-        _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
+        if not _d.get('cgmName'):
+            _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
         log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
         
         _str= NAMETOOLS.returnCombinedNameFromDict(_d)

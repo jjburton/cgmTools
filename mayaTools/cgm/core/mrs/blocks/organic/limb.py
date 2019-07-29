@@ -3302,7 +3302,6 @@ def rig_skeleton(self):
                     for ii,mJnt in enumerate(ml_segmentHandles):
                         mJnt.parent = ml_fkJointsToUse[ self.md_segHandleIndices[self.ml_segHandles[ii]]]
                         
-                log.debug
                 if mBlock.segmentMidIKControl:
                     ml_segmentMidHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                                 [ml_set[0],ml_set[-1]], None, 
@@ -3359,7 +3358,8 @@ def rig_skeleton(self):
                     log.debug("|{0}| >> Creating mid control: {1}".format(_str_func,i))  
                     #Lever...
                     mMidIK = ml_set[0].doDuplicate(po=True)
-                    mMidIK.cgmName = 'segMid_{0}'.format(i)
+                    _nameSet = NAMETOOLS.combineDict( ml_set[0].getNameDict(ignore=['cgmType','cgmDirection']))                    
+                    mMidIK.cgmName = '{0}_segMid_{1}'.format(_nameSet,i)
                     mMidIK.p_parent = False
                     mMidIK.doName()
                 
@@ -3541,7 +3541,6 @@ def rig_digitShapes(self):
         
         
         mRigNull = self.mRigNull
-        
         ml_formHandles = mBlock.msgList_get('formHandles')
         ml_prerigHandleTargets = self.mBlock.atBlockUtils('prerig_getHandleTargets')
         
@@ -3592,7 +3591,8 @@ def rig_digitShapes(self):
         if mPivotHolderHandle.getMessage('pivotHelper'):
             mPivotHelper = mPivotHolderHandle.pivotHelper
             log.debug("|{0}| >> Pivot shapes...".format(_str_func))            
-            mBlock.atBlockUtils('pivots_buildShapes', mPivotHolderHandle.pivotHelper, mRigNull)
+            #mBlock.atBlockUtils('pivots_buildShapes', mPivotHolderHandle.pivotHelper, mRigNull)
+            RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper)
 
         #IK End ================================================================================
         if mBlock.ikSetup:
@@ -4206,6 +4206,7 @@ def rig_shapes(self):
         #_str_func = '[{0}] > rig_shapes'.format(_short)
         
         mBlock = self.mBlock
+        bb_ik = None
     
         _offset = self.v_offset
         str_rigSetup = ATTR.get_enumValueString(_short,'rigSetup')
@@ -4282,7 +4283,8 @@ def rig_shapes(self):
         mPivotHelper = mPivotHolderHandle.getMessageAsMeta('pivotHelper')
         if mPivotHelper:
             log.debug("|{0}| >> Pivot shapes...".format(_str_func))            
-            mBlock.atBlockUtils('pivots_buildShapes', mPivotHolderHandle.pivotHelper, mRigNull)
+            #mBlock.atBlockUtils('pivots_buildShapes', mPivotHolderHandle.pivotHelper, mRigNull)
+            RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper)
 
         
         #Lever =============================================================================
@@ -4313,7 +4315,8 @@ def rig_shapes(self):
             RIGSHAPES.limbRoot(self)
 
             log.debug(cgmGEN._str_subLine)
-
+            
+        
 
         
         if self.md_roll:#Segment stuff ===================================================================
@@ -4641,6 +4644,7 @@ def rig_shapes(self):
     
             self.mRigNull.connectChildNode(mDag,'controlFollowParentBank','rigNull')#            
             log.debug(cgmGEN._str_subLine)        
+        
         
         mRoot = RIGSHAPES.rootOrCog(self)
         

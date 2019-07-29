@@ -312,9 +312,10 @@ def limbRoot(self):
 
         CORERIG.shapeParent_in_place(mLimbRoot.mNode,mRootCrv.mNode, False)
 
-        for a in 'cgmName','cgmDirection','cgmModifier':
-            if ATTR.get(_short_module,a):
-                ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
+        #for a in 'cgmName','cgmDirection','cgmModifier':
+        #    if ATTR.get(_short_module,a):
+        #        ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
+        mLimbRoot.doStore('cgmName',self.d_module['partName'])
 
         mLimbRoot.doStore('cgmTypeModifier','limbRoot')
         mLimbRoot.doName()
@@ -351,7 +352,7 @@ def rootOrCog(self,mHandle = None):
         
             CORERIG.override_color(mCog.mNode,'white')
         
-            mCog.doStore('cgmName','cog')
+            mCog.doStore('cgmName','{0}_cog'.format(self.d_module['partName']))
             mCog.doStore('cgmAlias','cog')
             mCog.doName()
         
@@ -377,8 +378,9 @@ def rootOrCog(self,mHandle = None):
             #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
     
             CORERIG.shapeParent_in_place(mRoot.mNode,mRootCrv.mNode, False)
-    
-            ATTR.copy_to(self.mModule.mNode,'cgmName',mRoot.mNode,driven='target')
+            
+            mRoot.doStore('cgmName',self.d_module['partName'])
+            #ATTR.copy_to(self.mModule.mNode,'cgmName',mRoot.mNode,driven='target')
             mRoot.doStore('cgmTypeModifier','root')
             mRoot.doName()
     
@@ -919,7 +921,53 @@ def lever(self,ball = False):
 
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
+l_pivotOrder = BLOCKSHARE._l_pivotOrder
+d_pivotBankNames = BLOCKSHARE._d_pivotBankNames
+def pivotShapes(self, mPivotHelper = None):
+    """
+    Builder of shapes for pivot setup. Excpects to find pivotHelper on block
     
+    :parameters:
+        self(cgmRigBlock)
+        mRigNull(cgmRigNull) | if none provided, tries to find it
+
+    :returns
+        dict
+    """
+    _str_func = 'pivotShapes'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    _offset = self.v_offset
+    _jointOrientation = self.d_orientation['str']
+
+    if mRigNull is None:
+        mRigNull = self.moduleTarget.rigNull
+        
+    if mPivotHelper is None:
+        if not self.getMessage('pivotHelper'):
+            raise ValueError,"|{0}| >> No pivots helper found. mBlock: {1}".format(_str_func,mBlock)
+        mPivotHelper = mBlock.pivotHelper
+        
+    for a in l_pivotOrder:
+        str_a = 'pivot' + a.capitalize()
+        if mPivotHelper.getMessage(str_a):
+            log.debug("|{0}| >> Found: {1}".format(_str_func,str_a))
+            mPivotOrig = mPivotHelper.getMessage(str_a,asMeta=True)[0]
+            mPivot = mPivotOrig.doDuplicate(po=False)
+            mRigNull.connectChildNode(mPivot,str_a,'rigNull')#Connect
+            _nameSet = NAMETOOLS.combineDict( mPivotOrig.getNameDict(ignore=['cgmType','cgmTypeModifier','cgmDirection']))
+            mPivot.parent = False            
+            mPivot.cgmName = "{0}_{1}".format(self.d_module['partName'], _nameSet)
+            if mPivot.getMayaAttr('cgmDirection'):
+                mPivot.deleteAttr('cgmDirection')
+            #mPivot.rename("{0}_{1}".format(self.d_module['partName'], mPivot.p_nameBase))
+            mPivot.doName()
+    return True
+
+
 def backup(self,ml_handles = None):
     try:
         _str_func = 'segment_handles'

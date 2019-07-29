@@ -57,6 +57,8 @@ import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 reload(MODULECONTROL)
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
+import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
+reload(RIGSHAPES)
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
@@ -1323,18 +1325,9 @@ def rig_shapes(self):
             
     #Pivots =======================================================================================
     if mMainHandle.getMessage('pivotHelper'):
-        mBlock.atBlockUtils('pivots_buildShapes', mMainHandle.pivotHelper, mRigNull)
-        
-        """
-        log.info("|{0}| >> Pivot helper found".format(_str_func))
-        mPivotHelper = mBlock.pivotHelper
-        for a in 'center','front','back','left','right':
-            str_a = 'pivot' + a.capitalize()
-            if mPivotHelper.getMessage(str_a):
-                log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
-                mPivot = mPivotHelper.getMessage(str_a,asMeta=True)[0].doDuplicate(po=False)
-                mRigNull.connectChildNode(mPivot,str_a,'rigNull')#Connect    
-                mPivot.parent = False"""
+        RIGSHAPES.pivotShapes(self,mMainHandle.pivotHelper)
+        #mBlock.atBlockUtils('pivots_buildShapes', mMainHandle.pivotHelper, mRigNull)
+
 
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     

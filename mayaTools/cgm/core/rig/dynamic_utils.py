@@ -13,6 +13,7 @@ import pprint
 import copy
 import maya.mel as mel
 
+import cgm.core.presets.cgmDynFK_presets as dynFKPresets
 
 import logging
 logging.basicConfig()
@@ -167,10 +168,13 @@ class cgmDynFK(cgmMeta.cgmObject):
     fwd = None
     up = None
     startFrame = None
+    useExistingNucleus = True
     
     def __init__(self,node = None, name = None,
                  objs = None, fwd = 'z+', up = 'y+',
-                 hairSystem=None, baseName = 'hair',
+                 hairSystem=None,
+                 useExistingNucleus = True,
+                 baseName = 'hair',
                  startFrame = -50,
                  *args,**kws):
         """ 
@@ -200,6 +204,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         self.up = up
         self.startFrame = startFrame
         self.baseName = baseName
+        self.useExistingNucleus = useExistingNucleus
         
         if not node:
             self.rename("{0}_dynFK".format(self.baseName))
@@ -217,6 +222,14 @@ class cgmDynFK(cgmMeta.cgmObject):
     def chain_rebuild(self, idx = None, objs = None):
         pass
     
+    def get_nucleus(self,mNucleus=None):
+        """Try to get the nucleus from the scene to use for other setups"""
+        if mNucleus:
+           return mNucleus
+        else:
+            mNucleus = cgmMeta.validateObjArg('cgmDynFK_nucleus',noneValid=True)
+        return mNucleus
+        
     def chain_deleteByIdx(self, idx = None):
         if idx is None:
             return log.warning("Must have an idx to remove")
@@ -238,7 +251,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         
     def chain_create(self, objs = None,
                      fwd = None, up=None,
-                     name = None):
+                     name = None,mNucleus=None):
         
         _str_func = 'chain_create'
         
@@ -300,19 +313,29 @@ class cgmDynFK(cgmMeta.cgmObject):
 
 
         crv = CORERIG.create_at(create='curve',l_pos= l_pos, baseName = name)
-        
+        mc.select(cl=1)
 
         # make the dynamic setup
         log.debug(cgmGEN.logString_sub(_str_func,'dyn setup'))
         b_existing = False
+        b_existing_nucleus = False
         
         mHairSys = self.getMessageAsMeta('mHairSysShape')
         if mHairSys:
             mHairSysDag = mHairSys.getTransform(asMeta=1)
             log.info(cgmGEN.logString_msg(_str_func,'Using existing system: {0}'.format(mHairSys.mNode)))
             mc.select(mHairSysDag.mNode, add=True)
-            b_existing = True            
+            b_existing = True
             
+        if self.useExistingNucleus or mNucleus:
+            mNucleus = self.get_nucleus(mNucleus)
+            if mNucleus:
+                mc.select(mNucleus.mNode,add=1)
+                b_existing_nucleus = True
+                log.info(cgmGEN.logString_msg(_str_func,'Using existing nucleus: {0}'.format(mNucleus.mNode)))                
+                self.connectChildNode(mNucleus.mNode,'mNucleus')
+        
+        mc.select(crv)
         mel.eval('makeCurvesDynamic 2 { "0", "0", "1", "1", "0" }')
 
         # get relevant nodes
@@ -337,18 +360,34 @@ class cgmDynFK(cgmMeta.cgmObject):
             self.connectChildNode(mHairSys.mNode,'mHairSysShape','owner')
             
             mHairSysDag.p_parent = self
+            _hairSystem = mHairSys.mNode
             
         outCurve = mc.listConnections('%s.outCurve' % _follicle)[0]
         outCurveShape = mc.listRelatives(outCurve, shapes=True)[0]
         _nucleus = mc.listConnections( '%s.currentState' % mHairSys.mNode )[0]
-        if not b_existing:
+        
+        if not b_existing_nucleus:
             mNucleus = cgmMeta.asMeta(_nucleus)
             mNucleus.rename("cgmDynFK_nucleus")            
-            self.connectChildNode(mNucleus.mNode,'mNucleus')
             #self.connectChildNode(mNucleus.mNode,'mNucleus','owner')
+            self.connectChildNode(mNucleus.mNode,'mNucleus')
             
             if self.startFrame is not None:
                 mNucleus.startFrame = self.startFrame
+        else:
+            #Because maya is crappy we gotta manually wire the existing nucleus
+            ##startFrame out to startFrame in
+            ##outputObjects[x] - nextState
+            ##shape.currentState>inputActive[x]
+            ##shape.startState>inputActiveStart[x]
+            mc.delete(_nucleus)
+            _useNucleus = mNucleus.mNode
+            _useIdx = ATTR.get_nextCompoundIndex(mNucleus.mNode,'outputObjects')
+            log.info("useIdx: {0}".format(_useIdx))
+            ATTR.connect('{0}.outputObjects[{1}]'.format(_useNucleus,_useIdx),'{0}.nextState'.format(_hairSystem))
+            ATTR.connect('{0}.currentState'.format(_hairSystem),'{0}.inputActive[{1}]'.format(_useNucleus,_useIdx))
+            ATTR.connect('{0}.startState'.format(_hairSystem),'{0}.inputActiveStart[{1}]'.format(_useNucleus,_useIdx))            
+            
             
         
         ml[0].getParent(asMeta=1).select()
@@ -437,7 +476,6 @@ class cgmDynFK(cgmMeta.cgmObject):
         mGrp.msgList_connect('mBaseTargets',ml_baseTargets)
         
         
-
     def report(self):
         _d = {'up':self.up,
               'fwd':self.fwd,
@@ -473,7 +511,8 @@ class cgmDynFK(cgmMeta.cgmObject):
         if not mNucleus and mHairSysShape:
             return log.warning("Nucleus and hairShape required for profile load")
         
-        _d = d_chainProfiles.get(arg)
+        reload(dynFKPresets)
+        _d = dynFKPresets.d_chain.get(arg)
         if not _d:
             return log.warning("Profile has no data: {0}".format(arg))
         
@@ -496,38 +535,31 @@ class cgmDynFK(cgmMeta.cgmObject):
                 mHairSysShape.__setattr__(a,v)
             except Exception,err:
                 log.warning("mHairSys | Failed to set: {0} | {1} | {2}".format(a,v,err))
-        
         return True
+    
+    def chains_getDicts(self,idx=None):
+        _d = self.get_dat()
+        l_dicts = []
+        if idx:
+            l_dicts = _d.get(_d['chains'][idx])
+        else:
+            for i,md in _d.get('chains').iteritems():
+                l_dicts.append(md)
+        
+        return l_dicts
+    
+    def targets_connect(self,idx=None):  
+        for d in self.chains_getDicts(idx):
+            for i,mObj in enumerate(d['mTargets']):
+                mc.parentConstraint([d['mLocs'][i].mNode, mObj.mNode])
+    def targets_disconnect(self,idx=None):
+        for d in self.chains_getDicts(idx):
+            for i,mObj in enumerate(d['mTargets']):
+                mObj.deleteConstraintsTo()     
+            
                 
     def delete(self):
         pass        
-        
-        
-        
-d_chainProfiles = {'default':
-                   {'n':
-                    {'subSteps':12,
-                    'maxCollisionIterations':49,
-                    'gravity':98,
-                    'gravityDirection':[0,-1,0]},
-                    'hs':
-                    {'bendFollow':1.0,
-                     'hairWidth':1.2,
-                     'solverDisplay':1,
-                     'stretchResistance':105,
-                     'drag':.1,
-                     'tangentalDrag':.1,
-                     }
-                    },
-                   'wind':
-                   {'n':
-                    {'windSpeed':900,
-                                'windDirection':[0,0,-1],
-                                'windNoise':5},
-                    'hs':{'intensity':1.0,
-                          'frequency':5.0,
-                          'speed':.2}}}
-
 
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  

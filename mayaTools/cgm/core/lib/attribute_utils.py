@@ -1908,6 +1908,19 @@ def is_userDefined(*a):
         return True
     return False
 
+def get_nextCompoundIndex(*a):
+    if get_type(*a) != 'TdataCompound':
+        raise ValueError,"must be compound attr"
+    _d = validate_arg(*a) 
+    
+    _res = 0
+    _good = False
+    while not _good:
+        if get(_d['node'],"{0}[{1}]".format(_d['attr'],_res)):
+            _res+=1
+        else:
+            return _res
+        
 def get_range(*a):
     """   
     :parameters:

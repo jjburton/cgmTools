@@ -197,6 +197,7 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True, removeDups=True):
     _str = divider.join(nameBuilder)
     if stripInvalid: _str = strUtils.stripInvalidChars(_str)
     return _str
+combineDict = returnCombinedNameFromDict
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_objNameDict(obj,ignore=[False]):
