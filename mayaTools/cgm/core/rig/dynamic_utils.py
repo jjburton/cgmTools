@@ -296,7 +296,8 @@ class cgmDynFK(cgmMeta.cgmObject):
             log.debug(cgmGEN.logString_msg(_str_func, 'Single count. Adding extra handle.'))
             mLoc = ml[0].doLoc()
             mLoc.rename("chain_{0}_{1}_end_loc".format(_idx, name))
-            mLoc.p_position = ml[0].getPositionByAxisDistance(fwdAxis.p_string,1.0)
+            _size = DIST.get_bb_size(ml[0],True,'max')
+            mLoc.p_position = ml[0].getPositionByAxisDistance(fwdAxis.p_string,_size)
             ml.append(mLoc)
             mLoc.p_parent = mGrp
         
@@ -417,6 +418,11 @@ class cgmDynFK(cgmMeta.cgmObject):
         mc.parentConstraint(ml[0].getParent(), mUp.mNode, mo=True)
         
         for i, mObj in enumerate(ml):
+            if not i:
+                mUpUse = mUp
+            else:
+                mUpUse = ml_locs[-1]
+                
             mLoc = cgmMeta.asMeta( LOC.create(mObj.getNameLong()) )
             loc = mLoc.mNode
             ml_locs.append(mLoc)
@@ -457,7 +463,7 @@ class cgmDynFK(cgmMeta.cgmObject):
             mc.connectAttr( '%s.position' % poc, '%s.translate' % mLocParent.mNode)
             mc.connectAttr( '%s.position' % pocAim, '%s.translate' % mAim.mNode)
             
-            aimConstraint = mc.aimConstraint( mAim.mNode, mLocParent.mNode, aimVector=fwdAxis.p_vector, upVector = upAxis.p_vector, worldUpType = "objectrotation", worldUpVector = upAxis.p_vector, worldUpObject = mUp.mNode )
+            aimConstraint = mc.aimConstraint( mAim.mNode, mLocParent.mNode, aimVector=fwdAxis.p_vector, upVector = upAxis.p_vector, worldUpType = "objectrotation", worldUpVector = upAxis.p_vector, worldUpObject = mUpUse.mNode )
             
             mLoc.p_parent = mLocParent
             mAim.p_parent = mGrp
@@ -505,17 +511,23 @@ class cgmDynFK(cgmMeta.cgmObject):
         pprint.pprint(_res)
         return _res
     
-    def profile_load(self,arg='default'):
+    def profile_load(self,arg='default',clean=True):
         mNucleus=self.getMessageAsMeta('mNucleus')
         mHairSysShape=self.getMessageAsMeta('mHairSysShape')
         if not mNucleus and mHairSysShape:
             return log.warning("Nucleus and hairShape required for profile load")
         
+        
+        profile_load(mNucleus,arg,clean=clean)
+        profile_load(mHairSysShape,arg,clean=clean)
+        
+        
+        
+        return 
         reload(dynFKPresets)
         _d = dynFKPresets.d_chain.get(arg)
         if not _d:
             return log.warning("Profile has no data: {0}".format(arg))
-        
         
         d_n = _d.get('n') or {}
         d_hs = _d.get('hs') or {}
@@ -555,12 +567,135 @@ class cgmDynFK(cgmMeta.cgmObject):
     def targets_disconnect(self,idx=None):
         for d in self.chains_getDicts(idx):
             for i,mObj in enumerate(d['mTargets']):
-                mObj.deleteConstraintsTo()     
+                _buffer = mObj.getConstraintsTo()
+                if _buffer:
+                    mc.delete(_buffer)
             
                 
     def delete(self):
         pass        
 
+
+
+#Profiles ========================================================================================
+d_shortHand = {'nucleus':'n',
+               'hairSystem':'hs'}
+l_ignore = ['currentTime','startFrame']
+
+d_attrMap = {'n':{'gravity':['gravity','gravityDirection',],
+                  'air':['airDensity','windSpeed','windDirection','windNoise'],
+                  'groundPlane':['usePlane','planeOrigin','planeNormal',
+                                 'planeBounce','planeFriction','planeStickiness'],
+                  'solverAttributes':['subSteps','maxCollisionIterations',
+                                      'collisionLayerRange', 'timingOutput']},
+             'hs':{'base':['simulationMethod','displayQuality'],
+                   'clumpAndHairShape':['hairsPerClump','subSegments','thinning','clumpTwist','bendFollow',
+                                        'clumpWidth','hairWidth', 'clumpWidthScale', 'hairWidthScale','clumpInterpolation',
+                                        'curl','curlFrequency',
+                                        'clumpCurl', 'clumpFlatness'],
+                   'collisions':['collide','selfCollide',
+                                 'collisionFlag','selfCollisionFlag',
+                                 'collideStrength', 'collisionLayer','numCollideNeighbors',
+                                 'collideGround','collideOverSample',
+                                 'maxSelfCollisionIterations','drawCollideWidth',
+                                 'maxSelfCollideIterations','collideWidthOffset','selfCollideWidthScale',
+                                 'solverDisplay','bounce','friction','stickiness','staticCling'],
+                   'dynamicProperties':['stretchResistance','compressionResistance','bendResistance',
+                                        'twistResistance', 'extraBendLinks', 'restLengthScale',
+                                        'stiffnessScale', 'startCurveAttract', 'attractionDamp',
+                                        'attractionScale','bend','bendAnisotropy'],
+                   'forces':['mass','drag','tangentialDrag','motionDrag','damp','stretchDamp', 'dynamicsWeight'],
+                   'turbulance':['turbulenceStrength','turbulenceFrequency','turbulenceSpeed'],
+                   'others':['detailNoise','noStretch','diffuseRand','displacementScale','groundHeight',
+                             'iterations','interpolationRange','lengthFlex','stiffness','repulsion',
+                             'noise','noiseFrequency','noiseMethod','valRand']}}
+
+def get_dat(target = None, differential=False, module = dynFKPresets):
+    _str_func = 'get_dat'
+    mTar = cgmMeta.asMeta(target, noneValid = True)
+    if not mTar:
+        return log.error(cgmGEN.logString_msg(_str_func, "No valid target"))
+    
+    _type = mTar.getMayaType()
+    _key = d_shortHand.get(_type,_type)    
+    log.info(cgmGEN.logString_msg(_str_func,"mTar: {0} | {1}".format(_type, mTar)))
+    
+    #_d = ATTR.get_attrsByTypeDict(mTar.mNode)
+    #pprint.pprint(_d)
+    _res = {}
+    _tar = mTar.mNode
+    for section,l in d_attrMap.get(_key).iteritems():
+        log.debug(cgmGEN.logString_msg(_str_func,section))        
+        for a in l:
+            if a in l_ignore:
+                continue
+            try:
+                _v = ATTR.get(_tar,a)
+                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(a,_v)))        
+                
+            except Exception,err:
+                log.error("Failed to query: {0} | {1} | {2}".format(_tar, a, err))
+            if _v is not None:
+                _res[str(a)] = _v
+            
+    if differential:
+        log.debug(cgmGEN.logString_msg(_str_func,"Getting differential"))
+        _d_base = profile_get('base')
+        _d_baseSet = _d_base.get(_key,module)
+        if _d_baseSet:
+            log.debug(cgmGEN.logString_msg(_str_func,"Found base set..."))
+            _res_use = {}
+            for k,v in  _res.iteritems():
+                if v != _d_baseSet[k]:
+                    log.debug(cgmGEN.logString_msg(_str_func,"Storing: {0} | {1}".format(k,v)))                    
+                    _res_use[k] = v
+                #else:
+                #    log.debug(cgmGEN.logString_msg(_str_func,"Same: {0} | {1}".format(k,v)))
+            return {_key:_res_use}
+        
+    #pprint.pprint(_res)
+    return _res
+
+def profile_get(arg = None, module = dynFKPresets ):
+    reload(module)
+    return module.__dict__.get(arg)
+
+def profile_load(target = None, arg = None, module = dynFKPresets, clean = True):
+    _str_func = 'profile_apply'
+    mTar = cgmMeta.asMeta(target, noneValid = True)
+    if not mTar:
+        return log.error(cgmGEN.logString_msg(_str_func, "No valid target"))
+    
+    _type = mTar.getMayaType()
+    _key = d_shortHand.get(_type,_type)    
+    log.info(cgmGEN.logString_msg(_str_func,"mTar: {0} | {1}".format(_type, mTar)))
+    
+    _d_profile = profile_get(arg,module)
+    if not _d_profile:
+        log.warning("Invalid profile: {0}".format(arg))        
+        return False
+    
+    _d_type = _d_profile.get(_key)
+    if not _d_type:
+        log.warning("No {0}  dat".format(_type))
+        return False
+    
+    if clean:
+        d_use = profile_get('base',module).get(_key)
+        d_use.update(_d_type)
+    else:
+        d_use = _d_type
+    
+    _node = mTar.mNode
+    for a,v in d_use.iteritems():
+        log.debug("{0} || {1} | {2}".format(_type, a,v))
+        try:
+            ATTR.set(_node, a, v)
+            #mNucleus.__setattr__(a,v)
+        except Exception,err:
+            log.warning("{3} | Failed to set: {0} | {1} | {2}".format(a,v,err, _type))    
+    
+    
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================      
