@@ -397,7 +397,12 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     _progressBar = cgmUI.doStartMayaProgressBar(len(_keysToProcess),"Processing...")
     _autoKey = mc.autoKeyframe(q=True,state=True)
     if _autoKey:mc.autoKeyframe(state=False)
-    if not dynMode:mc.refresh(su=1)
+    if not dynMode:
+        mc.refresh(su=1)
+    else:
+        _keysToProcess = range(min(_keysToProcess), max(_keysToProcess))
+        
+    _len = len(_keysToProcess)
     try:
         for i,f in enumerate(_keysToProcess):
             mc.currentTime(f)
@@ -408,8 +413,9 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
                     
                     if mc.progressBar(_progressBar, query=True, isCancelled=True ):
                         log.warning('Bake cancelled!')
-                        break
-                    mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1)                    
+                        return False
+                    
+                    mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1, maxValue = _len)                    
                 
                     if matchMode == 'source':
                         try:update_obj(o,move,rotate,mode=matchMode)
