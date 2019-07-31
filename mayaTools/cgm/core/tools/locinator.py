@@ -400,7 +400,7 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     if not dynMode:
         mc.refresh(su=1)
     else:
-        _keysToProcess = range(min(_keysToProcess), max(_keysToProcess))
+        _keysToProcess = range(int(min(_keysToProcess)), int(max(_keysToProcess)))
         
     _len = len(_keysToProcess)
     try:
