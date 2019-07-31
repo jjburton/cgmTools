@@ -29,6 +29,7 @@ from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.transform_utils as TRANS
+import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
 
 #reload(LOCINATOR)
 import cgm.core.tools.toolbox as TOOLBOX
@@ -38,8 +39,8 @@ from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 reload(DYNPARENTTOOL)
 from cgm.core.mrs import Builder as RBUILDER
 from cgm.core.lib import node_utils as NODES
-from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
-reload(MMPuppet)
+#from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
+#reload(MMPuppet)
 import cgm.core.mrs.Animate as MRSANIMATE
 reload(MRSANIMATE)
 #reload(mmTemplate)
@@ -170,7 +171,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                 log.info("{0} button >> error {1}".format(self._str_MM, err))     
     
     def button_CallBack(self, func, *a, **kws ):
-        killUI()
+        MMUTILS.killUI()
         mmCallback(func,*a,**kws)
 
     def toggleVarAndReset(self, optionVar):
@@ -185,7 +186,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
     def reset(self):
         log.info("{0} >> reset".format(self._str_MM))        
         mUI.Callback(cgmUI.do_resetGuiInstanceOptionVars(self.l_optionVars,False))
-        #killUI()
+        #MMUTILS.killUI()
 
     def report(self):
         cgmUI.log_selfReport(self)
@@ -317,7 +318,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=uiHelp,l = 'Reset Options',
                     c=cgmGEN.Callback(self.button_action,self.reset))           
         mc.menuItem(p=uiHelp,l = 'Force Kill MM',
-                    c=lambda *a:killUI())
+                    c=lambda *a:MMUTILS.killUI())
                     #c=cgmGEN.Callback(self.button_action,self.reset))   
         
         mc.menuItem(p=uiHelp,l='Reload local python',
@@ -2083,7 +2084,7 @@ def deleteKey():
 def ui_CallAndKill(func, *a, **kws ):
     try:
         _str_func = 'ui_CallAndKill'
-        killUI()
+        MMUTILS.killUI()
         try:return func( *a, **kws )
         except Exception,err:
             try:log.info("Func: {0}".format(func.__name__))
@@ -2111,10 +2112,10 @@ class mmCallback(object):
     def __call__( self, *args ):
         try:
             _res = self._func( *self._args, **self._kwargs )
-            killUI()            
+            MMUTILS.killUI()            
             return _res
         except Exception,err:
-            #killUI()            
+            #MMUTILS.killUI()            
             #try:log.info("Func: {0}".format(self._func.__name__))
             #except:log.info("Func: {0}".format(self._func))
             if self._args:

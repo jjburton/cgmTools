@@ -65,6 +65,8 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
 reload(RIGGEN)
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
+import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
+reload(MMUTILS)
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
                                    ml_resetChannels,
@@ -2107,6 +2109,16 @@ _l_timeFunctions = ['reset','report',
 _l_noReselect = ['aimSnap','aimToIK','aimToFK']
 
 
+def uiCB_contextualActionMM(self,**kws):
+    _res = None
+    try:
+        _res = uiCB_contextualAction(self,**kws)
+    except Exception,err:
+        log.error(err)
+    finally:
+        mc.evalDeferred(MMUTILS.kill_mmTool,lp=True)
+        return _res
+    
 @cgmGEN.Timer
 def uiCB_contextualAction(self,**kws):
     _str_func='uiCB_contextualTime'
@@ -4946,7 +4958,8 @@ def mmUI_controls(self,parent = None):
     
     mc.menuItem(p=parent,l="-- Controls --",en=False)
     _context = 'control'
-
+    _contextTime = 'current'
+    
     #Mirror =============================================================================
     d_setup = {'Add to selection':{'mode':'mirrorSelect'},
                'Select Only':{'mode':'mirrorSelectOnly'},
@@ -4964,10 +4977,11 @@ def mmUI_controls(self,parent = None):
                   'context':_context,
                   'mirror':_d.get('mirror',False),
                   'children':_d.get('children',False),
+                  'contextTime':_contextTime,                  
                   'siblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_mirror,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
     return
 
@@ -4978,7 +4992,7 @@ def mmUI_puppet(self,parent = None):
     
     mc.menuItem(p=parent,l="-- Puppet --",en=False)
     _context = 'puppet'
-    
+    _contextTime = 'current'
     self.mDat = MRSANIMUTILS.MRSDAT
 
     
@@ -4998,10 +5012,11 @@ def mmUI_puppet(self,parent = None):
                   'context':_context,
                   'mirror':_d.get('mirror',False),
                   'children':_d.get('children',False),
+                  'contextTime':_contextTime,                  
                   'siblings':_d.get('siblings',False)}
         
         mc.menuItem(p=parent,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
         
     #Mirror =============================================================================
@@ -5017,12 +5032,13 @@ def mmUI_puppet(self,parent = None):
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
                   'context':_context,
+                  'contextTime':_contextTime,                  
                   'mirror':_d.get('mirror',False),
                   'children':_d.get('children',False),
                   'siblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_mirror,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )    
         
     #Toggles ===============================================================================
@@ -5040,6 +5056,7 @@ def mmUI_puppet(self,parent = None):
             l_options = ['off','lock','on']
             _mode = 'puppetSettings'        
         _d_tmp = {'context':_context,
+                  'contextTime':_contextTime,                  
                   'mirror':False,
                   'children':False,
                   'siblings':False}                  
@@ -5057,6 +5074,7 @@ def mmUI_puppet(self,parent = None):
         """    
     
 
+    
 @cgmGEN.Timer
 def mmUI_part(self,parent = None):
     _str_func = 'mmUI_part'
@@ -5064,6 +5082,7 @@ def mmUI_part(self,parent = None):
     
     mc.menuItem(p=parent,l="-- Part --",en=False)
     _context = 'part'
+    _contextTime = 'current'
     
     #Switch =============================================================================
     _select = mc.menuItem(p=parent,l="Switch",subMenu=True)
@@ -5073,12 +5092,13 @@ def mmUI_part(self,parent = None):
         #_d = d_setup[m]
         _d_tmp = {'mode':m,
                   'context':_context,
+                  'contextTime':_contextTime,                  
                   'mirror':False,
                   'children':False,
                   'siblings':False}
 
         mc.menuItem(p=_select,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp))
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp))
         
     #Basic =============================================================================
     d_setup = {'Key':{'mode':'key'},
@@ -5093,12 +5113,13 @@ def mmUI_part(self,parent = None):
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
                   'context':_context,
+                  'contextTime':_contextTime,
                   'mirror':_d.get('mirror',False),
                   'children':_d.get('children',False),
                   'siblings':_d.get('siblings',False)}
         
         mc.menuItem(p=parent,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
 
         
@@ -5122,12 +5143,13 @@ def mmUI_part(self,parent = None):
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
                   'context':_context,
+                  'contextTime':_contextTime,                  
                   'mirror':_d.get('mirror',False),
                   'children':_d.get('children',False),
                   'siblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_select,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
 
     #Mirror =============================================================================
@@ -5143,12 +5165,13 @@ def mmUI_part(self,parent = None):
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
                   'context':_context,
+                  'contextTime':_contextTime,                  
                   'mirror':_d.get('mirror',False),
                   'children':_d.get('children',False),
                   'siblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_mirror,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
         
     _children = mc.menuItem(p=parent,l="Children",subMenu=True)
@@ -5164,6 +5187,7 @@ def mmUI_part(self,parent = None):
         _sub = mc.menuItem(p=_toggle,l=n,subMenu=True)
         _d_tmp = {'context':_context,
                   'mirror':False,
+                  'contextTime':_contextTime,                  
                   'children':False,
                   'siblings':False}                  
         for v,o in enumerate(['hide','show']):
@@ -5208,7 +5232,7 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
                   }
         
         mc.menuItem(p=parent,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )    
     
     #Select =============================================================================
@@ -5234,7 +5258,7 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
                   }
         
         mc.menuItem(p=_select,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
 
     #Mirror =============================================================================
@@ -5258,7 +5282,7 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
                   }
         
         mc.menuItem(p=_mirror,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
         
     _toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)

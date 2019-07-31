@@ -80,8 +80,8 @@ class BreakdownDragger(utl.Dragger):
                  maxValue=None,
                  defaultValue=0,
                  title = 'Breakdown'):
-        
-        utl.Dragger.__init__(self, defaultValue=defaultValue, minValue=minValue, maxValue=maxValue, name=name, title=title)
+        super(BreakdownDragger, self).__init__(defaultValue=defaultValue, minValue=minValue, maxValue=maxValue, name=name, title=title)
+        #utl.Dragger.__init__(self, defaultValue=defaultValue, minValue=minValue, maxValue=maxValue, name=name, title=title)
                 
         self.keySel = utl.KeySelection()
         if self.keySel.selectedKeys():
