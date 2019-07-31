@@ -13,6 +13,8 @@ import pprint
 import copy
 import maya.mel as mel
 
+__MAYALOCAL = 'RIGDYN'
+
 import cgm.core.presets.cgmDynFK_presets as dynFKPresets
 
 import logging
