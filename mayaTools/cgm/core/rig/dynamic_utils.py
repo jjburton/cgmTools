@@ -224,8 +224,8 @@ class cgmDynFK(cgmMeta.cgmObject):
     
     def get_nucleus(self,mNucleus=None):
         """Try to get the nucleus from the scene to use for other setups"""
-        if mNucleus:
-           return mNucleus
+        if mNucleus is not None:
+           return cgmMeta.validateObjArg(mNucleus,noneValid=True)
         else:
             mNucleus = cgmMeta.validateObjArg('cgmDynFK_nucleus',noneValid=True)
         return mNucleus
@@ -333,10 +333,10 @@ class cgmDynFK(cgmMeta.cgmObject):
             if mNucleus:
                 mc.select(mNucleus.mNode,add=1)
                 b_existing_nucleus = True
-                log.info(cgmGEN.logString_msg(_str_func,'Using existing nucleus: {0}'.format(mNucleus.mNode)))                
+                log.info(cgmGEN.logString_msg(_str_func,'Using existing nucleus: {0}'.format(mNucleus.mNode)))
                 self.connectChildNode(mNucleus.mNode,'mNucleus')
         
-        mc.select(crv)
+        mc.select(crv,add=True)
         mel.eval('makeCurvesDynamic 2 { "0", "0", "1", "1", "0" }')
 
         # get relevant nodes
@@ -381,7 +381,9 @@ class cgmDynFK(cgmMeta.cgmObject):
             ##outputObjects[x] - nextState
             ##shape.currentState>inputActive[x]
             ##shape.startState>inputActiveStart[x]
-            mc.delete(_nucleus)
+            if cgmMeta.asMeta(_nucleus).mNode != mNucleus.mNode:
+                mc.delete(_nucleus)
+
             _useNucleus = mNucleus.mNode
             _useIdx = ATTR.get_nextCompoundIndex(mNucleus.mNode,'outputObjects')
             log.info("useIdx: {0}".format(_useIdx))
