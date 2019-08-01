@@ -12,6 +12,7 @@ import cgm.core.cgm_Meta as cgmMeta
 import pprint
 import copy
 import maya.mel as mel
+from cgm.core.cgmPy import validateArgs as VALID
 
 __MAYALOCAL = 'RIGDYN'
 
@@ -253,7 +254,8 @@ class cgmDynFK(cgmMeta.cgmObject):
         
     def chain_create(self, objs = None,
                      fwd = None, up=None,
-                     name = None,mNucleus=None):
+                     extendStart = None,
+                     name = None, mNucleus=None):
         
         _str_func = 'chain_create'
         
@@ -309,10 +311,13 @@ class cgmDynFK(cgmMeta.cgmObject):
         l_pos.append( DIST.get_pos_by_axis_dist(ml[-1],
                                                 fwdAxis.p_string,
                                                 DIST.get_distance_between_points(l_pos[-1],l_pos[-2])) )
-
-        l_pos.insert(0, DIST.get_pos_by_axis_dist(ml[0],
-                                                  fwdAxis.inverse.p_string,
-                                                  DIST.get_distance_between_points(l_pos[0],l_pos[1])*.5) )
+        
+        if extendStart:
+            f_extendStart = VALID.valueArg(extendStart)
+            if f_extendStart:
+                l_pos.insert(0, DIST.get_pos_by_axis_dist(ml[0],
+                                                          fwdAxis.inverse.p_string,
+                                                          f_extendStart ))
 
 
         crv = CORERIG.create_at(create='curve',l_pos= l_pos, baseName = name)
