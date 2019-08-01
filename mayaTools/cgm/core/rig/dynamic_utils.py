@@ -333,7 +333,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         if self.useExistingNucleus or mNucleus:
             mNucleus = self.get_nucleus(mNucleus)
             if mNucleus:
-                mc.select(mNucleus.mNode,add=1)
+                #mc.select(mNucleus.mNode,add=1)
                 b_existing_nucleus = True
                 log.info(cgmGEN.logString_msg(_str_func,'Using existing nucleus: {0}'.format(mNucleus.mNode)))
                 self.connectChildNode(mNucleus.mNode,'mNucleus')
@@ -387,11 +387,13 @@ class cgmDynFK(cgmMeta.cgmObject):
                 mc.delete(_nucleus)
 
             _useNucleus = mNucleus.mNode
+
+            """
             _useIdx = ATTR.get_nextCompoundIndex(mNucleus.mNode,'outputObjects')
             log.info("useIdx: {0}".format(_useIdx))
             ATTR.connect('{0}.outputObjects[{1}]'.format(_useNucleus,_useIdx),'{0}.nextState'.format(_hairSystem))
             ATTR.connect('{0}.currentState'.format(_hairSystem),'{0}.inputActive[{1}]'.format(_useNucleus,_useIdx))
-            ATTR.connect('{0}.startState'.format(_hairSystem),'{0}.inputActiveStart[{1}]'.format(_useNucleus,_useIdx))            
+            ATTR.connect('{0}.startState'.format(_hairSystem),'{0}.inputActiveStart[{1}]'.format(_useNucleus,_useIdx))"""            
             
             
         
@@ -485,6 +487,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         mGrp.msgList_connect('mTargets',ml)
         mGrp.msgList_connect('mBaseTargets',ml_baseTargets)
         
+        mNucleus.doConnectOut('startFrame',"{0}.startFrame".format(mHairSys.mNode))
         
     def report(self):
         _d = {'up':self.up,
