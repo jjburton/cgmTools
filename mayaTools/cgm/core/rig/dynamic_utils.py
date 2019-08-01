@@ -454,7 +454,7 @@ class cgmDynFK(cgmMeta.cgmObject):
             
             if i < len(ml)-1:
                 nextpr = CURVE.getUParamOnCurve(ml[i+1], outCurve)
-                mc.setAttr('%s.parameter' % pocAim, (nextpr + pr) * .5)
+                mc.setAttr('%s.parameter' % pocAim, (nextpr))# + pr))# * .5)
             else:
                 mc.setAttr( '%s.parameter' % pocAim, len(ml)+1 )
             
@@ -469,7 +469,13 @@ class cgmDynFK(cgmMeta.cgmObject):
             mc.connectAttr( '%s.position' % poc, '%s.translate' % mLocParent.mNode)
             mc.connectAttr( '%s.position' % pocAim, '%s.translate' % mAim.mNode)
             
-            aimConstraint = mc.aimConstraint( mAim.mNode, mLocParent.mNode, aimVector=fwdAxis.p_vector, upVector = upAxis.p_vector, worldUpType = "objectrotation", worldUpVector = upAxis.p_vector, worldUpObject = mUpUse.mNode )
+            aimConstraint = mc.aimConstraint( mAim.mNode,
+                                              mLocParent.mNode,
+                                              aimVector=fwdAxis.p_vector,
+                                              upVector = upAxis.p_vector,
+                                              worldUpType = "objectrotation",
+                                              worldUpVector = upAxis.p_vector,
+                                              worldUpObject = mUpUse.mNode )
             
             mLoc.p_parent = mLocParent
             mAim.p_parent = mGrp
