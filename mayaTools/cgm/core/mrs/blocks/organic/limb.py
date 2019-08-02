@@ -2962,32 +2962,40 @@ def rig_dataBuffer(self):
         #DynParents =============================================================================
         self.UTILS.get_dynParentTargetsDat(self)
         
-        #rotateOrder =============================================================================
+        
+        #Rotate order and main rot axis ==============================================================
         _str_orientation = self.d_orientation['str']
         
-        self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
-        self.rotateOrderIK = "{2}{0}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
-        
-        log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
-        log.debug("|{0}| >> rotateOrder | self.rotateOrderIK: {1}".format(_str_func,self.rotateOrderIK))
-    
-        log.debug(cgmGEN._str_subLine)
-        
-        #mainRot axis =============================================================================
+        #mainRot axis -------------------------------------------------------------------------------
         """For twist stuff"""
         _mainAxis = ATTR.get_enumValueString(mBlock.mNode,'mainRotAxis')
         _axis = ['aim','up','out']
         if _mainAxis == 'up':
             _upAxis = 'out'
             str_mainRotAxis = _str_orientation[1]
+            self.rotateOrder = "{0}{1}{2}".format(_str_orientation[0],_str_orientation[2],_str_orientation[1])
+            
         else:
             _upAxis = 'up'
             str_mainRotAxis = _str_orientation[2]
+            self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[1],_str_orientation[2])
         
         self.v_twistUp = self.d_orientation.get('vector{0}'.format(_mainAxis.capitalize()))
         self.str_mainRotAxis = str_mainRotAxis
         log.debug("|{0}| >> twistUp | self.v_twistUp: {1}".format(_str_func,self.v_twistUp))
         log.debug("|{0}| >> Main axis | self.str_mainRotAxis: {1}".format(_str_func,self.str_mainRotAxis))
+        
+        
+        #rotateOrder -------------------------------------------------------------------------------
+        
+        self.rotateOrderIK = "{2}{0}{1}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
+        
+        log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
+        log.debug("|{0}| >> rotateOrder | self.rotateOrderIK: {1}".format(_str_func,self.rotateOrderIK))
+    
+        log.debug(cgmGEN._str_subLine)        
+        
+        
     
         log.debug(cgmGEN._str_subLine)    
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

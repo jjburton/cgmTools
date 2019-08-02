@@ -27,7 +27,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -2547,10 +2547,16 @@ def prerigHandles_getNameDat(self, nameHandles = False, count = None, **kws):
     #Name dict...
     _nameDict ={}
     _short = self.mNode
+    
+    for s in 'cgmDirection','cgmPosition':
+        _val = mModule.getMayaAttr(s)
+        if _val and _val not in ['none','None','False']:
+            _nameDict[s] = _val    
+    """
     if mModule.getMayaAttr('cgmDirection'):
         _nameDict['cgmDirection'] = [mModule.mNode,'cgmDirection']
     if mModule.getMayaAttr('cgmPosition'):
-        _nameDict['cgmPosition'] = [mModule.mNode,'cgmPosition']
+        _nameDict['cgmPosition'] = [mModule.mNode,'cgmPosition']"""
     
     if self.getMayaAttr('nameIter'):
         _nameDict['cgmName'] = [_short,'nameIter']
@@ -2609,7 +2615,7 @@ def prerigHandles_getNameDat(self, nameHandles = False, count = None, **kws):
             pprint.pprint(vars())
             
     return l_res    
-
+    
 def skeleton_getNameDictBase(self):
     """
     Get the base name dict - direction, etc
@@ -2625,10 +2631,18 @@ def skeleton_getNameDictBase(self):
     #Name dict...
     _nameDict ={}
     
+    
+    for s in 'cgmDirection','cgmPosition':
+        _val = mModule.getMayaAttr(s)
+        if _val and _val not in ['none','None','False']:
+            _nameDict[s] = _val
+    """
     if mModule.getMayaAttr('cgmDirection'):
         _nameDict['cgmDirection'] = mModule.cgmDirection
     if mModule.getMayaAttr('cgmPosition'):
-        _nameDict['cgmPosition']=mModule.cgmPosition
+        _pos = mModule.cgmPosition
+        if _pos and _pos not in ['none','None','False']:
+            _nameDict['cgmPosition']=mModule.cgmPosition"""
         
     _nameDict['cgmType'] = 'joint'
     
@@ -2668,11 +2682,18 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
     #Name dict...
     _nameDict ={}
     
+    for s in 'cgmDirection','cgmPosition':
+        _val = mModule.getMayaAttr(s)
+        if _val and _val not in ['none','None','False']:
+            _nameDict[s] = _val
+    """
     if mModule.getMayaAttr('cgmDirection'):
         _nameDict['cgmDirection'] = mModule.cgmDirection
     if mModule.getMayaAttr('cgmPosition'):
-        _nameDict['cgmPosition']=mModule.cgmPosition
-    
+        _pos = mModule.cgmPosition
+        if _pos and _pos not in ['none','None','False']:
+            _nameDict['cgmPosition']=mModule.cgmPosition"""
+            
     if iterName:
         log.debug("|{0}| >>  iterName: {1}".format(_str_func,iterName))        
         _nameDict['cgmName'] = iterName

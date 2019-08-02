@@ -733,12 +733,18 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
         if _plugUsed not in ['handleJoints'] and _direct != True:
             if mTarget.getMessage('masterGroup'):
                 log.debug("|{0}| >>  masterGroup found found. ".format(_str_func))
+                reload(NAMETOOLS)
+                mMasterGroup = mTarget.masterGroup
+                _alias = NAMETOOLS.get_combinedNameDict(mTarget.mNode,ignore=['cgmType','cgmTypeModifier'])
+                mMasterGroup.doStore('cgmAlias', _alias)
+                
                 return mTarget.masterGroup
             if mTarget.getMessage('dynParentGroup'):
                 log.debug("|{0}| >>  dynParentGroup found. ".format(_str_func,self))
                 mDynParentGroup = mTarget.dynParentGroup
                 #if not mDynParentGroup.hasAttr('cgmAlias'):
-                mDynParentGroup.doStore('cgmAlias', mTarget.cgmName)
+                _alias = NAMETOOLS.get_combinedNameDict(mTarget.mNode,ignore=['cgmType','cgmTypeModifier'])
+                mDynParentGroup.doStore('cgmAlias', _alias)
                 log.debug("|{0}| >> alias: {1}".format(_str_func,mDynParentGroup.cgmAlias))
                 return mDynParentGroup
                 mTarget = mTarget.dynParentGroup

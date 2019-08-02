@@ -867,7 +867,6 @@ def prerig(self):
             ml_handles.append(mHandle)
             mHandle.p_position = p
             
-            
             if p == _l_pos[-1]:
                 SNAP.aim_atPoint(mHandle.mNode,_l_pos[i-1], aimAxis='z-',mode = 'vector',vectorUp=_worldUpVector)
             else:
@@ -889,15 +888,13 @@ def prerig(self):
             _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, mTrackCurve.mNode, 'conPoint')
             TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
     
-            
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
             #Convert to loft curve setup ----------------------------------------------------
             ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
 
             mHandleFactory.color(mHandle.mNode,controlType='sub')
-            #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
-            #LOC.create(position = p)
+        
         
         #ml_handles.append(mEndHandle)
         self.msgList_connect('prerigHandles', ml_handles)
@@ -909,32 +906,6 @@ def prerig(self):
         
         for mHandle in ml_handles:
             mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
-            """
-            #Joint Label ---------------------------------------------------------------------------
-            mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
-            #CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
-        
-            mJointLabel.p_parent = mHandle
-            mJointLabel.resetAttrs()
-        
-            mJointLabel.radius = 0
-            mJointLabel.side = 0
-            mJointLabel.type = 18
-            mJointLabel.drawLabel = 1
-            mJointLabel.otherType = mHandle.cgmName
-        
-            mJointLabel.doStore('cgmName',mHandle)
-            mJointLabel.doStore('cgmType','jointLabel')
-            mJointLabel.doName()            
-        
-            mJointLabel.dagLock()
-        
-            mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2"""
-        
-
-        
-        #Aim the segment
 
 
         #>>Joint placers ================================================================================    
@@ -962,7 +933,6 @@ def prerig(self):
         #Joint placer loft....
         targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
         
-        
         self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
         
         self.atUtils('create_jointLoft',
@@ -972,10 +942,8 @@ def prerig(self):
                      degree = 3,
                      baseName = self.cgmName )        
         
-
         for t in targets:
             ATTR.set(t,'v',0)
-        
         
         #...cog -----------------------------------------------------------------------------
         if self.addCog:
@@ -2703,8 +2671,7 @@ def rig_cleanUp(self):
         #pprint.pprint(ml_targetDynParents)        
         log.debug(cgmGEN._str_subLine)
                   
-        
-        
+
         if mRigNull.getMessage('controlSegMidIK'):
             log.debug("|{0}| >>  IK Mid Handle ... ".format(_str_func))                
             mHandle = mRigNull.controlSegMidIK

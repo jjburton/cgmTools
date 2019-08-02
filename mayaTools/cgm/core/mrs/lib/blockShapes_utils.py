@@ -1280,7 +1280,11 @@ class handleFactory(object):
             #jack
             _jointHelper = CURVES.create_fromName(baseShape,  direction= shapeDirection, size = _size,bakeScale = False,baseSize=1.0)
             mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
-            mJointCurve.doSnapTo(mHandle.mNode)            
+            mJointCurve.doSnapTo(mHandle.mNode)
+            
+            if baseShape == 'axis3d':
+                mJointCurve.addAttr('cgmColorLock',True,lock=True,hidden=True)
+                
 
 
             if mHandle.hasAttr('cgmName'):
