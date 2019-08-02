@@ -573,69 +573,62 @@ def settings(self,settingsPlace = None,ml_targets = None):
             else:
                 log.warning("|{0}| >> Settings. Cog option but no cog found...".format(_str_func))
                 settingsPlace = 'start'
-            
+                
+                
+        mSettingsHelper = mBlock.getMessageAsMeta('settingsHelper')
+        
         if settingsPlace in ['start','end']:
-            #_settingsSize = _offset * 2
-            mMesh_tmp =  mBlock.atUtils('get_castMesh')
-            str_meshShape = mMesh_tmp.getShapes()[0]
-            
             if settingsPlace == 'start':
                 _mTar = ml_targets[0]
             else:
-                _mTar = ml_targets[self.int_handleEndIdx]            
-            
-            d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
-            
-            str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
-            
-            pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
-            if not pos:
-                log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
-                pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_offset * 5)
-            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
-            vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
-            newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
-            
-            #LOC.create(position=pos)
+                _mTar = ml_targets[self.int_handleEndIdx]
+                
+                
+            #_settingsSize = _offset * 2
+            if not mSettingsHelper:
+                
+                mMesh_tmp =  mBlock.atUtils('get_castMesh')
+                str_meshShape = mMesh_tmp.getShapes()[0]
             
 
-            #_settingsSize = mBlock.UTILS.get_castSize(mBlock,_mTar)['max'][0]
-            #_settingsSize = MATH.average(_settingsSize,(_offset * 2))
-            #_settingsSize = DIST.get_between_points(pos,newPos)
-            _settingsSize = _offset * 2
             
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
-                                                                           '{0}+'.format(_jointOrientation[2]),
-                                                                           baseSize=1.0),'cgmObject',setClass=True)
+                d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
+                
+                str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
+                
+                pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
+                if not pos:
+                    log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
+                    pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_offset * 5)
+                    
+                vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+                newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
 
+                _settingsSize = _offset * 2
+                
+                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
+                                                                               '{0}+'.format(_jointOrientation[2]),
+                                                                               baseSize=1.0),'cgmObject',setClass=True)
+    
+                
+                mSettingsShape.doSnapTo(_mTar.mNode)
+                
+                #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
+                
+                mSettingsShape.p_position = newPos
+                mMesh_tmp.delete()
             
-            mSettingsShape.doSnapTo(_mTar.mNode)
-            
-            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
-            
-            mSettingsShape.p_position = newPos
-            mMesh_tmp.delete()
-            
-            SNAP.aim_atPoint(mSettingsShape.mNode,
-                             _mTar.p_position,
-                             aimAxis=_jointOrientation[0]+'+',
-                             mode = 'vector',
-                             vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
+                SNAP.aim_atPoint(mSettingsShape.mNode,
+                                 _mTar.p_position,
+                                 aimAxis=_jointOrientation[0]+'+',
+                                 mode = 'vector',
+                                 vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
+            else:
+                mSettingsShape = mSettingsHelper.doDuplicate(po=False)
             
             mSettingsShape.parent = _mTar
-            
-            #mSettings = _mTar.doCreateAt(setClass='cgmObject')
-            #mSettings.p_position = newPos
-            #mSettings.p_parent = _mTar
-            #mSettings.rotateOrder = _mTar.rotateOrder
-            #mSettings.p_orient = _mTar.p_orient
-            #mSettings.rotateAxis = mSettings.p_orient
-            #mSettings.rotate = 0,0,0
-            
-            #CORERIG.shapeParent_in_place(mSettings,mSettingsShape.mNode,False)
-            
+
             mSettings = mSettingsShape
-            reload(CORERIG)
             CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
             
             ATTR.copy_to(self.d_module['shortName'],'cgmName',mSettings.mNode,driven='target')

@@ -2150,3 +2150,99 @@ def backup(self,ml_handles = None):
         if not ml_handles:
             raise ValueError,"{0} | ml_handles required".format(_str_func)
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
+    
+def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
+    try:
+        _str_func = 'rp'
+        log_start(_str_func)
+        log.debug("|{0}| >> settings: {1}...".format(_str_func,settingsPlace))
+        
+        if not ml_targets:
+            ml_targets = self.msgList_get('formHandles')
+        
+        mBlock = self
+        v_offset = self.atUtils('get_shapeOffset')
+        
+        if self.getEnumValueString('rigSetup') == 'digit':
+            v_offset = v_offset * .5
+
+        _jointOrientation = self.atUtils('get_baseJointOrientation')
+        
+        if settingsPlace == None:
+            settingsPlace = self.getEnumValueString('settingsPlace')
+        
+        if settingsPlace == 'cog':
+            return
+
+        if settingsPlace in ['start','end']:
+            mMesh_tmp =  self.atUtils('get_castMesh')
+            str_meshShape = mMesh_tmp.getShapes()[0]
+            
+            idx_start, idx_end = self.atUtils('get_handleIndices')
+            
+            if settingsPlace == 'start':
+                _mTar = ml_targets[idx_start]
+            else:
+                _mTar = self.msgList_get('formHandles')[-1]
+                """
+                mIKOrientHandle = self.getMessageAsMeta('ikOrientHandle')
+                if mIKOrientHandle:
+                    _mTar = mIKOrientHandle
+                else:
+                    _mTar = ml_targets[-1]"""            
+            
+            d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
+            
+            str_settingsDirections = d_directions.get(self.getEnumValueString('settingsDirection'),'y+')
+            
+            pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
+            if not pos:
+                log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
+                pos = _mTar.getPositionByAxisDistance(str_settingsDirections,v_offset * 5)
+                
+            vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+            newPos = DIST.get_pos_by_vec_dist(pos,vec,v_offset * 4)
+            
+            _settingsSize = v_offset * 2
+            
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
+                                                                           '{0}+'.format(_jointOrientation[2]),
+                                                                           baseSize=1.0),'cgmObject',setClass=True)
+
+            
+            mSettingsShape.doSnapTo(_mTar.mNode)
+            
+            
+            mSettingsShape.p_position = newPos
+            mMesh_tmp.delete()
+            
+            SNAP.aim_atPoint(mSettingsShape.mNode,
+                             _mTar.p_position,
+                             aimAxis=_jointOrientation[0]+'+',
+                             mode = 'vector',
+                             vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
+            
+            #mSettingsShape.parent = _mTar
+            mSettings = mSettingsShape
+            CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+            
+            mSettings.doStore('cgmName',self.p_nameBase)
+            mSettings.doStore('cgmTypeModifier','settings')            
+            mSettings.doStore('cgmType','shapeHelper')
+            mSettings.doName()
+            
+            color(self, mSettings.mNode, controlType = 'sub')
+            
+            self.connectChildNode(mSettings,'settingsHelper','block')#Connect
+            
+            mSettings.doStore('handleTag','settings')            
+            
+            if mPrerigNull:
+                mSettings.p_parent = mPrerigNull
+
+        else:
+            raise ValueError,"Unknown settingsPlace: {1}".format(settingsPlace)
+        
+        return mSettings
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())

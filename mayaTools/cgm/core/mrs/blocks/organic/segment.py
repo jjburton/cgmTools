@@ -52,6 +52,7 @@ from cgm.core import cgm_RigMeta as cgmRigMeta
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.rig.create_utils as RIGCREATE
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 
 #Prerig handle making. refactor to blockUtils
 import cgm.core.lib.snap_utils as SNAP
@@ -948,9 +949,11 @@ def prerig(self):
         #...cog -----------------------------------------------------------------------------
         if self.addCog:
             mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull
-            
-            
-            
+
+        #Settings =======================================================================================
+        mSettings = BLOCKSHAPES.settings(self,mPrerigNull = mPrerigNull)
+        self.msgList_connect('prerigHandles', ml_handles)
+        
         #Point Contrain the rpHandle -------------------------------------------------------------------------
         mVectorRP = self.getMessageAsMeta('vectorRpHelper')
         str_vectorRP = mVectorRP.mNode
@@ -1586,7 +1589,8 @@ def rig_shapes(self):
         if ml_blendJoints:
             ml_targets = ml_blendJoints
         else:
-            ml_targets = ml_fkCastTargets        
+            ml_targets = ml_fkCastTargets
+            
         mSettings = RIGSHAPES.settings(self,mBlock.getEnumValueString('settingsPlace'),ml_targets)
         
         

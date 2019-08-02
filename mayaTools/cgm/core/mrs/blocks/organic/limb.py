@@ -2112,7 +2112,6 @@ def prerig(self):
             try:mFormHandle.connectChildNode(mHandle.mNode,'prerigHandle')
             except:pass
             
-        self.msgList_connect('prerigHandles', ml_handles)
                 
         #ml_handles[0].connectChildNode(mOrientHelper.mNode,'orientHelper')      
         
@@ -2159,7 +2158,8 @@ def prerig(self):
             ATTR.set(t,'v',0)
             #ATTR.set_standardFlags(t,[v])
             
-            
+        
+
     
         
         #if self.addScalePivot:
@@ -2174,6 +2174,13 @@ def prerig(self):
         mc.pointConstraint([ml_jointHandles[idx_start].mNode], str_vectorRP,maintainOffset=False)
         ATTR.set_lock(str_vectorRP,'translate',True)
         
+        
+        
+        #Settings =======================================================================================
+        mSettings = BLOCKSHAPES.settings(self,mPrerigNull = mPrerigNull)
+
+        
+        self.msgList_connect('prerigHandles', ml_handles)        
         
         #Close out ==========================================================================================
         mNoTransformNull.v = False

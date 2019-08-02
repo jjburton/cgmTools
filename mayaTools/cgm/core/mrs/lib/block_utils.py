@@ -27,7 +27,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -6011,10 +6011,10 @@ def controlsRig_reset(self):
 
 
 _d_attrStateMasks = {0:[],
-                     1:['basicShape',
+                     1:['basicShape','shapeDirection',
                         'axisAimX','axisAimY','axisAimZ',],
                      2:['blockProfile',
-                        'blockScale','proxyShape','shapeDirection'],
+                        'blockScale','proxyShape'],
                      3:['hasJoint','side','position','attachPoint'],
                      4:[]}
 
@@ -6035,13 +6035,12 @@ _d_attrStateVisOn = {0:['blockState',
                         'offsetMode','proxyDirect',],
                      4:['proxyLoft','proxyGeoRoot']}
 _d_attrStateVisOff = {0:[],
-                     1:['basicShape',
-                        'axisAimX','axisAimY','axisAimZ',],
+                     1:['axisAimX','axisAimY','axisAimZ',],
                      2:['blockProfile','baseSizeX','baseSizeY','baseSizeZ',
-                        'blockScale','proxyShape','numRoll','shapeDirection','numShapers',
+                        'blockScale','proxyShape','numRoll','numShapers',
                         'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
                         ],
-                     3:['addAim','addCog','addPivot','addScalePivot',
+                     3:['addAim','addCog','addPivot','addScalePivot','shapeDirection','basicShape',
                         'hasJoint','side','position','numControls'],
                      4:['hasEndJoint','numJoints','attachPoint','attachIndex',
                         'ikEnd','ikBase','ikSetup','ikOrientToWorld',
@@ -7562,6 +7561,9 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,checkDe
             return True
     
     #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    
+def get_baseJointOrientation(self):
+    return 'zyx'
     
 def get_shapeOffset(self):
     """
@@ -9823,7 +9825,17 @@ def prerig_snapRPtoOrientHelper(self):
         vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
     
         mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
+
+
+def get_handleIndices(self):
+
+    try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
+    except:
+        idx_start = 0
+        idx_end =-1
         
+    return idx_start,idx_end
+
 def prerig_handlesLayout(self,mode='even',curve='linear',spans=2):
     try:
         _str_func = 'prerig_handlesLayout'
