@@ -3249,7 +3249,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     
     str_lidSetup = mBlock.getEnumValueString('lidBuild')
     #>>Lid setup ================================================
-    if str_lidSetup == 'cat':
+    if str_lidSetup == 'clam':
         #Need to make our lid roots and orient
         for k in 'upr','lwr':
             log.debug("|{0}| >> {1}...".format(_str_func,k))
@@ -3259,11 +3259,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             mRigJoint = mLidSkin.rigJoint
             
             mEndCurve = mBlock.getMessageAsMeta('{0}EdgeFormCurve'.format(k)).doDuplicate(po=False)
+            mEndCurve.dagLock(False)
             mEndCurve.p_parent = False
             mEndCurve.p_parent = mDeformNull
             mEndCurve.v = False
             
-            mStartCurve = mRigNull.getMessageAsMeta(k+'LineFormCurve')#.doDuplicate(po=False)
+            #mStartCurve = mRigNull.getMessageAsMeta(k+'LineFormCurve')#.doDuplicate(po=False)
+            mStartCurve = mRigNull.getMessageAsMeta(k+'LidCurve')#.doDuplicate(po=False)
             
             """
             mHandle = mRigNull.getMessageAsMeta(_keyHandle)
@@ -3314,14 +3316,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             mLoftSurface.doStore('cgmType','proxy')
             mLoftSurface.doName()
             log.debug("|{0}| loft node: {1}".format(_str_func,_loftNode))             
-            
-            
-            
-            #mLoft = mBlock.getMessageAsMeta('{0}LidFormLoft'.format(tag))
-            #mMesh = mLoft.doDuplicate(po=False, ic=False)
-            #mDag = mRigJoint.doCreateAt(setClass='cgmObject')
-            #CORERIG.shapeParent_in_place(mDag.mNode, mMesh.mNode,False)
-            #mDag.p_parent = mRigJoint
+
             ml_proxy.append(mLoftSurface)
     
     

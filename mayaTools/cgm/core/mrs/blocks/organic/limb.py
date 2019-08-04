@@ -2985,7 +2985,7 @@ def rig_dataBuffer(self):
         else:
             _upAxis = 'up'
             str_mainRotAxis = _str_orientation[2]
-            self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[1],_str_orientation[2])
+            self.rotateOrder = "{0}{1}{2}".format(_str_orientation[0],_str_orientation[1],_str_orientation[2])
         
         self.v_twistUp = self.d_orientation.get('vector{0}'.format(_mainAxis.capitalize()))
         self.str_mainRotAxis = str_mainRotAxis

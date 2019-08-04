@@ -1188,6 +1188,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         print res
         return res
+    
     @cgmGEN.Timer
     def verify_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         """
@@ -1204,6 +1205,28 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return self.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
         #mRigFac = rigFactory(self, autoBuild = False)
         #return mRigFac.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
+        
+    @cgmGEN.Timer
+    def proxyMesh_delete(self, forceNew = True, puppetMeshMode = False):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        _str_func = 'proxyMesh_delete'
+        mModuleTarget = self.getMessageAsMeta('moduleTarget')
+        if not mModuleTarget:
+            return log.error( cgmGEN.logString_msg(_str_func,"No module target") )
+        
+        mRigNull = mModuleTarget.getMessageAsMeta('rigNull')
+        if not mRigNull:
+            return log.error( cgmGEN.logString_msg(_str_func,"No mRigNull") )
+        
+        _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
+            mc.delete([mObj.mNode for mObj in _bfr])
+            return True
+            
+        return False
     
 class cgmRigBlockHandle(cgmMeta.cgmControl):
     def __init__(self, node = None, baseShape = None,  baseSize = 1, shapeDirection = 'z+',

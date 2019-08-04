@@ -461,7 +461,10 @@ class cgmDynFK(cgmMeta.cgmObject):
                 nextpr = CURVE.getUParamOnCurve(ml[i+1], outCurve)
                 mc.setAttr('%s.parameter' % pocAim, (nextpr))# + pr))# * .5)
             else:
-                mc.setAttr( '%s.parameter' % pocAim, len(ml)+1 )
+                if extendStart:
+                    mc.setAttr( '%s.parameter' % pocAim, len(ml)+1 )                    
+                else:
+                    mc.setAttr( '%s.parameter' % pocAim, len(ml) )                    
             
             mLocParent = mLoc.doGroup(False,False,
                                       asMeta=True,

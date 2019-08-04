@@ -12,7 +12,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -30,8 +30,6 @@ from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger.lib import rig_Utils as rUtils
 import cgm.core.rigger.lib.spacePivot_utils as SPACEPIVOTS
-reload(SPACEPIVOTS)
-reload(ATTR)
 """
 from cgm.lib import (attributes,
                      cgmMath,
