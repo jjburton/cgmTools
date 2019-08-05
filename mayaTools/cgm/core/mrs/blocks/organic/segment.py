@@ -516,7 +516,7 @@ def formDelete(self):
         for k in ['end','rp','up','lever','aim','start']:
             mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
             if mHandle:
-                l_const = mHandle.getConstraintsTo()
+                l_const = mHandle.getConstraintsTo(typeFilter=['point','orient','parent'])
                 if l_const:
                     log.debug("currentConstraints...")
                     pos = mHandle.p_position

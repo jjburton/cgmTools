@@ -159,6 +159,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'mainRotAxis':'out',
     'nameList':['clav','shoulder','knee','wrist','ball','end'],
+    'formEndAim':'block',
     
     #'hasEndJoint':True,
     'buildEnd':'none',    
@@ -192,7 +193,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'mainRotAxis':'out',
     'nameList':['hip','knee','ankle','ball','toe','end'],
-    
+    'formEndAim':'block',
     'buildEnd':'none',
     'ikRollSetup':'control',
     'buildBall':'none',
@@ -225,6 +226,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'mainRotAxis':'out',
     'nameList':['clav','shoulder','knee','wrist','ball','end'],
+    'formEndAim':'block',
     
     'buildEnd':'joint',
     'ikRollSetup':'control',
@@ -257,6 +259,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'mainRotAxis':'out',
     'nameList':['hip','knee','ankle','ball','toe','end'],
+    'formEndAim':'block',
     
     'buildEnd':'joint',
     'ikRollSetup':'control',
@@ -291,6 +294,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'mainRotAxis':'out',
     'nameList':['hip','knee','ankle','ball','toe'],
+    'formEndAim':'block',
     
     'buildEnd':'joint',
     'ikRollSetup':'control',
@@ -325,6 +329,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'mainRotAxis':'out',
     'nameList':['hip','knee','ankle','ball','toe'],
+    'formEndAim':'block',
     
     'buildEnd':'joint',
     'ikRollSetup':'control',
@@ -358,6 +363,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'mainRotAxis':'out',
     'nameList':['hip','knee','tip'],
+    'formEndAim':'block',
     
     'ikEnd':'default',    
     'buildEnd':'joint',
@@ -582,6 +588,7 @@ l_attrsStandard = ['side',
                    'nameList',
                    'attachPoint',
                    'attachIndex',
+                   'formEndAim',
                    'loftSides',
                    'loftDegree',
                    'loftList',
@@ -656,6 +663,7 @@ d_defaultSettings = {'version':__version__,
                      'numControls': 3,
                      'numShapers':3,                     
                      'loftSetup':0,
+                     'formEndAim':1,
                      'loftShape':0,
                      'ikOrientToWorld':True,
                      'numSubShapers':3,
@@ -861,13 +869,13 @@ def formDelete(self):
         for k in ['end','rp','up','lever','start']:
             mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
             if mHandle:
-                l_const = mHandle.getConstraintsTo()
+                l_const = mHandle.getConstraintsTo(typeFilter=['point','orient','parent'])
                 if l_const:
                     log.debug("currentConstraints...")
                     pos = mHandle.p_position
                     
                     for i,c in enumerate(l_const):
-                        log.debug("    {0} : {1}".format(i,c))
+                        log.info("    {0} : {1}".format(i,c))
                     mc.delete(l_const)
                     mHandle.p_position = pos
                     
@@ -929,7 +937,9 @@ def form(self):
         #Old method...
         mRootUpHelper = self.vectorUpHelper    
         _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
+        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)
+        _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
+        
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
         mDefineStartObj = self.defineStartHelper
@@ -1096,6 +1106,12 @@ def form(self):
                                   #worldUpType = 'vector',
                                   #worldUpVector = [_worldUpVector.x,_worldUpVector.y,_worldUpVector.z])    
         
+        
+        #Snap the start for the rest of creation until the end
+        SNAP.aim_atPoint(md_handles['end'].mNode,md_handles['start'].p_position,
+                         'z-',mode='vector',vectorUp=_worldUpVector)         
+        
+        
         self.connectChildNode(mBaseOrientCurve.mNode,'orientHelper')
         
         mBaseOrientCurve.setAttrFlags(['ry','rx','translate','scale','v'])
@@ -1104,6 +1120,7 @@ def form(self):
 
         #Lever Handle ===============================================================================
         log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
+        
         
         if _b_lever:
             crv = CURVES.create_fromName('sphere2', _size_width, direction = 'y+',baseSize=1)
@@ -1246,8 +1263,8 @@ def form(self):
             
             #AimEndHandle ============================================================================
             #mAimGroup = md_handles['end'].doGroup(True, asMeta=True,typeModifier = 'aim')
-            #...not doing this now...
-            SNAP.go(md_handles['end'].mNode, self.mNode, position=False)
+            
+            ##...not doing this now...
             
             """
             _const = mc.aimConstraint(self.mNode, md_handles['end'].mNode, maintainOffset = False,
@@ -1393,25 +1410,26 @@ def form(self):
                 
                 ATTR.set(const,'interpType',2)#.shortest...
                 
-                #...also aim our main handles...
-                if mHandle not in [md_handles['end'],md_handles['start']]:
-                    mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
-                    if not mHandleAimGroup:
-                        mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'transformed')
+            #...also aim our main handles...
+            if mHandle not in [md_handles['end'],md_handles['start']]:
+                mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
+                if not mHandleAimGroup:
+                    mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'transformed')
+                
+                #SNAP.aim_atPoint(mHandle.mNode,ml_handles_chain[i+1].p_position,vectorUp=mVec_up)
+                
+                
+                if  ml_handles_chain[i-1] == ml_handles_chain[1]:
+                    mUpObj = mBaseOrientCurve
+                else:
+                    mUpObj = ml_handles_chain[i-1]
                     
-                    #SNAP.aim_atPoint(mHandle.mNode,ml_handles_chain[i+1].p_position,vectorUp=mVec_up)
-                    
-                    
-                    if  ml_handles_chain[i-1] == ml_handles_chain[1]:
-                        mUpObj = mBaseOrientCurve
-                    else:
-                        mUpObj = ml_handles_chain[i-1]
-                        
-                    mc.aimConstraint(_aimForward, mHandleAimGroup.mNode, maintainOffset = False,
-                                     aimVector = [0,0,1], upVector = [0,1,0], 
-                                     worldUpObject = mBaseOrientCurve.mNode,
-                                     worldUpType = 'objectrotation', 
-                                     worldUpVector = [0,1,0])
+                mc.aimConstraint(_aimForward, mHandleAimGroup.mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,1,0], 
+                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpType = 'objectrotation', 
+                                 worldUpVector = [0,1,0])
+                
 
             if mHandle == md_handles['lever']:
                 pass
@@ -1447,7 +1465,6 @@ def form(self):
             ml_shapers = [ml_handlesToShaper[0]]
                 
             ml_pairs = LISTS.get_listPairs(ml_handlesToShaper)
-            #pprint.pprint(ml_pairs)
             
             
             for i,mPair in enumerate(ml_pairs):
@@ -1479,7 +1496,6 @@ def form(self):
             
                 _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
                 #_mVectorUp = _mVectorAim.up()
-                _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]        
                 
             
                 #Linear track curve ----------------------------------------------------------------------
@@ -1501,8 +1517,6 @@ def form(self):
                 mLinearCurve.parent = mNoTransformNull
                 mLinearCurve.rename('seg_{0}_trackCrv'.format(i))
             
-                #mLinearCurve.inheritsTransform = False      
-            
             
                 #Tmp loft mesh -------------------------------------------------------------------
                 #...we're going to duplicate our end curve to get a clean end aimer
@@ -1515,6 +1529,7 @@ def form(self):
                     SNAP.aim_atPoint(mDupLoft.mNode,mPair[0].p_position,
                                      'z-',mode='vector',vectorUp=mPair[0].getAxisVector('y+'))
                     _l_targets = [mPair[0].loftCurve.mNode, mDupLoft.mNode]
+                    
                 elif self.buildLeverBase and i == 1:
                     log.debug("|{0}| >> lever loft aim | 1".format(_str_func,i,_end))
                     
@@ -1531,11 +1546,7 @@ def form(self):
                 _str_tmpMesh =_res_body[0]
             
                 l_scales_seg = []
-                
-            
-                #for mHandle in mPair:
-                    #l_scales_seg.append(mHandle.scale)
-                    #mHandle.scale = 1,1,1
+
                 
                 #Sub handles... --------------------------------------------------------------------------
                 for ii,p in enumerate(_l_pos_seg[1:-1]):
@@ -1544,7 +1555,7 @@ def form(self):
                     _short = mHandle.mNode
                     ml_handles.append(mHandle)
                     mHandle.p_position = p
-                    if _leverLoftAimMode:
+                    if _leverLoftAimMode and not ii:
                         SNAP.aim_atPoint(_short,_l_pos_seg[ii+2],'z+', 'y+', mode='vector',
                                          vectorUp = _mVectorLeverUp)
                     else:
@@ -1556,7 +1567,7 @@ def form(self):
                     log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
                     #cgmGEN.log_info_dict(_d)
                     _v = _d['uvs'][_str_tmpMesh][0][0]
-                    log.debug("|{0}| >> v: {1} ...".format(_str_func,_v))
+                    log.info("|{0}| >> v: {1} ...".format(_str_func,_v))
             
                     #>>For each v value, make a new curve -----------------------------------------------------------------        
                     #duplicateCurve -ch 1 -rn 0 -local 0  "loftedSurface2.u[0.724977270271534]"
@@ -1580,7 +1591,7 @@ def form(self):
             
                     _scale = mc.scaleConstraint([mPair[0].mNode,mPair[1].mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
                     
-                    if _leverLoftAimMode:
+                    if _leverLoftAimMode and not ii:
                         upObj = md_handles['lever'].mNode
                     else:
                         upObj = _mStart.mNode#mBaseOrientCurve.mNode
@@ -1617,6 +1628,8 @@ def form(self):
                 
                 if mDupLoft:
                     mDupLoft.delete()
+                
+        
         #>>> Connections ====================================================================================
         self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
         
@@ -1664,6 +1677,14 @@ def form(self):
             
             bb_endSize = TRANS.bbSize_get(mEndHandle.mNode,True,mode='max')
             
+            #Orient our end handle
+            _formEndAim = self.getEnumValueString('formEndAim')
+            if _formEndAim == 'block':
+                mEndHandle.doSnapTo(self.mNode,position=False,rotation=True)
+            
+            
+            
+            
             if _ikEnd == 'bank':
                 log.debug("|{0}| >> Bank setup".format(_str_func)) 
                 mFoot = BLOCKSHAPES.pivotHelper(self,mEndHandle,baseShape = _shapeEnd, baseSize=_size_width,loft=False, mParent = mFormNull)
@@ -1690,10 +1711,12 @@ def form(self):
 
 
             if _ikEnd in ['bank','foot','pad']:
+                
+                
                 mPivotHelper = mEndHandle.pivotHelper
                 mPivotHelper.doSnapTo(mEndHandle,True,True)
                 
-                if self.blockProfile in ['arm']:
+                if self.blockProfile in ['arm','finger','thumb']:
                     mGroup = mPivotHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
                     mc.parentConstraint([mEndHandle.mNode],mGroup.mNode,)
                     #mc.scaleConstraint([mEndHandle.mNode],mGroup.mNode,)

@@ -1628,7 +1628,11 @@ def pivotHelper(self,mHandle=None,
             mTrack.p_parent = mPivotRootHandle
             mGroup = mTopLoft.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
             mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
-            mPivotRootHandle.connectChildNode(mTopLoft, 'topLoft' ,'handle')#Connect                    
+            mc.scaleConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
+            
+            mPivotRootHandle.connectChildNode(mTopLoft, 'topLoft' ,'handle')#Connect
+            
+            mHandleFactory.color(mTopLoft.mNode,_side,'sub')
             
 
 

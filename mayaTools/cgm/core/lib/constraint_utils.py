@@ -28,7 +28,7 @@ from maya import mel
 
 # From cgm ==============================================================
 #CANNOT import Rigging
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
@@ -46,7 +46,7 @@ _d_type_to_call = {'parentConstraint':mc.parentConstraint,
                     'scaleConstraint':mc.scaleConstraint,
                     'aimConstraint':mc.aimConstraint}
 
-def get_constraintsTo(node=None, fullPath = True):
+def get_constraintsTo(node=None, fullPath = True, typeFilter = None, typeMask = None):
     """
     Get the constraints on a given node
     
@@ -62,11 +62,44 @@ def get_constraintsTo(node=None, fullPath = True):
     
     _res = mc.listRelatives(node,type='constraint',fullPath=fullPath) or []
     _res = LISTS.get_noDuplicates(_res)
+    
+    if typeFilter:
+        typeFilter = VALID.listArg(typeFilter)
+        
+        for i,t in enumerate(typeFilter):
+            if 'Constraint' not in t:
+                typeFilter[i] = t+'Constraint'
+        
+        
+        log.debug(cgmGEN.logString_msg(_str_func, 'typeFilter: {0}'.format(typeFilter)))
+        _res_filter = []
+        for o in _res:
+            _type = VALID.get_mayaType(o)
+            if _type in typeFilter:
+                _res_filter.append(o)
+        _res = _res_filter
+                
+    if typeMask:
+        typeMask = VALID.listArg(typeMask)
+        
+        for i,t in enumerate(typeMask):
+            if 'Constraint' not in t:
+                typeMask[i] = t+'Constraint'
+                
+        log.debug(cgmGEN.logString_msg(_str_func, 'typeMask: {0}'.format(typeMask)))
+
+        for o in _res:
+            _type = VALID.get_mayaType(o)
+            if _type in typeMask:
+                _res.remove(o)
+                log.debug(cgmGEN.logString_msg(_str_func, 'removing: {0}'.format(o)))
+
+                
     if fullPath:
         return [NAMES.long(o) for o in _res]
     return _res
 
-def get_constraintsFrom(node=None, fullPath = True):
+def get_constraintsFrom(node=None, fullPath = True, typeFilter = None, typeMask = None):
     """
     Get the constraints a given node drives
     
@@ -87,6 +120,37 @@ def get_constraintsFrom(node=None, fullPath = True):
     #_l_objectConstraints = get(node)
     #for c in _l_objectConstraints:
         #if c in _res:_res.remove(c)
+        
+    if typeFilter:
+        typeFilter = VALID.listArg(typeFilter)
+        
+        for i,t in enumerate(typeFilter):
+            if 'Constraint' not in t:
+                typeFilter[i] = t+'Constraint'
+        
+        
+        log.debug(cgmGEN.logString_msg(_str_func, 'typeFilter: {0}'.format(typeFilter)))
+        _res_filter = []
+        for o in _res:
+            _type = VALID.get_mayaType(o)
+            if _type in typeFilter:
+                _res_filter.append(o)
+        _res = _res_filter
+                
+    if typeMask:
+        typeMask = VALID.listArg(typeMask)
+        
+        for i,t in enumerate(typeMask):
+            if 'Constraint' not in t:
+                typeMask[i] = t+'Constraint'
+                
+        log.debug(cgmGEN.logString_msg(_str_func, 'typeMask: {0}'.format(typeMask)))
+
+        for o in _res:
+            _type = VALID.get_mayaType(o)
+            if _type in typeMask:
+                _res.remove(o)
+                log.debug(cgmGEN.logString_msg(_str_func, 'removing: {0}'.format(o)))
     
     if fullPath:
         return [NAMES.long(o) for o in _res]
@@ -321,7 +385,7 @@ def copy_constraint(sourceConstraint=None, targetObj=None, constraintType=None, 
         targetObj = d_source['driven']
         log.info("|{0}| >> No target object passed. Using source's: '{1}' ".format(_str_func,targetObj))
         
-    cgmGeneral.func_snapShot(vars())
+    cgmGEN.func_snapShot(vars())
     result = _call(d_source['targets'], targetObj, maintainOffset=maintainOffset)
     d_result = get_datDict(result[0])
     

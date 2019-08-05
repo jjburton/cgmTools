@@ -777,7 +777,8 @@ class cgmNode(r9Meta.MetaClass):
             buffer = mc.listRelatives(self.mNode,parent=True,type='transform') or False
         if buffer:
             return buffer[0]
-        return False    
+        return False
+    getDag = getTransform
     
     #========================================================================================================     
     #>>> Attributes 
@@ -978,7 +979,8 @@ class cgmNode(r9Meta.MetaClass):
                 _res = "{0}.{1}".format(self.mNode,d_plugTypes.get(attr))
         if _res and asMeta:
             return validateAttrArg(_res)
-        return _res        
+        return _res
+    
     
     #========================================================================================================     
     #>>> Message stuff 
@@ -3246,14 +3248,14 @@ class cgmObject(cgmNode):
     #========================================================================================================
     #>>> Constraints ...
     #========================================================================================================
-    def getConstraintsTo(self, asMeta = False, fullPath = False):	
-        buffer = CONSTRAINT.get_constraintsTo(self,fullPath)
+    def getConstraintsTo(self, asMeta = False, fullPath = False, **kws):
+        buffer = CONSTRAINT.get_constraintsTo(self,fullPath, **kws)
         if asMeta and buffer:
             return validateObjListArg(buffer)
         return buffer
 
-    def getConstraintsFrom(self,asMeta = False, fullPath = False):
-        buffer = CONSTRAINT.get_constraintsFrom(self,fullPath)
+    def getConstraintsFrom(self,asMeta = False, fullPath = False, **kws):
+        buffer = CONSTRAINT.get_constraintsFrom(self,fullPath, **kws)
         if asMeta and buffer:
             return validateObjListArg(buffer)
         return buffer
