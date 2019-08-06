@@ -5,10 +5,14 @@ import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.euclid as euclid
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.locator_utils as LOC
-import cgm.core.lib.curve_Utils as CURVE
+import cgm.core.lib.curve_Utils as CURVES
 from cgm.core.cgmPy.validateArgs import simpleAxis
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.cgm_Meta as cgmMeta
+from cgm.core.lib import math_utils as MATHUTILS
+import cgm.core.classes.NodeFactory as NODEFACTORY
+import cgm.core.lib.snap_utils as SNAP
+
 import pprint
 import copy
 import maya.mel as mel
@@ -130,7 +134,7 @@ class chain(object):
             
             poc = mc.createNode('pointOnCurveInfo', name='%s_pos' % loc)
             pocAim = mc.createNode('pointOnCurveInfo', name='%s_aim' % loc)
-            pr = CURVE.getUParamOnCurve(loc, outCurve)
+            pr = CURVES.getUParamOnCurve(loc, outCurve)
             
             mc.connectAttr( '%s.worldSpace[0]' % outCurveShape, '%s.inputCurve' % poc, f=True )
             mc.connectAttr( '%s.worldSpace[0]' % outCurveShape, '%s.inputCurve' % pocAim, f=True )
@@ -138,7 +142,7 @@ class chain(object):
             mc.setAttr( '%s.parameter' % poc, pr )
             
             if i < len(objs)-1:
-                nextpr = CURVE.getUParamOnCurve(objs[i+1], outCurve)
+                nextpr = CURVES.getUParamOnCurve(objs[i+1], outCurve)
                 mc.setAttr('%s.parameter' % pocAim, (nextpr + pr) * .5)
             else:
                 mc.setAttr( '%s.parameter' % pocAim, len(objs)+1 )
@@ -172,15 +176,25 @@ class cgmDynFK(cgmMeta.cgmObject):
     up = None
     startFrame = None
     useExistingNucleus = True
+    upSetup = 'liveStart'
     
     def __init__(self,node = None, name = None,
                  objs = None, fwd = 'z+', up = 'y+',
+                 upSetup = 'guess',
                  hairSystem=None,
                  useExistingNucleus = True,
                  baseName = 'hair',
                  startFrame = -50,
+                 extendStart = None,
+                 extendEnd = None,
+                 upControl = True,
+                 aimUpMode = 'sequential',
                  *args,**kws):
         """ 
+        
+        upSetup
+           liveStart
+           control
 
         """
         ### input check  
@@ -208,6 +222,11 @@ class cgmDynFK(cgmMeta.cgmObject):
         self.startFrame = startFrame
         self.baseName = baseName
         self.useExistingNucleus = useExistingNucleus
+        self.upSetup = upSetup
+        self.extendEnd = extendEnd
+        self.extendStart = extendStart
+        self.aimUpMode = aimUpMode
+        self.upControl = upControl
         
         if not node:
             self.rename("{0}_dynFK".format(self.baseName))
@@ -220,10 +239,46 @@ class cgmDynFK(cgmMeta.cgmObject):
             mc.select(_sel)
     
     def get_nextIdx(self):
+        mDat = self.get_dat()
+        dChains = mDat.get('chains')
+        _exists = False
+        _i = 0
+        while dChains.get(_i):
+            _i+=1
+        return _i
         return ATTR.get_nextAvailableSequentialAttrIndex(self.mNode, "chain")
         
-    def chain_rebuild(self, idx = None, objs = None):
-        pass
+    def chain_rebuild(self, idx = None, objs = None, **kws):
+        _str_func = 'chain_rebuild'
+        dat = self.get_dat()
+        mNucleus = dat['mNucleus']
+        mHairSysShape = dat['mHairSysShape']
+        
+        l_do = []
+        if idx:
+            if dat['chains'].get(idx):
+                l_do.append(idx)
+        else:
+            l_do = dat['chains'].keys()
+            
+        log.debug(cgmGEN.logString_msg(_str_func, 'To do: {0}'.format(l_do)))
+        for idx in l_do:
+            log.debug(cgmGEN.logString_sub(_str_func, 'On: {0}'.format(idx)))            
+            _d = dat['chains'][idx]
+            ml_targets = _d['mTargets']
+            self.targets_disconnect(idx)#...remove contraints
+            mDynFKParent = ml_targets[0].getMessageAsMeta('dynFKParentGroup')
+            if mDynFKParent:
+                ml_targets[0].p_parent = mDynFKParent.p_parent
+                mDynFKParent.delete()
+            
+            self.chain_deleteByIdx(idx)
+            
+            self.chain_create(ml_targets,**kws)
+            self.targets_connect(idx)#...remove contraints
+            log.debug(cgmGEN.logString_msg(_str_func, 'chain {0} done'.format(idx)))
+            
+
     
     def get_nucleus(self,mNucleus=None):
         """Try to get the nucleus from the scene to use for other setups"""
@@ -237,7 +292,12 @@ class cgmDynFK(cgmMeta.cgmObject):
         if idx is None:
             return log.warning("Must have an idx to remove")
         
-        mGrp = self.getMessageAsMeta("chain_{0}".format(idx))
+        mDat = self.get_dat()
+        
+        _d = mDat['chains'].get(idx)
+        mGrp = _d.get('mGrp')
+        
+        #mGrp = self.getMessageAsMeta("chain_{0}".format(idx))
         if mGrp:
             mGrp.delete()
             return log.info("Removed idx: {0}".format(idx))
@@ -254,8 +314,13 @@ class cgmDynFK(cgmMeta.cgmObject):
         
     def chain_create(self, objs = None,
                      fwd = None, up=None,
+                     upSetup = None,
                      extendStart = None,
-                     name = None, mNucleus=None):
+                     extendEnd = True,
+                     name = None, mNucleus=None,
+                     upControl = None,
+                     aimUpMode = None,
+                     **kws):
         
         _str_func = 'chain_create'
         
@@ -274,6 +339,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                     
         _idx = self.get_nextIdx()
         
+
         #Make our sub group...
         mGrp = self.doCreateAt(setClass=1)
         mGrp.p_parent = self
@@ -289,38 +355,82 @@ class cgmDynFK(cgmMeta.cgmObject):
         
         fwd = fwd or self.fwd
         up = up or self.up
-
+        upSetup = upSetup or self.upSetup
+        extendStart = extendStart or self.extendStart
+        extendEnd = extendEnd or self.extendEnd
+        upControl = upControl or self.upControl
+        aimUpMode = aimUpMode or self.aimUpMode
+        
         fwdAxis = simpleAxis(fwd)
         upAxis = simpleAxis(up)
 
         #Curve positions...
         l_pos = []
         
-        if len(ml) < 2:
-            log.debug(cgmGEN.logString_msg(_str_func, 'Single count. Adding extra handle.'))
-            mLoc = ml[0].doLoc()
-            mLoc.rename("chain_{0}_{1}_end_loc".format(_idx, name))
-            _size = DIST.get_bb_size(ml[0],True,'max')
-            mLoc.p_position = ml[0].getPositionByAxisDistance(fwdAxis.p_string,_size)
-            ml.append(mLoc)
-            mLoc.p_parent = mGrp
-        
-        for obj in ml:
-            l_pos.append(obj.p_position)
+        if upSetup == 'manual':
+            if len(ml) < 2:
+                log.debug(cgmGEN.logString_msg(_str_func, 'Single count. Adding extra handle.'))
+                mLoc = ml[0].doLoc()
+                mLoc.rename("chain_{0}_{1}_end_loc".format(_idx, name))
+                _size = DIST.get_bb_size(ml[0],True,'max')
+                mLoc.p_position = ml[0].getPositionByAxisDistance(fwdAxis.p_string,_size)
+                ml.append(mLoc)
+                mLoc.p_parent = mGrp
             
-        l_pos.append( DIST.get_pos_by_axis_dist(ml[-1],
-                                                fwdAxis.p_string,
-                                                DIST.get_distance_between_points(l_pos[-1],l_pos[-2])) )
+            for obj in ml:
+                l_pos.append(obj.p_position)
+                
+            l_pos.append( DIST.get_pos_by_axis_dist(ml[-1],
+                                                    fwdAxis.p_string,
+                                                    DIST.get_distance_between_points(l_pos[-1],l_pos[-2])) )
+            
         
-        if extendStart:
-            f_extendStart = VALID.valueArg(extendStart)
-            if f_extendStart:
-                l_pos.insert(0, DIST.get_pos_by_axis_dist(ml[0],
-                                                          fwdAxis.inverse.p_string,
-                                                          f_extendStart ))
+            if extendStart:
+                f_extendStart = VALID.valueArg(extendStart)
+                if f_extendStart:
+                    l_pos.insert(0, DIST.get_pos_by_axis_dist(ml[0],
+                                                              fwdAxis.inverse.p_string,
+                                                              f_extendStart ))
+        else:
+            log.debug(cgmGEN.logString_msg(_str_func, 'Resolving aim'))
+            if len(ml) < 2:
+                return log.error(cgmGEN.logString_msg(_str_func, 'Single count. Must use manual upSetup and aim/up args'))
+            
+            for obj in ml:
+                l_pos.append(obj.p_position)
+            
+            _vecEnd = MATHUTILS.get_vector_of_two_points(l_pos[-2],l_pos[-1])
+            if extendEnd:
+                log.debug(cgmGEN.logString_msg(_str_func, 'extendEnd...'))
+                
+                extendEnd = VALID.valueArg(extendEnd)
+                
+                if VALID.boolArg(extendEnd):
+                    log.debug(cgmGEN.logString_msg(_str_func, 'extendStart | guess'))
+                    
+                    l_pos.append( DIST.get_pos_by_vec_dist(l_pos[-1], _vecEnd,
+                                                           (DIST.get_distance_between_points(l_pos[-2],l_pos[-1])/2)))
+                elif extendEnd:
+                    log.debug(cgmGEN.logString_msg(_str_func, 'extendStart | {0}'.format(extendEnd)))
+                    
+                    l_pos.append( DIST.get_pos_by_vec_dist(l_pos[-1], _vecEnd,
+                                                           extendEnd))                
+            
+            if extendStart:
+                f_extendStart = VALID.valueArg(extendStart)
+                if f_extendStart:
+                    log.debug(cgmGEN.logString_msg(_str_func, 'extendStart...'))
+                    
+                    _vecStart = MATHUTILS.get_vector_of_two_points(l_pos[1],l_pos[0])
+                    
+                    l_pos.insert(0, DIST.get_pos_by_vec_dist(l_pos[0],
+                                                             _vecStart,
+                                                             f_extendStart))
 
 
         crv = CORERIG.create_at(create='curve',l_pos= l_pos, baseName = name)
+        
+
         mc.select(cl=1)
 
         # make the dynamic setup
@@ -401,8 +511,15 @@ class cgmDynFK(cgmMeta.cgmObject):
             ATTR.connect('{0}.startState'.format(_hairSystem),'{0}.inputActiveStart[{1}]'.format(_useNucleus,_useIdx))"""            
             
             
-        
-        ml[0].getParent(asMeta=1).select()
+        mParent = ml[0].getParent(asMeta=1)
+        if not mParent:
+            mParent = ml[0].doGroup(1,1,
+                                    asMeta=True,
+                                    typeModifier = 'dynFKParent',
+                                    setClass='cgmObject')
+        #else:
+            #mParent.getParent(asMeta=1)
+            
         mCrv = cgmMeta.asMeta(outCurve)
         mGrp.connectChildNode(mCrv.mNode,'mOutCrv','group')
 
@@ -422,11 +539,47 @@ class cgmDynFK(cgmMeta.cgmObject):
         ml_aims = []
         ml_prts = []
         
+        _upVector = None
+        if upSetup == 'guess':
+            log.debug(cgmGEN.logString_msg(_str_func, 'Resolving up/aim'))
+            poci_base = CURVES.create_pointOnInfoNode(crv,1)
+            mPoci_base = cgmMeta.asMeta(poci_base)
+            
+            _upVector = mPoci_base.normalizedNormal
+            log.debug(cgmGEN.logString_msg(_str_func, "upVector: {0}".format(_upVector)))        
+        
+        
         #Let's make an up object as the parent of the root isn't good enough
         mUp = ml[0].doCreateAt(setClass=1)
         mUp.rename("chain_{0}_{1}_up".format(_idx,name))
         mUp.p_parent = mGrp
-        mc.parentConstraint(ml[0].getParent(), mUp.mNode, mo=True)
+        
+        if _upVector:
+            SNAP.aim_atPoint(mUp.mNode,
+                             DIST.get_pos_by_vec_dist(mUp.p_position,
+                                                      _upVector,
+                                                      10),aimAxis='y+',upAxis='z+')
+        
+        if upControl:
+            log.debug(cgmGEN.logString_msg(_str_func,'upControl'))
+            sizeControl = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_baseTargets],True)
+            crv = CURVES.create_controlCurve(mUp.mNode,'arrowSingle', size= sizeControl, direction = 'y+')
+            CORERIG.shapeParent_in_place(mUp.mNode, crv, False)
+            mUpGroup = mUp.doGroup(True,True,
+                                   asMeta=True,
+                                   typeModifier = 'master',
+                                   setClass='cgmObject')
+            
+            mc.parentConstraint(ml[0].getParent(), mUpGroup.mNode, mo=True)
+            
+            
+        else:
+            mc.parentConstraint(ml[0].getParent(), mUp.mNode, mo=True)
+            
+        
+        
+        log.debug(cgmGEN.logString_msg(_str_func,'aimUpMode: {0}'.format(aimUpMode)))
+        
         
         for i, mObj in enumerate(ml):
             if not i:
@@ -449,8 +602,10 @@ class cgmDynFK(cgmMeta.cgmObject):
             
             
             poc = mc.createNode('pointOnCurveInfo', name='%s_pos' % loc)
+            mPoci_obj = cgmMeta.asMeta(poc)
+            
             pocAim = mc.createNode('pointOnCurveInfo', name='%s_aim' % loc)
-            pr = CURVE.getUParamOnCurve(loc, outCurve)
+            pr = CURVES.getUParamOnCurve(loc, outCurve)
             
             mc.connectAttr( '%s.worldSpace[0]' % outCurveShape, '%s.inputCurve' % poc, f=True )
             mc.connectAttr( '%s.worldSpace[0]' % outCurveShape, '%s.inputCurve' % pocAim, f=True )
@@ -458,13 +613,15 @@ class cgmDynFK(cgmMeta.cgmObject):
             mc.setAttr( '%s.parameter' % poc, pr )
             
             if i < len(ml)-1:
-                nextpr = CURVE.getUParamOnCurve(ml[i+1], outCurve)
+                nextpr = CURVES.getUParamOnCurve(ml[i+1], outCurve)
                 mc.setAttr('%s.parameter' % pocAim, (nextpr))# + pr))# * .5)
             else:
                 if extendStart:
                     mc.setAttr( '%s.parameter' % pocAim, len(ml)+1 )                    
                 else:
-                    mc.setAttr( '%s.parameter' % pocAim, len(ml) )                    
+                    mc.setAttr( '%s.parameter' % pocAim, len(ml) )
+                    
+                    
             
             mLocParent = mLoc.doGroup(False,False,
                                       asMeta=True,
@@ -477,13 +634,51 @@ class cgmDynFK(cgmMeta.cgmObject):
             mc.connectAttr( '%s.position' % poc, '%s.translate' % mLocParent.mNode)
             mc.connectAttr( '%s.position' % pocAim, '%s.translate' % mAim.mNode)
             
-            aimConstraint = mc.aimConstraint( mAim.mNode,
-                                              mLocParent.mNode,
-                                              aimVector=fwdAxis.p_vector,
-                                              upVector = upAxis.p_vector,
-                                              worldUpType = "objectrotation",
-                                              worldUpVector = upAxis.p_vector,
-                                              worldUpObject = mUpUse.mNode )
+            
+            
+            if aimUpMode == 'master':
+                aimConstraint = mc.aimConstraint( mAim.mNode,
+                                                  mLocParent.mNode,
+                                                  aimVector=fwdAxis.p_vector,
+                                                  upVector = upAxis.p_vector,
+                                                  worldUpType = "objectrotation",
+                                                  worldUpVector = upAxis.p_vector,
+                                                  worldUpObject = mUp.mNode )
+            elif aimUpMode == 'orientToMaster':
+                mc.orientConstraint( mUp.mNode,
+                                     mLocParent.mNode,
+                                     maintainOffset = 1)
+                
+            elif aimUpMode == 'sequential':
+                aimConstraint = mc.aimConstraint( mAim.mNode,
+                                                  mLocParent.mNode,
+                                                  aimVector=fwdAxis.p_vector,
+                                                  upVector = upAxis.p_vector,
+                                                  worldUpType = "objectrotation",
+                                                  worldUpVector = upAxis.p_vector,
+                                                  worldUpObject = mUpUse.mNode )                
+            elif aimUpMode == 'curveNormal':
+                mUpLoc = mLoc.doGroup(False,False,
+                                      asMeta=True,
+                                      typeModifier = 'up',
+                                      setClass='cgmObject')
+                mUpLoc.p_parent = mLocParent
+                
+                aimConstraint = mc.aimConstraint( mAim.mNode,
+                                                  mLocParent.mNode,
+                                                  aimVector=fwdAxis.p_vector,
+                                                  upVector = upAxis.p_vector,
+                                                  worldUpType = "object")
+                
+                mPlusMinusAverage = cgmMeta.cgmNode(name="{0}_pma".format(mObj.p_nameBase),
+                                                    nodeType = 'plusMinusAverage')
+                mPlusMinusAverage.operation = 3
+                
+                mPoci_obj.doConnectOut('position','{0}.input3D[0]'.format(mPlusMinusAverage.mNode))
+                mPoci_obj.doConnectOut('normalizedNormal','{0}.input3D[1]'.format(mPlusMinusAverage.mNode))
+                mUpLoc.doConnectIn('translate','{0}.output3D'.format(mPlusMinusAverage.mNode))
+
+            
             
             mLoc.p_parent = mLocParent
             mAim.p_parent = mGrp
@@ -509,6 +704,7 @@ class cgmDynFK(cgmMeta.cgmObject):
               'baseName':self.baseName}
         
         pprint.pprint(_d)
+        pprint.pprint(self.get_dat())
         
     def get_dat(self):
         _res = {'mNucleus':self.getMessageAsMeta('mNucleus'),
@@ -529,7 +725,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                 
             _res['chains'][i] = _d
         
-        pprint.pprint(_res)
+        #pprint.pprint(_res)
         return _res
     
     def profile_load(self,arg='default',clean=True):
