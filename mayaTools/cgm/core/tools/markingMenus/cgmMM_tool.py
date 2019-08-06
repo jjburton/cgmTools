@@ -475,8 +475,8 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,
                     en = self._b_sel,
                     l = 'Reset',
-                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
-                    #c = mmCallback( ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),
+                    c = lambda *a:RIGGEN.reset_channels_fromMode(mode=self.var_resetMode.value,
+                                                                selectedChannels=1),
                     rp = "S")   
   
         mc.menuItem(p=parent,l='Key',subMenu=True,
