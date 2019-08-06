@@ -892,7 +892,35 @@ d_wiring_r = {'modules':[u'R_feather1_limb', u'R_feather2_limb', u'R_feather3_li
                       3:[0,5],
                       4:[3,5],
                       }}
-def wing_temp(d_wiring=d_wiring_r):
+
+d_wiring_r_hawk = {'modules':
+                   ['R_feather1_limb_part',
+                    'R_feather2_limb_part',
+                    'R_feather3_limb_part',
+                    'R_feather4_limb_part',
+                    'R_feather5_limb_part',
+                    'R_index_limb_part'],
+                   'driven':{1:[0,3],
+                             2:[0,3],
+                             3:[0,5],
+                             4:[3,5],
+                             
+                             }}
+d_wiring_l_hawk = {'modules':
+                   ['L_feather1_limb_part',
+                    'L_feather2_limb_part',
+                    'L_feather3_limb_part',
+                    'L_feather4_limb_part',
+                    'L_feather5_limb_part',
+                    'L_index_limb_part'],
+                   'driven':{1:[0,3],
+                             2:[0,3],
+                             3:[0,5],
+                             4:[3,5],
+                             
+                             }}
+
+def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
     """
     
     """
@@ -952,9 +980,16 @@ def wing_temp(d_wiring=d_wiring_r):
             _vList = DIST.get_normalizedWeightsByDistance(mLoc.mNode,
                                                           l_drivers)
             
-            _point = mc.pointConstraint(mAttach.mNode, mLoc.mNode, maintainOffset = 1)
+            
             _orient = mc.orientConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
-            for c in [_orient]:
+            l_constraints = [_orient]
+            if mode == 'slidingPosition':
+                _point = mc.pointConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
+                l_constraints.append(_point)
+            else:
+                _point = mc.pointConstraint(mAttach.mNode, mLoc.mNode, maintainOffset = 1)
+            
+            for c in l_constraints:
                 CONSTRAINT.set_weightsByDistance(c[0],_vList)
                 
             ATTR.set(_orient[0],'interpType',2)
