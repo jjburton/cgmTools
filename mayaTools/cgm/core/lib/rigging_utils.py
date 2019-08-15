@@ -1221,10 +1221,15 @@ def getControlShader(direction = 'center', controlType = 'main',
             ATTR.set(_node,'specularColorB',.25)
             
             if transparent:
-                ATTR.set(_node,'transparency',.5)
+                ATTR.set(_node,'transparency',1.0)
                 ATTR.set(_node,'incandescence',0)
                 ATTR.set(_node,'diffuse',0.1)
-                ATTR.set(_node,'cosinePower',95)
+                ATTR.set(_node,'cosinePower',.95)
+                ATTR.set(_node,'specularColorR',0)
+                ATTR.set(_node,'specularColorG',0)
+                ATTR.set(_node,'specularColorB',0)
+                ATTR.set(_node,'reflectivity',0)
+                
                 
             if controlType in ['pupil']:
                 ATTR.set(_node,'diffuse',0)

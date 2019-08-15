@@ -380,10 +380,27 @@ class cgmDynFK(cgmMeta.cgmObject):
             for obj in ml:
                 l_pos.append(obj.p_position)
                 
-            l_pos.append( DIST.get_pos_by_axis_dist(ml[-1],
-                                                    fwdAxis.p_string,
-                                                    DIST.get_distance_between_points(l_pos[-1],l_pos[-2])) )
+                
+            _p_baseExtend = DIST.get_pos_by_axis_dist(ml[-1],
+                                                      fwdAxis.p_string,
+                                                      DIST.get_distance_between_points(l_pos[-1],l_pos[-2]))
             
+            if extendEnd:
+                log.debug(cgmGEN.logString_msg(_str_func, 'extendEnd...'))
+                
+                extendEnd = VALID.valueArg(extendEnd)
+                
+                if issubclass(type(extendEnd),bool):#VALID.boolArg(extendEnd):
+                    log.debug(cgmGEN.logString_msg(_str_func, 'extendEnd | guess'))
+                    l_pos.append(_p_baseExtend)
+                elif extendEnd:
+                    log.debug(cgmGEN.logString_msg(_str_func, 'extendEnd | {0}'.format(extendEnd)))
+                    
+                    l_pos.append( DIST.get_pos_by_axis_dist(ml[-1],
+                                                            fwdAxis.p_string,
+                                                            extendEnd ))                            
+            else:
+                l_pos.append( _p_baseExtend)
         
             if extendStart:
                 f_extendStart = VALID.valueArg(extendStart)
@@ -391,6 +408,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                     l_pos.insert(0, DIST.get_pos_by_axis_dist(ml[0],
                                                               fwdAxis.inverse.p_string,
                                                               f_extendStart ))
+                    
         else:
             log.debug(cgmGEN.logString_msg(_str_func, 'Resolving aim'))
             if len(ml) < 2:
@@ -405,8 +423,8 @@ class cgmDynFK(cgmMeta.cgmObject):
                 
                 extendEnd = VALID.valueArg(extendEnd)
                 
-                if VALID.boolArg(extendEnd):
-                    log.debug(cgmGEN.logString_msg(_str_func, 'extendStart | guess'))
+                if issubclass(type(extendEnd),bool):#VALID.boolArg(extendEnd):
+                    log.debug(cgmGEN.logString_msg(_str_func, 'extendEnd | guess'))
                     
                     l_pos.append( DIST.get_pos_by_vec_dist(l_pos[-1], _vecEnd,
                                                            (DIST.get_distance_between_points(l_pos[-2],l_pos[-1])/2)))
@@ -430,7 +448,7 @@ class cgmDynFK(cgmMeta.cgmObject):
 
         crv = CORERIG.create_at(create='curve',l_pos= l_pos, baseName = name)
         
-
+        
         mc.select(cl=1)
 
         # make the dynamic setup
@@ -562,7 +580,11 @@ class cgmDynFK(cgmMeta.cgmObject):
         
         if upControl:
             log.debug(cgmGEN.logString_msg(_str_func,'upControl'))
-            sizeControl = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_baseTargets],True)
+            if len(ml_baseTargets)>1:
+                sizeControl = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_baseTargets],True)
+            else:
+                sizeControl = DIST.get_bb_size(ml[0],True,'max')
+                
             crv = CURVES.create_controlCurve(mUp.mNode,'arrowSingle', size= sizeControl, direction = 'y+')
             CORERIG.shapeParent_in_place(mUp.mNode, crv, False)
             mUpGroup = mUp.doGroup(True,True,
@@ -600,17 +622,20 @@ class cgmDynFK(cgmMeta.cgmObject):
             #aimNull = mc.group(em=True)
             #aimNull = mc.rename('%s_aim' % mObj.getShortName())
             
-            
-            poc = mc.createNode('pointOnCurveInfo', name='%s_pos' % loc)
+            poc = CURVES.create_pointOnInfoNode(outCurveShape)
+#mc.createNode('pointOnCurveInfo', name='%s_pos' % loc)
             mPoci_obj = cgmMeta.asMeta(poc)
+            mPoci_obj.rename('%s_pos' % loc)
+            pocAim = CURVES.create_pointOnInfoNode(outCurveShape)
+            #mc.createNode('pointOnCurveInfo', name='%s_aim' % loc)
             
-            pocAim = mc.createNode('pointOnCurveInfo', name='%s_aim' % loc)
             pr = CURVES.getUParamOnCurve(loc, outCurve)
+            mPoci_obj.parameter = pr
             
-            mc.connectAttr( '%s.worldSpace[0]' % outCurveShape, '%s.inputCurve' % poc, f=True )
-            mc.connectAttr( '%s.worldSpace[0]' % outCurveShape, '%s.inputCurve' % pocAim, f=True )
+            #mc.connectAttr( '%s.worldSpace[0]' % outCurveShape, '%s.inputCurve' % poc, f=True )
+            #mc.connectAttr( '%s.worldSpace[0]' % outCurveShape, '%s.inputCurve' % pocAim, f=True )
 
-            mc.setAttr( '%s.parameter' % poc, pr )
+            #mc.setAttr( '%s.parameter' % poc, pr )
             
             if i < len(ml)-1:
                 nextpr = CURVES.getUParamOnCurve(ml[i+1], outCurve)
@@ -631,7 +656,7 @@ class cgmDynFK(cgmMeta.cgmObject):
             #locParent = mc.group(em=True)
             #locParent = mc.rename( '%s_pos' % mObj.getShortName() )
 
-            mc.connectAttr( '%s.position' % poc, '%s.translate' % mLocParent.mNode)
+            mc.connectAttr( '%s.position' % mPoci_obj.mNode, '%s.translate' % mLocParent.mNode)
             mc.connectAttr( '%s.position' % pocAim, '%s.translate' % mAim.mNode)
             
             
@@ -787,7 +812,17 @@ class cgmDynFK(cgmMeta.cgmObject):
                 _buffer = mObj.getConstraintsTo()
                 if _buffer:
                     mc.delete(_buffer)
-            
+    
+    def targets_select(self,idx=None):
+        ml= []
+        for d in self.chains_getDicts(idx):
+            for i,mObj in enumerate(d['mTargets']):
+                if 'loc' not in mObj.mNode:
+                    ml.append(mObj)
+        
+        mc.select([mObj.mNode for mObj in ml])
+        return ml
+
                 
     def delete(self):
         pass        

@@ -400,7 +400,14 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
     if not dynMode:
         mc.refresh(su=1)
     else:
-        _keysToProcess = range(int(min(_keysToProcess)), int(max(_keysToProcess))+1)
+        _start = mc.playbackOptions(q=True,min=True)
+        _keysToProcessFull = range(int(_start), int(max(_keysToProcess))+1)
+        #for k in _keysToProcess:
+        #    if k not in _keysToProcessFull:
+        #        _keysToProcessFull.append(k)
+        #_keysToProcessFull.sort()
+        
+        _keysToProcess = _keysToProcessFull
         
     _len = len(_keysToProcess)
     try:

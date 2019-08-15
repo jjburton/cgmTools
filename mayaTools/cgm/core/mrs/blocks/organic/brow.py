@@ -2533,6 +2533,12 @@ def rig_controls(self):
                     ml_controlsAll.append(_d['mObj'])
                     ml_segmentHandles.append(_d['mObj'])
                     
+                    if side == 'right':
+                        log.debug("|{0}| >> mirrorControl connect".format(_str_func))                        
+                        mTarget = d['left'][i]
+                        _d['mObj'].doStore('mirrorControl',mTarget)
+                        mTarget.doStore('mirrorControl',_d['mObj'])                    
+                    
         #Direct ================================================================================
         log.debug("|{0}| >> Direct...".format(_str_func)+ '-'*80)
         for k,d in self.md_rigJoints.iteritems():
@@ -2556,7 +2562,14 @@ def rig_controls(self):
                         ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
                 
                     for mShape in mObj.getShapes(asMeta=True):
-                        ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                    
+                        ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+                        
+                    
+                    if side == 'right':
+                        log.debug("|{0}| >> mirrorControl connect".format(_str_func))                        
+                        mTarget = d['left'][i]
+                        mObj.doStore('mirrorControl',mTarget)
+                        mTarget.doStore('mirrorControl',mObj)
 
        
         
