@@ -173,6 +173,7 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  'cheekUprSetup':'none:single',
                  'tongueSetup':'none:single:ribbon',
                  'sneerSetup':'none:single',
+                 'smileSetup':'none:single',
                  
                  #Jaw...
                  'uprJawSetup':'none:default',
@@ -3987,7 +3988,64 @@ def prerig(self):
                                                    _tag,mNoTransformNull)
     
             else:
-                raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekSetup)   
+                raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekUprSetup)
+            
+        if self.smileSetup:# cheek setup ============================================================
+            log.debug(cgmGEN.logString_sub(_str_func,'Smile setup'))
+            str_smileSetup = self.getEnumValueString('smileSetup')
+            
+            if str_smileSetup == 'single':
+                log.debug(cgmGEN.logString_msg(_str_func, 'single'))
+                
+                #mSurf =  self.jawFormLoft
+                
+                _d_name = {'cgmName':'smile',
+                           'cgmType':'handleHelper'}
+                
+                d_pairs['smileLeft'] = 'smileRight'
+                d_pairs['smileLeftJoint'] = 'smileRightJoint'                
+                
+                for side in ['left','right']:
+                    #Get our position
+                    _tag = 'smile'+side.capitalize()
+                    mSurf =  self.getMessageAsMeta('uprJoin{0}FormLoft'.format(side.capitalize()))
+                    
+                    _handleKey = _tag#'smile'+side
+                    log.debug(cgmGEN.logString_msg(_str_func, 'smile | {0}'.format(_tag)))
+                    _dTmp = copy.copy(_d_name)
+                    _dTmp['cgmDirection'] = side
+                    
+                    
+                    d_handleKWS = {
+                        'mode' : 'handle',
+                        'mSurface':mSurf,
+                        'handleShape' :'semiSphere',
+                        'handleSize' : _size_sub,
+                        'anchorSize' : _size_anchor,
+                        'orientToSurf':True,
+                        'orientToDriver':True,
+                        'attachToSurf':True,
+                        'nameDict':_dTmp,
+                        'md_mirrorDat':md_mirrorDat,
+                        'ml_handles':ml_handles,
+                        'md_handles':md_handles,
+                        'ml_jointHandles':ml_jointHandles,
+                    }
+                    d_handleKWS.update(d_baseHandeKWS)
+    
+                    mAnchor,mShape,mDag = BLOCKSHAPES.create_face_anchorHandleCombo(self,
+                                                                                    d_basePosDat[_handleKey],
+                                                                                    _tag,
+                                                                                    None,
+                                                                                    side,
+                                                                                    **d_handleKWS)                    
+
+                    BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['jawJoint'],
+                                                   _tag,mNoTransformNull)
+    
+            else:
+                raise ValueError,"Invalid cheekSetup: {0}".format(str_smileSetup)        
+        
         
         if self.lipSetup:
             log.debug(cgmGEN.logString_sub(_str_func, 'lipSetup'))
@@ -4806,7 +4864,24 @@ def skeleton_build(self, forceNew = True):
                 ml_joints.append(mJnt)
                 
         else:
-            raise ValueError,"Invalid cheekUprSetup: {0}".format(str_cheekUprSetup)    
+            raise ValueError,"Invalid cheekUprSetup: {0}".format(str_cheekUprSetup)
+        
+    if self.smileSetup:
+        log.debug("|{0}| >>  Smile Setup".format(_str_func)+ '-'*40)
+        str_smileSetup = self.getEnumValueString('smileSetup')
+        if str_smileSetup == 'single':
+            log.debug("|{0}| >>  smileSetup: {1}".format(_str_func,str_smileSetup))
+            
+            for side in ['left','right']:
+                _tag = 'smile'+side.capitalize()
+                log.debug("|{0}| >>  {1}...".format(_str_func,_tag))
+                mJnt = create_jointFromHandle(mPrerigNull.getMessageAsMeta('{0}DagHelper'.format(_tag)),
+                                              mJaw)
+                mPrerigNull.doStore('{0}Joint'.format(_tag),mJnt)
+                ml_joints.append(mJnt)
+                
+        else:
+            raise ValueError,"Invalid smileSetup: {0}".format(str_smileSetup)    
 
     if self.sneerSetup:
         log.debug("|{0}| >>  sneerSetup".format(_str_func)+ '-'*40)
@@ -5009,7 +5084,7 @@ def rig_dataBuffer(self):
     
     
     for k in ['jaw','muzzle','nose','nostril','cheek','bridge','chin','sneer','cheekUpr',
-              'lip','lipSeal','teeth','tongue','uprJaw']:
+              'lip','lipSeal','teeth','tongue','uprJaw','smile']:
         _tag = "{0}Setup".format(k)
         self.__dict__['str_{0}'.format(_tag)] = False
         _v = mBlock.getEnumValueString(_tag)
@@ -5206,6 +5281,12 @@ def rig_skeleton(self):
             doSingleJoint(t,False)
             
         mirrorConnect('sneerLeft','sneerRight')
+        
+    if self.str_smileSetup:
+        log.debug("|{0}| >> smile...".format(_str_func))
+        for t in ['smileLeft','smileRight']:
+            doSingleJoint(t,False)
+        mirrorConnect('smileLeft','smileRight')    
             
 
     #Processing  Handles ================================================================================
@@ -5369,7 +5450,14 @@ def rig_shapes(self):
             for k in ['cheekUprLeft','cheekUprRight']:
                 mDriver = self.md_driverJoints.get(k)
                 CORERIG.shapeParent_in_place(mDriver.mNode, self.md_handleShapes[k].mNode)
-            log.debug(cgmGEN._str_subLine)            
+            log.debug(cgmGEN._str_subLine)
+            
+        if self.str_smileSetup:
+            log.debug("|{0}| >> smile setup...".format(_str_func)+ '-'*40)
+            for k in ['smileLeft','smileRight']:
+                mDriver = self.md_driverJoints.get(k)
+                CORERIG.shapeParent_in_place(mDriver.mNode, self.md_handleShapes[k].mNode)
+            log.debug(cgmGEN._str_subLine)        
                 
         if self.str_sneerSetup:
             log.debug("|{0}| >> sneer setup...".format(_str_func)+ '-'*40)
@@ -5560,6 +5648,12 @@ def rig_controls(self):
         if self.str_sneerSetup:
             log.debug("|{0}| >> sneer setup...".format(_str_func)+ '-'*40)
             for k in ['sneerLeft','sneerRight']:
+                log.debug("|{0}| >> {1}...".format(_str_func,k))
+                simpleRegister(self.md_driverJoints.get(k))
+                
+        if self.str_smileSetup:
+            log.debug("|{0}| >> smile setup...".format(_str_func)+ '-'*40)
+            for k in ['smileLeft','smileRight']:
                 log.debug("|{0}| >> {1}...".format(_str_func,k))
                 simpleRegister(self.md_driverJoints.get(k))
 
@@ -6103,6 +6197,45 @@ def rig_frame(self):
                                                     maintainOffset=True)
                 ATTR.set(_c,targetWeights[0],.1)
                 ATTR.set(_c,targetWeights[1],.9)
+                
+        if self.str_smileSetup:
+            log.debug("|{0}| >> smile setup...".format(_str_func)+ '-'*40)
+            
+            for s in ['Left','Right']:
+                #k in ['smileLeft','smileRight']:
+                k = 'smile'+s
+                
+                log.debug("|{0}| >> {1}...".format(_str_func,k))
+                mdD[k].masterGroup.p_parent = self.mDeformNull
+                
+                mTrack = mdD[k].masterGroup.doCreateAt(setClass=1)
+                mTrack.p_parent = mFollowParent
+                
+                l_targets = []
+                l_targets.append(self.md_handles['lipUpr'][s.lower()][0].mNode)
+                
+                for k2 in ['nostril','cheek']:
+                    _k2 = k2+s
+                    if mdD.get(_k2):
+                        l_targets.append(mdD.get(_k2).mNode)
+                        
+                
+                        
+                
+                
+                
+                _c = mc.pointConstraint(l_targets,
+                                        mTrack.mNode,maintainOffset=True)[0]
+                
+                targetWeights = mc.pointConstraint(_c,q=True,
+                                                    weightAliasList=True,
+                                                    maintainOffset=True)
+                ATTR.set(_c,targetWeights[0],2.0)
+                #ATTR.set(_c,targetWeights[1],.9)
+                
+                mc.parentConstraint(mTrack.mNode,
+                                   mdD[k].masterGroup.mNode,maintainOffset=True)                
+                
                 
         if self.str_cheekUprSetup:
             log.debug("|{0}| >> cheekUpr setup...".format(_str_func)+ '-'*40)
@@ -6784,11 +6917,12 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(uiFunc_getDefineScaleSpace,self),
                 label = "Get Define Scale Space Dat")
     
+    """
     mc.menuItem(en=True,divider = True,
                 label = "Utilities")
     _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
                        label = "State Picker")
-    
+    """
     #self.atUtils('uiStatePickerMenu',parent)
     
     return
