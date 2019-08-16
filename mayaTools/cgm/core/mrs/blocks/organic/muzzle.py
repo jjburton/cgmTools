@@ -138,8 +138,11 @@ d_block_profiles = {'default':{},
                               'nostrilSetup':'simple'},
                     'human':{'jawSetup':'simple',
                              'lipSetup':'default',
+                             'muzzleSetup':'simple',                             
                              'noseSetup':'simple',
                              'chinSetup':'single',
+                             'cheekSetup':'single',
+                             'sneerSetup':'single',
                              'nostrilSetup':'simple'},
                     'beak':{},
                     }
@@ -5180,6 +5183,8 @@ def rig_skeleton(self):
     
     for i,mJnt in enumerate(ml_rigJoints):
         mJnt.p_parent = ml_driverJoints[i]
+    
+    ml_jointsToHide.extend(ml_driverJoints)
     """
     ml_segmentJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_joints, None,
                                                                mRigNull,'segmentJoints','seg',

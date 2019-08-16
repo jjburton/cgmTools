@@ -1155,6 +1155,8 @@ def getControlShader(direction = 'center', controlType = 'main',
     """
     Proxy mode modifies the base value and setups up a different shader
     """
+    _str_func = getControlShader
+    
     if directProxy:
         _node = "cgmShader_directProxy"
     else:
@@ -1221,14 +1223,22 @@ def getControlShader(direction = 'center', controlType = 'main',
             ATTR.set(_node,'specularColorB',.25)
             
             if transparent:
-                ATTR.set(_node,'transparency',1.0)
-                ATTR.set(_node,'incandescence',0)
-                ATTR.set(_node,'diffuse',0.1)
-                ATTR.set(_node,'cosinePower',.95)
-                ATTR.set(_node,'specularColorR',0)
-                ATTR.set(_node,'specularColorG',0)
-                ATTR.set(_node,'specularColorB',0)
-                ATTR.set(_node,'reflectivity',0)
+                _d = {'transparency':1.0,
+                      'incandescence':0,
+                      'diffuse':0.1,
+                      'cosinePower':.95,
+                      'specularColorR':0,
+                      'specularColorG':0,
+                      'specularColorB':0,
+                      'reflectivity':0
+                      }
+                
+                for a,v in _d.iteritems():
+                    try:
+                        ATTR.set(_node,a,v)
+                    except Exception,err:
+                        log.error(cgmGEN.logString_msg(_str_func, "Failed to set: {0} | {1} | {2}".format(a,v,err)))
+
                 
                 
             if controlType in ['pupil']:
