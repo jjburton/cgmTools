@@ -81,17 +81,17 @@ def ngskin():
 
 def mrsShots():
     try:
-        import pyunify.ui.shotUI as shotUI
-        reload(shotUI)
-        x = shotUI.ShotUI()
+        import cgm.core.mrs.Shots as SHOTS
+        reload(SHOTS)
+        x = SHOTS.ShotUI()
     except Exception,err:
         log.warning("[DEV] failed to load. | {0}".format(err))
 
 def mrsScene():
     try:
-        import pyunify.ui.fileUI as fileUI
-        reload(fileUI)
-        x = fileUI.FileUI()
+        import cgm.core.mrs.Scene as SCENE
+        reload(SCENE)
+        x = SCENE.SceneUI()
     except Exception,err:
         log.warning("[DEV] failed to load. | {0}".format(err))
 
