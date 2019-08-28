@@ -1609,6 +1609,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
                 ml_controls.append(mRigNull.controlIKBase)
             if mRigNull.getMessage('controlIKMid'):
                 ml_controls.append(mRigNull.controlIKMid)
+               
                 
             ml_ikJoints = mRigNull.msgList_get('ikJoints')
             ml_blendJoints = mRigNull.msgList_get('blendJoints')
@@ -1634,17 +1635,20 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
             #We need to store the blendjoint target for the ik control or loc it
             for i,mCtrl in enumerate(ml_controls):
                 if mCtrl.getMessage('switchTarget'):
-                    mCtrl.resetAttrs(transformsOnly = True)
                     md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
                     md_controls[i] = mCtrl
                 else:
-                    raise ValueError,"mCtrl: {0}  missing switchTarget".format(mCtrl)
+                    log.error("mCtrl: {0}  missing switchTarget".format(mCtrl))
+                    
+            
+            for i,mCtrl in md_controls.iteritems():
+                mCtrl.resetAttrs(transformsOnly = True)
             
             mSettings.FKIK = 1
             
             for i,mLoc in md_locs.iteritems():
                 SNAP.go(md_controls[i].mNode,mLoc.mNode)
-                #mLoc.delete()
+                mLoc.delete()
             
             for i,v in md_datPostCompare.iteritems():
                 mBlend = ml_blendJoints[i]

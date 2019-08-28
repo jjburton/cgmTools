@@ -815,7 +815,7 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
         
         log.debug("|{0}| >> obj:{1}".format(_str_func,obj))  
         log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
-        
+        """
         if l_pos:
             l_pos2 = []
             for i,v in enumerate(l_pos):
@@ -826,11 +826,9 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                     if COREMATH.is_vector_equivalent(v,v2):
                         log.warning(cgmGEN.logString_msg(_str_func,"Matching values: {0} | {1}".format(v,v2)))
                         l_match.append(v2)
-                       
                 if v not in l_match:
                     l_pos2.append(v)
-                    
-            l_pos = l_pos2
+            l_pos = l_pos2"""
         
         if midPoint:
             _d = TRANS.POS.get_midPointDict(obj)
