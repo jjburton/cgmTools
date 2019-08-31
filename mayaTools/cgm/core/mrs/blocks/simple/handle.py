@@ -1418,10 +1418,9 @@ def rig_controls(self):
         
         #mHandle ========================================================================================
         log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))
-        d_space = {}
+        d_space = {'addDynParentGroup':True}
         if mBlock.numSpacePivots:
-            d_space = {'addDynParentGroup':True,
-             'addSpacePivots':mBlock.numSpacePivots}
+            d_space['addSpacePivots'] = mBlock.numSpacePivots
             
         _d = MODULECONTROL.register(mHandle,
                                     addConstraintGroup=False,
