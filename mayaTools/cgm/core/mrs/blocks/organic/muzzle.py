@@ -4868,7 +4868,7 @@ def skeleton_build(self, forceNew = True):
         log.debug("|{0}| >>  teethUpr...".format(_str_func)+ '-'*40)
         mObj = mPrerigNull.getMessageAsMeta('teethUpr'+'DagHelper')
         mJnt = create_jointFromHandle(mObj,mRoot)
-        mPrerigNull.doStore('teethUpr',mJnt)
+        mPrerigNull.doStore('teethUprJoint',mJnt)
         mJnt.p_parent = mRoot
         ml_joints.append(mJnt)
             
@@ -4876,8 +4876,8 @@ def skeleton_build(self, forceNew = True):
         log.debug("|{0}| >>  teethLwr...".format(_str_func)+ '-'*40)
         mObj = mPrerigNull.getMessageAsMeta('teethLwr'+'DagHelper')
         mJnt = create_jointFromHandle(mObj,mRoot)
-        mPrerigNull.doStore('teethLwr',mJnt)
-        mJnt.p_parent = mRoot
+        mPrerigNull.doStore('teethLwrJoint',mJnt)
+        mJnt.p_parent = mJaw
         ml_joints.append(mJnt)
             
             
@@ -5128,7 +5128,7 @@ def rig_prechecks(self):
         self.l_precheckErrors.append("Jaw setup not completed: {0}".format(str_jawSetup))
     
     str_muzzleSetup = mBlock.getEnumValueString('muzzleSetup')
-    if str_muzzleSetup not in ['none','simple']:
+    if str_muzzleSetup not in ['none','simple','joint','dag']:
         self.l_precheckErrors.append("Muzzle setup not completed: {0}".format(str_muzzleSetup))
         
     str_noseSetup = mBlock.getEnumValueString('noseSetup')
@@ -5177,7 +5177,9 @@ def rig_dataBuffer(self):
     self.b_scaleSetup = mBlock.scaleSetup
     
     
-    for k in ['jaw','muzzle','nose','nostril','cheek','bridge','chin','sneer','cheekUpr',
+    for k in ['jaw','muzzle','nose','nostril','cheek','bridge',
+              'teethUpr','teethLwr',
+              'chin','sneer','cheekUpr',
               'lip','lipSeal','teeth','tongue','uprJaw','smile']:
         _tag = "{0}Setup".format(k)
         self.__dict__['str_{0}'.format(_tag)] = False
@@ -5308,10 +5310,10 @@ def rig_skeleton(self):
         if mParent is not None:
             mJntDriver.p_parent = mParent
     
-        md_skinJoints[t] = mJntSkin
-        md_rigJoints[t] = mJntRig
-        md_driverJoints[t] = mJntDriver
-        md_handleShapes[t] = mPrerigNull.getMessageAsMeta('{0}ShapeHelper'.format(t))
+        md_skinJoints[tag] = mJntSkin
+        md_rigJoints[tag] = mJntRig
+        md_driverJoints[tag] = mJntDriver
+        md_handleShapes[tag] = mPrerigNull.getMessageAsMeta('{0}ShapeHelper'.format(tag))
     
     def mirrorConnect(tag1,tag2):
         md_rigJoints[tag1].doStore('mirrorControl',md_rigJoints[tag2])
@@ -5321,7 +5323,10 @@ def rig_skeleton(self):
         md_driverJoints[tag2].doStore('mirrorControl', md_driverJoints[tag1])
         
         
-    
+    if self.str_muzzleSetup == 'joint':
+        doSingleJoint('muzzle')
+            
+            
     #Jaw ---------------------------------------------------------------
     if self.str_jawSetup:
         log.debug("|{0}| >> jaw...".format(_str_func))
@@ -5332,6 +5337,15 @@ def rig_skeleton(self):
         md_skinJoints['jaw'] = mJntSkin
         md_rigJoints['jaw'] = mJntRig
         md_driverJoints['jaw'] = mJntDriver
+        
+    if self.str_tongueSetup:
+        doSingleJoint('tongue')
+        
+    if self.str_teethUprSetup:
+        doSingleJoint('teethUpr')
+    if self.str_teethLwrSetup:
+        doSingleJoint('teethLwr')
+
 
     if self.str_chinSetup:
         log.debug("|{0}| >> chinSetup...".format(_str_func))
@@ -5346,7 +5360,10 @@ def rig_skeleton(self):
     if self.str_noseSetup:
         log.debug("|{0}| >> nose...".format(_str_func)+'-'*40)
         
-        _l =  ['noseBase','noseTip']
+        _l =  ['noseBase']
+        
+        if mBlock.numJointsNoseTip:
+            _l.append('noseTip')
         
         if mBlock.numJointsNostril:
             _l.extend(['nostrilLeft','nostrilRight'])
@@ -5519,20 +5536,36 @@ def rig_shapes(self):
             #    mRigNull.doStore('settings',self.mParentSettings)
             log.debug(cgmGEN._str_subLine)
             
+            
+        for k in 'teethUpr','teethLwr','tongue':
+            log.debug("|{0}| >> {1} setup...".format(_str_func,k)+ '-'*40)
+            mDag = self.md_driverJoints.get(k)
+            mShapeHelper = mPrerigNull.getMessageAsMeta('{0}ShapeHelper'.format(k))
+            CORERIG.shapeParent_in_place(mDag.mNode, mShapeHelper.mNode)
+            
+            mRigNull.doStore('control{0}'.format(STR.capFirst(k)),mDag)
+            log.debug(cgmGEN._str_subLine)
+            
+            
+        """
         if self.md_rigJoints.get('chin'):
             log.debug("|{0}| >> chin setup...".format(_str_func)+ '-'*40)
             mChin = self.md_driverJoints.get('chin')
             CORERIG.shapeParent_in_place(mChin.mNode, mPrerigNull.getMessageAsMeta('chinShapeHelper').mNode)
             
             mRigNull.doStore('controlChin',mChin)
-            log.debug(cgmGEN._str_subLine)
+            log.debug(cgmGEN._str_subLine)"""
                 
         if self.str_muzzleSetup:
             log.debug("|{0}| >> Muzzle setup...".format(_str_func)+ '-'*40)
             mMuzzleDagHelper = mPrerigNull.getMessageAsMeta('muzzleDagHelper')
-            mMuzzleDag = mMuzzleDagHelper.doCreateAt()
-            mMuzzleDag.doCopyNameTagsFromObject(mMuzzleDagHelper.mNode,'cgmType')
-            mMuzzleDag.doName()
+            if self.md_driverJoints.get('muzzle'):
+                mMuzzleDag = self.md_driverJoints.get('muzzle')
+            
+            else:
+                mMuzzleDag = mMuzzleDagHelper.doCreateAt()
+                mMuzzleDag.doCopyNameTagsFromObject(mMuzzleDagHelper.mNode,'cgmType')
+                mMuzzleDag.doName()
             
             CORERIG.shapeParent_in_place(mMuzzleDag.mNode,
                                          mMuzzleDagHelper.getMessageAsMeta('shapeHelper').mNode)
@@ -5571,7 +5604,10 @@ def rig_shapes(self):
         if self.str_noseSetup:
             log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
             
-            _l = ['noseBase','noseTip']
+            _l = ['noseBase']
+            
+            if mBlock.numJointsNoseTip:
+                _l.append('noseTip')
             if mBlock.numJointsNostril:
                 _l.extend(['nostrilLeft','nostrilRight'])
 
@@ -5725,6 +5761,24 @@ def rig_controls(self):
             ml_controlsAll.append(_d['mObj'])            
             return _d['mObj']
         
+        for k in 'teethUpr','teethLwr','tongue','jaw','muzzle','mouth','chin':
+            link = 'control{0}'.format(STR.capFirst(k))
+            log.debug("|{0}| >> {1} setup...".format(_str_func,link)+ '-'*40)
+            mLink = mRigNull.getMessageAsMeta(link)
+            if mLink:
+                log.debug("|{0}| >> {1}...".format(_str_func,link))
+                
+                
+                _d = MODULECONTROL.register(mLink,
+                                            mirrorSide= self.d_module['mirrorDirection'],
+                                            mirrorAxis="translateX,rotateY,rotateZ",
+                                            makeAimable = False)
+                
+                ml_controlsAll.append(_d['mObj'])
+                        
+                        
+            log.debug(cgmGEN._str_subLine)        
+        """
         for link in ['controlJaw','controlMuzzle','controlMouth','controlChin']:
             mLink = mRigNull.getMessageAsMeta(link)
             if mLink:
@@ -5735,7 +5789,7 @@ def rig_controls(self):
                                             mirrorAxis="translateX,rotateY,rotateZ",
                                             makeAimable = False)
                 
-                ml_controlsAll.append(_d['mObj'])        
+                ml_controlsAll.append(_d['mObj']) """       
                 #ml_segmentHandles.append(_d['mObj'])
         log.debug(cgmGEN._str_subLine)
         
@@ -5766,7 +5820,9 @@ def rig_controls(self):
         if self.str_noseSetup:
             log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
             
-            _l = ['noseBase','noseTip']
+            _l = ['noseBase']
+            if mBlock.numJointsNoseTip:
+                _l.append(['noseTip'])
             if mBlock.numJointsNostril:
                 _l.extend(['nostrilLeft','nostrilRight'])
             
@@ -5892,6 +5948,19 @@ def rig_frame(self):
             mJaw.masterGroup.p_parent = mFollowParent
             if not mMuzzle:
                 mFollowParent = mJaw
+                
+        mUprTeeth = mRigNull.getMessageAsMeta('controlUprTeeth')
+        if mUprTeeth:
+            log.debug("|{0}| >> uprTeeth setup...".format(_str_func))
+            mUprTeeth.masterGroup.p_parent = mFollowParent
+            
+        mTongue = mRigNull.getMessageAsMeta('controlTongue')
+        if mTongue:
+            log.debug("|{0}| >> tongue setup...".format(_str_func))
+            mTongue.masterGroup.p_parent = mJaw
+            
+            
+            
             
         if self.str_lipSetup:
             log.debug("|{0}| >> lip setup...".format(_str_func)+ '-'*40)
@@ -6328,12 +6397,6 @@ def rig_frame(self):
                     _k2 = k2+s
                     if mdD.get(_k2):
                         l_targets.append(mdD.get(_k2).mNode)
-                        
-                
-                        
-                
-                
-                
                 _c = mc.pointConstraint(l_targets,
                                         mTrack.mNode,maintainOffset=True)[0]
                 
@@ -6820,6 +6883,16 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     ml_curves = []
     
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    ml_use = []
+    for mObj in ml_rigJoints:
+        if 'teeth' in mObj.mNode:
+            pass
+        elif 'tongue' in mObj.mNode:
+            pass
+        else:
+            ml_use.append(mObj)
+    ml_rigJoints = ml_use
+            
     ml_new = []
     #Let's gather our proxy mesh
     for lnk in ['jaw','nose','uprLip','lwrLip','overLip','underLip','noseToCheekLeft','noseToCheekRight',
