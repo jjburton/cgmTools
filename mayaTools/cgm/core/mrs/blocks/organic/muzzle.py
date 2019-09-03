@@ -5188,6 +5188,10 @@ def rig_dataBuffer(self):
             self.__dict__['str_{0}'.format(_tag)] = _v
         log.debug("|{0}| >> self.str_{1} = {2}".format(_str_func,_tag,self.__dict__['str_{0}'.format(_tag)]))    
     
+    #DynParents =============================================================================
+    self.UTILS.get_dynParentTargetsDat(self)
+    log.debug(cgmGEN._str_subLine)
+    
     #Offset ============================================================================ 
     self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
     log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
@@ -5537,7 +5541,7 @@ def rig_shapes(self):
             log.debug(cgmGEN._str_subLine)
             
             
-        for k in 'teethUpr','teethLwr','tongue':
+        for k in 'teethUpr','teethLwr','tongue','chin':
             log.debug("|{0}| >> {1} setup...".format(_str_func,k)+ '-'*40)
             mDag = self.md_driverJoints.get(k)
             mShapeHelper = mPrerigNull.getMessageAsMeta('{0}ShapeHelper'.format(k))
@@ -6715,6 +6719,42 @@ def rig_cleanUp(self):
     #mPlug_FKIK = cgmMeta.cgmAttr(mSettings,'FKIK')
     #mPlug_FKIK.p_defaultValue = 1
     #mPlug_FKIK.value = 1
+    
+    
+    mTongue = mRigNull.getMessageAsMeta('controlTongue')
+    mUprTeeth = mRigNull.getMessageAsMeta('controlTeethUpr')
+    mMuzzle = mRigNull.getMessageAsMeta('controlMuzzle')
+    mJaw = mRigNull.getMessageAsMeta('controlJaw')
+    
+    if mTongue:
+        mChild = mTongue
+        #Get space stuff
+        ml_targetDynParents = []#self.ml_dynParentsAbove + self.ml_dynEndParents
+        
+        ml_targetDynParents.append(self.md_dynTargetsParent['world'])
+        #ml_targetDynParents.extend(mControlIK.msgList_get('spacePivots',asMeta = True))
+        
+        if mJaw:
+            ml_targetDynParents.insert(0,mJaw)
+        
+        if mUprTeeth:
+            ml_targetDynParents.insert(1,mUprTeeth)
+        if mMuzzle:
+            ml_targetDynParents.insert(1,mMuzzle)
+            
+    
+        mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mChild,dynMode=0)
+    
+        for mTar in ml_targetDynParents:
+            mDynGroup.addDynParent(mTar)
+        mDynGroup.rebuild()
+            
+        log.debug("|{0}| >>  IK targets...".format(_str_func))
+        #pprint.pprint(ml_targetDynParents)        
+        
+        log.debug(cgmGEN._str_subLine)        
+    
+    
         
     #Lock and hide =================================================================================
     ml_controls = mRigNull.msgList_get('controlsAll')
@@ -6894,6 +6934,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     ml_rigJoints = ml_use
             
     ml_new = []
+    mTeethUpr = mPrerigNull.getMessageAsMeta('teethUprJoint')
+    mTeethLwr = mPrerigNull.getMessageAsMeta('teethLwrJoint')
+    mTongue = mPrerigNull.getMessageAsMeta('tongueJoint')
+    
+    if mTeethUpr:
+        log.debug("|{0}| >> mTeethUpr".format(_str_func)+'-'*40)
+        
+    
     #Let's gather our proxy mesh
     for lnk in ['jaw','nose','uprLip','lwrLip','overLip','underLip','noseToCheekLeft','noseToCheekRight',
                 'lipToChin','uprJoinLeft','uprJoinRight']:
