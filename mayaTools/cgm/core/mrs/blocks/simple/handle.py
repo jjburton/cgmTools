@@ -561,9 +561,7 @@ def form(self):
         _shapeDirection = self.getEnumValueString('shapeDirection')
         _proxyShape = self.getEnumValueString('proxyShape')
         _side = self.UTILS.get_side(self)
-        
-        
-        i 
+
         #If we have a loftList setup, we need to validate those attributes
         _int_shapers = self.numShapers
         for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
