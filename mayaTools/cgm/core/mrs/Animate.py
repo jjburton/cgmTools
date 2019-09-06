@@ -433,7 +433,7 @@ class ui(cgmUI.cgmGUI):
         if not CGMPATH.Path(self.posePath):#os.path.exists(self.posePath):
             log.debug('posePath is invalid')
             return self.poses
-        files = os.listdir(self.posePath)
+        files = os.listdir(self.posePath) if os.path.exists(self.posePath) else []
         if sortBy == 'name':
             files = r9Core.sortNumerically(files)
             # files.sort()
