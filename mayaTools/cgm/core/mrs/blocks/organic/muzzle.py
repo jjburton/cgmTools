@@ -5542,13 +5542,14 @@ def rig_shapes(self):
             
             
         for k in 'teethUpr','teethLwr','tongue','chin':
-            log.debug("|{0}| >> {1} setup...".format(_str_func,k)+ '-'*40)
             mDag = self.md_driverJoints.get(k)
-            mShapeHelper = mPrerigNull.getMessageAsMeta('{0}ShapeHelper'.format(k))
-            CORERIG.shapeParent_in_place(mDag.mNode, mShapeHelper.mNode)
-            
-            mRigNull.doStore('control{0}'.format(STR.capFirst(k)),mDag)
-            log.debug(cgmGEN._str_subLine)
+            if mDag:
+                log.debug("|{0}| >> {1} setup...".format(_str_func,k)+ '-'*40)                
+                mShapeHelper = mPrerigNull.getMessageAsMeta('{0}ShapeHelper'.format(k))
+                CORERIG.shapeParent_in_place(mDag.mNode, mShapeHelper.mNode)
+                
+                mRigNull.doStore('control{0}'.format(STR.capFirst(k)),mDag)
+                log.debug(cgmGEN._str_subLine)
             
             
         """
@@ -5826,7 +5827,7 @@ def rig_controls(self):
             
             _l = ['noseBase']
             if mBlock.numJointsNoseTip:
-                _l.append(['noseTip'])
+                _l.append('noseTip')
             if mBlock.numJointsNostril:
                 _l.extend(['nostrilLeft','nostrilRight'])
             

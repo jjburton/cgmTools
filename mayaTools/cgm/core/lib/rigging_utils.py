@@ -815,20 +815,23 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
         
         log.debug("|{0}| >> obj:{1}".format(_str_func,obj))  
         log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
-        """
+        
         if l_pos:
             l_pos2 = []
             for i,v in enumerate(l_pos):
-                if v == l_pos[-1]:
-                    continue
-                l_match = []
-                for v2 in l_pos[i+1:]:
-                    if COREMATH.is_vector_equivalent(v,v2):
-                        log.warning(cgmGEN.logString_msg(_str_func,"Matching values: {0} | {1}".format(v,v2)))
-                        l_match.append(v2)
-                if v not in l_match:
+                if v == l_pos[-1] and l_pos[-1] not in l_pos2:
                     l_pos2.append(v)
-            l_pos = l_pos2"""
+                else:
+                    l_match = []
+                    _key = i+1
+                    for v2 in l_pos[_key:]:
+                        if COREMATH.is_vector_equivalent(v,v2):
+                            log.warning(cgmGEN.logString_msg(_str_func,"Matching values: {0} | {1}".format(v,v2)))
+                            l_match.append(_key)
+                    if _key not in l_match:
+                        l_pos2.append(v)
+            if l_pos2:
+                l_pos = l_pos2
         
         if midPoint:
             _d = TRANS.POS.get_midPointDict(obj)

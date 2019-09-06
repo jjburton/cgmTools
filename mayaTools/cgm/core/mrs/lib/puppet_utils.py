@@ -1088,6 +1088,13 @@ def get_deleteSetDat(self):
     for mChild in mMasterNull.getChildren(asMeta=True):
         if mChild not in l_compare:
             _res.append(mChild)
+            
+    mSkeletonGroup = mMasterNull.skeletonGroup
+    if mSkeletonGroup:
+        for mChild in mSkeletonGroup.getAllChildren(asMeta=1):
+            if mChild.getMayaAttr('cgmType') in ['dynDriver','attachDriver']:
+                _res.append(mChild)
+        
 
     return _res
     
