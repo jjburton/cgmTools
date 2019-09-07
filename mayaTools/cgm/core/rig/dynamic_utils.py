@@ -381,9 +381,13 @@ class cgmDynFK(cgmMeta.cgmObject):
                 l_pos.append(obj.p_position)
                 
                 
+            _v_baseDist = DIST.get_distance_between_points(l_pos[-1],l_pos[-2])
+            _v_baseDist = MATHUTILS.Clamp(_v_baseDist, .5,None)
+
             _p_baseExtend = DIST.get_pos_by_axis_dist(ml[-1],
                                                       fwdAxis.p_string,
-                                                      DIST.get_distance_between_points(l_pos[-1],l_pos[-2]))
+                                                      _v_baseDist)
+            
             
             if extendEnd:
                 log.debug(cgmGEN.logString_msg(_str_func, 'extendEnd...'))
@@ -432,7 +436,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                     log.debug(cgmGEN.logString_msg(_str_func, 'extendStart | {0}'.format(extendEnd)))
                     
                     l_pos.append( DIST.get_pos_by_vec_dist(l_pos[-1], _vecEnd,
-                                                           extendEnd))                
+                                                           extendEnd))
             
             if extendStart:
                 f_extendStart = VALID.valueArg(extendStart)
@@ -445,10 +449,12 @@ class cgmDynFK(cgmMeta.cgmObject):
                                                              _vecStart,
                                                              f_extendStart))
 
-
+        #pprint.pprint(l_pos)
+        
+        #for i,p in enumerate(l_pos):
+        #    LOC.create(position=p,name='p_{0}'.format(i))
+            
         crv = CORERIG.create_at(create='curve',l_pos= l_pos, baseName = name)
-        
-        
         mc.select(cl=1)
 
         # make the dynamic setup

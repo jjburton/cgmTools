@@ -76,7 +76,7 @@ def get_shapeCurve(shape, value, mode = 'u', offset=None,d_curves = {}):
 
 
 def get_surfaceSplitCurves(surface = None,
-                           values = [],
+                           l_values = [],
                            count = None,
                            mode = 'u',
                            offset=None,

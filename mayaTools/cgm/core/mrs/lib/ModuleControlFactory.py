@@ -120,6 +120,11 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
         ml_groups = []#Holder for groups
         ml_constraintGroups = []
         ml_spacePivots = []
+        
+        ml_children = mi_control.getChildren(asMeta=1)
+        if ml_children:
+            for mChild in ml_children:
+                mChild.p_parent = False        
     
         #Copy Transform ================================================================================================
         if copyTransform is not None:
@@ -349,7 +354,10 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
         for i,mShape in enumerate(mi_control.getShapes(asMeta=True)):
             mShape.rename("{0}_shape_{1}".format(str_base,i))
             #mShape.doName()
-        
+            
+        if ml_children:
+            for mChild in ml_children:
+                mChild.p_parent = mi_control        
         #return ============================================================================================
         #pprint.pprint(vars())
         
