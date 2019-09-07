@@ -7,7 +7,24 @@ import cgm.lib.pyui as pyui
 import subprocess
 import re
 
-class SceneUI(object):
+import cgm.core.classes.GuiFactory as cgmUI
+mUI = cgmUI.mUI
+
+#>>>======================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=========================================================================
+
+
+#>>> Root settings =============================================================
+__version__ = '1.5.09072019'
+__toolname__ ='MRSScene'
+
+_subLineBGC = [.75,.75,.75]
+
+class ui(cgmUI.cgmGUI):
 	'''
 Animation Importer UI class.
 
@@ -27,8 +44,15 @@ example:
 	# prints the names of all of the loaded assets
 	print x.assetList
 	'''
-	def __init__(self):
-		self.window                      = None
+
+	WINDOW_NAME = 'cgmScene'
+	DEFAULT_SIZE = 700, 400
+
+	TOOLNAME = 'cgmScene'
+	WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
+
+	def insert_init(self,*args,**kws):
+		#self.window                      = None
 		
 		self.categoryList                = ["Character", "Environment", "Vehicles", "Props", "Interactables", "Level"]
 		self.categoryIndex               = 0
@@ -44,19 +68,16 @@ example:
 		self.categoryStore               = "cgm_fileUI_category"
 		
 		## sizes
-		self.width                       = 400
-		self.height                      = 700
 		self.__itemHeight                = 35
 		self.__cw1                       = 125
 		
 		# UI elements
-		self.assetList                   = pyui.SearchableList()
-		self.animationList               = pyui.SearchableList()
-		self.variationList               = pyui.SearchableList()
-		self.versionList                 = pyui.SearchableList()
-		self.queueTSL                    = pyui.UIList()
+		self.assetList                   = None #pyui.SearchableList()
+		self.animationList               = None #pyui.SearchableList()
+		self.variationList               = None #pyui.SearchableList()
+		self.versionList                 = None #pyui.SearchableList()
+		self.queueTSL                    = None #pyui.UIList()
 		self.updateCB                    = None
-		self.bottomColumn                = None
 		self.menuBarLayout               = None
 		self.fileMenu                    = None
 		self.toolsMenu                   = None
@@ -83,20 +104,15 @@ example:
 		self.exportDirectory             = None
 
 		self.LoadOptions()
-		self.CreateWindow()			
-
-		if self.previousLoadedDirectory:
-			self.LoadCategoryList(self.previousLoadedDirectory)
-
-		self.LoadPreviousSelection()
+		# self.CreateWindow()
 
 	@property
 	def directory(self):
-		return self.directoryTFG.text
+		return self.directoryTF.getValue()
 
 	@directory.setter
 	def directory(self, directory):
-		self.directoryTFG.text = directory
+		self.directoryTF.setValue( directory )
 
 	@property
 	def categoryDirectory(self):
@@ -104,7 +120,7 @@ example:
 	
 	@property
 	def assetDirectory(self):
-		return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList.selectedItem ))
+		return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() ))
 
 	@property
 	def animationDirectory(self):
@@ -120,7 +136,7 @@ example:
 
 	@property
 	def exportFileName(self):
-		return '%s_%s_%s.fbx' % (self.assetList.selectedItem, self.animationList.selectedItem, self.variationList.selectedItem)
+		return '%s_%s_%s.fbx' % (self.assetList['scrollList'].getSelectedItem(), self.animationList.selectedItem, self.variationList.selectedItem)
 
 	@property
 	def category(self):
@@ -151,10 +167,16 @@ example:
 
 	def SetExportSets(self, *args):
 		mc.window( width=150 )
-		mc.columnLayout( adjustableColumn=True )
-		mc.button( label='Set Bake Set', command=self.SetBakeSet )
-		mc.button( label='Set Delete Set', command=self.SetDeleteSet )
-		mc.button( label='Set Export Set', command=self.SetExportSet )
+		col = mc.columnLayout( adjustableColumn=True )
+		#mc.button( label='Set Bake Set', command=self.SetBakeSet )
+		cgmUI.add_Button(col,'Set Bake Set', lambda *a: self.SetBakeSet())
+
+		#mc.button( label='Set Delete Set', command=self.SetDeleteSet )
+		cgmUI.add_Button(col,'Set Delete Set', lambda *a: self.SetDeleteSet())
+
+		# mc.button( label='Set Export Set', command=self.SetExportSet )
+		cgmUI.add_Button(col,'Set Export Set', lambda *a: self.SetExportSet())
+
 		mc.showWindow()
 
 	def SetDeleteSet(self, *args):
@@ -175,228 +197,417 @@ example:
 		print "Setting geo set to: %s" % exportSet 
 		mc.optionVar(sv=('cgm_export_set', exportSet))
 
-	def CreateWindow(self, *args):
-		if mc.window("cgmSceneUI", q=True, exists=True):
-			mc.deleteUI("cgmSceneUI")
+	def build_layoutWrapper(self,parent):
+		# if mc.window("cgmSceneUI", q=True, exists=True):
+		# 	mc.deleteUI("cgmSceneUI")
 
-		self.window = mc.window( "cgmSceneUI", title="cgmScene", iconName='cgmScene' )
+		# self.window = mc.window( "cgmSceneUI", title="cgmScene", iconName='cgmScene' )
 		
-		self.menuBarLayout = mc.menuBarLayout()
-		self.ConstructMenuBar()
+		#self.menuBarLayout = mc.menuBarLayout()
+		#self.buildMenu_file()
 
-		mainForm = mc.formLayout(numberOfDivisions=100)
+		_MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
 
-		directoryColumn = mc.columnLayout(adjustableColumn=True)
-		self.directoryTFG = pyui.TextFieldButtonGrp()
-		self.directoryTFG.label='Directory'
-		self.directoryTFG.cw3=(self.__cw1*.5, self.width*.6, self.__cw1*.5)
-		self.directoryTFG.buttonLabel="Set"
-		self.directoryTFG.buttonCommand=self.SetAnimationDirectory #, h=self.__itemHeight
-		self.directoryTFG.changeCommand=self.ChangeAnimationDirectory #, h=self.__itemHeight
 
-		self.exportDirectoryTFG = pyui.TextFieldButtonGrp()
-		self.exportDirectoryTFG.label='Export Dir'
-		self.exportDirectoryTFG.cw3=(self.__cw1*.5, self.width*.6, self.__cw1*.5)
-		self.exportDirectoryTFG.buttonLabel="Set"
-		self.exportDirectoryTFG.buttonCommand=self.SetExportDirectory #, h=self.__itemHeight
-		self.exportDirectoryTFG.changeCommand=self.ChangeExportDirectory #, h=self.__itemHeight
-		self.exportDirectoryTFG.text = self.exportDirectory
+		##############################
+		# Top Column Layout 
+		##############################
+		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate') #mc.columnLayout(adjustableColumn=True)
+		
+		_uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
+		mUI.MelLabel(_uiRow_dir,l='Directory')
+		self.directoryTF = mUI.MelTextField(_uiRow_dir, changeCommand=lambda:self.ChangeAnimationDirectory)
+		self.directoryTF.setValue( self.directory )
 
-		mc.setParent('..')
+		mUI.MelButton(_uiRow_dir, label='set', ut = 'cgmUITemplate', command=lambda:self.SetAnimationDirectory)
 
-		# Upper Labels
-		c1_upperColumn = mc.columnLayout(adjustableColumn=True)
-		self.categoryText = mc.button(self.category, h=self.__itemHeight)
-		mc.popupMenu( button=1 )
+		_uiRow_dir.setStretchWidget(self.directoryTF)
+		_uiRow_dir.layout()
+
+		_uiRow_export = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
+		mUI.MelLabel(_uiRow_export,l='Export Dir')
+		self.exportDirectoryTF = mUI.MelTextField(_uiRow_export, changeCommand=lambda:self.ChangeExportDirectory)
+		self.exportDirectoryTF.setValue( self.exportDirectory )
+		mUI.MelButton(_uiRow_export, label='set', ut = 'cgmUITemplate', command=lambda:self.SetExportDirectory)
+
+		_uiRow_export.setStretchWidget(self.exportDirectoryTF)
+		_uiRow_export.layout()
+
+		mc.setParent(_MainForm)
+
+		##############################
+		# Main Asset Lists 
+		##############################
+		_assetsForm = mUI.MelFormLayout(_MainForm,ut='cgmUITemplate', numberOfDivisions=4) #mc.columnLayout(adjustableColumn=True)
+
+		# Category
+		_catForm = mUI.MelFormLayout(_assetsForm,ut='cgmUITemplate')
+		self.categoryText = mUI.MelButton(_catForm,
+								   label=self.category,ut='cgmUITemplate',
+								   ann='Select the asset category')
+
+		_category_menu = mUI.MelPopupMenu(self.categoryText, button=1 )
 		for i,category in enumerate(self.categoryList):
-			self.categoryMenuItemList.append( mc.menuItem(label=category, c=partial(self.SetCategory,i)) )
+			self.categoryMenuItemList.append( mUI.MelMenuItem(_category_menu, label=category, c=partial(self.SetCategory,i)) )
 			if i == self.categoryIndex:
-				mc.menuItem(self.categoryMenuItemList[i], e=True, enable=False)
-		self.assetList.CreateSearchField()
-		mc.setParent('..')
-		c2_upperColumn = mc.columnLayout(adjustableColumn=True)
-		mc.text("Animation", h=self.__itemHeight)
-		self.animationList.CreateSearchField()
-		mc.setParent('..')
-		c3_upperColumn = mc.columnLayout(adjustableColumn=True)
-		mc.text("Variation", h=self.__itemHeight)
-		self.variationList.CreateSearchField()
-		mc.setParent('..')	
-		c4_upperColumn = mc.columnLayout(adjustableColumn=True)
-		mc.text("Version", h=self.__itemHeight)
-		self.versionList.CreateSearchField()
-		mc.setParent('..')		
-
-		# Text Scroll Lists
-		self.assetList.CreateTSL()
-		mc.popupMenu(pmc=self.UpdateCharTSLPopup)
-		mc.menuItem(label="Open In Explorer", command=self.OpenAssetDirectory )
-		self.openRigMB = mc.menuItem(label="Open Rig", command=self.OpenRig )
-		self.importRigMB = mc.menuItem(label="Import Rig", command=self.ImportRig )
-
-		self.animationList.CreateTSL()
-		mc.popupMenu()
-		mc.menuItem(label="Open In Explorer", command=self.OpenAnimationDirectory )
-
-		self.variationList.CreateTSL()
-		mc.popupMenu()
-		mc.menuItem(label="Open In Explorer", command=self.OpenVariationDirectory )
-
-		self.versionList.CreateTSL()
-		mc.popupMenu()
-		mc.menuItem(label="Open In Explorer", command=self.OpenVersionDirectory )
-		mc.menuItem(label="Reference File", command=self.ReferenceFile )
-
-		mc.textScrollList( self.assetList.textScrollList, e=True, sc=self.LoadAnimationList )
-		mc.textScrollList( self.animationList.textScrollList, e=True, sc=self.LoadVariationList )
-		mc.textScrollList( self.variationList.textScrollList, e=True, sc=self.LoadVersionList )
-		mc.textScrollList( self.versionList.textScrollList, e=True, sc=self.StoreCurrentSelection )
-
-
-		self.assetButton = mc.button(label="New Asset", command=self.CreateAsset, h=self.__itemHeight)
-		self.animationButton = mc.button(label="New Animation", command=self.CreateAnimation, h=self.__itemHeight)
-		self.variationButton = mc.button(label="New Variation", command=self.CreateVariation, h=self.__itemHeight)
-		self.versionButton   = mc.button(label="Save New Version", command=self.SaveVersion, h=self.__itemHeight)
+				self.categoryMenuItemList[i]( e=True, enable=False)
 		
-		# Bottom Column
-		self.bottomColumn    = mc.columnLayout(adjustableColumn = True)
+		self.assetList = self.build_searchable_list(_catForm)
+		self.assetList['scrollList']( e=True, sc=self.LoadAnimationList )
+
+		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
+		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", command=self.OpenRig )
+		self.importRigMB = mUI.MelMenuItem(pum, label="Import Rig", command=self.ImportRig )
+
+		self.assetButton = mUI.MelButton(_catForm, ut='cgmUISubTemplate', label="New Asset", command=self.CreateAsset)
+
+		_catForm( edit=True, 
+			attachForm=[
+				(self.categoryText, 'top', 0), 
+				(self.categoryText, 'left', 0), 
+				(self.categoryText, 'right', 0), 
+				(self.assetButton, 'bottom', 0), 
+				(self.assetButton, 'right', 0), 
+				(self.assetButton, 'left', 0)], 
+			attachControl=[
+				(self.assetList['formLayout'], 'top', 0, self.categoryText),
+				(self.assetList['formLayout'], 'bottom', 0, self.assetButton)] )
+
+
+		# Animation
+		_animForm = mUI.MelFormLayout(_assetsForm,ut='cgmUITemplate')
+		_animBtn = mUI.MelButton(_animForm,
+								   label='Animation',ut='cgmUITemplate',
+								   ann='Select the asset type', en=False)
+	
+		self.animationList = self.build_searchable_list(_animForm)
+		self.animationList['scrollList']( e=True, sc=self.LoadVariationList )
+
+		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAnimationDirectory )
+
+		self.animationButton = mUI.MelButton(_animForm, ut='cgmUISubTemplate', label="New Animation", command=self.CreateAnimation)
+
+		_animForm( edit=True, 
+			attachForm=[
+				(_animBtn, 'top', 0), 
+				(_animBtn, 'left', 0), 
+				(_animBtn, 'right', 0), 
+				(self.animationButton, 'bottom', 0), 
+				(self.animationButton, 'right', 0), 
+				(self.animationButton, 'left', 0)], 
+			attachControl=[
+				(self.animationList['formLayout'], 'top', 0, _animBtn),
+				(self.animationList['formLayout'], 'bottom', 0, self.animationButton)] )
+	
+		# Variation
+		_variationForm = mUI.MelFormLayout(_assetsForm,ut='cgmUITemplate')
+		_variationBtn = mUI.MelButton(_variationForm,
+								   label='Variation',ut='cgmUITemplate',
+								   ann='Select the asset variation', en=False)
+	
+		self.variationList = self.build_searchable_list(_variationForm)
+		self.variationList['scrollList']( e=True, sc=self.LoadVersionList )
+
+		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
+
+		self.variationButton = mUI.MelButton(_variationForm, ut='cgmUISubTemplate', label="New Variation", command=self.CreateVariation)
+
+		_variationForm( edit=True, 
+			attachForm=[
+				(_variationBtn, 'top', 0), 
+				(_variationBtn, 'left', 0), 
+				(_variationBtn, 'right', 0), 
+				(self.variationButton, 'bottom', 0), 
+				(self.variationButton, 'right', 0), 
+				(self.variationButton, 'left', 0)], 
+			attachControl=[
+				(self.variationList['formLayout'], 'top', 0, _variationBtn),
+				(self.variationList['formLayout'], 'bottom', 0, self.variationButton)] )
+	
+
+		# Version
+		_versionForm = mUI.MelFormLayout(_assetsForm,ut='cgmUITemplate')
+		_versionBtn = mUI.MelButton(_versionForm,
+								   label='Version',ut='cgmUITemplate',
+								   ann='Select the asset version', en=False)
+	
+		self.versionList = self.build_searchable_list(_versionForm)
+		self.versionList['scrollList']( e=True, sc=self.StoreCurrentSelection )
+
+		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
+		mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
+
+		self.versionButton = mUI.MelButton(_versionForm, ut='cgmUISubTemplate', label="Save New Version", command=self.SaveVersion)
+
+		_versionForm( edit=True, 
+			attachForm=[
+				(_versionBtn, 'top', 0), 
+				(_versionBtn, 'left', 0), 
+				(_versionBtn, 'right', 0), 
+				(self.versionButton, 'bottom', 0), 
+				(self.versionButton, 'right', 0), 
+				(self.versionButton, 'left', 0)], 
+			attachControl=[
+				(self.versionList['formLayout'], 'top', 0, _versionBtn),
+				(self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
+	
+
+	
+		##############################
+		# Bottom 
+		##############################
+		_bottomColumn    = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate', adjustableColumn=True)#mc.columnLayout(adjustableColumn = True)
 		
-		# Import button
-		mc.rowColumnLayout(numberOfColumns=7, columnWidth=[(1, 200), (2, 200),(3, 200), (4, 200),(5, 200)], adjustableColumn = 1, columnSpacing=[(2,5),(3,5),(4,5),(5,5)])
-		self.exportButton    = mc.button(label="Export", c=partial(self.RunExportCommand,1), h=self.__itemHeight)
+		_row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
+		
+		self.exportButton = mUI.MelButton(_row, label="Export", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,1), h=self.__itemHeight)
 		mc.popupMenu()
 		mc.menuItem( l="Bake Without Export", c=partial(self.RunExportCommand,0))
 		mc.menuItem( l="Export Rig", c=partial(self.RunExportCommand,3))
 		mc.menuItem( l="Force Export As Cutscene", c=partial(self.RunExportCommand,2))
 		
-		mc.button(label="Bake Without Export", c=partial(self.RunExportCommand,0), h=self.__itemHeight)
-		mc.button(label="Export Rig", c=partial(self.RunExportCommand,3), h=self.__itemHeight)
-		mc.button(label="Export Cutscene", c=partial(self.RunExportCommand,2), h=self.__itemHeight)
+		mUI.MelButton(_row, ut = 'cgmUITemplate', label="Bake Without Export", c=partial(self.RunExportCommand,0), h=self.__itemHeight)
+		mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Rig", c=partial(self.RunExportCommand,3), h=self.__itemHeight)
+		mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Cutscene", c=partial(self.RunExportCommand,2), h=self.__itemHeight)
 
-		mc.button(label="Add To Export Queue", w=200, c=partial(self.AddToExportQueue), h=self.__itemHeight)
-		mc.setParent('..')
-		mc.button(label="Load Animation", c=self.LoadAnimation, h=self.__itemHeight)
+		mUI.MelButton(_row, ut = 'cgmUITemplate', label="Add To Export Queue", w=200, c=partial(self.AddToExportQueue), h=self.__itemHeight)
+
+		_row.setStretchWidget(self.exportButton)
+
+		_row.layout()
+
+		mUI.MelButton(_bottomColumn, ut = 'cgmUITemplate', label="Load Animation", c=self.LoadAnimation, h=self.__itemHeight)
 		
-		self.exportQueueFrame = mc.frameLayout(label="Export Queue", collapsable=True, collapse=True)
-		mc.rowColumnLayout(numberOfColumns=2, adjustableColumn=1, columnWidth=[(1,100),(1,200)])
-		self.queueTSL.CreateTSL()
-		mc.textScrollList(self.queueTSL.textScrollList, e=True, allowMultiSelection=True)
-		mc.columnLayout(width=200,adjustableColumn=True)
-		mc.button(label="Add", command=partial(self.AddToExportQueue), height=self.__itemHeight)
-		mc.button(label="Remove", command=partial(self.RemoveFromQueue, 0), height=self.__itemHeight)
-		mc.button(label="Remove All", command=partial(self.RemoveFromQueue, 1), height=self.__itemHeight)
-		mc.button(label="Batch Export", command=partial(self.BatchExport), height=self.__itemHeight)
-		mc.frameLayout(label="Options", collapsable=True)
-		mc.rowColumnLayout(numberOfColumns=2, adjustableColumn=2, columnWidth=[(1,10), (2,80)])
-		mc.text(label="")
-		self.updateCB = mc.checkBox(label="Update and Save Increment", v=False)
-		mc.setParent('..')
-		mc.setParent('..')
-		mc.setParent("..")
-		mc.setParent("..")
+		self.exportQueueFrame = mUI.MelFrameLayout(_bottomColumn, label="Export Queue", collapsable=True, collapse=True)
+		_rcl = mUI.MelHSingleStretchLayout(self.exportQueueFrame)
 
-		mc.setParent("..")
+		self.queueTSL = cgmUI.cgmScrollList(_rcl)
+		self.queueTSL.allowMultiSelect(True)
+		_rcl.setStretchWidget(self.queueTSL)
 
-		mc.formLayout( mainForm, edit=True, 
-
-			attachForm =
-			[(directoryColumn,'top', 0), 
-			(directoryColumn,'left', 0), 
-			(directoryColumn,'right', 0), 
-			(c1_upperColumn, 'left', 0), 
-			(c4_upperColumn, 'right', 0), 
-			(self.assetList.textScrollList, 'left', 0), 
-			(self.bottomColumn, 'left', 0), 
-			(self.bottomColumn, 'bottom', 0), 
-			(self.bottomColumn, 'right', 0), 
-			(self.versionList.textScrollList, 'right', 0),
-			(self.assetButton, 'left', 0), 
-			(self.versionButton, 'right', 0) ], 
-
-			attachControl =
-			[(c1_upperColumn, 'top', 0, directoryColumn), 
-			(c2_upperColumn, 'top', 0, directoryColumn), 
-			(c2_upperColumn, 'right', 0, c3_upperColumn), 
-			(c3_upperColumn, 'top', 0, directoryColumn), 
-			(c3_upperColumn, 'right', 0, c4_upperColumn), 
-			(c4_upperColumn, 'top', 0, directoryColumn), 
-			(self.assetList.textScrollList, 'bottom', 0, self.assetButton), 
-			(self.assetList.textScrollList, 'top', 0, c1_upperColumn),
-			(self.animationList.textScrollList, 'bottom', 0, self.animationButton), 
-			(self.animationList.textScrollList, 'left', 0, c1_upperColumn), 
-			(self.animationList.textScrollList, 'right', 4, self.variationList.textScrollList),
-			(self.animationList.textScrollList, 'top', 0, c3_upperColumn),
-			(self.variationList.textScrollList, 'left', 5, c2_upperColumn),
-			(self.variationList.textScrollList, 'right', 4, self.versionList.textScrollList),
-			(self.variationList.textScrollList, 'bottom', 0, self.versionButton), 
-			(self.variationList.textScrollList, 'top', 0, c2_upperColumn),
-			(self.versionList.textScrollList, 'left', 5, c3_upperColumn),
-			(self.versionList.textScrollList, 'bottom', 0, self.versionButton), 
-			(self.versionList.textScrollList, 'top', 0, c3_upperColumn),
-			(self.assetButton, 'bottom', 3, self.bottomColumn),
-			(self.assetButton, 'right', 5, c2_upperColumn),
-			(self.animationButton, 'bottom', 3, self.bottomColumn),
-			(self.animationButton, 'left', 5, c1_upperColumn),
-			(self.animationButton, 'right', 5, c3_upperColumn),
-			(self.variationButton, 'bottom', 3, self.bottomColumn),
-			(self.variationButton, 'left', 5, c2_upperColumn),
-			(self.variationButton, 'right', 5, c4_upperColumn),
-			(self.versionButton, 'bottom', 3, self.bottomColumn),
-			(self.versionButton, 'left', 5, c3_upperColumn)], 
-
-			attachPosition =
-			[(self.assetList.textScrollList, 'right', 2, 25),
-			(self.animationList.textScrollList, 'left', 2, 25),
-			(c4_upperColumn, 'left', 2, 75),
-			(c1_upperColumn, 'right', 2, 25), 
-			(c2_upperColumn, 'left', 2, 25), 
-			(c2_upperColumn, 'right', 2, 50),
-			(c3_upperColumn, 'left', 2, 50), 
-			(c3_upperColumn, 'right', 2, 75)], 
-
-			attachNone=(self.bottomColumn, 'top') )
-
-		mc.showWindow( self.window )
-
-	def ConstructMenuBar(self, *args):
-		if self.fileMenu:
-			mc.deleteUI(self.fileMenu, control=True)
-			self.fileMenu = None
-			self.fileListMenuItems = []
-		if self.optionsMenu:
-			mc.deleteUI(self.optionsMenu, control=True)
-			self.optionsMenu = None
-		if self.toolsMenu:
-			mc.deleteUI(self.toolsMenu, control=True)
-			self.toolsMenu = None
-
-		mc.setParent(self.menuBarLayout)
-
-		self.fileMenu = mc.menu( label='File' )
-		self.fileListMenuItems.append(mc.menuItem( label='Open', c=self.OpenDirectory ))
-		self.fileListMenuItems.append(mc.menuItem( d=True ))
+		_col = mUI.MelColumnLayout(_rcl,width=200,adjustableColumn=True,useTemplate = 'cgmUISubTemplate')#mc.columnLayout(width=200,adjustableColumn=True)
 		
-		for d in self.GetPreviousDirectories():
-			self.fileListMenuItems.append(mc.menuItem(label=d, c=partial(self.LoadCategoryList,d)))
+		mUI.MelButton(_col, label="Add", ut = 'cgmUITemplate', command=partial(self.AddToExportQueue), height=self.__itemHeight)
+		mUI.MelButton(_col, label="Remove", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 0), height=self.__itemHeight)
+		mUI.MelButton(_col, label="Remove All", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 1), height=self.__itemHeight)
+		mUI.MelButton(_col, label="Batch Export", ut = 'cgmUITemplate', command=partial(self.BatchExport), height=self.__itemHeight)
 		
-		self.fileListMenuItems.append(mc.menuItem( label='Clear List', c=self.ClearPreviousDirectories ))
+		_options_fl = mUI.MelFrameLayout(_col, label="Options", collapsable=True)
 
-		self.optionsMenu = mc.menu( label='Options' )
-		self.showBakedOption    = mc.menuItem( label='Show baked versions', checkBox=self.showBaked, c=self.SaveOptions )
-		#self.setExportCommandMI = mc.menuItem( label='Custom Export Command', c=self.SetExportCommand )
+		_c2 = mUI.MelColumnLayout(_options_fl, adjustableColumn=True)
+		self.updateCB = mUI.MelCheckBox(_c2, label="Update and Save Increment", v=False)
 
-		self.toolsMenu = mc.menu( label='Tools' )
-		self.tagSelected = mc.menuItem( label='Tag As Current Asset', c=self.TagAsset )
-		self.tagSelected = mc.menuItem( label='Set Export Sets', c=self.SetExportSets )
+		_rcl.layout()
+
+
+		##############################
+		# Layout form
+		##############################
+		_MainForm( edit=True, 
+			attachForm=[
+				(_directoryColumn, 'top', 0), 
+				(_directoryColumn, 'left', 0), 
+				(_directoryColumn, 'right', 0), 
+				(_bottomColumn, 'bottom', 0), 
+				(_bottomColumn, 'right', 0), 
+				(_bottomColumn, 'left', 0),
+				(_assetsForm, 'left', 0),
+				(_assetsForm, 'right', 0)], 
+			attachControl=[
+				(_assetsForm, 'top', 0, _directoryColumn),
+				(_assetsForm, 'bottom', 0, _bottomColumn)] )
+	
+
+		# _MainForm( edit=True, 
+
+		# 	attachForm =
+		# 	[(_directoryColumn,'top', 0), 
+		# 	(_directoryColumn,'left', 0), 
+		# 	(_directoryColumn,'right', 0), 
+		# 	(_assetsForm, 'left', 0), 
+		# 	(c4_upperColumn, 'right', 0), 
+		# 	(self.assetList['scrollList'], 'left', 0), 
+		# 	(_bottomColumn, 'left', 0), 
+		# 	(_bottomColumn, 'bottom', 0), 
+		# 	(_bottomColumn, 'right', 0), 
+		# 	(self.versionList.textScrollList, 'right', 0),
+		# 	(self.assetButton, 'left', 0), 
+		# 	(self.versionButton, 'right', 0) ], 
+
+		# 	attachControl =
+		# 	[(_assetsForm, 'top', 0, _directoryColumn), 
+		# 	(c2_upperColumn, 'top', 0, _directoryColumn), 
+		# 	(c2_upperColumn, 'right', 0, c3_upperColumn), 
+		# 	(c3_upperColumn, 'top', 0, _directoryColumn), 
+		# 	(c3_upperColumn, 'right', 0, c4_upperColumn), 
+		# 	(c4_upperColumn, 'top', 0, _directoryColumn), 
+		# 	(self.assetList['scrollList'], 'bottom', 0, self.assetButton), 
+		# 	(self.assetList['scrollList'], 'top', 0, _assetsForm),
+		# 	(self.animationList['scrollList'], 'bottom', 0, self.animationButton), 
+		# 	(self.animationList['scrollList'], 'left', 0, _assetsForm), 
+		# 	(self.animationList['scrollList'], 'right', 4, self.variationList.textScrollList),
+		# 	(self.animationList['scrollList'], 'top', 0, c3_upperColumn),
+		# 	(self.variationList.textScrollList, 'left', 5, c2_upperColumn),
+		# 	(self.variationList.textScrollList, 'right', 4, self.versionList.textScrollList),
+		# 	(self.variationList.textScrollList, 'bottom', 0, self.versionButton), 
+		# 	(self.variationList.textScrollList, 'top', 0, c2_upperColumn),
+		# 	(self.versionList.textScrollList, 'left', 5, c3_upperColumn),
+		# 	(self.versionList.textScrollList, 'bottom', 0, self.versionButton), 
+		# 	(self.versionList.textScrollList, 'top', 0, c3_upperColumn),
+		# 	(self.assetButton, 'bottom', 3, _bottomColumn),
+		# 	(self.assetButton, 'right', 5, c2_upperColumn),
+		# 	(self.animationButton, 'bottom', 3, _bottomColumn),
+		# 	(self.animationButton, 'left', 5, _assetsForm),
+		# 	(self.animationButton, 'right', 5, c3_upperColumn),
+		# 	(self.variationButton, 'bottom', 3, _bottomColumn),
+		# 	(self.variationButton, 'left', 5, c2_upperColumn),
+		# 	(self.variationButton, 'right', 5, c4_upperColumn),
+		# 	(self.versionButton, 'bottom', 3, _bottomColumn),
+		# 	(self.versionButton, 'left', 5, c3_upperColumn)], 
+
+		# 	attachPosition =
+		# 	[(self.assetList['scrollList'], 'right', 2, 25),
+		# 	(self.animationList['scrollList'], 'left', 2, 25),
+		# 	(c4_upperColumn, 'left', 2, 75),
+		# 	(_assetsForm, 'right', 2, 25), 
+		# 	(c2_upperColumn, 'left', 2, 25), 
+		# 	(c2_upperColumn, 'right', 2, 50),
+		# 	(c3_upperColumn, 'left', 2, 50), 
+		# 	(c3_upperColumn, 'right', 2, 75)], 
+
+		# 	attachNone=(_bottomColumn, 'top') )
+
+		# mc.showWindow( self.window )
+
+	def show( self ):
+		if self.previousLoadedDirectory:
+			self.LoadCategoryList(self.previousLoadedDirectory)
+
+		self.LoadPreviousSelection()
+		
+		self.setVisibility( True )
+
+
+	#=========================================================================
+	# Menu Building
+	#=========================================================================
+	def build_menus(self):
+		_str_func = 'build_menus[{0}]'.format(self.__class__.TOOLNAME)            
+		log.info("|{0}| >>...".format(_str_func))   
+		
+		self.uiMenu_FileMenu = mUI.MelMenu( l='Root', pmc=self.buildMenu_file)		        
+		self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
+		self.uiMenu_ToolsMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_tools)  
+
+	def buildMenu_file( self, *args):
+		self.uiMenu_FileMenu.clear()
+		#>>> Reset Options		
+		mUI.MelMenuItemDiv( self.uiMenu_FileMenu )
+		
+		mUI.MelMenuItem( self.uiMenu_FileMenu, l="Open",
+						 #en = _b_reload,
+						 c = lambda *a:mc.evalDeferred(self.OpenDirectory,lp=True))
+						 #c=cgmGEN.Callback(reloadUI,self.__class__,self.WINDOW_NAME))
+						 #c=lambda *a: reloadUI(self.__class__,self.WINDOW_NAME))		
+		
+		mUI.MelMenuItemDiv( self.uiMenu_FileMenu )
+
+		mUI.MelMenuItem( self.uiMenu_FileMenu, l="Clear List",
+						 #en = _b_reload,
+						 #c = cgmGEN.Callback(resetUI(str(self.WINDOW_NAME))))
+						 c = lambda *a:mc.evalDeferred(self.ClearPreviousDirectories,lp=True))                         
+						 #c=cgmGEN.Callback( resetUI,self.__class__, self.WINDOW_NAME, self.l_optionVars))                         
+						 #c=lambda *a: resetUI(self.__class__, self.WINDOW_NAME, self.l_optionVars))    
+
+		# self.fileListMenuItems.append(mc.menuItem( label='Open', c=self.OpenDirectory ))
+		# self.fileListMenuItems.append(mc.menuItem( d=True ))
+		
+		# for d in self.GetPreviousDirectories():
+		# 	self.fileListMenuItems.append(mc.menuItem(label=d, c=partial(self.LoadCategoryList,d)))
+		
+		# self.fileListMenuItems.append(mc.menuItem( label='Clear List', c=self.ClearPreviousDirectories ))
+
+	def buildMenu_options( self, *args):
+		self.uiMenu_OptionsMenu.clear()
+		#>>> Reset Options		
+
+		mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu )
+		
+		mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show baked versions",
+						 #en = _b_reload,
+						 checkBox=self.showBaked,
+						 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+						 #c=cgmGEN.Callback(reloadUI,self.__class__,self.WINDOW_NAME))
+						 #c=lambda *a: reloadUI(self.__class__,self.WINDOW_NAME))	
+
+		# self.showBakedOption    = mc.menuItem( label='Show baked versions', checkBox=self.showBaked, c=self.SaveOptions )
+	
+	def buildMenu_tools( self, *args):
+		self.uiMenu_ToolsMenu.clear()
+		#>>> Reset Options		
+
+		mUI.MelMenuItemDiv( self.uiMenu_ToolsMenu )
+		
+		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Tag As Current Asset",
+						 c = lambda *a:mc.evalDeferred(self.TagAsset,lp=True))
+		
+		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Set Export Sets",
+						 c = lambda *a:mc.evalDeferred(self.SetExportSets,lp=True))
+
+
+	# def ConstructMenuBar(self, *args):
+	# 	if self.fileMenu:
+	# 		mc.deleteUI(self.fileMenu, control=True)
+	# 		self.fileMenu = None
+	# 		self.fileListMenuItems = []
+	# 	if self.optionsMenu:
+	# 		mc.deleteUI(self.optionsMenu, control=True)
+	# 		self.optionsMenu = None
+	# 	if self.toolsMenu:
+	# 		mc.deleteUI(self.toolsMenu, control=True)
+	# 		self.toolsMenu = None
+
+	# 	mc.setParent(self.menuBarLayout)
+
+	# 	self.fileMenu = mc.menu( label='File' )
+
+	# 	self.optionsMenu = mc.menu( label='Options' )
+	# 	#self.setExportCommandMI = mc.menuItem( label='Custom Export Command', c=self.SetExportCommand )
+
+	# 	self.toolsMenu = mc.menu( label='Tools' )
+
+
+	def build_searchable_list(self, parent = None):
+		_margin = 5
+
+		if not parent:
+			parent = self
+
+		form = mUI.MelFormLayout(parent,ut='cgmUITemplate')
+
+		rcl = mc.rowColumnLayout(numberOfColumns=2, adjustableColumn=1)
+
+		tx = mUI.MelTextField(rcl)
+		b = mUI.MelButton(rcl, label='clear', ut='cgmUISubTemplate')
+
+		tsl = cgmUI.cgmScrollList(form)
+		
+		form( edit=True, attachForm=[(rcl, 'top', _margin), (rcl, 'left', _margin), (rcl, 'right', _margin), (tsl, 'bottom', _margin), (tsl, 'right', _margin), (tsl, 'left', _margin)], attachControl=[(tsl, 'top', _margin, rcl)] )
+
+		return {'formLayout':form, 'scrollList':tsl, 'searchField':tx, 'searchButton':b}
 
 	def SetCategory(self, index, *args):
 		self.categoryIndex = index
 		mc.button( self.categoryText, e=True, label=self.category )
 		for i,category in enumerate(self.categoryMenuItemList):
 			if i == self.categoryIndex:
-				mc.menuItem(self.categoryMenuItemList[i], e=True, enable=False)
+				self.categoryMenuItemList[i]( e=True, enable=False)
 			else:
-				mc.menuItem(self.categoryMenuItemList[i], e=True, enable=True)
+				self.categoryMenuItemList[i]( e=True, enable=True)
 
 		self.LoadCategoryList(self.directory)
 		self.SaveOptions()
@@ -412,7 +623,7 @@ example:
 
 		self.directory = directory
 
-		self.ConstructMenuBar()
+		self.buildMenu_file()
 
 		# populate animation info list
 		#fileExtensions = ['mb', 'ma']
@@ -437,17 +648,17 @@ example:
 
 		self.StoreCurrentDirectory()
 
-		self.animationList.ClearList()
-		self.variationList.ClearList()
-		self.versionList.ClearList()
+		self.animationList['scrollList'].clear()
+		self.variationList['scrollList'].clear()
+		self.versionList['scrollList'].clear()
 
 		self.StoreCurrentSelection()
 
 	def LoadAnimationList(self, *args):
 		animList = []
 		
-		if self.categoryDirectory and self.assetList.selectedItem:
-			charDir = os.path.normpath(os.path.join( self.categoryDirectory, self.assetList.selectedItem, 'animation' ))
+		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem():
+			charDir = os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem(), 'animation' ))
 
 			if os.path.exists(charDir):
 				for d in os.listdir(charDir):
@@ -462,17 +673,17 @@ example:
 
 		self.animationList.SetItems(animList)
 
-		self.variationList.ClearList()
-		self.versionList.ClearList()
+		self.variationList['scrollList'].clear()
+		self.versionList['scrollList'].clear()
 
 		self.StoreCurrentSelection()
 
 	def LoadVariationList(self, *args):
 		variationList = []
 
-		self.variationList.ClearList()
+		self.variationList['scrollList'].clear()
 
-		if self.categoryDirectory and self.assetList.selectedItem and self.animationList.selectedItem:
+		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList.selectedItem:
 			animationDir = self.animationDirectory
 
 			if os.path.exists(animationDir):
@@ -488,7 +699,7 @@ example:
 
 		self.variationList.SetItems(variationList)
 
-		self.versionList.ClearList()
+		self.versionList['scrollList'].clear()
 
 		if self.variationList.displayItems != None:
 			self.variationList.selectedIndex = 1
@@ -498,7 +709,7 @@ example:
 		self.StoreCurrentSelection()
 
 	def LoadVersionList(self, *args):
-		if not self.assetList.selectedItem or not self.animationList.selectedItem:
+		if not self.assetList['scrollList'].getSelectedItem() or not self.animationList.selectedItem:
 			return
 
 		versionList = []
@@ -507,7 +718,7 @@ example:
 		# populate animation info list
 		fileExtensions = ['mb', 'ma']
 
-		if self.categoryDirectory and self.assetList.selectedItem and self.animationList.selectedItem and self.variationList.selectedItem:
+		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList.selectedItem and self.variationList.selectedItem:
 			animDir = self.variationDirectory
 			
 			if os.path.exists(animDir):
@@ -525,7 +736,7 @@ example:
 		self.StoreCurrentSelection()
 
 	def LoadAnimation(self, *args):
-		if not self.assetList.selectedItem:
+		if not self.assetList['scrollList'].getSelectedItem():
 			print "No asset selected"
 			return
 		if not self.animationList.selectedItem:
@@ -554,7 +765,7 @@ example:
 		if x:
 			self.exportDirectory = x[0]
 
-		self.exportDirectoryTFG.text = self.exportDirectory
+		self.exportDirectoryTF.setValue( self.exportDirectory )
 
 		self.SaveOptions()
 
@@ -572,7 +783,7 @@ example:
 			return []
 
 	def UpdateAssetList(self, charList):
-		self.assetList.SetItems(charList)
+		self.assetList['scrollList'].setItems(charList)
 
 	def GetPreviousDirectory(self, *args):
 		if mc.optionVar(exists=self.optionVarDirStore):
@@ -584,8 +795,8 @@ example:
 		mc.optionVar(stringValue=[self.optionVarLastDirStore, self.directory])
 
 	def StoreCurrentSelection(self, *args):
-		if self.assetList.selectedItem:
-			mc.optionVar(stringValue=[self.optionVarLastAssetStore, self.assetList.selectedItem])
+		if self.assetList['scrollList'].getSelectedItem():
+			mc.optionVar(stringValue=[self.optionVarLastAssetStore, self.assetList['scrollList'].getSelectedItem()])
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastAssetStore)
 
@@ -606,7 +817,7 @@ example:
 
 	def LoadPreviousSelection(self, *args):
 		if mc.optionVar(exists=self.optionVarLastAssetStore):
-			self.assetList.selectedItem = mc.optionVar(q=self.optionVarLastAssetStore)
+			self.assetList['scrollList'].selectByValue( mc.optionVar(q=self.optionVarLastAssetStore) )
 
 		self.LoadAnimationList()
 
@@ -626,7 +837,7 @@ example:
 	
 	def ClearPreviousDirectories(self, *args):		
 		mc.optionVar(rm=self.optionVarDirStore)
-		self.ConstructMenuBar()
+		self.buildMenu_file()
 
 	def CreateAsset(self, *args):
 		result = mc.promptDialog(
@@ -708,7 +919,7 @@ example:
 		animationFiles = self.versionList.listItems
 
 		animationName = self.animationList.selectedItem
-		wantedName = "%s_%s" % (self.assetList.selectedItem, self.animationList.selectedItem)
+		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList.selectedItem)
 
 		if len(animationFiles) == 0:
 			wantedName = "%s_%02d.mb" % (wantedName, 1)
@@ -720,7 +931,7 @@ example:
 			baseFile = os.path.split(currentFile)[-1]
 			baseName, ext = baseFile.split('.')
 
-			wantedBasename = "%s_%s" % (self.assetList.selectedItem, self.animationList.selectedItem)
+			wantedBasename = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList.selectedItem)
 			if not wantedBasename in baseName:
 				baseName = "%s_%02d" % (wantedBasename, 1)
 
@@ -769,7 +980,7 @@ example:
 		self.OpenDirectory(self.variationDirectory)
 
 	def ReferenceFile(self, *args):
-		if not self.assetList.selectedItem:
+		if not self.assetList['scrollList'].getSelectedItem():
 			print "No asset selected"
 			return
 		if not self.animationList.selectedItem:
@@ -783,7 +994,7 @@ example:
 		mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList.selectedItem)
 
 	def UpdateCharTSLPopup(self, *args):
-		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList.selectedItem ))
+		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 		if os.path.exists(rigPath):
 			mc.menuItem( self.openRigMB, e=True, enable=True )
 			mc.menuItem( self.importRigMB, e=True, enable=True )
@@ -792,12 +1003,12 @@ example:
 			mc.menuItem( self.importRigMB, e=True, enable=False )
 
 	def OpenRig(self, *args):
-		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList.selectedItem ))
+		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 		if os.path.exists(rigPath):
 			mc.file(rigPath, o=True, f=True, ignoreVersion=True)
 
 	def ImportRig(self, *args):
-		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList.selectedItem ))
+		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 		if os.path.exists(rigPath):
 			mc.file(rigPath, i=True, f=True, pr=True)
 
@@ -820,9 +1031,9 @@ example:
 
 	def AddToExportQueue(self, *args):
 		if self.versionList.selectedItem != None:
-			self.batchExportItems.append( {"asset":self.assetList.selectedItem,"animation":self.animationList.selectedItem,"variation":self.variationList.selectedItem,"version":self.versionList.selectedItem} )
+			self.batchExportItems.append( {"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList.selectedItem,"variation":self.variationList.selectedItem,"version":self.versionList.selectedItem} )
 		elif self.variationList != None:
-			self.batchExportItems.append( {"asset":self.assetList.selectedItem,"animation":self.animationList.selectedItem,"variation":self.variationList.selectedItem,"version":self.versionList.displayItems[-1]} )
+			self.batchExportItems.append( {"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList.selectedItem,"variation":self.variationList.selectedItem,"version":self.versionList.displayItems[-1]} )
 		
 		self.RefreshQueueList()
 
@@ -842,7 +1053,7 @@ example:
 		import pyunify.pipe.asset as asset
 
 		for animDict in self.batchExportItems:
-			self.assetList.selectedItem = animDict["asset"]
+			self.assetList['scrollList'].selectByValue( animDict["asset"] )
 			self.LoadAnimationList()
 			self.animationList.selectedItem = animDict["animation"]
 			self.LoadVariationList()
@@ -868,7 +1079,7 @@ example:
 			self.RunExportCommand(1)
 
 	def RefreshQueueList(self, *args):
-		self.queueTSL.ClearList()
+		self.queueTSL['scrollList'].clear()
 		for item in self.batchExportItems:
 			self.queueTSL.AddItem( "%s - %s - %s - %s" % (item["asset"],item["animation"],item["variation"],item["version"]))
 
@@ -921,7 +1132,7 @@ example:
 		categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, self.category))
 		if not os.path.exists(categoryExportPath):
 			os.mkdir(categoryExportPath)
-		exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList.selectedItem))
+		exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList['scrollList'].getSelectedItem()))
 		if not os.path.exists(exportAssetPath):
 			os.mkdir(exportAssetPath)
 		exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, 'animation'))

@@ -1,6 +1,8 @@
 import maya.cmds as mc
 import maya.mel as mel
 import subprocess
+import cgm.core.classes.GuiFactory as cgmUI
+mUI = cgmUI.mUI
 
 class TextFieldButtonGrp(object):
     def __init__(self, *args):
@@ -60,7 +62,7 @@ class UIList(object):
         self.textScrollList = None
 
     def CreateTSL(self):
-        self.textScrollList = mc.textScrollList()
+        self.textScrollList = mUI.MelTextScrollList() #mc.textScrollList()
 
     @property
     def displayItems(self):
