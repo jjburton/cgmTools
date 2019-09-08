@@ -150,7 +150,7 @@ example:
 		#self.exportCommand   = mc.optionVar(q=self.exportCommandStore) if mc.optionVar(exists=self.exportCommandStore) else ""
 
 	def SaveOptions(self, *args):
-		self.showBaked     = mc.menuItem(self.showBakedOption, q=True, checkBox=True)
+		self.showBaked     = self.showBakedOption( q=True, checkBox=True )
 		
 		mc.optionVar( intValue =[self.showBakedStore, self.showBaked] )
 		mc.optionVar( stringValue = [self.optionVarExportDirStore, self.exportDirectory] )
@@ -245,12 +245,12 @@ example:
 		##############################
 		# Main Asset Lists 
 		##############################
-		_assetsForm = mUI.MelFormLayout(_MainForm,ut='cgmUITemplate', numberOfDivisions=4) #mc.columnLayout(adjustableColumn=True)
+		_assetsForm = mUI.MelFormLayout(_MainForm,ut='cgmUISubTemplate', numberOfDivisions=4) #mc.columnLayout(adjustableColumn=True)
 
 		# Category
 		_catForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
 		self.categoryText = mUI.MelButton(_catForm,
-								   label=self.category,ut='cgmUISubTemplate',
+								   label=self.category,ut='cgmUITemplate',
 								   ann='Select the asset category')
 
 		_category_menu = mUI.MelPopupMenu(self.categoryText, button=1 )
@@ -267,7 +267,7 @@ example:
 		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", command=self.OpenRig )
 		self.importRigMB = mUI.MelMenuItem(pum, label="Import Rig", command=self.ImportRig )
 
-		self.assetButton = mUI.MelButton(_catForm, ut='cgmUISubTemplate', label="New Asset", command=self.CreateAsset)
+		self.assetButton = mUI.MelButton(_catForm, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
 
 		_catForm( edit=True, 
 			attachForm=[
@@ -287,7 +287,7 @@ example:
 		# Animation
 		_animForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
 		_animBtn = mUI.MelButton(_animForm,
-								   label='Animation',ut='cgmUISubTemplate',
+								   label='Animation',ut='cgmUITemplate',
 								   ann='Select the asset type', en=False)
 	
 		self.animationList = self.build_searchable_list(_animForm)
@@ -296,7 +296,7 @@ example:
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAnimationDirectory )
 
-		self.animationButton = mUI.MelButton(_animForm, ut='cgmUISubTemplate', label="New Animation", command=self.CreateAnimation)
+		self.animationButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateAnimation)
 
 		_animForm( edit=True, 
 			attachForm=[
@@ -315,7 +315,7 @@ example:
 		# Variation
 		_variationForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
 		_variationBtn = mUI.MelButton(_variationForm,
-								   label='Variation',ut='cgmUISubTemplate',
+								   label='Variation',ut='cgmUITemplate',
 								   ann='Select the asset variation', en=False)
 	
 		self.variationList = self.build_searchable_list(_variationForm)
@@ -324,7 +324,7 @@ example:
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
 
-		self.variationButton = mUI.MelButton(_variationForm, ut='cgmUISubTemplate', label="New Variation", command=self.CreateVariation)
+		self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
 
 		_variationForm( edit=True, 
 			attachForm=[
@@ -344,7 +344,7 @@ example:
 		# Version
 		_versionForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
 		_versionBtn = mUI.MelButton(_versionForm,
-								   label='Version',ut='cgmUISubTemplate',
+								   label='Version',ut='cgmUITemplate',
 								   ann='Select the asset version', en=False)
 	
 		self.versionList = self.build_searchable_list(_versionForm)
@@ -354,7 +354,7 @@ example:
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
 		mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
 
-		self.versionButton = mUI.MelButton(_versionForm, ut='cgmUISubTemplate', label="Save New Version", command=self.SaveVersion)
+		self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
 		_versionForm( edit=True, 
 			attachForm=[
@@ -441,41 +441,59 @@ example:
 		cgmUI.add_LineSubBreak()
 
 		self.exportQueueFrame = mUI.MelFrameLayout(_bottomColumn, label="Export Queue", collapsable=True, collapse=True)
-		_rcl = mUI.MelHSingleStretchLayout(self.exportQueueFrame)
+		_rcl = mUI.MelFormLayout(self.exportQueueFrame,ut='cgmUITemplate')
 
 		self.queueTSL = cgmUI.cgmScrollList(_rcl)
 		self.queueTSL.allowMultiSelect(True)
-		_rcl.setStretchWidget(self.queueTSL)
 
 		_col = mUI.MelColumnLayout(_rcl,width=200,adjustableColumn=True,useTemplate = 'cgmUISubTemplate')#mc.columnLayout(width=200,adjustableColumn=True)
 		
-		mUI.MelButton(_col, label="Add", ut = 'cgmUITemplate', command=partial(self.AddToExportQueue), height=self.__itemHeight)
-		mUI.MelButton(_col, label="Remove", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 0), height=self.__itemHeight)
-		mUI.MelButton(_col, label="Remove All", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 1), height=self.__itemHeight)
-		mUI.MelButton(_col, label="Batch Export", ut = 'cgmUITemplate', command=partial(self.BatchExport), height=self.__itemHeight)
-		
+		cgmUI.add_LineSubBreak()
+		mUI.MelButton(_col, label="Add", ut = 'cgmUITemplate', command=partial(self.AddToExportQueue))
+		cgmUI.add_LineSubBreak()
+		mUI.MelButton(_col, label="Remove", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 0))
+		cgmUI.add_LineSubBreak()
+		mUI.MelButton(_col, label="Remove All", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 1))
+		cgmUI.add_LineSubBreak()
+		mUI.MelButton(_col, label="Batch Export", ut = 'cgmUITemplate', command=partial(self.BatchExport))
+		cgmUI.add_LineSubBreak()
+
 		_options_fl = mUI.MelFrameLayout(_col, label="Options", collapsable=True)
 
 		_c2 = mUI.MelColumnLayout(_options_fl, adjustableColumn=True)
 		self.updateCB = mUI.MelCheckBox(_c2, label="Update and Save Increment", v=False)
 
-		_rcl.layout()
-
+		_rcl( edit=True, 
+			attachForm=[
+				(self.queueTSL, 'top', 0), 
+				(self.queueTSL, 'left', 0), 
+				(self.queueTSL, 'bottom', 0), 
+				(_col, 'bottom', 0), 
+				(_col, 'top', 0), 
+				(_col, 'right', 0)], 
+			attachControl=[
+				(self.queueTSL, 'right', 0, _col)] )
 
 		##############################
 		# Layout form
 		##############################
+
+		_footer = cgmUI.add_cgmFooter(_MainForm)            
+
 		_MainForm( edit=True, 
 			attachForm=[
 				(_directoryColumn, 'top', 0), 
 				(_directoryColumn, 'left', 0), 
 				(_directoryColumn, 'right', 0), 
-				(_bottomColumn, 'bottom', 0), 
 				(_bottomColumn, 'right', 0), 
 				(_bottomColumn, 'left', 0),
 				(_assetsForm, 'left', 0),
-				(_assetsForm, 'right', 0)], 
+				(_assetsForm, 'right', 0),
+				(_footer, 'left', 0),
+				(_footer, 'right', 0),
+				(_footer, 'bottom', 0)], 
 			attachControl=[
+				(_bottomColumn, 'bottom', 0, _footer),
 				(_assetsForm, 'top', 0, _directoryColumn),
 				(_assetsForm, 'bottom', 0, _bottomColumn)] )
 	
@@ -557,15 +575,13 @@ example:
 		_str_func = 'build_menus[{0}]'.format(self.__class__.TOOLNAME)            
 		log.info("|{0}| >>...".format(_str_func))   
 		
-		self.uiMenu_FileMenu = mUI.MelMenu( l='Root', pmc=self.buildMenu_file)		        
+		self.uiMenu_FileMenu = mUI.MelMenu( l='File', pmc=self.buildMenu_file)		        
 		self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
-		self.uiMenu_ToolsMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_tools)  
+		self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools)  
 
 	def buildMenu_file( self, *args):
 		self.uiMenu_FileMenu.clear()
-		#>>> Reset Options		
-		mUI.MelMenuItemDiv( self.uiMenu_FileMenu )
-		
+		#>>> Reset Options			
 		mUI.MelMenuItem( self.uiMenu_FileMenu, l="Open",
 						 #en = _b_reload,
 						 c = lambda *a:mc.evalDeferred(self.OpenDirectory,lp=True))
@@ -593,9 +609,7 @@ example:
 		self.uiMenu_OptionsMenu.clear()
 		#>>> Reset Options		
 
-		mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu )
-		
-		mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show baked versions",
+		self.showBakedOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show baked versions",
 						 #en = _b_reload,
 						 checkBox=self.showBaked,
 						 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
@@ -607,9 +621,7 @@ example:
 	def buildMenu_tools( self, *args):
 		self.uiMenu_ToolsMenu.clear()
 		#>>> Reset Options		
-
-		mUI.MelMenuItemDiv( self.uiMenu_ToolsMenu )
-		
+	
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Tag As Current Asset",
 						 c = lambda *a:mc.evalDeferred(self.TagAsset,lp=True))
 		
@@ -653,7 +665,8 @@ example:
 		b = mUI.MelButton(rcl, label='clear', ut='cgmUISubTemplate')
 
 		tsl = cgmUI.cgmScrollList(form)
-		
+		tsl.allowMultiSelect = False
+
 		form( edit=True, attachForm=[(rcl, 'top', _margin), (rcl, 'left', _margin), (rcl, 'right', _margin), (tsl, 'bottom', _margin), (tsl, 'right', _margin), (tsl, 'left', _margin)], attachControl=[(tsl, 'top', _margin, rcl)] )
 
 		return {'formLayout':form, 'scrollList':tsl, 'searchField':tx, 'searchButton':b}
@@ -759,7 +772,7 @@ example:
 
 		self.versionList['scrollList'].clear()
 
-		if self.variationList['scrollList'].getItems() != None:
+		if self.variationList['scrollList'].getItems():
 			self.variationList['scrollList'].selectByIdx(0)
 
 		self.LoadVersionList()
@@ -1097,7 +1110,7 @@ example:
 
 	def RemoveFromQueue(self, *args):
 		if args[0] == 0:
-			idxes = self.queueTSL['scrollList'].getSelectedIdx()
+			idxes = self.queueTSL.getSelectedIdxs()
 			idxes.reverse()
 
 			for idx in idxes:
@@ -1137,9 +1150,9 @@ example:
 			self.RunExportCommand(1)
 
 	def RefreshQueueList(self, *args):
-		self.queueTSL['scrollList'].clear()
+		self.queueTSL.clear()
 		for item in self.batchExportItems:
-			self.queueTSL.AddItem( "%s - %s - %s - %s" % (item["asset"],item["animation"],item["variation"],item["version"]))
+			self.queueTSL.append( "%s - %s - %s - %s" % (item["asset"],item["animation"],item["variation"],item["version"]))
 
 		if len(self.batchExportItems) > 0:
 			mc.frameLayout(self.exportQueueFrame, e=True, collapse=False)
