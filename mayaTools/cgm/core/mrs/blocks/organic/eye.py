@@ -137,6 +137,8 @@ l_attrsStandard = ['side',
                    'loftSplit',
                    'scaleSetup',
                    'visLabels',
+                   'jointRadius',
+                   'controlOffset',
                    'proxyDirect',
                    'moduleTarget',]
 
@@ -152,12 +154,14 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'lidType':'simple:full',
                  'lidDepth':'float',
                  'lidClosed':'bool',
+                 'numConLids':'int',
                  'numLidUprJoints':'int',
                  'numLidUprShapers':'int',
                  'numLidLwrJoints':'int',
                  'numLidLwrShapers':'int',
                  'numLidSplit_u':'int',
                  'numLidSplit_v':'int',
+                 'lidHandleOffset':'float',
                  
                  
 }
@@ -179,6 +183,9 @@ d_defaultSettings = {'version':__version__,
                      'numLidUprShapers':3,
                      'numLidSplit_u':10,
                      'numLidSplit_v':8,
+                     'numConLids':1,
+                     'jointRadius':1.0,
+                     
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -674,14 +681,11 @@ def define(self):
         
             
         for tag,mHandle in md_handles.iteritems():
-            if cgmGEN.__mayaVersion__ >= 2018:
-                mController = mHandle.controller_get()
-                mController.visibilityMode = 2
+            
             
             #print DIST.get_closest_point(mHandle.mNode, mBBShape.mNode,True)
             
             if 'End' not in tag:
-            
                 #Lid Depth Vis....
                 _depthHelp = CURVES.create_fromName('cylinder', size = [_size_depthHelper,_size_depthHelper,1])
                 #mShape = cgmMeta.validateObjArg(_depthHelp)
@@ -709,6 +713,11 @@ def define(self):
                 #for a in 'sx','sy','sz':
                     #self.doConnectOut('lidDepth', "{0}.{1}".format(mHandle.mNode,a))
                     #ATTR.set_standardFlags(mHandle.mNode,[a])
+                    
+            elif cgmGEN.__mayaVersion__ >= 2018:
+                mController = mHandle.controller_get()
+                mController.visibilityMode = 2
+                
                 
         
             if 'End' not in tag:
@@ -795,7 +804,7 @@ def form(self):
             md_handles = {}
             md_dCurves = {}
             d_defPos = {}
-            
+
 
             ml_defineHandles = self.msgList_get('defineSubHandles')
             for mObj in ml_defineHandles:
@@ -1434,13 +1443,19 @@ def prerig(self):
             ml_handles.append(mLidRoot)
             
             md_lidHandles = {}
+            d_anchorDat = {}
+            md_mirrorDat = {'center':[],
+                            'left':[],
+                            'right':[]}
             
+            
+            d_baseHandeKWS = {'mStateNull' : mStateNull,
+                              'mNoTransformNull' : mNoTransformNull,
+                              'jointSize': self.jointRadius}                        
             #Lid Handles
             if _lidBuild == 'clam':
                 d_handles = {'upr':CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
                              'lwr':CURVES.getPercentPointOnCurve(mLwrLid.mNode,.5)}
-                
-                reload(CURVES)
                 mUprHandle = create_lidHandle(self,'upr',
                                               CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
                                               mJointTrack=mUprLid,
@@ -1457,12 +1472,6 @@ def prerig(self):
                                               multiplier=1.5,
                                               
                                               )
-                
-                
-                
-                
-                
-                
                 """
                 import cgm.core.lib.locator_utils as LOC
                 for tag,p in d_handles.iteritems():
@@ -1470,8 +1479,572 @@ def prerig(self):
                     md_lidHandles[tag] = mHandle"""
                     
                 ml_handles.extend([mLidRoot,mUprHandle,mLwrHandle])
-        
-        
+            else:
+                #We need to get our initial positions from split data from the line meet cruve and the peak?
+                md_anchors = {}
+                for tag in ['upr','lwr']:
+                    mContact = self.getMessageAsMeta('{0}ContactFormCurve'.format(tag))
+                    mLine = self.getMessageAsMeta('{0}LineFormCurve'.format(tag))
+                    
+                    _res_tmp = mc.loft([mCrv.mNode for mCrv in [mContact,mLine]],
+                                       o = True, d = 1, po = 0, c = False,u=False, autoReverse=0,ch=True)
+                    str_meshShape = TRANS.shapes_get(_res_tmp[0])[0]
+                    
+                    l_crvs = SURF.get_surfaceSplitCurves(str_meshShape,count= 1, cullStartEnd=False)
+                    _l_split =  CURVES.getUSplitList(l_crvs[0],self.numConLids + 2,rebuild=0)
+                    
+                    d_split = MATH.get_evenSplitDict(_l_split)
+                    d_anchorDat[tag] = {}
+                    for t,l in d_split.iteritems():
+                        d_anchorDat[tag][t] = l
+                        #for i,p in enumerate(l):
+                        #    LOC.create(position=p,name="{0}_{1}_{2}".format(tag,t,i))
+                            
+                    mc.delete(_res_tmp)
+                    mc.delete(l_crvs)
+                    """
+                    mCrv = md_dCurves[tag+'_Peak']
+                    #SURF.get_surfaceSplitCurves()
+                    _l_split =  CURVES.getUSplitList(mCrv.mNode,self.numConLips + 2,rebuild=1)
+                    
+                    d_split = MATH.get_evenSplitDict(_l_split)
+                    d_anchorDat[tag] = {}
+                    for t,l in d_split.iteritems():
+                        d_anchorDat[tag][t] = l
+                        
+                        #for i,p in enumerate(l):
+                        #    LOC.create(position=p,name="{0}_{1}_{2}".format(tag,t,i))                
+                    """
+                    
+                
+                #Lip Anchors....
+                _d = {'cgmName':'lid',
+                      'cgmType':'preAnchor'}
+                
+                mEyeSurf = self.bbHelper
+                for section,sectionDat in d_anchorDat.iteritems():
+                    md_anchors[section] = {}
+                    
+                    _base = 0
+                    if section == 'lwr':
+                        _base = 1
+                    l_tags = ["{0}Lid".format(section)]
+                    
+                    for side,sideDat in sectionDat.iteritems():
+                        if side == 'start':side='inner'
+                        elif side =='end':side = 'outer'
+                        
+                        md_anchors[section][side] = {}
+                        md_anchors[section][side]['tags'] = []
+                        md_anchors[section][side]['ml'] = []
+                        
+                        d_tmp = md_anchors[section][side]
+                        
+                        b_more = False
+                        if len(sideDat) > 2:
+                            b_more = True
+                            
+                        if side == 'outer':
+                            sideDat.reverse()
+                            
+                        if section == 'lwr' and len(sideDat)>1:
+                            sideDat.pop(0)
+                            
+                        for i,p in enumerate(sideDat):
+                            if side == 'center':
+                                tag = ''.join(l_tags)
+                            else:
+                                if not i and section == 'upr':
+                                    tag = 'lidCorner'
+                                else:
+                                    l_use = copy.copy(l_tags)
+                                    if b_more:l_use.append("_{0}".format(i+_base))
+                                    tag = ''.join(l_use)
+                                
+                            #LOC.create(position=p,name=tag)
+
+                            _dUse = copy.copy(_d)
+                            _dUse['cgmName'] = tag
+                            _dUse['cgmDirection'] = side
+                            
+                            mAnchor = BLOCKSHAPES.create_face_anchor(self,p,
+                                                                     mEyeSurf,
+                                                                     tag,
+                                                                     None,
+                                                                     _side,
+                                                                     nameDict=_dUse,
+                                                                     mStateNull=mStateNull,
+                                                                     size= _size_sub/2)
+                            mAnchor.p_position = p
+                            
+                            #mAnchor.rotate = 0,0,0
+                            d_tmp['tags'].append(tag)
+                            d_tmp['ml'].append(mAnchor)
+                            ml_handles.append(mAnchor)
+                            
+                            _d_mirrorKey = {'inner':'left',
+                                            'outer':'right'}
+                            md_mirrorDat[_d_mirrorKey.get(side,side)].append(mAnchor)#...this will need to map eventually on the mirror call
+                            
+    
+                
+                #...get my anchors in lists...-----------------------------------------------------------------
+                ml_uprLeft = copy.copy(md_anchors['upr']['inner']['ml'])
+                ml_uprLeft.reverse()
+                ml_uprRight = md_anchors['upr']['outer']['ml']
+                
+                ml_lwrLeft = copy.copy(md_anchors['lwr']['inner']['ml'])
+                ml_lwrLeft.reverse()
+                
+                ml_lwrRight = md_anchors['lwr']['outer']['ml']
+                
+                md_anchorsLists = {}
+                
+                if md_anchors['upr'].get('center'):
+                    ml_uprCenter = md_anchors['upr']['center']['ml']
+                    ml_lwrCenter = md_anchors['lwr']['center']['ml']
+                    
+                    md_anchorsLists['upr'] = ml_uprRight + ml_uprCenter + ml_uprLeft
+                    md_anchorsLists['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrCenter + ml_lwrLeft + ml_uprLeft[-1:]
+                                    
+                else:
+                    md_anchorsLists['upr'] = ml_uprRight + ml_uprLeft
+                    md_anchorsLists['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrLeft + ml_uprLeft[-1:]
+                
+                #...anchor | aim ----------------------------------------------------------------------------
+                log.debug(cgmGEN.logString_msg('anchor | aim'))
+                
+                for tag,sectionDat in md_anchors.iteritems():
+                    for side,sideDat in sectionDat.iteritems():
+                        if side == 'center':
+                            continue
+                        
+                        if side == 'inner':
+                            _aim = [-1,0,0]
+                        else:
+                            _aim = [1,0,0]
+                            
+                        for i,mDriver in enumerate(sideDat['ml']):
+                            _mode = None
+                            
+                            #if tag == 'upr' and not i:
+                            #    _mode = 'simple'
+    
+                            if _mode == 'simple':
+                                loc = LOC.create(position = DGETAVG([md_anchors['upr'][side]['ml'][1].p_position,
+                                                                     md_anchors['lwr'][side]['ml'][0].p_position]))
+                                
+                                    
+                                mc.delete(mc.aimConstraint(loc,
+                                                           mDriver.mNode,
+                                                           maintainOffset = False, weight = 1,
+                                                           aimVector = _aim,
+                                                           upVector = [0,1,0],
+                                                           worldUpVector = [0,1,0],
+                                                           worldUpObject = self.mNode,
+                                                           worldUpType = 'objectRotation'))
+                                
+                                mc.delete(loc)
+                            else:
+                                try:_tar=sideDat[i+1].mNode
+                                except:_tar=md_anchors[tag]['center']['ml'][0].mNode
+    
+                                mc.delete(mc.aimConstraint(_tar,
+                                                 mDriver.mNode,
+                                                 maintainOffset = False, weight = 1,
+                                                 aimVector = _aim,
+                                                 upVector = [0,1,0],
+                                                 worldUpVector = [0,1,0],
+                                                 worldUpObject = self.mNode,
+                                                 worldUpType = 'objectRotation' ))                
+                
+                
+                #...make our driver curves...---------------------------------------------------------------
+                log.debug(cgmGEN.logString_msg('driver curves'))
+                d_curveCreation = {}
+                for section,sectionDat in md_anchorsLists.iteritems():
+                    #for side,dat in sectionDat.iteritems():
+                    d_curveCreation[section+'Driver'] = {'ml_handles': sectionDat,
+                                                         'rebuild':1}
+                    
+                md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
+                md_resCurves = md_res['md_curves']
+                ml_resCurves = md_res['ml_curves']
+                
+                #Make our Lip handles...-------------------------------------------------------------------------
+                log.debug(cgmGEN.logString_sub('Handles'))
+                md_prerigDags = {}
+                md_jointHelpers = {}
+                
+                _d = {'cgmName':''}
+                
+                #...get our driverSetup
+                for section,sectionDat in md_anchors.iteritems():
+                    log.debug(cgmGEN.logString_msg(section))
+                    
+                    #md_handles[section] = {}
+                    md_prerigDags[section] = {}
+                    md_jointHelpers[section] = {}
+                    mDriverCrv = md_resCurves[section+'Driver']
+                    
+                    if section == 'upr':
+                        _mainShape = 'loftCircleHalfUp'
+                    else:
+                        _mainShape = 'loftCircleHalfDown'
+                        
+                    for side,dat in sectionDat.iteritems():
+                        log.debug(cgmGEN.logString_msg(side))
+                        
+                        
+                        #md_handles[section][side] = []
+                        md_prerigDags[section][side] = []
+                        md_jointHelpers[side] = []
+                        
+                        _ml_shapes = []
+                        _ml_prerigDags = []
+                        _ml_jointShapes = []
+                        _ml_jointHelpers = []
+                        
+                        tag = section+'Lid'+STR.capFirst(side)
+                        _ml_anchors = dat['ml']
+                        
+                        reload(BLOCKSHAPES)
+                        if side == 'center':
+                            mAnchor = _ml_anchors[0]
+                            p = mAnchor.p_position
+                            d_use = mAnchor.getNameDict(ignore=['cgmType'])
+                            
+                            mShape, mDag = BLOCKSHAPES.create_face_handle(self,p,
+                                                                          tag,
+                                                                          None,
+                                                                          _side,
+                                                                          mDriver=mAnchor,
+                                                                          mSurface=None,#mLipLoft,
+                                                                          mAttachCrv=mDriverCrv,
+                                                                          mainShape=_mainShape,
+                                                                          jointShape='locatorForm',
+                                                                          controlType='main',#_controlType,
+                                                                          mode='handle',
+                                                                          depthAttr = 'lidHandleOffset',
+                                                                          plugDag= 'preDag',
+                                                                          plugShape= 'preShape',
+                                                                          attachToSurf=True,
+                                                                          orientToDriver = True,
+                                                                          nameDict= d_use,**d_baseHandeKWS)
+                            _ml_shapes.append(mShape)
+                            _ml_prerigDags.append(mDag)                            
+                            
+    
+                        
+                        else:
+                            #mCrv = md_resCurves.get(section+'Driver')
+                            #if mCrv:
+                            for i,mAnchor in enumerate(_ml_anchors):
+                                _shapeUse = _mainShape
+                                if section == 'upr' and not i:
+                                    if side == 'inner':
+                                        _shapeUse = 'widePos'
+                                    else:
+                                        _shapeUse = 'wideNeg'
+                                        
+                                p = mAnchor.p_position
+                                d_use = mAnchor.getNameDict(ignore=['cgmType'])
+    
+                                mShape, mDag = BLOCKSHAPES.create_face_handle(self,p,
+                                                                              tag,
+                                                                              None,
+                                                                              _side,
+                                                                              mDriver=mAnchor,
+                                                                              mSurface=None,#mLipLoft,
+                                                                              mAttachCrv=mDriverCrv,
+                                                                              mainShape=_shapeUse,
+                                                                              jointShape='locatorForm',
+                                                                              depthAttr = 'lidHandleOffset',
+                                                                              
+                                                                              controlType='main',#_controlType,
+                                                                              mode='handle',
+                                                                              plugDag= 'preDag',
+                                                                              plugShape= 'preShape',
+                                                                              attachToSurf=True,
+                                                                              orientToDriver = True,
+                                                                              nameDict= d_use,**d_baseHandeKWS)
+                                
+    
+                                _ml_shapes.append(mShape)
+                                _ml_prerigDags.append(mDag)                            
+                                
+                                
+                                
+      
+                        mStateNull.msgList_connect('{0}PrerigShapes'.format(tag),_ml_shapes)
+                        mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),_ml_prerigDags)
+                        md_mirrorDat[_d_mirrorKey.get(side,side)].extend(_ml_shapes + _ml_prerigDags)
+                        md_prerigDags[section][side] = _ml_prerigDags
+                        ml_handles.extend(_ml_shapes + _ml_prerigDags)
+                
+                
+                #...get joint handles...-----------------------------------------------------------------
+                ml_uprCenter = md_prerigDags['upr']['center']
+                ml_uprLeft = copy.copy(md_prerigDags['upr']['inner'])
+                ml_uprLeft.reverse()
+                ml_uprRight = md_prerigDags['upr']['outer']
+                
+                ml_lwrCenter = md_prerigDags['lwr']['center']
+                ml_lwrLeft = copy.copy(md_prerigDags['lwr']['inner'])
+                ml_lwrLeft.reverse()
+                
+                ml_lwrRight = md_prerigDags['lwr']['outer']
+                
+                md_handleCrvDrivers = {}
+                
+                md_handleCrvDrivers['upr'] = ml_uprRight + ml_uprCenter + ml_uprLeft
+                md_handleCrvDrivers['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrCenter + ml_lwrLeft + ml_uprLeft[-1:]
+                
+                #pprint.pprint(md_anchors)
+                #pprint.pprint(d_anchorDat)
+                #pprint.pprint(md_crvDrivers)
+    
+                #...make our driver curves...---------------------------------------------------------------
+                log.debug(cgmGEN.logString_msg('driven curves'))
+                d_curveCreation = {}
+                for section,sectionDat in md_handleCrvDrivers.iteritems():
+                    d_curveCreation[section+'Driven'] = {'ml_handles': sectionDat,
+                                                         'rebuild':1}
+                        
+                md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
+                md_resCurves.update(md_res['md_curves'])
+                ml_resCurves.extend(md_res['ml_curves'])
+                
+                #Joint handles =============================================================================
+                log.debug(cgmGEN.logString_sub('joints'))
+                
+                d_lidDrivenDat = {}
+                d_lidDriverDat = {}
+                md_lidDrivers = {}
+                
+                #...get our spilt data ---------------------------------------------------------------------
+                log.debug(cgmGEN.logString_msg('joints | split data'))
+                
+                for tag in 'upr','lwr':
+                    mDriverCrv = md_resCurves[tag+'Driver']
+                    mDrivenCrv = md_resCurves[tag+'Driven']
+                    #_crv = CORERIG.create_at(create='curveLinear',
+                    #                         l_pos=[mObj.p_position for mObj in md_handleCrvDrivers[tag]])
+                    
+                    _count = self.getMayaAttr('numLid'+tag.capitalize()+'Joints')
+                    
+                    l_driverPos =  CURVES.getUSplitList(mDriverCrv.mNode,_count + 2,rebuild=0)
+                    l_drivenPos = CURVES.getUSplitList(mDrivenCrv.mNode,_count + 2,rebuild=0)
+                    
+                    d_split_driven = MATH.get_evenSplitDict(l_drivenPos)
+                    d_split_driver = MATH.get_evenSplitDict(l_driverPos)
+                    
+                    d_lidDrivenDat[tag] = {}
+                    d_lidDriverDat[tag] = {}
+                    
+                    for t,l in d_split_driven.iteritems():
+                        d_lidDrivenDat[tag][t] = l
+                        
+                        #for i,p in enumerate(l):
+                            #LOC.create(position=p,name="{0}_{1}_{2}".format(tag,t,i))                    
+                    
+                    for t,l in d_split_driver.iteritems():
+                        d_lidDriverDat[tag][t] = l
+                    
+    
+                
+                _d = {'cgmName':'lid',
+                      'cgmType':'preAnchor'}
+                
+                _sizeDirect = _size_sub * .4
+                
+                md_lidJoints = {}
+                for section,sectionDat in d_lidDrivenDat.iteritems():
+                    mDriverCrv = md_resCurves[section+'Driver']
+                    mDriverCrv.v = 0
+                    
+                    mDrivenCrv = md_resCurves[section+'Driven']
+                    mDrivenCrv.v = 0
+                    
+                    md_lidJoints[section] = {}
+                    md_lidDrivers[section] = {}
+                    
+                    #_d['cgmPosition'] = section
+                    
+                    _base = 0
+                    if section == 'lwr':
+                        _base = 1
+                    
+                    
+                    for side,sideDat in sectionDat.iteritems():
+                        driverDat = d_lidDriverDat[section][side]
+                        
+                        if side == 'start':side='inner'
+                        elif side =='end':side = 'outer'
+                        
+                        _ml_jointShapes = []
+                        _ml_jointHelpers = []
+                        _ml_lidDrivers = []
+                        
+                        md_lidJoints[section][side] = []
+                        md_lidDrivers[section][side] = []
+                        
+                        l_bridge = md_lidJoints[section][side]
+                        l_tags = ['{0}Lip'.format(section)]
+                        
+                        b_more = False
+                        if len(sideDat) > 2:
+                            b_more = True
+                            
+                        if side == 'outer':
+                            sideDat.reverse()
+                            driverDat.reverse()
+                            
+                        if section == 'lwr' and len(sideDat)>1:
+                            sideDat.pop(0)
+                            driverDat.pop(0)
+                            
+                        for i,p_driven in enumerate(sideDat):
+                            p_driver = driverDat[i]
+                            _dUse = copy.copy(_d)
+                            
+                            if side == 'center':
+                                tag = ''.join(l_tags)
+                            else:
+                                if not i and section == 'upr':
+                                    tag = 'lidCorner'
+                                else:
+                                    l_use = copy.copy(l_tags)
+                                    if b_more:l_use.append("_{0}".format(i+_base))
+                                    tag = ''.join(l_use)
+    
+                            _dUse['cgmName'] = tag#'lid' #+ STR.capFirst(tag)
+                            _dUse['cgmDirection'] = _side
+                            
+                            #Driver ...
+                            mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
+                            mDriver.rename("{0}_{1}_{2}_{3}_driver".format(section, side,_dUse['cgmName'],i))
+                            mDriver.p_position = p_driver
+                            mDriver.p_parent = mNoTransformNull#mStateNull
+                            
+                            _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mDriverCrv.mNode,'conPoint')
+                            TRANS.parent_set(_res[0], mNoTransformNull.mNode)                        
+                            
+                            
+                            mShape, mDag = BLOCKSHAPES.create_face_handle(self,
+                                                                          p_driven,tag,None,_side,
+                                                                          mDriver=mDriver,
+                                                                          
+                                                                          mSurface = None,
+                                                                          mAttachCrv = mDrivenCrv,
+                                                                          mainShape='semiSphere',
+                                                                          #jointShape='sphere',
+                                                                          size= _sizeDirect,
+                                                                          mode='joint',
+                                                                          depthAttr='lidHandleOffset',
+                                                                          controlType='sub',
+                                                                          plugDag= 'jointHelper',
+                                                                          plugShape= 'directShape',
+                                                                          attachToSurf=True,
+                                                                          orientToDriver=True,
+                                                                          nameDict= _dUse,**d_baseHandeKWS)
+                            
+                            md_mirrorDat[_side].append(mShape)
+                            md_mirrorDat[_side].append(mDag)
+                            
+                            _ml_jointShapes.append(mShape)
+                            _ml_jointHelpers.append(mDag)
+                            _ml_lidDrivers.append(mDriver)
+    
+                        tag = section+'Lip'+STR.capFirst(side)
+                        mStateNull.msgList_connect('{0}JointHelpers'.format(tag),_ml_jointHelpers)
+                        mStateNull.msgList_connect('{0}JointShapes'.format(tag),_ml_jointShapes)
+                        md_jointHelpers[section][side] = _ml_jointHelpers
+                        ml_handles.extend(_ml_jointShapes)
+                        ml_handles.extend(_ml_jointHelpers)
+                        md_mirrorDat[_d_mirrorKey.get(_side,_side)].extend(_ml_jointShapes + _ml_jointHelpers)
+                        md_lidDrivers[section][side] = _ml_lidDrivers
+                        
+                
+                #Aim our lid drivers...------------------------------------------------------------------
+                log.debug(cgmGEN.logString_msg('aim lid drivers'))
+    
+                    
+                for tag,sectionDat in md_lidDrivers.iteritems():
+                    for side,sideDat in sectionDat.iteritems():
+                        ml_check = md_anchorsLists[tag]
+                        l_check = [mObj.mNode for mObj in ml_check]
+                        
+                        if side == 'outer':
+                            _aim = [-1,0,0]
+                        else:
+                            _aim = [1,0,0]
+                            
+                        for i,mDriver in enumerate(sideDat):
+                            _mode = None
+                            
+                            if tag == 'upr' and not i:
+                                _mode = 'simple'
+                            if side == 'center':
+                                _mode = 'simple'
+                                
+                            _closest = DIST.get_closestTarget(mDriver.mNode,l_check)
+                                
+                            if _mode == 'simple':
+                                mc.orientConstraint(_closest, mDriver.mNode, maintainOffset = False)
+                            else:
+                                if mDriver == sideDat[-1]:
+                                    _tar = md_lidDrivers[tag]['center'][0].mNode
+                                else:
+                                    _tar = sideDat[i+1].mNode
+                                    
+                                mc.aimConstraint(_tar,
+                                                 mDriver.mNode,
+                                                 maintainOffset = False, weight = 1,
+                                                 aimVector = _aim,
+                                                 upVector = [0,0,1],
+                                                 worldUpVector = [0,0,1],
+                                                 worldUpObject = _closest,
+                                                 worldUpType = 'objectRotation' )
+                            
+                
+                #Driven Curve
+                ml_uprCenter = md_jointHelpers['upr']['center']
+                ml_uprLeft = copy.copy(md_jointHelpers['upr']['inner'])
+                ml_uprLeft.reverse()
+                ml_uprRight = md_jointHelpers['upr']['outer']
+                
+                ml_lwrCenter = md_jointHelpers['lwr']['center']
+                ml_lwrLeft = copy.copy(md_jointHelpers['lwr']['inner'])
+                ml_lwrLeft.reverse()
+                
+                ml_lwrRight = md_jointHelpers['lwr']['outer']
+                
+                md_crvDrivers = {}
+                
+                md_crvDrivers['upr'] = ml_uprRight + ml_uprCenter + ml_uprLeft
+                md_crvDrivers['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrCenter + ml_lwrLeft + ml_uprLeft[-1:]
+                
+                #pprint.pprint(md_anchors)
+                #pprint.pprint(d_anchorDat)
+                #pprint.pprint(md_crvDrivers)
+                
+                d_driven = {}
+                #...make our driver curves...---------------------------------------------------------------
+                log.debug(cgmGEN.logString_msg('driven curves'))
+                for section,sectionDat in md_crvDrivers.iteritems():
+                    #for side,dat in sectionDat.iteritems():
+                    d_driven[section+'Result'] = {'ml_handles': sectionDat,
+                                                  'rebuild':1}
+                    
+                        
+                        
+                md_res = self.UTILS.create_defineCurve(self, d_driven, {}, mNoTransformNull,'preCurve')
+                md_resCurves.update(md_res['md_curves'])
+                ml_resCurves.extend(md_res['ml_curves'])
+                                    
+             
+                return
         self.msgList_connect('prerigHandles', ml_handles)
         
         #Close out ===============================================================================================

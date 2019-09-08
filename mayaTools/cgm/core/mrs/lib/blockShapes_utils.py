@@ -1986,16 +1986,30 @@ def create_face_handle(self, pos, tag, k, side,
             mTrack = mHandle.doCreateAt()
             mTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
             mTrack.p_parent = mNoTransformNull
-        
-            _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mSurface.mNode,None,driver= mDriver)
-            md = _res[-1]
-            mFollicle = md['mFollicle']
-            for k in ['mDriverLoc','mFollicle']:
-                md[k].p_parent = mNoTransformNull
-                md[k].v = False
+            
+            if mAttachCrv:
+                _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mAttachCrv.mNode,None,driver= mDriver)
                 
-            mTrack.p_position = md['mFollicle'].p_position
-            mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
+                md = _res[-1]
+                mFollicle = md['mDrivenLoc']
+                for k in ['mDriverLoc','mDrivenLoc','mTrack']:
+                    md[k].p_parent = mNoTransformNull
+                    md[k].v = False
+                
+                mTrack.p_position = md['mDrivenLoc'].p_position
+                mc.pointConstraint( md['mDrivenLoc'].mNode,mTrack.mNode,maintainOffset=0)                
+                
+            else:
+                _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mSurface.mNode,None,driver= mDriver)
+                
+                md = _res[-1]
+                mFollicle = md['mFollicle']
+                for k in ['mDriverLoc','mFollicle']:
+                    md[k].p_parent = mNoTransformNull
+                    md[k].v = False
+                
+                    mTrack.p_position = md['mFollicle'].p_position
+                    mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
                 
             mDepth = mTrack.doCreateAt(setClass=1)
             mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))
