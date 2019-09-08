@@ -124,19 +124,19 @@ example:
 
 	@property
 	def animationDirectory(self):
-		return os.path.normpath(os.path.join( self.assetDirectory, 'animation', self.animationList.selectedItem ))
+		return os.path.normpath(os.path.join( self.assetDirectory, 'animation', self.animationList['scrollList'].getSelectedItem() ))
 
 	@property
 	def variationDirectory(self):
-		return os.path.normpath(os.path.join( self.animationDirectory, self.variationList.selectedItem ))
+		return os.path.normpath(os.path.join( self.animationDirectory, self.variationList['scrollList'].getSelectedItem() ))
 
 	@property
 	def versionFile(self):
-		return os.path.normpath(os.path.join( self.variationDirectory, self.versionList.selectedItem ))
+		return os.path.normpath(os.path.join( self.variationDirectory, self.versionList['scrollList'].getSelectedItem() ))
 
 	@property
 	def exportFileName(self):
-		return '%s_%s_%s.fbx' % (self.assetList['scrollList'].getSelectedItem(), self.animationList.selectedItem, self.variationList.selectedItem)
+		return '%s_%s_%s.fbx' % (self.assetList['scrollList'].getSelectedItem(), self.animationList['scrollList'].getSelectedItem(), self.variationList['scrollList'].getSelectedItem())
 
 	@property
 	def category(self):
@@ -356,7 +356,30 @@ example:
 				(self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
 	
 
-	
+		attachForm = []
+		attachControl = []
+		attachPosition = []
+
+		_subForms = [_catForm,_animForm,_variationForm,_versionForm]
+
+		for i,form in enumerate(_subForms):
+			if i == 0:
+				attachForm.append( (form, 'left', 0) )
+			else:
+				attachControl.append( (form, 'left', 0, _subForms[i-1]) )
+				
+			attachForm.append((form, 'top', 0))
+			attachForm.append((form, 'bottom', 0))
+			
+			if i == len(_subForms)-1:
+				attachForm.append( (form, 'right', 0) )
+			else:
+				attachPosition.append( (form, 'right', 0, i+1) )
+
+		_assetsForm( edit=True, attachForm = attachForm, attachControl = attachControl, attachPosition = attachPosition)
+
+
+
 		##############################
 		# Bottom 
 		##############################
@@ -671,7 +694,7 @@ example:
 					if os.path.isdir(animDir):
 						animList.append(d)
 
-		self.animationList.SetItems(animList)
+		self.animationList['scrollList'].setItems(animList)
 
 		self.variationList['scrollList'].clear()
 		self.versionList['scrollList'].clear()
@@ -683,7 +706,7 @@ example:
 
 		self.variationList['scrollList'].clear()
 
-		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList.selectedItem:
+		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList['scrollList'].getSelectedItem():
 			animationDir = self.animationDirectory
 
 			if os.path.exists(animationDir):
@@ -697,19 +720,19 @@ example:
 					if os.path.isdir(animDir):
 						variationList.append(d)
 
-		self.variationList.SetItems(variationList)
+		self.variationList['scrollList'].setItems(variationList)
 
 		self.versionList['scrollList'].clear()
 
-		if self.variationList.displayItems != None:
-			self.variationList.selectedIndex = 1
+		if self.variationList['scrollList'].getItems() != None:
+			self.variationList['scrollList'].selectByIdx(0)
 
 		self.LoadVersionList()
 
 		self.StoreCurrentSelection()
 
 	def LoadVersionList(self, *args):
-		if not self.assetList['scrollList'].getSelectedItem() or not self.animationList.selectedItem:
+		if not self.assetList['scrollList'].getSelectedItem() or not self.animationList['scrollList'].getSelectedItem():
 			return
 
 		versionList = []
@@ -718,7 +741,7 @@ example:
 		# populate animation info list
 		fileExtensions = ['mb', 'ma']
 
-		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList.selectedItem and self.variationList.selectedItem:
+		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList['scrollList'].getSelectedItem() and self.variationList['scrollList'].getSelectedItem():
 			animDir = self.variationDirectory
 			
 			if os.path.exists(animDir):
@@ -731,7 +754,7 @@ example:
 							if not "_baked" in d or self.showBaked:
 								anims.append(d)
 
-		self.versionList.SetItems(anims)
+		self.versionList['scrollList'].setItems(anims)
 
 		self.StoreCurrentSelection()
 
@@ -739,10 +762,10 @@ example:
 		if not self.assetList['scrollList'].getSelectedItem():
 			print "No asset selected"
 			return
-		if not self.animationList.selectedItem:
+		if not self.animationList['scrollList'].getSelectedItem():
 			print "No animation selected"
 			return
-		if not self.versionList.selectedItem:
+		if not self.versionList['scrollList'].getSelectedItem():
 			print "No version selected"
 			return
 
@@ -800,18 +823,18 @@ example:
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastAssetStore)
 
-		if self.animationList.selectedItem:
-			mc.optionVar(stringValue=[self.optionVarLastAnimStore, self.animationList.selectedItem])
+		if self.animationList['scrollList'].getSelectedItem():
+			mc.optionVar(stringValue=[self.optionVarLastAnimStore, self.animationList['scrollList'].getSelectedItem()])
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastAnimStore)
 
-		if self.variationList.selectedItem:
-			mc.optionVar(stringValue=[self.optionVarLastVariationStore, self.variationList.selectedItem])
+		if self.variationList['scrollList'].getSelectedItem():
+			mc.optionVar(stringValue=[self.optionVarLastVariationStore, self.variationList['scrollList'].getSelectedItem()])
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastVariationStore)
 
-		if self.versionList.selectedItem:
-			mc.optionVar(stringValue=[self.optionVarLastVersionStore, self.versionList.selectedItem])
+		if self.versionList['scrollList'].getSelectedItem():
+			mc.optionVar(stringValue=[self.optionVarLastVersionStore, self.versionList['scrollList'].getSelectedItem()])
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastVersionStore)
 
@@ -822,17 +845,17 @@ example:
 		self.LoadAnimationList()
 
 		if mc.optionVar(exists=self.optionVarLastAnimStore):
-			self.animationList.selectedItem = mc.optionVar(q=self.optionVarLastAnimStore)
+			self.animationList['scrollList'].selectByValue( mc.optionVar(q=self.optionVarLastAnimStore))
 
 		self.LoadVariationList()
 
 		if mc.optionVar(exists=self.optionVarLastVariationStore):
-			self.variationList.selectedItem = mc.optionVar(q=self.optionVarLastVariationStore)
+			self.variationList['scrollList'].selectByValue( mc.optionVar(q=self.optionVarLastVariationStore))
 
 		self.LoadVersionList()
 
 		if mc.optionVar(exists=self.optionVarLastVersionStore):
-			self.versionList.selectedItem = mc.optionVar(q=self.optionVarLastVersionStore)
+			self.versionList['scrollList'].selectByValue( mc.optionVar(q=self.optionVarLastVersionStore))
 
 	
 	def ClearPreviousDirectories(self, *args):		
@@ -882,12 +905,12 @@ example:
 
 			self.LoadAnimationList()
 
-			self.animationList.selectedItem = animName
+			self.animationList['scrollList'].selectByValue( animName)
 			self.LoadAnimationList()
 			self.LoadVersionList()
 			self.LoadVariationList()
 			
-			self.versionList.selectedItem = '01'
+			self.versionList['scrollList'].selectByValue( '01')
 			self.LoadVersionList()
 			self.LoadVariationList()
 
@@ -918,8 +941,8 @@ example:
 	def SaveVersion(self, *args):
 		animationFiles = self.versionList.listItems
 
-		animationName = self.animationList.selectedItem
-		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList.selectedItem)
+		animationName = self.animationList['scrollList'].getSelectedItem()
+		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList['scrollList'].getSelectedItem())
 
 		if len(animationFiles) == 0:
 			wantedName = "%s_%02d.mb" % (wantedName, 1)
@@ -931,7 +954,7 @@ example:
 			baseFile = os.path.split(currentFile)[-1]
 			baseName, ext = baseFile.split('.')
 
-			wantedBasename = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList.selectedItem)
+			wantedBasename = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList['scrollList'].getSelectedItem())
 			if not wantedBasename in baseName:
 				baseName = "%s_%02d" % (wantedBasename, 1)
 
@@ -983,15 +1006,15 @@ example:
 		if not self.assetList['scrollList'].getSelectedItem():
 			print "No asset selected"
 			return
-		if not self.animationList.selectedItem:
+		if not self.animationList['scrollList'].getSelectedItem():
 			print "No animation selected"
 			return
-		if not self.versionList.selectedItem:
+		if not self.versionList['scrollList'].getSelectedItem():
 			print "No version selected"
 			return
 
 		filePath = self.versionFile
-		mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList.selectedItem)
+		mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem())
 
 	def UpdateCharTSLPopup(self, *args):
 		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
@@ -1030,16 +1053,16 @@ example:
 	# 	self.SaveOptions()
 
 	def AddToExportQueue(self, *args):
-		if self.versionList.selectedItem != None:
-			self.batchExportItems.append( {"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList.selectedItem,"variation":self.variationList.selectedItem,"version":self.versionList.selectedItem} )
+		if self.versionList['scrollList'].getSelectedItem() != None:
+			self.batchExportItems.append( {"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getSelectedItem()} )
 		elif self.variationList != None:
-			self.batchExportItems.append( {"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList.selectedItem,"variation":self.variationList.selectedItem,"version":self.versionList.displayItems[-1]} )
+			self.batchExportItems.append( {"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
 		
 		self.RefreshQueueList()
 
 	def RemoveFromQueue(self, *args):
 		if args[0] == 0:
-			idxes = self.queueTSL.selectedIndexes
+			idxes = self.queueTSL['scrollList'].getSelectedIdx()
 			idxes.reverse()
 
 			for idx in idxes:
@@ -1055,11 +1078,11 @@ example:
 		for animDict in self.batchExportItems:
 			self.assetList['scrollList'].selectByValue( animDict["asset"] )
 			self.LoadAnimationList()
-			self.animationList.selectedItem = animDict["animation"]
+			self.animationList['scrollList'].selectByValue( animDict["animation"])
 			self.LoadVariationList()
-			self.variationList.selectedItem = animDict["variation"]
+			self.variationList['scrollList'].selectByValue( animDict["variation"])
 			self.LoadVersionList()
-			self.versionList.selectedItem = animDict["version"]
+			self.versionList['scrollList'].selectByValue( animDict["version"])
 
 			mc.file(self.versionFile, o=True, f=True, ignoreVersion=True)
 
@@ -1143,7 +1166,7 @@ example:
 			f.write("filler file")
 			f.close()
 		if exportAsCutscene:
-			exportAnimPath = os.path.normpath(os.path.join(exportAnimPath, self.animationList.selectedItem))
+			exportAnimPath = os.path.normpath(os.path.join(exportAnimPath, self.animationList['scrollList'].getSelectedItem()))
 			if not os.path.exists(exportAnimPath):
 				os.mkdir(exportAnimPath)
 
