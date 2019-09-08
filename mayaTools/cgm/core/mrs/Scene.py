@@ -214,23 +214,30 @@ example:
 		##############################
 		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate') #mc.columnLayout(adjustableColumn=True)
 		
+		cgmUI.add_LineSubBreak()
+
 		_uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
-		mUI.MelLabel(_uiRow_dir,l='Directory')
+		mUI.MelLabel(_uiRow_dir,l='Directory', w=100)
 		self.directoryTF = mUI.MelTextField(_uiRow_dir, changeCommand=lambda:self.ChangeAnimationDirectory)
 		self.directoryTF.setValue( self.directory )
 
-		mUI.MelButton(_uiRow_dir, label='set', ut = 'cgmUITemplate', command=lambda:self.SetAnimationDirectory)
+		mUI.MelButton(_uiRow_dir, label='set', ut = 'cgmUITemplate', command=lambda:self.SetAnimationDirectory, width=100)
+
+		mUI.MelSpacer(_uiRow_dir,w=5)
 
 		_uiRow_dir.setStretchWidget(self.directoryTF)
 		_uiRow_dir.layout()
 
 		_uiRow_export = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
-		mUI.MelLabel(_uiRow_export,l='Export Dir')
+		mUI.MelLabel(_uiRow_export,l='Export Dir', w=100)
 		self.exportDirectoryTF = mUI.MelTextField(_uiRow_export, changeCommand=lambda:self.ChangeExportDirectory)
 		self.exportDirectoryTF.setValue( self.exportDirectory )
-		mUI.MelButton(_uiRow_export, label='set', ut = 'cgmUITemplate', command=lambda:self.SetExportDirectory)
+		mUI.MelButton(_uiRow_export, label='set', ut = 'cgmUITemplate', command=lambda:self.SetExportDirectory, width=100)
+
+		mUI.MelSpacer(_uiRow_export,w=5)                      
 
 		_uiRow_export.setStretchWidget(self.exportDirectoryTF)
+
 		_uiRow_export.layout()
 
 		mc.setParent(_MainForm)
@@ -241,9 +248,9 @@ example:
 		_assetsForm = mUI.MelFormLayout(_MainForm,ut='cgmUITemplate', numberOfDivisions=4) #mc.columnLayout(adjustableColumn=True)
 
 		# Category
-		_catForm = mUI.MelFormLayout(_assetsForm,ut='cgmUITemplate')
+		_catForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
 		self.categoryText = mUI.MelButton(_catForm,
-								   label=self.category,ut='cgmUITemplate',
+								   label=self.category,ut='cgmUISubTemplate',
 								   ann='Select the asset category')
 
 		_category_menu = mUI.MelPopupMenu(self.categoryText, button=1 )
@@ -267,6 +274,8 @@ example:
 				(self.categoryText, 'top', 0), 
 				(self.categoryText, 'left', 0), 
 				(self.categoryText, 'right', 0), 
+				(self.assetList['formLayout'], 'left', 0),
+				(self.assetList['formLayout'], 'right', 0),
 				(self.assetButton, 'bottom', 0), 
 				(self.assetButton, 'right', 0), 
 				(self.assetButton, 'left', 0)], 
@@ -276,9 +285,9 @@ example:
 
 
 		# Animation
-		_animForm = mUI.MelFormLayout(_assetsForm,ut='cgmUITemplate')
+		_animForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
 		_animBtn = mUI.MelButton(_animForm,
-								   label='Animation',ut='cgmUITemplate',
+								   label='Animation',ut='cgmUISubTemplate',
 								   ann='Select the asset type', en=False)
 	
 		self.animationList = self.build_searchable_list(_animForm)
@@ -294,6 +303,8 @@ example:
 				(_animBtn, 'top', 0), 
 				(_animBtn, 'left', 0), 
 				(_animBtn, 'right', 0), 
+				(self.animationList['formLayout'], 'left', 0),
+				(self.animationList['formLayout'], 'right', 0),
 				(self.animationButton, 'bottom', 0), 
 				(self.animationButton, 'right', 0), 
 				(self.animationButton, 'left', 0)], 
@@ -302,9 +313,9 @@ example:
 				(self.animationList['formLayout'], 'bottom', 0, self.animationButton)] )
 	
 		# Variation
-		_variationForm = mUI.MelFormLayout(_assetsForm,ut='cgmUITemplate')
+		_variationForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
 		_variationBtn = mUI.MelButton(_variationForm,
-								   label='Variation',ut='cgmUITemplate',
+								   label='Variation',ut='cgmUISubTemplate',
 								   ann='Select the asset variation', en=False)
 	
 		self.variationList = self.build_searchable_list(_variationForm)
@@ -320,6 +331,8 @@ example:
 				(_variationBtn, 'top', 0), 
 				(_variationBtn, 'left', 0), 
 				(_variationBtn, 'right', 0), 
+				(self.variationList['formLayout'], 'left', 0),
+				(self.variationList['formLayout'], 'right', 0),
 				(self.variationButton, 'bottom', 0), 
 				(self.variationButton, 'right', 0), 
 				(self.variationButton, 'left', 0)], 
@@ -329,9 +342,9 @@ example:
 	
 
 		# Version
-		_versionForm = mUI.MelFormLayout(_assetsForm,ut='cgmUITemplate')
+		_versionForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
 		_versionBtn = mUI.MelButton(_versionForm,
-								   label='Version',ut='cgmUITemplate',
+								   label='Version',ut='cgmUISubTemplate',
 								   ann='Select the asset version', en=False)
 	
 		self.versionList = self.build_searchable_list(_versionForm)
@@ -348,6 +361,8 @@ example:
 				(_versionBtn, 'top', 0), 
 				(_versionBtn, 'left', 0), 
 				(_versionBtn, 'right', 0), 
+				(self.versionList['formLayout'], 'left', 0),
+				(self.versionList['formLayout'], 'right', 0),
 				(self.versionButton, 'bottom', 0), 
 				(self.versionButton, 'right', 0), 
 				(self.versionButton, 'left', 0)], 
@@ -364,17 +379,17 @@ example:
 
 		for i,form in enumerate(_subForms):
 			if i == 0:
-				attachForm.append( (form, 'left', 0) )
+				attachForm.append( (form, 'left', 5) )
 			else:
-				attachControl.append( (form, 'left', 0, _subForms[i-1]) )
+				attachControl.append( (form, 'left', 5, _subForms[i-1]) )
 				
-			attachForm.append((form, 'top', 0))
-			attachForm.append((form, 'bottom', 0))
+			attachForm.append((form, 'top', 5))
+			attachForm.append((form, 'bottom', 5))
 			
 			if i == len(_subForms)-1:
-				attachForm.append( (form, 'right', 0) )
+				attachForm.append( (form, 'right', 5) )
 			else:
-				attachPosition.append( (form, 'right', 0, i+1) )
+				attachPosition.append( (form, 'right', 5, i+1) )
 
 		_assetsForm( edit=True, attachForm = attachForm, attachControl = attachControl, attachPosition = attachPosition)
 
@@ -385,8 +400,12 @@ example:
 		##############################
 		_bottomColumn    = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate', adjustableColumn=True)#mc.columnLayout(adjustableColumn = True)
 		
+		mc.setParent(_bottomColumn)
+		cgmUI.add_LineSubBreak()
+
 		_row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
 		
+		mUI.MelSpacer(_row,w=5)
 		self.exportButton = mUI.MelButton(_row, label="Export", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,1), h=self.__itemHeight)
 		mc.popupMenu()
 		mc.menuItem( l="Bake Without Export", c=partial(self.RunExportCommand,0))
@@ -400,11 +419,27 @@ example:
 		mUI.MelButton(_row, ut = 'cgmUITemplate', label="Add To Export Queue", w=200, c=partial(self.AddToExportQueue), h=self.__itemHeight)
 
 		_row.setStretchWidget(self.exportButton)
+		
+		mUI.MelSpacer(_row,w=5)
+		
+		_row.layout()
+
+		mc.setParent(_bottomColumn)
+		cgmUI.add_LineSubBreak()
+
+		_row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
+
+		mUI.MelSpacer(_row,w=5)
+
+		_row.setStretchWidget( mUI.MelButton(_row, ut = 'cgmUITemplate', label="Load Animation", c=self.LoadAnimation, h=self.__itemHeight))
+		
+		mUI.MelSpacer(_row,w=5)
 
 		_row.layout()
 
-		mUI.MelButton(_bottomColumn, ut = 'cgmUITemplate', label="Load Animation", c=self.LoadAnimation, h=self.__itemHeight)
-		
+		mc.setParent(_bottomColumn)
+		cgmUI.add_LineSubBreak()
+
 		self.exportQueueFrame = mUI.MelFrameLayout(_bottomColumn, label="Export Queue", collapsable=True, collapse=True)
 		_rcl = mUI.MelHSingleStretchLayout(self.exportQueueFrame)
 
@@ -605,7 +640,7 @@ example:
 
 
 	def build_searchable_list(self, parent = None):
-		_margin = 5
+		_margin = 0
 
 		if not parent:
 			parent = self
