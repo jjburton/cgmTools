@@ -1,6 +1,14 @@
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+#>>>======================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=========================================================================
+
 import cgm.core.cgm_General as cgmGEN
 def red9( *a ):
     import Red9
@@ -91,7 +99,7 @@ def mrsScene():
     try:
         import cgm.core.mrs.Scene as SCENE
         reload(SCENE)
-        x = SCENE.SceneUI()
+        x = SCENE.ui()
     except Exception,err:
         log.warning("[DEV] failed to load. | {0}".format(err))
 

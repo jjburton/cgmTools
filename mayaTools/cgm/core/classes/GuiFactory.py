@@ -43,6 +43,8 @@ else:
     
 #>>> From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+import Red9.core.Red9_CoreUtils as r9Core
+
 from Red9.core import Red9_General as r9General
     
 #>>> From cgm ==============================================================
