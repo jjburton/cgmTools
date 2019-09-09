@@ -74,6 +74,9 @@ for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JO
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 
+DGETAVG = DIST.get_average_position
+CRVPCT = CURVES.getPercentPointOnCurve
+DPCTDIST = DIST.get_pos_by_linearPct
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
@@ -681,10 +684,7 @@ def define(self):
         
             
         for tag,mHandle in md_handles.iteritems():
-            
-            
             #print DIST.get_closest_point(mHandle.mNode, mBBShape.mNode,True)
-            
             if 'End' not in tag:
                 #Lid Depth Vis....
                 _depthHelp = CURVES.create_fromName('cylinder', size = [_size_depthHelper,_size_depthHelper,1])
@@ -956,6 +956,12 @@ def form(self):
                                          'rebuild':{'spansU':5,'spansV':5},
                                          'kws':{'noRebuild':1}}
             md_loftCreation['uprLid']['keys'].reverse()
+            
+            md_loftCreation['attachLids'] = {'keys':md_loftCreation['uprLid']['keys'][:-1] + md_loftCreation['lwrLid']['keys'][1:],
+                                             'rebuild':{'spansU':5,'spansV':5,
+                                                        'rebuildType':1},
+                                         'kws':{'noRebuild':1}
+                                             }
 
             md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size, 
                                                      mFormNull,statePlug = 'form')
@@ -1008,17 +1014,23 @@ def form(self):
                 ml_curves = [md_resCurves[k2] for k2 in d['keys']]
                 for mObj in ml_curves:
                     mObj.v=False
+                    
+                _d = d.get('kws',{})
+                if _side == 'left':
+                    _d['noReverse'] = True
                 
-                self.UTILS.create_simpleFormLoftMesh(self,
-                                                     [mObj.mNode for mObj in ml_curves],
-                                                     mFormNull,
-                                                     polyType = 'faceLoft',
-                                                     d_rebuild = d.get('rebuild',{}),
-                                                     baseName = k,
-                                                     transparent = False,
-                                                     vDriver = "{0}.numLidSplit_v".format(_short),
-                                                     uDriver = "{0}.numLidSplit_u".format(_short),
-                                                     **d.get('kws',{}))
+                mLoft = self.UTILS.create_simpleFormLoftMesh(self,
+                                                             [mObj.mNode for mObj in ml_curves],
+                                                             mFormNull,
+                                                             polyType = 'faceLoft',
+                                                             d_rebuild = d.get('rebuild',{}),
+                                                             baseName = k,
+                                                             transparent = False,
+                                                             vDriver = "{0}.numLidSplit_v".format(_short),
+                                                             uDriver = "{0}.numLidSplit_u".format(_short),
+                                                             **d.get('kws',{}))
+                if 'attach' in k:
+                    mLoft.template =1
         
             
             
@@ -1482,9 +1494,16 @@ def prerig(self):
             else:
                 #We need to get our initial positions from split data from the line meet cruve and the peak?
                 md_anchors = {}
+                
                 for tag in ['upr','lwr']:
                     mContact = self.getMessageAsMeta('{0}ContactFormCurve'.format(tag))
                     mLine = self.getMessageAsMeta('{0}LineFormCurve'.format(tag))
+                    
+                    if tag == 'upr':
+                        _v = DIST.get_distance_between_points(CURVES.getMidPoint(mContact.mNode),
+                                                                         CURVES.getMidPoint(mLine.mNode))
+                        self.lidDepth = _v * -.5
+                    
                     
                     _res_tmp = mc.loft([mCrv.mNode for mCrv in [mContact,mLine]],
                                        o = True, d = 1, po = 0, c = False,u=False, autoReverse=0,ch=True)
@@ -1515,13 +1534,14 @@ def prerig(self):
                         #for i,p in enumerate(l):
                         #    LOC.create(position=p,name="{0}_{1}_{2}".format(tag,t,i))                
                     """
-                    
+                
                 
                 #Lip Anchors....
                 _d = {'cgmName':'lid',
                       'cgmType':'preAnchor'}
                 
-                mEyeSurf = self.bbHelper
+                mLidSurf = self.attachLidsFormLoft#self.bbHelper
+                
                 for section,sectionDat in d_anchorDat.iteritems():
                     md_anchors[section] = {}
                     
@@ -1568,14 +1588,14 @@ def prerig(self):
                             _dUse['cgmDirection'] = side
                             
                             mAnchor = BLOCKSHAPES.create_face_anchor(self,p,
-                                                                     mEyeSurf,
+                                                                     mLidSurf,
                                                                      tag,
                                                                      None,
                                                                      _side,
                                                                      nameDict=_dUse,
                                                                      mStateNull=mStateNull,
                                                                      size= _size_sub/2)
-                            mAnchor.p_position = p
+                            #mAnchor.p_position = p
                             
                             #mAnchor.rotate = 0,0,0
                             d_tmp['tags'].append(tag)
@@ -1627,8 +1647,8 @@ def prerig(self):
                         for i,mDriver in enumerate(sideDat['ml']):
                             _mode = None
                             
-                            #if tag == 'upr' and not i:
-                            #    _mode = 'simple'
+                            if tag == 'upr' and not i:
+                                _mode = 'simple'
     
                             if _mode == 'simple':
                                 loc = LOC.create(position = DGETAVG([md_anchors['upr'][side]['ml'][1].p_position,
@@ -1719,13 +1739,13 @@ def prerig(self):
                                                                           None,
                                                                           _side,
                                                                           mDriver=mAnchor,
-                                                                          mSurface=None,#mLipLoft,
-                                                                          mAttachCrv=mDriverCrv,
+                                                                          mSurface=mLidSurf,#mLipLoft,
+                                                                          #mAttachCrv=mDriverCrv,
                                                                           mainShape=_mainShape,
                                                                           jointShape='locatorForm',
                                                                           controlType='main',#_controlType,
                                                                           mode='handle',
-                                                                          depthAttr = 'lidHandleOffset',
+                                                                          depthAttr = 'lidDepth',
                                                                           plugDag= 'preDag',
                                                                           plugShape= 'preShape',
                                                                           attachToSurf=True,
@@ -1755,11 +1775,11 @@ def prerig(self):
                                                                               None,
                                                                               _side,
                                                                               mDriver=mAnchor,
-                                                                              mSurface=None,#mLipLoft,
-                                                                              mAttachCrv=mDriverCrv,
+                                                                              mSurface=mLidSurf,#mLipLoft,
+                                                                              #mAttachCrv=mDriverCrv,
                                                                               mainShape=_shapeUse,
                                                                               jointShape='locatorForm',
-                                                                              depthAttr = 'lidHandleOffset',
+                                                                              depthAttr = 'lidDepth',
                                                                               
                                                                               controlType='main',#_controlType,
                                                                               mode='handle',
@@ -1935,13 +1955,13 @@ def prerig(self):
                                                                           p_driven,tag,None,_side,
                                                                           mDriver=mDriver,
                                                                           
-                                                                          mSurface = None,
-                                                                          mAttachCrv = mDrivenCrv,
+                                                                          mSurface=mLidSurf,#mLipLoft,
+                                                                          #mAttachCrv = mDrivenCrv,
                                                                           mainShape='semiSphere',
                                                                           #jointShape='sphere',
                                                                           size= _sizeDirect,
                                                                           mode='joint',
-                                                                          depthAttr='lidHandleOffset',
+                                                                          depthAttr='lidDepth',
                                                                           controlType='sub',
                                                                           plugDag= 'jointHelper',
                                                                           plugShape= 'directShape',

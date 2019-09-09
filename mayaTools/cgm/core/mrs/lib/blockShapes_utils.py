@@ -2008,8 +2008,8 @@ def create_face_handle(self, pos, tag, k, side,
                     md[k].p_parent = mNoTransformNull
                     md[k].v = False
                 
-                    mTrack.p_position = md['mFollicle'].p_position
-                    mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
+                mTrack.p_position = md['mFollicle'].p_position
+                mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
                 
             mDepth = mTrack.doCreateAt(setClass=1)
             mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))
