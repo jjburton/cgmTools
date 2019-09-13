@@ -1460,6 +1460,8 @@ def prerig(self):
                             'left':[],
                             'right':[]}
             
+            _d_mirrorKey = {'inner':'left',
+                            'outer':'right'}            
             
             d_baseHandeKWS = {'mStateNull' : mStateNull,
                               'mNoTransformNull' : mNoTransformNull,
@@ -1585,7 +1587,8 @@ def prerig(self):
 
                             _dUse = copy.copy(_d)
                             _dUse['cgmName'] = tag
-                            _dUse['cgmDirection'] = side
+                            _dUse['cgmDirection'] = _side
+                            _dUse['cgmPosition'] = side
                             
                             mAnchor = BLOCKSHAPES.create_face_anchor(self,p,
                                                                      mLidSurf,
@@ -1602,8 +1605,6 @@ def prerig(self):
                             d_tmp['ml'].append(mAnchor)
                             ml_handles.append(mAnchor)
                             
-                            _d_mirrorKey = {'inner':'left',
-                                            'outer':'right'}
                             md_mirrorDat[_d_mirrorKey.get(side,side)].append(mAnchor)#...this will need to map eventually on the mirror call
                             
     
@@ -1640,10 +1641,16 @@ def prerig(self):
                             continue
                         
                         if side == 'inner':
-                            _aim = [-1,0,0]
+                            if _side == 'right':
+                                _aim = [-1,0,0]
+                            else:
+                                _aim = [1,0,0]
                         else:
-                            _aim = [1,0,0]
-                            
+                            if _side == 'right':
+                                _aim = [1,0,0]
+                            else:
+                                _aim = [-1,0,0]
+                                
                         for i,mDriver in enumerate(sideDat['ml']):
                             _mode = None
                             
@@ -1700,7 +1707,7 @@ def prerig(self):
                 
                 #...get our driverSetup
                 for section,sectionDat in md_anchors.iteritems():
-                    log.debug(cgmGEN.logString_msg(section))
+                    log.debug(cgmGEN.logString_sub(section))
                     
                     #md_handles[section] = {}
                     md_prerigDags[section] = {}
@@ -1728,7 +1735,7 @@ def prerig(self):
                         tag = section+'Lid'+STR.capFirst(side)
                         _ml_anchors = dat['ml']
                         
-                        reload(BLOCKSHAPES)
+                        #reload(BLOCKSHAPES)
                         if side == 'center':
                             mAnchor = _ml_anchors[0]
                             p = mAnchor.p_position
@@ -1761,14 +1768,28 @@ def prerig(self):
                             #if mCrv:
                             for i,mAnchor in enumerate(_ml_anchors):
                                 _shapeUse = _mainShape
+                                _controlType = 'main'
+                                
                                 if section == 'upr' and not i:
                                     if side == 'inner':
-                                        _shapeUse = 'widePos'
+                                        if _side == 'right':
+                                            _shapeUse = 'widePos'
+                                        else:
+                                            _shapeUse = 'wideNeg'
+                                            
                                     else:
-                                        _shapeUse = 'wideNeg'
+                                        if _side == 'right':
+                                            _shapeUse = 'wideNeg'
+                                        else:
+                                            _shapeUse = 'widePos'
+                                else:
+                                    _controlType = 'sub'
+                                    
                                         
                                 p = mAnchor.p_position
                                 d_use = mAnchor.getNameDict(ignore=['cgmType'])
+                                
+                                
     
                                 mShape, mDag = BLOCKSHAPES.create_face_handle(self,p,
                                                                               tag,
@@ -1781,7 +1802,7 @@ def prerig(self):
                                                                               jointShape='locatorForm',
                                                                               depthAttr = 'lidDepth',
                                                                               
-                                                                              controlType='main',#_controlType,
+                                                                              controlType=_controlType,
                                                                               mode='handle',
                                                                               plugDag= 'preDag',
                                                                               plugShape= 'preShape',
@@ -1937,9 +1958,12 @@ def prerig(self):
                                     l_use = copy.copy(l_tags)
                                     if b_more:l_use.append("_{0}".format(i+_base))
                                     tag = ''.join(l_use)
+                                    
+                            log.debug(cgmGEN.logString_msg('tag | {0}'.format(tag)))
     
                             _dUse['cgmName'] = tag#'lid' #+ STR.capFirst(tag)
                             _dUse['cgmDirection'] = _side
+                            _dUse['cgmPosition'] = side
                             
                             #Driver ...
                             mDriver = self.doCreateAt(setClass=1)#self.doLoc()#
@@ -1969,20 +1993,20 @@ def prerig(self):
                                                                           orientToDriver=True,
                                                                           nameDict= _dUse,**d_baseHandeKWS)
                             
-                            md_mirrorDat[_side].append(mShape)
-                            md_mirrorDat[_side].append(mDag)
+                            #md_mirrorDat[side].append(mShape)
+                            #md_mirrorDat[side].append(mDag)
                             
                             _ml_jointShapes.append(mShape)
                             _ml_jointHelpers.append(mDag)
                             _ml_lidDrivers.append(mDriver)
     
-                        tag = section+'Lip'+STR.capFirst(side)
+                        tag = section+'Lid'+STR.capFirst(side)
                         mStateNull.msgList_connect('{0}JointHelpers'.format(tag),_ml_jointHelpers)
                         mStateNull.msgList_connect('{0}JointShapes'.format(tag),_ml_jointShapes)
                         md_jointHelpers[section][side] = _ml_jointHelpers
                         ml_handles.extend(_ml_jointShapes)
                         ml_handles.extend(_ml_jointHelpers)
-                        md_mirrorDat[_d_mirrorKey.get(_side,_side)].extend(_ml_jointShapes + _ml_jointHelpers)
+                        md_mirrorDat[_d_mirrorKey.get(side,side)].extend(_ml_jointShapes + _ml_jointHelpers)
                         md_lidDrivers[section][side] = _ml_lidDrivers
                         
                 
@@ -1996,10 +2020,16 @@ def prerig(self):
                         l_check = [mObj.mNode for mObj in ml_check]
                         
                         if side == 'outer':
-                            _aim = [-1,0,0]
+                            if _side == 'right':
+                                _aim = [-1,0,0]
+                            else:
+                                _aim = [1,0,0]                            
                         else:
-                            _aim = [1,0,0]
-                            
+                            if _side == 'right':
+                                _aim = [1,0,0]
+                            else:
+                                _aim = [-1,0,0]
+                                
                         for i,mDriver in enumerate(sideDat):
                             _mode = None
                             
@@ -2062,10 +2092,41 @@ def prerig(self):
                 md_res = self.UTILS.create_defineCurve(self, d_driven, {}, mNoTransformNull,'preCurve')
                 md_resCurves.update(md_res['md_curves'])
                 ml_resCurves.extend(md_res['ml_curves'])
-                                    
+                
+                #Mirror setup --------------------------------
+                log.debug(cgmGEN.logString_sub('mirror'))
+                idx_ctr = 0
+                idx_side = 0
+                
+                log.debug(cgmGEN.logString_msg('mirror | center'))
+                for mHandle in md_mirrorDat['center']:
+                    mHandle = cgmMeta.validateObjArg(mHandle,'cgmControl')
+                    mHandle._verifyMirrorable()
+                    mHandle.mirrorSide = 0
+                    mHandle.mirrorIndex = idx_ctr
+                    idx_ctr +=1
+                    mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+        
+                log.debug(cgmGEN.logString_msg('mirror | sides'))
+                    
+                for i,mHandle in enumerate(md_mirrorDat['left']):
+                    mLeft = cgmMeta.validateObjArg(mHandle,'cgmControl') 
+                    mRight = cgmMeta.validateObjArg(md_mirrorDat['right'][i],'cgmControl')
+        
+                    for mObj in mLeft,mRight:
+                        mObj._verifyMirrorable()
+                        mObj.mirrorAxis = "translateX,rotateY,rotateZ"
+                        mObj.mirrorIndex = idx_side
+                    mLeft.mirrorSide = 1
+                    mRight.mirrorSide = 2
+                    mLeft.doStore('mirrorHandle',mRight)
+                    mRight.doStore('mirrorHandle',mLeft)            
+                    idx_side +=1                
              
-                return
+                        
+        # Connect -------------------------------------------------
         self.msgList_connect('prerigHandles', ml_handles)
+
         
         #Close out ===============================================================================================
         self.blockState = 'prerig'
@@ -2086,6 +2147,7 @@ def skeleton_build(self, forceNew = True):
     log.debug("|{0}| >> ...".format(_str_func)) 
     
     _radius = self.atUtils('get_shapeOffset') * .25# or 1
+    _side = self.atUtils('get_side')
     ml_joints = []
     
     mModule = self.atUtils('module_verify')
@@ -2176,7 +2238,6 @@ def skeleton_build(self, forceNew = True):
         _d_lids['cgmNameModifier'] = 'lid'
         
         if _lidBuild == 'clam':
-            
             for a in ['upr','lwr']:
                 log.debug("|{0}| >> Creating lid joint: {1}.".format(_str_func,a))
                 _a = '{0}LidHandle'.format(a)
@@ -2194,6 +2255,28 @@ def skeleton_build(self, forceNew = True):
                 log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
                 ml_joints.append(mJoint)
                 mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))
+        elif _lidBuild == "full":
+            _d_lip = {'cgmName':'lid'}
+            for d in 'upr','lwr':
+                log.debug("|{0}| >>  lid {1}...".format(_str_func,d)+ '-'*20)
+                d_dir = copy.copy(_d_lip)
+                d_dir['cgmPosition'] = d
+                
+    
+                for side in ['inner','center','outer']:
+                    d_dir['cgmDirection'] = _side
+                    key = d+'Lid'+side.capitalize()        
+                    mHandles = mPrerigNull.msgList_get('{0}JointHelpers'.format(key))
+                    ml = []
+                    for mHandle in mHandles:
+                        mJnt = create_jointFromHandle(mHandle,mRoot)
+                        ml.append(mJnt)
+                        mShape = mHandle.shapeHelper
+                        mShape.connectChildNode(mJnt,'targetJoint')
+
+                    mPrerigNull.msgList_connect('{0}Joints'.format(key),ml)
+                    ml_joints.extend(ml)            
+                
 
         else:
             log.error("Don't have setup for eyelidType: {0}".format(_lidBuild))
@@ -2404,6 +2487,17 @@ def rig_dataBuffer(self):
 
     return True
 
+def create_jointFromHandle(mHandle=None,mParent = False,cgmType='skinJoint'):
+    mJnt = mHandle.doCreateAt('joint')
+    mJnt.doCopyNameTagsFromObject(mHandle.mNode,ignore = ['cgmType'])
+    mJnt.doStore('cgmType',cgmType)
+    mJnt.doName()
+    JOINT.freezeOrientation(mJnt.mNode)
+
+    mJnt.p_parent = mParent
+    try:ml_joints.append(mJnt)
+    except:pass
+    return mJnt
 
 @cgmGEN.Timer
 def rig_skeleton(self):
@@ -2519,11 +2613,9 @@ def rig_skeleton(self):
                 try:mJnt.drawStyle =2
                 except:mJnt.radius = .00001
             
-            #ml_jointsToHide.extend([mLidBlend])
-            #ml_jointsToConnect.extend([mLidRoot])
-            
             mLidRig.p_parent = mLidBlend
             
+
         #pprint.pprint(self.d_lidData)
     log.debug(cgmGEN._str_subLine)
     
