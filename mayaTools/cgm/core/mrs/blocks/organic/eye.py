@@ -67,6 +67,7 @@ import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.string_utils as STR
 import cgm.core.lib.surface_Utils as SURF
+import cgm.core.rig.create_utils as RIGCREATE
 
 for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
     reload(m)
@@ -3712,7 +3713,7 @@ def create_lidFollow(self):
     for k in 'upr','lwr':
         log.debug("|{0}| >> {1}...".format(_str_func,k))            
         _d = self.d_lidData[k]
-        mRoot = _d['mRoot']
+        #mRoot = _d['mRoot']
         mHandle = _d['mHandle']
         
         mDriven = mZeroLoc.doDuplicate(po=False)
@@ -3811,7 +3812,7 @@ def create_lidFollow(self):
     for k in 'upr','lwr':
         log.debug("|{0}| >> {1}...".format(_str_func,k))            
         _d = self.d_lidData[k]
-        mRoot = _d['mRoot']
+        #mRoot = _d['mRoot']
         mHandle = _d['mHandle']
         
         _const = mc.parentConstraint([mZeroLoc.mNode,
@@ -3917,7 +3918,12 @@ def rig_lidSetup(self):
             mLeftCorner = self.md_handles['lidUpr']['inner'][0]
             mRightCorner = self.md_handles['lidUpr']['outer'][0]
             mUprCenter = self.md_handles['lidUpr']['center'][0]
-            mLwrCenter = self.md_handles['lidLwr']['center'][0]        
+            mLwrCenter = self.md_handles['lidLwr']['center'][0]
+            
+            
+            self.d_lidData['upr'] = {'mHandle' : mUprCenter}
+            self.d_lidData['lwr'] = {'mHandle' : mLwrCenter}
+            
             ml_uprLipInfluences = [mRightCorner.uprInfluence] + self.md_handles['lidUpr']['outer'][1:] + self.md_handles['lidUpr']['center']+ self.md_handles['lidUpr']['inner'][1:] + [mLeftCorner.uprInfluence]
             ml_lwrLipInfluences = [mRightCorner.lwrInfluence] + self.md_handles['lidLwr']['outer'] + self.md_handles['lidLwr']['center']+ self.md_handles['lidLwr']['inner'] + [mLeftCorner.lwrInfluence]
         
@@ -3938,10 +3944,11 @@ def rig_lidSetup(self):
             for k in 'upr','lwr':
                 _crv = CORERIG.create_at(create='curve',l_pos = [mObj.p_position for mObj in d_crvTargets[k]])
                 mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-                mRigNull.connectChildNode(mCrv, k+'LidCurve','module')            
+                mRigNull.connectChildNode(mCrv, k+'LidCurve','module')
             
             
-            create_clamBlinkCurves(self, ml_uprSkinJoints = ml_uprLipInfluences, ml_lwrSkinJoints = ml_lwrLipInfluences)
+            create_clamBlinkCurves(self, ml_uprSkinJoints = ml_uprLipInfluences,
+                                   ml_lwrSkinJoints = ml_lwrLipInfluences)
             
             
             for mJoint in ml_uprRig:
@@ -3980,6 +3987,38 @@ def rig_lidSetup(self):
                                  worldUpType = 'objectRotation' )
                 
                 mLidRoot.p_parent = mSettings
+                
+                #Blend point --------------------------------------------------------------------
+                _const = mc.parentConstraint([mDriver.mNode,mTarget.mNode],mJoint.masterGroup.mNode)[0]
+                ATTR.set(_const,'interpType',2)
+                
+                targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
+                
+                mPlug_hug = cgmMeta.cgmAttr(mSettings.mNode,
+                                             'hugUpr',
+                                             attrType='float',
+                                             lock=False,
+                                             defaultValue = 1.0,
+                                             keyable=True)
+    
+                mPlug_hugOn = cgmMeta.cgmAttr(mSettings,'result_hugUprOn',attrType='float',
+                                               defaultValue = 0,keyable = False,lock=True,
+                                               hidden=1)
+    
+                mPlug_hugOff= cgmMeta.cgmAttr(mSettings,'result_hugUprOff',attrType='float',
+                                               defaultValue = 0,keyable = False,lock=True,
+                                               hidden=1)                
+
+                NODEFACTORY.createSingleBlendNetwork(mPlug_hug.p_combinedName,
+                                                     mPlug_hugOn.p_combinedName,
+                                                     mPlug_hugOff.p_combinedName)                
+
+                #Connect                                  
+                mPlug_hugOn.doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                mPlug_hugOff.doConnectOut('%s.%s' % (_const,targetWeights[1]))
+                    
+                    
+                    
                 
                 #mHandle.masterGroup.p_parent = mSettings                
                 
@@ -4020,6 +4059,34 @@ def rig_lidSetup(self):
                 
                 mLidRoot.p_parent = mSettings
                 
+                #Blend point --------------------------------------------------------------------
+                _const = mc.parentConstraint([mDriver.mNode,mTarget.mNode],mJoint.masterGroup.mNode)[0]
+                ATTR.set(_const,'interpType',2)
+                
+                targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
+                
+                mPlug_hug = cgmMeta.cgmAttr(mSettings.mNode,
+                                             'hugLwr',
+                                             attrType='float',
+                                             lock=False,
+                                             defaultValue = 1.0,
+                                             keyable=True)
+    
+                mPlug_hugOn = cgmMeta.cgmAttr(mSettings,'result_hugLwrOn',attrType='float',
+                                               defaultValue = 0,keyable = False,lock=True,
+                                               hidden=1)
+    
+                mPlug_hugOff= cgmMeta.cgmAttr(mSettings,'result_hugLwrOff',attrType='float',
+                                               defaultValue = 0,keyable = False,lock=True,
+                                               hidden=1)                
+
+                NODEFACTORY.createSingleBlendNetwork(mPlug_hug.p_combinedName,
+                                                     mPlug_hugOn.p_combinedName,
+                                                     mPlug_hugOff.p_combinedName)                
+
+                #Connect                                  
+                mPlug_hugOn.doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                mPlug_hugOff.doConnectOut('%s.%s' % (_const,targetWeights[1]))                
             
 
             
@@ -4086,7 +4153,7 @@ def rig_lidSetup(self):
                         """
 
         #Autofollow --------------------------------------------------------------------
-        #create_lidFollow(self)
+        create_lidFollow(self)
 
     
 def rig_cleanUp(self):
@@ -4345,6 +4412,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             if forceNew:
                 log.debug("|{0}| >> force new...".format(_str_func))                            
                 mc.delete([mObj.mNode for mObj in _bfr])
+                _bfr2 = mRigNull.msgList_get('proxyJoints',asMeta=True)
+                mc.delete([mObj.mNode for mObj in _bfr2])
+                
             else:
                 return _bfr
         
@@ -4489,7 +4559,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     #mProxyEye.doSnapTo(mDirect)
     mProxyEye.p_parent = mDirect
     ml_proxy = [mProxyEye]
-    
+    ml_noFreeze = []
     
     
     str_lidSetup = mBlock.getEnumValueString('lidBuild')
@@ -4563,11 +4633,69 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             log.debug("|{0}| loft node: {1}".format(_str_func,_loftNode))             
 
             ml_proxy.append(mLoftSurface)
+    else:
+        log.debug("|{0}| >> ...".format(_str_func))
+        ml_proxyJoints = []
+        
+        log.debug(cgmGEN.logString_sub(_str_func,'proxy joints'))        
+        md_defineObjs = {}
+        ml_formHandles = self.msgList_get('formHandles')
+        for mObj in ml_formHandles:
+            md_defineObjs[mObj.handleTag] = mObj
+            
+        _d_joints = {'upr':[],
+                     'lwr':[]}
+            
+        for k,l in _d_joints.iteritems():
+            _key = k+'Orb'
+            for k2,mObj in md_defineObjs.iteritems():
+                if _key in k2:
+                    mJoint = self.doCreateAt('joint')
+                    mJoint.p_position = mObj.p_position
+                    mJoint.p_parent = mDeformNull
+                    mJoint.v=False
+                    mJoint.dagLock()
+                    ml_proxyJoints.append(mJoint)
+                    l.append(mJoint)
     
-    
+        mRigNull.msgList_connect('proxyJoints', ml_proxyJoints)        
+        
+        md_map = {}
+        for k in 'upr','lwr','lidCorner':
+            md_map[k] = []
+            
+            for mJnt in ml_rigJoints:
+                if '_{0}'.format(k) in mJnt.p_nameBase:
+                    md_map[k].append(mJnt)        
+        
+        pprint.pprint(md_map)
+        _d_mesh = {}
+        for k in 'upr','lwr':
+            mMesh = self.getMessageAsMeta('{0}LidFormLoft'.format(k))
+            d_kws = {'mode':'default',
+                     'uNumber':self.numLidSplit_u,
+                     'vNumber':self.numLidSplit_v,
+                     }
+
+                    
+            mMesh = RIGCREATE.get_meshFromNurbs(mMesh,**d_kws)    
+            ml_proxy.append(mMesh)
+            ml_noFreeze.append(mMesh)
+            
+            mc.skinCluster ([mJnt.mNode for mJnt in md_map[k] + md_map['lidCorner'] + _d_joints[k]],
+                            mMesh.mNode,
+                            tsb=True,
+                            bm=0,
+                            wd=0,
+                            sm=0,
+                            maximumInfluences = 4,
+                            heatmapFalloff = 1.0,
+                            dropoffRate=4,                            
+                            normalizeWeights = 1)            
 
     for mProxy in ml_proxy:
-        mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
+        if mProxy not in ml_noFreeze:
+            mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
 
         #Vis connect -----------------------------------------------------------------------
         mProxy.overrideEnabled = 1
