@@ -125,6 +125,7 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver 
             mPOCI.doStore('cgmName',mObj)            
             mPOCI.doName()            
             _res = [mTrack.mNode, mPOCI.mNode]
+            
 
         if mDriver:
             if d_closest['type'] in ['nurbsSurface']:
@@ -226,6 +227,20 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver 
                 
                 
                 md_res['mDriverLoc'] = mDriverLoc
+                
+            elif d_closest['type'] in ['curve','nurbsCurve']:
+                mDriverLoc = mDriver.doLoc()
+                mc.pointConstraint(mDriver.mNode,mDriverLoc.mNode)
+                
+                _resClosest = DIST.create_closest_point_node(mDriverLoc.mNode,
+                                                             _shape,True) 
+                _loc = _resClosest[0]
+                
+
+                md_res['mDriverLoc'] = mDriverLoc
+                md_res['mDrivenLoc'] = cgmMeta.asMeta(_loc)
+                md_res['mTrack'] = mTrack
+                
             else:
                 log.warning(cgmGEN.logString_msg(_str_func,"Shape type not currently supported for driver setup. Type: {0}".format(d_closest['type'])))
         
