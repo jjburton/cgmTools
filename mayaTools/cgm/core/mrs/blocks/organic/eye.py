@@ -144,7 +144,8 @@ l_attrsStandard = ['side',
                    'jointRadius',
                    'controlOffset',
                    'proxyDirect',
-                   'moduleTarget',]
+                   'moduleTarget',
+                   'scaleSetup']
 
 d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'buildEyeOrb':'bool',
@@ -158,6 +159,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'lidType':'simple:full',
                  'lidDepth':'float',
                  'lidClosed':'bool',
+                 'prerigJointOrient':'bool',
                  'numConLids':'int',
                  'numLidUprJoints':'int',
                  'numLidUprShapers':'int',
@@ -189,7 +191,8 @@ d_defaultSettings = {'version':__version__,
                      'numLidSplit_v':8,
                      'numConLids':1,
                      'jointRadius':1.0,
-                     
+                     'prerigJointOrient':True,
+                     'scaleSetup':False,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -2012,51 +2015,51 @@ def prerig(self):
                         
                 
                 #Aim our lid drivers...------------------------------------------------------------------
-                log.debug(cgmGEN.logString_msg('aim lid drivers'))
-    
-                    
-                for tag,sectionDat in md_lidDrivers.iteritems():
-                    for side,sideDat in sectionDat.iteritems():
-                        ml_check = md_anchorsLists[tag]
-                        l_check = [mObj.mNode for mObj in ml_check]
-                        
-                        if side == 'outer':
-                            if _side == 'right':
-                                _aim = [-1,0,0]
-                            else:
-                                _aim = [1,0,0]                            
-                        else:
-                            if _side == 'right':
-                                _aim = [1,0,0]
-                            else:
-                                _aim = [-1,0,0]
-                                
-                        for i,mDriver in enumerate(sideDat):
-                            _mode = None
+                if self.prerigJointOrient:
+                    log.debug(cgmGEN.logString_msg('aim lid drivers'))
+        
+                    for tag,sectionDat in md_lidDrivers.iteritems():
+                        for side,sideDat in sectionDat.iteritems():
+                            ml_check = md_anchorsLists[tag]
+                            l_check = [mObj.mNode for mObj in ml_check]
                             
-                            if tag == 'upr' and not i:
-                                _mode = 'simple'
-                            if side == 'center':
-                                _mode = 'simple'
-                                
-                            _closest = DIST.get_closestTarget(mDriver.mNode,l_check)
-                                
-                            if _mode == 'simple':
-                                mc.orientConstraint(_closest, mDriver.mNode, maintainOffset = False)
-                            else:
-                                if mDriver == sideDat[-1]:
-                                    _tar = md_lidDrivers[tag]['center'][0].mNode
+                            if side == 'outer':
+                                if _side == 'right':
+                                    _aim = [-1,0,0]
                                 else:
-                                    _tar = sideDat[i+1].mNode
+                                    _aim = [1,0,0]                            
+                            else:
+                                if _side == 'right':
+                                    _aim = [1,0,0]
+                                else:
+                                    _aim = [-1,0,0]
                                     
-                                mc.aimConstraint(_tar,
-                                                 mDriver.mNode,
-                                                 maintainOffset = False, weight = 1,
-                                                 aimVector = _aim,
-                                                 upVector = [0,0,1],
-                                                 worldUpVector = [0,0,1],
-                                                 worldUpObject = _closest,
-                                                 worldUpType = 'objectRotation' )
+                            for i,mDriver in enumerate(sideDat):
+                                _mode = None
+                                
+                                if tag == 'upr' and not i:
+                                    _mode = 'simple'
+                                if side == 'center':
+                                    _mode = 'simple'
+                                    
+                                _closest = DIST.get_closestTarget(mDriver.mNode,l_check)
+                                    
+                                if _mode == 'simple':
+                                    mc.orientConstraint(_closest, mDriver.mNode, maintainOffset = False)
+                                else:
+                                    if mDriver == sideDat[-1]:
+                                        _tar = md_lidDrivers[tag]['center'][0].mNode
+                                    else:
+                                        _tar = sideDat[i+1].mNode
+                                        
+                                    mc.aimConstraint(_tar,
+                                                     mDriver.mNode,
+                                                     maintainOffset = False, weight = 1,
+                                                     aimVector = _aim,
+                                                     upVector = [0,0,1],
+                                                     worldUpVector = [0,0,1],
+                                                     worldUpObject = _closest,
+                                                     worldUpType = 'objectRotation' )
                             
                 
                 #Driven Curve
@@ -4379,7 +4382,10 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     mRigNull = mModule.rigNull
     mDeformNull = mModule.deformNull
     mSettings = mRigNull.settings
-    
+    mRoot = mRigNull.getMessageAsMeta('rigRoot')
+    if not mRoot:
+        mRoot = mDeformNull
+        
     mPuppet = self.atUtils('get_puppet')
     mMaster = mPuppet.masterControl    
     mPuppetSettings = mMaster.controlSettings
@@ -4652,7 +4658,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 if _key in k2:
                     mJoint = self.doCreateAt('joint')
                     mJoint.p_position = mObj.p_position
-                    mJoint.p_parent = mDeformNull
+                    mJoint.p_parent = mRoot #mDeformNull
                     mJoint.v=False
                     mJoint.dagLock()
                     ml_proxyJoints.append(mJoint)
