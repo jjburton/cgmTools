@@ -2856,7 +2856,7 @@ def rig_shapes(self):
                 log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
                 p_scalePivot = mBlock.scalePivotHelper.p_position
                 TRANS.scalePivot_set(mRoot.mNode, p_scalePivot)
-                TRANS.rotPivot_set(mRoot.mNode, p_scalePivot)
+                TRANS.rotatePivot_set(mRoot.mNode, p_scalePivot)
                 
         
         
