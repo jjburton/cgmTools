@@ -67,7 +67,7 @@ def camelCase(arg = None):
 def short(arg = 'D:\repos\cgmtools\mayaTools\cgm\core\mrs\PoseManager.py',max = 10):
     if len(arg) < max:
         return arg
-    return ("...{0}".format(arg[-max:]))
+    return ("...  {0}".format(arg[-max:]))
     
         
 #>>> Utilities
