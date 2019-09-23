@@ -669,6 +669,11 @@ def uiSection_mrs(parent):
                 c=lambda *a:TOOLCALLS.mrsUI())
     
     mc.menuItem(parent = parent,
+                l='mrsPoser',
+                ann = "WIP",
+                c=lambda *a:TOOLCALLS.mrsPOSER())
+    
+    mc.menuItem(parent = parent,
                 l='Shots',
                 ann = "WIP",
                 c=lambda *a:TOOLCALLS.mrsShots())
