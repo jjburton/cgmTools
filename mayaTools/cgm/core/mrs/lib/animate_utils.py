@@ -86,6 +86,25 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 __version__ = 'alpha.1.04192019'
 
+
+_d_contexts = {'control':{'short':'ctrl'},
+               'part':{},
+               'puppet':{'short':'char'},
+               'scene':{},
+               'list':{}}
+_l_contexts = ['control','part','puppet','scene','list']
+_l_contextTime = ['back','previous','current','bookEnd','next','forward','slider','selected']
+_d_timeShorts = {'back':'<-',
+                 'previous':'|<',
+                 'bookEnd':'|--|',
+                 'current':'now',
+                 'selected':'sel',
+                 'next':'>|',
+                 'slider':'[ ]',
+                 'forward':'->'}
+_l_contextKeys = ['each','combined']
+
+
 def log_start(str_func):
     log.debug("|{0}| >> ...".format(str_func)+'/'*60)
 
@@ -95,7 +114,94 @@ def ik_bankRollShapes(self):
         log.debug(cgmGEN.logString_sub(_str_func))        
 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
+
+def uiSetup_context(self):
+    self._l_contexts = _l_contexts
+    self._l_contextTime = _l_contextTime
+    self._l_contextKeys = _l_contextKeys
     
+    try:self.var_poseMatchMethod
+    except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
+        
+    try:self.var_mrsContext
+    except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
+                                                      defaultValue = _l_contexts[0])
+    try:self.var_mrsContextTime
+    except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+                                                      defaultValue = 'current')
+    try:self.var_mrsContextKeys
+    except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+                                                      defaultValue = 'each')
+        
+def uiColumn_context(self,parent,header=False):
+    #>>>Context set -------------------------------------------------------------------------------    
+    _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
+    
+    if header:
+        _header = cgmUI.add_Header('Context')
+        
+    
+    _rowContext = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding=10)
+    
+
+
+    uiRC = mUI.MelRadioCollection()
+    
+    mVar = self.var_mrsContext
+    _on = mVar.value
+
+    for i,item in enumerate(_l_contexts):
+        if item == _on:
+            _rb = True
+        else:_rb = False
+        _label = str(_d_contexts[item].get('short',item))
+        uiRC.createButton(_rowContext,label=_label,sl=_rb,
+                          ann = "Set context: {0}".format(item),
+                          onCommand = cgmGEN.Callback(mVar.setValue,item))
+
+        #mUI.MelSpacer(_row,w=1)       
+    _rowContext.layout() 
+    
+    
+    #>>>Context Options -------------------------------------------------------------------------------
+    _rowContextSub = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+    _d = {'children':'chldrn',
+          'siblings':'sblg',
+          'mirror':'mrr'}
+    
+    mUI.MelSpacer(_rowContextSub,w=5)                          
+    mUI.MelLabel(_rowContextSub,l='Options:')
+    _rowContextSub.setStretchWidget( mUI.MelSeparator(_rowContextSub) )
+    
+    _d_defaults = {}
+    _l_order = ['core','children','siblings','mirror']
+    self._dCB_contextOptions = {}
+    for k in _l_order:
+        _plug = 'cgmVar_mrsContext_' + k
+        try:self.__dict__[_plug]
+        except:
+            _default = _d_defaults.get(k,0)
+            #log.debug("{0}:{1}".format(_plug,_default))
+            self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
+
+        l = _d.get(k,k)
+        
+        _cb = mUI.MelCheckBox(_rowContextSub,label=l,
+                              annotation = 'Include {0} in context.'.format(k),
+                              value = self.__dict__[_plug].value,
+                              onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                              offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+        self._dCB_contextOptions[k] = _cb
+        
+    mUI.MelSpacer(_rowContextSub,w=5)                      
+        
+    _rowContextSub.layout()
+    
+    return _column
+
+
+
 class dat(object):
     def __init__(self,datTarget=None,datString='dat',update=False):
         _str_func = 'dat.__init__'

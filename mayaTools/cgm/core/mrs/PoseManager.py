@@ -43,11 +43,30 @@ import cgm.core.lib.shared_data as SHARED
 import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.images.icons as cgmIcons
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
-
+reload(MRSANIMUTILS)
 mUI = cgmUI.mUI
 _selfUI = None
 
 _pathTest = "D:\Dropbox\MK1"
+
+
+def uiMenuItem_matchMode(self,parent):
+    try:self.var_poseMatchMethod
+    except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
+        
+    uiPoseMatchMode = mc.menuItem(p=parent, l='Pose Match Method ', subMenu=True)
+    
+    uiRC = mc.radioMenuItemCollection()
+    _v = self.var_poseMatchMethod.value
+    
+    for i,item in enumerate(['base','metaData','stripPrefix','index','mirrorIndex','mirrorIndex_ID']):
+        if item == _v:
+            _rb = True
+        else:_rb = False
+        mc.menuItem(p=uiPoseMatchMode,collection = uiRC,
+                    label=item,
+                    c = cgmGEN.Callback(self.var_poseMatchMethod.setValue,item),
+                    rb = _rb)            
 
 class pathList(object):
     def __init__(self, optionVar = 'testPath'):
@@ -625,7 +644,6 @@ def buildFrame_poses(self,parent):
     _uiRow_reset.layout() 
     
     
-
 #>>> Root settings =============================================================
 __version__ = '1.09222019'
 
@@ -658,7 +676,8 @@ class ui(cgmUI.cgmGUI):
         #self.l_allowedDockAreas = []
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
-
+        
+        MRSANIMUTILS.uiSetup_context(self)
         #self.uiPopUpMenu_createShape = None
         #self.uiPopUpMenu_color = None
         #self.uiPopUpMenu_attr = None
@@ -676,8 +695,12 @@ class ui(cgmUI.cgmGUI):
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		                     
-
+        
+        uiMenuItem_matchMode(self,self.uiMenu_FirstMenu)
+        
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        
+        
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
@@ -689,19 +712,24 @@ class ui(cgmUI.cgmGUI):
     
         _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
         #_column = buildColumn_main(self,_MainForm,True)
+        _context = MRSANIMUTILS.uiColumn_context(self,_MainForm,header=True)
+        
         _column = manager(parent = _MainForm)
     
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
         _MainForm(edit = True,
-                  af = [(_column,"top",0),
+                  af = [(_context,"top",0),
+                        (_context,"left",0),
+                        (_context,"right",0),                        
                         (_column,"left",0),
-                        (_column,"right",0),                        
+                        (_column,"right",0),
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),                        
                         (_row_cgm,"bottom",0),
     
                         ],
-                  ac = [(_column,"bottom",2,_row_cgm),
+                  ac = [(_column,"top",2,_context),
+                        (_column,"bottom",2,_row_cgm),
                         ],
                   attachNone = [(_row_cgm,"top")])
         
@@ -803,6 +831,9 @@ class manager(mUI.MelScrollLayout):
         # SubFolder Scroller
         #=====================
         #self.cgmUItslPoseSubFolders = 'cgmUIMRStslPoseSubFolders'
+
+        self.uiHeader = cgmUI.add_Header('Settings')
+
         self.uiBuild_path()
         self.uiBuild_searchRow()
         self.uiBuild_posesArea()

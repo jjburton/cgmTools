@@ -81,23 +81,12 @@ from cgm.core.lib.ml_tools import (ml_breakdownDragger,
 #>>> Root settings =============================================================
 __version__ = '1.07162019'
 __toolname__ ='MRSAnimate'
-_d_contexts = {'control':{'short':'ctrl'},
-               'part':{},
-               'puppet':{'short':'char'},
-               'scene':{},
-               'list':{}}
-_l_contexts = ['control','part','puppet','scene','list']
-_l_contextTime = ['back','previous','current','bookEnd','next','forward','slider','selected']
-_d_shorts = {'back':'<-',
-             'previous':'|<',
-             'bookEnd':'|--|',
-             'current':'now',
-             'selected':'sel',
-             'next':'>|',
-             'slider':'[ ]',
-             'forward':'->'}
-_l_contextKeys = ['each','combined']
+_d_contexts = MRSANIMUTILS._d_contexts
+_l_contexts = MRSANIMUTILS._l_contexts
+_l_contextTime = MRSANIMUTILS._l_contextTime
 
+_d_shorts = MRSANIMUTILS._d_timeShorts
+_l_contextKeys = MRSANIMUTILS._l_contextKeys
 
 _subLineBGC = [.75,.75,.75]
 
