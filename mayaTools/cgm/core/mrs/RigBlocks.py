@@ -104,10 +104,17 @@ def get_callSize(mode = None, arg = None, blockType = None, blockProfile = None,
                 if blockType:
                     blockModule = get_blockModule(blockType)
                     if blockProfile:
-                        try:_profileValues = blockModule.d_block_profiles.get(blockProfile,{})
-                        except:_profileValues = {}
-                        if _profileValues.get('baseSize') is not None:
+                        try:
+                            log.debug("|{0}| >> checking block profile...".format(_str_func))                
+                            _profileValues = blockModule.d_block_profiles.get(blockProfile,{})
                             return floatValues(_profileValues['baseSize'])
+                        except:pass
+                    try:
+                        log.debug("|{0}| >> checking defaultSettings...".format(_str_func))
+                        _profileValues = blockModule.d_defaultSettings                                
+                        return floatValues(_profileValues['baseSize'])
+                    except:pass
+                    log.debug("|{0}| >> __baseSize__...".format(_str_func))
                     return floatValues(getattr(blockModule, '__baseSize__', default))
                 return floatValues(default)
             else:

@@ -114,19 +114,32 @@ d_wiring_extraDags = {'msgLinks':['bbHelper'],
 d_build_profiles = {}
 
 
-d_block_profiles = {'eyeSimple':{'eyeType':'sphere',
-                                 'ikSetup':True,
-                                 'lidBuild':'none',
-                                 'baseDat':{'baseSize':[2.7,2.7,2.7]},
-                                 },
-                    'clamLid':{
-                    'eyeType':'sphere',
-                    'ikSetup':True,
-                    'lidBuild':'clam',
-                    'numLidUprJoints':1,
-                    'numLidLwrJoints':1,
-                    'baseDat':{'upr':[0,1,0],'lwr':[0,-1,0],'left':[1,0,0],'right':[-1,0,0],'baseSize':[2.7,2.7,2.7]},
-                       }}
+d_block_profiles = {
+    'simpleEye':{'eyeType':'sphere',
+                 'ikSetup':True,
+                 'lidBuild':'none',
+                 'baseDat':{'baseSize':[2.7,2.7,2.7]},
+                 },
+    'clam':{
+    'eyeType':'sphere',
+    'ikSetup':True,
+    'lidBuild':'clam',
+    'numLidUprJoints':1,
+    'numLidLwrJoints':1,
+    'baseDat':{'upr':[0,1,0],'lwr':[0,-1,0],'left':[1,0,0],'right':[-1,0,0],
+               'baseSize':[2.7,2.7,2.7]},
+       },
+    'fullLid':{
+    'eyeType':'sphere',
+    'ikSetup':True,
+    'lidBuild':'full',
+    'numLidUprJoints':5,
+    'numLidLwrJoints':5,
+    'numConLids':3,
+    'baseDat':{'upr':[0,1,0],'lwr':[0,-1,0],'left':[1,0,0],'right':[-1,0,0],
+               'baseSize':[2.7,2.7,2.7]},
+       }
+}
 
 
 
@@ -193,6 +206,8 @@ d_defaultSettings = {'version':__version__,
                      'jointRadius':1.0,
                      'prerigJointOrient':True,
                      'scaleSetup':False,
+                     'numLidLwrShapers':5,
+                     'numLidUprShapers':5,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -220,7 +235,6 @@ for k in ['eyeSimple']:
     d_attrProfileMask[k] = d_attrProfileMask['noLid']
     
     
-
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
@@ -1187,6 +1201,7 @@ def prerig(self):
         
         #mRoot = self.getMessageAsMeta('rootHelper')
         mHandleFactory = self.asHandleFactory()
+        mHandleFactory.setHandle(self)
         
         ml_handles = []
         
@@ -1220,7 +1235,7 @@ def prerig(self):
         crv = CURVES.create_fromName('sphere', size = _size_base)
         mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
         mHandleFactory.color(mHandleRoot.mNode)
-    
+
         #_shortHandle = mHandleRoot.mNode
     
         #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
@@ -1696,7 +1711,7 @@ def prerig(self):
                 for section,sectionDat in md_anchorsLists.iteritems():
                     #for side,dat in sectionDat.iteritems():
                     d_curveCreation[section+'Driver'] = {'ml_handles': sectionDat,
-                                                         'rebuild':1}
+                                                         'rebuild':0}
                     
                 md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
                 md_resCurves = md_res['md_curves']
@@ -1750,6 +1765,8 @@ def prerig(self):
                                                                           None,
                                                                           _side,
                                                                           mDriver=mAnchor,
+                                                                          size= _size_sub,
+                                                                          
                                                                           mSurface=mLidSurf,#mLipLoft,
                                                                           #mAttachCrv=mDriverCrv,
                                                                           mainShape=_mainShape,
@@ -1805,7 +1822,7 @@ def prerig(self):
                                                                               mainShape=_shapeUse,
                                                                               jointShape='locatorForm',
                                                                               depthAttr = 'lidDepth',
-                                                                              
+                                                                              size= _size_sub,
                                                                               controlType=_controlType,
                                                                               mode='handle',
                                                                               plugDag= 'preDag',
@@ -1854,7 +1871,7 @@ def prerig(self):
                 d_curveCreation = {}
                 for section,sectionDat in md_handleCrvDrivers.iteritems():
                     d_curveCreation[section+'Driven'] = {'ml_handles': sectionDat,
-                                                         'rebuild':1}
+                                                         'rebuild':0}
                         
                 md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
                 md_resCurves.update(md_res['md_curves'])
@@ -2096,6 +2113,14 @@ def prerig(self):
                 md_res = self.UTILS.create_defineCurve(self, d_driven, {}, mNoTransformNull,'preCurve')
                 md_resCurves.update(md_res['md_curves'])
                 ml_resCurves.extend(md_res['ml_curves'])
+                
+                #Scale Setup -------------------------------------
+                if self.scaleSetup:
+                    log.debug(cgmGEN.logString_msg('Scale Pivot'))
+                    mScalePivot = mHandleFactory.addScalePivotHelper(self)
+                    ml_handles.append(mScalePivot)
+                    
+                    mScalePivot.p_position = self.midDrivenDag.p_position
                 
                 #Mirror setup --------------------------------
                 log.debug(cgmGEN.logString_sub('mirror'))
@@ -2825,6 +2850,15 @@ def rig_shapes(self):
             mRigNull.connectChildNode(mSettings,'rigRoot','rigNull')#Connect
             
         
+        if mBlock.scaleSetup:
+            mRoot = mRigNull.getMessageAsMeta('rigRoot')
+            if mBlock.getMessage('scalePivotHelper'):
+                log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
+                p_scalePivot = mBlock.scalePivotHelper.p_position
+                TRANS.scalePivot_set(mRoot.mNode, p_scalePivot)
+                TRANS.rotatePivot_set(mRoot.mNode, p_scalePivot)
+                
+        
         
         #Logic ====================================================================================
         mFKEye = mRigNull.getMessageAsMeta('fkEye')
@@ -3345,7 +3379,7 @@ def rig_frame(self):
 
             
         for mControl in mUprCenter,mLwrCenter,mOuterCorner,mInnerCorner:
-            mUprCenter.masterGroup.p_parent = mRootParent
+            mControl.masterGroup.p_parent = mRootParent
         
         #side handles ---------------------------
         #First we're going to attach our handles to a surface to ge general placement. Then we're going to try
@@ -3944,16 +3978,42 @@ def rig_lidSetup(self):
             d_crvTargets = {'upr':ml_uprRig,
                             'lwr':[ml_uprRig[0]] + ml_lwrRig + [ml_uprRig[-1]]}
             
+            
+            d_plug_hugs = {}
+            
             for k in 'upr','lwr':
+                d_plug_hugs[k] = {}
+                _k = k.capitalize()
                 _crv = CORERIG.create_at(create='curve',l_pos = [mObj.p_position for mObj in d_crvTargets[k]])
                 mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
                 mRigNull.connectChildNode(mCrv, k+'LidCurve','module')
+                
+                mPlug_hug = cgmMeta.cgmAttr(mSettings.mNode,
+                                             'hug{0}'.format(_k),
+                                             attrType='float',
+                                             lock=False,
+                                             defaultValue = 1.0,
+                                             value = 1.0,
+                                             keyable=True)
+    
+                mPlug_hugOn = cgmMeta.cgmAttr(mSettings,'result_hug{0}On'.format(_k),attrType='float',
+                                               defaultValue = 0,keyable = False,lock=True,
+                                               hidden=1)
+    
+                mPlug_hugOff= cgmMeta.cgmAttr(mSettings,'result_hug{0}Off'.format(_k),attrType='float',
+                                               defaultValue = 0,keyable = False,lock=True,
+                                               hidden=1)                
+    
+                NODEFACTORY.createSingleBlendNetwork(mPlug_hug.p_combinedName,
+                                                     mPlug_hugOn.p_combinedName,
+                                                     mPlug_hugOff.p_combinedName)                
+                d_plug_hugs[k]['on'] = mPlug_hugOn
+                d_plug_hugs[k]['off'] = mPlug_hugOff
             
             
             create_clamBlinkCurves(self, ml_uprSkinJoints = ml_uprLipInfluences,
                                    ml_lwrSkinJoints = ml_lwrLipInfluences)
-            
-            
+
             for mJoint in ml_uprRig:
                 mTarget = mJoint.doLoc()
                 mDriver = mJoint.driverJoint
@@ -3997,28 +4057,11 @@ def rig_lidSetup(self):
                 
                 targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
                 
-                mPlug_hug = cgmMeta.cgmAttr(mSettings.mNode,
-                                             'hugUpr',
-                                             attrType='float',
-                                             lock=False,
-                                             defaultValue = 1.0,
-                                             keyable=True)
-    
-                mPlug_hugOn = cgmMeta.cgmAttr(mSettings,'result_hugUprOn',attrType='float',
-                                               defaultValue = 0,keyable = False,lock=True,
-                                               hidden=1)
-    
-                mPlug_hugOff= cgmMeta.cgmAttr(mSettings,'result_hugUprOff',attrType='float',
-                                               defaultValue = 0,keyable = False,lock=True,
-                                               hidden=1)                
 
-                NODEFACTORY.createSingleBlendNetwork(mPlug_hug.p_combinedName,
-                                                     mPlug_hugOn.p_combinedName,
-                                                     mPlug_hugOff.p_combinedName)                
 
                 #Connect                                  
-                mPlug_hugOn.doConnectOut('%s.%s' % (_const,targetWeights[0]))
-                mPlug_hugOff.doConnectOut('%s.%s' % (_const,targetWeights[1]))
+                d_plug_hugs['upr']['on'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                d_plug_hugs['upr']['off'].doConnectOut('%s.%s' % (_const,targetWeights[1]))
                     
                     
                     
@@ -4068,28 +4111,11 @@ def rig_lidSetup(self):
                 
                 targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
                 
-                mPlug_hug = cgmMeta.cgmAttr(mSettings.mNode,
-                                             'hugLwr',
-                                             attrType='float',
-                                             lock=False,
-                                             defaultValue = 1.0,
-                                             keyable=True)
-    
-                mPlug_hugOn = cgmMeta.cgmAttr(mSettings,'result_hugLwrOn',attrType='float',
-                                               defaultValue = 0,keyable = False,lock=True,
-                                               hidden=1)
-    
-                mPlug_hugOff= cgmMeta.cgmAttr(mSettings,'result_hugLwrOff',attrType='float',
-                                               defaultValue = 0,keyable = False,lock=True,
-                                               hidden=1)                
-
-                NODEFACTORY.createSingleBlendNetwork(mPlug_hug.p_combinedName,
-                                                     mPlug_hugOn.p_combinedName,
-                                                     mPlug_hugOff.p_combinedName)                
+                
 
                 #Connect                                  
-                mPlug_hugOn.doConnectOut('%s.%s' % (_const,targetWeights[0]))
-                mPlug_hugOff.doConnectOut('%s.%s' % (_const,targetWeights[1]))                
+                d_plug_hugs['lwr']['on'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                d_plug_hugs['lwr']['off'].doConnectOut('%s.%s' % (_const,targetWeights[1]))          
             
 
             

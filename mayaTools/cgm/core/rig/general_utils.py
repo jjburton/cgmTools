@@ -758,6 +758,7 @@ def split_blends(driven1 = None,
                                  'on':{},
                                  'off':{},
                                  'sum':{}}
+                
                 for i,mObj in enumerate(mDriven):
                     log.debug("|{0}| >> buildNetwork | On: {1}".format(_str_func,mObj) + cgmGEN._str_subLine)
                     dat['mPlugs']['1'][i] = cgmMeta.cgmAttr(mSettings,

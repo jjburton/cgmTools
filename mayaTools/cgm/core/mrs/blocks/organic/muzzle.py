@@ -4433,17 +4433,9 @@ def prerig(self):
   
                     mStateNull.msgList_connect('{0}PrerigShapes'.format(tag),_ml_shapes)
                     mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),_ml_prerigDags)
-                    #mStateNull.msgList_connect('{0}JointHelpers'.format(tag),_ml_jointHelpers)
-                    #mStateNull.msgList_connect('{0}JointShapes'.format(tag),_ml_jointShapes)
                     md_mirrorDat[side].extend(_ml_shapes + _ml_prerigDags)
-                    #md_handles[section][side] = _ml_shapes
                     md_prerigDags[section][side] = _ml_prerigDags
-                    #md_jointHelpers[section][side] = _ml_jointHelpers
                     ml_handles.extend(_ml_shapes + _ml_prerigDags)
-                    #if _ml_jointShapes:
-                        #ml_handles.extend(_ml_jointShapes)
-                        #ml_handles.extend(_ml_jointHelpers)
-                        #md_mirrorDat[side].extend(_ml_jointShapes + _ml_jointHelpers)
             
             
             #...get joint handles...-----------------------------------------------------------------
@@ -5380,11 +5372,7 @@ def rig_skeleton(self):
             
         if mBlock.numJointsNostril:
             mirrorConnect('nostrilLeft','nostrilRight')
-        
 
-        
-        
-            
     if self.str_cheekSetup:
         log.debug("|{0}| >> cheek...".format(_str_func))
         for t in ['cheekLeft','cheekRight']:
@@ -5879,9 +5867,8 @@ def rig_controls(self):
         
             if mObj.hasAttr('cgmIterator'):
                 ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
-        
             for mShape in mObj.getShapes(asMeta=True):
-                ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))            
+                ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
 
         log.debug(cgmGEN._str_subLine)
 
