@@ -6,6 +6,7 @@ import fnmatch
 import cgm.lib.pyui as pyui
 import subprocess
 import re
+from cgm.core import cgm_Meta as cgmMeta
 
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
@@ -57,15 +58,17 @@ example:
 		self.categoryList                = ["Character", "Environment", "Vehicles", "Props", "Interactables", "Level"]
 		self.categoryIndex               = 0
 
-		self.optionVarDirStore           = "cgm_fileUI_importer_directory_list"
-		self.optionVarLastDirStore       = "cgm_fileUI_importer_last_directory"
-		self.optionVarLastAssetStore     = "cgm_fileUI_importer_last_asset"
-		self.optionVarLastAnimStore      = "cgm_fileUI_importer_last_animation"
-		self.optionVarLastVariationStore = "cgm_fileUI_importer_last_variation"
-		self.optionVarLastVersionStore   = "cgm_fileUI_importer_last_version"
-		self.optionVarExportDirStore     = "cgm_fileUI_importer_export_directory"
-		self.showBakedStore              = "cgm_fileUI_show_baked"
-		self.categoryStore               = "cgm_fileUI_category"
+		#self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0)
+
+		self.optionVarDirStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_directory_list", varType = "string")
+		self.optionVarLastDirStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_directory", varType = "string")
+		self.optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_asset", varType = "string")
+		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_animation", varType = "string")
+		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_variation", varType = "string")
+		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_version", varType = "string")
+		self.optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_export_directory", varType = "string")
+		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
+		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		
 		## sizes
 		self.__itemHeight                = 35
@@ -143,18 +146,18 @@ example:
 		return self.categoryList[self.categoryIndex]
 
 	def LoadOptions(self, *args):
-		self.showBaked     = bool(mc.optionVar(q=self.showBakedStore)) if mc.optionVar(exists=self.showBakedStore) else False
-		self.categoryIndex = int(mc.optionVar(q=self.categoryStore)) if mc.optionVar(exists=self.categoryStore) else 0
+		self.showBaked     = bool(self.showBakedStore.getValue())
+		self.categoryIndex = int(self.categoryStore.getValue())
 		
-		self.exportDirectory = mc.optionVar(q=self.optionVarExportDirStore) if mc.optionVar(exists=self.optionVarExportDirStore) else ""
+		self.exportDirectory = self.optionVarExportDirStore.getValue() if self.optionVarExportDirStore.getValue() else ""
 		#self.exportCommand   = mc.optionVar(q=self.exportCommandStore) if mc.optionVar(exists=self.exportCommandStore) else ""
 
 	def SaveOptions(self, *args):
 		self.showBaked     = self.showBakedOption( q=True, checkBox=True )
 		
-		mc.optionVar( intValue =[self.showBakedStore, self.showBaked] )
-		mc.optionVar( stringValue = [self.optionVarExportDirStore, self.exportDirectory] )
-		mc.optionVar( intValue = [self.categoryStore, self.categoryIndex])
+		self.showBakedStore.setValue(self.showBaked)
+		self.optionVarExportDirStore.setValue( self.exportDirectory )
+		self.categoryStore.setValue( self.categoryIndex )
 		#mc.optionVar( stringValue = [self.exportCommandStore, self.exportCommand] )
 		
 		self.LoadVersionList()
@@ -183,19 +186,19 @@ example:
 		sel = mc.ls(sl=True)
 		deleteSet = sel[0].split(':')[-1]
 		print "Setting delete set to: %s" % deleteSet 
-		mc.optionVar(sv=('cgm_delete_set', deleteSet))
+		cgmMeta.cgmOptionVar('cgm_delete_set', varType="string").setValue(deleteSet)
 
 	def SetBakeSet(self, *args):
 		sel = mc.ls(sl=True)
 		bakeSet = sel[0].split(':')[-1]
 		print "Setting bake set to: %s" % bakeSet 
-		mc.optionVar(sv=('cgm_bake_set', bakeSet))
+		cgmMeta.cgmOptionVar('cgm_bake_set', varType="string").setValue(bakeSet)
 
 	def SetExportSet(self, *args):
 		sel = mc.ls(sl=True)
 		exportSet = sel[0].split(':')[-1]
 		print "Setting geo set to: %s" % exportSet 
-		mc.optionVar(sv=('cgm_export_set', exportSet))
+		cgmMeta.cgmOptionVar('cgm_export_set', varType="string").setValue(exportSet)
 
 	def build_layoutWrapper(self,parent):
 		# if mc.window("cgmSceneUI", q=True, exists=True):
@@ -578,6 +581,7 @@ example:
 		self.uiMenu_FileMenu = mUI.MelMenu( l='File', pmc=self.buildMenu_file)		        
 		self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
 		self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools)  
+		self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
 
 	def buildMenu_file( self, *args):
 		self.uiMenu_FileMenu.clear()
@@ -687,10 +691,10 @@ example:
 		p = self.GetPreviousDirectories()
 		if len(p) >= 10:
 			for i in range(len(p) - 9):
-				mc.optionVar(rfa=[self.optionVarDirStore, 0])
+				self.optionVarDirStore.removeIndex(0)
 
 		if directory not in p:
-			mc.optionVar(stringValueAppend=[self.optionVarDirStore, directory])
+			self.optionVarDirStore.append(directory)
 
 		self.directory = directory
 
@@ -848,8 +852,8 @@ example:
 			self.SaveOptions()
 
 	def GetPreviousDirectories(self, *args):
-		if mc.optionVar(exists=self.optionVarDirStore):
-			return mc.optionVar(q=self.optionVarDirStore)
+		if type(self.optionVarDirStore.getValue()) is list:
+			return self.optionVarDirStore.getValue()
 		else:
 			return []
 
@@ -857,57 +861,57 @@ example:
 		self.assetList['scrollList'].setItems(charList)
 
 	def GetPreviousDirectory(self, *args):
-		if mc.optionVar(exists=self.optionVarDirStore):
-			return mc.optionVar(q=self.optionVarLastDirStore)
+		if self.optionVarLastDirStore.getValue():
+			return self.optionVarLastDirStore.getValue()
 		else:
 			return None
 
 	def StoreCurrentDirectory(self, *args):
-		mc.optionVar(stringValue=[self.optionVarLastDirStore, self.directory])
+		self.optionVarLastDirStore.setValue(self.directory)
 
 	def StoreCurrentSelection(self, *args):
 		if self.assetList['scrollList'].getSelectedItem():
-			mc.optionVar(stringValue=[self.optionVarLastAssetStore, self.assetList['scrollList'].getSelectedItem()])
+			self.optionVarLastAssetStore.setValue(self.assetList['scrollList'].getSelectedItem())
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastAssetStore)
 
 		if self.animationList['scrollList'].getSelectedItem():
-			mc.optionVar(stringValue=[self.optionVarLastAnimStore, self.animationList['scrollList'].getSelectedItem()])
+			self.optionVarLastAnimStore.setValue(self.animationList['scrollList'].getSelectedItem())
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastAnimStore)
 
 		if self.variationList['scrollList'].getSelectedItem():
-			mc.optionVar(stringValue=[self.optionVarLastVariationStore, self.variationList['scrollList'].getSelectedItem()])
+			self.optionVarLastVariationStore.setValue(self.variationList['scrollList'].getSelectedItem())
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastVariationStore)
 
 		if self.versionList['scrollList'].getSelectedItem():
-			mc.optionVar(stringValue=[self.optionVarLastVersionStore, self.versionList['scrollList'].getSelectedItem()])
+			self.optionVarLastVersionStore.setValue( self.versionList['scrollList'].getSelectedItem() )
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastVersionStore)
 
 	def LoadPreviousSelection(self, *args):
-		if mc.optionVar(exists=self.optionVarLastAssetStore):
-			self.assetList['scrollList'].selectByValue( mc.optionVar(q=self.optionVarLastAssetStore) )
+		if self.optionVarLastAssetStore.getValue():
+			self.assetList['scrollList'].selectByValue( self.optionVarLastAssetStore.getValue() )
 
 		self.LoadAnimationList()
 
-		if mc.optionVar(exists=self.optionVarLastAnimStore):
-			self.animationList['scrollList'].selectByValue( mc.optionVar(q=self.optionVarLastAnimStore))
+		if self.optionVarLastAnimStore.getValue():
+			self.animationList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
 
 		self.LoadVariationList()
 
-		if mc.optionVar(exists=self.optionVarLastVariationStore):
-			self.variationList['scrollList'].selectByValue( mc.optionVar(q=self.optionVarLastVariationStore))
+		if self.optionVarLastVariationStore.getValue():
+			self.variationList['scrollList'].selectByValue( self.optionVarLastVariationStore.getValue() )
 
 		self.LoadVersionList()
 
-		if mc.optionVar(exists=self.optionVarLastVersionStore):
-			self.versionList['scrollList'].selectByValue( mc.optionVar(q=self.optionVarLastVersionStore))
+		if self.optionVarLastVersionStore.getValue():
+			self.versionList['scrollList'].selectByValue( self.optionVarLastVersionStore.getValue() )
 
 	
 	def ClearPreviousDirectories(self, *args):		
-		mc.optionVar(rm=self.optionVarDirStore)
+		self.optionVarDirStore.clear()
 		self.buildMenu_file()
 
 	def CreateAsset(self, *args):

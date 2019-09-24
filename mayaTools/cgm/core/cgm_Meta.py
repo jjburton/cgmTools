@@ -4684,6 +4684,10 @@ class cgmOptionVar(object):
             mc.optionVar(fv=(self.name,0))
         elif doType == 'string':
             mc.optionVar(sv=(self.name,''))
+        elif doType == 'bool':
+            mc.optionVar(iv=(self.name,0))
+        elif doType == 'data':
+            mc.optionVar(sv=(self.name,''))
 
     def clear(self):
         """
@@ -4739,6 +4743,16 @@ class cgmOptionVar(object):
         else:
             log.debug("'%s' wasn't found in '%s'"%(value,self.name))
 
+    def removeIndex(self,value):
+        if type(self.getValue()) is list and value < len(self.getValue()):
+            try:         
+                mc.optionVar(removeFromArray = (self.name,value))
+                self.update(self.form)
+                #log.debug("'%s' removed from '%s'"%(value,self.name))
+            except:
+                log.debug("'%s' failed to remove '%s'"%(value,self.name))
+        else:
+            log.debug("'%s' isn't a list or is smaller than the given value of %i"%(self.name,value))
 
     def extend(self,valuesList):
         assert type(valuesList) is list,"'%s' not a list"%(valuesList)
