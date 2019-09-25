@@ -153,7 +153,7 @@ example:
 		#self.exportCommand   = mc.optionVar(q=self.exportCommandStore) if mc.optionVar(exists=self.exportCommandStore) else ""
 
 	def SaveOptions(self, *args):
-		self.showBaked     = self.showBakedOption( q=True, checkBox=True )
+		self.showBaked = self.showBakedOption( q=True, checkBox=True )
 		
 		self.showBakedStore.setValue(self.showBaked)
 		self.optionVarExportDirStore.setValue( self.exportDirectory )
@@ -221,10 +221,10 @@ example:
 
 		_uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
 		mUI.MelLabel(_uiRow_dir,l='Directory', w=100)
-		self.directoryTF = mUI.MelTextField(_uiRow_dir, changeCommand=lambda:self.ChangeAnimationDirectory)
+		self.directoryTF = mUI.MelTextField(_uiRow_dir, changeCommand=self.ChangeAnimationDirectory)
 		self.directoryTF.setValue( self.directory )
 
-		mUI.MelButton(_uiRow_dir, label='set', ut = 'cgmUITemplate', command=lambda:self.SetAnimationDirectory, width=100)
+		mUI.MelButton(_uiRow_dir, label='set', ut = 'cgmUITemplate', command=self.SetAnimationDirectory, width=100)
 
 		mUI.MelSpacer(_uiRow_dir,w=5)
 
@@ -233,9 +233,9 @@ example:
 
 		_uiRow_export = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
 		mUI.MelLabel(_uiRow_export,l='Export Dir', w=100)
-		self.exportDirectoryTF = mUI.MelTextField(_uiRow_export, changeCommand=lambda:self.ChangeExportDirectory)
+		self.exportDirectoryTF = mUI.MelTextField(_uiRow_export, changeCommand=self.ChangeExportDirectory)
 		self.exportDirectoryTF.setValue( self.exportDirectory )
-		mUI.MelButton(_uiRow_export, label='set', ut = 'cgmUITemplate', command=lambda:self.SetExportDirectory, width=100)
+		mUI.MelButton(_uiRow_export, label='set', ut = 'cgmUITemplate', command=self.SetExportDirectory, width=100)
 
 		mUI.MelSpacer(_uiRow_export,w=5)                      
 
@@ -262,8 +262,7 @@ example:
 			if i == self.categoryIndex:
 				self.categoryMenuItemList[i]( e=True, enable=False)
 		
-		self.assetList = self.build_searchable_list(_catForm)
-		self.assetList['scrollList']( e=True, sc=self.LoadAnimationList )
+		self.assetList = self.build_searchable_list(_catForm, sc=self.LoadAnimationList)
 
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
@@ -293,8 +292,7 @@ example:
 								   label='Animation',ut='cgmUITemplate',
 								   ann='Select the asset type', en=False)
 	
-		self.animationList = self.build_searchable_list(_animForm)
-		self.animationList['scrollList']( e=True, sc=self.LoadVariationList )
+		self.animationList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
 
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAnimationDirectory )
@@ -321,8 +319,7 @@ example:
 								   label='Variation',ut='cgmUITemplate',
 								   ann='Select the asset variation', en=False)
 	
-		self.variationList = self.build_searchable_list(_variationForm)
-		self.variationList['scrollList']( e=True, sc=self.LoadVersionList )
+		self.variationList = self.build_searchable_list(_variationForm, sc=self.LoadVersionList)
 
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
@@ -350,8 +347,7 @@ example:
 								   label='Version',ut='cgmUITemplate',
 								   ann='Select the asset version', en=False)
 	
-		self.versionList = self.build_searchable_list(_versionForm)
-		self.versionList['scrollList']( e=True, sc=self.StoreCurrentSelection )
+		self.versionList = self.build_searchable_list(_versionForm, sc=self.StoreCurrentSelection)
 
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
@@ -655,7 +651,10 @@ example:
 	# 	self.toolsMenu = mc.menu( label='Tools' )
 
 
-	def build_searchable_list(self, parent = None):
+	#####
+	## Searchable Lists
+	#####
+	def build_searchable_list(self, parent = None, sc=None):
 		_margin = 0
 
 		if not parent:
@@ -671,9 +670,38 @@ example:
 		tsl = cgmUI.cgmScrollList(form)
 		tsl.allowMultiSelect = False
 
+		if sc != None:
+			tsl(edit = True, sc=sc)
+
 		form( edit=True, attachForm=[(rcl, 'top', _margin), (rcl, 'left', _margin), (rcl, 'right', _margin), (tsl, 'bottom', _margin), (tsl, 'right', _margin), (tsl, 'left', _margin)], attachControl=[(tsl, 'top', _margin, rcl)] )
 
-		return {'formLayout':form, 'scrollList':tsl, 'searchField':tx, 'searchButton':b}
+		searchableList = {'formLayout':form, 'scrollList':tsl, 'searchField':tx, 'searchButton':b, 'items':[], 'selectCommand':sc}
+
+		tx(edit=True, tcc=partial(self.process_search_filter, searchableList))
+		b(edit=True, command=partial(self.clear_search_filter, searchableList))
+
+		return searchableList
+
+	def process_search_filter(self, searchableList, *args):
+		print "processing search for %s with search term %s" % (searchableList['scrollList'], searchableList['searchField'].getValue())
+		if not searchableList['searchField'].getValue():
+			searchableList['scrollList'].setItems(searchableList['items'])
+		else:
+			searchTerm = set(searchableList['searchField'].getValue().replace(' ', '').lower())
+			listItems = []
+			for item in searchableList['items']:
+				if len(searchTerm & set(item.lower())) == len(searchTerm):
+					listItems.append(item)
+			searchableList['scrollList'].setItems(listItems)
+
+		searchableList['selectCommand']
+
+	def clear_search_filter(self, searchableList, *args):
+		print "Clearing search filter for %s with search term %s" % (searchableList['scrollList'], searchableList['searchField'].getValue())
+		searchableList['searchField'].setValue("")
+		selected = searchableList['scrollList'].getSelectedItem()
+		searchableList['scrollList'].setItems(searchableList['items'])
+		searchableList['scrollList'].selectByValue(selected)
 
 	def SetCategory(self, index, *args):
 		self.categoryIndex = index
@@ -722,9 +750,14 @@ example:
 		self.UpdateAssetList(charList)
 
 		self.StoreCurrentDirectory()
-
+		
+		self.animationList['items'] = []
 		self.animationList['scrollList'].clear()
+		
+		self.variationList['items'] = []
 		self.variationList['scrollList'].clear()
+		
+		self.versionList['items'] = []
 		self.versionList['scrollList'].clear()
 
 		self.StoreCurrentSelection()
@@ -746,9 +779,13 @@ example:
 					if os.path.isdir(animDir):
 						animList.append(d)
 
+		self.animationList['items'] = animList
 		self.animationList['scrollList'].setItems(animList)
 
+		self.variationList['items'] = []
 		self.variationList['scrollList'].clear()
+
+		self.versionList['items'] = []
 		self.versionList['scrollList'].clear()
 
 		self.StoreCurrentSelection()
@@ -756,6 +793,7 @@ example:
 	def LoadVariationList(self, *args):
 		variationList = []
 
+		self.variationList['items'] = []
 		self.variationList['scrollList'].clear()
 
 		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList['scrollList'].getSelectedItem():
@@ -772,11 +810,13 @@ example:
 					if os.path.isdir(animDir):
 						variationList.append(d)
 
+		self.variationList['items'] = variationList
 		self.variationList['scrollList'].setItems(variationList)
 
+		self.versionList['items'] = []
 		self.versionList['scrollList'].clear()
 
-		if self.variationList['scrollList'].getItems():
+		if len(self.versionList['items']) > 0:
 			self.variationList['scrollList'].selectByIdx(0)
 
 		self.LoadVersionList()
@@ -806,6 +846,7 @@ example:
 							if not "_baked" in d or self.showBaked:
 								anims.append(d)
 
+		self.versionList['items'] = anims
 		self.versionList['scrollList'].setItems(anims)
 
 		self.StoreCurrentSelection()
@@ -858,6 +899,7 @@ example:
 			return []
 
 	def UpdateAssetList(self, charList):
+		self.assetList['items'] = charList
 		self.assetList['scrollList'].setItems(charList)
 
 	def GetPreviousDirectory(self, *args):
