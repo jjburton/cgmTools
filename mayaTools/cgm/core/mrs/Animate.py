@@ -2149,11 +2149,26 @@ def uiCB_contextualAction(self,**kws):
     for k,v in kws.iteritems():
         l_kws.append("{0}:{1}".format(k,v))
     
-    _mode = kws.pop('mode',False)
-    _context = kws.get('context') or self.var_mrsContext_mode.value
-    _contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
-    _contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
+    #_mode = kws.pop('mode',False)
+    #_context = kws.get('context') or self.var_mrsContext_mode.value
+    #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+    #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
     
+    d_contextSettings = MRSANIMUTILS.get_contextDict(self.__class__.TOOLNAME)
+    
+
+    _mode = kws.pop('mode',False)
+    _kw_query = {'context':'mode',
+                 'contextTime':'time',
+                 'contextKeys':'keys'}
+    
+    for k,k2 in _kw_query.iteritems():
+        if kws.get(k) is not None:
+            d_contextSettings[k2] = kws.get(k)
+            
+    _context = d_contextSettings.get('mode')
+    _contextTime = d_contextSettings.get('time')
+    _contextKeys = d_contextSettings.get('keys')
 
     d_context = {}
     _mirrorQuery = False
@@ -2178,7 +2193,8 @@ def uiCB_contextualAction(self,**kws):
         return 
     
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
-    _ml_controls = self.mDat.context_get(mirrorQuery=_mirrorQuery,**kws)
+    
+    _ml_controls = self.mDat.context_get(mirrorQuery=_mirrorQuery,**d_contextSettings)
     
     #First we see if we have a current only function or current time ========================
     if _mode == 'simpleRes':

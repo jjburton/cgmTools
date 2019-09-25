@@ -19,7 +19,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -547,7 +547,7 @@ def buildFrame_poses(self,parent):
     mc.button(parent=_row,
               l = 'Blend',
               ut = 'cgmUITemplate',
-              command=lambda *x:self._PoseBlend())    
+              command=lambda *x:self.uiPose_blend())    
     _row.layout()
     
 
@@ -1029,7 +1029,7 @@ class manager(mUI.MelColumn):
         #uiCB_setPosePath(self)
         #return self
         
-    def __PoseSave(self, path=None, storeThumbnail=True):
+    def uiPose_save(self, path=None, storeThumbnail=True):
         '''
         Internal UI call for PoseLibrary Save func, note that filterSettings is bound
         but only filled by the main _uiCall call
@@ -1137,7 +1137,7 @@ class manager(mUI.MelColumn):
         #pprint.pprint(l_start)
         return nodes
     
-    def __PoseLoad(self):
+    def uiPose_load(self):
         '''
         Internal UI call for PoseLibrary Load func, note that filterSettings is bound
         but only filled by the main _uiCall call
@@ -1167,7 +1167,7 @@ class manager(mUI.MelColumn):
         poseNode = r9Pose.PoseData(self.filterSettings)
         #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
         
-        poseNode.matchMethod = self.tool.var_poseMatchMethod.value#self.matchMethod
+        poseNode.matchMethod = self.var_poseMatchMethod.value#self.matchMethod
 
         nodes = self.get_poseNodes()
 
@@ -1192,16 +1192,16 @@ class manager(mUI.MelColumn):
                                                                     posePath=self.getPosePath(),
                                                                     compareDict=compareDict)
 
-    def _PoseBlend(self):
+    def uiPose_blend(self):
         '''
         TODO: allow this ui and implementation to blend multiple poses at the same time
         basically we'd add a new poseObject per pose and bind each one top the slider
         but with a consistent poseCurrentCache via the _cacheCurrentNodeStates() call
         '''
-
         pb = r9Pose.PoseBlender(filepaths=[self.uiPose_getPath()],
                                 nodes = self.get_poseNodes(),
                                 filterSettings=self.filterSettings,
+                                matchMethod = self.var_poseMatchMethod.value,
                                 useFilter=False)#mc.checkBox(self.cgmUIcbPoseHierarchy, q=True, v=True),
                                 #matchMethod=self.matchMethod)
         pb.show()
@@ -1245,9 +1245,9 @@ class manager(mUI.MelColumn):
             elif func == 'HierarchyTest':
                 self.__Hierarchy()
             elif func == 'PoseSave':
-                self.__PoseSave()
+                self.uiPose_save()
             elif func == 'PoseLoad':
-                self.__PoseLoad()
+                self.uiPose_load()
             elif func == 'PoseCompareSkelDict':
                 self.__PoseCompare(compareDict='skeletonDict')
             elif func == 'PoseComparePoseDict':
@@ -1299,7 +1299,7 @@ class manager(mUI.MelColumn):
         mc.button(parent=_row,
                   l = 'Blend',
                   ut = 'cgmUITemplate',
-                  command=lambda *x:self._PoseBlend())    
+                  command=lambda *x:self.uiPose_blend())    
         _row.layout()
         
         #Pose Tumb area ===============================================================================
@@ -1560,8 +1560,8 @@ class manager(mUI.MelColumn):
                 print error
                 
             for pose in r9Core.filterListByString(self.poses, searchFilter, matchcase=False):  # self.buildFilteredPoseList(searchFilter):
-                print pose
-                print PATHS.Path(os.path.join(self.posePath, '%s.bmp' % pose)).exists()
+                #print pose
+                #print PATHS.Path(os.path.join(self.posePath, '%s.bmp' % pose)).exists()
                 try:
                     # :NOTE we prefix the buttons to get over the issue of non-numeric
                     # first characters which are stripped my Maya!
@@ -1574,7 +1574,7 @@ class manager(mUI.MelColumn):
                                         ann=pose,
                                         onc=cgmGEN.Callback(self.uiCB_iconGridSelection, pose),
                                         ofc="import maya.cmds as cmds;mc.iconTextCheckBox('_%s', e=True, v=True)" % pose)  # we DONT allow you to deselect
-                    print _b
+                    #print _b
                 except StandardError, error:
                     raise StandardError(error)
     
@@ -1722,12 +1722,13 @@ class manager(mUI.MelColumn):
         if result == 'Yes':
             try:
                 os.remove(self.uiPose_getPath())
-            except:
-                log.info('Failed to Delete PoseFile')
+            except Exception,err:
+                log.error('Failed to Delete PoseFile | {0}'.format(err))
+                return
             try:
                 os.remove(self.uiPose_getIconPath())
-            except:
-                log.info('Failed to Delete PoseIcon')
+            except Exception,err:
+                log.error('Failed to Delete PoseIcon | {0}'.format(err))
             self.uiCB_fillPoses(rebuildFileList=1)
             #self._uiCB_fillPoses(rebuildFileList=True)
     
@@ -1861,7 +1862,7 @@ class manager(mUI.MelColumn):
                     os.remove(self.uiPose_getIconPath())
                 except:
                     log.debug('unable to delete the Pose Icon file')
-            self.__PoseSave(self.uiPose_getPath(), storeThumbnail)
+            self.uiPose_save(self.uiPose_getPath(), storeThumbnail)
             self.uiPose_select(self.poseSelected)
     
     def _uiPoseUpdateThumb(self, *args):
@@ -2352,7 +2353,7 @@ def buildColumn_main(self,parent,asScroll=False):
     mc.button(parent=_row,
               l = 'Blend',
               ut = 'cgmUITemplate')
-              #command=lambda *x:self._PoseBlend())    
+              #command=lambda *x:self.uiPose_blend())    
     _row.layout()
     
     

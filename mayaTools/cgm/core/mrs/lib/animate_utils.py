@@ -116,10 +116,41 @@ def ik_bankRollShapes(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 _d_contextAttrs = {'poseMatchMethod':{'dv':'base'},
-                   'mrsContext_time':{'dv':'current'},
-                   'mrsContext_mode':{'dv':_l_contexts[0]},
-                   'mrsContext_keys':{'dv':'each'}}
+                   'time':{'dv':'current'},
+                   'mode':{'dv':_l_contexts[0]},
+                   'keys':{'dv':'each'}}
 
+def get_contextDict(prefix=False):
+    _res = {}
+    for a,d in _d_contextAttrs.iteritems():
+        _name = None
+        try:
+            if prefix:
+                _name = "cgmVar_mrsContext_{0}_{1}".format(prefix,a) 
+            else:
+                _name = "cgmVar_mrsContext_{0}".format(a)
+            
+            _res[a] = cgmMeta.cgmOptionVar(_name).value
+        except Exception,err:
+            log.warning("Failed to query context: {0} | {1}".format(_name,err))
+            
+    _l_order = ['core','children','siblings','mirror']
+    
+    for k in _l_order:
+        _name = None
+        try:
+            if prefix:
+                _name = 'cgmVar_mrsContext_' + prefix + '_' + k
+            else:
+                _name = 'cgmVar_mrsContext_'  + k
+                
+            _res[k] = cgmMeta.cgmOptionVar(_name).value
+        except Exception,err:
+            log.warning("Failed to query context: {0} | {1}".format(_name,err))
+    
+    pprint.pprint(_res)
+    return _res
+            
 def uiSetup_context(self,prefix=False):
     self._l_contexts = _l_contexts
     self._l_contextTime = _l_contextTime
@@ -127,12 +158,12 @@ def uiSetup_context(self,prefix=False):
     
     for a,d in _d_contextAttrs.iteritems():
         if prefix:
-            _name = "cgmVar_{0}_{1}".format(prefix,a) 
+            _name = "cgmVar_mrsContext_{0}_{1}".format(prefix,a) 
         else:
-            _name = "cgmVar_{0}".format(a)
+            _name = "cgmVar_mrsContext_{0}".format(a)
         
-        self.__dict__['var_{0}'.format(a)] = cgmMeta.cgmOptionVar(_name, defaultValue = d['dv'])
-        log.info(cgmGEN.logString_msg('uiSetup_context', self.__dict__['var_{0}'.format(a)]))
+        self.__dict__['var_mrsContext_{0}'.format(a)] = cgmMeta.cgmOptionVar(_name, defaultValue = d['dv'])
+        log.info(cgmGEN.logString_msg('uiSetup_context', self.__dict__['var_mrsContext_{0}'.format(a)]))
             
     return
     try:self.var_poseMatchMethod
@@ -194,7 +225,7 @@ def uiColumn_context(self,parent,header=False):
     _l_order = ['core','children','siblings','mirror']
     self._dCB_contextOptions = {}
     for k in _l_order:
-        _plug = 'cgmVar_mrsContext_' + self.__class__.TOOLNAME + k
+        _plug = 'cgmVar_mrsContext_' + self.__class__.TOOLNAME + '_'+ k
         _selfPlug = 'var_mrsContext_'+k
         try:self.__dict__[_selfPlug]
         except:
@@ -526,7 +557,7 @@ class dat(object):
                         
         _keys = kws.keys()
         
-        context = kws.get('context') or self.var_mrsContext_mode.value
+        context = kws.get('mode') or self.var_mrsContext_mode.value
         b_children = kws.get('children') or self.var_mrsContext_children.value
         b_siblings = kws.get('siblings') or self.var_mrsContext_siblings.value
         b_mirror = kws.get('mirror') or self.var_mrsContext_mirror.value
