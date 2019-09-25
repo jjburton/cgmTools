@@ -47,7 +47,6 @@ import cgm.core.lib.name_utils as NAMES
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
-reload(cgmGEN)
 from cgm.core import cgm_Meta as cgmMeta
 import cgm.core.lib.transform_utils as TRANS
 from cgm.core.cgmPy import path_Utils as CGMPATH
@@ -55,18 +54,19 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.dynParentTool as DYNPARENTTOOL
-reload(DYNPARENTTOOL)
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.search_utils as SEARCH
-reload(SEARCH)
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
-reload(RIGGEN)
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
 reload(MMUTILS)
+
+import cgm.core.mrs.PoseManager as POSEMANAGER
+reload(POSEMANAGER)
+
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
                                    ml_resetChannels,
@@ -132,6 +132,10 @@ class ui(cgmUI.cgmGUI):
         self._l_contextTime = _l_contextTime
         self._l_contextKeys = _l_contextKeys
         
+        MRSANIMUTILS.uiSetup_context(self,self.__class__.TOOLNAME)
+        
+
+        """
         try:self.var_poseMatchMethod
         except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
             
@@ -144,7 +148,7 @@ class ui(cgmUI.cgmGUI):
         try:self.var_mrsContextKeys
         except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                           defaultValue = 'each')
-        
+        """
         self.filterSettings = r9Core.FilterNode_Settings()
         self.filterSettings.metaRig = False
         self.filterSettings.transformClamp = False
@@ -361,6 +365,7 @@ class ui(cgmUI.cgmGUI):
         self.cgmUITab_setup = ui_tabs
         
         uiTab_mrs = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
+        #uiTab_poses = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
         uiTab_anim = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')        
         uiTab_settings = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
 
@@ -368,6 +373,8 @@ class ui(cgmUI.cgmGUI):
             ui_tabs.setLabel(i,tab)
 
         buildTab_mrs(self,uiTab_mrs)
+        #buildTab_poses(self,uiTab_poses)
+        
         #buildTab_anim(self,uiTab_poses)
         reload(TOOLBOX)
         TOOLBOX.optionVarSetup_basic(self)
@@ -1747,8 +1754,33 @@ class ui(cgmUI.cgmGUI):
 
 
 
+def buildTab_poses(self,parent):
+  
+    #_column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
+    _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
+    
+    parent(edit = True,
+           af = [(_column,"top",0),
+                 (_column,"left",0),
+                 (_column,"right",0),                        
+                 (_column,"bottom",0)])
+    
+    #_context = MRSANIMUTILS.uiColumn_context(self,_column,header=True)
+
+    _manager = POSEMANAGER.manager(parent = _column)
+    self.mPoseManager = _manager
+    for k in self.__dict__.keys():
+        if str(k).startswith('var_'):
+            self.mPoseManager.__dict__[k] = self.__dict__[k]
+    
+    return _column 
 
 def buildTab_mrs(self,parent):
+    _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
+    
+    _context = MRSANIMUTILS.uiColumn_context(self,_column,header=True)
+    
+    """
     #>>>Context set -------------------------------------------------------------------------------    
     _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
     
@@ -1760,7 +1792,7 @@ def buildTab_mrs(self,parent):
 
     uiRC = mUI.MelRadioCollection()
     
-    mVar = self.var_mrsContext
+    mVar = self.var_mrsContext_mode
     _on = mVar.value
 
     for i,item in enumerate(_l_contexts):
@@ -1809,7 +1841,7 @@ def buildTab_mrs(self,parent):
     mUI.MelSpacer(_rowContextSub,w=5)                      
         
     _rowContextSub.layout()
-    
+    """
 
     
     
@@ -1850,9 +1882,9 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
         log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
         
         
-        _context = kws.get('context') or self.var_mrsContext.value
-        _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-        _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+        _context = kws.get('context') or self.var_mrsContext_mode.value
+        _contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+        _contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
         _frame = SEARCH.get_time('current')
         self.mDat.d_context['frameInitial'] = _frame
         
@@ -2118,9 +2150,9 @@ def uiCB_contextualAction(self,**kws):
         l_kws.append("{0}:{1}".format(k,v))
     
     _mode = kws.pop('mode',False)
-    _context = kws.get('context') or self.var_mrsContext.value
-    _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-    _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+    _context = kws.get('context') or self.var_mrsContext_mode.value
+    _contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+    _contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
     
 
     d_context = {}
@@ -2495,7 +2527,7 @@ def uiCB_contextualAction(self,**kws):
                             elif _mode == 'resetDirect':
                                 _tag = 'direct'
                                 
-                            l_use = d_buffer.get(mObj,[])
+                            l_use = d_buffer.get(mPart,[])
                             if not l_use:
                                 log.info("Buffering controls for: {0}".format(mPart))
                                 for mObj in self.mDat.d_context['mModules']:
@@ -2594,15 +2626,15 @@ def uiCB_contextualAction(self,**kws):
 
 def buildFrame_mrsTimeContext(self,parent):
     def setContext_time(self,arg):
-        self.var_mrsContextTime.setValue(arg)
+        self.var_mrsContext_time.setValue(arg)
         updateHeader(self)
     def setContext_keys(self,arg):
-        self.var_mrsContextKeys.setValue(arg)
+        self.var_mrsContext_keys.setValue(arg)
         updateHeader(self)        
         
     def updateHeader(self):
-        self.uiFrame_time(edit=True, label = "Time | {0} - {1}".format(self.var_mrsContextKeys.value,
-                                                                       self.var_mrsContextTime.value))        
+        self.uiFrame_time(edit=True, label = "Time | {0} - {1}".format(self.var_mrsContext_keys.value,
+                                                                       self.var_mrsContext_time.value))        
         
     try:self.var_mrsTimeContextFrameCollapse
     except:self.create_guiOptionVar('mrsTimeContextFrameCollapse',defaultValue = 0)
@@ -2633,7 +2665,7 @@ def buildFrame_mrsTimeContext(self,parent):
 
     uiRC = mUI.MelRadioCollection()
 
-    mVar = self.var_mrsContextKeys
+    mVar = self.var_mrsContext_keys
     _on = mVar.value
 
     for i,item in enumerate(_l_contextKeys):
@@ -2664,7 +2696,7 @@ def buildFrame_mrsTimeContext(self,parent):
 
     uiRC = mUI.MelRadioCollection()
 
-    mVar = self.var_mrsContextTime
+    mVar = self.var_mrsContext_time
     _on = mVar.value
 
     for i,item in enumerate(_l_contextTime):
@@ -3152,7 +3184,19 @@ def buildFrame_poses(self,parent):
                                 expandCommand = lambda:mVar_frame.setValue(0),
                                 collapseCommand = lambda:mVar_frame.setValue(1)
                                 )	
-    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    #_inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
+    
+    
+    _manager = POSEMANAGER.manager(parent = _frame)
+    self.mPoseManager = _manager
+    for k in self.__dict__.keys():
+        if str(k).startswith('var_'):
+            self.mPoseManager.__dict__[k] = self.__dict__[k]
+    
+    return _manager     
+    
+    
+    return
     
     #Vars ==========================================================================
     self.var_pathMode = cgmMeta.cgmOptionVar('cgmVar_mrs_pathMode',defaultValue = 'local')
@@ -4887,14 +4931,14 @@ def mmUI_lower(self,parent):
     #_optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
     #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
     
-    try:self.var_mrsContext
-    except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
+    try:self.var_mrsContext_mode
+    except:self.var_mrsContext_mode = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                       defaultValue = _l_contexts[0])
-    try:self.var_mrsContextTime
-    except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+    try:self.var_mrsContext_time
+    except:self.var_mrsContext_time = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
                                                       defaultValue = 'current')
-    try:self.var_mrsContextKeys
-    except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+    try:self.var_mrsContext_keys
+    except:self.var_mrsContext_keys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                       defaultValue = 'each')    
     
     

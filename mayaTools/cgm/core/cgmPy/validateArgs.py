@@ -10,6 +10,8 @@ This is the Core of the MetaNode implementation of the systems.
 It is uses Mark Jackson (Red 9)'s as a base.
 ================================================================
 """
+__MAYALOCAL = 'VALID'
+
 import sys
 import inspect
 import os.path

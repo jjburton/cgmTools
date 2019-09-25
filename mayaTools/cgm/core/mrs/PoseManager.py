@@ -113,6 +113,9 @@ class pathList(object):
         log.info(cgmGEN.logString_start('//pathList.log_self'))
         log.info(cgmGEN._str_hardBreak)
         
+    def clear(self):
+        self.mOptionVar.clear()
+        self.l_paths = []
 
 def walk_below_dir(arg = _pathTest, tests = None,uiStrings = True,
                    fileTest=None):
@@ -659,7 +662,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 425,350
+    DEFAULT_SIZE = 350,500
     TOOLNAME = 'mrsPoseMananger.ui'
     
     def insert_init(self,*args,**kws):
@@ -677,35 +680,47 @@ class ui(cgmUI.cgmGUI):
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
         
-        MRSANIMUTILS.uiSetup_context(self)
-        #self.uiPopUpMenu_createShape = None
-        #self.uiPopUpMenu_color = None
-        #self.uiPopUpMenu_attr = None
-        #self.uiPopUpMenu_raycastCreate = None
+        MRSANIMUTILS.uiSetup_context(self,self.__class__.TOOLNAME)
 
-        #self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0) 
-        #self.create_guiOptionVar('rayCastFrameCollapse',defaultValue = 0) 
-        #self.create_guiOptionVar('aimFrameCollapse',defaultValue = 0) 
         
 
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_help = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
+        
         #self.uiMenu_Buffers = mUI.MelMenu( l='Buffers', pmc = cgmGEN.Callback(self.buildMenu_buffer))
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		                     
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Settings' )
         
         uiMenuItem_matchMode(self,self.uiMenu_FirstMenu)
         
-        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Utils' )
         
-        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
+                         c = lambda *a:self.do_dock())        
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
+        
+    def buildMenu_help( self, *args):
+        self.uiMenu_help.clear()
+        
+        mUI.MelMenuItem( self.uiMenu_help, l="Get Pose Nodes",
+                         c=lambda *a: self.mManager.get_poseNodes(select=True) )
+        mUI.MelMenuItem( self.uiMenu_help, l="Pose Mananger | log ",
+                         c=lambda *a: self.mManager.log_self( ))
+        mc.menuItem(parent=self.uiMenu_help,
+                    l = 'Get Help',
+                    c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
+                    rp = 'N')    
+        mUI.MelMenuItem( self.uiMenu_help, l="Log Self",
+                         c=lambda *a: cgmUI.log_selfReport(self) )   
+
         
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper'
@@ -714,8 +729,13 @@ class ui(cgmUI.cgmGUI):
         #_column = buildColumn_main(self,_MainForm,True)
         _context = MRSANIMUTILS.uiColumn_context(self,_MainForm,header=True)
         
-        _column = manager(parent = _MainForm)
-    
+        _column = mUI.MelScrollLayout(parent=_MainForm)
+        
+        self.mManager = manager(parent = _column)
+        for k in self.__dict__.keys():
+            if str(k).startswith('var_'):
+                self.mManager.__dict__[k] = self.__dict__[k]
+        
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
         _MainForm(edit = True,
                   af = [(_context,"top",0),
@@ -734,7 +754,7 @@ class ui(cgmUI.cgmGUI):
                   attachNone = [(_row_cgm,"top")])
         
 
-class manager(mUI.MelScrollLayout):
+class manager(mUI.MelColumn):
     USE_Template = 'cgmUITemplate'
 
     def __init__( self,*a,**kw):
@@ -748,14 +768,18 @@ class manager(mUI.MelScrollLayout):
         self.posePathProject = None
         self.posePathSub = None
         self.poseHandlerPaths = None
+        self.tool = None
         
         #Vars ==========================================================================
         self.var_pathMode = cgmMeta.cgmOptionVar('cgmVar_mrs_pathMode',defaultValue = 'local')
         self.var_pathLocal = cgmMeta.cgmOptionVar('cgmVar_mrs_localPosePath',defaultValue = '')
         self.var_pathProject = cgmMeta.cgmOptionVar('cgmVar_mrs_projectPosePath',defaultValue = '')
+        
+        #We're going to not use the path mode for now
+        self.var_pathMode.setValue('local')            
     
-        try:self.var_poseMatchMethod
-        except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')    
+        #try:self.var_poseMatchMethod
+        #except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')    
     
         # Pose Management variables
         self.posePathMode = 'localPoseMode'  # or 'project' : mode of the PosePath field and UI
@@ -831,19 +855,33 @@ class manager(mUI.MelScrollLayout):
         # SubFolder Scroller
         #=====================
         #self.cgmUItslPoseSubFolders = 'cgmUIMRStslPoseSubFolders'
-
-        self.uiHeader = cgmUI.add_Header('Settings')
+        cgmUI.add_LineBreak()        
+        self.uiHeader = cgmUI.add_Header('Paths')
 
         self.uiBuild_path()
+        
+        mc.setParent(self)
+        cgmUI.add_LineBreak()        
+        cgmUI.add_Header('Poses')
         self.uiBuild_searchRow()
         self.uiBuild_posesArea()
         self.mDat = MRSANIMUTILS.MRSDAT
+        
+    def log_self(self):
+        cgmUI.log_selfReport(self)
         
     def _uiCB_getPoseInputNodes(self,**kws):
         '''
         Node passed into the __PoseCalls in the UI
         '''
-        _ml_controls = self.mDat.context_get(**kws)
+        _dat = {
+            'context' : kws.get('context') or self.var_mrsContext_mode.value,
+            'b_children' : kws.get('children') or self.var_mrsContext_children.value,
+            'b_siblings' : kws.get('siblings') or self.var_mrsContext_siblings.value,
+            'b_mirror' : kws.get('mirror') or self.var_mrsContext_mirror.value,
+            'b_core' : kws.get('core') or self.var_mrsContext_core.value,        
+        }
+        _ml_controls = self.mDat.context_get(**_dat)
         
         # posenodes = []
         #_sel = mc.ls(sl=1)
@@ -854,6 +892,9 @@ class manager(mUI.MelScrollLayout):
         #Pose Path ===============================================================================
         uiRow_pose = mUI.MelHSingleStretchLayout(self,ut='cgmUISubTemplate')
         mUI.MelSpacer(uiRow_pose,w=2)    
+        
+        mUI.MelLabel(uiRow_pose,label='Root:')
+        mUI.MelSpacer(uiRow_pose,w=2)    
         """
         self.uiField_path = mUI.MelLabel(uiRow_pose,
                                          ann='Change the current path',
@@ -862,7 +903,7 @@ class manager(mUI.MelScrollLayout):
         
         
         self.cgmUIField_posePath = mUI.MelTextField(uiRow_pose,
-                                                 ann='Testing',
+                                                 ann='The root path for our pose calls',
                                                  #cc = lambda *x:self._uiCB_setPosePath(field=False),
                                                  text = '')
                                                  
@@ -887,6 +928,7 @@ class manager(mUI.MelScrollLayout):
         
         self.uiPopup_setPath()
         
+        """
         #Pose Mode ===============================================================================
         uiRow_poseMode = mUI.MelHSingleStretchLayout(self, ut='cgmUISubTemplate', padding = 10)
         
@@ -917,7 +959,7 @@ class manager(mUI.MelScrollLayout):
             #mUI.MelSpacer(_row,w=1)       
         mUI.MelSpacer(uiRow_poseMode,w=5)                          
         uiRow_poseMode.layout()
-        
+        """
         #directory browser =====================================================================
         buildFrame_mrsPoseDir(self,self)
     def _uiPresetFillFilter(self):
@@ -1124,7 +1166,8 @@ class manager(mUI.MelScrollLayout):
         log.info('PosePath : %s' % path)
         poseNode = r9Pose.PoseData(self.filterSettings)
         #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
-        poseNode.matchMethod = self.var_poseMatchMethod.value#self.matchMethod
+        
+        poseNode.matchMethod = self.tool.var_poseMatchMethod.value#self.matchMethod
 
         nodes = self.get_poseNodes()
 
@@ -1330,18 +1373,22 @@ class manager(mUI.MelScrollLayout):
         #mc.menuItem(label=LANGUAGE_MAP._AnimationUI_.pose_rmb_blender, p=parent,
         #            command=cgmGEN.Callback(self._uiCall, 'PoseBlender'))
         
+        mc.menuItem(label='Switch Mode', p=parent, command=self._uiCB_switchPoseMode)
         
         #Pose basics -----------------------------------------------------------------------
-        mc.menuItem(divider=True, p=parent)
+        mUI.MelMenuItemDiv(parent, label='Pose')
+        
         mc.menuItem(label='Delete', en=enableState, p=parent,
                     command=cgmGEN.Callback(self.uiPose_delete))
         mc.menuItem(label='Rename', en=enableState, p=parent,
                     command=cgmGEN.Callback(self.uiPose_rename))
+        mc.menuItem(label='Duplicate', en=enableState, p=parent,
+                    command=cgmGEN.Callback(self.uiPose_duplicate))        
         #mc.menuItem(label='Select internals', p=parent,
         #            command=cgmGEN.Callback(self._uiPoseSelectObjects))
         
         
-        """
+        
         #Edit pose ------------------------------------------------------------------
         mc.menuItem(divider=True, p=parent)
         mc.menuItem(label='Update pose', en=enableState, p=parent,
@@ -1349,15 +1396,17 @@ class manager(mUI.MelScrollLayout):
         if self.poseGridMode == 'thumb':
             mc.menuItem(label='Update thumb', p=parent, command=cgmGEN.Callback(self._uiPoseUpdateThumb))
         mc.menuItem(label='Update both', en=enableState, p=parent, command=cgmGEN.Callback(self._uiPoseUpdate, True))
-        """
+        
         
         
         #Folders -----------------------------------------------
-        mc.menuItem(divider=True, p=parent)
-        #mc.menuItem(label='Add subfolder', en=enableState, p=parent, command=cgmGEN.Callback(self._uiPoseMakeSubFolder))
-        mc.menuItem(label='Refresh', en=True, p=parent, command=lambda x: self.uiCB_fillPoses(rebuildFileList=True))
+        mUI.MelMenuItemDiv(parent, label='Data')
+        mc.menuItem(label='Add subfolder', en=enableState, p=parent, command=cgmGEN.Callback(self.uiPoseMakeSubFolder))
+
         mc.menuItem(label='Open File', p=parent, command=cgmGEN.Callback(self.uiPose_openFile))
         mc.menuItem(label='Open Dir', p=parent, command=cgmGEN.Callback(self.uiPose_openDir))
+        mc.menuItem(label='Refresh', en=True, p=parent, command=lambda x: self.uiCB_fillPoses(rebuildFileList=True))
+        
         
         #mc.menuItem(divider=True, p=parent)
         #mc.menuItem('red9PoseCompareSM', l=LANGUAGE_MAP._AnimationUI_.pose_rmb_compare, sm=True, p=parent)
@@ -1369,22 +1418,22 @@ class manager(mUI.MelScrollLayout):
         #mc.menuItem(divider=True, p=parent)
         #mc.menuItem(label='Copy Pose', en=enableState, p=parent, command=cgmGEN.Callback(self._uiPoseCopyToProject))
         
-        
-        mc.menuItem(divider=True, p=parent)
-        mc.menuItem(label='Switch Mode', p=parent, command=self._uiCB_switchPoseMode)
     
         if self.poseGridMode == 'thumb':
-            mc.menuItem(divider=True, p=parent)
-            mc.menuItem(label='Thumb - small', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'small'))
-            mc.menuItem(label='Thumb - med', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'medium'))
-            mc.menuItem(label='Thumb - large', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'large'))
-    
+            #mc.menuItem(divider=True, p=parent)
+            mUI.MelMenuItemDiv(parent, label='Thumb Size')
+            
+            mc.menuItem(label='Small', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'small'))
+            mc.menuItem(label='Med', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'medium'))
+            mc.menuItem(label='Large', p=parent, command=cgmGEN.Callback(self._uiCB_setPoseGrid, 'large'))
+            
+        """
         if self.posePath:
             mc.menuItem(divider=True, p=parent)
             self.addPopupMenusFromFolderConfig(parent)
         if self.poseHandlerPaths:
             mc.menuItem(divider=True, p=parent)
-            self.addPopupMenus_PoseHandlers(parent)
+            self.addPopupMenus_PoseHandlers(parent)"""
             
     def addPopupMenusFromFolderConfig(self, parentPopup):
         '''
@@ -1419,7 +1468,7 @@ class manager(mUI.MelScrollLayout):
                                 log.debug('poseHandler file being bound to RMB popup : %s' % handlerPath)
                                 mc.menuItem(label='Add Subfolder : %s' % handler.replace('_poseHandler.py', '').upper(),
                                               en=True, p=parentPopup,
-                                              command=cgmGEN.Callback(self._uiPoseMakeSubFolder, handlerPath))
+                                              command=cgmGEN.Callback(self.uiPoseMakeSubFolder, handlerPath))
     def _uiCB_switchPoseMode(self, *args):
         '''
         Toggle PoseField mode between Grid mode and TextScroll
@@ -1473,6 +1522,7 @@ class manager(mUI.MelScrollLayout):
         # ================================
         if not self.poseGridMode == 'thumb':
             self.uiTS_poses(e=True, vis=True)
+            self.uiTS_poses.clear()
             self.uiSL_poses(e =True, vis=False)
             self.uiGL_poses(e=True, vis=False)
             
@@ -1747,8 +1797,44 @@ class manager(mUI.MelScrollLayout):
         self.uiCB_fillPoses(rebuildFileList=1)
         pose = os.path.basename(newName.split('.pose')[0])
         self.uiPose_select(pose)
+        
+    def uiPose_duplicate(self,*args):
+        '''
+        Duplicate a pose
+        '''
+        import shutil
+        
+        _path = self.uiPose_getPath()
+        
+        if not os.path.exists(_path):
+            raise StandardError('Invalid path: {0}'.format(_path))
+        
+        try:
+            newName = self.uiPose_getSavePath(self.uiPose_getSelected())
+        except ValueError, error:
+            raise ValueError(error)        
+        
+        _newName = newName.split('.pose')[0]
+        
+        log.info('Duplicating as: {0}'.format(_newName))
+        try:
+            shutil.copy2(self.uiPose_getPath(),
+                         os.path.join(self.posePath, '%s.pose' % _newName))
+            shutil.copy2(self.uiPose_getIconPath(),
+                         os.path.join(self.posePath, '%s.bmp' % _newName))
+        except Exception,err:
+            log.error(err)
+            cgmGEN.cgmExceptCB(Exception,err,msg=vars())            
+        
+        
+        self.uiCB_fillPoses(rebuildFileList=1)
+        pose = os.path.basename(_newName)
+        self.uiPose_select(pose)                
+        
+        
+        
+        return
 
-    
     def uiPose_openFile(self, *args):
         import subprocess
         path = os.path.normpath(self.uiPose_getPath())
@@ -1772,16 +1858,16 @@ class manager(mUI.MelScrollLayout):
         if result == 'OK':
             if storeThumbnail:
                 try:
-                    os.remove(self.getIconPath())
+                    os.remove(self.uiPose_getIconPath())
                 except:
                     log.debug('unable to delete the Pose Icon file')
-            self.__PoseSave(self.getPosePath(), storeThumbnail)
-            self._uiCB_selectPose(self.poseSelected)
+            self.__PoseSave(self.uiPose_getPath(), storeThumbnail)
+            self.uiPose_select(self.poseSelected)
     
     def _uiPoseUpdateThumb(self, *args):
         sel = mc.ls(sl=True, l=True)
         mc.select(cl=True)
-        thumbPath = self.getIconPath()
+        thumbPath = self.uiPose_getIconPath()
         if os.path.exists(thumbPath):
             try:
                 os.remove(thumbPath)
@@ -1790,8 +1876,8 @@ class manager(mUI.MelScrollLayout):
         r9General.thumbNailScreen(thumbPath, 128, 128)
         if sel:
             mc.select(sel)
-        self._uiCB_fillPoses()
-        self._uiCB_selectPose(self.poseSelected)
+        self.uiCB_fillPoses()
+        self.uiPose_select(self.poseSelected)
     
     def _uiPoseSelectObjects(self, *args):
         '''
@@ -1809,14 +1895,16 @@ class manager(mUI.MelScrollLayout):
         else:
             raise StandardError('RootNode not Set for Hierarchy Processing')
     
-    def _uiPoseMakeSubFolder(self, handlerFile=None, *args):
+    def uiPoseMakeSubFolder(self, handlerFile=None, *args):
         '''
         Insert a new SubFolder to the posePath, makes the dir and sets
         it up in the UI to be the current active path
         '''
-        basePath = self.cgmUIField_posePath.getValue()
+        
+        basePath = self.posePath#self.cgmUIField_posePath.getValue()
         if not os.path.exists(basePath):
             raise StandardError('Base Pose Path is inValid or not yet set')
+        
         promptstring = 'New Pose Folder Name'
         if handlerFile:
             promptstring = 'New %s POSE Folder Name' % os.path.basename(handlerFile).replace('_poseHandler.py', '').upper()
@@ -1827,15 +1915,19 @@ class manager(mUI.MelScrollLayout):
                 defaultButton='OK',
                 cancelButton='Cancel',
                 dismissString='Cancel')
+        
         if result == 'OK':
             subFolder = mc.promptDialog(query=True, text=True)
-            self.cgmUIField_subPath.setValue(subFolder)
+            #self.cgmUIField_subPath.setValue(subFolder)
             #mc.textFieldButtonGrp('cgmUItfgPoseSubPath', edit=True, text=subFolder)
             self.posePath = os.path.join(basePath, subFolder)
             os.mkdir(self.posePath)
             if handlerFile and os.path.exists(handlerFile):
                 shutil.copy(handlerFile, self.posePath)
-            self._uiCB_pathSwitchInternals()
+            #self._uiCB_pathSwitchInternals()
+            
+            self.uiScrollList_dir.rebuild()
+            self.uiCB_fillPoses(True)
     
     def _uiPoseCopyToProject(self, *args):
         '''
@@ -1901,21 +1993,24 @@ class manager(mUI.MelScrollLayout):
                                            button = 3)
         _popUp = self.uiPop_path 
     
-        mUI.MelMenuItem(_popUp,
-                        label = "Set Path",
-                        en=False)     
-        mUI.MelMenuItemDiv(_popUp)
+        #mUI.MelMenuItem(_popUp,
+                        #label = "Set Path",
+                        #en=False)     
+        mUI.MelMenuItemDiv(_popUp, label='Set to Recent')
         
-        _recent = mUI.MelMenuItem(_popUp,subMenu = True,
-                                  label = 'recent',
-                                  en=True)
         
         self.mPathList.verify()
-        for p in self.mPathList.l_paths:
-            mUI.MelMenuItem(_recent,
-                            label = PATHS.Path(p).asTruncate(2),
-                            ann = "Set the pathto: {0}".format(p),
+        for i,p in enumerate(self.mPathList.l_paths):
+            mUI.MelMenuItem(_popUp,
+                            label = PATHS.Path(p).asTruncate(2,2),
+                            ann = "Set the path to: {0} | {1}".format(i,p),
                             c=cgmGEN.Callback(self.uiCB_setPosePath,p))
+            
+        mUI.MelMenuItemDiv(_popUp)
+        mUI.MelMenuItem(_popUp,
+                        label = "Clear Recent",
+                        ann="Clear the recent directorie",
+                        c=cgmGEN.Callback(self.mPathList.clear))
         
         """
         for k,l in CURVES._d_shapeLibrary.iteritems():
@@ -1997,11 +2092,11 @@ class manager(mUI.MelScrollLayout):
         :param mode: 'local' or 'project', in project the poses are load only, save=disabled
         '''
         if mode == 'local' or mode == 'localPoseMode':
-            self.posePath = os.path.join(self.posePathLocal, self.getPoseSubFolder())
-            if not PATHS.Path(self.posePath):#os.path.exists(self.posePath):
-                log.warning('No Matching Local SubFolder path found - Reverting to Root')
-                self._uiCB_clearSubFolders()
-                self.posePath = self.posePathLocal
+            #self.posePath = os.path.join(self.posePathLocal, self.getPoseSubFolder())
+            #if not PATHS.Path(self.posePath):#os.path.exists(self.posePath):
+            #    log.warning('No Matching Local SubFolder path found - Reverting to Root')
+            #    self._uiCB_clearSubFolders()
+            self.posePath = self.posePathLocal
     
             self.posePathMode = 'localPoseMode'
             if self.poseProjectMute:
@@ -2012,11 +2107,11 @@ class manager(mUI.MelScrollLayout):
             self.cgmUIField_posePath.setValue(self.posePath)
             
         elif mode == 'project' or mode == 'projectPoseMode':
-            self.posePath = os.path.join(self.posePathProject, self.getPoseSubFolder())
-            if not PATHS.Path(self.posePath):#os.path.exists(self.posePath):
-                log.warning('No Matching Project SubFolder path found - Reverting to Root')
-                self._uiCB_clearSubFolders()
-                self.posePath = self.posePathProject
+            #self.posePath = os.path.join(self.posePathProject, self.getPoseSubFolder())
+            #if not PATHS.Path(self.posePath):#os.path.exists(self.posePath):
+            #    log.warning('No Matching Project SubFolder path found - Reverting to Root')
+            #    self._uiCB_clearSubFolders()
+            self.posePath = self.posePathProject
     
             self.posePathMode = 'projectPoseMode'
             if self.poseProjectMute:
@@ -2026,7 +2121,7 @@ class manager(mUI.MelScrollLayout):
             self.cgmUIField_posePath.setValue(self.posePath)
             
             
-        mc.scrollLayout(self.cgmUIglPoseScroll, edit=True, sp='up')  # scroll the layout to the top!
+        #mc.scrollLayout(self.cgmUIglPoseScroll, edit=True, sp='up')  # scroll the layout to the top!
     
         self.ANIM_UI_OPTVARS['AnimationUI']['posePathMode'] = self.posePathMode
         #self._uiCB_fillPoses(rebuildFileList=True)
@@ -2490,7 +2585,7 @@ class mrsPoseDirList(mUI.BaseMelWidget):
                     'right':[.9,.2,.2]}
 
         for i,uiString in enumerate(_l_uiStrings):
-            _color = [.9,.2,.2]#d_colors.get(d_colors['center'])
+            _color = [1,.5,0]#d_colors.get(d_colors['center'])
             self._l_itc.append(_color)            
             self._d_itc[uiString] = _color
             
@@ -2568,7 +2663,7 @@ def mrsPoseDirSelect(self,ui = None):
     else:
         _str = ' | '.join(_d['split'][-_d['depth']:])
         
-    ui.uiFrame_subDir(edit=1, label = "Sub : {0} ".format(_d['mPath'].asTruncate(2)))
+    ui.uiFrame_subDir(edit=1, label = "Sub : {0} ".format(_d['mPath'].asTruncate(2,2)))
     
     ui.posePath = _d['raw'].asFriendly()#_dir[0]
     ui.uiCB_fillPoses(True)

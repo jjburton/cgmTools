@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'RIGBLOCKS'
+
 import maya.cmds as mc
 
 import random
@@ -139,13 +141,16 @@ def get_callSize(mode = None, arg = None, blockType = None, blockProfile = None,
         elif VALID.objString(mode,noneValid=True):
             arg = mode
             mode = 'selection'
+            
         if VALID.isListArg(mode):
             if len(mode)==3:
                 _valueList = True
                 for v in mode:
-                    if not VALID.valueArg(v):
+                    if VALID.valueArg(v) is False:
+                        log.info("|{0}| >> Invalid value arg: {1}".format(_str_func,v))                
                         _valueList = False
                         break
+                    
                 if _valueList:
                     return floatValues(mode)
                 
@@ -4263,11 +4268,13 @@ class cgmRigMaster(cgmMeta.cgmObject):
     
             _size = kws.get('size',None)
             _sel = mc.ls(sl=1) or None
-            _callSize = get_callSize(_size,_sel)
-            log.debug("|{0}| >> call size: {1}".format(_str_func,_callSize))            
-            kws['size'] = _callSize#...push back new value
+            log.debug("|{0}| >> size: {1} | sel: {2}".format(_str_func,_size,_sel))
             
-    
+            _callSize = get_callSize(_size,_sel)
+            log.debug("|{0}| >> call size: {1}".format(_str_func,_callSize))
+            
+            kws['size'] = _callSize#...push back new value
+
             super(cgmRigMaster, self).__init__(*args,**kws)
             
             #====================================================================================	

@@ -115,23 +115,42 @@ def ik_bankRollShapes(self):
 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
+_d_contextAttrs = {'poseMatchMethod':{'dv':'base'},
+                   'mrsContext_time':{'dv':'current'},
+                   'mrsContext_mode':{'dv':_l_contexts[0]},
+                   'mrsContext_keys':{'dv':'each'}}
 
-def uiSetup_context(self):
+def uiSetup_context(self,prefix=False):
     self._l_contexts = _l_contexts
     self._l_contextTime = _l_contextTime
     self._l_contextKeys = _l_contextKeys
     
+    for a,d in _d_contextAttrs.iteritems():
+        if prefix:
+            _name = "cgmVar_{0}_{1}".format(prefix,a) 
+        else:
+            _name = "cgmVar_{0}".format(a)
+        
+        self.__dict__['var_{0}'.format(a)] = cgmMeta.cgmOptionVar(_name, defaultValue = d['dv'])
+        log.info(cgmGEN.logString_msg('uiSetup_context', self.__dict__['var_{0}'.format(a)]))
+            
+    return
     try:self.var_poseMatchMethod
-    except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
+    except:
+        if toolSpecific:
+            _name = "cgmVar_%s%s"%(self.__class__.TOOLNAME,'poseMatchMethod')            
+        else:
+            _name = "cgmVar_{0}".format('poseMatchMethod')
+            self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
         
     try:self.var_mrsContext
     except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                       defaultValue = _l_contexts[0])
-    try:self.var_mrsContextTime
-    except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+    try:self.var_mrsContext_time
+    except:self.var_mrsContext_time = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
                                                       defaultValue = 'current')
-    try:self.var_mrsContextKeys
-    except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+    try:self.var_mrsContext_keys
+    except:self.var_mrsContext_keys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                       defaultValue = 'each')
         
 def uiColumn_context(self,parent,header=False):
@@ -143,12 +162,10 @@ def uiColumn_context(self,parent,header=False):
         
     
     _rowContext = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding=10)
-    
-
 
     uiRC = mUI.MelRadioCollection()
     
-    mVar = self.var_mrsContext
+    mVar = self.var_mrsContext_mode
     _on = mVar.value
 
     for i,item in enumerate(_l_contexts):
@@ -162,7 +179,6 @@ def uiColumn_context(self,parent,header=False):
 
         #mUI.MelSpacer(_row,w=1)       
     _rowContext.layout() 
-    
     
     #>>>Context Options -------------------------------------------------------------------------------
     _rowContextSub = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
@@ -178,20 +194,21 @@ def uiColumn_context(self,parent,header=False):
     _l_order = ['core','children','siblings','mirror']
     self._dCB_contextOptions = {}
     for k in _l_order:
-        _plug = 'cgmVar_mrsContext_' + k
-        try:self.__dict__[_plug]
+        _plug = 'cgmVar_mrsContext_' + self.__class__.TOOLNAME + k
+        _selfPlug = 'var_mrsContext_'+k
+        try:self.__dict__[_selfPlug]
         except:
             _default = _d_defaults.get(k,0)
             #log.debug("{0}:{1}".format(_plug,_default))
-            self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
+            self.__dict__[_selfPlug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
 
         l = _d.get(k,k)
         
         _cb = mUI.MelCheckBox(_rowContextSub,label=l,
                               annotation = 'Include {0} in context.'.format(k),
-                              value = self.__dict__[_plug].value,
-                              onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
-                              offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+                              value = self.__dict__[_selfPlug].value,
+                              onCommand = cgmGEN.Callback(self.__dict__[_selfPlug].setValue,1),
+                              offCommand = cgmGEN.Callback(self.__dict__[_selfPlug].setValue,0))
         self._dCB_contextOptions[k] = _cb
         
     mUI.MelSpacer(_rowContextSub,w=5)                      
@@ -224,22 +241,23 @@ class dat(object):
                 self.datTarget.__dict__[self.datString] = self.dat
                 
         else:
-            try:self.var_mrsContext
-            except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
+            try:self.var_mrsContext_mode
+            except:self.var_mrsContext_mode = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                               defaultValue = 'control')
-            try:self.var_mrsContextTime
-            except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+            try:self.var_mrsContext_time
+            except:self.var_mrsContext_time = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
                                                               defaultValue = 'current')
-            try:self.var_mrsContextKeys
-            except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+            try:self.var_mrsContext_keys
+            except:self.var_mrsContext_keys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                               defaultValue = 'each')
             
             _l_order = ['children','siblings','mirror','core']
             for k in _l_order:
                 _plug = 'cgmVar_mrsContext_' + k
-                try:self.__dict__[_plug]
+                _selfPlug = 'var_mrsContext_' + k
+                try:self.__dict__[_selfPlug]
                 except:
-                    self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 0)
+                    self.__dict__[_selfPlug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 0)
         
         self.clear()
         
@@ -361,10 +379,10 @@ class dat(object):
             return False
         
         context = self.d_context.get('context') or self.var_mrsContext.value
-        b_children = self.d_context.get('children') or self.cgmVar_mrsContext_children.value
-        b_siblings = self.d_context.get('siblings') or self.cgmVar_mrsContext_siblings.value
-        b_mirror = self.d_context.get('mirror') or self.cgmVar_mrsContext_mirror.value
-        b_core = self.d_context.get('core') or self.cgmVar_mrsContext_core.value
+        b_children = self.d_context.get('children') or self.var_mrsContext_children.value
+        b_siblings = self.d_context.get('siblings') or self.var_mrsContext_siblings.value
+        b_mirror = self.d_context.get('mirror') or self.var_mrsContext_mirror.value
+        b_core = self.d_context.get('core') or self.var_mrsContext_core.value
         
         log.info("context: {0} | children: {1} | siblings: {2} | mirror: {3} | core: {4}".format(context,b_children,b_siblings,b_mirror,b_core))
         
@@ -395,8 +413,8 @@ class dat(object):
         d_timeContext = self.d_timeContext
         
         _context = self.d_timeContext.get('context') or self.var_mrsContext.value
-        _contextTime = self.d_timeContext.get('contextTime') or self.var_mrsContextTime.value
-        _contextKeys = self.d_timeContext.get('contextKeys') or self.var_mrsContextKeys.value
+        _contextTime = self.d_timeContext.get('contextTime') or self.var_mrsContext_time.value
+        _contextKeys = self.d_timeContext.get('contextKeys') or self.var_mrsContext_keys.value
         _frame = self.d_timeContext['frameInitial']
         
 
@@ -508,14 +526,14 @@ class dat(object):
                         
         _keys = kws.keys()
         
-        context = kws.get('context') or self.var_mrsContext.value
-        b_children = kws.get('children') or self.cgmVar_mrsContext_children.value
-        b_siblings = kws.get('siblings') or self.cgmVar_mrsContext_siblings.value
-        b_mirror = kws.get('mirror') or self.cgmVar_mrsContext_mirror.value
-        b_core = kws.get('core') or self.cgmVar_mrsContext_core.value
+        context = kws.get('context') or self.var_mrsContext_mode.value
+        b_children = kws.get('children') or self.var_mrsContext_children.value
+        b_siblings = kws.get('siblings') or self.var_mrsContext_siblings.value
+        b_mirror = kws.get('mirror') or self.var_mrsContext_mirror.value
+        b_core = kws.get('core') or self.var_mrsContext_core.value
         
-        #_contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-        #_contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+        #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+        #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
 
         if context == 'puppet' and b_siblings:
             log.warning("Context puppet + siblings = scene mode")
@@ -961,12 +979,12 @@ class dat(object):
             _keys = kws.keys()
             
             context = kws.get('context') or self.var_mrsContext.value
-            b_children = kws.get('children') or self.cgmVar_mrsContext_children.value
-            b_siblings = kws.get('siblings') or self.cgmVar_mrsContext_siblings.value
-            b_mirror = kws.get('mirror') or self.cgmVar_mrsContext_mirror.value
+            b_children = kws.get('children') or self.var_mrsContext_children.value
+            b_siblings = kws.get('siblings') or self.var_mrsContext_siblings.value
+            b_mirror = kws.get('mirror') or self.var_mrsContext_mirror.value
             
-            #_contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-            #_contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+            #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+            #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
 
             if context == 'puppet' and b_siblings:
                 log.warning("Context puppet + siblings = scene mode")
@@ -1255,8 +1273,8 @@ class dat(object):
             self.d_timeContext['partControls'] = {}
             log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
             _context = kws.get('context') or self.var_mrsContext.value
-            _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-            _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+            _contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+            _contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
             _frame = SEARCH.get_time('current')
             self.d_timeContext['frameInitial'] = _frame
             
@@ -1274,10 +1292,10 @@ class dat(object):
             _keys = kws.keys()
             
             context = kws.get('context') or self.var_mrsContext.value
-            b_children = kws.get('children') or self.cgmVar_mrsContext_children.value
-            b_siblings = kws.get('siblings') or self.cgmVar_mrsContext_siblings.value
-            b_mirror = kws.get('mirror') or self.cgmVar_mrsContext_mirror.value            
-            b_core = kws.get('core') or self.cgmVar_mrsContext_core.value
+            b_children = kws.get('children') or self.var_mrsContext_children.value
+            b_siblings = kws.get('siblings') or self.var_mrsContext_siblings.value
+            b_mirror = kws.get('mirror') or self.var_mrsContext_mirror.value            
+            b_core = kws.get('core') or self.var_mrsContext_core.value
 
             if _context == 'control' and b_siblings:
                 if b_mirror:
