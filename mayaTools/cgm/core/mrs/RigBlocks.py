@@ -3949,6 +3949,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 if mRigBlock:
                     log.info("|{0}| >> from rigBlock...".format(_str_func))                
                     mMasterNull = mRigBlock.doCreateAt()
+                    mMasterNull.resetAttrs()
                 else:
                     mMasterNull = cgmMeta.cgmObject()
             else:

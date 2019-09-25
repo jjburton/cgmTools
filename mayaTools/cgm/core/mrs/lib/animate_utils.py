@@ -130,7 +130,11 @@ def get_contextDict(prefix=False):
             else:
                 _name = "cgmVar_mrsContext_{0}".format(a)
             
-            _res[a] = cgmMeta.cgmOptionVar(_name).value
+            if a in ['poseMatchMethod']:
+                _res[a] = cgmMeta.cgmOptionVar(_name).value
+            else:
+                _res['context'+a.capitalize()] = cgmMeta.cgmOptionVar(_name).value
+                
         except Exception,err:
             log.warning("Failed to query context: {0} | {1}".format(_name,err))
             
@@ -144,7 +148,7 @@ def get_contextDict(prefix=False):
             else:
                 _name = 'cgmVar_mrsContext_'  + k
                 
-            _res[k] = cgmMeta.cgmOptionVar(_name).value
+            _res['context'+k.capitalize()] = cgmMeta.cgmOptionVar(_name).value
         except Exception,err:
             log.warning("Failed to query context: {0} | {1}".format(_name,err))
     
@@ -557,11 +561,12 @@ class dat(object):
                         
         _keys = kws.keys()
         
-        context = kws.get('mode') or self.var_mrsContext_mode.value
-        b_children = kws.get('children') or self.var_mrsContext_children.value
-        b_siblings = kws.get('siblings') or self.var_mrsContext_siblings.value
-        b_mirror = kws.get('mirror') or self.var_mrsContext_mirror.value
-        b_core = kws.get('core') or self.var_mrsContext_core.value
+        
+        context = kws.get('contextMode') or self.var_mrsContext_mode.value
+        b_children = kws.get('contextChildren') or self.var_mrsContext_children.value
+        b_siblings = kws.get('contextSiblings') or self.var_mrsContext_siblings.value
+        b_mirror = kws.get('contextMirror') or self.var_mrsContext_mirror.value
+        b_core = kws.get('contextCore') or self.var_mrsContext_core.value
         
         #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
         #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
@@ -1303,7 +1308,8 @@ class dat(object):
             
             self.d_timeContext['partControls'] = {}
             log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
-            _context = kws.get('context') or self.var_mrsContext.value
+            
+            _context = kws.get('contextMode') or self.var_mrsContext_mode.value
             _contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
             _contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
             _frame = SEARCH.get_time('current')
@@ -1319,10 +1325,10 @@ class dat(object):
             
             log.debug("|{0}| >> context: {1} | {2} - {3} | {4}".format(_str_func,_context,_contextKeys,_contextTime, ' | '.join(kws)))
             
-            #First cather our controls
+            #First gcather our controls
             _keys = kws.keys()
             
-            context = kws.get('context') or self.var_mrsContext.value
+            context = kws.get('context') or self.var_mrsContext_mode.value
             b_children = kws.get('children') or self.var_mrsContext_children.value
             b_siblings = kws.get('siblings') or self.var_mrsContext_siblings.value
             b_mirror = kws.get('mirror') or self.var_mrsContext_mirror.value            

@@ -2392,7 +2392,7 @@ def uiCB_contextualAction(self,**kws):
             self.mDat.key()
             return endCall(self)    
     
-    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**kws)#get_contextTimeDat(self,_mirrorQuery,**kws)
+    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**d_contextSettings)#get_contextTimeDat(self,_mirrorQuery,**kws)
     try:
         if not _res[0]:
             return log.error(_res[1])

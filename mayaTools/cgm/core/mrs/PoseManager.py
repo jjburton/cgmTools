@@ -35,6 +35,7 @@ import Red9.packages.configobj as configobj
 import Red9.startup.setup as r9Setup    
 LANGUAGE_MAP = r9Setup.LANGUAGE_MAP
 
+import cgm.core.lib.name_utils as NAMES
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGEN
@@ -51,13 +52,13 @@ _pathTest = "D:\Dropbox\MK1"
 
 
 def uiMenuItem_matchMode(self,parent):
-    try:self.var_poseMatchMethod
-    except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
+    try:self.var_mrsContext_poseMatchMethod
+    except:self.var_mrsContext_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
         
     uiPoseMatchMode = mc.menuItem(p=parent, l='Pose Match Method ', subMenu=True)
     
     uiRC = mc.radioMenuItemCollection()
-    _v = self.var_poseMatchMethod.value
+    _v = self.var_mrsContext_poseMatchMethod.value
     
     for i,item in enumerate(['base','metaData','stripPrefix','index','mirrorIndex','mirrorIndex_ID']):
         if item == _v:
@@ -65,7 +66,7 @@ def uiMenuItem_matchMode(self,parent):
         else:_rb = False
         mc.menuItem(p=uiPoseMatchMode,collection = uiRC,
                     label=item,
-                    c = cgmGEN.Callback(self.var_poseMatchMethod.setValue,item),
+                    c = cgmGEN.Callback(self.var_mrsContext_poseMatchMethod.setValue,item),
                     rb = _rb)            
 
 class pathList(object):
@@ -778,8 +779,8 @@ class manager(mUI.MelColumn):
         #We're going to not use the path mode for now
         self.var_pathMode.setValue('local')            
     
-        #try:self.var_poseMatchMethod
-        #except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')    
+        #try:self.var_mrsContext_poseMatchMethod
+        #except:self.var_mrsContext_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')    
     
         # Pose Management variables
         self.posePathMode = 'localPoseMode'  # or 'project' : mode of the PosePath field and UI
@@ -874,13 +875,17 @@ class manager(mUI.MelColumn):
         '''
         Node passed into the __PoseCalls in the UI
         '''
+        print 'here'
         _dat = {
-            'context' : kws.get('context') or self.var_mrsContext_mode.value,
-            'b_children' : kws.get('children') or self.var_mrsContext_children.value,
-            'b_siblings' : kws.get('siblings') or self.var_mrsContext_siblings.value,
-            'b_mirror' : kws.get('mirror') or self.var_mrsContext_mirror.value,
-            'b_core' : kws.get('core') or self.var_mrsContext_core.value,        
+            'contextMode' : kws.get('context') or self.var_mrsContext_mode.value,
+            'contextChildren' : kws.get('children') or self.var_mrsContext_children.value,
+            'contextSiblings' : kws.get('siblings') or self.var_mrsContext_siblings.value,
+            'contextMirror' : kws.get('mirror') or self.var_mrsContext_mirror.value,
+            'contextCore' : kws.get('core') or self.var_mrsContext_core.value,        
         }
+        #_contextSettings = MRSANIMUTILS.get_contextDict(self.__class__.TOOLNAME)
+        
+        pprint.pprint(_dat)
         _ml_controls = self.mDat.context_get(**_dat)
         
         # posenodes = []
@@ -1096,7 +1101,7 @@ class manager(mUI.MelColumn):
         l_start = []
         if not nodes:
             log.debug("No nodes found.Checking pose file to build list...")
-            path = self.getPosePath()
+            path = self.uiPose_getPath()
             log.debug('PosePath : %s' % path)
             #poseNode = r9Pose.PoseData(self.filterSettings)
             #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
@@ -1167,7 +1172,7 @@ class manager(mUI.MelColumn):
         poseNode = r9Pose.PoseData(self.filterSettings)
         #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
         
-        poseNode.matchMethod = self.var_poseMatchMethod.value#self.matchMethod
+        poseNode.matchMethod = self.var_mrsContext_poseMatchMethod.value#self.matchMethod
 
         nodes = self.get_poseNodes()
 
@@ -1201,7 +1206,7 @@ class manager(mUI.MelColumn):
         pb = r9Pose.PoseBlender(filepaths=[self.uiPose_getPath()],
                                 nodes = self.get_poseNodes(),
                                 filterSettings=self.filterSettings,
-                                matchMethod = self.var_poseMatchMethod.value,
+                                matchMethod = self.var_mrsContext_poseMatchMethod.value,
                                 useFilter=False)#mc.checkBox(self.cgmUIcbPoseHierarchy, q=True, v=True),
                                 #matchMethod=self.matchMethod)
         pb.show()
