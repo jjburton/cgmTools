@@ -4556,7 +4556,7 @@ class cgmOptionVar(object):
                 except:
                     log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
         object.__setattr__(self, self.name, value)
-        log.info(self)
+        log.debug(self)
 
     def uiPrompt_value(self,title = None):
         if title is None:

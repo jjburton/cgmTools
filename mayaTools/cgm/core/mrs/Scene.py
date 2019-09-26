@@ -60,13 +60,13 @@ example:
 
 		#self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0)
 
-		self.optionVarDirStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_directory_list", varType = "string")
-		self.optionVarLastDirStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_directory", varType = "string")
-		self.optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_asset", varType = "string")
-		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_animation", varType = "string")
-		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_variation", varType = "string")
-		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_last_version", varType = "string")
-		self.optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_importer_export_directory", varType = "string")
+		self.optionVarDirStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_directory_list", varType = "string")
+		self.optionVarLastDirStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_directory", varType = "string")
+		self.optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
+		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
+		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
+		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
+		self.optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_export_directory", varType = "string")
 		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		
@@ -160,7 +160,7 @@ example:
 		self.categoryStore.setValue( self.categoryIndex )
 		#mc.optionVar( stringValue = [self.exportCommandStore, self.exportCommand] )
 		
-		self.LoadVersionList()
+		#self.LoadVersionList()
 
 	def TagAsset(self, *args):
 		pass
@@ -668,7 +668,7 @@ example:
 		b = mUI.MelButton(rcl, label='clear', ut='cgmUISubTemplate')
 
 		tsl = cgmUI.cgmScrollList(form)
-		tsl.allowMultiSelect = False
+		tsl.allowMultiSelect(False)
 
 		if sc != None:
 			tsl(edit = True, sc=sc)
@@ -882,8 +882,8 @@ example:
 			self.exportDirectory = x[0]
 
 		self.exportDirectoryTF.setValue( self.exportDirectory )
-
-		self.SaveOptions()
+		self.optionVarExportDirStore.setValue( self.exportDirectory )
+		#self.SaveOptions()
 
 	def ChangeExportDirectory(self, *args):
 		newPath = self.exportDirectory
@@ -1330,3 +1330,24 @@ example:
 				mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
 			
 		return True
+
+def PurgeData():
+	optionVarDirStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_directory_list", varType = "string")
+	optionVarDirStore.purge()
+	optionVarLastDirStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_directory", varType = "string")
+	optionVarLastDirStore.purge()
+	optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
+	optionVarLastAssetStore.purge()
+	optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
+	optionVarLastAnimStore.purge()
+	optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
+	optionVarLastVariationStore.purge()
+	optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
+	optionVarLastVersionStore.purge()
+	optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_export_directory", varType = "string")
+	optionVarExportDirStore.purge()
+	showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
+	showBakedStore.purge()
+	categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
+	categoryStore.purge()
+	
