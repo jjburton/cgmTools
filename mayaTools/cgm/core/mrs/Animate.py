@@ -285,9 +285,11 @@ class ui(cgmUI.cgmGUI):
         log.debug("buildMenu_switch..."+'-'*50)
         self.uiMenu_switch.clear()
         
+        d_contextSettings = MRSANIMUTILS.get_contextDict(self.__class__.TOOLNAME)
+        
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
         #pprint.pprint(self._ml_objList)
-        DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True)
+        DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True,d_contextSettings)
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
@@ -307,6 +309,9 @@ class ui(cgmUI.cgmGUI):
         
         
         #MatchMode ...
+        POSEMANAGER.uiMenuItem_matchMode(self,self.uiMenu_FirstMenu)
+        
+        """
         uiPoseMatchMode = mc.menuItem(p=parent, l='Pose Match Method ', subMenu=True)
         
         uiRC = mc.radioMenuItemCollection()
@@ -320,7 +325,7 @@ class ui(cgmUI.cgmGUI):
                         label=item,
                         c = cgmGEN.Callback(self.var_poseMatchMethod.setValue,item),
                         rb = _rb)        
-        
+        """
         
         
     
@@ -369,7 +374,7 @@ class ui(cgmUI.cgmGUI):
         uiTab_anim = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')        
         uiTab_settings = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
 
-        for i,tab in enumerate(['MRS','Anim','Settings']):
+        for i,tab in enumerate(['Anim','Tools','Settings']):
             ui_tabs.setLabel(i,tab)
 
         buildTab_mrs(self,uiTab_mrs)
@@ -1843,6 +1848,7 @@ def buildTab_mrs(self,parent):
     _rowContextSub.layout()
     """
 
+    buildFrame_mrsTimeContext(self,_column)                
     
     
     #Column below =================================================================
@@ -1851,7 +1857,6 @@ def buildTab_mrs(self,parent):
     mc.setParent(_columnBelow)
     buildFrame_mrsList(self,_columnBelow)    
     buildFrame_mrsAnim(self,_columnBelow)
-    buildFrame_mrsTimeContext(self,_columnBelow)            
     buildFrame_poses(self,_columnBelow)    
     buildFrame_mrsTween(self,_columnBelow)
     buildFrame_mrsHold(self,_columnBelow)        
@@ -2158,7 +2163,7 @@ def uiCB_contextualAction(self,**kws):
     
 
     _mode = kws.pop('mode',False)
-    _kw_query = {'context':'mode',
+    _kw_query = {'contextMode':'mode',
                  'contextTime':'time',
                  'contextKeys':'keys'}
     
@@ -2728,7 +2733,8 @@ def buildFrame_mrsTimeContext(self,parent):
         #                  ann = "Set time context to: {0}".format(item),                          
         #                  onCommand = cgmGEN.Callback(setContext_time,self,item))        
     _rowContextTime.layout()         
-    
+    mc.setParent(_inside)
+    cgmUI.add_LineBreak()
     updateHeader(self)
     
 def buildFrame_mrsList(self,parent):

@@ -2500,12 +2500,12 @@ class mrsPoseDirList(mUI.BaseMelWidget):
         
         
     
-    def setHLC(self,mBlock=None):
+    def setHLC(self,arg=None):
         log.debug(cgmGEN.logString_start('setHLC'))        
-        if mBlock:
+        if arg:
             try:
-                _color = self._d_itc[mBlock]
-                log.info("{0} | {1}".format(mBlock,_color))
+                _color = self._d_itc[arg]
+                log.info("{0} | {1}".format(arg,_color))
                 _color = [v*.7 for v in _color]
                 self(e =1, hlc = _color)
                 return
@@ -2535,6 +2535,9 @@ class mrsPoseDirList(mUI.BaseMelWidget):
         log.debug(cgmGEN.logString_start('selCommand | {0}'.format(l_indices)))
         
         #self.getSelectedDir()
+        _i = self.getSelectedIdxs() or None
+        if _i is not None:
+            self.setHLC(self._l_uiStrings[_i[0]])
         """
         mBlock = self.getSelectedBlocks()
         if mBlock:
