@@ -1,36 +1,35 @@
 import maya.cmds as mc
 import os
+import pyunify.lib.node as node
 
 def BakeAndPrep():
+    baked = Bake()
+    if baked:
+        prepped = Prep()
+    else:
+        print "Not baked, so not prepping"
+
+    if not prepped:
+        print "Not prepped"
+
+    return prepped
+
+def Bake():
+    baked = False
+
     bakeSetName = "bakeSet"
-    deleteSetName = "deleteSet"
-    exportSetName = "exportSet"
-    
-    if(mc.optionVar(exists='cgm_bake_set')):
-        bakeSetName = mc.optionVar(q='cgm_bake_set')
-    if(mc.optionVar(exists='cgm_delete_set')):
-        deleteSetName = mc.optionVar(q='cgm_delete_set')
-    if(mc.optionVar(exists='cgm_export_set')):
-        exportSetName = mc.optionVar(q='cgm_export_set')
-    
-    # Bake Animation For Export
-    
+    if(mc.optionVar(exists='py_bake_set')):
+        bakeSetName = mc.optionVar(q='py_bake_set')
+
     try:
         topNode = mc.ls(sl=True)[0]
     except:
         print "Select top node and try again."
         return
-    
-    currentTime = mc.currentTime(q=True)
-    
-    topNodeSN = topNode.split(':')[-1]
-    
-    # save
-    loc = mc.file(q=True, loc=True)
-    base, ext = os.path.splitext(loc)
-    bakedLoc = "%s_baked%s" % (base, ext)
 
-    mc.file(rn=bakedLoc)
+    currentTime = mc.currentTime(q=True)
+
+    topNodeSN = topNode.split(':')[-1]
 
     # gather data
     
@@ -44,6 +43,11 @@ def BakeAndPrep():
     # set tangent options to spline
     currentTangent = mc.keyTangent( q=True, g=True, ott=True )[0]
     mc.keyTangent( g=True, ott="spline" )
+    
+    #Eval mode ----
+    _evalMode = mc.evaluationManager(q=True, mode=True)
+    mc.evaluationManager(mode='off')
+    
     
     # bake
     bakeSet = "%s%s" % (ns, bakeSetName)
@@ -63,11 +67,47 @@ def BakeAndPrep():
                         shape = False )
 
         mc.setInfinity(mc.sets( bakeSet, q=True ), pri='constant', poi='constant')
+
+        baked = True
     else:
         print "No bake set found."
+        baked = False
 
     mc.keyTangent( g=True, ott=currentTangent )
-    
+
+    #eval mode restore ----
+    if _evalMode[0] != 'off':
+        print "Eval mode restored: {0}".format(_evalMode[0])
+        
+        mc.evaluationManager(mode = _evalMode[0])
+
+    mc.currentTime(currentTime)
+
+    return baked
+
+def Prep():
+    prepped = True
+
+    deleteSetName = "deleteSet"
+    exportSetName = "exportSet"
+
+    if(mc.optionVar(exists='py_delete_set')):
+        deleteSetName = mc.optionVar(q='py_delete_set')
+    if(mc.optionVar(exists='py_export_set')):
+        exportSetName = mc.optionVar(q='py_export_set')
+
+    try:
+        topNode = mc.ls(sl=True)[0]
+    except:
+        print "Select top node and try again."
+        return
+
+    currentTime = mc.currentTime(q=True)
+
+    topNodeSN = topNode.split(':')[-1]
+
+    namespaces = topNode.split(':')[:-1]
+        
     # import reference
     if( mc.referenceQuery(topNode, isNodeReferenced=True) ):
         refFile = mc.referenceQuery( topNode ,filename=True )
@@ -95,6 +135,7 @@ def BakeAndPrep():
         mc.delete( mc.sets( deleteSet, q=True ) )  
     else:
         print "No delete set found."  
+        prepped = False
 
     # export
     newTopNode = '%s%s' % (ns, topNodeSN)
@@ -115,5 +156,8 @@ def BakeAndPrep():
     else:
         print "No export set found. Selecting top node."
         mc.select( topNode )
+        prepped = False
 
     mc.refresh()
+
+    return prepped

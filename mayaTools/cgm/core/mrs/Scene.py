@@ -1033,7 +1033,7 @@ example:
 		self.LoadVariationList()
 
 	def SaveVersion(self, *args):
-		animationFiles = self.versionList.listItems
+		animationFiles = self.versionList['items']
 
 		animationName = self.animationList['scrollList'].getSelectedItem()
 		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList['scrollList'].getSelectedItem())
@@ -1057,7 +1057,7 @@ example:
 
 			versionFiles = []
 			versions = []
-			for item in self.versionList.listItems:
+			for item in self.versionList['items']:
 				matchString = "^(%s_)[0-9]+\.m." % noVersionName
 				pattern = re.compile(matchString)
 				if pattern.match(item):
@@ -1279,7 +1279,10 @@ example:
 			if( exportAsRig ):
 				exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
-			bakeAndPrep.BakeAndPrep()
+			isPrepped = bakeAndPrep.BakeAndPrep()
+
+			if not isPrepped:
+				return isPrepped
 
 			exportObjs = mc.ls(sl=True)
 
