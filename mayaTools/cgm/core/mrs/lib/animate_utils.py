@@ -311,14 +311,14 @@ class dat(object):
         self._ml_sel = []        
         self.d_timeSnips = {}
         
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def get_all(self,update=False):
         _str_func='dat.get_all'
         log.debug(cgmGEN.logString_start(_str_func))        
         self.dat = get_buffer_dat(update)
         return self.dat
     
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def puppets_scene(self,update=False):
         _str_func='dat.puppets_scene'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -334,7 +334,7 @@ class dat(object):
             for mPuppet in mPuppets_scene:
                 self.puppet_get(mPuppet, update)
     
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def module_get(self, mModule, update=False):
         _str_func='dat.module_get'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -478,7 +478,7 @@ class dat(object):
         pprint.pprint(d_timeContext['res'])
 
             
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def control_get(self, mObj, update=False):
         _str_func='dat.control_get'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -514,7 +514,7 @@ class dat(object):
         self.dat[mObj] = _d
         return _d
 
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def puppet_get(self, mPuppet, update=False):
         _str_func='dat.puppet_get'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -554,19 +554,20 @@ class dat(object):
     def get_buffer(self,context,children,siblings):
         pass
     
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def context_get(self, mObj = None, addMirrors = False, mirrorQuery = False, **kws):
         _str_func='context_get'
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
                         
         _keys = kws.keys()
         
+        pprint.pprint(kws)
         
-        context = kws.get('contextMode') or self.var_mrsContext_mode.value
-        b_children = kws.get('contextChildren') or self.var_mrsContext_children.value
-        b_siblings = kws.get('contextSiblings') or self.var_mrsContext_siblings.value
-        b_mirror = kws.get('contextMirror') or self.var_mrsContext_mirror.value
-        b_core = kws.get('contextCore') or self.var_mrsContext_core.value
+        context = kws.get('contextMode',self.var_mrsContext_mode.value)
+        b_children = kws.get('contextChildren', self.var_mrsContext_children.value) 
+        b_siblings = kws.get('contextSiblings', self.var_mrsContext_siblings.value)
+        b_mirror = kws.get('contextMirror',self.var_mrsContext_mirror.value)
+        b_core = kws.get('contextCore',self.var_mrsContext_core.value)
         
         #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
         #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
@@ -1001,11 +1002,11 @@ class dat(object):
         #pprint.pprint(self.d_context)            """
         return self.d_context['mControls']
     
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def get_noDup(self,l):
         return LISTS.get_noDuplicates(l)
     
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def get_contextBAK(self, mObj = None, addMirrors = False, mirrorQuery = False, **kws):
         try:
             
@@ -1295,7 +1296,7 @@ class dat(object):
             return self.d_context['mControls']
         except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
         
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def contextTime_get(self,mirrorQuery=False,**kws):
         try:        
             _str_func='contextTime_get'
@@ -1575,7 +1576,7 @@ class dat(object):
             pprint.pprint(self.d_timeContext)
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def snapShot_get(self,key=None):
         _str_func='get_contextTimeDat'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -1622,7 +1623,7 @@ class dat(object):
                 for a,v in _d_c.iteritems():
                     ATTR.set(c,a,v)
                     
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def mirrorData(self,mode=''):
         ml_nodes = self.d_context['mControls']
         if not ml_nodes:
@@ -1635,7 +1636,7 @@ class dat(object):
             
         r9Anim.MirrorHierarchy().mirrorData(l_strings,mode = mode)
         
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def key(self,):
         ml_nodes = self.d_context['mControls']
         if not ml_nodes:
@@ -1653,7 +1654,7 @@ class dat(object):
         
         
         
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def get_buffer_dat(update = False):
     """
     Data gather for available blocks.
