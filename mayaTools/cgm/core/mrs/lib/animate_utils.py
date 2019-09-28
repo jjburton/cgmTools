@@ -657,8 +657,8 @@ class dat(object):
                     
             self.d_context['mPuppets'] = self.dat['mPuppets']#r9Meta.getMetaNodes(mTypes = 'cgmRigPuppet')
             #self.d_context['mModules'] = self.dat['mModules']
-            for mPuppet in self.d_context['mPuppets']:
-                self.d_context['mControls'].extend(self.d_parts[mPuppet])
+            #for mPuppet in self.d_context['mPuppets']:
+                #self.d_context['mControls'].extend(self.d_parts[mPuppet])
         
             #self.d_context['mControls'] = self.dat['mControls']
             

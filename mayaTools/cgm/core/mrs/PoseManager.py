@@ -79,7 +79,7 @@ class pathList(object):
         log.debug(cgmGEN.logString_start(_str_func))
         mPath = PATHS.Path(arg)
         if mPath.exists():
-            log.debug(cgmGEN.logString_msg(_str_func,'Path exists | {0}'.format(arg)))
+            log.info(cgmGEN.logString_msg(_str_func,'Path exists | {0}'.format(arg)))
             _friendly = mPath.asFriendly()
             self.mOptionVar.append(_friendly)
             self.l_paths.append(_friendly)
@@ -96,7 +96,7 @@ class pathList(object):
             log.debug(p)
             mPath = PATHS.Path(p)
             if not mPath.exists():
-                log.debug(cgmGEN.logString_msg(_str_func,"Path doesn't exists: {0}".format(p)))
+                log.warning(cgmGEN.logString_msg(_str_func,"Path doesn't exist. removing: {0}".format(p)))
                 self.mOptionVar.remove(p)
             else:
                 self.l_paths.append(p)
@@ -2008,7 +2008,7 @@ class manager(mUI.MelColumn):
         self.mPathList.verify()
         for i,p in enumerate(self.mPathList.l_paths):
             mUI.MelMenuItem(_popUp,
-                            label = PATHS.Path(p).asTruncate(2,2),
+                            label = PATHS.Path(p).asTruncate(2,3),
                             ann = "Set the path to: {0} | {1}".format(i,p),
                             c=cgmGEN.Callback(self.uiCB_setPosePath,p))
             
@@ -2256,6 +2256,7 @@ def buildColumn_main(self,parent,asScroll=False):
     
     self.cgmUIField_posePath = mUI.MelTextField(uiRow_pose,
                                              ann='Testing',
+                                             receiveFocusCommand = lambda *x:uiPopup_setPath(self),
                                              cc = lambda *x:self._uiCB_setPosePath(field=False),
                                              text = '')
                                              
