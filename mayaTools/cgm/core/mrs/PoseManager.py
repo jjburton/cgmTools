@@ -66,7 +66,66 @@ def uiMenuItem_matchMode(self,parent):
         mc.menuItem(p=uiPoseMatchMode,collection = uiRC,
                     label=item,
                     c = cgmGEN.Callback(self.var_mrsContext_poseMatchMethod.setValue,item),
-                    rb = _rb)            
+                    rb = _rb)
+        
+def uiMenu_globalContext(self,parent,header=True):
+    #>>>Context set -------------------------------------------------------------------------------    
+    if header:
+        mUI.MelMenuItemDiv( parent, label='Global Context' )
+        
+    _rowContext = mUI.MelHLayout(_column,ut='cgmUISubTemplate',padding=10)
+
+    uiRC = mUI.MelRadioCollection()
+    
+    mVar = self.var_mrsContext_mode
+    _on = mVar.value
+
+    for i,item in enumerate(MRSANIMUTILS._l_contexts):
+        if item == _on:
+            _rb = True
+        else:_rb = False
+        _label = str(_d_contexts[item].get('short',item))
+        uiRC.createButton(_rowContext,label=_label,sl=_rb,
+                          ann = "Set context: {0}".format(item),
+                          onCommand = cgmGEN.Callback(mVar.setValue,item))
+
+        #mUI.MelSpacer(_row,w=1)       
+    _rowContext.layout() 
+    
+    return 
+    #>>>Context Options -------------------------------------------------------------------------------
+    _rowContextSub = mUI.MelHSingleStretchLayout(_column,ut='cgmUISubTemplate',padding = 5)
+    _d = {'children':'chldrn',
+          'siblings':'sblg',
+          'mirror':'mrr'}
+    
+    mUI.MelSpacer(_rowContextSub,w=5)                          
+    mUI.MelLabel(_rowContextSub,l='Options:')
+    _rowContextSub.setStretchWidget( mUI.MelSeparator(_rowContextSub) )
+    
+    _d_defaults = {}
+    _l_order = ['core','children','siblings','mirror']
+    self._dCB_contextOptions = {}
+    for k in _l_order:
+        _plug = 'cgmVar_mrsContext_' + self.__class__.TOOLNAME + '_'+ k
+        _selfPlug = 'var_mrsContext_'+k
+        try:self.__dict__[_selfPlug]
+        except:
+            _default = _d_defaults.get(k,0)
+            #log.debug("{0}:{1}".format(_plug,_default))
+            self.__dict__[_selfPlug] = cgmMeta.cgmOptionVar(_plug, defaultValue = _default)
+
+        l = _d.get(k,k)
+        
+        _cb = mUI.MelCheckBox(_rowContextSub,label=l,
+                              annotation = 'Include {0} in context.'.format(k),
+                              value = self.__dict__[_selfPlug].value,
+                              onCommand = cgmGEN.Callback(self.__dict__[_selfPlug].setValue,1),
+                              offCommand = cgmGEN.Callback(self.__dict__[_selfPlug].setValue,0))
+        self._dCB_contextOptions[k] = _cb
+    mUI.MelSpacer(_rowContextSub,w=5)                      
+    _rowContextSub.layout()
+    return _column
 
 class pathList(object):
     def __init__(self, optionVar = 'testPath'):

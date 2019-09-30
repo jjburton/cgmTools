@@ -4968,7 +4968,7 @@ def mmUI_lower(self,parent):
     
     #_optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
     #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
-    
+    """
     try:self.var_mrsContext_mode
     except:self.var_mrsContext_mode = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                       defaultValue = _l_contexts[0])
@@ -4978,10 +4978,11 @@ def mmUI_lower(self,parent):
     try:self.var_mrsContext_keys
     except:self.var_mrsContext_keys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                       defaultValue = 'each')    
+    """
     
     
     #Change space menu
-    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
+    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False,{'contextTime':'current','contextKeys':'each'})
 
     #>>> Control ==========================================================================================    
     mmUI_controls(self,parent)

@@ -1101,6 +1101,9 @@ def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}):
         if showNoSel:mUI.MelMenuItem( parent, l="Nothing Selected")    
         return
         
+    log.info(cgmGEN.logString_sub(_str_func,'Time Context'))
+    pprint.pprint(d_timeContext)
+    
     
     #>>  Individual objects....  ============================================================================
     self.md_spaceSwitchDat = {}

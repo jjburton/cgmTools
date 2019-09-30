@@ -30,21 +30,14 @@ from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
-
-#reload(LOCINATOR)
 import cgm.core.tools.toolbox as TOOLBOX
-#reload(TOOLBOX)
 import cgmToolbox
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 reload(DYNPARENTTOOL)
 from cgm.core.mrs import Builder as RBUILDER
 from cgm.core.lib import node_utils as NODES
-#from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
-#reload(MMPuppet)
 import cgm.core.mrs.Animate as MRSANIMATE
-#reload(MRSANIMATE)
-#reload(mmTemplate)
-#from cgm.core.lib.zoo import baseMelUI as mUI
+reload(MRSANIMATE)
 from cgm.lib import search
 from cgm.lib import locators
 from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
@@ -52,22 +45,13 @@ from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.tools import meshTools
 from cgm.core.tools import attrTools as ATTRTOOLS
 import cgm.core.tools.setTools as SETTOOLS
-reload(SETTOOLS)
-#from cgm.tools import locinator
-#from cgm.tools import tdTools
-#from cgm.tools import attrTools
 import cgm.core.rig.general_utils as RIGGEN
-reload(RIGGEN)
 import cgm.core.lib.name_utils as NAMES
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
-reload(TOOLCALLS)
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
-#reload(UISNAPCALLS)
 import cgm.core.tools.lib.annotations as TOOLANNO
-#reload(TOOLANNO)
 import cgm.core.rig.joint_utils as JOINTS
-#reload(JOINTS)
 """
 reload(UICHUNKS)
 reload(MMPuppet)
