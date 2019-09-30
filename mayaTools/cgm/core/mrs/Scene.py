@@ -1000,13 +1000,13 @@ example:
 			self.LoadAnimationList()
 
 			self.animationList['scrollList'].selectByValue( animName)
-			self.LoadAnimationList()
-			self.LoadVersionList()
+			#self.LoadAnimationList()
 			self.LoadVariationList()
+			#self.LoadVariationList()
 			
-			self.versionList['scrollList'].selectByValue( '01')
+			self.variationList['scrollList'].selectByValue( '01')
+			#self.LoadVersionList()
 			self.LoadVersionList()
-			self.LoadVariationList()
 
 			createPrompt = mc.confirmDialog(
 				title='Create?',
@@ -1031,6 +1031,9 @@ example:
 		os.mkdir(os.path.normpath(os.path.join(self.animationDirectory, '%02d' % newVariation)))
 
 		self.LoadVariationList()
+		self.variationList['scrollList'].selectByValue('%02d' % newVariation)
+
+		self.LoadVersionList()
 
 	def SaveVersion(self, *args):
 		animationFiles = self.versionList['items']
