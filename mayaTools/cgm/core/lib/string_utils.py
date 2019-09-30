@@ -7,7 +7,7 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
-__MAYALOCAL = 'STRING'
+__MAYALOCAL = 'CORESTRING'
 
 import pprint
 import cgm.core.cgm_General as cgmGEN
@@ -59,12 +59,16 @@ def camelCase(arg = None):
                         _first = True
                     else:
                         l_new.append(a[0].capitalize()+a[1:])
-                
         return ''.join(l_new)
-
-
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+        
+
+def short(arg = 'D:\repos\cgmtools\mayaTools\cgm\core\mrs\PoseManager.py',max = 10):
+    if len(arg) < max:
+        return arg
+    return ("...  {0}".format(arg[-max:]))
+    
         
 #>>> Utilities
 #===================================================================

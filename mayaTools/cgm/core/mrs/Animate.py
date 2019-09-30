@@ -47,7 +47,6 @@ import cgm.core.lib.name_utils as NAMES
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
-reload(cgmGEN)
 from cgm.core import cgm_Meta as cgmMeta
 import cgm.core.lib.transform_utils as TRANS
 from cgm.core.cgmPy import path_Utils as CGMPATH
@@ -55,18 +54,20 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.dynParentTool as DYNPARENTTOOL
-reload(DYNPARENTTOOL)
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.search_utils as SEARCH
-reload(SEARCH)
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
-reload(RIGGEN)
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
+
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
 reload(MMUTILS)
+
+import cgm.core.mrs.PoseManager as POSEMANAGER
+reload(POSEMANAGER)
+
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
                                    ml_resetChannels,
@@ -81,23 +82,12 @@ from cgm.core.lib.ml_tools import (ml_breakdownDragger,
 #>>> Root settings =============================================================
 __version__ = '1.07162019'
 __toolname__ ='MRSAnimate'
-_d_contexts = {'control':{'short':'ctrl'},
-               'part':{},
-               'puppet':{'short':'char'},
-               'scene':{},
-               'list':{}}
-_l_contexts = ['control','part','puppet','scene','list']
-_l_contextTime = ['back','previous','current','bookEnd','next','forward','slider','selected']
-_d_shorts = {'back':'<-',
-             'previous':'|<',
-             'bookEnd':'|--|',
-             'current':'now',
-             'selected':'sel',
-             'next':'>|',
-             'slider':'[ ]',
-             'forward':'->'}
-_l_contextKeys = ['each','combined']
+_d_contexts = MRSANIMUTILS._d_contexts
+_l_contexts = MRSANIMUTILS._l_contexts
+_l_contextTime = MRSANIMUTILS._l_contextTime
 
+_d_shorts = MRSANIMUTILS._d_timeShorts
+_l_contextKeys = MRSANIMUTILS._l_contextKeys
 
 _subLineBGC = [.75,.75,.75]
 
@@ -133,7 +123,7 @@ class ui(cgmUI.cgmGUI):
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
         
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         self.create_guiOptionVar('puppetFrameCollapse',defaultValue = 0) 
         
         self.uiPopUpMenu_poses = None
@@ -143,6 +133,10 @@ class ui(cgmUI.cgmGUI):
         self._l_contextTime = _l_contextTime
         self._l_contextKeys = _l_contextKeys
         
+        MRSANIMUTILS.uiSetup_context(self,self.__class__.TOOLNAME)
+        
+
+        """
         try:self.var_poseMatchMethod
         except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
             
@@ -155,7 +149,7 @@ class ui(cgmUI.cgmGUI):
         try:self.var_mrsContextKeys
         except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                           defaultValue = 'each')
-        
+        """
         self.filterSettings = r9Core.FilterNode_Settings()
         self.filterSettings.metaRig = False
         self.filterSettings.transformClamp = False
@@ -292,9 +286,10 @@ class ui(cgmUI.cgmGUI):
         log.debug("buildMenu_switch..."+'-'*50)
         self.uiMenu_switch.clear()
         
+        d_contextSettings = MRSANIMUTILS.get_contextDict(self.__class__.TOOLNAME)
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
         #pprint.pprint(self._ml_objList)
-        DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True)
+        DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True,d_contextSettings)
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
@@ -314,6 +309,9 @@ class ui(cgmUI.cgmGUI):
         
         
         #MatchMode ...
+        POSEMANAGER.uiMenuItem_matchMode(self,self.uiMenu_FirstMenu)
+        
+        """
         uiPoseMatchMode = mc.menuItem(p=parent, l='Pose Match Method ', subMenu=True)
         
         uiRC = mc.radioMenuItemCollection()
@@ -327,7 +325,7 @@ class ui(cgmUI.cgmGUI):
                         label=item,
                         c = cgmGEN.Callback(self.var_poseMatchMethod.setValue,item),
                         rb = _rb)        
-        
+        """
         
         
     
@@ -372,13 +370,16 @@ class ui(cgmUI.cgmGUI):
         self.cgmUITab_setup = ui_tabs
         
         uiTab_mrs = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
+        #uiTab_poses = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
         uiTab_anim = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')        
         uiTab_settings = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
 
-        for i,tab in enumerate(['MRS','Anim','Settings']):
+        for i,tab in enumerate(['Anim','Tools','Settings']):
             ui_tabs.setLabel(i,tab)
 
         buildTab_mrs(self,uiTab_mrs)
+        #buildTab_poses(self,uiTab_poses)
+        
         #buildTab_anim(self,uiTab_poses)
         reload(TOOLBOX)
         TOOLBOX.optionVarSetup_basic(self)
@@ -1758,8 +1759,33 @@ class ui(cgmUI.cgmGUI):
 
 
 
+def buildTab_poses(self,parent):
+  
+    #_column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
+    _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
+    
+    parent(edit = True,
+           af = [(_column,"top",0),
+                 (_column,"left",0),
+                 (_column,"right",0),                        
+                 (_column,"bottom",0)])
+    
+    #_context = MRSANIMUTILS.uiColumn_context(self,_column,header=True)
+
+    _manager = POSEMANAGER.manager(parent = _column)
+    self.mPoseManager = _manager
+    for k in self.__dict__.keys():
+        if str(k).startswith('var_'):
+            self.mPoseManager.__dict__[k] = self.__dict__[k]
+    
+    return _column 
 
 def buildTab_mrs(self,parent):
+    _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
+    
+    _context = MRSANIMUTILS.uiColumn_context(self,_column,header=True)
+    
+    """
     #>>>Context set -------------------------------------------------------------------------------    
     _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
     
@@ -1771,7 +1797,7 @@ def buildTab_mrs(self,parent):
 
     uiRC = mUI.MelRadioCollection()
     
-    mVar = self.var_mrsContext
+    mVar = self.var_mrsContext_mode
     _on = mVar.value
 
     for i,item in enumerate(_l_contexts):
@@ -1820,8 +1846,9 @@ def buildTab_mrs(self,parent):
     mUI.MelSpacer(_rowContextSub,w=5)                      
         
     _rowContextSub.layout()
-    
+    """
 
+    buildFrame_mrsTimeContext(self,_column)                
     
     
     #Column below =================================================================
@@ -1830,7 +1857,6 @@ def buildTab_mrs(self,parent):
     mc.setParent(_columnBelow)
     buildFrame_mrsList(self,_columnBelow)    
     buildFrame_mrsAnim(self,_columnBelow)
-    buildFrame_mrsTimeContext(self,_columnBelow)            
     buildFrame_poses(self,_columnBelow)    
     buildFrame_mrsTween(self,_columnBelow)
     buildFrame_mrsHold(self,_columnBelow)        
@@ -1861,9 +1887,9 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
         log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
         
         
-        _context = kws.get('context') or self.var_mrsContext.value
-        _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-        _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+        _context = kws.get('context') or self.var_mrsContext_mode.value
+        _contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+        _contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
         _frame = SEARCH.get_time('current')
         self.mDat.d_context['frameInitial'] = _frame
         
@@ -2128,11 +2154,29 @@ def uiCB_contextualAction(self,**kws):
     for k,v in kws.iteritems():
         l_kws.append("{0}:{1}".format(k,v))
     
-    _mode = kws.pop('mode',False)
-    _context = kws.get('context') or self.var_mrsContext.value
-    _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-    _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+    #_mode = kws.pop('mode',False)
+    #_context = kws.get('context') or self.var_mrsContext_mode.value
+    #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+    #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
     
+    try:contextArg = self.__class__.TOOLNAME
+    except:contextArg = False
+        
+    d_contextSettings = MRSANIMUTILS.get_contextDict(contextArg)
+    
+
+    _mode = kws.pop('mode',False)
+    _kw_query = {'contextMode':'mode',
+                 'contextTime':'time',
+                 'contextKeys':'keys'}
+    
+    for k,k2 in _kw_query.iteritems():
+        if kws.get(k) is not None:
+            d_contextSettings[k2] = kws.get(k)
+            
+    _context = d_contextSettings.get('contextMode')
+    _contextTime = d_contextSettings.get('contextTime')
+    _contextKeys = d_contextSettings.get('contextKeys')
 
     d_context = {}
     _mirrorQuery = False
@@ -2157,7 +2201,12 @@ def uiCB_contextualAction(self,**kws):
         return 
     
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
-    _ml_controls = self.mDat.context_get(mirrorQuery=_mirrorQuery,**kws)
+    
+    pprint.pprint(d_contextSettings)
+    _ml_controls = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
+    
+    if not _ml_controls:
+        return log.error("No controls in context")
     
     #First we see if we have a current only function or current time ========================
     if _mode == 'simpleRes':
@@ -2355,7 +2404,7 @@ def uiCB_contextualAction(self,**kws):
             self.mDat.key()
             return endCall(self)    
     
-    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**kws)#get_contextTimeDat(self,_mirrorQuery,**kws)
+    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**d_contextSettings)#get_contextTimeDat(self,_mirrorQuery,**kws)
     try:
         if not _res[0]:
             return log.error(_res[1])
@@ -2506,7 +2555,7 @@ def uiCB_contextualAction(self,**kws):
                             elif _mode == 'resetDirect':
                                 _tag = 'direct'
                                 
-                            l_use = d_buffer.get(mObj,[])
+                            l_use = d_buffer.get(mPart,[])
                             if not l_use:
                                 log.info("Buffering controls for: {0}".format(mPart))
                                 for mObj in self.mDat.d_context['mModules']:
@@ -2605,15 +2654,15 @@ def uiCB_contextualAction(self,**kws):
 
 def buildFrame_mrsTimeContext(self,parent):
     def setContext_time(self,arg):
-        self.var_mrsContextTime.setValue(arg)
+        self.var_mrsContext_time.setValue(arg)
         updateHeader(self)
     def setContext_keys(self,arg):
-        self.var_mrsContextKeys.setValue(arg)
+        self.var_mrsContext_keys.setValue(arg)
         updateHeader(self)        
         
     def updateHeader(self):
-        self.uiFrame_time(edit=True, label = "Time | {0} - {1}".format(self.var_mrsContextKeys.value,
-                                                                       self.var_mrsContextTime.value))        
+        self.uiFrame_time(edit=True, label = "Time | {0} - {1}".format(self.var_mrsContext_keys.value,
+                                                                       self.var_mrsContext_time.value))        
         
     try:self.var_mrsTimeContextFrameCollapse
     except:self.create_guiOptionVar('mrsTimeContextFrameCollapse',defaultValue = 0)
@@ -2644,7 +2693,7 @@ def buildFrame_mrsTimeContext(self,parent):
 
     uiRC = mUI.MelRadioCollection()
 
-    mVar = self.var_mrsContextKeys
+    mVar = self.var_mrsContext_keys
     _on = mVar.value
 
     for i,item in enumerate(_l_contextKeys):
@@ -2675,7 +2724,7 @@ def buildFrame_mrsTimeContext(self,parent):
 
     uiRC = mUI.MelRadioCollection()
 
-    mVar = self.var_mrsContextTime
+    mVar = self.var_mrsContext_time
     _on = mVar.value
 
     for i,item in enumerate(_l_contextTime):
@@ -2691,7 +2740,8 @@ def buildFrame_mrsTimeContext(self,parent):
         #                  ann = "Set time context to: {0}".format(item),                          
         #                  onCommand = cgmGEN.Callback(setContext_time,self,item))        
     _rowContextTime.layout()         
-    
+    mc.setParent(_inside)
+    cgmUI.add_LineBreak()
     updateHeader(self)
     
 def buildFrame_mrsList(self,parent):
@@ -3163,7 +3213,19 @@ def buildFrame_poses(self,parent):
                                 expandCommand = lambda:mVar_frame.setValue(0),
                                 collapseCommand = lambda:mVar_frame.setValue(1)
                                 )	
-    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    #_inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
+    
+    
+    _manager = POSEMANAGER.manager(parent = _frame)
+    self.mPoseManager = _manager
+    for k in self.__dict__.keys():
+        if str(k).startswith('var_'):
+            self.mPoseManager.__dict__[k] = self.__dict__[k]
+    
+    return _manager     
+    
+    
+    return
     
     #Vars ==========================================================================
     self.var_pathMode = cgmMeta.cgmOptionVar('cgmVar_mrs_pathMode',defaultValue = 'local')
@@ -4756,7 +4818,7 @@ def uiCB_bufferDat(self,update=True):
     _str_func='uiCB_bufferDat'
     log.info(cgmGEN.logString_msg(_str_func))
     reload(MRSANIMUTILS)
-    self.mDat = MRSANIMUTILS.MRSDAT
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
 def uiCB_resetSliderDrop(self):
     _str_func='cgmUICB_resetSliderDrop'
@@ -4848,6 +4910,15 @@ def uiCB_resetSlider(self):
 @cgmGEN.Timer
 def mmUI_radial(self,parent):
     _str_func = "bUI_radial" 
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
+    
+    
+    mc.menuItem(parent = parent,
+                l = 'Select Last Context',
+                #c = cgmGEN.Callback(self.mDat.select_lastContext),
+                c = lambda *x:self.mDat.select_lastContext(),
+                rp = 'W',
+                )     
     
     #====================================================================		
     #mc.menu(parent,e = True, deleteAllItems = True)
@@ -4897,23 +4968,22 @@ def mmUI_lower(self,parent):
     
     #_optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
     #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
-    
-    try:self.var_mrsContext
-    except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
+    """
+    try:self.var_mrsContext_mode
+    except:self.var_mrsContext_mode = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                       defaultValue = _l_contexts[0])
-    try:self.var_mrsContextTime
-    except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+    try:self.var_mrsContext_time
+    except:self.var_mrsContext_time = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
                                                       defaultValue = 'current')
-    try:self.var_mrsContextKeys
-    except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+    try:self.var_mrsContext_keys
+    except:self.var_mrsContext_keys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                       defaultValue = 'each')    
+    """
     
     
     #Change space menu
-    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
-    
-    
-    
+    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False,{'contextTime':'current','contextKeys':'each'})
+
     #>>> Control ==========================================================================================    
     mmUI_controls(self,parent)
     mmUI_part(self,parent)
@@ -4993,7 +5063,7 @@ def mmUI_puppet(self,parent = None):
     mc.menuItem(p=parent,l="-- Puppet --",en=False)
     _context = 'puppet'
     _contextTime = 'current'
-    self.mDat = MRSANIMUTILS.MRSDAT
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
 
     
     #Basic =============================================================================
@@ -5334,7 +5404,7 @@ class mrsScrollList(mUI.BaseMelWidget):
         self.rebuild()
         self.cmd_select = None
         self(e=True, sc = self.selCommand)
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
     def __getitem__( self, idx ):
         return self.getItems()[ idx ]
@@ -5440,7 +5510,7 @@ class mrsScrollList(mUI.BaseMelWidget):
     
     def rebuild( self ):
         _str_func = 'rebuild'
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
         log.debug(cgmGEN.logString_start(_str_func))
         self.b_selCommandOn = False

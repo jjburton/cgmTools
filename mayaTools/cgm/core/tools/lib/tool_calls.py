@@ -35,6 +35,11 @@ def mrsANIMATE():
     reload(MRSANIMATE)
     MRSANIMATE.ui()
     
+def mrsPOSER():
+    import cgm.core.mrs.PoseManager as MRSPOSER
+    reload(MRSPOSER)
+    MRSPOSER.ui()
+    
 def cgmSnapTools():
     try:
         import cgm.core.tools.snapTools as SNAP

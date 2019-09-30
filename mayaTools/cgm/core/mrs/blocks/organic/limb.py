@@ -2339,9 +2339,9 @@ def skeleton_build(self, forceNew = True):
                 mEndAim = ml_jointHelpers.pop(-1)
                 
             
-        #if not _specialEndHandling and not self.buildEnd == 2:
-            #log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
-            #ml_jointHelpers.pop(-1)
+        if not _specialEndHandling and self.buildEnd != 2:
+            log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
+            ml_jointHelpers.pop(-1)
                 
         #pprint.pprint(ml_jointHelpers)
         

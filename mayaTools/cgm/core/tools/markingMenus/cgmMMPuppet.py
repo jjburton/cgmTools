@@ -48,7 +48,7 @@ import cgm.core.tools.lib.tool_calls as TOOLCALLS
 reload(TOOLCALLS)
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-
+import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 

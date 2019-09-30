@@ -4815,7 +4815,7 @@ class cgmOptionVar(object):
         log.info(cgmGEN._str_baseStart * 2 + " OptionVar: {0} | type: {1} | value: {2}".format(self.name,self.varType,self.value))
         if issubclass(type(_value),list):
             for i,v in enumerate(_value):
-                log.info("idx: {0} | obj: {1}".format(i,v))
+                log.info("idx: {0} | {1}".format(i,v))
         log.info(cgmGEN._str_subLine)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
