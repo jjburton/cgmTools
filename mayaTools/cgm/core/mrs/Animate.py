@@ -61,6 +61,7 @@ import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
+
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
 reload(MMUTILS)
 
@@ -122,7 +123,7 @@ class ui(cgmUI.cgmGUI):
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
         
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         self.create_guiOptionVar('puppetFrameCollapse',defaultValue = 0) 
         
         self.uiPopUpMenu_poses = None
@@ -286,7 +287,6 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_switch.clear()
         
         d_contextSettings = MRSANIMUTILS.get_contextDict(self.__class__.TOOLNAME)
-        
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
         #pprint.pprint(self._ml_objList)
         DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True,d_contextSettings)
@@ -4818,7 +4818,7 @@ def uiCB_bufferDat(self,update=True):
     _str_func='uiCB_bufferDat'
     log.info(cgmGEN.logString_msg(_str_func))
     reload(MRSANIMUTILS)
-    self.mDat = MRSANIMUTILS.MRSDAT
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
 def uiCB_resetSliderDrop(self):
     _str_func='cgmUICB_resetSliderDrop'
@@ -4910,6 +4910,15 @@ def uiCB_resetSlider(self):
 @cgmGEN.Timer
 def mmUI_radial(self,parent):
     _str_func = "bUI_radial" 
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
+    
+    
+    mc.menuItem(parent = parent,
+                l = 'Select Last Context',
+                #c = cgmGEN.Callback(self.mDat.select_lastContext),
+                c = lambda *x:self.mDat.select_lastContext(),
+                rp = 'W',
+                )     
     
     #====================================================================		
     #mc.menu(parent,e = True, deleteAllItems = True)
@@ -4973,9 +4982,7 @@ def mmUI_lower(self,parent):
     
     #Change space menu
     DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
-    
-    
-    
+
     #>>> Control ==========================================================================================    
     mmUI_controls(self,parent)
     mmUI_part(self,parent)
@@ -5055,7 +5062,7 @@ def mmUI_puppet(self,parent = None):
     mc.menuItem(p=parent,l="-- Puppet --",en=False)
     _context = 'puppet'
     _contextTime = 'current'
-    self.mDat = MRSANIMUTILS.MRSDAT
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
 
     
     #Basic =============================================================================
@@ -5396,7 +5403,7 @@ class mrsScrollList(mUI.BaseMelWidget):
         self.rebuild()
         self.cmd_select = None
         self(e=True, sc = self.selCommand)
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
     def __getitem__( self, idx ):
         return self.getItems()[ idx ]
@@ -5502,7 +5509,7 @@ class mrsScrollList(mUI.BaseMelWidget):
     
     def rebuild( self ):
         _str_func = 'rebuild'
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
         log.debug(cgmGEN.logString_start(_str_func))
         self.b_selCommandOn = False

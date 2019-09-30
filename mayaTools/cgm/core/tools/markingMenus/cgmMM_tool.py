@@ -42,7 +42,7 @@ from cgm.core.lib import node_utils as NODES
 #from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
 #reload(MMPuppet)
 import cgm.core.mrs.Animate as MRSANIMATE
-reload(MRSANIMATE)
+#reload(MRSANIMATE)
 #reload(mmTemplate)
 #from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.lib import search

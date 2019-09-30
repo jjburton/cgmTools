@@ -44,7 +44,6 @@ import cgm.core.lib.shared_data as SHARED
 import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.images.icons as cgmIcons
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
-reload(MRSANIMUTILS)
 mUI = cgmUI.mUI
 _selfUI = None
 

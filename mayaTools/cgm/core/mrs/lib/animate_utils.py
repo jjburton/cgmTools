@@ -253,12 +253,22 @@ def uiColumn_context(self,parent,header=False):
     return _column
 
 
+def get_sharedDatObject(**kws):
+    global MRSDAT
+    if MRSDAT:
+        log.info('existing global MRSDAT')
+        return MRSDAT
+    
+    log.info('new MRSDAT')
+    return dat(**kws)
 
 class dat(object):
     def __init__(self,datTarget=None,datString='dat',update=False):
         _str_func = 'dat.__init__'
         global MRSDAT
-
+        #if MRSDAT and not update:
+            #self = MRSDAT
+            #return
         self.dat = {}
         
         self.datTarget = None
@@ -276,6 +286,8 @@ class dat(object):
                 self.datTarget.__dict__[self.datString] = self.dat
                 
         else:
+            pass
+            """
             try:self.var_mrsContext_mode
             except:self.var_mrsContext_mode = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                               defaultValue = 'control')
@@ -293,7 +305,7 @@ class dat(object):
                 try:self.__dict__[_selfPlug]
                 except:
                     self.__dict__[_selfPlug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 0)
-        
+                    """
         self.clear()
         
         MRSDAT = self
@@ -413,11 +425,11 @@ class dat(object):
         if not self.d_context:
             return False
         
-        context = self.d_context.get('context') or self.var_mrsContext.value
-        b_children = self.d_context.get('children') or self.var_mrsContext_children.value
-        b_siblings = self.d_context.get('siblings') or self.var_mrsContext_siblings.value
-        b_mirror = self.d_context.get('mirror') or self.var_mrsContext_mirror.value
-        b_core = self.d_context.get('core') or self.var_mrsContext_core.value
+        context = self.d_context.get('context')# or self.var_mrsContext.value
+        b_children = self.d_context.get('children')# or self.var_mrsContext_children.value
+        b_siblings = self.d_context.get('siblings')# or self.var_mrsContext_siblings.value
+        b_mirror = self.d_context.get('mirror')# or self.var_mrsContext_mirror.value
+        b_core = self.d_context.get('core')# or self.var_mrsContext_core.value
         
         log.info("context: {0} | children: {1} | siblings: {2} | mirror: {3} | core: {4}".format(context,b_children,b_siblings,b_mirror,b_core))
         
@@ -447,9 +459,9 @@ class dat(object):
 
         d_timeContext = self.d_timeContext
         
-        _context = self.d_timeContext.get('context') or self.var_mrsContext.value
-        _contextTime = self.d_timeContext.get('contextTime') or self.var_mrsContext_time.value
-        _contextKeys = self.d_timeContext.get('contextKeys') or self.var_mrsContext_keys.value
+        _context = self.d_timeContext.get('context')# or self.var_mrsContext.value
+        _contextTime = self.d_timeContext.get('contextTime')# or self.var_mrsContext_time.value
+        _contextKeys = self.d_timeContext.get('contextKeys')# or self.var_mrsContext_keys.value
         _frame = self.d_timeContext['frameInitial']
         
 
@@ -554,6 +566,16 @@ class dat(object):
     def get_buffer(self,context,children,siblings):
         pass
     
+    def select_lastContext(self):
+        _str_func='select_lastContext'
+        log.info("|{0}| {1} >>  ".format(_str_func, self)+ '-'*80)        
+        ml_buffer = self.d_context.get('mControls')
+        if ml_buffer:
+            l_buffer = [mObj.mNode for mObj in ml_buffer]
+            mc.select(l_buffer)
+            return ml_buffer
+        return False
+    
     #@cgmGEN.Timer
     def context_get(self, mObj = None, addMirrors = False, mirrorQuery = False, **kws):
         _str_func='context_get'
@@ -561,13 +583,15 @@ class dat(object):
                         
         _keys = kws.keys()
         
-        pprint.pprint(kws)
+        #pprint.pprint(kws)
         
-        context = kws.get('contextMode',self.var_mrsContext_mode.value)
-        b_children = kws.get('contextChildren', self.var_mrsContext_children.value) 
-        b_siblings = kws.get('contextSiblings', self.var_mrsContext_siblings.value)
-        b_mirror = kws.get('contextMirror',self.var_mrsContext_mirror.value)
-        b_core = kws.get('contextCore',self.var_mrsContext_core.value)
+        d_globalContext = get_contextDict(kws.get('contextPrefix',False))
+
+        context = kws.get('contextMode',d_globalContext['contextMode'])
+        b_children = kws.get('contextChildren', d_globalContext['contextChildren']) 
+        b_siblings = kws.get('contextSiblings', d_globalContext['contextSiblings'])
+        b_mirror = kws.get('contextMirror',d_globalContext['contextMirror'])
+        b_core = kws.get('contextCore',d_globalContext['contextCore'])
         
         #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
         #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
@@ -1000,6 +1024,8 @@ class dat(object):
         #if _b_debug:
         log.debug(cgmGEN.logString_sub("second pass context..."))
         #pprint.pprint(self.d_context)            """
+        
+        log.info(self)
         return self.d_context['mControls']
     
     #@cgmGEN.Timer
@@ -1310,9 +1336,12 @@ class dat(object):
             self.d_timeContext['partControls'] = {}
             log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
             
-            _context = kws.get('contextMode') or self.var_mrsContext_mode.value
-            _contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
-            _contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
+            d_globalContext = get_contextDict()
+            
+            _context = kws.get('contextMode',d_globalContext['contextMode'])
+            _contextTime = kws.get('contextTime',d_globalContext['contextTime']) 
+            _contextKeys = kws.get('contextKeys',d_globalContext['contextKeys'])
+            
             _frame = SEARCH.get_time('current')
             self.d_timeContext['frameInitial'] = _frame
             
@@ -1329,11 +1358,11 @@ class dat(object):
             #First gcather our controls
             _keys = kws.keys()
             
-            context = kws.get('context') or self.var_mrsContext_mode.value
-            b_children = kws.get('children') or self.var_mrsContext_children.value
-            b_siblings = kws.get('siblings') or self.var_mrsContext_siblings.value
-            b_mirror = kws.get('mirror') or self.var_mrsContext_mirror.value            
-            b_core = kws.get('core') or self.var_mrsContext_core.value
+            context = _context
+            b_children = kws.get('contextMirror',d_globalContext['contextMirror'])
+            b_siblings =kws.get('contextSiblings',d_globalContext['contextSiblings'])
+            b_mirror = kws.get('contextMirror',d_globalContext['contextMirror'])
+            b_core = kws.get('contextCore',d_globalContext['contextCore'])
 
             if _context == 'control' and b_siblings:
                 if b_mirror:
