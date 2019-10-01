@@ -7,6 +7,7 @@ import cgm.lib.pyui as pyui
 import subprocess
 import re
 from cgm.core import cgm_Meta as cgmMeta
+from cgm.core.lib import asset_utils as ASSET
 
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
@@ -166,7 +167,9 @@ example:
 		pass
 
 	def UpdateToLatestRig(self, *args):
-		pass
+		for obj in mc.ls(sl=True):
+			myAsset = ASSET.Asset(obj)
+			myAsset.UpdateToLatest()
 
 	def SetExportSets(self, *args):
 		mc.window( width=150 )
@@ -627,6 +630,11 @@ example:
 		
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Set Export Sets",
 						 c = lambda *a:mc.evalDeferred(self.SetExportSets,lp=True))
+
+		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Update Selected Rigs",
+						 c = lambda *a:mc.evalDeferred(self.UpdateToLatestRig,lp=True))
+
+
 
 
 	# def ConstructMenuBar(self, *args):
