@@ -793,6 +793,8 @@ example:
 	def LoadVariationList(self, *args):
 		variationList = []
 
+		selectedVariation = self.variationList['scrollList'].getSelectedItem()
+
 		self.variationList['items'] = []
 		self.variationList['scrollList'].clear()
 
@@ -813,13 +815,15 @@ example:
 		self.variationList['items'] = variationList
 		self.variationList['scrollList'].setItems(variationList)
 
+		self.variationList['scrollList'].selectByValue(selectedVariation)
+
 		self.versionList['items'] = []
 		self.versionList['scrollList'].clear()
 
-		if len(self.versionList['items']) > 0:
-			self.variationList['scrollList'].selectByIdx(0)
-
 		self.LoadVersionList()
+
+		if len(self.versionList['items']) > 0:
+			self.versionList['scrollList'].selectByIdx(0)
 
 		self.StoreCurrentSelection()
 
