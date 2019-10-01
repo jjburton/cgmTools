@@ -1,6 +1,14 @@
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+#>>>======================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=========================================================================
+
 import cgm.core.cgm_General as cgmGEN
 def red9( *a ):
     import Red9
@@ -86,17 +94,17 @@ def ngskin():
 
 def mrsShots():
     try:
-        import pyunify.ui.shotUI as shotUI
-        reload(shotUI)
-        x = shotUI.ShotUI()
+        import cgm.core.mrs.Shots as SHOTS
+        reload(SHOTS)
+        x = SHOTS.ShotUI()
     except Exception,err:
         log.warning("[DEV] failed to load. | {0}".format(err))
 
 def mrsScene():
     try:
-        import pyunify.ui.fileUI as fileUI
-        reload(fileUI)
-        x = fileUI.FileUI()
+        import cgm.core.mrs.Scene as SCENE
+        reload(SCENE)
+        x = SCENE.ui()
     except Exception,err:
         log.warning("[DEV] failed to load. | {0}".format(err))
 

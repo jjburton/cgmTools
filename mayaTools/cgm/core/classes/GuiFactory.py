@@ -11,6 +11,7 @@ Class based ui builder for cgmTools
 ================================================================
 """
 #>>> Root settings =============================================================
+
 __version__ = '0.1.01242013'
 __toolName__ = 'cgmGUI'
 __toolURL__ = 'www.cgmonks.com'
@@ -42,6 +43,8 @@ else:
     
 #>>> From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+import Red9.core.Red9_CoreUtils as r9Core
+
 from Red9.core import Red9_General as r9General
     
 #>>> From cgm ==============================================================
@@ -302,6 +305,9 @@ class cgmGUI(mUI.BaseMelWindow):
                     log.error("|{0}| >> Failed to dock | err: {1}".format(_str_func,err)) 
             """    
             self.show()
+
+            self.post_init(self,*a,**kw)
+
         except Exception,err:cgmGEN.cgmException(Exception,err)
         finally:
             mc.progressBar(self.pg_maya, edit=True, endProgress=True)
@@ -327,6 +333,11 @@ class cgmGUI(mUI.BaseMelWindow):
         #self.WINDOW_TITLE = cgmGUI.WINDOW_TITLE
         #self.DEFAULT_SIZE = cgmGUI.DEFAULT_SIZE
     
+    def post_init(self,*args,**kws):
+        """ This is meant to be overloaded per gui """
+        _str_func = 'post_init[{0}]'.format(self.__class__.TOOLNAME)            
+        log.info("|{0}| >>...".format(_str_func))
+
     def setup_baseVariables(self):
         _str_func = 'setup_baseVariables[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func)) 
@@ -1642,3 +1653,214 @@ def uiPrompt_getValue(title = None, message = None, text = None, uiSelf = None,s
     else:
         log.info("|{0}| >> Gather value cancelled".format(_str_func))
         return None     
+
+class cgmScrollList(mUI.BaseMelWidget):
+    WIDGET_CMD = mc.iconTextScrollList
+    KWARG_CHANGE_CB_NAME = 'sc'
+
+    ALLOW_MULTI_SELECTION = True
+    def __new__( cls, parent, *a, **kw ):
+        if 'ams' not in kw and 'allowMultiSelection' not in kw:
+            kw[ 'ams' ] = cls.ALLOW_MULTI_SELECTION
+        return mUI.BaseMelWidget.__new__( cls, parent, *a, **kw )
+    
+    def __init__( self, parent, *a, **kw ):
+        mUI.BaseMelWidget.__init__( self, parent, *a, **kw )
+        self._appendCB = None
+        self._items = []
+        # self._ml_scene = []
+        # self._ml_loaded = []
+        self._l_strings = []
+        self._l_itc = []
+        self._d_itc =  {}
+        self.filterField = None
+        self.b_selCommandOn = True
+        self.rebuild()
+        self.cmd_select = None
+        self(e=True, sc = self.selCommand)
+        
+    def __getitem__( self, idx ):
+        return self.getItems()[ idx ]
+
+    def setItems( self, items ):
+        self.clear()
+        for i in items:
+            self.append( i )
+    def getItems( self ):
+        return self._items
+
+    def getSelectedItem( self ):
+        items = self.getSelectedItems()
+        if items:
+            return items[0]
+        else:
+            return None
+
+    def getSelectedItems( self ):
+        return self( q=True, si=True ) or []
+    
+    def getSelectedIdx( self ):
+        items = self.getSelectedIdxs()
+        if items:
+            return items[0]
+        else:
+            return None
+
+    def getSelectedIdxs( self ):
+        return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
+        
+    def selectByIdx( self, idx ):
+        self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
+
+    def selectByValue( self, value):
+        self( e=True, selectItem=value )
+        
+    def append( self, item ):
+        self( e=True, append=item )
+        self._items.append(item)
+        
+    def appendItems( self, items ):
+        for i in items: self.append( i )
+        
+    def allowMultiSelect( self, state ):
+        self( e=True, ams=state )
+    
+    def report(self):
+        log.debug(cgmGEN.logString_start('report'))                
+        log.info("Scene: "+cgmGEN._str_subLine)
+        # for i,mObj in enumerate(self._ml_scene):
+        #     print ("{0} | {1} | {2}".format(i,self._l_strings[i],mObj))
+            
+        # log.info("Loaded "+cgmGEN._str_subLine)
+        # for i,mObj in enumerate(self._ml_loaded):
+        #     print("{0} | {1}".format(i, mObj))
+            
+        # pprint.pprint(self._ml_scene)
+        
+    def set_selCallBack(self,func,*args,**kws):
+        log.debug(cgmGEN.logString_start('set_selCallBack'))                
+        self.selCommand = func
+        self.selArgs = args
+        self.selkws = kws
+    
+    def setHLC(self,mBlock=None, color = [1,1,1]):
+        log.debug(cgmGEN.logString_start('setHLC'))        
+        try:
+            _color = [v*.7 for v in color]
+            self(e =1, hlc = _color)
+            return
+        except Exception,err:
+            log.error(err)
+            
+        try:self(e =1, hlc = [.5,.5,.5])
+        except:pass
+            
+    def selCommand(self):
+        log.debug(cgmGEN.logString_start('selCommand'))
+        l_indices = self.getSelectedIdxs()
+        if self.b_selCommandOn and self.cmd_select:
+            if len(l_indices)<=1:
+                return self.cmd_select()
+        return False
+    
+    def rebuild( self ):
+        _str_func = 'rebuild'
+        
+        log.debug(cgmGEN.logString_start(_str_func))
+        self.b_selCommandOn = False
+        self( e=True, ra=True )
+        
+        try:self(e =1, hlc = [.5,.5,.5])
+        except:pass        
+        
+        self._items = []
+        # self._ml_scene = []
+        # self._ml_loaded = []
+        self._l_strings = []
+        self._l_str_loaded = []
+        self._l_itc = []
+        self._d_itc  = {}
+        #...
+        # _ml,_l_strings = BLOCKGEN.get_uiModuleScollList_dat(showSide=1,presOnly=1)
+        
+        # self._ml_scene = _ml
+        self._l_itc = []
+        
+        d_colors = {'blue':[.4,.4,1],
+                    'red':[.9,.2,.2],
+                    'yellow':[.8,.8,0]}
+        
+        # def getString(pre,string):
+        #     i = 1
+        #     _check = ''.join([pre,string])
+        #     while _check in self._l_strings and i < 100:
+        #         _check = ''.join([pre,string,' | NAMEMATCH [{0}]'.format(i)])
+        #         i +=1
+        #     return _check
+        
+        # def get_side(mNode):
+        #     _cgmDirection = mNode.getMayaAttr('cgmDirection')
+        #     if _cgmDirection:
+        #         if _cgmDirection[0].lower() == 'l':
+        #             return 'left'
+        #         return 'right'
+        #     return 'center'
+        
+        # for i,mBlock in enumerate(_ml):
+        #     _arg = get_side(mBlock)
+        #     _color = d_colors.get(_arg,d_colors['yellow'])
+        #     self._l_itc.append(_color)            
+        #     self._d_itc[mBlock] = _color
+        #     try:
+        #         _str_base = mBlock.UTILS.get_uiString(mBlock)#mBlock.p_nameBase#
+        #         #_modType = mBlock.getMayaAttr('moduleType')
+        #         #if _modType:
+        #             #_str_base = _str_base + ' | [{0}]'.format(_modType)
+        #     except:_str_base = 'FAIL | {0}'.format(mBlock.mNode)
+        #     _pre = _l_strings[i]
+        #     self._l_strings.append(getString(_pre,_str_base))
+            
+        self.update_display()
+        
+        # if ml_sel:
+        #     try:self.selectByBlock(ml_sel)
+        #     except Exception,err:
+        #         print err
+        self.b_selCommandOn = True
+
+    def clear( self ):
+        log.debug(cgmGEN.logString_start('clear'))                
+        self( e=True, ra=True )
+        self._l_str_loaded = []
+        # self._ml_loaded = []
+        
+    def clearSelection( self,):
+        self( e=True, deselectAll=True )
+    def set_filterObj(self,obj=None):
+        self.filterField = obj
+
+    def update_display(self,searchFilter='',matchCase = False):
+        _str_func = 'update_display'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        l_items = self.getSelectedItems()
+        
+        if self.filterField is not None:
+            searchFilter = self.filterField.getValue()
+        
+        self.clear()
+        try:
+            for i,strEntry in enumerate(r9Core.filterListByString(self._l_strings,
+                                                                  searchFilter,
+                                                                  matchcase=matchCase)):
+                if strEntry in self._l_str_loaded:
+                    log.warning("Duplicate string")
+                    continue
+                self.append(strEntry)
+                self._l_str_loaded.append(strEntry)
+                idx = self._l_strings.index(strEntry)
+
+        except Exception,err:
+            log.error("|{0}| >> err: {1}".format(_str_func, err))  
+            for a in err:
+                log.error(a)
