@@ -30,6 +30,7 @@ from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
+reload(MMUTILS)
 import cgm.core.tools.toolbox as TOOLBOX
 import cgmToolbox
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
@@ -155,7 +156,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                 log.info("{0} button >> error {1}".format(self._str_MM, err))     
     
     def button_CallBack(self, func, *a, **kws ):
-        MMUTILS.killUI()
+        MMUTILS.kill_mmTool()
         mmCallback(func,*a,**kws)
 
     def toggleVarAndReset(self, optionVar):
@@ -302,7 +303,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=uiHelp,l = 'Reset Options',
                     c=cgmGEN.Callback(self.button_action,self.reset))           
         mc.menuItem(p=uiHelp,l = 'Force Kill MM',
-                    c=lambda *a:MMUTILS.killUI())
+                    c=lambda *a:MMUTILS.kill_mmTool())
                     #c=cgmGEN.Callback(self.button_action,self.reset))   
         
         mc.menuItem(p=uiHelp,l='Reload local python',
@@ -2068,7 +2069,7 @@ def deleteKey():
 def ui_CallAndKill(func, *a, **kws ):
     try:
         _str_func = 'ui_CallAndKill'
-        MMUTILS.killUI()
+        MMUTILS.kill_mmTool()
         try:return func( *a, **kws )
         except Exception,err:
             try:log.info("Func: {0}".format(func.__name__))
@@ -2096,7 +2097,7 @@ class mmCallback(object):
     def __call__( self, *args ):
         try:
             _res = self._func( *self._args, **self._kwargs )
-            MMUTILS.killUI()            
+            MMUTILS.kill_mmTool()            
             return _res
         except Exception,err:
             #MMUTILS.killUI()            

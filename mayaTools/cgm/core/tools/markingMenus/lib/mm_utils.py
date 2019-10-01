@@ -15,7 +15,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -34,42 +34,45 @@ import cgm.core.lib.list_utils as LISTS
 
 
 def kill_mmTool(ui='cgmMM'):
-    try:
-        log.debug("killUI...")
-        _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
-        log.debug('mode: {0}'.format(_var_mode))    
-        if _var_mode.value in [0,1,2,3]:
-            log.debug('animMode killUI')
-            
-            #IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked')
-            #mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction')
-        
-            sel = mc.ls(sl=1)
-        
-            #>>> Timer stuff
-            #=============================================================================
-            var_clockStart = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_clockStart', defaultValue = 0.0)    
-            f_seconds = time.clock()-var_clockStart.value
-            log.debug(">"*10  + '   cgmMarkingMenu =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
-        
-            if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
-                log.debug("|{0}| >> low time. Set key...".format('cgmMM'))
-                setKey()
+    def _call():
+        try:
+            log.debug("killUI...")
+            _var_mode = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_menuMode', defaultValue = 0)
+            log.debug('mode: {0}'.format(_var_mode))    
+            if _var_mode.value in [0,1,2,3]:
+                log.debug('animMode killUI')
                 
-            #mmTemplate.killChildren(_str_popWindow)
-            if mc.popupMenu(ui,ex = True):
-                try:mc.menu(ui,e = True, deleteAllItems = True)
-                except Exception,err:
-                    log.error("Failed to delete menu items")   
+                #IsClickedOptionVar = cgmMeta.cgmOptionVar('cgmVar_IsClicked')
+                #mmActionOptionVar = cgmMeta.cgmOptionVar('cgmVar_mmAction')
+            
+                sel = mc.ls(sl=1)
+            
+                #>>> Timer stuff
+                #=============================================================================
+                var_clockStart = cgmMeta.cgmOptionVar('cgmVar_cgmMarkingMenu_clockStart', defaultValue = 0.0)    
+                f_seconds = time.clock()-var_clockStart.value
+                log.debug(">"*10  + '   cgmMarkingMenu =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
+            
+                if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
+                    log.debug("|{0}| >> low time. Set key...".format('cgmMM'))
+                    setKey()
                     
-                mc.deleteUI(ui) 
+                #mmTemplate.killChildren(_str_popWindow)
+                if mc.popupMenu(ui,ex = True):
+                    try:mc.menu(ui,e = True, deleteAllItems = True)
+                    except Exception,err:
+                        log.error("Failed to delete menu items")   
+                        
+                    mc.deleteUI(ui) 
+                    
+                #pprint.pprint(vars())      
                 
-            #pprint.pprint(vars())      
-            
-    except Exception,err:
-        log.error(err)   
-    finally:
-        pass
+        except Exception,err:
+            log.error(err)   
+        finally:
+            pass
+        
+    mc.evalDeferred(_call,lp=True)
     
 def setKey(keyModeOverride = None):
     _str_func = "setKey"        
