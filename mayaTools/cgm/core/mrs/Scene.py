@@ -1279,6 +1279,19 @@ example:
 			if not os.path.exists(exportAnimPath):
 				os.mkdir(exportAnimPath)
 
+		exportFiles = []
+
+		# rename for safety
+		loc = mc.file(q=True, loc=True)
+		base, ext = os.path.splitext(loc)
+		bakedLoc = "%s_baked%s" % (base, ext)
+
+		mc.file(rn=bakedLoc)
+
+		for obj in exportObjs:
+			mc.select(obj)
+			bakeAndPrep.Bake()
+
 		for obj in exportObjs:
 			mc.select(obj)
 
@@ -1294,10 +1307,7 @@ example:
 			if( exportAsRig ):
 				exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
-			isPrepped = bakeAndPrep.BakeAndPrep()
-
-			if not isPrepped:
-				return isPrepped
+			bakeAndPrep.Prep()
 
 			exportObjs = mc.ls(sl=True)
 
