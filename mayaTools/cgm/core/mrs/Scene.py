@@ -297,7 +297,7 @@ example:
 	
 		self.animationList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
 
-		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		pum = mUI.MelPopupMenu(self.animationList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAnimationDirectory )
 
 		self.animationButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateAnimation)
@@ -324,7 +324,7 @@ example:
 	
 		self.variationList = self.build_searchable_list(_variationForm, sc=self.LoadVersionList)
 
-		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		pum = mUI.MelPopupMenu(self.variationList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
 
 		self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
@@ -352,7 +352,7 @@ example:
 	
 		self.versionList = self.build_searchable_list(_versionForm, sc=self.StoreCurrentSelection)
 
-		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		pum = mUI.MelPopupMenu(self.versionList['scrollList'], pmc=self.UpdateCharTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
 		mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
 
