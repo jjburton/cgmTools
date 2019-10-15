@@ -986,6 +986,8 @@ example:
 
 			self.LoadCategoryList(self.directory)
 
+			self.assetList['scrollList'].selectByValue(charName)
+
 	def CreateAnimation(self, *args):
 		result = mc.promptDialog(
 				title='New Animation',
