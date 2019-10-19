@@ -167,6 +167,8 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_help.clear()
         mUI.MelMenuItem( self.uiMenu_help, l="Get Pose Nodes",
                          c=lambda *a: self.get_poseNodes(select=True) )
+        mUI.MelMenuItem( self.uiMenu_help, l="Reset Animate Module",
+                         c=lambda *a: reload(MRSANIMUTILS) )        
 
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
@@ -1910,17 +1912,17 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
         if 'children' in _keys:
             b_children = kws.get('children')
         else:
-            b_children = bool(self.cgmVar_mrsContext_children.value)
+            b_children = bool(self.var_mrsContext_children.value)
         
         if 'siblings' in _keys:
             b_siblings = kws.get('siblings')
         else:
-            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+            b_siblings = bool(self.var_mrsContext_siblings.value)
             
         if 'mirror' in _keys:
             b_mirror = kws.get('mirror')
         else:
-            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            b_mirror = bool(self.var_mrsContext_mirror.value)
             
         if _context == 'control' and b_siblings:
             if b_mirror:
@@ -3972,22 +3974,22 @@ def get_context(self, addMirrors = False,**kws):
         if 'children' in _keys:
             b_children = kws.get('children')
         else:
-            b_children = bool(self.cgmVar_mrsContext_children.value)
+            b_children = bool(self.var_mrsContext_children.value)
         
         if 'siblings' in _keys:
             b_siblings = kws.get('siblings')
         else:
-            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+            b_siblings = bool(self.var_mrsContext_siblings.value)
             
         if 'mirror' in _keys:
             b_mirror = kws.get('mirror')
         else:
-            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            b_mirror = bool(self.var_mrsContext_mirror.value)
             
         if 'context' in _keys:
             context = kws.get('context')
         else:
-            context = self.var_mrsContext.value
+            context = self.var_mrsContext_mode.value
         
         if context == 'control' and b_siblings:
             if b_mirror or addMirrors:
@@ -4207,22 +4209,22 @@ def get_contextualControls(self,mirrorQuery=False,**kws):
         if 'children' in _keys:
             b_children = kws.get('children')
         else:
-            b_children = bool(self.cgmVar_mrsContext_children.value)
+            b_children = bool(self.var_mrsContext_children.value)
         
         if 'siblings' in _keys:
             b_siblings = kws.get('siblings')
         else:
-            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+            b_siblings = bool(self.var_mrsContext_siblings.value)
             
         if 'mirror' in _keys:
             b_mirror = kws.get('mirror')
         else:
-            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            b_mirror = bool(self.var_mrsContext_mirror.value)
             
         if 'context' in _keys:
             context = kws.get('context')
         else:
-            context = self.var_mrsContext.value
+            context = self.var_mrsContext_mode.value
         
         if context == 'control' and b_siblings:
             if b_mirror:
@@ -4282,7 +4284,7 @@ def uiCB_contextualActionBAK(self, **kws):
             l_kws.append("{0}:{1}".format(k,v))
         
         _mode = kws.pop('mode',False)
-        _context = kws.get('context') or self.var_mrsContext.value
+        _context = kws.get('context') or self.var_mrsContext_mode.value
         
         log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
         
@@ -4624,7 +4626,7 @@ def uiCB_clear_loaded(self):
 def uiCB_tweenSliderDrop(self):
     _str_func='cgmUICB_tweenSliderDrop'
     """
-    _context = self.var_mrsContext.value
+    _context = self.var_mrsContext_mode.value
     
     #log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
     
@@ -4821,7 +4823,7 @@ def uiCB_bufferDat(self,update=True):
 def uiCB_resetSliderDrop(self):
     _str_func='cgmUICB_resetSliderDrop'
     """
-    _context = self.var_mrsContext.value
+    _context = self.var_mrsContext_mode.value
     
     #log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
     

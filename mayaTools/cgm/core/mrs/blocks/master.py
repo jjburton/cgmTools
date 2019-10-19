@@ -526,8 +526,8 @@ def rig_cleanUp(self):
             
             #Color ---------------------------------------------------------------
             log.debug("|{0}| >> Motion Joint | Color...".format(_str_func))            
-            _side = mBlock.atBlockUtils('get_side')
-            CORERIG.colorControl(mControl.mNode,_side,'main')        
+            #_side = mBlock.atBlockUtils('get_side')
+            #CORERIG.colorControl(mControl.mNode,_side,'main')        
             
             #Register ------------------------------------------------------------
             log.debug("|{0}| >> Motion Joint | Register...".format(_str_func))

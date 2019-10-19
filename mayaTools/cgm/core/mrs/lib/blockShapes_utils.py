@@ -1420,8 +1420,9 @@ class handleFactory(object):
     
 
 def rootMotionHelper(self,mHandle=None,
-                     baseShape = 'arrowSingleFat3d',
-                     shapeDirection = 'y-', size = 1.0,
+                     baseShape = 'axis3d',#'arrowSingleFat3d',
+                     shapeDirection = 'z+',#'y-', 
+                     size = 1.0,
                      snapToGround = True):
     try:
         if not mHandle:mHandle = self
@@ -1430,7 +1431,7 @@ def rootMotionHelper(self,mHandle=None,
         if _bfr:
             mc.delete(_bfr)
 
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         
         """
          mHandleFactory.addRootMotionHelper(baseShape='arrowSingleFat3d',
@@ -1441,7 +1442,6 @@ def rootMotionHelper(self,mHandle=None,
             CORERIG.shapeParent_in_place(mMotionJoint.mNode, mShape.mNode, False,True)
             mMotionJoint.p_parent = mPrerigNull
         """
-        
         
         
         #helper ======================================================================================
@@ -1464,7 +1464,12 @@ def rootMotionHelper(self,mHandle=None,
             mDag = mShape
             CORERIG.match_transform(mCurve.mNode, mHandle)            
         
-        color(self,mDag)
+        if baseShape != 'axis3d':
+            color(self,mDag)
+        else:
+            mDag.addAttr('cgmColorLock',True,lock=True,hidden=True)            
+            
+        
         if mHandle.hasAttr('cgmName'):
             ATTR.copy_to(mHandle.mNode,'cgmName',mDag.mNode,driven='target')
             
