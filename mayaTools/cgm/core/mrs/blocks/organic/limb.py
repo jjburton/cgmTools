@@ -399,7 +399,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'nameList':['clav','shoulder','elbow','wrist'],
 
-    'buildEnd':'none',
+    'buildEnd':'joint',
     'ikRollSetup':'control',
     'buildBall':'none',
     'buildToe':'none',
@@ -1838,8 +1838,8 @@ def prerig(self):
         if self.buildEnd:
             if self.buildLeverEnd or self.buildBall or self.buildToe:
                 pass
-            else:
-                int_namesToGet +=1
+            #else:
+                #int_namesToGet +=1
                 
 
         _res = self.atUtils('nameList_validate',int_namesToGet)
@@ -1940,10 +1940,11 @@ def prerig(self):
         if self.buildLeverEnd:
             _count += 1
             _addedEnd = True
-        if not self.buildBall:
-            if self.buildEnd:
-                log.info(cgmGEN.logString_msg(_str_func,'adding end'))                
-                _count +=1 
+        
+        #if not self.buildBall:
+            #if self.buildEnd:
+                #log.info(cgmGEN.logString_msg(_str_func,'adding end'))                
+                #_count +=1 
             
         log.info(cgmGEN.logString_sub(_str_func,'handle Count: {0}'.format(_count)))
         pprint.pprint(ml_formHandlesCurveTargets)

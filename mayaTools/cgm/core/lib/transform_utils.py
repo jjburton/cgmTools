@@ -1219,7 +1219,7 @@ def relativePos_get(node = None, target = None, asEuclid = True):
     _str_func = 'get_relativeToTarget'
     _node =  VALID.mNodeString(node)
     
-    _res = transformInverseDirection(target, POS.get(node))
+    _res = transformInversePoint(target, POS.get(node))
     
     if asEuclid:
         return _res
@@ -1241,7 +1241,7 @@ def relativePos_set(node = None, target = None, pos = None, asEuclid = True):
     
     #mBlock.getTransformDirection(mPos) + (mBlock.getPosition(asEuclid=1))
     
-    _res = transformDirection(target, pos) + position_get(target, asEuclid=1)
+    _res = transformPoint(target, pos) + position_get(target, asEuclid=1)
     
     POS.set(node,_res)
     

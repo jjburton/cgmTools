@@ -1,6 +1,5 @@
 import maya.cmds as mc
 import os
-import pyunify.lib.node as node
 
 def BakeAndPrep():
     baked = Bake()

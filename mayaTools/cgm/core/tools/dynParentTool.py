@@ -1357,11 +1357,11 @@ def func_process(md_spaceSwitchDat={},attr=None,option=None,d_timeContext = {},*
         mc.undoInfo(closeChunk=True)
         mc.currentTime(_frame)
         if _autoKey:mc.autoKeyframe(state=True)
+        mc.refresh(su=0)
 
         if err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
 
-        mc.refresh(su=0)
 
     
 

@@ -1441,15 +1441,19 @@ class manager(mUI.MelColumn):
         #Pose basics -----------------------------------------------------------------------
         mUI.MelMenuItemDiv(parent, label='Pose')
         
-        mc.menuItem(label='Delete', en=enableState, p=parent,
-                    command=cgmGEN.Callback(self.uiPose_delete))
+        mc.menuItem(label='Load', en=enableState, p=parent,
+                    command=cgmGEN.Callback(self.uiPose_load))
+        mc.menuItem(label='Blend', en=enableState, p=parent,
+                    command=cgmGEN.Callback(self.uiPose_blend))
+        
+
+        
         mc.menuItem(label='Rename', en=enableState, p=parent,
                     command=cgmGEN.Callback(self.uiPose_rename))
         mc.menuItem(label='Duplicate', en=enableState, p=parent,
                     command=cgmGEN.Callback(self.uiPose_duplicate))        
         #mc.menuItem(label='Select internals', p=parent,
         #            command=cgmGEN.Callback(self._uiPoseSelectObjects))
-        
         
         
         #Edit pose ------------------------------------------------------------------
@@ -1460,6 +1464,9 @@ class manager(mUI.MelColumn):
             mc.menuItem(label='Update thumb', p=parent, command=cgmGEN.Callback(self._uiPoseUpdateThumb))
         mc.menuItem(label='Update both', en=enableState, p=parent, command=cgmGEN.Callback(self._uiPoseUpdate, True))
         
+        mc.menuItem(divider=True, p=parent)
+        mc.menuItem(label='Delete', en=enableState, p=parent,
+                    command=cgmGEN.Callback(self.uiPose_delete))                
         
         
         #Folders -----------------------------------------------

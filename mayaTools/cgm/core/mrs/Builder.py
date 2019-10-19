@@ -912,6 +912,10 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_block.clear()   
         _menu = self.uiMenu_block
         d_s = {'Set Side':{},
+               'Skeleton':{'Joints | get bind':{'ann':self._d_ui_annotations.get('Joints | get bind'),
+                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                      'atUtils','skeleton_getBind',
+                                      **{'select':1})},},
                'Rig':{'Step Build':{'ann':self._d_ui_annotations.get('step build'),
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                       'stepUI',
@@ -936,6 +940,7 @@ class ui(cgmUI.cgmGUI):
                                'call':cgmGEN.Callback(self.uiFunc_contextModuleCall,
                                       'rig_reset',
                                       **{'updateUI':0})},
+                                       
                       'Query Nodes':{'ann':self._d_ui_annotations.get('query rig nodes'),
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','rigNodes_get',

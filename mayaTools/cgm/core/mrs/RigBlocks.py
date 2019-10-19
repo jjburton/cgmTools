@@ -3216,7 +3216,7 @@ class rigFactory(object):
 
             if _mModule.getMessage('moduleParent'):
                 _d['mModuleParent'] = _mModule.moduleParent
-
+                
             """
             if not _mRigNull.getMessage('dynSwitch'):
                 _mDynSwitch = RIGMETA.cgmDynamicSwitch(dynOwner=_mRigNull.mNode)
@@ -3229,6 +3229,9 @@ class rigFactory(object):
             #BlockFactory.puppet_verify()
             self.mBlock.atUtils('puppet_verify')
             _mPuppet = _mModule.modulePuppet
+            
+            mc.editDisplayLayerMembers(_mPuppet.controlLayer.mNode, _mModule.mNode,noRecurse=True)
+            
         else:
             _mPuppet = self.mBlock.moduleTarget
 
@@ -3236,7 +3239,8 @@ class rigFactory(object):
 
         _d['mPuppet'] = _mPuppet
         _mPuppet.UTILS.groups_verify(_mPuppet)
-
+        
+        
         if _hasModule:
             if not _mModule.atUtils('is_skeletonized'):
                 log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
