@@ -821,7 +821,7 @@ class manager(mUI.MelColumn):
         log.info("|{0}| >>...".format(_str_func))
         self.l_optionVars = []
         self.uiPop_path = None
-        self.mPathList = pathList('cgmPosePaths')
+        self.mPathList = cgmMeta.pathList('cgmPosePaths')
         self.posePath = None
         self.posePathLocal = None
         self.posePathProject = None

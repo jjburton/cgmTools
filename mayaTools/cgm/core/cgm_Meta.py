@@ -43,6 +43,7 @@ from cgm.core.lib import name_utils as NAMES
 reload(NAMES)
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import constraint_utils as CONSTRAINT
+import cgm.core.cgmPy.path_Utils as PATHS
 
 from cgm.lib.ml import ml_resetChannels
 from cgm.lib import lists
@@ -7635,6 +7636,58 @@ def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**
 class cgmBlendShape(cgmNode):
     def __init__(self):
         raise DeprecationWarning,"cgmBlendshape moved to cgm_Deformers.cgmBlendshape"
+    
+    
+    
+class pathList(object):
+    def __init__(self, optionVar = 'testPath'):
+        self.l_paths = []
+        self.mOptionVar = cgmOptionVar(optionVar,'string')
+    
+    def append(self, arg = None):
+        _str_func = 'pathList.append'
+        log.debug(cgmGEN.logString_start(_str_func))
+        mPath = PATHS.Path(arg)
+        if mPath.exists():
+            log.info(cgmGEN.logString_msg(_str_func,'Path exists | {0}'.format(arg)))
+            _friendly = mPath.asFriendly()
+            self.mOptionVar.append(_friendly)
+            self.l_paths.append(_friendly)
+            
+        else:
+            log.warning(cgmGEN.logString_msg(_str_func,'Invalid Path | {0}'.format(arg)))
+            
+    def verify(self):
+        _str_func = 'pathList.verify'
+        log.debug(cgmGEN.logString_start(_str_func))
+        self.l_paths = []
+        
+        for p in self.mOptionVar.value:
+            log.debug(p)
+            mPath = PATHS.Path(p)
+            if not mPath.exists():
+                log.warning(cgmGEN.logString_msg(_str_func,"Path doesn't exist. removing: {0}".format(p)))
+                self.mOptionVar.remove(p)
+            else:
+                self.l_paths.append(p)
+                
+    def remove(self,arg = None):
+        _str_func = 'pathList.remove'
+        log.debug(cgmGEN.logString_start(_str_func))
+        self.mOptionVar.remove(arg)
+        
+    def log_self(self):
+        log.info(cgmGEN._str_hardBreak)        
+        log.info(cgmGEN.logString_start('pathList.log_self'))
+        self.mOptionVar.report()
+        
+        log.info(cgmGEN.logString_start('//pathList.log_self'))
+        log.info(cgmGEN._str_hardBreak)
+        
+    def clear(self):
+        self.mOptionVar.clear()
+        self.l_paths = []
+    
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================    
