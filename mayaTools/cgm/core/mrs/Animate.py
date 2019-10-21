@@ -5162,7 +5162,7 @@ def mmUI_part(self,parent = None):
               'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
         #_d = d_setup[m]
         _d_tmp = {'mode':m,
-                  'context':_context,
+                  'contextMode':_context,
                   'contextTime':_contextTime,                  
                   'contextMirror':False,
                   'contextChildren':False,
@@ -5183,7 +5183,7 @@ def mmUI_part(self,parent = None):
     for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
+                  'contextMode':_context,
                   'contextTime':_contextTime,
                   'contextMirror':_d.get('mirror',False),
                   'contextChildren':_d.get('children',False),
@@ -5213,7 +5213,7 @@ def mmUI_part(self,parent = None):
     for m in ['all','add mirror','mirror only','fk','ik','ikEnd','seg','direct']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
+                  'contextMode':_context,
                   'contextTime':_contextTime,                  
                   'contextMirror':_d.get('mirror',False),
                   'contextChildren':_d.get('children',False),
@@ -5235,7 +5235,7 @@ def mmUI_part(self,parent = None):
     for m in ['Push','Pull','SymLeft','SymRight','Flip']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
+                  'contextMode':_context,
                   'contextTime':_contextTime,                  
                   'contextMirror':True,
                   'contextChildren':_d.get('children',False),
@@ -5260,7 +5260,7 @@ def mmUI_part(self,parent = None):
 
     for n in l_settings:
         _sub = mc.menuItem(p=_toggle,l=n,subMenu=True)
-        _d_tmp = {'context':_context,
+        _d_tmp = {'contextMode':_context,
                   'contextMirror':False,
                   'contextTime':_contextTime,                  
                   'contextChildren':False,

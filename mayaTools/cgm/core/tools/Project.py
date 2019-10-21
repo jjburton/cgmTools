@@ -86,12 +86,27 @@ d_projectFramework = {
     'ref':{}
 }
 
-l_projectDat = ['name','type',]
+l_projectDat = ['name','type']
 l_projectTypes = ['asset','unity','unreal','commercial']
 l_projectPaths = ['content','export','poses','image']
 
-d_animSettings = {'fps':'int',
+
+d_animSettings = {'defaultInTangent':['linear','spline','clamped','flat','plateau','auto'],
+                  'defaultOutTangent':['linear','spline','clamped','flat','plateau','auto'],
+                  'weightedTangents':'bool'
                   }
+
+d_worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
+                   {'n':'linear','t':['milimeter','centimeter','meter',
+                                      'inch','foot','yard'],'dv':'centimeter'},
+                   {'n':'angular','t':['degrees','radians'],'dv':'degrees'},                   
+                    ]
+d_cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
+                    {'n':'farClip','t':'float','dv':100000}]
+d_timeSettings = [{'n':'frameRate','t':[2,3,4,5,6,8,10,12,15,16,20,23.976,
+                                        24,25,29.97,30,40,48,50,
+                                        60,75,80,100,120],'dv':24}]
+
 #RangeSlider|MainPlaybackRangeLayout|formLayout9|formLayout13|optionMenuGrp1
 #timeField -e -v `playbackOptions -q -ast` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField2; timeField -e -v `playbackOptions -q -aet` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField5;
 
@@ -160,7 +175,6 @@ class ui(cgmUI.cgmGUI):
         cgmMeta.cgmOptionVar('cgmVar_sceneUI_last_directory').setValue(self.d_tf['paths']['content'].getValue())
         
         import cgm.core.mrs.Scene as SCENE
-        reload(SCENE)
         SCENE.ui()
         
     def uiProject_load(self,path=None,revert=False):
