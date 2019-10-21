@@ -42,6 +42,8 @@ import maya.mel as mel
 
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
+import Red9.core.Red9_CoreUtils as r9Core
+
 import Red9.packages.configobj as configobj
 import Red9.startup.setup as r9Setup    
 
@@ -51,6 +53,8 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.cgmPy.path_Utils as PATHS
+import cgm.core.lib.path_utils as COREPATHS
+reload(COREPATHS)
 import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.images as cgmImages
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
@@ -195,7 +199,9 @@ class ui(cgmUI.cgmGUI):
         
         
         #Set pose path
+        
         #Update file dir
+        self.uiScrollList_dirContent.rebuild(self.mDat.d_paths['content'])
         
         #Project image
         _imagePath = os.path.join(mImagesPath.asFriendly(),
@@ -398,6 +404,7 @@ class ui(cgmUI.cgmGUI):
         self.buildFrame_baseDat(parent)
         self.buildFrame_paths(parent)
         self.buildFrame_content(parent)
+        buildFrame_dirContent(self,parent)
         
     def uiCB_setProjectPath(self, path=None, field = False, fileDialog=False):
         '''
@@ -589,6 +596,52 @@ class ui(cgmUI.cgmGUI):
             self.d_tf['paths'][key].setValue( x[0] )
             #self.optionVarExportDirStore.setValue( self.exportDirectory )    
 
+def buildFrame_dirContent(self,parent):
+    try:self.var_projectDirFrameCollapse
+    except:self.create_guiOptionVar('projectDirFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_projectDirFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Dir',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    
+    self.uiFrame_subDir = _frame
+    
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
+    
+    
+    _scrollList = cgmProjectDirList(_inside, ut='cgmUISubTemplate',
+                                    allowMultiSelection=0,en=True,
+                                    ebg=0,
+                                    h=100,
+                                    bgc = [.2,.2,.2],
+                                    w = 50)
+    
+    try:_scrollList(edit=True,hlc = [.5,.5,.5])
+    except:pass
+    
+    
+    #_scrollList.set_selCallBack(mrsPoseDirSelect,_scrollList,self)
+    
+    self.uiScrollList_dirContent = _scrollList
+    
+    _row = mUI.MelHLayout(_inside,padding=5,)
+    button_refresh = mUI.MelButton(_row,
+                                   label='Clear Sel',ut='cgmUITemplate',
+                                    #c=lambda *a:self.uiScrollList_dir.clearSelection(),
+                                    ann='Clear selection the scroll list to update')     
+    button_refresh = mUI.MelButton(_row,
+                                   label='Refresh',ut='cgmUITemplate',
+                                    #c=lambda *a:self.uiScrollList_dir.rebuild(),
+                                    ann='Force the scroll list to update')    
+    _row.layout()
+
+
 
 class data(object):
     '''
@@ -745,6 +798,280 @@ class data(object):
         pprint.pprint(_d)
         
 
+class cgmProjectDirList(mUI.BaseMelWidget):
+    '''
+    NOTE: you probably want to use the MelObjectScrollList instead!
+    '''
+    WIDGET_CMD = mc.iconTextScrollList
+    KWARG_CHANGE_CB_NAME = 'sc'
+
+    ALLOW_MULTI_SELECTION = False
+    def __new__( cls, parent, *a, **kw ):
+        if 'ams' not in kw and 'allowMultiSelection' not in kw:
+            kw[ 'ams' ] = cls.ALLOW_MULTI_SELECTION
+        return mUI.BaseMelWidget.__new__( cls, parent, *a, **kw )
+    
+    def __init__( self, parent, *a, **kw ):
+        mUI.BaseMelWidget.__init__( self, parent, *a, **kw )
+        self._appendCB = None
+        self._items = []
+        self._l_strings = []
+        self._l_itc = []
+        self._d_itc =  {}
+        self.filterField = None
+        self.b_selCommandOn = True
+        
+        self._l_uiKeys = []
+        self._l_uiStrings = []
+        self._l_paths = []
+        self.path = kw.get('path',None)
+        
+        self.rebuild()
+        self.cmd_select = None
+        self(e=True, sc = self.selCommand)
+        
+        
+    def __getitem__( self, idx ):
+        return self.getItems()[ idx ]
+
+    def setItems( self, items ):
+        self.clear()
+        for i in items:
+            self.append( i )
+            
+    def getItems( self ):
+        return self._items
+        
+    def getSelectedItems( self ):
+        return self( q=True, si=True ) or []
+        
+    def getSelectedIdxs( self ):
+        return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
+        
+    def selectByIdx( self, idx ):
+        self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
+
+    def selectByValue( self, value):
+        self( e=True, selectItem=value )
+
+    def append( self, item ):
+        self( e=True, append=item )
+        self._items.append(item)
+        
+    def appendItems( self, items ):
+        for i in items: self.append( i )
+        
+    def allowMultiSelect( self, state ):
+        self( e=True, ams=state )
+    
+    def report(self):
+        log.debug(cgmGEN.logString_start('report'))                
+        log.info("Dat: "+cgmGEN._str_subLine)
+        return
+        for i,mObj in enumerate(self._l_dat):
+            print ("{0} | {1} | {2}".format(i,self._l_strings[i],mObj))
+            
+        log.info("Loaded "+cgmGEN._str_subLine)
+        for i,mObj in enumerate(self._ml_loaded):
+            print("{0} | {1}".format(i, mObj))
+            
+        pprint.pprint(self._ml_scene)
+        
+    def set_selCallBack(self,func,*args,**kws):
+        log.debug(cgmGEN.logString_start('set_selCallBack'))                
+        self.cmd_select = func
+        self.selArgs = args
+        self.selkws = kws
+        
+        log.debug(cgmGEN.logString_msg('set_selCallBack',"cmd: {0}".format(self.cmd_select)))                
+        log.debug(cgmGEN.logString_msg('set_selCallBack',"args: {0}".format(self.selArgs)))                
+        log.debug(cgmGEN.logString_msg('set_selCallBack',"kws: {0}".format(self.selkws)))                
+        
+        
+    
+    def setHLC(self,arg=None):
+        log.debug(cgmGEN.logString_start('setHLC'))        
+        if arg:
+            try:
+                _color = self._d_itc[arg]
+                log.info("{0} | {1}".format(arg,_color))
+                _color = [v*.7 for v in _color]
+                self(e =1, hlc = _color)
+                return
+            except Exception,err:
+                log.error(err)
+                
+            try:self(e =1, hlc = [.5,.5,.5])
+            except:pass
+            
+    def getSelectedDir( self):
+        log.debug(cgmGEN.logString_start('getSelectedDir'))                
+        _indicesRaw = self.getSelectedIdxs()
+        if not _indicesRaw:
+            log.debug("Nothing selected")
+            return []
+        _indices = []
+        for i in _indicesRaw:
+            _indices.append(int(str(i).split('L')[0]))
+            
+        #for i in _indices:
+        return [ self._d_uiStrings[ self._l_uiStrings[i]] for i in _indices ]
+            
+        #return [self._ml_loaded[i] for i in _indices]
+    
+    def selCommand(self):
+        l_indices = self.getSelectedIdxs()
+        log.debug(cgmGEN.logString_start('selCommand | {0}'.format(l_indices)))
+        
+        #self.getSelectedDir()
+        _i = self.getSelectedIdxs() or None
+        if _i is not None:
+            self.setHLC(self._l_uiKeys[_i[0]])
+        """
+        mBlock = self.getSelectedBlocks()
+        if mBlock:
+            self.setHLC(mBlock[0])
+            pprint.pprint(mBlock)
+            self.mDat._ml_listNodes = mBlock"""
+        log.debug(cgmGEN.logString_start('cmd_select | {0}'.format(self.cmd_select)))            
+        
+        if self.b_selCommandOn and self.cmd_select:
+            if len(l_indices)<=1:
+                return self.cmd_select(*self.selArgs,**self.selkws)
+        return False
+    
+    def rebuild( self, path = None ):
+        _str_func = 'rebuild'
+        
+        if path == None:
+            path = self.path
+        else:
+            self.path = path
+
+        log.debug(cgmGEN.logString_start(_str_func))
+        self.b_selCommandOn = False
+        #ml_sel = self.getSelectedBlocks()
+        
+        self( e=True, ra=True )
+        
+        try:self(e =1, hlc = [.5,.5,.5])
+        except:pass        
+        
+        self._items = []
+        self._ml_scene = []
+        self._ml_loaded = []
+        self._l_strings = []
+        self._l_str_loaded = []
+        self._l_itc = []
+        self._d_itc  = {}
+        self._l_uiKeys = []
+        #...
+        
+        if not path:
+            return False
+        
+        _d_dir, _d_levels, l_keys = COREPATHS.walk_below_dir(path,
+                                                             uiStrings = 1,
+                                                             #fileTest = {'endsWith':'pose'},
+                                                             hardCap = 100,
+                                                             )        
+        
+        #self._l_uiStrings = _l_uiStrings
+        self._d_dir = _d_dir
+        self._l_uiKeys = l_keys
+        
+        self._l_itc = []
+        
+        d_colors = {'left':[.4,.4,1],
+                    'center': [1,2,1],
+                    'right':[.9,.2,.2]}
+        
+        
+        for i,k in enumerate(l_keys):
+            _color = [1,.5,0]#d_colors.get(d_colors['center'])
+            self._l_itc.append(_color)            
+            self._d_itc[k] = _color
+            
+            _str = _d_dir[k]['uiString']
+            self._l_strings.append(_str)
+            
+        self.update_display()
+        
+        """
+        if ml_sel:
+            try:self.selectByBlock(ml_sel)
+            except Exception,err:
+                print err"""
+        self.b_selCommandOn = True
+
+    def clear( self ):
+        log.debug(cgmGEN.logString_start('clear'))                
+        self( e=True, ra=True )
+        self._l_str_loaded = []
+        self._ml_loaded = []
+        
+    def clearSelection( self,):
+        self( e=True, deselectAll=True )
+        
+    def set_filterObj(self,obj=None):
+        self.filterField = obj
+
+    def update_display(self,searchFilter='',matchCase = False):
+        _str_func = 'update_display'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        l_items = self.getSelectedItems()
+        
+        if self.filterField is not None:
+            searchFilter = self.filterField.getValue()
+        
+        self.clear()
+        try:
+            for i,strEntry in enumerate(r9Core.filterListByString(self._l_uiKeys,
+                                                                  searchFilter,
+                                                                  matchcase=matchCase)):
+                if strEntry in self._l_str_loaded:
+                    log.warning("Duplicate string")
+                    continue
+                
+                self.append(self._d_dir[strEntry]['uiString'])
+                self._l_str_loaded.append(strEntry)
+                
+                #idx = self._l_strings.index(strEntry)
+                #_mBlock = self._ml_scene[idx]
+                #self._ml_loaded.append(_mBlock)
+                #_color = d_state_colors.get(_mBlock.getEnumValueString('blockState'))
+                _color = self._d_itc[strEntry]
+                try:self(e=1, itc = [(i+1,_color[0],_color[1],_color[2])])
+                except:pass
+
+        except Exception,err:
+            log.error("|{0}| >> err: {1}".format(_str_func, err))  
+            for a in err:
+                log.error(a)
+
+    def selectCallBack(self,func=None,*args,**kws):
+        print self.getSelectedBlocks()
+
+def mrsPoseDirSelect(self,ui = None):
+    _str_func = 'mrsPoseDirSelect'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    _dir = self.getSelectedDir()
+    _d = self._d_dir[_dir[0]]
+    
+    _depth = _d['depth']
+    if not _depth:
+        _str = _d['token']
+    else:
+        _str = ' | '.join(_d['split'][-_d['depth']:])
+        
+    ui.uiFrame_subDir(edit=1, label = "Sub : {0} ".format(_d['mPath'].asTruncate(2,2)))
+    
+    ui.posePath = _d['raw'].asFriendly()#_dir[0]
+    ui.uiCB_fillPoses(True)
+    
+    return
         
 #>>> Utilities
 #===================================================================
