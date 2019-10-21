@@ -106,7 +106,15 @@ def mrsScene():
         reload(SCENE)
         x = SCENE.ui()
     except Exception,err:
-        log.warning("[DEV] failed to load. | {0}".format(err))
+        log.warning("[mrsScene] failed to load. | {0}".format(err))
+
+def cgmProject():
+    try:
+        import cgm.core.tools.Project as PROJECT
+        reload(PROJECT)
+        x = PROJECT.ui()
+    except Exception,err:
+        log.warning("[cgmProject] failed to load. | {0}".format(err))
 
 def loadPuppetBox( *a ):
     from cgm.tools import puppetBox

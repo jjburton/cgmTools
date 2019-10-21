@@ -660,27 +660,31 @@ def uiSection_mrs(parent):
     
     mc.menuItem(parent = parent,
                 l='mrsAnimate',
-                ann = "WIP",
+                ann = "MRS Animation Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsANIMATE())
                 
     mc.menuItem(parent = parent,
                 l='mrsBuilder',
-                ann = "WIP",
+                ann = "MRS Rigging Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsUI())
     
     mc.menuItem(parent = parent,
                 l='mrsPoser',
-                ann = "WIP",
+                ann = "Pose Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsPOSER())
     
     mc.menuItem(parent = parent,
                 l='Shots',
-                ann = "WIP",
+                ann = "Shot Chunk Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsShots())
     mc.menuItem(parent = parent,
                 l='Scene',
-                ann = "WIP",
+                ann = "Scene Management Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsScene())
+    mc.menuItem(parent = parent,
+                l='Project',
+                ann = "Project Management Tool | Alpha",
+                c=lambda *a:TOOLCALLS.cgmProject())
     
     mc.menuItem(parent = parent,
                 l='MRS Documentation',

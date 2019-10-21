@@ -151,6 +151,18 @@ class ui(cgmUI.cgmGUI):
         else:
             log.error('Invalid Path: {0}'.format(mPath))
             
+            
+    def uiProject_toScene(self):
+        _str_func = 'uiProject_toScene'
+        log.info("|{0}| >>...".format(_str_func))
+        
+        cgmMeta.cgmOptionVar('cgmVar_sceneUI_export_directory').setValue(self.d_tf['paths']['export'].getValue())
+        cgmMeta.cgmOptionVar('cgmVar_sceneUI_last_directory').setValue(self.d_tf['paths']['content'].getValue())
+        
+        import cgm.core.mrs.Scene as SCENE
+        reload(SCENE)
+        SCENE.ui()
+        
     def uiProject_load(self,path=None,revert=False):
         _str_func = 'uiProject_load'
         log.info("|{0}| >>...".format(_str_func))
@@ -251,8 +263,17 @@ class ui(cgmUI.cgmGUI):
 
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_utils = mUI.MelMenu(l='Utils', pmc = cgmGEN.Callback(self.buildMenu_utils))
+        
         self.uiMenu_help = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
         
+    def buildMenu_utils(self):
+        self.uiMenu_utils.clear()
+        
+        #>>> Reset Options		                     
+        mUI.MelMenuItemDiv( self.uiMenu_utils, label='Send To...' )
+        mUI.MelMenuItem( self.uiMenu_utils, l="Scene",
+                         c = lambda *a:mc.evalDeferred(self.uiProject_toScene,lp=True))
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
