@@ -2205,6 +2205,8 @@ def uiCB_contextualAction(self,**kws):
     pprint.pprint(d_contextSettings)
     _ml_controls = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
     
+
+    
     if not _ml_controls:
         return log.error("No controls in context")
     
@@ -5044,11 +5046,11 @@ def mmUI_controls(self,parent = None):
     for m in ['Add to selection','Select Only','Push','Pull','SymLeft','SymRight','Flip']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':_d.get('mirror',False),
-                  'children':_d.get('children',False),
+                  'contextMode':_context,
+                  'contextMirror':_d.get('mirror',False),
+                  'contextChildren':_d.get('children',False),
                   'contextTime':_contextTime,                  
-                  'siblings':_d.get('siblings',False)}
+                  'contextSiblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_mirror,l=m,
                     c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),

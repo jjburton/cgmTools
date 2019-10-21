@@ -61,7 +61,13 @@ mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
 mUI = cgmUI.mUI
 
-
+_dataConfigToStored = {'general':'d_project',
+                       'enviornment':'d_env',
+                       'paths':'d_paths',
+                       'anim':'d_animSettings',
+                       'world':'d_world',}
+                   
+                   
 d_projectFramework = {
     'Art':{
     'Character':{},
@@ -88,24 +94,31 @@ d_projectFramework = {
 
 l_projectDat = ['name','type']
 l_projectTypes = ['asset','unity','unreal','commercial']
-l_projectPaths = ['content','export','poses','image']
+l_projectPaths = ['content','export','image']
 
+_tangents = ['linear','spline','clamped','flat','plateau','auto']
+_fps = [2,3,4,5,6,8,10,12,15,16,20,23.976,
+        24,25,29.97,30,40,48,50,
+        60,75,80,100,120]
+_fpsStrings = ['2', '3', '4', '5', '6', '8', '10', '12', '15', '16', '20', '23.976', '24', '25', '29.97', '30', '40', '48', '50', '60', '75', '80', '100', '120']
 
-d_animSettings = {'defaultInTangent':['linear','spline','clamped','flat','plateau','auto'],
-                  'defaultOutTangent':['linear','spline','clamped','flat','plateau','auto'],
-                  'weightedTangents':'bool'
-                  }
+_animSettings = [{'n':'frameRate','t':_fpsStrings,'dv':'24'},
+                 {'n':'defaultInTangent','t':_tangents,'dv':'linear'},
+                 {'n':'defaultOutTangent','t':_tangents,'dv':'linear'},
+                 {'n':'weightedTangents','t':'bool','dv':False},
+                  ]
 
-d_worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
-                   {'n':'linear','t':['milimeter','centimeter','meter',
-                                      'inch','foot','yard'],'dv':'centimeter'},
-                   {'n':'angular','t':['degrees','radians'],'dv':'degrees'},                   
-                    ]
-d_cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
+_worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
+                  {'n':'linear','t':['milimeter','centimeter','meter',
+                                     'inch','foot','yard'],'dv':'centimeter'},
+                  {'n':'angular','t':['degrees','radians'],'dv':'degrees'},                   
+                   ]
+
+_cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
                     {'n':'farClip','t':'float','dv':100000}]
-d_timeSettings = [{'n':'frameRate','t':[2,3,4,5,6,8,10,12,15,16,20,23.976,
-                                        24,25,29.97,30,40,48,50,
-                                        60,75,80,100,120],'dv':24}]
+
+
+
 
 #RangeSlider|MainPlaybackRangeLayout|formLayout9|formLayout13|optionMenuGrp1
 #timeField -e -v `playbackOptions -q -ast` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField2; timeField -e -v `playbackOptions -q -aet` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField5;
@@ -117,6 +130,72 @@ from cgm.lib import (search,
                      rigging,
                      distance,
                      skinning)
+
+def buildFrames(self,parent):
+    _str_func = 'buildFrames'
+    log.debug("|{0}| >>...".format(_str_func))
+        
+    d_toDo  = {'world':_worldSettings,
+               'anim':_animSettings}
+    
+    for k,l in d_toDo.iteritems():
+        log.debug(cgmGEN.logString_sub(_str_func,k))
+        
+        _key = 'project{0}DatCollapse'.format(k.capitalize())
+        try:self.__dict__['var_'+_key]
+        except:self.create_guiOptionVar(_key,defaultValue = 0)
+        mVar_frame = self.__dict__['var_'+_key]
+        
+        _frame = mUI.MelFrameLayout(parent,label = k.capitalize(),vis=True,
+                                    collapse=mVar_frame.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = cgmGEN.Callback(mVar_frame.setValue,0),
+                                    collapseCommand =  cgmGEN.Callback(mVar_frame.setValue,1),
+                                    )	
+        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
+        
+        
+        self.d_tf[k] = {}
+        _d = self.d_tf[k]
+        
+        for d in l:
+            log.debug(cgmGEN.logString_msg(_str_func,d))
+            
+            _type = d.get('t')
+            _dv = d.get('dv')
+            _name = d.get('n')
+
+            mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+            
+            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+            mUI.MelSpacer(_row,w=5)                          
+            mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(_name)))
+            
+            if cgmValid.isListArg(_type):
+                
+                _d[_name] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                
+                for t in _type:
+                    _d[_name].append(t)
+        
+                #_d[key].selectByIdx(self.setMode,False)                
+                _d[_name].setValue(_dv)
+            elif _type == 'bool':
+                _d[_name] =  mUI.MelCheckBox(_row,
+                                              ann='Project settings | {0}'.format(_name))
+                _d[_name].setValue(_dv)
+                
+            else:
+                #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
+                _d[_name] =  mUI.MelTextField(_row,
+                                            ann='Project settings | {0}'.format(_name),
+                                            text = '')
+                
+            _row.setStretchWidget(_d[_name])
+            mUI.MelSpacer(_row,w=5)
+            _row.layout()            
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -187,29 +266,43 @@ class ui(cgmUI.cgmGUI):
         #if revert is not True:
         self.mDat.read(path)
         
-        log.debug(cgmGEN.logString_sub(_str_func,"general"))
-        for k,v in self.mDat.d_project.iteritems():
-            log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-            try:
-                self.d_tf['project'][k].setValue(v)
-            except Exception,err:
-                log.error("Missing data field: {0}".format(k))
-                log.error("err | {0}".format(err))
-                
-                #mUi.setValue(v)
- 
- 
-        log.debug(cgmGEN.logString_sub(_str_func,"paths"))
-        for k,v in self.mDat.d_paths.iteritems():
-            log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+        
+        for dType in ['general','anim','paths']:
+            log.debug(cgmGEN.logString_sub(_str_func,dType))
             
-            try:
-                self.d_tf['paths'][k].setValue(v)
-            except Exception,err:
-                log.error("Missing data field: {0}".format(k))
-                log.error("err | {0}".format(err))
-        
-        
+            for k,v in self.mDat.__dict__[_dataConfigToStored[dType]].iteritems():
+                log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                try:
+                    self.d_tf[dType][k].setValue(v)
+                except Exception,err:
+                    log.error("Missing data field or failure: {0}".format(k))
+                    log.error("err | {0}".format(err))                
+                
+                
+            """            
+            log.debug(cgmGEN.logString_sub(_str_func,"general"))
+            for k,v in self.mDat.d_project.iteritems():
+                log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                try:
+                    self.d_tf['general'][k].setValue(v)
+                except Exception,err:
+                    log.error("Missing data field: {0}".format(k))
+                    log.error("err | {0}".format(err))
+                    
+                    #mUi.setValue(v)
+     
+     
+            log.debug(cgmGEN.logString_sub(_str_func,"paths"))
+            for k,v in self.mDat.d_paths.iteritems():
+                log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                
+                try:
+                    self.d_tf['paths'][k].setValue(v)
+                except Exception,err:
+                    log.error("Missing data field: {0}".format(k))
+                    log.error("err | {0}".format(err))
+            
+            """        
         #Set maya project path
         log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
         self.uiProject_pushPaths()
@@ -230,8 +323,13 @@ class ui(cgmUI.cgmGUI):
         self.uiScrollList_dirContent.rebuild(self.mDat.d_paths['content'])
         
         #Project image
-        _imagePath = os.path.join(mImagesPath.asFriendly(),
-                                  'cgm_project_{0}.png'.format(self.d_tf['project']['type'].getValue()))
+        _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
+        if _path.exists():
+            log.warning('Image path failed: {0}'.format(_path))
+            _imagePath = _path
+        else:
+            _imagePath = os.path.join(mImagesPath.asFriendly(),
+                                      'cgm_project_{0}.png'.format(self.d_tf['general']['type'].getValue()))
         
         #self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
         self.uiImage_Project.setImage(_imagePath)        
@@ -242,7 +340,7 @@ class ui(cgmUI.cgmGUI):
         log.info(True)
         
     
-    def uiProject_save(self, path = None, updateFile = False):
+    def uiProject_save(self, path = None, updateFile = True):
         _str_func = 'uiProject_save'
         log.debug("|{0}| >>...".format(_str_func))
         
@@ -251,22 +349,31 @@ class ui(cgmUI.cgmGUI):
                 log.info("|{0}| >> Saving to existing mDat: {1}".format(_str_func,self.mDat.str_filepath))
                 path = self.mDat.str_filepath        
             
-        for k,ui in self.d_tf['project'].iteritems():
-            self.mDat.d_project[k] = ui.getValue()
             
-        
+        for dType,d in _dataConfigToStored.iteritems():
+            if dType in ['enviornment']:
+                continue
+            
+            log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(dType,d)))
+            
+            for k,ui in self.d_tf[dType].iteritems():
+                self.mDat.__dict__[d][k] = ui.getValue()            
+            
+        """
+        for k,ui in self.d_tf['general'].iteritems():
+            self.mDat.d_project[k] = ui.getValue()
+
         for k,ui in self.d_tf['paths'].iteritems():
             self.mDat.d_paths[k] = ui.getValue()
-            
+            """
         self.mDat.log_self()
-        
         self.mDat.write( self.path_projectConfig)
         
     def uiProject_saveAs(self):
         _str_func = 'uiProject_saveAs'
         log.debug("|{0}| >>...".format(_str_func))
         
-        self.uiProject_save(None,True)
+        self.uiProject_save(None,False)
         
     def uiProject_revert(self):
         _str_func = 'uiProject_revert'
@@ -438,7 +545,9 @@ class ui(cgmUI.cgmGUI):
         
         self.buildFrame_baseDat(parent)
         self.buildFrame_paths(parent)
-        self.buildFrame_content(parent)
+        buildFrames(self,parent)
+        
+        #self.buildFrame_content(parent)
         buildFrame_dirContent(self,parent)
         
     def uiCB_setProjectPath(self, path=None, field = False, fileDialog=False):
@@ -506,8 +615,8 @@ class ui(cgmUI.cgmGUI):
         
         #>>>Hold ===================================================================================== 
         cgmUI.add_LineSubBreak()
-        self.d_tf['project'] = {}
-        _d = self.d_tf['project']
+        self.d_tf['general'] = {}
+        _d = self.d_tf['general']
         for key in l_projectDat:
             mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
             
@@ -532,7 +641,7 @@ class ui(cgmUI.cgmGUI):
             _row.setStretchWidget(_d[key])
             mUI.MelSpacer(_row,w=5)
             _row.layout()
-            
+
     def buildFrame_paths(self,parent):
         try:self.var_projectPathsCollapse
         except:self.create_guiOptionVar('projectPathsCollapse',defaultValue = 0)
@@ -653,7 +762,7 @@ def buildFrame_dirContent(self,parent):
     _scrollList = cgmProjectDirList(_inside, ut='cgmUISubTemplate',
                                     allowMultiSelection=0,en=True,
                                     ebg=0,
-                                    h=100,
+                                    h=200,
                                     bgc = [.2,.2,.2],
                                     w = 50)
     
@@ -688,11 +797,8 @@ class data(object):
     :param filepath: File to read on call or via self.read() call to browse to one
     
     '''    
-    _configToStored = {'general':'d_project',
-                       'enviornment':'d_env',
-                       'paths':'d_paths',
-                       'animSettings':'d_animSettings'}
-    _geoToComponent = {'mesh':'vtx'}
+
+    #_geoToComponent = {'mesh':'vtx'}
     
     
     def __init__(self, project = None, filepath = None, **kws):
@@ -700,11 +806,12 @@ class data(object):
 
         """        
         self.str_filepath = None
-        self.d_env = cgmGEN.get_mayaEnviornmentDict()
+        self.d_env = {}#cgmGEN.get_mayaEnviornmentDict()
         self.d_env['file'] = mc.file(q = True, sn = True)
-        self.d_project = {}
-        self.d_animSettings = {}
-        self.d_paths = {}
+        
+        for k,d in _dataConfigToStored.iteritems():
+            log.debug("initialze: {0}".format(k))
+            self.__dict__[d] = {}
         
         if filepath is not None:
             try:self.read(filepath)
@@ -717,55 +824,7 @@ class data(object):
         if targetMesh is not None:
             self.validateTargetMesh(targetMesh)
         if sourceMesh is None and targetMesh is None and mc.ls(sl=True):
-            self.validateSourceMesh(sourceMesh)            
-
-    @classmethod   
-    def validateMeshArg(self, mesh = None):
-        '''
-        Validates a mesh and returns a dict of data
-        
-        :param mesh: mesh to evaluate
-        
-        '''        
-        _mesh = None 
-        _skin = None
-        if mesh is None:
-            #if self.d_kws.get('sourceMesh'):
-                #log.info("Using stored sourceMesh data")
-                #sourceMesh = self.d_kws.get('sourceMesh')
-            #else:
-            log.info("No source specified, checking if selection found")
-            _bfr = mc.ls(sl=True)
-            if not _bfr:raise ValueError,"No selection found and no source arg"
-            mesh = _bfr[0]
-            
-        _type = search.returnObjectType(mesh)
-        
-        if _type in ['mesh', 'nurbsCurve', 'nurbsSurface']:
-            if _type in ['nurbsCurve','nurbsSurface']:
-                raise  NotImplementedError, "Haven't implemented nurbsCurve or nurbsSurface yet"
-            log.info("Skinnable object '{0}', checking skin".format(mesh))
-            _mesh = mesh
-            _skin = skinning.querySkinCluster(_mesh) or False
-            if _skin:
-                log.info("Found skin '{0}' on '{1}'".format(_skin,_mesh))
-        elif _type in ['skinCluster']:
-            log.info("skinCluster '{0}' passed...".format(mesh))
-            _skin = mesh
-            _mesh = attributes.doGetAttr(_skin,'outputGeometry')[0]
-            log.info("Found: {0}".format(_mesh))
-        else:
-            raise ValueError,"Not a usable mesh type : {0}".format(_type)
-        
-        _shape = mc.listRelatives(_mesh,shapes=True,fullPath=False)[0]
-        _return = {'mesh':_mesh,
-                   'meshType':_type,
-                   'shape':_shape,
-                   'skin':_skin,
-                   'component':data._geoToComponent.get(_type, False),
-                   'pointCount':mc.polyEvaluate(_shape, vertex=True)
-                   }
-        return _return  
+            self.validateSourceMesh(sourceMesh)
 
     def validateFilepath(self, filepath = None, fileMode = 0):
         '''
@@ -787,6 +846,9 @@ class data(object):
         '''
         Write the Data ConfigObj to file
         '''
+        _str_func = 'data.write'
+        log.debug("|{0}| >>...".format(_str_func))
+        
         if update:
             filepath = self.str_filepath
             
@@ -794,8 +856,10 @@ class data(object):
             
         ConfigObj = configobj.ConfigObj(indent_type='\t')
         ConfigObj['configType']= 'cgmProject'
-        for k in data._configToStored.keys():
-            ConfigObj[k] = self.__dict__[data._configToStored[k]] 
+        
+        for k,d in _dataConfigToStored.iteritems():
+            log.debug("Dat: {0}".format(k))
+            ConfigObj[k] = self.__dict__[d] 
         
         ConfigObj.filename = filepath
         ConfigObj.write()
@@ -807,7 +871,10 @@ class data(object):
     def read(self, filepath = None, report = False):
         '''
         Read the Data ConfigObj from file and report the data if so desired.
-        '''        
+        ''' 
+        _str_func = 'data.read'
+        log.debug("|{0}| >>...".format(_str_func))
+        
         filepath = self.validateFilepath(filepath, fileMode = 1)
         if not os.path.exists(filepath):            
             raise ValueError('Given filepath doesnt not exist : %s' % filepath)   
@@ -816,9 +883,9 @@ class data(object):
         #if _config.get('configType') != 'cgmSkinConfig':
             #raise ValueError,"This isn't a cgmSkinConfig config | {0}".format(filepath)
                 
-        for k in data._configToStored.keys():
+        for k in _dataConfigToStored.keys():
             if _config.has_key(k):
-                self.__dict__[data._configToStored[k]] = _config[k]
+                self.__dict__[_dataConfigToStored[k]] = _config[k]
             else:
                 log.error("Config file missing section {0}".format(k))
                 return False

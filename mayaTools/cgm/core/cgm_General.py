@@ -989,8 +989,7 @@ class Callback(object):
                 log.info(a)
                 
             cgmException(Exception,err)
-        finally:
-            del self
+        finally:del self
             
 CB = Callback
 def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
