@@ -3680,13 +3680,17 @@ class rigFactory(object):
                 log.error("|{0}| >> No steps to build!".format(_str_func))                    
                 return False
             #Build our progress Bar
-            mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
+            try:
+                mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
+            except:
+                mayaMainProgressBar = None
 
             for i,fnc in enumerate(_l_buildOrder):
                 _str_func = '_'.join(fnc.split('_')[1:])
                 
-                mc.progressBar(mayaMainProgressBar, edit=True,
-                               status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)                    
+                if mayaMainProgressBar:
+                    mc.progressBar(mayaMainProgressBar, edit=True,
+                                   status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)                    
                 
                 mc.undoInfo(openChunk=True,chunkName=fnc)
                 
@@ -3718,7 +3722,7 @@ class rigFactory(object):
                     
             #self.mBlock.addAttr('rigNodeBuffer','message',l_diff)
             
-            CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+            if mayaMainProgressBar:CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
             CGMUI.doEndMayaProgressBar()#Close out this progress bar
             cgmGEN.cgmExceptCB(Exception,err,msg=vars())
