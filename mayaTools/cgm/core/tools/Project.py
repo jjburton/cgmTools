@@ -92,8 +92,10 @@ d_projectFramework = {
     'ref':{}
 }
 
+d_frame = {'asset':['templates','rigs','builds','textures']}
+
 l_projectDat = ['name','type']
-l_projectTypes = ['asset','unity','unreal','commercial']
+l_projectTypes = ['assetLib','unity','unreal','commercial']
 l_projectPaths = ['content','export','image']
 
 _tangents = ['linear','spline','clamped','flat','plateau','auto']
@@ -116,8 +118,6 @@ _worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
 
 _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
                     {'n':'farClip','t':'float','dv':100000}]
-
-
 
 
 #RangeSlider|MainPlaybackRangeLayout|formLayout9|formLayout13|optionMenuGrp1
@@ -323,9 +323,10 @@ class ui(cgmUI.cgmGUI):
         self.uiScrollList_dirContent.rebuild(self.mDat.d_paths['content'])
         
         #Project image
+        log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
         _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
         if _path.exists():
-            log.warning('Image path failed: {0}'.format(_path))
+            log.warning('Image path: {0}'.format(_path))
             _imagePath = _path
         else:
             _imagePath = os.path.join(mImagesPath.asFriendly(),
@@ -344,7 +345,7 @@ class ui(cgmUI.cgmGUI):
         _str_func = 'uiProject_save'
         log.debug("|{0}| >>...".format(_str_func))
         
-        if path == None and updateFile:
+        if path == None and updateFile == True:
             if self.mDat.str_filepath:
                 log.info("|{0}| >> Saving to existing mDat: {1}".format(_str_func,self.mDat.str_filepath))
                 path = self.mDat.str_filepath        
@@ -367,7 +368,7 @@ class ui(cgmUI.cgmGUI):
             self.mDat.d_paths[k] = ui.getValue()
             """
         self.mDat.log_self()
-        self.mDat.write( self.path_projectConfig)
+        self.mDat.write( path)
         
     def uiProject_saveAs(self):
         _str_func = 'uiProject_saveAs'
