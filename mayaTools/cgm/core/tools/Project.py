@@ -92,7 +92,7 @@ d_projectFramework = {
     'ref':{}
 }
 
-d_frame = {'asset':['templates','rigs','builds','textures']}
+d_frame = {'asset':['templates','rigs','builds','textures','geo']}
 
 l_projectDat = ['name','type']
 l_projectTypes = ['assetLib','unity','unreal','commercial']
