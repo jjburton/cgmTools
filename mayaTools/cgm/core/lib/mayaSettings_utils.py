@@ -62,7 +62,7 @@ def frameRate_get():
     log.debug(cgmGEN.logString_start(_str_func))    
     return mc.currentUnit(q=1, time=True)    
 
-def frameRate_set():
+def frameRate_set(arg):
     _str_func = 'frameRate_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
@@ -82,9 +82,9 @@ def frameRate_set():
 def sceneUp_get():
     _str_func = 'sceneUp_get'
     log.debug(cgmGEN.logString_start(_str_func))    
-    return mc.upAxis(ax=True, rv= 1)
+    return mc.upAxis(q=1, ax=True)
 
-def sceneUp_set():
+def sceneUp_set(arg):
     _str_func = 'sceneUp_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
@@ -101,9 +101,9 @@ def sceneUp_set():
 def defaultTangents_get():
     _str_func = 'defaultTangents_get'
     log.debug(cgmGEN.logString_start(_str_func))    
-    return mc.keyTangent(g = 1, itt = True, ott = True)  
+    return mc.keyTangent(q = 1, itt = True, ott = True)  
 
-def defaultTangents_set():
+def defaultTangents_set(arg):
     _str_func = 'defaultTangents_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
@@ -118,22 +118,23 @@ def defaultTangents_set():
     
     log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
     
-    mc.keyTangent(g = 1, itt = True, ott = True)
+    #Couldn't use True for setting the Tangent type had to use _arg
+    mc.keyTangent(g= 1, itt = _arg, ott = _arg)
     
 def weightedTangents_get():
     _str_func = 'weightedTangents_get'
     log.debug(cgmGEN.logString_start(_str_func))    
-    return mc.keyTangent(edit = 1, g = 1, wt = True)    
+    return mc.keyTangent(q = 1, wt = True)    
     
-def weightedTangets_set():
+def weightedTangets_set(arg):
     _str_func = 'weightedTangets_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
-    d_validArgs = {'False':['0','false'],
-                   'True':['1','true']                   
+    d_validArgs = {'false':['False','0'],
+                   'True':['True','1']                   
                    }
     _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
     
     log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
     
-    mc.keyTangent(edit = 1, g = 1, wt = True)     
+    mc.keyTangent(edit = 1, g= 1, wt = _arg)
