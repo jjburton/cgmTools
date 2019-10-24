@@ -45,35 +45,95 @@ def distanceUnit_set(arg) :
     
     d_validArgs = {'m':['meter','metre'],
                    'cm':['centimeter','centi'],
-                   'mm':['milimeter','mili']}
+                   'mm':['milimeter','mili'],
+                   'yd':['yard'],
+                   'in':['inch','inches'],
+                   'ft':['feet', 'foot']
+                   }
+    
     _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
     
     log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
 
     mc.currentUnit(linear = _arg)
     
-    '''
-    if arg == "millimeter" :
-        mc.currentUnit(linear = "mm")
-        print "Working units set to " + units
-    elif units == "centimeter" :
-        mc.currentUnit(linear = "cm")
-        print "Working units set to " + units
-    elif units == "meter" :
-        mc.currentUnit(linear = "m")
-        print "Working units set to " + units
-    elif units == "yard" :
-        mc.currentUnit(linear = "yd")
-        print "Working units set to " + units
-    elif units == "inch" :
-        mc.currentUnit(linear = "in")
-        print "Working units set to " + units
-    elif units == "foot" :
-        mc.currentUnit(linear = "ft")
-        print "Working units set to " + units
-    else :
-        print "!!! Please choose either:" +'\n' + "millimeter, centimeter, meter, yard, inch, or foot !!!!"
-        '''
+def frameRate_get():
+    _str_func = 'frameRate_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.currentUnit(q=1, time=True)    
 
-
+def frameRate_set():
+    _str_func = 'frameRate_set'
+    log.debug(cgmGEN.logString_start(_str_func))
     
+    d_validArgs = {'ntsc':['n','ntsc'],
+                   'pal':['p','pal'],
+                   'film':['f', 'film'],
+                   'game':['g','game'],
+                   'ntscf':['ntscf']
+                   }
+    
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+
+    mc.currentUnit(time = _arg)
+    
+def sceneUp_get():
+    _str_func = 'sceneUp_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.upAxis(ax=True, rv= 1)
+
+def sceneUp_set():
+    _str_func = 'sceneUp_set'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    d_validArgs = {'y':['y'],
+                   'z':['z']
+                   }
+    
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+
+    mc.upAxis(ax = _arg, rv = 1)
+
+def defaultTangents_get():
+    _str_func = 'defaultTangents_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.keyTangent(g = 1, itt = True, ott = True)  
+
+def defaultTangents_set():
+    _str_func = 'defaultTangents_set'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    d_validArgs = {'linear':['ln','linear'],
+                   'spline':['sp','spline'],
+                   'clamped':['cl','clamped'],
+                   'flat':['fl','flat'],
+                   'plateau':['pl','plateau'],
+                   'auto':['au','auto']
+                   }
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+    
+    mc.keyTangent(g = 1, itt = True, ott = True)
+    
+def weightedTangents_get():
+    _str_func = 'weightedTangents_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.keyTangent(edit = 1, g = 1, wt = True)    
+    
+def weightedTangets_set():
+    _str_func = 'weightedTangets_set'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    d_validArgs = {'False':['0','false'],
+                   'True':['1','true']                   
+                   }
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+    
+    mc.keyTangent(edit = 1, g = 1, wt = True)     
