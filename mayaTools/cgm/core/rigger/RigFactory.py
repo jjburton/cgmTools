@@ -339,6 +339,7 @@ def go(*args, **kws):
             """
 
             _str_func = "go.doBuild({0})".format(self._strShortName)
+            mayaMainProgressBar = None
             try:
                 d_build = self.buildModule.__d_buildOrder__
                 int_keys = d_build.keys()
@@ -351,7 +352,7 @@ def go(*args, **kws):
                         func_current = d_build[k].get('function')
                         _str_subFunc = str_name
 
-                        mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >>Rigging>> step:'%s'..."%(self._strShortName,str_name), progress=k+1)    
+                        if mayaMainProgressBar:mc.progressBar(mayaMainProgressBar, edit=True, status = "%s >>Rigging>> step:'%s'..."%(self._strShortName,str_name), progress=k+1)    
                         func_current(self)
 
                         if buildTo.lower() == str_name:
@@ -360,9 +361,9 @@ def go(*args, **kws):
                     except Exception,error:
                         raise Exception,"%s.doBuild >> Step %s failed! | %s"%(self._strShortName,str_name,error)
 
-                gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+                if mayaMainProgressBar:gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
             except Exception,error:
-                gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    		
+                if mayaMainProgressBar:gui.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    		
                 raise Exception,"{0} | error: {1}".format(_str_func,error)
         def isShaped(self):
             """

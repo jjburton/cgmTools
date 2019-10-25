@@ -1731,9 +1731,10 @@ def get_buffer_dat(update = False):
                 _str = "{0} | {1}".format(ii,mModule)
                 log.debug(cgmGEN.logString_start(_str))
                 
-                CGMUI.progressBar_set(_progressBar,step=1,
-                                      maxValue = len_modules,
-                                      status = _str)
+                if _progressBar:
+                    CGMUI.progressBar_set(_progressBar,step=1,
+                                          maxValue = len_modules,
+                                          status = _str)
                 _res[mModule] = {}
                 _m = _res[mModule]
                 
@@ -1771,9 +1772,10 @@ def get_buffer_dat(update = False):
                 for iii,mObj in enumerate(ml_controls):
                     _str = "{0} | {1}".format(iii,mObj)
                     log.debug(_str)
-                    CGMUI.progressBar_set(_progressBar,step=1,
-                                          maxValue = len_controls,
-                                          status = _str)
+                    if _progressBar:
+                        CGMUI.progressBar_set(_progressBar,step=1,
+                                              maxValue = len_controls,
+                                              status = _str)
                     
                     
                     try:_res['mControls'].index(mObj)

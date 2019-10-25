@@ -455,8 +455,9 @@ class ui(cgmUI.cgmGUI):
             _progressBar = cgmUI.doStartMayaProgressBar(len(self._l_attrsToLoad),"Processing...")
             try:
                 for a in self._l_attrsToLoad:
-                    
-                    mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
+                    if _progressBar:
+                        
+                        mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
                     
                     try:
                         _short = self._ml_nodes[0].p_nameShort

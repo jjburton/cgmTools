@@ -631,7 +631,7 @@ def settings(self,settingsPlace = None,ml_targets = None):
             mSettings = mSettingsShape
             CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
             
-            ATTR.copy_to(self.d_module['shortName'],'cgmName',mSettings.mNode,driven='target')
+            ATTR.copy_to(self.mModule.mNode,'cgmName',mSettings.mNode,driven='target')
 
             mSettings.doStore('cgmTypeModifier','settings')
             mSettings.doName()

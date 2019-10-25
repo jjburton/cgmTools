@@ -50,7 +50,8 @@ __version__ = 'alpha.1.10212019'
     #MRSBATCH.process_blocks_rig('D:/Dropbox/cgmMRS/maya/batch/master_template_v01.mb')
 
 
-def create_MRS_batchFile(f=None, blocks = [None], process = False):
+def create_MRS_batchFile(f=None, blocks = [None], process = False,
+                         postProcesses = True, deleteAfterProcess = False):
     _str_func = 'create_MRS_batchFile'
     cgmGEN.log_start(_str_func)
     
@@ -102,7 +103,7 @@ def create_MRS_batchFile(f=None, blocks = [None], process = False):
         
         
         mTar = PATHS.Path(_batchPath)
-        _l = "try:MRSBATCH.process_blocks_rig('{0}')".format(mFile.asString())
+        _l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
         
         if mTar.getWritable():
             if mTar.exists():
@@ -125,7 +126,13 @@ def create_MRS_batchFile(f=None, blocks = [None], process = False):
         for f in l_batch:
             log.warning("Processing file: {0}".format(f.asFriendly()))            
             #subprocess.call([sys.argv[0].replace("maya.exe","mayapy.exe"),f.asFriendly()])
-            subprocess.Popen([sys.argv[0].replace("maya.exe","mayapy.exe"),'-i',f.asFriendly()], creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
+            subprocess.Popen([sys.argv[0].replace("maya.exe",
+                                                  "mayapy.exe"),'-i',
+                              f.asFriendly()],
+                             creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
+            
+            if deleteAfterProcess:
+                os.remove(f)
         
 
     '''
@@ -166,7 +173,7 @@ def create_MRS_batchFile(f=None, blocks = [None], process = False):
                 else:
                     raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup ) '''   
 
-def process_blocks_rig(f = None, blocks = None):
+def process_blocks_rig(f = None, blocks = None, postProcesses = False):
     _str_func = 'process_blocks_rig'
     #cgmGEN.log_start(_str_func)
     
@@ -178,11 +185,14 @@ def process_blocks_rig(f = None, blocks = None):
     _path = mFile.asFriendly()
     
     log.info("Good Path: {0}".format(_path))
-    
+    """
     if 'template' in _path:
         _newPath = _path.replace('template','build')
-    else:
-        raise ValueError,"Invalid file | missing 'template' tag: {0}".format(f)
+    else:"""
+    _name = mFile.name()
+    _d = mFile.up().asFriendly()
+    log.debug(cgmGEN.logString_msg(_str_func,_name))
+    _newPath = os.path.join(_d,_name+'_BUILD.{0}'.format(mFile.getExtension()))        
 
     log.info("New Path: {0}".format(_newPath))
     
@@ -190,53 +200,64 @@ def process_blocks_rig(f = None, blocks = None):
     mc.file(_path, open = 1, f = 1)
     
     #cgmGEN.logString_msg(_str_func,'Process...')
+    t1 = time.time()
     
-    if not blocks:
-        #cgmGEN.logString_sub(_str_func,'No blocks arg')
+    try:
         
-        ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
-                                         nTypes=['transform','network'],
-                                         mAttrs='blockType=master')
-
-        for mMaster in ml_masters:
-            #cgmGEN.logString_sub(_str_func,mMaster)
-    
-            RIGBLOCKS.contextual_rigBlock_method_call(mMaster, 'below', 'atUtils','changeState','rig',forceNew=False)
-
-            ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(mMaster,'below',True,False)
-            l_fails = []
-    
-            for mSubBlock in ml_context:
-                _state =  mSubBlock.getState(False)
-                if _state != 4:
-                    l_fails.append(mSubBlock)
-                    
-            if l_fails:
-                log.info('The following failed...')
-                pprint.pprint(l_fails)
-                raise ValueError,"Modules failed to rig: {0}".format(l_fails)
-    
-            log.info("Begin Rig Prep cleanup...")
-            '''
-    
-            Begin Rig Prep process
-    
-            '''
-            mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
+        if not blocks:
+            #cgmGEN.logString_sub(_str_func,'No blocks arg')
             
-            
-            log.info('mirror_verify...')
-            mPuppet.atUtils('mirror_verify')
-            log.info('collect worldSpace...')                        
-            mPuppet.atUtils('collect_worldSpaceObjects')
-            log.info('qss...')                        
-            mPuppet.atUtils('qss_verify',puppetSet=1,bakeSet=1,deleteSet=1,exportSet=1)
-            log.info('proxyMesh...')
-            mPuppet.atUtils('proxyMesh_verify')
-            log.info('ihi...')                        
-            mPuppet.atUtils('rigNodes_setAttr','ihi',0)
-            log.info('rig connect...')                        
-            mPuppet.atUtils('rig_connectAll')
+            ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
+                                             nTypes=['transform','network'],
+                                             mAttrs='blockType=master')
+    
+            for mMaster in ml_masters:
+                #cgmGEN.logString_sub(_str_func,mMaster)
+        
+                RIGBLOCKS.contextual_rigBlock_method_call(mMaster, 'below', 'atUtils','changeState','rig',forceNew=False)
+    
+                ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(mMaster,'below',True,False)
+                l_fails = []
+        
+                for mSubBlock in ml_context:
+                    _state =  mSubBlock.getState(False)
+                    if _state != 4:
+                        l_fails.append(mSubBlock)
+                        
+                if l_fails:
+                    log.info('The following failed...')
+                    pprint.pprint(l_fails)
+                    raise ValueError,"Modules failed to rig: {0}".format(l_fails)
+        
+                log.info("Begin Rig Prep cleanup...")
+                '''
+        
+                Begin Rig Prep process
+        
+                '''
+                mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
+                
+                
+                if postProcesses:
+                    log.info('mirror_verify...')
+                    mPuppet.atUtils('mirror_verify')
+                    log.info('collect worldSpace...')                        
+                    mPuppet.atUtils('collect_worldSpaceObjects')
+                    log.info('qss...')                        
+                    mPuppet.atUtils('qss_verify',puppetSet=1,bakeSet=1,deleteSet=1,exportSet=1)
+                    log.info('proxyMesh...')
+                    mPuppet.atUtils('proxyMesh_verify')
+                    log.info('ihi...')                        
+                    mPuppet.atUtils('rigNodes_setAttr','ihi',0)
+                    log.info('rig connect...')                        
+                    mPuppet.atUtils('rig_connectAll')
+    except Exception,err:
+        log.error(err)
+        
+        
+    t2 = time.time()
+    log.info("|{0}| >> Total Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 ))) 
+    
 
     #cgmGEN.logString_msg(_str_func,'File Save...')
     newFile = mc.file(rename = _newPath)

@@ -10128,7 +10128,8 @@ def prerig_get_upVector(self, markPos = False):
     #Now that we have our main up vector, we need to aim at
     ml_prerig = self.msgList_get('prerigHandles')
     if ml_prerig:
-        log.info(cgmGEN.logString_start(_str_func,"Prerig dat found. More accurate check.") )
+        
+        log.info(cgmGEN.logString_msg(_str_func,"Prerig dat found. More accurate check.") )
         
         try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
         except:idx_start,idx_end = 0,len(ml_prerig)-1
@@ -10226,7 +10227,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         
         ml_prerig = self.msgList_get('prerigHandles')
         if ml_prerig:
-            log.info(cgmGEN.logString_start(_str_func,"Prerig dat found. More accurate check.") )
+            log.info(cgmGEN.logString_msg(_str_func,"Prerig dat found. More accurate check.") )
             
             try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
             except:idx_start,idx_end = 0,len(ml_prerig)-1
