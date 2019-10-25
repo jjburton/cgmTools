@@ -275,7 +275,8 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
     if progressBar:
         cgmUI.progressBar_start(progressBar)
     else:
-        progressBar = cgmUI.doStartMayaProgressBar()
+        try:progressBar = cgmUI.doStartMayaProgressBar()
+        except:progressBar = None        
         
     def validate_controls(ml):
         for i,mObj in enumerate(ml):

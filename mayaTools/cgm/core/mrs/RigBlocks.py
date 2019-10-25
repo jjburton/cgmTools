@@ -3680,10 +3680,8 @@ class rigFactory(object):
                 log.error("|{0}| >> No steps to build!".format(_str_func))                    
                 return False
             #Build our progress Bar
-            try:
-                mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
-            except:
-                mayaMainProgressBar = None
+            try:mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
+            except:mayaMainProgressBar = None
 
             for i,fnc in enumerate(_l_buildOrder):
                 _str_func = '_'.join(fnc.split('_')[1:])

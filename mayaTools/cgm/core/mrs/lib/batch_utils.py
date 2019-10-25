@@ -15,12 +15,14 @@ import re
 import pprint
 import time
 import os
+import sys
+import subprocess, os
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -42,6 +44,127 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 __version__ = 'alpha.1.10212019'
 
+
+
+
+    #MRSBATCH.process_blocks_rig('D:/Dropbox/cgmMRS/maya/batch/master_template_v01.mb')
+
+
+def create_MRS_batchFile(f=None, blocks = [None], process = False):
+    _str_func = 'create_MRS_batchFile'
+    cgmGEN.log_start(_str_func)
+    
+    l_pre = ['import maya',
+    'from maya import standalone',
+    'standalone.initialize()',
+    
+    'from maya.api import OpenMaya as om2',
+    'om2.MGlobal.displayInfo("Begin")',
+    
+    'import cgm.core.mrs.lib.batch_utils as MRSBATCH']
+    
+    l_post = ['except:',
+    '    import msvcrt#...waits for key',
+    '    om2.MGlobal.displayInfo("Hit a key to continue")',
+    '    msvcrt.getch()',
+    'om2.MGlobal.displayInfo("End")',
+    'standalone.uninitialize()'    ]
+    
+    log.debug(cgmGEN.logString_sub(_str_func,"Checks ..."))
+    
+    l_paths = []
+    l_dirs = []
+    l_check = VALID.listArg(f)
+    l_mFiles = []
+    l_batch = []
+    if not l_check:
+        log.debug(cgmGEN.logString_msg(_str_func,"No file passed. Using current"))
+        l_check = [mc.file(q=True, sn=True)]
+        
+    
+    for f in l_check:
+        mFile = PATHS.Path(f)
+        if not mFile.exists():
+            log.error("Invalid file: {0}".format(f))
+            continue
+        
+        log.debug(cgmGEN.logString_sub(_str_func))
+        
+        _path = mFile.asFriendly()
+        l_paths.append(_path)
+        _name = mFile.name()
+        
+        _d = mFile.up().asFriendly()
+        log.debug(cgmGEN.logString_msg(_str_func,_name))
+        _batchPath = os.path.join(_d,_name+'_batch.py')
+        log.debug(cgmGEN.logString_msg(_str_func,"batchPath: "+_batchPath))
+        log.debug(cgmGEN.logString_msg(_str_func,"template: "+_path))
+        
+        
+        mTar = PATHS.Path(_batchPath)
+        _l = "try:MRSBATCH.process_blocks_rig('{0}')".format(mFile.asString())
+        
+        if mTar.getWritable():
+            if mTar.exists():
+                os.remove(mTar)
+                
+            log.warning("Writing file: {0}".format(_batchPath))
+ 
+            with open( _batchPath, 'a' ) as TMP:
+                for l in l_pre + [_l] + l_post:
+                    TMP.write( '{0}\n'.format(l) )
+                    
+            l_batch.append(mTar)
+                    
+        else:
+            log.warning("Not writable: {0}".format(_batchPath))
+            
+    
+    if process:
+        log.debug(cgmGEN.logString_sub(_str_func,"Processing ..."))        
+        for f in l_batch:
+            log.warning("Processing file: {0}".format(f.asFriendly()))            
+            #subprocess.call([sys.argv[0].replace("maya.exe","mayapy.exe"),f.asFriendly()])
+            subprocess.Popen([sys.argv[0].replace("maya.exe","mayapy.exe"),'-i',f.asFriendly()], creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
+        
+
+    '''
+    def isInstalledPy( self, pyUserSetup ):
+        
+        
+        l_lines = ['import cgmToolbox','import cgm.core.tools.lib.tool_chunks as TOOLCHUNKS','TOOLCHUNKS.loadLocalPython()']
+        l_found = []
+        l_missing = []
+        with open( pyUserSetup ) as f:
+            for i,codeLine in enumerate(l_lines):
+                for line in f:
+                    if codeLine in line:
+                        l_found.append(codeLine)
+                        break
+                if codeLine not in l_found:
+                    l_missing.append(codeLine)
+        log.info("Found: %s"%l_found)
+        if l_missing:
+            log.info("Failed to find: %s"%l_missing)
+            return l_missing
+        return True		
+        """with open( pyUserSetup ) as f:
+            for line in f:
+                if 'import' in line and 'cgmToolbox' in line:
+                    return True
+        return False"""
+
+    def installPy( self, pyUserSetup ):
+        buffer = self.isInstalledPy( pyUserSetup )
+        if buffer == True:
+            return
+
+        if pyUserSetup.getWritable():
+            with open( pyUserSetup, 'a' ) as f:
+                for l in buffer:
+                    f.write( '\n\n {0}\n'.format(l) )	
+                else:
+                    raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup ) '''   
 
 def process_blocks_rig(f = None, blocks = None):
     _str_func = 'process_blocks_rig'
@@ -101,7 +224,7 @@ def process_blocks_rig(f = None, blocks = None):
             '''
             mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
             
-            """
+            
             log.info('mirror_verify...')
             mPuppet.atUtils('mirror_verify')
             log.info('collect worldSpace...')                        
@@ -113,7 +236,7 @@ def process_blocks_rig(f = None, blocks = None):
             log.info('ihi...')                        
             mPuppet.atUtils('rigNodes_setAttr','ihi',0)
             log.info('rig connect...')                        
-            mPuppet.atUtils('rig_connectAll')"""
+            mPuppet.atUtils('rig_connectAll')
 
     #cgmGEN.logString_msg(_str_func,'File Save...')
     newFile = mc.file(rename = _newPath)
