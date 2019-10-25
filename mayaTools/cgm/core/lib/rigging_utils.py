@@ -1201,11 +1201,10 @@ def getControlShader(direction = 'center', controlType = 'main',
         ATTR.connect("{0}.outColor".format(_node), "{0}.surfaceShader".format(_set))
         
         if directProxy:
-            ATTR.set(_node,'transparency',1)
             ATTR.set(_node,'ambientColorR',0)
             ATTR.set(_node,'ambientColorG',0)
             ATTR.set(_node,'ambientColorB',0)
-            ATTR.set(_node,'transparency',.5)
+            ATTR.set(_node,'transparency',1.0)
             ATTR.set(_node,'incandescence',0)
         else:
             if controlType == 'puppetmesh':
@@ -1246,7 +1245,7 @@ def getControlShader(direction = 'center', controlType = 'main',
             ATTR.set(_node,'specularColorB',.25)
             
             if transparent:
-                _d = {'transparency':1.0,
+                _d = {'transparency':.6,
                       'incandescence':0,
                       'diffuse':0.1,
                       'cosinePower':.95,
