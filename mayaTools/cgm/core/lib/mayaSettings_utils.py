@@ -6,8 +6,17 @@ email:
 Website : http://www.cgmonks.com
 ------------------------------------------
 
+NOTES:
+Will need to make sure we save settings in the project manager to force maya to save our settings:
+
+setFocus prefsSaveBtn; savePrefsChanges;
+saveToolSettings;
+saveViewportSettings;
+
+*** If the user has maya's settings UI open and we are setting our own via the project manager then our settings will be overwritten!!***
+
 """
-#__MAYALOCAL = 'MAYASETTINGS'
+__MAYALOCAL = 'MAYASETTINGS'
 
 # From Python =============================================================
 #import copy
@@ -45,35 +54,108 @@ def distanceUnit_set(arg) :
     
     d_validArgs = {'m':['meter','metre'],
                    'cm':['centimeter','centi'],
-                   'mm':['milimeter','mili']}
+                   'mm':['milimeter','mili'],
+                   'yd':['yard'],
+                   'in':['inch','inches'],
+                   'ft':['feet', 'foot']
+                   }
+    
     _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
     
     log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
 
     mc.currentUnit(linear = _arg)
     
-    '''
-    if arg == "millimeter" :
-        mc.currentUnit(linear = "mm")
-        print "Working units set to " + units
-    elif units == "centimeter" :
-        mc.currentUnit(linear = "cm")
-        print "Working units set to " + units
-    elif units == "meter" :
-        mc.currentUnit(linear = "m")
-        print "Working units set to " + units
-    elif units == "yard" :
-        mc.currentUnit(linear = "yd")
-        print "Working units set to " + units
-    elif units == "inch" :
-        mc.currentUnit(linear = "in")
-        print "Working units set to " + units
-    elif units == "foot" :
-        mc.currentUnit(linear = "ft")
-        print "Working units set to " + units
-    else :
-        print "!!! Please choose either:" +'\n' + "millimeter, centimeter, meter, yard, inch, or foot !!!!"
-        '''
+def angularUnit_get():
+    _str_func = 'angularUnit_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.currentUnit(q=1, angle=True)
 
-
+def angularUnit_set(arg) :
+    _str_func = 'angularUnit_set'
+    log.debug(cgmGEN.logString_start(_str_func))
     
+    d_validArgs = {'deg':['deg','degree'],
+                   'rad':['rad','radian']
+                   }
+    
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+
+    mc.currentUnit(angle = _arg)
+
+def frameRate_get():
+    _str_func = 'frameRate_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.currentUnit(q=1, time=True)    
+
+def frameRate_set(arg):
+    _str_func = 'frameRate_set'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    d_validArgs = {'ntsc':['n','ntsc'],
+                   'pal':['p','pal'],
+                   'film':['f', 'film'],
+                   'game':['g','game'],
+                   'ntscf':['ntscf']
+                   }
+    
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+
+    mc.currentUnit(time = _arg)
+    
+def sceneUp_get():
+    _str_func = 'sceneUp_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.upAxis(q=1, ax=True)
+
+def sceneUp_set(arg):
+    _str_func = 'sceneUp_set'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    d_validArgs = {'y':['y'],
+                   'z':['z']
+                   }
+    
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+
+    mc.upAxis(ax = _arg, rv = 1)
+
+def defaultTangents_get():
+    _str_func = 'defaultTangents_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.keyTangent(q = 1, itt = True, ott = True)  
+
+def defaultTangents_set(arg):
+    _str_func = 'defaultTangents_set'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    d_validArgs = {'linear':['ln','linear'],
+                   'spline':['sp','spline'],
+                   'clamped':['cl','clamped'],
+                   'flat':['fl','flat'],
+                   'plateau':['pl','plateau'],
+                   'auto':['au','auto']
+                   }
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+    
+    #Couldn't use True for setting the Tangent type had to use _arg
+    mc.keyTangent(g= 1, itt = _arg, ott = _arg)
+    
+def weightedTangents_get():
+    _str_func = 'weightedTangents_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.keyTangent(q = 1, wt = bool(True))    
+    
+def weightedTangets_set(arg):
+    _str_func = 'weightedTangets_set'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    mc.keyTangent(edit = 1, g = 1, wt = bool(arg))
