@@ -6,8 +6,17 @@ email:
 Website : http://www.cgmonks.com
 ------------------------------------------
 
+NOTES:
+Will need to make sure we save settings in the project manager to force maya to save our settings:
+
+setFocus prefsSaveBtn; savePrefsChanges;
+saveToolSettings;
+saveViewportSettings;
+
+*** If the user has maya's settings UI open and we are setting our own via the project manager then our settings will be overwritten!!***
+
 """
-#__MAYALOCAL = 'MAYASETTINGS'
+__MAYALOCAL = 'MAYASETTINGS'
 
 # From Python =============================================================
 #import copy
@@ -57,6 +66,25 @@ def distanceUnit_set(arg) :
 
     mc.currentUnit(linear = _arg)
     
+def angularUnit_get():
+    _str_func = 'angularUnit_get'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    return mc.currentUnit(q=1, angle=True)
+
+def angularUnit_set(arg) :
+    _str_func = 'angularUnit_set'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    d_validArgs = {'deg':['deg','degree'],
+                   'rad':['rad','radian']
+                   }
+    
+    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
+
+    mc.currentUnit(angle = _arg)
+
 def frameRate_get():
     _str_func = 'frameRate_get'
     log.debug(cgmGEN.logString_start(_str_func))    
@@ -124,17 +152,10 @@ def defaultTangents_set(arg):
 def weightedTangents_get():
     _str_func = 'weightedTangents_get'
     log.debug(cgmGEN.logString_start(_str_func))    
-    return mc.keyTangent(q = 1, wt = True)    
+    return mc.keyTangent(q = 1, wt = bool(True))    
     
 def weightedTangets_set(arg):
     _str_func = 'weightedTangets_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
-    d_validArgs = {'false':['False','0'],
-                   'True':['True','1']                   
-                   }
-    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
-    
-    log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
-    
-    mc.keyTangent(edit = 1, g= 1, wt = _arg)
+    mc.keyTangent(edit = 1, g = 1, wt = bool(arg))
