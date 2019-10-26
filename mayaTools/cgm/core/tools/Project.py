@@ -68,35 +68,6 @@ _dataConfigToStored = {'general':'d_project',
                        'world':'d_world',}
                    
                    
-d_projectFramework = {
-    'Art':{
-    'Character':{},
-    'Enviornment':{},
-    'FX':{},
-    'images':{},
-    'mocap_library':{},
-    'movies':{},
-    'Poses':{},
-    'Props':{},
-    'UI':{},
-    'visdev':{}
-    },
-    'audio':{
-    'BGM':{},
-    'Debug':{},
-    'SFX':{},
-    'UI':{}
-    },
-    'design':{},
-    'media':{},
-    'ref':{}
-}
-d_projectFramework = {'Art':['Character','Enviornment','FX','images','mocap_library',
-                             'movies','poses','props','ui','visdev'],
-                      'audio':['BGM','Debug','SFX','UI','design','media','ref']
-}
-d_frame = {'asset':['templates','rigs','builds','textures']}
-
 l_projectDat = ['name','type','nameStyle']
 l_nameConventions = ['none','lower','capital','camelCase']
 l_projectTypes = ['assetLib','unity','unreal','commercial']
@@ -106,6 +77,7 @@ _tangents = ['linear','spline','clamped','flat','plateau','auto']
 _fps = [2,3,4,5,6,8,10,12,15,16,20,23.976,
         24,25,29.97,30,40,48,50,
         60,75,80,100,120]
+
 _fpsStrings = ['2', '3', '4', '5', '6', '8', '10', '12', '15', '16', '20', '23.976', '24', '25', '29.97', '30', '40', '48', '50', '60', '75', '80', '100', '120']
 
 _animSettings = [{'n':'frameRate','t':_fpsStrings,'dv':'24'},
@@ -124,7 +96,33 @@ _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
                     {'n':'farClip','t':'float','dv':100000}]
 
 
+d_projectFramework = {
+    'default':{'Art':['Character','Enviornment','FX','images','mocap_library',
+                      'movies','poses','props','ui','visdev'],
+               'audio':['BGM','Debug','SFX','UI','design','media','ref']},
+    'asset':{''}
+}
 
+d_dirFramework = {
+'game':{'content':{'art':['Character','Enviornment','FX','images','mocap_library','movies','poses','Props',
+                          'UI','visdev'],
+                   'audio':['BGM','Debug','SFX','UI']},
+         'export':{'art':['Character','DesignParts','Enviornment','FX','Props','UI'],
+                   'audio':['BGM','Debug','SFX']}},
+'asset':{'content':['templates','rigs','builds','textures'],
+         'export':[]}
+}
+
+def dirCreateList_get(projectType,dirSet,key = None):
+    try:
+        _dType = d_dirFramework.get(projectType,{})
+        _dDir = _dType.get(dirSet)
+        if issubclass(type(_dDir),list):
+            return _dDir
+        return _dDir.get(key,[])
+    except Exception,err:
+        log.error(err)
+        
 #RangeSlider|MainPlaybackRangeLayout|formLayout9|formLayout13|optionMenuGrp1
 #timeField -e -v `playbackOptions -q -ast` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField2; timeField -e -v `playbackOptions -q -aet` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField5;
 
@@ -314,9 +312,6 @@ class ui(cgmUI.cgmGUI):
         log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
         self.uiProject_pushPaths()
         
-        
-        
-        
         log.debug(cgmGEN.logString_sub(_str_func,"PathList append: {0}".format(self.mDat.str_filepath)))
         
         self.path_projectConfig = self.mDat.str_filepath
@@ -328,6 +323,7 @@ class ui(cgmUI.cgmGUI):
         
         #Update file dir
         self.uiScrollList_dirContent.rebuild(self.mDat.d_paths['content'])
+        self.uiScrollList_dirExport.rebuild(self.mDat.d_paths['export'])
         
         #Project image
         log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
@@ -573,6 +569,7 @@ class ui(cgmUI.cgmGUI):
         
         #self.buildFrame_content(parent)
         buildFrame_dirContent(self,parent)
+        buildFrame_dirExport(self,parent)
         
     def uiCB_setProjectPath(self, path=None, field = False, fileDialog=False):
         '''
@@ -774,11 +771,11 @@ class ui(cgmUI.cgmGUI):
                 
 
 def buildFrame_dirContent(self,parent):
-    try:self.var_projectDirFrameCollapse
-    except:self.create_guiOptionVar('projectDirFrameCollapse',defaultValue = 0)
-    mVar_frame = self.var_projectDirFrameCollapse
+    try:self.var_projectDirContentFrameCollapse
+    except:self.create_guiOptionVar('projectDirContentFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_projectDirContentFrameCollapse
     
-    _frame = mUI.MelFrameLayout(parent,label = 'Dir',vis=True,
+    _frame = mUI.MelFrameLayout(parent,label = 'Content',vis=True,
                                 collapse=mVar_frame.value,
                                 collapsable=True,
                                 enable=True,
@@ -787,7 +784,7 @@ def buildFrame_dirContent(self,parent):
                                 collapseCommand = lambda:mVar_frame.setValue(1)
                                 )	
     
-    self.uiFrame_subDir = _frame
+    self.uiFrame_dirContent = _frame
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
     
     
@@ -809,7 +806,7 @@ def buildFrame_dirContent(self,parent):
     #_scrollList.set_selCallBack(mrsPoseDirSelect,_scrollList,self)
     
     self.uiScrollList_dirContent = _scrollList
-    
+
     _row = mUI.MelHLayout(_inside,padding=5,)
     button_refresh = mUI.MelButton(_row,
                                    label='Clear Sel',ut='cgmUITemplate',
@@ -821,7 +818,50 @@ def buildFrame_dirContent(self,parent):
                                     ann='Force the scroll list to update')    
     _row.layout()
 
+def buildFrame_dirExport(self,parent):
+    try:self.var_projectDirExportFrameCollapse
+    except:self.create_guiOptionVar('projectDirExportFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_projectDirExportFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Export',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    
+    self.uiFrame_dirExport = _frame
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
+    
 
+    #Scroll list
+    _scrollList = cgmProjectDirList(_inside, ut='cgmUISubTemplate',
+                                    allowMultiSelection=0,en=True,
+                                    ebg=0,
+                                    h=200,
+                                    bgc = [.2,.2,.2],
+                                    w = 50)
+    
+    try:_scrollList(edit=True,hlc = [.5,.5,.5])
+    except:pass
+    
+    
+    #_scrollList.set_selCallBack(mrsPoseDirSelect,_scrollList,self)
+    
+    self.uiScrollList_dirExport = _scrollList
+
+    _row = mUI.MelHLayout(_inside,padding=5,)
+    button_refresh = mUI.MelButton(_row,
+                                   label='Clear Sel',ut='cgmUITemplate',
+                                    #c=lambda *a:self.uiScrollList_dir.clearSelection(),
+                                    ann='Clear selection the scroll list to update')     
+    button_refresh = mUI.MelButton(_row,
+                                   label='Refresh',ut='cgmUITemplate',
+                                    #c=lambda *a:self.uiScrollList_dir.rebuild(),
+                                    ann='Force the scroll list to update')    
+    _row.layout()
 
 class data(object):
     '''
@@ -851,7 +891,7 @@ class data(object):
         
         if filepath is not None:
             try:self.read(filepath)
-            except:log.error("Filepath failed to read.")
+            except Exception,err:log.error("data Filepath failed to read | {0}".format(err))
             
             
         return
@@ -874,9 +914,11 @@ class data(object):
             
         if filepath is None:
             return False
-        self.str_filepath = str(filepath)
+        
+        mFile = PATHS.Path(filepath)
+        self.str_filepath = mFile.asFriendly()
         log.info("filepath validated...")        
-        return filepath
+        return mFile
 
     def write(self, filepath = None, update = False):
         '''
@@ -911,11 +953,12 @@ class data(object):
         _str_func = 'data.read'
         log.debug("|{0}| >>...".format(_str_func))
         
-        filepath = self.validateFilepath(filepath, fileMode = 1)
-        if not os.path.exists(filepath):            
-            raise ValueError('Given filepath doesnt not exist : %s' % filepath)   
+        mPath = self.validateFilepath(filepath, fileMode = 1)
         
-        _config = configobj.ConfigObj(filepath)
+        if not mPath.exists():            
+            raise ValueError('Given filepath doesnt not exist : %s' % mPath)   
+        
+        _config = configobj.ConfigObj(mPath.asFriendly())
         #if _config.get('configType') != 'cgmSkinConfig':
             #raise ValueError,"This isn't a cgmSkinConfig config | {0}".format(filepath)
                 
@@ -927,7 +970,7 @@ class data(object):
                 return False
             
         if report:self.log_self()
-        self.str_filepath = filepath
+        self.str_filepath = str(mPath)
         
         return True
     
