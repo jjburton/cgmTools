@@ -138,6 +138,7 @@ def walk_below_dir(arg = None, tests = None,uiStrings = True,
                         'mPath':_rootPath,
                         'dir':dirs,
                         'index':_i,
+                        'key':_key,
                         'files':files}
         
         if uiStrings:
