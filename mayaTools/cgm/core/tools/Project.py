@@ -91,12 +91,16 @@ d_projectFramework = {
     'media':{},
     'ref':{}
 }
-
+d_projectFramework = {'Art':['Character','Enviornment','FX','images','mocap_library',
+                             'movies','poses','props','ui','visdev'],
+                      'audio':['BGM','Debug','SFX','UI','design','media','ref']
+}
 d_frame = {'asset':['templates','rigs','builds','textures']}
 
-l_projectDat = ['name','type']
+l_projectDat = ['name','type','nameStyle']
+l_nameConventions = ['none','lower','capital','camelCase']
 l_projectTypes = ['assetLib','unity','unreal','commercial']
-l_projectPaths = ['content','export','image']
+l_projectPaths = ['root','content','export','image']
 
 _tangents = ['linear','spline','clamped','flat','plateau','auto']
 _fps = [2,3,4,5,6,8,10,12,15,16,20,23.976,
@@ -118,6 +122,7 @@ _worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
 
 _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
                     {'n':'farClip','t':'float','dv':100000}]
+
 
 
 #RangeSlider|MainPlaybackRangeLayout|formLayout9|formLayout13|optionMenuGrp1
@@ -230,11 +235,13 @@ class ui(cgmUI.cgmGUI):
         
         self.var_project = cgmMeta.cgmOptionVar('cgmVar_projectCurrent',defaultValue = '')
         self.var_pathProject = cgmMeta.cgmOptionVar('cgmVar_projectPath',defaultValue = '')
+        self.var_pathLastProject = cgmMeta.cgmOptionVar('cgmVar_projectLastPath',defaultValue = '')
         
         self.mPathList = cgmMeta.pathList('cgmProjectPaths')
         
         self.d_tf = {}
         
+
     def uiProject_pushPaths(self):
         _str_func = 'uiProject_load'
         log.info("|{0}| >>...".format(_str_func))        
@@ -324,6 +331,20 @@ class ui(cgmUI.cgmGUI):
         
         #Project image
         log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
+        self.reload_headerImage()
+        
+        #self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
+        
+        #self.uiImage_Project.setImage(mThumb)
+        
+
+        log.info(True)
+        self.var_pathLastProject.value = self.mDat.str_filepath
+    
+    def reload_headerImage(self):
+        _str_func = 'reload_headerImage'
+        log.info("|{0}| >>...".format(_str_func))
+        
         _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
         if _path.exists():
             log.warning('Image path: {0}'.format(_path))
@@ -331,16 +352,9 @@ class ui(cgmUI.cgmGUI):
         else:
             _imagePath = os.path.join(mImagesPath.asFriendly(),
                                       'cgm_project_{0}.png'.format(self.d_tf['general']['type'].getValue()))
-        
-        #self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
+            
         self.uiImage_Project.setImage(_imagePath)        
         
-        #self.uiImage_Project.setImage(mThumb)
-        
-
-        log.info(True)
-        
-    
     def uiProject_save(self, path = None, updateFile = True):
         _str_func = 'uiProject_save'
         log.debug("|{0}| >>...".format(_str_func))
@@ -486,6 +500,15 @@ class ui(cgmUI.cgmGUI):
                         ],
                   attachNone = [(_row_cgm,"top")])
         
+        
+        #Attempting to autoload our last
+        mPath = PATHS.Path(self.var_pathLastProject.value )
+        if mPath.exists():
+            try:
+                self.uiProject_load(mPath)        
+            except Exception,err:
+                log.error("Failed to load last: {0} | {1}".format(mPath, err))
+                
     def bUI_main(self,parent):
         #self.mLabel_projectName = mUI.MelLabel(parent,label='Project X'.upper(), al = 'center', ut = 'cgmUIHeaderTemplate')
         
@@ -626,12 +649,14 @@ class ui(cgmUI.cgmGUI):
             mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
             if key == 'type':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                
                 for t in l_projectTypes:
                     _d[key].append(t)
         
                 #_d[key].selectByIdx(self.setMode,False)                
-                
+            elif key =='nameStyle':
+                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                for t in l_nameConventions:
+                    _d[key].append(t)                
                 
             else:
                 #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
@@ -736,10 +761,17 @@ class ui(cgmUI.cgmGUI):
     
     def uiButton_setPathToTextField(self,key):
         basicFilter = "*"
-        x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
+        if key in ['image']:
+            x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=1)
+        else:
+            x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
         if x:
             self.d_tf['paths'][key].setValue( x[0] )
             #self.optionVarExportDirStore.setValue( self.exportDirectory )    
+            
+            if key in ['image']:
+                self.reload_headerImage()
+                
 
 def buildFrame_dirContent(self,parent):
     try:self.var_projectDirFrameCollapse
@@ -756,10 +788,13 @@ def buildFrame_dirContent(self,parent):
                                 )	
     
     self.uiFrame_subDir = _frame
-    
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
     
     
+    
+    
+    
+    #Scroll list
     _scrollList = cgmProjectDirList(_inside, ut='cgmUISubTemplate',
                                     allowMultiSelection=0,en=True,
                                     ebg=0,
