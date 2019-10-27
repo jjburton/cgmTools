@@ -242,10 +242,32 @@ class ui(cgmUI.cgmGUI):
         
         self.d_tf = {}
         
-
+    
+    def uiProject_new(self):
+        _str_func = 'uiProject_new'
+        log.debug("|{0}| >>...".format(_str_func))        
+        
+        
+        result = mc.promptDialog(
+                title="New Project",
+                message='Enter Name for a new Project',
+                button=['OK', 'Cancel'],
+                defaultButton='OK',
+                cancelButton='Cancel',
+                dismissString='Cancel')
+        
+        if result == 'OK':
+            _name = mc.promptDialog(query=True, text=True)
+            self.mDat = data(_name)
+            
+            #self.mDat.write()
+            self.uiProject_save()
+            self.uiProject_load(revert=True)
+                
+                
     def uiProject_pushPaths(self):
         _str_func = 'uiProject_load'
-        log.info("|{0}| >>...".format(_str_func))        
+        log.debug("|{0}| >>...".format(_str_func))        
         
         mPath = PATHS.Path( self.d_tf['paths']['content'].getValue() )
         if mPath.exists():
@@ -256,7 +278,7 @@ class ui(cgmUI.cgmGUI):
             
     def uiProject_toScene(self):
         _str_func = 'uiProject_toScene'
-        log.info("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >>...".format(_str_func))
         
         cgmMeta.cgmOptionVar('cgmVar_sceneUI_export_directory').setValue(self.d_tf['paths']['export'].getValue())
         cgmMeta.cgmOptionVar('cgmVar_sceneUI_last_directory').setValue(self.d_tf['paths']['content'].getValue())
@@ -274,14 +296,20 @@ class ui(cgmUI.cgmGUI):
         #if revert is not True:
         self.mDat.read(path)
         
-        
         for dType in ['general','anim','paths']:
             log.debug(cgmGEN.logString_sub(_str_func,dType))
             
             for k,v in self.mDat.__dict__[_dataConfigToStored[dType]].iteritems():
-                log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
                 try:
-                    self.d_tf[dType][k].setValue(v)
+                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                    _type = type(self.d_tf[dType][k])
+                    if _type not in [mUI.MelOptionMenu]:
+                        try:self.d_tf[dType][k].clear()
+                        except:pass
+                        
+                        
+                        if v is not None:
+                            self.d_tf[dType][k].setValue(v)
                 except Exception,err:
                     log.error("Missing data field or failure: {0}".format(k))
                     log.error("err | {0}".format(err))                
@@ -325,8 +353,8 @@ class ui(cgmUI.cgmGUI):
         #Set pose path
         
         #Update file dir
-        self.uiScrollList_dirContent.rebuild(self.mDat.d_paths['content'])
-        self.uiScrollList_dirExport.rebuild(self.mDat.d_paths['export'])
+        self.uiScrollList_dirContent.rebuild( self.mDat.d_paths.get('content'))
+        self.uiScrollList_dirExport.rebuild(self.mDat.d_paths.get('export'))
         
         #Project image
         log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
@@ -415,6 +443,8 @@ class ui(cgmUI.cgmGUI):
         
         #>>> Reset Options		                     
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Project' )
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="New",
+                         c = lambda *a:mc.evalDeferred(self.uiProject_new,lp=True))        
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Load",
                          c = lambda *a:mc.evalDeferred(self.uiProject_load,lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save ",
@@ -1638,13 +1668,6 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             self.path = path
 
         log.debug(cgmGEN.logString_start(_str_func))
-        self.b_selCommandOn = False
-        #ml_sel = self.getSelectedBlocks()
-        
-        self( e=True, ra=True )
-        
-        try:self(e =1, hlc = [.5,.5,.5])
-        except:pass        
         
         self._items = []
         self._ml_scene = []
@@ -1657,8 +1680,23 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self._d_strToKey = {}
         #...
         
-        if not path:
-            return False
+        mPath = PATHS.Path(path)
+        if not mPath.exists():
+            log.error("Invalid path: {0}".format(path))
+            self.update_display()
+            
+            return False        
+ 
+        
+        
+        self.b_selCommandOn = False
+        #ml_sel = self.getSelectedBlocks()
+        
+        self( e=True, ra=True )
+        
+        try:self(e =1, hlc = [.5,.5,.5])
+        except:pass                
+        
         
         _d_dir, _d_levels, l_keys = COREPATHS.walk_below_dir(path,
                                                              uiStrings = 1,
