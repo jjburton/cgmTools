@@ -801,6 +801,12 @@ class ui(cgmUI.cgmGUI):
             
             if key in ['image']:
                 self.reload_headerImage()
+            elif key == 'content':
+                self.uiScrollList_dirContent.clear()
+                #self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue())
+            elif key == 'export':
+                self.uiScrollList_dirExport.clear()
+                #self.uiScrollList_dirExport.rebuild( self.d_tf['paths']['export'].getValue())
                 
 def uiProject_addDir(self,pSet = None, mScrollList = None):
     _str_func = 'uiProject_addDir'
@@ -929,7 +935,8 @@ def buildFrame_dirContent(self,parent):
                                     ann='Clear selection the scroll list to update')     
     button_refresh = mUI.MelButton(_row,
                                    label='Refresh',ut='cgmUITemplate',
-                                    c=lambda *a:self.uiScrollList_dirContent.rebuild(),
+                                    #c=lambda *a:self.uiScrollList_dirContent.rebuild(),
+                                    c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                                     ann='Force the scroll list to update')
     
     button_add= mUI.MelButton(_row,
@@ -1007,7 +1014,8 @@ def buildFrame_dirExport(self,parent):
                                     ann='Clear selection the scroll list to update')     
     button_refresh = mUI.MelButton(_row,
                                    label='Refresh',ut='cgmUITemplate',
-                                    c=lambda *a:self.uiScrollList_dirContent.rebuild(),
+                                    #c=lambda *a:self.uiScrollList_dirContent.rebuild(),
+                                     c=lambda *a: self.uiScrollList_dirExport.rebuild( self.d_tf['paths']['export'].getValue()),
                                     ann='Force the scroll list to update')
     
     button_add= mUI.MelButton(_row,
