@@ -142,10 +142,16 @@ def walk_below_dir(arg = None, tests = None,uiStrings = True,
                         'files':files}
         
         if uiStrings:
-            if _depth:
-                _uiString = '   '*(_depth) + '|' + '--' + '{0}'.format(_subRoot)
+            if _depth > 1:
+                _Root = _splitRoot[:-1]
+                _Root.reverse()
+                _uiString = '  '*(_depth) + " {0} ".format(_subRoot) + '    \\\\' + '.'.join(_Root)
+                
+                #_reverseRoot = _splitRoot[:-1]
+                #_reverseRoot.reverse()
+                #_uiString = '   '*(_depth) + '>' + '--' + '{0}'.format(_subRoot) + "      {0}".format('.'.join(_reverseRoot))
             else:
-                _uiString = _subRoot
+                _uiString = " || "+ _subRoot
             
             if files:
                 if fileTest and fileTest.get('endsWith'):

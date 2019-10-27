@@ -70,7 +70,7 @@ _dataConfigToStored = {'general':'d_project',
                    
 l_projectDat = ['name','type','nameStyle']
 l_nameConventions = ['none','lower','capital','camelCase']
-l_projectTypes = ['assetLib','unity','unreal','commercial']
+l_projectTypes = ['asset','unity','unreal','commercial']
 l_projectPaths = ['root','content','export','image']
 
 _tangents = ['linear','spline','clamped','flat','plateau','auto']
@@ -117,6 +117,9 @@ def dirCreateList_get(projectType,dirSet,key = None):
     try:
         _dType = d_dirFramework.get(projectType,{})
         _dDir = _dType.get(dirSet)
+        
+        if key == None:
+            return _dDir
         if issubclass(type(_dDir),list):
             return _dDir
         return _dDir.get(key,[])
@@ -769,7 +772,108 @@ class ui(cgmUI.cgmGUI):
             if key in ['image']:
                 self.reload_headerImage()
                 
+def uiProject_addDir(self,pSet = None, mScrollList = None):
+    _str_func = 'uiProject_addDir'
+    log.debug("|{0}| >>...".format(_str_func))
+    
 
+    if pSet == None:
+        raise ValueError,"Must have directory set arg. Most likely: export/content"
+    
+    _path = self.d_tf['paths'].get(pSet).getValue()
+    mPath = PATHS.Path(_path)
+    
+    if not mPath.exists():
+        raise ValueError,"Invalid Path: {0}".format(_path)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,'Path: {0}'.format(mPath)))
+    
+
+    promptstring = 'Add {0} Dir '.format(pSet)
+    
+    result = mc.promptDialog(
+            title=promptstring,
+            message='Enter Name for {1} dir: \n Path: {0}'.format(mPath.asFriendly(),pSet),
+            button=['OK', 'Cancel'],
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel')
+    
+    if result == 'OK':
+        subFolder = mc.promptDialog(query=True, text=True)
+        
+        mDir =  PATHS.Path( os.path.join(mPath, subFolder))
+        if not mDir.exists():
+            os.makedirs(mDir)
+            log.warning("created dir: {0}".format(mDir))
+        else:
+            log.warning("Dir already exists: {0}".format(mDir))
+            
+        if mScrollList:
+            mScrollList.rebuild()
+            
+def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
+    _str_func = 'uiProject_verifyDir'
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    if pType == None:
+        pType = self.d_tf['general']['type'].getValue()
+        
+    if pType in ['unity','unreal']:
+        pType = 'game'
+        
+    log.debug(cgmGEN.logString_msg(_str_func,'pType: {0}'.format(pType)))
+    
+    if pSet == None:
+        raise ValueError,"Must have directory set arg. Most likely: export/content"
+    
+    _path = self.d_tf['paths'].get(pSet).getValue()
+    mPath = PATHS.Path(_path)
+    
+    if not mPath.exists():
+        raise ValueError,"Invalid Path: {0}".format(_path)
+    
+    log.debug(cgmGEN.logString_msg(_str_func,'Path: {0}'.format(mPath)))
+    
+    _dat = dirCreateList_get(pType,pSet)
+    pprint.pprint(_dat)
+    _type = type(_dat)
+    
+    if issubclass(_type,dict):
+        log.debug(cgmGEN.logString_msg(_str_func,'dict...'))
+        for k,l in _dat.iteritems():
+            
+            mDir =  PATHS.Path( os.path.join(mPath, k))
+            if not mDir.exists():
+                os.makedirs(mDir)
+                log.warning("created dir: {0}".format(mDir))
+                
+            
+            for k2 in l:
+                #if case == 'lower':
+                    #k2 = k2.lower()
+                    
+                mSub = PATHS.Path( os.path.join(mPath, k, k2))
+                if not mSub.exists():
+                    os.makedirs(mSub)
+                    log.warning("created dir: {0}".format(mSub))               
+            
+    else:
+        log.debug(cgmGEN.logString_msg(_str_func,'list...'))
+        
+        for k in _dat:
+            #if case == 'lower':
+                #k2 = k2.lower()
+                
+            mSub = PATHS.Path( os.path.join(mPath, k))
+            if not mSub.exists():
+                os.makedirs(mSub)
+                log.warning("created dir: {0}".format(mSub))          
+        
+    if mScrollList:
+        mScrollList.rebuild()
+
+    
 def buildFrame_dirContent(self,parent):
     try:self.var_projectDirContentFrameCollapse
     except:self.create_guiOptionVar('projectDirContentFrameCollapse',defaultValue = 0)
@@ -787,36 +891,66 @@ def buildFrame_dirContent(self,parent):
     self.uiFrame_dirContent = _frame
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
     
+    #Utils -------------------------------------------------------------------------------------------
+    _row = mUI.MelHLayout(_inside,padding=10,)
+    button_clear = mUI.MelButton(_row,
+                                   label='Clear',ut='cgmUITemplate',
+                                    c=lambda *a:self.uiScrollList_dirContent.clearSelection(),
+                                    ann='Clear selection the scroll list to update')     
+    button_refresh = mUI.MelButton(_row,
+                                   label='Refresh',ut='cgmUITemplate',
+                                    c=lambda *a:self.uiScrollList_dirContent.rebuild(),
+                                    ann='Force the scroll list to update')
     
+    button_add= mUI.MelButton(_row,
+                              label='Add',ut='cgmUITemplate',
+                               ann='Add a subdir to the path root')    
+    
+    button_verify = mUI.MelButton(_row,
+                                   label='Verify Dir',ut='cgmUITemplate',
+                                    ann='Verify the directories from the project Type')    
+    _row.layout()
+    #--------------------------------------------------------------------------------------------
+    
+    mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+    
+    
+    _textField = mUI.MelTextField(_inside,
+                                  ann='Filter',
+                                  w=50,
+                                  bgc = [.3,.3,.3],
+                                  en=True,
+                                  text = '')    
     
     
     
     #Scroll list
-    _scrollList = cgmProjectDirList(_inside, ut='cgmUISubTemplate',
+    mScrollList = cgmProjectDirList(_inside, ut='cgmUISubTemplate',
                                     allowMultiSelection=0,en=True,
                                     ebg=0,
                                     h=200,
                                     bgc = [.2,.2,.2],
                                     w = 50)
     
-    try:_scrollList(edit=True,hlc = [.5,.5,.5])
+    #Connect the functions to the buttons after we add the scroll list...
+    button_verify(edit=True,
+                  c=lambda *a:uiProject_verifyDir(self,'content',None,mScrollList),)
+    button_add(edit=True,
+               c=lambda *a:uiProject_addDir(self,'content',mScrollList),
+               )
+    
+    try:mScrollList(edit=True,hlc = [.5,.5,.5])
     except:pass
     
+    mScrollList.set_filterObj(_textField)
+    _textField(edit=True,
+               tcc = lambda *a: mScrollList.update_display())    
+   
+    #mScrollList.set_selCallBack(mrsPoseDirSelect,mScrollList,self)
     
-    #_scrollList.set_selCallBack(mrsPoseDirSelect,_scrollList,self)
-    
-    self.uiScrollList_dirContent = _scrollList
+    self.uiScrollList_dirContent = mScrollList
 
-    _row = mUI.MelHLayout(_inside,padding=5,)
-    button_refresh = mUI.MelButton(_row,
-                                   label='Clear Sel',ut='cgmUITemplate',
-                                    c=lambda *a:self.uiScrollList_dirContent.clearSelection(),
-                                    ann='Clear selection the scroll list to update')     
-    button_refresh = mUI.MelButton(_row,
-                                   label='Refresh',ut='cgmUITemplate',
-                                    c=lambda *a:self.uiScrollList_dirContent.rebuild(),
-                                    ann='Force the scroll list to update')    
-    _row.layout()
+    
 
 def buildFrame_dirExport(self,parent):
     try:self.var_projectDirExportFrameCollapse
@@ -835,22 +969,64 @@ def buildFrame_dirExport(self,parent):
     self.uiFrame_dirExport = _frame
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
     
-
+    #Utils -------------------------------------------------------------------------------------------
+    _row = mUI.MelHLayout(_inside,padding=10,)
+    button_clear = mUI.MelButton(_row,
+                                   label='Clear',ut='cgmUITemplate',
+                                    c=lambda *a:self.uiScrollList_dirContent.clearSelection(),
+                                    ann='Clear selection the scroll list to update')     
+    button_refresh = mUI.MelButton(_row,
+                                   label='Refresh',ut='cgmUITemplate',
+                                    c=lambda *a:self.uiScrollList_dirContent.rebuild(),
+                                    ann='Force the scroll list to update')
+    
+    button_add= mUI.MelButton(_row,
+                              label='Add',ut='cgmUITemplate',
+                               ann='Add a subdir to the path root')    
+    
+    button_verify = mUI.MelButton(_row,
+                                   label='Verify Dir',ut='cgmUITemplate',
+                                    ann='Verify the directories from the project Type')    
+    _row.layout()
+    #--------------------------------------------------------------------------------------------    
+    
+    
+    
+    _textField = mUI.MelTextField(_inside,
+                                  ann='Filter',
+                                  w=50,
+                                  bgc = [.3,.3,.3],
+                                  en=True,
+                                  text = '')    
+    
+    
+    
     #Scroll list
-    _scrollList = cgmProjectDirList(_inside, ut='cgmUISubTemplate',
+    mScrollList = cgmProjectDirList(_inside, ut='cgmUISubTemplate',
                                     allowMultiSelection=0,en=True,
                                     ebg=0,
                                     h=200,
                                     bgc = [.2,.2,.2],
                                     w = 50)
     
-    try:_scrollList(edit=True,hlc = [.5,.5,.5])
+    try:mScrollList(edit=True,hlc = [.5,.5,.5])
     except:pass
     
     
+    #Connect the functions to the buttons after we add the scroll list...
+    button_verify(edit=True,
+                  c=lambda *a:uiProject_verifyDir(self,'content',None,mScrollList),)
+    button_add(edit=True,
+               c=lambda *a:uiProject_addDir(self,'content',mScrollList),
+               )    
+    
+    mScrollList.set_filterObj(_textField)
+    _textField(edit=True,
+               tcc = lambda *a: mScrollList.update_display())    
+    
     #_scrollList.set_selCallBack(mrsPoseDirSelect,_scrollList,self)
     
-    self.uiScrollList_dirExport = _scrollList
+    self.uiScrollList_dirExport = mScrollList
 
     _row = mUI.MelHLayout(_inside,padding=5,)
     button_refresh = mUI.MelButton(_row,
@@ -1082,6 +1258,14 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         _path = os.path.normpath(path)
         subprocess.Popen('explorer "%s"' % _path)
         
+        
+    def uiPath_mayaOpen(self,path=None):
+        _res = mc.fileDialog2(fileMode=1, dir=path)
+        if _res:
+            log.warning("Opening: {0}".format(_res[0]))
+            mc.file(_res[0], o=True, f=True, pr=True)
+        
+        
     def uiPath_addDir(self, path = None):
         '''
         Insert a new SubFolder to the path, makes the dir and sets
@@ -1166,16 +1350,17 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             _popUp = self.uiPopUpMenu
             
             mUI.MelMenuItemDiv(_popUp, label=_mPath.asTruncate())
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Log dat: {0}".format(_path),
-                            c= lambda *a:pprint.pprint(dat),
-                            label = 'Log Dat')
+
             
             mUI.MelMenuItem(_popUp,
                             ann = "Open Path to: {0}".format(_path),
                             c= cgmGEN.Callback(self.uiPath_openDir,_path),
                             label = 'Open Dir')
+            
+            mUI.MelMenuItem(_popUp,
+                            ann = "Open Maya file in: {0}".format(_path),
+                            c= cgmGEN.Callback(self.uiPath_mayaOpen,_path),
+                            label = 'Open Maya file')            
             
             mUI.MelMenuItem(_popUp,
                             ann = "Add sub dir to: {0}".format(_path),
@@ -1187,6 +1372,11 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                             c= cgmGEN.Callback(self.uiPath_removeDir,_path),
                             label = 'Delete Dir')
             
+            
+            mUI.MelMenuItem(_popUp,
+                            ann = "Log dat: {0}".format(_path),
+                            c= lambda *a:pprint.pprint(dat),
+                            label = 'Log Dat')            
             
             return
             ml_block = self.uiScrollList_blocks.getSelectedObjs()
@@ -1405,13 +1595,13 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             except:pass
             
     def getSelectedDirDat( self):
-        log.debug(cgmGEN.logString_start('getSelectedDir'))                
+        log.debug(cgmGEN.logString_start('getSelectedDirDat'))                
         _indices = self.getSelectedIdxs(True)
         if not _indices:
             log.debug("Nothing selected")
             return []
         log.info(_indices)
-        return self._d_dir[ self._l_uiKeys[ _indices[0]]]
+        return self._d_dir[ self._l_str_loaded[ _indices[0]]]
     
         #for i in _indices:
             #print i
@@ -1425,7 +1615,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         #self.getSelectedDir()
         if l_indices:
-            self.setHLC(self._l_uiKeys[l_indices[0]])
+            self.setHLC(self._l_str_loaded[l_indices[0]])
         """
         mBlock = self.getSelectedBlocks()
         if mBlock:
@@ -1464,6 +1654,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self._l_itc = []
         self._d_itc  = {}
         self._l_uiKeys = []
+        self._d_strToKey = {}
         #...
         
         if not path:
@@ -1472,7 +1663,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         _d_dir, _d_levels, l_keys = COREPATHS.walk_below_dir(path,
                                                              uiStrings = 1,
                                                              #fileTest = {'endsWith':'pose'},
-                                                             hardCap = 100,
+                                                             hardCap = None,
                                                              )        
         
         #self._l_uiStrings = _l_uiStrings
@@ -1493,6 +1684,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             
             _str = _d_dir[k]['uiString']
             self._l_strings.append(_str)
+            self._d_strToKey[_str] = k
             
         self.update_display()
         
@@ -1507,6 +1699,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         log.debug(cgmGEN.logString_start('clear'))                
         self( e=True, ra=True )
         self._l_str_loaded = []
+        self._l_uiStr_loaded = []
         self._ml_loaded = []
         
     def clearSelection( self,):
@@ -1519,28 +1712,31 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         _str_func = 'update_display'
         log.debug(cgmGEN.logString_start(_str_func))
         
-        l_items = self.getSelectedItems()
+        #l_items = self.getSelectedItems()
         
         if self.filterField is not None:
             searchFilter = self.filterField.getValue()
         
         self.clear()
         try:
-            for i,strEntry in enumerate(r9Core.filterListByString(self._l_uiKeys,
+            for i,str_entry in enumerate(r9Core.filterListByString(self._l_strings,
                                                                   searchFilter,
                                                                   matchcase=matchCase)):
-                if strEntry in self._l_str_loaded:
-                    log.warning("Duplicate string")
-                    continue
+                _key = self._d_strToKey[str_entry]
                 
-                self.append(self._d_dir[strEntry]['uiString'])
-                self._l_str_loaded.append(strEntry)
+                if str_entry in self._l_uiStr_loaded:
+                    raise ValueError,'Dup uiString: {0}'.format(str_entry)
+                    #log.warning("Duplicate string: {0}".format(str_entry))
                 
-                #idx = self._l_strings.index(strEntry)
+                self._l_uiStr_loaded.append(str_entry)
+                self.append(str_entry)
+                self._l_str_loaded.append(_key)
+                
+                #idx = self._l_strings.index(key)
                 #_mBlock = self._ml_scene[idx]
                 #self._ml_loaded.append(_mBlock)
                 #_color = d_state_colors.get(_mBlock.getEnumValueString('blockState'))
-                _color = self._d_itc[strEntry]
+                _color = self._d_itc[_key]
                 try:self(e=1, itc = [(i+1,_color[0],_color[1],_color[2])])
                 except:pass
 
