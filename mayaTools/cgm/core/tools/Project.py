@@ -19,7 +19,7 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__version__ = "10.01.2019"
+__version__ = "10.28.2019"
 __MAYALOCAL = 'CGMPROJECT'
 
 
@@ -56,76 +56,14 @@ import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
 reload(COREPATHS)
 import cgm.core.lib.string_utils as CORESTRINGS
+import cgm.core.tools.lib.project_utils as PU
+reload(PU)
 import cgm.images as cgmImages
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
 mUI = cgmUI.mUI
 
-_dataConfigToStored = {'general':'d_project',
-                       'enviornment':'d_env',
-                       'paths':'d_paths',
-                       'anim':'d_animSettings',
-                       'world':'d_world',}
-                   
-                   
-l_projectPathModes = ['content','root']
-l_projectDat = ['name','type','projectPathMode','nameStyle']
-l_nameConventions = ['none','lower','capital','camelCase']
-l_projectTypes = ['asset','unity','unreal','commercial']
-l_projectPaths = ['root','content','export','image']
 
-_tangents = ['linear','spline','clamped','flat','plateau','auto']
-_fps = [2,3,4,5,6,8,10,12,15,16,20,23.976,
-        24,25,29.97,30,40,48,50,
-        60,75,80,100,120]
-
-_fpsStrings = ['2', '3', '4', '5', '6', '8', '10', '12', '15', '16', '20', '23.976', '24', '25', '29.97', '30', '40', '48', '50', '60', '75', '80', '100', '120']
-
-_animSettings = [{'n':'frameRate','t':_fpsStrings,'dv':'24'},
-                 {'n':'defaultInTangent','t':_tangents,'dv':'linear'},
-                 {'n':'defaultOutTangent','t':_tangents,'dv':'linear'},
-                 {'n':'weightedTangents','t':'bool','dv':False},
-                  ]
-
-_worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
-                  {'n':'linear','t':['milimeter','centimeter','meter',
-                                     'inch','foot','yard'],'dv':'centimeter'},
-                  {'n':'angular','t':['degrees','radians'],'dv':'degrees'},                   
-                   ]
-
-_cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
-                    {'n':'farClip','t':'float','dv':100000}]
-
-
-d_projectFramework = {
-    'default':{'Art':['Character','Enviornment','FX','images','mocap_library',
-                      'movies','poses','props','ui','visdev'],
-               'audio':['BGM','Debug','SFX','UI','design','media','ref']},
-    'asset':{''}
-}
-
-d_dirFramework = {
-'game':{'content':{'art':['Character','Enviornment','FX','images','mocap_library','movies','poses','Props',
-                          'UI','visdev'],
-                   'audio':['BGM','Debug','SFX','UI']},
-         'export':{'art':['Character','DesignParts','Enviornment','FX','Props','UI'],
-                   'audio':['BGM','Debug','SFX']}},
-'asset':{'content':['templates','rigs','builds','textures'],
-         'export':[]}
-}
-
-def dirCreateList_get(projectType,dirSet,key = None):
-    try:
-        _dType = d_dirFramework.get(projectType,{})
-        _dDir = _dType.get(dirSet)
-        
-        if key == None:
-            return _dDir
-        if issubclass(type(_dDir),list):
-            return _dDir
-        return _dDir.get(key,[])
-    except Exception,err:
-        log.error(err)
         
 #RangeSlider|MainPlaybackRangeLayout|formLayout9|formLayout13|optionMenuGrp1
 #timeField -e -v `playbackOptions -q -ast` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField2; timeField -e -v `playbackOptions -q -aet` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField5;
@@ -142,8 +80,8 @@ def buildFrames(self,parent):
     _str_func = 'buildFrames'
     log.debug("|{0}| >>...".format(_str_func))
         
-    d_toDo  = {'world':_worldSettings,
-               'anim':_animSettings}
+    d_toDo  = {'world':PU._worldSettings,
+               'anim':PU._animSettings}
     
     for k,l in d_toDo.iteritems():
         log.debug(cgmGEN.logString_sub(_str_func,k))
@@ -216,6 +154,8 @@ class ui(cgmUI.cgmGUI):
     DEFAULT_SIZE = 350,500
     TOOLNAME = 'cgmProjectManager.ui'
     
+    _l_sections = 'general','anim','paths'
+    
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func))        
@@ -226,6 +166,7 @@ class ui(cgmUI.cgmGUI):
 
         self.__version__ = __version__
         self.__toolName__ = self.__class__.WINDOW_NAME	
+        self.v_bgc = [.6,.3,.3]
 
         #self.l_allowedDockAreas = []
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
@@ -258,8 +199,11 @@ class ui(cgmUI.cgmGUI):
                 dismissString='Cancel')
         
         if result == 'OK':
+            self.uiProject_clear()
             _name = mc.promptDialog(query=True, text=True)
             self.mDat = data(_name)
+            
+            self.d_tf['general']['name'].setValue(_name)
             
             #self.mDat.write()
             self.uiProject_save()
@@ -287,6 +231,40 @@ class ui(cgmUI.cgmGUI):
         import cgm.core.mrs.Scene as SCENE
         SCENE.ui()
         
+        
+        
+    def uiProject_clear(self,path=None,revert=False):
+        _str_func = 'uiProject_clear'
+        log.info("|{0}| >>...".format(_str_func))
+        self.uiLabel_file(edit=True, label = '')
+        
+        for dType in ui._l_sections:
+            log.debug(cgmGEN.logString_sub(_str_func,dType))
+            
+            for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
+                try:
+                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                    _type = type(self.d_tf[dType][k])
+                    if _type not in [mUI.MelOptionMenu]:
+                        try:self.d_tf[dType][k].clear()
+                        except:pass
+                except Exception,err:
+                    log.error("err | {0}".format(err))
+                    
+        self.path_projectConfig = None
+        
+        
+        #Set pose path
+        
+        #Update file dir
+        self.uiScrollList_dirContent.clear()
+        self.uiScrollList_dirExport.clear()
+        
+        #Project image
+        log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
+        self.reload_headerImage()
+                    
+                    
     def uiProject_load(self,path=None,revert=False):
         _str_func = 'uiProject_load'
         log.info("|{0}| >>...".format(_str_func))
@@ -300,7 +278,7 @@ class ui(cgmUI.cgmGUI):
         for dType in ['general','anim','paths']:
             log.debug(cgmGEN.logString_sub(_str_func,dType))
             
-            for k,v in self.mDat.__dict__[_dataConfigToStored[dType]].iteritems():
+            for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
                 try:
                     log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
                     _type = type(self.d_tf[dType][k])
@@ -348,6 +326,8 @@ class ui(cgmUI.cgmGUI):
         
         self.path_projectConfig = self.mDat.str_filepath
         self.mPathList.append(self.mDat.str_filepath)
+        self.uiLabel_file(edit=True, label = self.mDat.str_filepath)
+        
         self.mPathList.log_self()        
         
         
@@ -393,7 +373,7 @@ class ui(cgmUI.cgmGUI):
                 path = self.mDat.str_filepath        
             
             
-        for dType,d in _dataConfigToStored.iteritems():
+        for dType,d in PU._dataConfigToStored.iteritems():
             if dType in ['enviornment']:
                 continue
             
@@ -451,9 +431,12 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save ",
                          c = lambda *a:mc.evalDeferred(self.uiProject_save,lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save As",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_saveAs,lp=True))        
+                         c = lambda *a:mc.evalDeferred(self.uiProject_saveAs,lp=True))
+        
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Revert",
                          c = lambda *a:mc.evalDeferred(self.uiProject_revert,lp=True))
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Clear",
+                         c = lambda *a:mc.evalDeferred(self.uiProject_clear,lp=True))
         
         self.mPathList.verify()
         _recent = mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Recent",subMenu=True)
@@ -514,6 +497,7 @@ class ui(cgmUI.cgmGUI):
         #for k in self.__dict__.keys():
         #    if str(k).startswith('var_'):
         #        self.mManager.__dict__[k] = self.__dict__[k]
+        
         
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
         _MainForm(edit = True,
@@ -584,10 +568,12 @@ class ui(cgmUI.cgmGUI):
         uiRow_pose.layout()
         mc.setParent(self)
         '''
-        
+
         # Image
         _imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
-        imageRow = mUI.MelHRowLayout(parent,bgc=[.6,.3,.3])
+        imageRow = mUI.MelHRowLayout(parent,bgc=self.v_bgc)
+        
+        
         
         #mUI.MelSpacer(imageRow,w=10)
         self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
@@ -667,12 +653,13 @@ class ui(cgmUI.cgmGUI):
                                     collapseCommand = lambda:mVar_frame.setValue(1)
                                     )	
         _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+                
         
         #>>>Hold ===================================================================================== 
         cgmUI.add_LineSubBreak()
         self.d_tf['general'] = {}
         _d = self.d_tf['general']
-        for key in l_projectDat:
+        for key in PU.l_projectDat:
             mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
             
             _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
@@ -680,17 +667,17 @@ class ui(cgmUI.cgmGUI):
             mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
             if key == 'type':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                for t in l_projectTypes:
+                for t in PU.l_projectTypes:
                     _d[key].append(t)
         
                 #_d[key].selectByIdx(self.setMode,False)                
             elif key =='nameStyle':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                for t in l_nameConventions:
+                for t in PU.l_nameConventions:
                     _d[key].append(t)                
             elif key == 'projectPathMode':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')                
-                for t in l_projectPathModes:
+                for t in PU.l_projectPathModes:
                     _d[key].append(t)                
                     
             else:
@@ -702,6 +689,10 @@ class ui(cgmUI.cgmGUI):
             _row.setStretchWidget(_d[key])
             mUI.MelSpacer(_row,w=5)
             _row.layout()
+            
+        #bgc = self.v_bgc
+        self.uiLabel_file = mUI.MelLabel(_inside,ut='cgmUITemplate',en=False, label='')
+        
 
     def buildFrame_paths(self,parent):
         try:self.var_projectPathsCollapse
@@ -723,7 +714,7 @@ class ui(cgmUI.cgmGUI):
         self.d_tf['paths'] = {}
         _d = self.d_tf['paths']
         
-        for key in l_projectPaths:
+        for key in PU.l_projectPaths:
             mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
             
             _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
@@ -769,7 +760,7 @@ class ui(cgmUI.cgmGUI):
         self.d_tf['content'] = {}
         _d = self.d_tf['paths']
         
-        for key in l_projectPaths:
+        for key in PU.l_projectPaths:
             _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
 
             mUI.MelSpacer(_row,w=5)                          
@@ -876,7 +867,7 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
     
     log.debug(cgmGEN.logString_msg(_str_func,'Path: {0}'.format(mPath)))
     
-    _dat = dirCreateList_get(pType,pSet)
+    _dat = PU.dirCreateList_get(pType,pSet)
     pprint.pprint(_dat)
     _type = type(_dat)
     
@@ -1082,6 +1073,9 @@ def buildFrame_dirExport(self,parent):
                                     ann='Force the scroll list to update')    
     _row.layout()
 
+
+
+
 class data(object):
     '''
     Class to handle skin data. Utilizes red9.packages.ConfigObj for storage format. Storing what might be an excess of info
@@ -1104,23 +1098,25 @@ class data(object):
         self.d_env = {}#cgmGEN.get_mayaEnviornmentDict()
         self.d_env['file'] = mc.file(q = True, sn = True)
         
-        for k,d in _dataConfigToStored.iteritems():
+        for k,d in PU._dataConfigToStored.iteritems():
             log.debug("initialze: {0}".format(k))
             self.__dict__[d] = {}
+        
+        if not self.d_project.get('name') and project:
+            self.d_project['name'] = project
+            
+        
+        
         
         if filepath is not None:
             try:self.read(filepath)
             except Exception,err:log.error("data Filepath failed to read | {0}".format(err))
             
             
-        return
-        if sourceMesh is not None:
-            self.validateSourceMesh(sourceMesh)
-        if targetMesh is not None:
-            self.validateTargetMesh(targetMesh)
-        if sourceMesh is None and targetMesh is None and mc.ls(sl=True):
-            self.validateSourceMesh(sourceMesh)
-
+    def fillDefaults(self,overwrite=False):
+        _str_func = 'data.fillDefaults'
+        log.debug("|{0}| >>...".format(_str_func))        
+        
     def validateFilepath(self, filepath = None, fileMode = 0):
         '''
         Validates a given filepath or generates one with dialog if necessary
@@ -1154,7 +1150,7 @@ class data(object):
         ConfigObj = configobj.ConfigObj(indent_type='\t')
         ConfigObj['configType']= 'cgmProject'
         
-        for k,d in _dataConfigToStored.iteritems():
+        for k,d in PU._dataConfigToStored.iteritems():
             log.debug("Dat: {0}".format(k))
             ConfigObj[k] = self.__dict__[d] 
         
@@ -1181,9 +1177,9 @@ class data(object):
         #if _config.get('configType') != 'cgmSkinConfig':
             #raise ValueError,"This isn't a cgmSkinConfig config | {0}".format(filepath)
                 
-        for k in _dataConfigToStored.keys():
+        for k in PU._dataConfigToStored.keys():
             if _config.has_key(k):
-                self.__dict__[_dataConfigToStored[k]] = _config[k]
+                self.__dict__[PU._dataConfigToStored[k]] = _config[k]
             else:
                 log.error("Config file missing section {0}".format(k))
                 return False
