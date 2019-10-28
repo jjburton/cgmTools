@@ -68,7 +68,8 @@ _dataConfigToStored = {'general':'d_project',
                        'world':'d_world',}
                    
                    
-l_projectDat = ['name','type','nameStyle']
+l_projectPathModes = ['content','root']
+l_projectDat = ['name','type','projectPathMode','nameStyle']
 l_nameConventions = ['none','lower','capital','camelCase']
 l_projectTypes = ['asset','unity','unreal','commercial']
 l_projectPaths = ['root','content','export','image']
@@ -687,7 +688,11 @@ class ui(cgmUI.cgmGUI):
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in l_nameConventions:
                     _d[key].append(t)                
-                
+            elif key == 'projectPathMode':
+                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')                
+                for t in l_projectPathModes:
+                    _d[key].append(t)                
+                    
             else:
                 #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
                 _d[key] =  mUI.MelTextField(_row,
