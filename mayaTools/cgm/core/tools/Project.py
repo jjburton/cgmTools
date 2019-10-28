@@ -912,7 +912,7 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
                 log.warning("created dir: {0}".format(mSub))          
         
     if mScrollList:
-        mScrollList.rebuild()
+        mScrollList.rebuild(self.d_tf['paths'][pSet].getValue())
 
     
 def buildFrame_dirContent(self,parent):
