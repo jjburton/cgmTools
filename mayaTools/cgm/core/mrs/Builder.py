@@ -1298,11 +1298,18 @@ class ui(cgmUI.cgmGUI):
 
         log.info("Context menu rebuilt")        
         
-      
+    def batch_call(self):
+        import cgm.core.mrs.lib.batch_utils as MRSBATCH
+        reload(MRSBATCH)
+        
+        MRSBATCH.create_MRS_batchFile(process=True)
+        
     def buildMenu_advanced(self,*args,**kws):
         self.uiMenu_advanced.clear()   
         _menu = self.uiMenu_advanced
-        d_s = {'Utilities':{
+        d_s = {'Batch':{'Send File To MayaPy':{'ann':"Process the current file. Will be saved at it's current location as _ BUILD.ext",
+                                            'call':cgmGEN.Callback(self.batch_call),}},
+               'Utilities':{
                    'Verify':{'ann':'Check if the block is current (DEV)',
                              'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                      'verify',

@@ -7326,8 +7326,8 @@ def rigDelete(self):
             #Rig nodes....
             
             ml_rigNodes = mRigNull.getMessageAsMeta('rigNodes')
-            _progressBar = CGMUI.doStartMayaProgressBar(stepMaxValue=len(ml_rigNodes))
-            
+            try:_progressBar = CGMUI.doStartMayaProgressBar(stepMaxValue=len(ml_rigNodes))
+            except:_progressBar = None                    
             try:
                 for mNode in ml_rigNodes:
                     if mNode in [mModuleTarget,mRigNull,mFaceSet]:
@@ -7336,8 +7336,9 @@ def rigDelete(self):
                         log.debug("|{0}| >> block control in rigNodes: {1}".format(_str_func,mNode))
                         continue
                     _str = "|{0}| >> deleting: {1}".format(_str_func,mNode)
-                    CGMUI.progressBar_set(_progressBar,step=1,
-                                          status = _str)                
+                    if _progressBar:
+                        CGMUI.progressBar_set(_progressBar,step=1,
+                                              status = _str)                
                     try:
                         log.debug(_str)                     
                         mNode.delete()
@@ -7345,7 +7346,7 @@ def rigDelete(self):
                         #log.debug("|{0}| >> failed...".format(_str_func,mNode)) 
             except:pass
             finally:
-                CGMUI.doEndMayaProgressBar()                
+                if _progressBar:CGMUI.doEndMayaProgressBar()                
             mRigNull.rigNodes = []
             """
             #Deform null
@@ -10127,7 +10128,8 @@ def prerig_get_upVector(self, markPos = False):
     #Now that we have our main up vector, we need to aim at
     ml_prerig = self.msgList_get('prerigHandles')
     if ml_prerig:
-        log.info(cgmGEN.logString_start(_str_func,"Prerig dat found. More accurate check.") )
+        
+        log.info(cgmGEN.logString_msg(_str_func,"Prerig dat found. More accurate check.") )
         
         try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
         except:idx_start,idx_end = 0,len(ml_prerig)-1
@@ -10225,7 +10227,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         
         ml_prerig = self.msgList_get('prerigHandles')
         if ml_prerig:
-            log.info(cgmGEN.logString_start(_str_func,"Prerig dat found. More accurate check.") )
+            log.info(cgmGEN.logString_msg(_str_func,"Prerig dat found. More accurate check.") )
             
             try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
             except:idx_start,idx_end = 0,len(ml_prerig)-1
@@ -11421,6 +11423,7 @@ def snapShot_get(self):
     """
     Bring a rigBlock to current settings - check attributes, reset baseDat
     """
+    _progressBar = None
     try:
         _str_func = 'snapShot_get'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -11438,7 +11441,8 @@ def snapShot_get(self):
         
         for datSet,dat in md_ctrls.iteritems():
             md_dat[datSet] = {}
-            _progressBar = CGMUI.doStartMayaProgressBar(stepMaxValue=len(dat))
+            try:_progressBar = CGMUI.doStartMayaProgressBar(stepMaxValue=len(dat))
+            except:_progressBar = None
             
             for i,mCtrl in enumerate(dat):
                 _str = mCtrl.p_nameShort
@@ -11449,8 +11453,8 @@ def snapShot_get(self):
                 
                 _strStatus = "{0} | {1} ".format(_str_func,_str)
                 log.debug(cgmGEN.logString_sub(_str_func,_str))
-                CGMUI.progressBar_set(_progressBar,step=1,
-                                      status = _strStatus)                
+                if _progressBar:CGMUI.progressBar_set(_progressBar,step=1,
+                                                      status = _strStatus)                
                 
                 if not ATTR.is_locked(_str,'translate'):
                     _d['pos']=mCtrl.p_position
@@ -11485,7 +11489,7 @@ def snapShot_get(self):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
     finally:
-        CGMUI.doEndMayaProgressBar()
+        if _progressBar:CGMUI.doEndMayaProgressBar()
         
 def snapShot_set(self, md_dat = None, sizeMethod = 'bb', mainHandleNormalizeScale=True):
     """

@@ -331,10 +331,10 @@ d_block_profiles = {
     'nameList':['hip','knee','ankle','ball','toe'],
     'formEndAim':'block',
     
-    'buildEnd':'joint',
+    'buildEnd':'none',
     'ikRollSetup':'control',
     'buildBall':'joint',
-    'buildToe':'none',
+    'buildToe':'joint',
     'buildLeverBase':'none',
     'buildLeverEnd':'none',
     'loftList':['wideNeg','wideDown','circle'],
@@ -399,7 +399,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'nameList':['clav','shoulder','elbow','wrist'],
 
-    'buildEnd':'joint',
+    'buildEnd':'none',
     'ikRollSetup':'control',
     'buildBall':'none',
     'buildToe':'none',
@@ -436,7 +436,7 @@ d_block_profiles = {
           'ikRollSetup':'control',
           'buildBall':'none',
           'buildToe':'none',
-          'buildEnd':'none',
+          'buildEnd':'dag',
           'buildLeverBase':'joint',
           'buildLeverEnd':'none',
           'loftList':['wideDown','wideDown','wideDown','digit'],                            
@@ -468,7 +468,7 @@ d_block_profiles = {
        'nameList':['index'],
        'scaleSetup':False,
        
-       'buildEnd':'joint',
+       'buildEnd':'dag',
        'ikRollSetup':'control',
        'buildBall':'none',
        'buildToe':'none',
@@ -503,7 +503,7 @@ d_block_profiles = {
           'nameList':['thumb'],
           'scaleSetup':False,
           
-          'buildEnd':'none',
+          'buildEnd':'dag',
           'ikRollSetup':'control',
           'buildBall':'none',
           'buildToe':'none',
@@ -571,7 +571,7 @@ d_placeHolder = {
             'buildLeverBase':True,
             'hasLeverJoint':True,
             'hasBallJoint':False,
-            'buildEnd':'joint',
+            'buildEnd':'none',
             'rigSetup':'default',
             'nameList':['clav','shoulder','elbow','wrist'],
             'baseAim':[-1,0,0],
@@ -1838,8 +1838,9 @@ def prerig(self):
         if self.buildEnd:
             if self.buildLeverEnd or self.buildBall or self.buildToe:
                 pass
-            #else:
-                #int_namesToGet +=1
+            else:
+                log.warning(cgmGEN.logString_msg(_str_func,"Adding to name count for buildEnd"))
+                int_namesToGet +=1
                 
 
         _res = self.atUtils('nameList_validate',int_namesToGet)
@@ -1940,6 +1941,8 @@ def prerig(self):
         if self.buildLeverEnd:
             _count += 1
             _addedEnd = True
+        elif self.buildEnd:
+            _count +=1 
         
         #if not self.buildBall:
             #if self.buildEnd:
@@ -2340,7 +2343,7 @@ def skeleton_build(self, forceNew = True):
                 mEndAim = ml_jointHelpers.pop(-1)
                 
             
-        if not _specialEndHandling and self.buildEnd != 2:
+        if not _specialEndHandling and self.buildEnd and self.buildEnd != 2:
             log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
             ml_jointHelpers.pop(-1)
                 

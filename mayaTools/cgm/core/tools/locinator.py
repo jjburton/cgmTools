@@ -417,12 +417,13 @@ def bake_match(targets = None, move = True, rotate = True, boundingBox = False, 
                 _keys = _d_keysOfTarget.get(o,[])
                 if f in _keys:
                     log.debug("|{0}| >> Baking: {1} | {2} | {3}".format(_str_func,f,o,_attrs))
-                    
-                    if mc.progressBar(_progressBar, query=True, isCancelled=True ):
-                        log.warning('Bake cancelled!')
-                        return False
-                    
-                    mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1, maxValue = _len)                    
+                    if _progressBar:
+                        
+                        if mc.progressBar(_progressBar, query=True, isCancelled=True ):
+                            log.warning('Bake cancelled!')
+                            return False
+                        
+                        mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1} for '{2}'".format(_str_func,f,o)), step=1, maxValue = _len)                    
                 
                     if matchMode == 'source':
                         try:update_obj(o,move,rotate,mode=matchMode)

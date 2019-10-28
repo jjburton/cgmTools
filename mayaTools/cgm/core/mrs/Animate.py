@@ -5302,7 +5302,7 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
     for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
+                  'contextMode':_context,
                   'contextMirror':mirror,
                   'contextChildren':children,
                   'contextSiblings':siblings,
@@ -5328,7 +5328,7 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
     for m in ['all','mirror','mirror only','fk','ik','ikEnd','seg','direct']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
+                  'contextMode':_context,
                   'contextMirror':mirror,
                   'contextChildren':children,
                   'contextSiblings':siblings,
@@ -5352,7 +5352,7 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
     for m in ['Push','Pull','SymLeft','SymRight','Flip']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
+                  'contextMode':_context,
                   'contextMirror':True,
                   'contextChildren':children,
                   'contextSiblings':siblings,
@@ -5369,7 +5369,7 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
 
     for n in l_settings:
         _sub = mc.menuItem(p=_toggle,l=n,subMenu=True)
-        _d_tmp = {'context':_context,
+        _d_tmp = {'contextMode':_context,
                   'contextMirror':mirror,
                   'contextChildren':children,
                   'contextSiblings':siblings,}

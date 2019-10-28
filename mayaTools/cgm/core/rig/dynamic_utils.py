@@ -759,6 +759,29 @@ class cgmDynFK(cgmMeta.cgmObject):
         #pprint.pprint(_res)
         return _res
     
+    def toggle(self,arg):
+        _str_func = 'toggle'
+        log.info("|{0}| >> {1}".format(_str_func,arg))
+        
+        mNucleus=self.getMessageAsMeta('mNucleus')
+        if mNucleus:
+            mNucleus.enable = arg
+            
+        mHairSysShape=self.getMessageAsMeta('mHairSysShape')
+        if mHairSysShape:
+            if arg:
+                mHairSysShape.simulationMethod = 3
+            else:
+                mHairSysShape.simulationMethod = 0
+                
+        if arg:
+            log.warning("|{0}| >> Playback rate set to every frame".format(_str_func))
+            mc.playbackOptions(e=True, playbackSpeed = 0, maxPlaybackSpeed = 0)
+        else:
+            mc.playbackOptions(e=True, playbackSpeed = 1, maxPlaybackSpeed = 0)
+            #playbackOptions -e -playbackSpeed 0 -maxPlaybackSpeed 0;
+            
+        
     def profile_load(self,arg='default',clean=True):
         mNucleus=self.getMessageAsMeta('mNucleus')
         mHairSysShape=self.getMessageAsMeta('mHairSysShape')
