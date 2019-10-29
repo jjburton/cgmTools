@@ -18,7 +18,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 import maya.cmds as mc
 import maya
@@ -28,31 +28,34 @@ from cgm.core import cgm_General as cgmGEN
 
 #Data ================================================================================================
 d_dirFramework = {
-'game':{'content':{'art':['Character','Enviornment','FX','Poses','Props',
+'game':{'content':['Character','Enviornment','FX','Poses','Props',
                           'UI','VisDev'],
-                   'audio':['BGM','Debug','SFX','UI']},
-         'export':{'art':['Character','Enviornment','FX','Props','UI'],
-                   'audio':['BGM','Debug','SFX']}},
+                   #'audio':['BGM','Debug','SFX','UI'],
+         'export':['Character','Enviornment','FX','Props','UI'],
+                   #'audio':['BGM','Debug','SFX']},
+                   },
 
-'character':{'content':['animation','templates','builds','textures','poses','weights'],
+'character':{'content':['animation','templates','builds','textures','poses','weights','geo'],
              'export':['animation']},
-'enviornment':{'content':['animation','textures'],
+'enviornment':{'content':['animation','textures','geo'],
              'export':['animation']},
-'prop':{'content':['animation','templates','builds','textures','poses','weights'],
+'sub':{'content':['animation','enviornment'],
+       'export':['animation','enviornment']},
+'prop':{'content':['animation','templates','builds','textures','poses','weights','geo'],
         'export':['animation']},
              }
 
 
 _dataConfigToStored = {'general':'d_project',
-                       'enviornment':'d_env',
                        'paths':'d_paths',
                        'anim':'d_animSettings',
                        'structure':'d_structure',
+                       'assets':'d_assets',
                        'world':'d_world'}
 
 l_projectPathModes = ['art','content','root']
 l_projectDat = ['name','type','projectPathMode','nameStyle']
-l_nameConventions = ['none','lower','capital','camelCase']
+l_nameConventions = ['none','lower','capital','upper','camelCase','capFirst']
 l_projectTypes = ['unity','unreal','commercial']
 l_projectPaths = ['root','content','export','image']
 
@@ -65,6 +68,14 @@ _fps = [2,3,4,5,6,8,10,12,15,16,20,23.976,
 
 _fpsStrings = ['2', '3', '4', '5', '6', '8', '10', '12', '15', '16', '20', '23.976', '24', '25', '29.97', '30', '40', '48', '50', '60', '75', '80', '100', '120']
 
+
+#Settings/Options ... ---------------------------------------------------------------------------
+_projSettings = [{'n':'name','t':'text','dv':'Name me'},
+                 {'n':'type','t':l_projectTypes,'dv':'unity'},
+                 {'n':'projectPathMode','t':l_projectPathModes,'dv':'art'},
+                 {'n':'nameStyle','t':l_nameConventions,'dv':'none'},
+                 ]
+                 
 _animSettings = [{'n':'frameRate','t':_fpsStrings,'dv':'24'},
                  {'n':'defaultInTangent','t':_tangents,'dv':'linear'},
                  {'n':'defaultOutTangent','t':_tangents,'dv':'linear'},
@@ -83,16 +94,20 @@ _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
 _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
                     {'n':'farClip','t':'float','dv':100000}]
 
-_structureSettings = [{'n':'assetTypes','t':'text','dv':'Character,Props,Enviornment'},
-                      {'n':'charContent','t':'text','dv':','.join(d_dirFramework['character']['content'])},
-                      {'n':'charExport','t':'text','dv':','.join(d_dirFramework['character']['export'])}]
+_structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','Enviornment']},
+                      {'n':'charContent','t':'text','dv':d_dirFramework['character']['content']},
+                      {'n':'charExport','t':'text','dv':d_dirFramework['character']['export']},
+                      {'n':'propContent','t':'text','dv':d_dirFramework['prop']['content']},
+                      {'n':'propExport','t':'text','dv':d_dirFramework['prop']['export']},
+                      {'n':'subContent','t':'text','dv':d_dirFramework['sub']['content']},
+                      {'n':'subExport','t':'text','dv':d_dirFramework['sub']['export']},                      
+                      {'n':'envContent','t':'text','dv':d_dirFramework['enviornment']['content']},
+                      {'n':'envExport','t':'text','dv':d_dirFramework['enviornment']['content']}]
 
-_d_defaultsMap = {'anim':_animSettings,
+_d_defaultsMap = {'general':_projSettings,
+                  'anim':_animSettings,
                   'world':_worldSettings,
                   'structure':_structureSettings,}
-
-
-
 
 
 d_defaults = {'general':{'type':'unity',
@@ -112,3 +127,6 @@ def dirCreateList_get(projectType,dirSet,key = None):
         return _dDir.get(key,[])
     except Exception,err:
         log.error(err)
+        
+        
+

@@ -81,7 +81,10 @@ def buildFrames(self,parent):
     log.debug("|{0}| >>...".format(_str_func))
         
     d_toDo  = {'world':PU._worldSettings,
+               'structure':PU._structureSettings,
                'anim':PU._animSettings}
+    
+    _nameStyle = self.d_tf['general']['nameStyle'].getValue()
     
     for k,l in d_toDo.iteritems():
         log.debug(cgmGEN.logString_sub(_str_func,k))
@@ -104,6 +107,7 @@ def buildFrames(self,parent):
         
         self.d_tf[k] = {}
         _d = self.d_tf[k]
+        self.d_uiTypes[k] = {}
         
         for d in l:
             log.debug(cgmGEN.logString_msg(_str_func,d))
@@ -127,16 +131,29 @@ def buildFrames(self,parent):
         
                 #_d[key].selectByIdx(self.setMode,False)                
                 _d[_name].setValue(_dv)
+                self.d_uiTypes[k][_name] = 'optionMenu'
             elif _type == 'bool':
                 _d[_name] =  mUI.MelCheckBox(_row,
-                                              ann='Project settings | {0}'.format(_name))
+                                             ann='{0} settings | {1}'.format(_name,d),
+                                              )
                 _d[_name].setValue(_dv)
-                
+                self.d_uiTypes[k][_name] = 'bool'
             else:
                 #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
+                self.d_uiTypes[k][_name] = 'string'
+                
+                if cgmValid.isListArg(_dv):
+                    log.debug("ListArg: {0} | {1}".format(_name,_dv))
+                    if len(_dv)>1:
+                        _dv = ','.join([CORESTRINGS.byMode(v,_nameStyle) for v in _dv])
+                    else:
+                        _dv = CORESTRINGS.byMode(_dv[0],_nameStyle)
+                        
+                    self.d_uiTypes[k][_name] = 'stringList'
+                    
                 _d[_name] =  mUI.MelTextField(_row,
-                                            ann='Project settings | {0}'.format(_name),
-                                            text = '')
+                                            ann='{0} settings | {1}'.format(_name,d),
+                                            text = _dv)
                 
             _row.setStretchWidget(_d[_name])
             mUI.MelSpacer(_row,w=5)
@@ -151,7 +168,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 350,500
+    DEFAULT_SIZE = 400,600
     TOOLNAME = 'cgmProjectManager.ui'
     
     _l_sections = 'general','anim','paths'
@@ -183,7 +200,7 @@ class ui(cgmUI.cgmGUI):
         self.mPathList = cgmMeta.pathList('cgmProjectPaths')
         
         self.d_tf = {}
-        
+        self.d_uiTypes = {}
     
     def uiProject_new(self):
         _str_func = 'uiProject_new'
@@ -202,14 +219,18 @@ class ui(cgmUI.cgmGUI):
             self.uiProject_clear()
             _name = mc.promptDialog(query=True, text=True)
             self.mDat = data(_name)
-            
             self.d_tf['general']['name'].setValue(_name)
             
             #self.mDat.write()
             self.uiProject_save()
-            self.uiProject_load(revert=True)
+            #self.uiProject_load(revert=True)
+            return
+        return log.error("Project Creation cancelled")
                 
-                
+    def reset(self):
+        self.mDat.fillDefaults(True)
+        self.uiProject_fill()
+        
     def uiProject_pushPaths(self):
         _str_func = 'uiProject_load'
         log.debug("|{0}| >>...".format(_str_func))        
@@ -264,7 +285,45 @@ class ui(cgmUI.cgmGUI):
         log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
         self.reload_headerImage()
                     
+    
+    def uiProject_fill(self):
+        _str_func = 'uiProject_fill'
+        log.debug("|{0}| >>...".format(_str_func))
+                
+        for dType in ['general','anim','paths','structure']:
+            log.debug(cgmGEN.logString_sub(_str_func,dType))
+            
+            for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
+                try:
+                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                    try:_type = self.d_uiTypes[dType][k]
+                    except:_type = None
+                        
+                    if _type == 'stringList' and v:
+                        if len(v)>1:
+                            self.d_tf[dType][k].setValue(','.join(v))
+                        else:
+                            self.d_tf[dType][k].setValue(v[0])
+                    else:
+                        if v is not None:
+                            self.d_tf[dType][k].setValue(v)
+                            
+                except Exception,err:
+                    log.error("Missing data field or failure: {0}".format(k))
+                    log.error("err | {0}".format(err))
                     
+        
+        self.uiLabel_file(edit=True, label = self.mDat.str_filepath)
+        
+        #Project image
+        log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
+        self.reload_headerImage()
+        
+        #Update file dir
+        self.uiScrollList_dirContent.rebuild( self.mDat.d_paths.get('content'))
+        self.uiScrollList_dirExport.rebuild(self.mDat.d_paths.get('export'))
+        
+        
     def uiProject_load(self,path=None,revert=False):
         _str_func = 'uiProject_load'
         log.info("|{0}| >>...".format(_str_func))
@@ -275,49 +334,9 @@ class ui(cgmUI.cgmGUI):
         #if revert is not True:
         self.mDat.read(path)
         
-        for dType in ['general','anim','paths']:
-            log.debug(cgmGEN.logString_sub(_str_func,dType))
-            
-            for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
-                try:
-                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-                    _type = type(self.d_tf[dType][k])
-                    if _type not in [mUI.MelOptionMenu]:
-                        try:self.d_tf[dType][k].clear()
-                        except:pass
-                        
-                        
-                        if v is not None:
-                            self.d_tf[dType][k].setValue(v)
-                except Exception,err:
-                    log.error("Missing data field or failure: {0}".format(k))
-                    log.error("err | {0}".format(err))                
-                
-                
-            """            
-            log.debug(cgmGEN.logString_sub(_str_func,"general"))
-            for k,v in self.mDat.d_project.iteritems():
-                log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-                try:
-                    self.d_tf['general'][k].setValue(v)
-                except Exception,err:
-                    log.error("Missing data field: {0}".format(k))
-                    log.error("err | {0}".format(err))
-                    
-                    #mUi.setValue(v)
-     
-     
-            log.debug(cgmGEN.logString_sub(_str_func,"paths"))
-            for k,v in self.mDat.d_paths.iteritems():
-                log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-                
-                try:
-                    self.d_tf['paths'][k].setValue(v)
-                except Exception,err:
-                    log.error("Missing data field: {0}".format(k))
-                    log.error("err | {0}".format(err))
-            
-            """        
+        self.uiProject_fill()
+        
+
         #Set maya project path
         log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
         self.uiProject_pushPaths()
@@ -326,27 +345,16 @@ class ui(cgmUI.cgmGUI):
         
         self.path_projectConfig = self.mDat.str_filepath
         self.mPathList.append(self.mDat.str_filepath)
-        self.uiLabel_file(edit=True, label = self.mDat.str_filepath)
         
         self.mPathList.log_self()        
         
         
         #Set pose path
-        
-        #Update file dir
-        self.uiScrollList_dirContent.rebuild( self.mDat.d_paths.get('content'))
-        self.uiScrollList_dirExport.rebuild(self.mDat.d_paths.get('export'))
-        
-        #Project image
-        log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
-        self.reload_headerImage()
-        
+
         #self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
         
         #self.uiImage_Project.setImage(mThumb)
         
-
-        log.info(True)
         self.var_pathLastProject.value = self.mDat.str_filepath
     
     def reload_headerImage(self):
@@ -379,8 +387,22 @@ class ui(cgmUI.cgmGUI):
             
             log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(dType,d)))
             
-            for k,ui in self.d_tf[dType].iteritems():
-                self.mDat.__dict__[d][k] = ui.getValue()            
+            for k,ui in self.d_tf.get(dType,{}).iteritems():
+                try:_type = self.d_uiTypes[dType][k]
+                except:_type = None
+                log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(k,ui)))
+                    
+                if _type == 'stringList':
+                    _v = ui.getValue()                    
+                    if ',' in _v:
+                        _v = _v.split(',')
+                    else:
+                        _v = [_v]
+                    log.debug('StringList: {0} | {1} | {2}'.format(dType,k,_v))
+                    
+                    self.mDat.__dict__[d][k] = _v
+                else:
+                    self.mDat.__dict__[d][k] = ui.getValue()            
             
         """
         for k,ui in self.d_tf['general'].iteritems():
@@ -418,26 +440,15 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItemDiv( self.uiMenu_utils, label='Send To...' )
         mUI.MelMenuItem( self.uiMenu_utils, l="Scene",
                          c = lambda *a:mc.evalDeferred(self.uiProject_toScene,lp=True))
-
+        
+        mUI.MelMenuItemDiv( self.uiMenu_utils, label='Processes..' )
+        mUI.MelMenuItem( self.uiMenu_utils, l="Push nameStyle",
+                         c = lambda *a:mc.evalDeferred(self.mDat.nameStyle_push,lp=True))
+        
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         
-        #>>> Reset Options		                     
-        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Project' )
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="New",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_new,lp=True))        
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Load",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_load,lp=True))
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save ",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_save,lp=True))
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save As",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_saveAs,lp=True))
-        
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Revert",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_revert,lp=True))
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Clear",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_clear,lp=True))
-        
+        #Recent -------------------------------------------------------------------
         self.mPathList.verify()
         _recent = mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Recent",subMenu=True)
         for i,p in enumerate(self.mPathList.l_paths):
@@ -450,13 +461,40 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_recent,
                         label = "Clear Recent",
                         ann="Clear the recent projects",
-                        c=cgmGEN.Callback(self.mPathList.clear))        
+                        c=cgmGEN.Callback(self.mPathList.clear))                
         
         
-        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Settings' )
-        #uiMenuItem_matchMode(self,self.uiMenu_FirstMenu)
+        #>>> Reset Options		                     
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Basic' )
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="New",
+                         ann='Create a new project',                         
+                         c = lambda *a:mc.evalDeferred(self.uiProject_new,lp=True))        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Load",
+                         c = lambda *a:mc.evalDeferred(self.uiProject_load,lp=True))
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save ",
+                         c = lambda *a:mc.evalDeferred(self.uiProject_save,lp=True))
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save As",
+                         c = lambda *a:mc.evalDeferred(self.uiProject_saveAs,lp=True))
         
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Utils' )
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+                         ann='Reset data to default',
+                         c = lambda *a:mc.evalDeferred(self.reset,lp=True))
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Fill",
+                         ann='Refill the ui fields from the mDat',                         
+                         c = lambda *a:mc.evalDeferred(self.uiProject_fill,lp=True))        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Revert",
+                         ann='Revert to saved file data',
+                         c = lambda *a:mc.evalDeferred(self.uiProject_revert,lp=True))
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Clear",
+                         ann='Clear the fields',
+                         c = lambda *a:mc.evalDeferred(self.uiProject_clear,lp=True))
+        
+        
+        
+        
+        
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='UI' )
         
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
                          c = lambda *a:self.do_dock())        
@@ -659,6 +697,8 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_LineSubBreak()
         self.d_tf['general'] = {}
         _d = self.d_tf['general']
+        self.d_uiTypes['general'] = {}
+        
         for key in PU.l_projectDat:
             mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
             
@@ -713,6 +753,7 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_LineSubBreak()
         self.d_tf['paths'] = {}
         _d = self.d_tf['paths']
+        self.d_uiTypes['paths'] = {}
         
         for key in PU.l_projectPaths:
             mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
@@ -965,6 +1006,8 @@ def buildFrame_dirContent(self,parent):
                                     bgc = [.2,.2,.2],
                                     w = 50)
     
+    mScrollList.mDat = self.mDat
+    
     #Connect the functions to the buttons after we add the scroll list...
     button_verify(edit=True,
                   c=lambda *a:uiProject_verifyDir(self,'content',None,mScrollList),)
@@ -1046,6 +1089,7 @@ def buildFrame_dirExport(self,parent):
     try:mScrollList(edit=True,hlc = [.5,.5,.5])
     except:pass
     
+    mScrollList.mDat = self.mDat
     
     #Connect the functions to the buttons after we add the scroll list...
     button_verify(edit=True,
@@ -1095,8 +1139,8 @@ class data(object):
 
         """        
         self.str_filepath = None
-        self.d_env = {}#cgmGEN.get_mayaEnviornmentDict()
-        self.d_env['file'] = mc.file(q = True, sn = True)
+        #self.d_env = {}#cgmGEN.get_mayaEnviornmentDict()
+        #self.d_env['file'] = mc.file(q = True, sn = True)
         
         for k,d in PU._dataConfigToStored.iteritems():
             log.debug("initialze: {0}".format(k))
@@ -1105,17 +1149,40 @@ class data(object):
         if not self.d_project.get('name') and project:
             self.d_project['name'] = project
             
-        
-        
-        
         if filepath is not None:
             try:self.read(filepath)
             except Exception,err:log.error("data Filepath failed to read | {0}".format(err))
             
+        self.fillDefaults()
             
+        
     def fillDefaults(self,overwrite=False):
         _str_func = 'data.fillDefaults'
-        log.debug("|{0}| >>...".format(_str_func))        
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        for k,d in PU._dataConfigToStored.iteritems():
+            log.debug("checking: {0}".format(k))
+            mD = self.__dict__[d]
+            
+            for d2 in PU._d_defaultsMap.get(k,[]):
+                log.debug("set: {0}".format(d2))
+                if mD.get(d2['n']) is None or overwrite:
+                    mD[d2['n']] = d2.get('dv')
+        
+    def nameStyle_push(self):
+        _nameStyle = self.d_project.get('nameStyle')
+        if not _nameStyle:
+            raise ValueError,"No nameStyle set"
+        
+        for k,d in PU._dataConfigToStored.iteritems():
+            log.debug("Checking: {0}".format(k))
+            mD = self.__dict__[d]
+            
+            for k2,v in mD.iteritems():
+                if issubclass(type(v), basestring):
+                    mD[k2] = CORESTRINGS.byMode(v,_nameStyle)
+                    log.debug("set: {0}".format(k2))
+                
         
     def validateFilepath(self, filepath = None, fileMode = 0):
         '''
@@ -1170,8 +1237,8 @@ class data(object):
         
         mPath = self.validateFilepath(filepath, fileMode = 1)
         
-        if not mPath.exists():            
-            raise ValueError('Given filepath doesnt not exist : %s' % mPath)   
+        if not mPath or not mPath.exists():            
+            raise ValueError('Given filepath doesnt not exist : %s' % filepath)   
         
         _config = configobj.ConfigObj(mPath.asFriendly())
         #if _config.get('configType') != 'cgmSkinConfig':
@@ -1193,6 +1260,45 @@ class data(object):
         _d = copy.copy(self.__dict__)
         pprint.pprint(_d)
         
+    
+    def asset_addDir(self, path = None, name = None, aType = 'character'):
+        '''
+        Insert a new SubFolder to the path, makes the dir and sets
+        '''
+        mPath = PATHS.Path(path)
+        if not mPath.exists():
+            raise StandardError('Invalid Path: {0}'.format(path))
+        
+        promptstring = 'Add {0} '.format(aType)
+        l_subs = self.d_structure.get(aType)
+        
+        result = mc.promptDialog(
+                title=promptstring,
+                message='Enter Name: \n Path: {0} \n Subs: {1}'.format(mPath.asFriendly(),','.join(l_subs)),
+                button=['OK', 'Cancel'],
+                defaultButton='OK',
+                cancelButton='Cancel',
+                dismissString='Cancel')
+        
+        if result == 'OK':
+            main = mc.promptDialog(query=True, text=True)
+            mDir =  PATHS.Path( os.path.join(mPath, main))
+            if not mDir.exists():
+                os.makedirs(mDir)
+                log.warning("created dir: {0}".format(mDir))
+            else:
+                log.warning("Dir already exists: {0}".format(mDir))
+                                
+            if l_subs and mDir.exists():
+                for s in l_subs:
+                    mSub =  PATHS.Path( os.path.join(mPath, main,s))
+                    if not mSub.exists():
+                        os.makedirs(mSub)
+                        log.warning("created dir: {0}".format(mSub))
+                    else:
+                        log.warning("Dir already exists: {0}".format(mSub))                    
+            return mDir.asFriendly()
+        return log.warning("Asset add cancelled")
 
 class cgmProjectDirList(mUI.BaseMelWidget):
     '''
@@ -1225,7 +1331,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self.rebuild()
         self.cmd_select = None
         self(e=True, sc = self.selCommand)
-        
+        self.mDat = None
         self.uiPopUpMenu = None
         
         self.set_selCallBack(self.select_popup)
@@ -1303,8 +1409,15 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         if _res:
             log.warning("Opening: {0}".format(_res[0]))
             mc.file(_res[0], o=True, f=True, pr=True)
-        
-        
+            
+    def uiPath_MayaSaveTo(self,path=None):
+        _res = mc.fileDialog2(fileMode=0, dir=path)
+        if _res:
+            
+            log.warning("Saving: {0}".format(_res[0]))
+            newFile = mc.file(rename = _res[0])
+            mc.file(save = 1)        
+            
     def uiPath_addDir(self, path = None):
         '''
         Insert a new SubFolder to the path, makes the dir and sets
@@ -1333,6 +1446,17 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                 self.rebuild()
             else:
                 log.warning("Dir already exists: {0}".format(mDir))
+                
+    def uiPath_addAsset(self, path = None, dType = 'content', aType = 'character'):
+        '''
+        Insert a new SubFolder to the path, makes the dir and sets
+        '''
+        if self.mDat:
+            if self.mDat.asset_addDir(path,dType,aType):
+                self.rebuild()
+        else:
+            log.warning("cgmProjectDirList.uiPath_addAsset | No mDat connected")
+            
                 
     def uiPath_removeDir(self, path = None):
         '''
@@ -1399,7 +1523,12 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             mUI.MelMenuItem(_popUp,
                             ann = "Open Maya file in: {0}".format(_path),
                             c= cgmGEN.Callback(self.uiPath_mayaOpen,_path),
-                            label = 'Open Maya file')            
+                            label = 'Open Maya file')
+            
+            mUI.MelMenuItem(_popUp,
+                            ann = "Save Maya file to: {0}".format(_path),
+                            c= cgmGEN.Callback(self.uiPath_MayaSaveTo,_path),
+                            label = 'Save Maya here')            
             
             mUI.MelMenuItem(_popUp,
                             ann = "Add sub dir to: {0}".format(_path),
@@ -1411,211 +1540,26 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                             c= cgmGEN.Callback(self.uiPath_removeDir,_path),
                             label = 'Delete Dir')
             
-            
             mUI.MelMenuItem(_popUp,
                             ann = "Log dat: {0}".format(_path),
                             c= lambda *a:pprint.pprint(dat),
-                            label = 'Log Dat')            
+                            label = 'Log Dat')
             
-            return
-            ml_block = self.uiScrollList_blocks.getSelectedObjs()
-            if not ml_block:
-                log.warning("|{0}| >> Nothing selected".format(_str_func))
-                return False
-            
-            _mBlock = ml_block[0]
-            if _mBlock and not _mBlock.mNode:
-                log.warning("|{0}| >> Dead block. Rebuilding blockList".format(_str_func))                
-                self.uiScrollList_blocks.rebuild()
-                return False
-                
-            self.uiScrollList_blocks.setHLC(_mBlock)
-            
-            _short = _mBlock.p_nameShort
+            if self.mDat:
+                mUI.MelMenuItemDiv(_popUp,label = 'Add Asset Dirs')
+                d_toDo = {'char':'character',
+                          'prop':'prop',
+                          'env':'enviornment',
+                          'sub':'sub project'}
+                for t in ['char','prop','env','sub']:
+                    print t
+                    _t = CORESTRINGS.byMode(d_toDo.get(t),'capitalize')
+                    mUI.MelMenuItem(_popUp,
+                                    ann = "Add {0} asset to path: {1}".format(_t,_path),
+                                    c=cgmGEN.Callback(self.uiPath_addAsset,_path,'content','{0}Content'.format(t)),
+                                    #c= lambda *a:self.uiPath_addAsset(_path,'content','{0}Content'.format(t)),
+                                    label = _t)
 
-            _mActiveBlock = self._blockCurrent
-            _str_activeBlock = False
-            if _mActiveBlock:
-                _str_activeBlock = _mActiveBlock.mNode
-        
-            self.uiPopUpMenu = mUI.MelPopupMenu(self.uiScrollList_blocks,button = 3)
-            _popUp = self.uiPopUpMenu 
-            
-            _b_active = False
-            if _mActiveBlock:
-                _b_active = True
-                
-            #>>>Special menu ---------------------------------------------------------------------------------------
-            
-            mBlockModule = _mBlock.getBlockModule()
-            if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
-                mBlockModule.uiBuilderMenu(_mBlock,_popUp)
-                #_mBlock.atBlockModule('uiBuilderMenu', _popUp)
-                mUI.MelMenuItemDiv(_popUp)
-                
-            
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = 'Set selected active block',
-                            c = cgmGEN.Callback(self.uiFunc_block_setActive),
-                            label = "To active")
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = 'Select',
-                            c = cgmGEN.Callback( self.uiFunc_contextBlockCall, 'select'),
-                            label = "Select")
-            
-            
-            #>>>Heirarchy ------------------------------------------------------------------------------------
-            _menu_parent = mUI.MelMenuItem(_popUp,subMenu=True,
-                                           label = "Parent")
-
-            mUI.MelMenuItem(_menu_parent,
-                            en = _b_active,
-                            ann = 'Set parent block to active block: {0}'.format(_str_activeBlock),
-                            #c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'setParentToActive'}),
-                            c= lambda *a:self.uiFunc_blockManange_fromScrollList(**{'mode':'setParentToActive'}),
-                            label = "To active")
-            mUI.MelMenuItem(_menu_parent,
-                            ann = 'Clear parent block',
-                            #c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'clearParentBlock'}),
-                            c= lambda *a:self.uiFunc_blockManange_fromScrollList(**{'mode':'clearParentBlock'}),
-                            
-                            label = "Clear")
-            
-            #>>Mirror ----------------------------------------------------------------------------------------
-            _mirror = mUI.MelMenuItem(_popUp, subMenu = True,
-                                      label = "Mirror",
-                                      en=True,)   
-        
-            mUI.MelMenuItem(_mirror,
-                            label = 'Verify',
-                            ann = '[{0}] Create or load mirror block'.format(_short),
-                            c = lambda *a: self.uiFunc_block_mirror_create(_mBlock,False) )    
-            mUI.MelMenuItem(_mirror,
-                            label = 'Rebuild',
-                            ann = '[{0}] Rebuild mirror block from scratch'.format(_short),                                                    
-                            #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )                            
-                            c = lambda *a: self.uiFunc_block_mirror_create(_mBlock,True) )  
-            
-            _l_mirror = [#['Create','blockMirror_create', {}],
-                         #['Recreate','blockMirror_create', {'forceNew':True}],
-                         ['Push','blockMirror_go', {'mode':'push'}],
-                         ['Pull','blockMirror_go', {'mode':'pull'}]]
-            for mirrorDat in _l_mirror:
-                mUI.MelMenuItem(_mirror,
-                                label = mirrorDat[0],
-                                ann = '[{0}] {1} block controls'.format(_short,mirrorDat[0]),                                                    
-                                #c=lambda *a:self.uiCallback_withUpdate( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )                            
-                                c=cgmGEN.Callback( _mBlock.atBlockUtils, mirrorDat[1], **mirrorDat[2]) )
-    
-            
-            #>>Utilities ------------------------------------------------------------------------------------------       
-            """
-            mUI.MelMenuItem(_popUp,
-                            label = "Select",
-                            en=True,
-                            ann = '[{0}] Select the block'.format(_short),                        
-                            c=cgmGEN.Callback(_mBlock.select))
-            """
-            
-            
-            _sizeMode = mBlockModule.__dict__.get('__sizeMode__',None)
-            if _sizeMode:
-                mUI.MelMenuItem(_popUp,
-                                label ='Size',
-                                ann = 'Size by: {0}'.format(_sizeMode),
-                                c=cgmGEN.Callback(_mBlock.atUtils, 'size', _sizeMode))
-                
-                
-            mUI.MelMenuItemDiv(_popUp)
-            mUI.MelMenuItem(_popUp,
-                            label ='Set Name',
-                            ann = 'Specify the name for the current block. Current: {0}'.format(_mBlock.cgmName),
-                            c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_nameTag'))
-            
-            mUI.MelMenuItem(_popUp,
-                            label ='Edit NameList',
-                            ann = 'Ui Prompt to edit nameList',
-                            c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                         'atUtils','nameList_uiPrompt',
-                                                                         **{}))
-            
-            #...side ----------------------------------------------------------------------------------------
-            sub_side = mUI.MelMenuItem(_popUp,subMenu=True,
-                                       label = 'Set side')
-            
-            for i,side in enumerate(['None','left','right','center']):
-                mUI.MelMenuItem(sub_side,
-                                label = side,
-                                ann = 'Specify the side for the current block to : {0}'.format(side),
-                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_side',side))
-            #...position ------------------------------------------------------------------------------
-            #none:upper:lower:front:back:top:bottom
-            sub_position = mUI.MelMenuItem(_popUp,subMenu=True,
-                                           label = 'Set position')
-            for i,position in enumerate(['None','upper','lower','front','back','top','bottom']):
-                mUI.MelMenuItem(sub_position,
-                                label = position,
-                                ann = 'Specify the position for the current block to : {0}'.format(position),
-                                c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',position))
-                
-            
-            mUI.MelMenuItemDiv(_popUp)
-            
-            mUI.MelMenuItem(_popUp,
-                            label = "Recolor",
-                            en=True,
-                            ann = '[{0}] Recolor the block'.format(_short),                        
-                            c=cgmGEN.Callback(_mBlock.atBlockUtils,'color'))
-            
-            
-            mUI.MelMenuItem(_popUp,
-                            label = "Verify",
-                            ann = '[{0}] Verify the block'.format(_short),                        
-                            en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.verify))
-            mUI.MelMenuItem(_popUp,
-                            label = "Delete",
-                            ann = '[{0}] delete the block'.format(_short),                        
-                            en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'delete'))
-            mUI.MelMenuItem(_popUp,
-                            label = "Duplicate",
-                            ann = '[{0}] Duplicate the block'.format(_short),                        
-                            en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,'duplicate'))
-            
-            mUI.MelMenuItemDiv(_popUp)
-            
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = 'Initialize the block as mBlock in the script editor',
-                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditor'}),
-                            label = "To ScriptEditor")
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = 'Initialize the block as mBlock in the script editor as a rigFactory',
-                            c = cgmGEN.Callback(self.uiFunc_blockManange_fromScrollList,**{'mode':'toScriptEditorRigFactory'}),
-                            label = "To ScriptEditor as RigFac")
-            """
-            mUI.MelMenuItem(_popUp,
-                            ann = 'Initialize the block as mBlock in the script editor',
-                            c =cgmGEN.Callback(self.uiScrollList_blocks.func_byBlock,
-                                               'atUtils','to_scriptEditor',
-                                               **{'updateUI':0}),
-                            label = "To ScriptEditor")"""
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = self._d_ui_annotations.get('step build'),
-                            c =cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                               'stepUI',
-                                               **{'updateUI':0,'mode':'stepBuild'}),
-                            label = "Step Build")             
-            
-
-            return
-            
         except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     def setHLC(self,arg=None):
