@@ -32,7 +32,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -175,11 +175,11 @@ class ui(cgmUI.cgmGUI):
     
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
-        log.info("|{0}| >>...".format(_str_func))        
+        log.debug("|{0}| >>...".format(_str_func))        
 
         if kws:log.debug("kws: %s"%str(kws))
         if args:log.debug("args: %s"%str(args))
-        log.info(self.__call__(q=True, title=True))
+        log.debug(self.__call__(q=True, title=True))
 
         self.__version__ = __version__
         self.__toolName__ = self.__class__.WINDOW_NAME	
@@ -256,7 +256,7 @@ class ui(cgmUI.cgmGUI):
         
     def uiProject_clear(self,path=None,revert=False):
         _str_func = 'uiProject_clear'
-        log.info("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >>...".format(_str_func))
         self.uiLabel_file(edit=True, label = '')
         
         for dType in ui._l_sections:
@@ -264,7 +264,7 @@ class ui(cgmUI.cgmGUI):
             
             for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
                 try:
-                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                    log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
                     _type = type(self.d_tf[dType][k])
                     if _type not in [mUI.MelOptionMenu]:
                         try:self.d_tf[dType][k].clear()
@@ -295,7 +295,7 @@ class ui(cgmUI.cgmGUI):
             
             for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
                 try:
-                    log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                    log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
                     try:_type = self.d_uiTypes[dType][k]
                     except:_type = None
                         
@@ -326,7 +326,7 @@ class ui(cgmUI.cgmGUI):
         
     def uiProject_load(self,path=None,revert=False):
         _str_func = 'uiProject_load'
-        log.info("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >>...".format(_str_func))
         
         if path == None and revert is True:
             path = self.path_projectConfig or self.mDat.str_filepath
@@ -359,7 +359,7 @@ class ui(cgmUI.cgmGUI):
     
     def reload_headerImage(self):
         _str_func = 'reload_headerImage'
-        log.info("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >>...".format(_str_func))
         
         _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
         if _path.exists():
@@ -377,7 +377,7 @@ class ui(cgmUI.cgmGUI):
         
         if path == None and updateFile == True:
             if self.mDat.str_filepath:
-                log.info("|{0}| >> Saving to existing mDat: {1}".format(_str_func,self.mDat.str_filepath))
+                log.debug("|{0}| >> Saving to existing mDat: {1}".format(_str_func,self.mDat.str_filepath))
                 path = self.mDat.str_filepath        
             
             
@@ -600,7 +600,7 @@ class ui(cgmUI.cgmGUI):
         mc.button(parent=uiRow_pose,
                   l = 'Test',
                   ut = 'cgmUITemplate',
-                  c= lambda *x:log.info("Mode: {0} | local: {1} | project: {2}".format(self.var_pathMode.getValue(),self.posePathLocal, self.posePathProject)),
+                  c= lambda *x:log.debug("Mode: {0} | local: {1} | project: {2}".format(self.var_pathMode.getValue(),self.posePathLocal, self.posePathProject)),
                   )"""
         mUI.MelSpacer(uiRow_pose,w=2)
         uiRow_pose.layout()
@@ -1199,7 +1199,7 @@ class data(object):
         
         mFile = PATHS.Path(filepath)
         self.str_filepath = mFile.asFriendly()
-        log.info("filepath validated...")        
+        log.debug("filepath validated...")        
         return mFile
 
     def write(self, filepath = None, update = False):
@@ -1411,7 +1411,8 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             mc.file(_res[0], o=True, f=True, pr=True)
             
     def uiPath_MayaSaveTo(self,path=None):
-        _res = mc.fileDialog2(fileMode=0, dir=path)
+        _res = mc.fileDialog2(fileFilter = 'Maya Files (*.ma *.mb)',fileMode=0,dialogStyle=2,dir=path)
+
         if _res:
             
             log.warning("Saving: {0}".format(_res[0]))
@@ -1491,7 +1492,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
 
 
         
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def select_popup(self): 
         try:
             _str_func = 'uiScrollList_select'  
@@ -1552,7 +1553,6 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                           'env':'enviornment',
                           'sub':'sub project'}
                 for t in ['char','prop','env','sub']:
-                    print t
                     _t = CORESTRINGS.byMode(d_toDo.get(t),'capitalize')
                     mUI.MelMenuItem(_popUp,
                                     ann = "Add {0} asset to path: {1}".format(_t,_path),
@@ -1567,7 +1567,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         if arg:
             try:
                 _color = self._d_itc[arg]
-                log.info("{0} | {1}".format(arg,_color))
+                log.debug("{0} | {1}".format(arg,_color))
                 _color = [v*.7 for v in _color]
                 self(e =1, hlc = _color)
                 return
@@ -1583,7 +1583,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         if not _indices:
             log.debug("Nothing selected")
             return []
-        log.info(_indices)
+        log.debug(_indices)
         return self._d_dir[ self._l_str_loaded[ _indices[0]]]
     
         #for i in _indices:

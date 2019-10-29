@@ -17,7 +17,7 @@ from cgm.core.cgmPy import validateArgs as cgmValid
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 def levenshtein(s1, s2):
     '''algorithm taken from https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Python '''
