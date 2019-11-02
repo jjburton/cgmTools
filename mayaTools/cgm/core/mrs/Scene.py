@@ -691,7 +691,7 @@ example:
 		return searchableList
 
 	def process_search_filter(self, searchableList, *args):
-		print "processing search for %s with search term %s" % (searchableList['scrollList'], searchableList['searchField'].getValue())
+		#print "processing search for %s with search term %s" % (searchableList['scrollList'], searchableList['searchField'].getValue())
 		if not searchableList['searchField'].getValue():
 			searchableList['scrollList'].setItems(searchableList['items'])
 		else:
