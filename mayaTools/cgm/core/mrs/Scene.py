@@ -695,10 +695,14 @@ example:
 		if not searchableList['searchField'].getValue():
 			searchableList['scrollList'].setItems(searchableList['items'])
 		else:
-			searchTerm = set(searchableList['searchField'].getValue().replace(' ', '').lower())
+			searchTerms = searchableList['searchField'].getValue().lower().strip().split(' ')  #set(searchableList['searchField'].getValue().replace(' ', '').lower())
 			listItems = []
 			for item in searchableList['items']:
-				if len(searchTerm & set(item.lower())) == len(searchTerm):
+				hasAllTerms = True
+				for term in searchTerms:
+					if not term in item.lower():
+						hasAllTerms = False
+				if hasAllTerms:
 					listItems.append(item)
 			searchableList['scrollList'].setItems(listItems)
 
