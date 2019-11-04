@@ -154,6 +154,11 @@ example:
         self.AddShot(name, minVal, maxVal)
 
     def AddShot(self, name, minVal, maxVal):
+        # create if not found
+        if not self.animListNode:
+            self.animListNode = node.Transform(name="AnimListNode")
+            self.animListNode.AddAttr("subAnimList", attributeType = 'string')
+
         self.animDict[name] = [minVal, maxVal, maxVal - minVal]
         self.animListNode.SetAttr("subAnimList", json.dumps(self.animDict))
 
@@ -321,12 +326,6 @@ example:
                 for key in self.animDict:
                     if len(self.animDict[key]) == 2:
                         self.animDict[key].append(self.animDict[key][1] - self.animDict[key][0])
-
-        # create if not found
-        if not self.animListNode:
-            self.animListNode = node.Transform(name="AnimListNode")
-            self.animListNode.AddAttr("subAnimList", attributeType = 'string')
-
 class AnimList(object):
     def __init__(self):
         self.shotDict = {}

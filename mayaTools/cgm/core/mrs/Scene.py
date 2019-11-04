@@ -56,7 +56,7 @@ example:
 	def insert_init(self,*args,**kws):
 		#self.window                      = None
 		
-		self.categoryList                = ["Character", "Environment", "Vehicles", "Props", "Interactables", "Level"]
+		self.categoryList                = ["Character", "Environment", "Vehicles", "Props", "Interactables", "Level", "Prototype"]
 		self.categoryIndex               = 0
 
 		#self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0)
@@ -154,7 +154,7 @@ example:
 		#self.exportCommand   = mc.optionVar(q=self.exportCommandStore) if mc.optionVar(exists=self.exportCommandStore) else ""
 
 	def SaveOptions(self, *args):
-		self.showBaked = self.showBakedOption( q=True, checkBox=True )
+		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
 		
 		self.showBakedStore.setValue(self.showBaked)
 		self.optionVarExportDirStore.setValue( self.exportDirectory )
