@@ -13,6 +13,12 @@ import pprint
 import cgm.core.cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 
+
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
 def levenshtein(s1, s2):
     '''algorithm taken from https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Python '''
     if len(s1) < len(s2):
@@ -62,6 +68,24 @@ def camelCase(arg = None):
         return ''.join(l_new)
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+        
+
+def byMode(arg,mode='none'):
+    _str_func = 'byMode'
+    log.debug("|{0}| >>...".format(_str_func))
+    if mode in ['none',None,'None']:
+        return str(arg)
+    elif mode in ['upper','upr']:
+        return str(arg).upper()
+    elif mode in ['cap','capitalize']:
+        return str(arg).capitalize()
+    elif mode in ['cc','camelcase','camelCase']:
+        return camelCase(arg)
+    elif mode in ['lwr','lower']:
+        return str(arg).lower()
+    elif mode in ['cf','capFirst','capfirst']:
+        return capFirst(arg)
+
         
 
 def short(arg = 'D:\repos\cgmtools\mayaTools\cgm\core\mrs\PoseManager.py',max = 10):
