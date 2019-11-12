@@ -1838,7 +1838,7 @@ def create_face_anchor(self, pos, mSurface,tag,k,side=None,controlType = 'main',
                             worldUpType = 'objectrotation', 
                             worldUpVector = [0,1,0]))
     
-    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',(self.controlOffset + size) * 3)
+    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',(size) * 4)
     
     mBall = cgmMeta.validateObjArg( CURVES.create_fromName('semiSphere', size = size), 
                                       'cgmControl',setClass=1)
@@ -1890,7 +1890,7 @@ def create_face_handle(self, pos, tag, k, side,
                        attachToSurf = False,
                        orientToDriver = False,
                        aimGroup = 0,nameDict = None):
-    
+    _str_func = 'create_face_handle'
     #Main handle ==================================================================================
     #Create...
     _mainSize = size
@@ -1989,10 +1989,11 @@ def create_face_handle(self, pos, tag, k, side,
         if attachToSurf:
             #Attach group... -------------------------------------------------------------------------------
             mTrack = mHandle.doCreateAt()
-            mTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
             mTrack.p_parent = mNoTransformNull
             
             if mAttachCrv:
+                mTrack.rename("{0}_curveDriver".format(mHandle.p_nameBase))
+                
                 _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mAttachCrv.mNode,None,driver= mDriver)
                 
                 md = _res[-1]
@@ -2002,9 +2003,29 @@ def create_face_handle(self, pos, tag, k, side,
                     md[k].v = False
                 
                 mTrack.p_position = md['mDrivenLoc'].p_position
-                mc.pointConstraint( md['mDrivenLoc'].mNode,mTrack.mNode,maintainOffset=0)                
+                mc.pointConstraint( md['mDrivenLoc'].mNode,mTrack.mNode,maintainOffset=0)
+                
+                if mSurface:
+                    log.debug(cgmGEN.logString_msg(_str_func,'Attach curve'))
+                    #We need a second driver point on the surface
+                    mSurfaceTrack = mHandle.doCreateAt()
+                    mSurfaceTrack.p_parent = mNoTransformNull                    
+                    mSurfaceTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mSurfaceTrack.mNode,mSurface.mNode,None,
+                                                        driver= mDagHelper)
+                    
+                    md = _res[-1]
+                    mFollicle = md['mFollicle']
+                    for k in ['mDriverLoc','mFollicle']:
+                        md[k].p_parent = mNoTransformNull
+                        md[k].v = False
+                    
+                    mSurfaceTrack.p_position = md['mFollicle'].p_position
+                    mc.pointConstraint(mFollicle.mNode,mSurfaceTrack.mNode,maintainOffset=0)                    
                 
             else:
+                mTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
                 _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mSurface.mNode,None,driver= mDriver)
                 
                 md = _res[-1]
@@ -2032,7 +2053,7 @@ def create_face_handle(self, pos, tag, k, side,
             
             else:
                 mHandle.p_parent = mTrack
-                
+
                 if mAttachCrv:
                     mCrvTrack = mHandle.doCreateAt()
                     mCrvTrack.rename("{0}_crvDriver".format(mHandle.p_nameBase))
@@ -2047,8 +2068,21 @@ def create_face_handle(self, pos, tag, k, side,
                     
                     if orientToDriver:
                         mc.orientConstraint(mDriver.mNode, mCrvTrack.mNode,maintainOffset = False)
-                    mHandle.resetAttrs('translate')
                     
+                    if mSurface:
+                        log.debug(cgmGEN.logString_msg(_str_func,'Attach curve'))
+                        mPush = mSurfaceTrack.doCreateAt(setClass=1)
+                        mPush.rename("{0}_pushDriver".format(mHandle.p_nameBase))
+                        
+                        mPush.p_parent = mSurfaceTrack
+                        mHandle.p_parent = mPush
+                        ATTR.connect('{0}.controlOffset'.format(self.mNode), "{0}.tz".format(mPush.mNode))
+                        
+                        if orientToDriver:
+                            mc.orientConstraint(mDriver.mNode, mSurfaceTrack.mNode,maintainOffset = False)
+                            
+                    mHandle.resetAttrs('translate')
+                        
                 else:
                     mHandle.p_position = mTrack.p_position                    
                     mDagHelper.resetAttrs()

@@ -4438,7 +4438,7 @@ def prerig(self):
                     ml_handles.extend(_ml_shapes + _ml_prerigDags)
             
             
-            #...get joint handles...-----------------------------------------------------------------
+            #...get control joint handles...-----------------------------------------------------------------
             ml_uprCenter = md_prerigDags['upr']['center']
             ml_uprLeft = copy.copy(md_prerigDags['upr']['left'])
             ml_uprLeft.reverse()
@@ -6766,7 +6766,7 @@ def rig_cleanUp(self):
     self.UTILS.rigNodes_store(self)
 
 
-def create_simpleMesh(self,  deleteHistory = True, cap=True):
+def create_simpleMesh(self,  deleteHistory = True, cap=True, **kws):
     _str_func = 'create_simpleMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))

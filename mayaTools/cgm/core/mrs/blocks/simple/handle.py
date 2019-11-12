@@ -178,6 +178,7 @@ l_attrsStandard = ['side',
                    'buildSDK',
                    'addScalePivot',
                    'proxy',
+                   'proxyType',
                    'buildSDK',
                    'numShapers',
                    'numSubShapers',
@@ -1304,7 +1305,7 @@ def rig_shapes(self):
         
     if mBlock.addCog and mBlock.getMessage('cogHelper'):
         log.info("|{0}| >> Cog helper setup... ".format(_str_func))
-        mCog = mControl.doCreateAt()
+        mCog = mBlock.cogHelper.doCreateAt()
         mCog.p_parent = False
         #ATTR.break_connection(mCog.mNode,'visibility')
         
@@ -1942,7 +1943,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
             mc.delete([mObj.mNode for mObj in _bfr])
         else:
             return _bfr
-      
+    
+    if not self.proxyType:
+        log.info("No proxyType set")                            
+        return False
+        
     #>> Build bbProxy -----------------------------------------------------------------------------
     mMeshCheck = mBlock.getMessageAsMeta('proxyHelper')
     ml_geo = mBlock.msgList_get('proxyMeshGeo')

@@ -171,6 +171,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'lidBuild':'none:clam:full',
                  'lidType':'simple:full',
                  'lidDepth':'float',
+                 'lidJointDepth':'float',
                  'lidClosed':'bool',
                  'prerigJointOrient':'bool',
                  'numConLids':'int',
@@ -1211,8 +1212,13 @@ def prerig(self):
         _v_range = max(TRANS.bbSize_get(self.mNode)) *2
         _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
         _size_width = _bb_axisBox[0]#...x width
-        _size_base = _size_width * .25
-        _size_sub = _size_base * .2
+        
+        if self.lidBuild:
+            _size_base = _size_width * .25
+            _size_sub = _size_base * .2            
+        else:
+            _size_base = _size_width * .25
+            _size_sub = _size_base * .2
         
         _pos_bbCenter = POS.get_bb_center(mBBHelper.mNode)
     
@@ -1523,7 +1529,7 @@ def prerig(self):
                     if tag == 'upr':
                         _v = DIST.get_distance_between_points(CURVES.getMidPoint(mContact.mNode),
                                                                          CURVES.getMidPoint(mLine.mNode))
-                        self.lidDepth = _v * -.5
+                        self.lidJointDepth = _v * -.5
                     
                     
                     _res_tmp = mc.loft([mCrv.mNode for mCrv in [mContact,mLine]],
@@ -1608,7 +1614,7 @@ def prerig(self):
                             _dUse['cgmName'] = tag
                             _dUse['cgmDirection'] = _side
                             _dUse['cgmPosition'] = side
-                            
+                            reload(BLOCKSHAPES)
                             mAnchor = BLOCKSHAPES.create_face_anchor(self,p,
                                                                      mLidSurf,
                                                                      tag,
@@ -1765,7 +1771,7 @@ def prerig(self):
                                                                           None,
                                                                           _side,
                                                                           mDriver=mAnchor,
-                                                                          size= _size_sub,
+                                                                          size= self.lidDepth,
                                                                           
                                                                           mSurface=mLidSurf,#mLipLoft,
                                                                           #mAttachCrv=mDriverCrv,
@@ -1773,7 +1779,7 @@ def prerig(self):
                                                                           jointShape='locatorForm',
                                                                           controlType='main',#_controlType,
                                                                           mode='handle',
-                                                                          depthAttr = 'lidDepth',
+                                                                          depthAttr = 'lidJointDepth',
                                                                           plugDag= 'preDag',
                                                                           plugShape= 'preShape',
                                                                           attachToSurf=True,
@@ -1821,7 +1827,7 @@ def prerig(self):
                                                                               #mAttachCrv=mDriverCrv,
                                                                               mainShape=_shapeUse,
                                                                               jointShape='locatorForm',
-                                                                              depthAttr = 'lidDepth',
+                                                                              depthAttr = 'lidJointDepth',
                                                                               size= _size_sub,
                                                                               controlType=_controlType,
                                                                               mode='handle',
@@ -2006,7 +2012,7 @@ def prerig(self):
                                                                           #jointShape='sphere',
                                                                           size= _sizeDirect,
                                                                           mode='joint',
-                                                                          depthAttr='lidDepth',
+                                                                          depthAttr='lidJointDepth',
                                                                           controlType='sub',
                                                                           plugDag= 'jointHelper',
                                                                           plugShape= 'directShape',

@@ -506,6 +506,8 @@ class cgmNode(r9Meta.MetaClass):
     def getNameBase(self):
         return NAMES.base(self.mNode)
     
+    def asAttrString(self,arg):
+        return "{0}.{1}".format(self.mNode,str(arg))
     def getNameMatches(self,report=False):
         """Get any other nodes sharing the same base node as this one"""
         _str_func = 'getNameMatches'
