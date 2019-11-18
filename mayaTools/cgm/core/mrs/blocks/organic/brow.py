@@ -71,7 +71,7 @@ import cgm.core.lib.string_utils as STR
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.mrs.lib.post_utils as MRSPOST
 import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
-
+reload(BLOCKSHAPES)
 #for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
 #    reload(m)
     
@@ -144,6 +144,8 @@ l_attrsStandard = ['side',
                    'visLabels',
                    'jointRadius',
                    'jointDepth',
+                   'controlOffset',
+                   'conDirectOffset',
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:side',
@@ -163,7 +165,6 @@ d_attrsToMake = {'browType':'full:side',
                  'controlBrowCenter':'bool',
                  'numBrowControl':'int',
                  'controlTemple':'bool',
-                 'controlOffset':'float',
                  
                  
 }
@@ -1161,6 +1162,8 @@ def prerig(self):
                                                                   plugShape= 'directShape',
                                                                   attachToSurf=True,
                                                                   orientToDriver=True,
+                                                                  offsetAttr='conDirectOffset',
+                                                                  
                                                                   nameDict= d_use,**d_baseHandeKWS)                    
                     
                     
@@ -1253,6 +1256,8 @@ def prerig(self):
                                                                       plugShape= 'directShape',
                                                                       attachToSurf=True,
                                                                       orientToDriver=True,
+                                                                      offsetAttr='conDirectOffset',
+                                                                      
                                                                       nameDict= d_use,**d_baseHandeKWS)                        
                         
                         _ml_jointShapes.append(mShape)

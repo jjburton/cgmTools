@@ -156,6 +156,7 @@ l_attrsStandard = ['side',
                    'visLabels',
                    'jointRadius',
                    'controlOffset',
+                   'conDirectOffset',
                    'proxyDirect',
                    'moduleTarget',
                    'scaleSetup']
@@ -1551,7 +1552,7 @@ def prerig(self):
                     """
                     mCrv = md_dCurves[tag+'_Peak']
                     #SURF.get_surfaceSplitCurves()
-                    _l_split =  CURVES.getUSplitList(mCrv.mNode,self.numConLips + 2,rebuild=1)
+                    _l_split =  CURVES.getUSplitList(mCrv.mNode,self.numConLids + 2,rebuild=1)
                     
                     d_split = MATH.get_evenSplitDict(_l_split)
                     d_anchorDat[tag] = {}
@@ -1563,7 +1564,7 @@ def prerig(self):
                     """
                 
                 
-                #Lip Anchors....
+                #Lid Anchors....
                 _d = {'cgmName':'lid',
                       'cgmType':'preAnchor'}
                 
@@ -1636,14 +1637,13 @@ def prerig(self):
                 
                 #...get my anchors in lists...-----------------------------------------------------------------
                 ml_uprLeft = copy.copy(md_anchors['upr']['inner']['ml'])
-                ml_uprLeft.reverse()
                 ml_uprRight = md_anchors['upr']['outer']['ml']
-                
                 ml_lwrLeft = copy.copy(md_anchors['lwr']['inner']['ml'])
-                ml_lwrLeft.reverse()
-                
                 ml_lwrRight = md_anchors['lwr']['outer']['ml']
                 
+                ml_uprLeft.reverse()
+                ml_lwrLeft.reverse()
+                    
                 md_anchorsLists = {}
                 
                 if md_anchors['upr'].get('center'):
@@ -1657,6 +1657,10 @@ def prerig(self):
                     md_anchorsLists['upr'] = ml_uprRight + ml_uprLeft
                     md_anchorsLists['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrLeft + ml_uprLeft[-1:]
                 
+                #if _side == 'left':
+                md_anchorsLists['upr'].reverse()
+                md_anchorsLists['lwr'].reverse()
+                    
                 #...anchor | aim ----------------------------------------------------------------------------
                 log.debug(cgmGEN.logString_msg('anchor | aim'))
                 
@@ -1719,11 +1723,15 @@ def prerig(self):
                     d_curveCreation[section+'Driver'] = {'ml_handles': sectionDat,
                                                          'rebuild':0}
                     
+                    #for i,mObj in enumerate(sectionDat):
+                    #    LOC.create(position=mObj.p_position,name=section+'Driver'+'_'+str(i))
+                    
                 md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
                 md_resCurves = md_res['md_curves']
                 ml_resCurves = md_res['ml_curves']
                 
-                #Make our Lip handles...-------------------------------------------------------------------------
+                
+                #Make our Lid handles...-------------------------------------------------------------------------
                 log.debug(cgmGEN.logString_sub('Handles'))
                 md_prerigDags = {}
                 md_jointHelpers = {}
@@ -1773,7 +1781,7 @@ def prerig(self):
                                                                           mDriver=mAnchor,
                                                                           size= self.lidDepth,
                                                                           
-                                                                          mSurface=mLidSurf,#mLipLoft,
+                                                                          mSurface=mLidSurf,#mLidLoft,
                                                                           #mAttachCrv=mDriverCrv,
                                                                           mainShape=_mainShape,
                                                                           jointShape='locatorForm',
@@ -1823,7 +1831,7 @@ def prerig(self):
                                                                               None,
                                                                               _side,
                                                                               mDriver=mAnchor,
-                                                                              mSurface=mLidSurf,#mLipLoft,
+                                                                              mSurface=mLidSurf,#mLidLoft,
                                                                               #mAttachCrv=mDriverCrv,
                                                                               mainShape=_shapeUse,
                                                                               jointShape='locatorForm',
@@ -1904,6 +1912,9 @@ def prerig(self):
                     l_driverPos =  CURVES.getUSplitList(mDriverCrv.mNode,_count + 2,rebuild=0)
                     l_drivenPos = CURVES.getUSplitList(mDrivenCrv.mNode,_count + 2,rebuild=0)
                     
+                    l_drivenPos.reverse()
+                    l_driverPos.reverse()
+                    
                     d_split_driven = MATH.get_evenSplitDict(l_drivenPos)
                     d_split_driver = MATH.get_evenSplitDict(l_driverPos)
                     
@@ -1950,6 +1961,9 @@ def prerig(self):
                         if side == 'start':side='inner'
                         elif side =='end':side = 'outer'
                         
+                        #if side == 'start':side='inner'
+                        #elif side =='end':side = 'outer'                        
+                        
                         _ml_jointShapes = []
                         _ml_jointHelpers = []
                         _ml_lidDrivers = []
@@ -1958,7 +1972,7 @@ def prerig(self):
                         md_lidDrivers[section][side] = []
                         
                         l_bridge = md_lidJoints[section][side]
-                        l_tags = ['{0}Lip'.format(section)]
+                        l_tags = ['{0}Lid'.format(section)]
                         
                         b_more = False
                         if len(sideDat) > 2:
@@ -2006,18 +2020,19 @@ def prerig(self):
                                                                           p_driven,tag,None,_side,
                                                                           mDriver=mDriver,
                                                                           
-                                                                          mSurface=mLidSurf,#mLipLoft,
-                                                                          #mAttachCrv = mDrivenCrv,
+                                                                          mSurface=mLidSurf,#mLidLoft,
+                                                                          mAttachCrv = mDrivenCrv,
                                                                           mainShape='semiSphere',
                                                                           #jointShape='sphere',
                                                                           size= _sizeDirect,
                                                                           mode='joint',
                                                                           depthAttr='lidJointDepth',
+                                                                          offsetAttr='conDirectOffset',
                                                                           controlType='sub',
                                                                           plugDag= 'jointHelper',
                                                                           plugShape= 'directShape',
                                                                           attachToSurf=True,
-                                                                          orientToDriver=True,
+                                                                          #orientToDriver=True,
                                                                           nameDict= _dUse,**d_baseHandeKWS)
                             
                             #md_mirrorDat[side].append(mShape)
@@ -2048,14 +2063,14 @@ def prerig(self):
                             
                             if side == 'outer':
                                 if _side == 'right':
-                                    _aim = [-1,0,0]
-                                else:
-                                    _aim = [1,0,0]                            
-                            else:
-                                if _side == 'right':
                                     _aim = [1,0,0]
                                 else:
+                                    _aim = [-1,0,0]                            
+                            else:
+                                if _side == 'right':
                                     _aim = [-1,0,0]
+                                else:
+                                    _aim = [1,0,0]
                                     
                             for i,mDriver in enumerate(sideDat):
                                 _mode = None
@@ -2291,10 +2306,10 @@ def skeleton_build(self, forceNew = True):
                 ml_joints.append(mJoint)
                 mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))
         elif _lidBuild == "full":
-            _d_lip = {'cgmName':'lid'}
+            _d_Lid = {'cgmName':'lid'}
             for d in 'upr','lwr':
                 log.debug("|{0}| >>  lid {1}...".format(_str_func,d)+ '-'*20)
-                d_dir = copy.copy(_d_lip)
+                d_dir = copy.copy(_d_Lid)
                 d_dir['cgmPosition'] = d
                 
     
@@ -2726,7 +2741,7 @@ def rig_skeleton(self):
                     _d[_k] = {}
 
             for side in ['inner','center','outer']:
-                #key = 'lip'+d.capitalize()+side.capitalize()
+                #key = 'Lid'+d.capitalize()+side.capitalize()
                 key = d+'Lid'+STR.capFirst(side)
                 ml = []
                 ml_hide = []
@@ -2849,7 +2864,7 @@ def rig_shapes(self):
                 CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,True)
                 
             mSettings.doStore('mClass','cgmObject')
-            mSettings.doStore('cgmName','eyeRoot')
+            mSettings.doStore('cgmName','{0}_eyeRoot'.format(self.d_module['partName']))
             mSettings.doName()
                 
             mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
@@ -3166,7 +3181,7 @@ def rig_controls(self):
                         for i,mHandle in enumerate(ml):
                             log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                             _d = MODULECONTROL.register(mHandle,
-                                                        mirrorSide= side,
+                                                        mirrorSide= self.d_module['mirrorDirection'],
                                                         mirrorAxis="translateX,rotateY,rotateZ",
                                                         makeAimable = False)
                             
@@ -3195,7 +3210,7 @@ def rig_controls(self):
                             
                             _d = MODULECONTROL.register(mHandle,
                                                         typeModifier='direct',
-                                                        mirrorSide= _side,
+                                           mirrorSide= self.d_module['mirrorDirection'],
                                                         mirrorAxis="translateX,rotateY,rotateZ",
                                                         makeAimable = False)                            
                             mObj = _d['mObj']
@@ -3426,7 +3441,7 @@ def rig_frame(self):
                 mHandle.masterGroup.p_parent = mRootParent#mFollowParent
                 _resAttach = RIGCONSTRAINT.attach_toShape(mHandle.masterGroup.mNode,
                                                           mControlSurface.mNode,
-                                                          'conParent')
+                                                          'conPoint')
                 TRANS.parent_set(_resAttach[0],_str_rigNull)
                 
                 
@@ -3447,6 +3462,7 @@ def rig_frame(self):
                         'lwr':{'inner':self.md_handles['lidLwr']['inner'],
                                'outer':self.md_handles['lidLwr']['outer']}}
             
+            """
             for tag,sectionDat in d_lidAim.iteritems():
                 for side,sideDat in sectionDat.iteritems():
 
@@ -3477,7 +3493,7 @@ def rig_frame(self):
                                          upVector = [0,1,0],
                                          worldUpVector = [0,1,0],
                                          worldUpObject = mJnt.masterGroup.mNode,
-                                         worldUpType = 'objectRotation' )
+                                         worldUpType = 'objectRotation' )"""
                 
         #Lid Corner influences ------------------------------------------------------
         log.debug("|{0}| >> lid corner influences...".format(_str_func)+ '-'*20)
@@ -3718,7 +3734,7 @@ def create_clamBlinkCurves(self, ml_uprSkinJoints = None, ml_lwrSkinJoints = Non
     
     
     for mCrv in ml_curves:
-        if mCrv in [ md['upr']['mDriver'], md['lwr']['mDriver']]:
+        if mCrv in [ md['upr']['mDriver'], md['lwr']['mDriver'],mSmartBlink]:
             mCrv.p_parent = mRigNull
         else:
             mCrv.p_parent = mSettings
@@ -3954,6 +3970,8 @@ def rig_lidSetup(self):
                 mHandle.masterGroup.p_parent = mSettings
         else:
             log.debug("|{0}| >>  full ... ".format(_str_func))
+            
+            mRigRoot = mRigNull.getMessageAsMeta('rigRoot')
 
             mdD = self.md_driverJoints
         
@@ -3967,8 +3985,8 @@ def rig_lidSetup(self):
             self.d_lidData['upr'] = {'mHandle' : mUprCenter}
             self.d_lidData['lwr'] = {'mHandle' : mLwrCenter}
             
-            ml_uprLipInfluences = [mRightCorner.uprInfluence] + self.md_handles['lidUpr']['outer'][1:] + self.md_handles['lidUpr']['center']+ self.md_handles['lidUpr']['inner'][1:] + [mLeftCorner.uprInfluence]
-            ml_lwrLipInfluences = [mRightCorner.lwrInfluence] + self.md_handles['lidLwr']['outer'] + self.md_handles['lidLwr']['center']+ self.md_handles['lidLwr']['inner'] + [mLeftCorner.lwrInfluence]
+            ml_uprLidInfluences = [mRightCorner.uprInfluence] + self.md_handles['lidUpr']['outer'][1:] + self.md_handles['lidUpr']['center']+ self.md_handles['lidUpr']['inner'][1:] + [mLeftCorner.uprInfluence]
+            ml_lwrLidInfluences = [mRightCorner.lwrInfluence] + self.md_handles['lidLwr']['outer'] + self.md_handles['lidLwr']['center']+ self.md_handles['lidLwr']['inner'] + [mLeftCorner.lwrInfluence]
         
             log.debug("|{0}| >> sort driven".format(_str_func))
             dUpr =  self.md_rigJoints['lidUpr']
@@ -4017,10 +4035,12 @@ def rig_lidSetup(self):
                 d_plug_hugs[k]['off'] = mPlug_hugOff
             
             
-            create_clamBlinkCurves(self, ml_uprSkinJoints = ml_uprLipInfluences,
-                                   ml_lwrSkinJoints = ml_lwrLipInfluences)
+            create_clamBlinkCurves(self, ml_uprSkinJoints = ml_uprLidInfluences,
+                                   ml_lwrSkinJoints = ml_lwrLidInfluences)
 
             for mJoint in ml_uprRig:
+
+                
                 mTarget = mJoint.doLoc()
                 mDriver = mJoint.driverJoint
                 mLidRoot = mDriver.getMessageAsMeta('lidRoot')
@@ -4052,7 +4072,7 @@ def rig_lidSetup(self):
                                  aimVector = self.d_orientation['vectorAim'],
                                  upVector = self.d_orientation['vectorUp'],
                                  worldUpVector = self.d_orientation['vectorUp'],
-                                 worldUpObject = mUprCenter.mNode,
+                                 worldUpObject = mRigRoot.mNode,#mUprCenter.mNode,
                                  worldUpType = 'objectRotation' )
                 
                 mLidRoot.p_parent = mSettings
@@ -4076,6 +4096,7 @@ def rig_lidSetup(self):
                 
                 
             for mJoint in ml_lwrRig:
+             
                 mTarget = mJoint.doLoc()
                 mDriver = mJoint.driverJoint
                 mLidRoot = mDriver.getMessageAsMeta('lidRoot')
@@ -4105,7 +4126,7 @@ def rig_lidSetup(self):
                                  aimVector = self.d_orientation['vectorAim'],
                                  upVector = self.d_orientation['vectorUp'],
                                  worldUpVector = self.d_orientation['vectorUp'],
-                                 worldUpObject = mLwrCenter.mNode,
+                                 worldUpObject = mRigRoot.mNode,#mLwrCenter.mNode,
                                  worldUpType = 'objectRotation' )                
                 
                 
@@ -4137,8 +4158,8 @@ def rig_lidSetup(self):
             mRightCorner = self.md_handles['lidUpr']['outer'][0]
             mUprCenter = self.md_handles['lidUpr']['center'][0]
             mLwrCenter = self.md_handles['lidLwr']['center'][0]        
-            ml_uprLipInfluences = [mRightCorner.uprInfluence] + self.md_handles['lidUpr']['outer'][1:] + self.md_handles['lidUpr']['center']+ self.md_handles['lidUpr']['inner'][1:] + [mLeftCorner.uprInfluence]
-            ml_lwrLipInfluences = [mRightCorner.lwrInfluence] + self.md_handles['lidLwr']['inner'] + self.md_handles['lidLwr']['center']+ self.md_handles['lidLwr']['inner'] + [mLeftCorner.lwrInfluence]
+            ml_uprLidInfluences = [mRightCorner.uprInfluence] + self.md_handles['lidUpr']['outer'][1:] + self.md_handles['lidUpr']['center']+ self.md_handles['lidUpr']['inner'][1:] + [mLeftCorner.uprInfluence]
+            ml_lwrLidInfluences = [mRightCorner.lwrInfluence] + self.md_handles['lidLwr']['inner'] + self.md_handles['lidLwr']['center']+ self.md_handles['lidLwr']['inner'] + [mLeftCorner.lwrInfluence]
             
             log.debug("|{0}| >> sort driven".format(_str_func))
             dUpr =  self.md_rigJoints['lidUpr']
@@ -4158,8 +4179,8 @@ def rig_lidSetup(self):
             
             d_lids = {'driven1':ml_uprRig,
                       'driven2':ml_lwrRig,
-                      'influences1':ml_uprLipInfluences,
-                      'influences2':ml_lwrLipInfluences,
+                      'influences1':ml_uprLidInfluences,
+                      'influences2':ml_lwrLidInfluences,
                       'baseName':'lidRibbons',
                       'settingsControl':mSettings,
                       'baseName1' :"uprLid",

@@ -164,6 +164,8 @@ l_attrsStandard = ['side',
                    'loftSplit',
                    'scaleSetup',
                    'visLabels',
+                   'controlOffset',
+                   'conDirectOffset',
                    'moduleTarget',]
 
 d_attrsToMake = {'faceType':'default:muzzle:beak',
@@ -223,7 +225,8 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  'jointDepthLip':'float',
                  
                  'jointRadius':'float',                 
-                 'controlOffset':'float',                 
+
+                 
                  }
 
 d_defaultSettings = {'version':__version__,
@@ -261,6 +264,7 @@ d_defaultSettings = {'version':__version__,
                      'jointDepthLip':-.41,
                      
                      'controlOffset':1,
+                     'conDirectOffset':0,
                      'jointRadius':1.0,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
@@ -3716,6 +3720,7 @@ def prerig(self):
                                                                                 _tag,
                                                                                 None,
                                                                                 'center',
+                                                                                offsetAttr = 'conDirectOffset',
                                                                                 **d_handleKWS)
                 #ml_handles.extend([mAnchor,mShape,mDag])                
                 #md_handles[_tag] = mShape
@@ -3828,6 +3833,7 @@ def prerig(self):
                                                                                     _tag,
                                                                                     None,
                                                                                     side,
+                                                                                    offsetAttr = 'conDirectOffset',
                                                                                     **d_handleKWS)                        
 
         if self.noseSetup:# Nose setup ============================================================
@@ -3935,6 +3941,8 @@ def prerig(self):
                                                                                         _tag,
                                                                                         None,
                                                                                         side,
+                                                                                        offsetAttr = 'conDirectOffset',
+                                                                                        
                                                                                         **d_handleKWS)
                         
                         BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['noseBaseJoint'],
@@ -3987,6 +3995,8 @@ def prerig(self):
                                                                                     _tag,
                                                                                     None,
                                                                                     side,
+                                                                                    offsetAttr = 'conDirectOffset',
+                                                                                    
                                                                                     **d_handleKWS)                    
 
                     BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['jawJoint'],
@@ -4041,6 +4051,8 @@ def prerig(self):
                                                                                     _tag,
                                                                                     None,
                                                                                     side,
+                                                                                    offsetAttr = 'conDirectOffset',
+                                                                                    
                                                                                     **d_handleKWS)                    
 
                     BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['jawJoint'],
@@ -4097,6 +4109,8 @@ def prerig(self):
                                                                                     _tag,
                                                                                     None,
                                                                                     side,
+                                                                                    offsetAttr = 'conDirectOffset',
+                                                                                    
                                                                                     **d_handleKWS)                    
 
                     BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['jawJoint'],
@@ -4604,6 +4618,8 @@ def prerig(self):
                                                                       controlType='sub',
                                                                       plugDag= 'jointHelper',
                                                                       plugShape= 'directShape',
+                                                                      offsetAttr = 'conDirectOffset',
+                                                                      
                                                                       attachToSurf=True,
                                                                       orientToDriver=True,
                                                                       nameDict= _dUse,**d_baseHandeKWS)
@@ -5147,8 +5163,6 @@ def rig_prechecks(self):
     if str_chinSetup not in ['none','single']:
         self.l_precheckErrors.append("Chin setup not completed: {0}".format(str_chinSetup))
                 
-    if mBlock.scaleSetup:
-        self.l_precheckErrors.append("Scale setup not complete")
 
 @cgmGEN.Timer
 def rig_dataBuffer(self):
@@ -5951,9 +5965,7 @@ def rig_frame(self):
             log.debug("|{0}| >> tongue setup...".format(_str_func))
             mTongue.masterGroup.p_parent = mJaw
             
-            
-            
-            
+
         if self.str_lipSetup:
             log.debug("|{0}| >> lip setup...".format(_str_func)+ '-'*40)
             
@@ -6360,14 +6372,15 @@ def rig_frame(self):
                 
                 mTrack = mdD[k].masterGroup.doCreateAt(setClass=1)
                 mTrack.p_parent = mFollowParent
+                mTrack.rename("{0}_baseTrack".format(mdD[k].p_nameBase))
                 _c = mc.parentConstraint([mFollowBase.mNode, mTrack.mNode],
                                     mdD[k].masterGroup.mNode,maintainOffset=True)[0]
                 
                 targetWeights = mc.parentConstraint(_c,q=True,
                                                     weightAliasList=True,
                                                     maintainOffset=True)
-                ATTR.set(_c,targetWeights[0],.1)
-                ATTR.set(_c,targetWeights[1],.9)
+                ATTR.set(_c,targetWeights[0],.8)
+                ATTR.set(_c,targetWeights[1],.2)
                 
         if self.str_smileSetup:
             log.debug("|{0}| >> smile setup...".format(_str_func)+ '-'*40)
@@ -6381,12 +6394,17 @@ def rig_frame(self):
                 
                 mTrack = mdD[k].masterGroup.doCreateAt(setClass=1)
                 mTrack.p_parent = mFollowParent
+                mTrack.rename("{0}_baseTrack".format(mdD[k].p_nameBase))
                 
                 l_targets = []
                 l_targets.append(self.md_handles['lipUpr'][s.lower()][0].mNode)
                 
-                for k2 in ['nostril','cheek']:
-                    _k2 = k2+s
+                for k2 in ['nostril','cheek','noseBase','sneer','cheekUpr']:
+                    if k2 not in ['noseBase']:
+                        _k2 = k2+s
+                    else:
+                        _k2 = k2
+                        
                     if mdD.get(_k2):
                         l_targets.append(mdD.get(_k2).mNode)
                 _c = mc.pointConstraint(l_targets,
@@ -6395,7 +6413,7 @@ def rig_frame(self):
                 targetWeights = mc.pointConstraint(_c,q=True,
                                                     weightAliasList=True,
                                                     maintainOffset=True)
-                ATTR.set(_c,targetWeights[0],2.0)
+                ATTR.set(_c,targetWeights[0],1.25)
                 #ATTR.set(_c,targetWeights[1],.9)
                 
                 mc.parentConstraint(mTrack.mNode,
@@ -6418,14 +6436,17 @@ def rig_frame(self):
                 targetWeights = mc.parentConstraint(_c,q=True,
                                                     weightAliasList=True,
                                                     maintainOffset=True)
-                ATTR.set(_c,targetWeights[0],.1)
-                ATTR.set(_c,targetWeights[1],.9)
+                ATTR.set(_c,targetWeights[0],.9)
+                ATTR.set(_c,targetWeights[1],.1)
             
         if self.str_noseSetup:
             log.debug("|{0}| >> nose setup...".format(_str_func)+ '-'*40)
             mdD['noseBase'].masterGroup.p_parent = mDeformNull
             
-            mdD['noseBase'].addAttr('followMuzzle',value = .5, attrType='float',minValue = 0, maxValue = 1.0)
+            mdD['noseBase'].addAttr('followMuzzle',value = .9, attrType='float',
+                                    minValue = 0, maxValue = 1.0, defaultValue = .9,
+                                    keyable = False)
+            
             mTrack = mdD['noseBase'].masterGroup.doCreateAt(setClass=1)
             mTrack.p_parent = mFollowParent
             #_c = mc.parentConstraint([mFollowBase.mNode, mTrack.mNode],

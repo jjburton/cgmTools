@@ -4297,7 +4297,9 @@ def uiCB_contextualActionBAK(self, **kws):
             _mirrorQuery = True
             
 
-        res_context = get_context(self,**kws)
+        #res_context = get_context(self,**kws)
+        res_context = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
+        
         #pprint.pprint(self.mDat.d_context)
         #return        
         if not res_context:
@@ -4554,7 +4556,7 @@ def uiCB_contextSetValue(self, attr=None,value=None, mode = None,**kws):
     _str_func='cgmUICB_settingsSet'
     log.debug("|{0}| >>  context: {1} | attr: {2} | value: {3} | mode: {4}".format(_str_func,mode,attr,value,mode)+ '-'*80)
     
-    get_context(self,**kws)
+    self.mDat.context_get(**kws)
     
     if mode == 'moduleSettings':
         if not self.mDat.d_context['mModules']:

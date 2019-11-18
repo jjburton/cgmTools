@@ -262,14 +262,18 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
     
     
         #Mirror Setup ============================================================================================
-        if str_mirrorSide is not None or b_makeMirrorable:
+        if str_mirrorSide or b_makeMirrorable:
             for mObj in [mi_control] + ml_spacePivots:
                 mi_control._verifyMirrorable()
                 l_enum = cgmMeta.cgmAttr(mi_control,'mirrorSide').p_enum
+                
                 if str_mirrorSide in l_enum:
                     #log.debug("|{0}| >> Rotate order not set on: {1}".format(_str_func,mi_control.p_nameShort))                  
                     #log.debug("%s >> %s >> found in : %s"%(_str_funcCombined, "mirrorSetup", l_enum))		
                     mi_control.mirrorSide = l_enum.index(str_mirrorSide)
+                else:
+                    log.error("mirrorSide {0} | mControl: {1}".format(str_mirrorSide,mObj))
+                
                 if str_mirrorAxis:
                     mi_control.mirrorAxis = str_mirrorAxis
             for mObj in mi_control.msgList_get('spacePivots'):

@@ -1882,6 +1882,7 @@ def create_face_handle(self, pos, tag, k, side,
                        mStateNull = None,
                        mNoTransformNull = None,
                        depthAttr = 'jointDepth',
+                       offsetAttr = 'controlOffset',
                        mDriver = None,
                        mAttachCrv = None,
                        mode = None,
@@ -1889,6 +1890,7 @@ def create_face_handle(self, pos, tag, k, side,
                        plugDag = 'dagHelper',
                        attachToSurf = False,
                        orientToDriver = False,
+                       orientToNormal = False,
                        aimGroup = 0,nameDict = None):
     _str_func = 'create_face_handle'
     #Main handle ==================================================================================
@@ -1933,7 +1935,7 @@ def create_face_handle(self, pos, tag, k, side,
     color(self, mHandle.mNode,side = side, controlType=controlType)
     mStateNull.connectChildNode(mHandle, _key+STR.capFirst(plugShape),'block')
     
-    if mSurface and not orientToDriver:
+    if mSurface and not orientToDriver and orientToNormal:
         mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
                                 aimVector = [0,0,1], upVector = [0,1,0],
                                 worldUpObject = self.mNode,
@@ -2049,7 +2051,7 @@ def create_face_handle(self, pos, tag, k, side,
                 
                 mPush.p_parent = mTrack
                 mHandle.p_parent = mPush
-                ATTR.connect('{0}.controlOffset'.format(self.mNode), "{0}.tz".format(mPush.mNode))
+                ATTR.connect('{0}.{1}'.format(self.mNode,offsetAttr), "{0}.tz".format(mPush.mNode))
             
             else:
                 mHandle.p_parent = mTrack
@@ -2076,7 +2078,7 @@ def create_face_handle(self, pos, tag, k, side,
                         
                         mPush.p_parent = mSurfaceTrack
                         mHandle.p_parent = mPush
-                        ATTR.connect('{0}.controlOffset'.format(self.mNode), "{0}.tz".format(mPush.mNode))
+                        ATTR.connect('{0}.{1}'.format(self.mNode,offsetAttr), "{0}.tz".format(mPush.mNode))
                         
                         if orientToDriver:
                             mc.orientConstraint(mDriver.mNode, mSurfaceTrack.mNode,maintainOffset = False)
@@ -2084,8 +2086,20 @@ def create_face_handle(self, pos, tag, k, side,
                     mHandle.resetAttrs('translate')
                         
                 else:
-                    mHandle.p_position = mTrack.p_position                    
+                    mHandle.p_position = mTrack.p_position
                     mDagHelper.resetAttrs()
+                    
+                    if mSurface:
+                        mPush = mHandle.doCreateAt(setClass=1)
+                        mPush.rename("{0}_pushDirect".format(mHandle.p_nameBase))
+                        
+                        mPush.p_parent = mTrack
+                        mHandle.p_parent = mPush
+                        ATTR.connect('{0}.{1}'.format(self.mNode,offsetAttr), "{0}.tz".format(mPush.mNode))
+                        
+                        #if orientToDriver:
+                        #    mc.orientConstraint(mDriver.mNode, mSurfaceTrack.mNode,maintainOffset = False)                    
+                    
             ATTR.connect('{0}.{1}'.format(self.mNode,depthAttr), "{0}.tz".format(mDepth.mNode))
             
             if orientToDriver:
@@ -2122,6 +2136,8 @@ def create_face_anchorHandleCombo(self, pos, tag, k, side,
                                 mAttachCrv = None,
                                 mode = None,
                                 depthAttr = 'jointDepth',
+                                offsetAttr = 'controlOffset',
+                                
                                 plugShape = 'shapeHelper',
                                 plugDag = 'dagHelper',
                                 attachToSurf = False,
@@ -2153,6 +2169,7 @@ def create_face_anchorHandleCombo(self, pos, tag, k, side,
                                       plugDag= plugDag,
                                       plugShape= plugShape,
                                       depthAttr = depthAttr,
+                                      offsetAttr = offsetAttr,
                                       attachToSurf=attachToSurf,
                                       orientToDriver = orientToDriver,
                                       nameDict= d_use,
