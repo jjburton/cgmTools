@@ -10,6 +10,8 @@ log.setLevel(logging.INFO)
 #=========================================================================
 
 import cgm.core.cgm_General as cgmGEN
+import webbrowser
+
 def red9( *a ):
     import Red9
     reload(Red9)
@@ -89,8 +91,9 @@ def ngskin():
         from ngSkinTools.ui.mainwindow import MainWindow
         MainWindow.open()    
     except Exception,err:
-        log.warning("Failed to load. Go get it. | {0}".format(err))
         webbrowser.open("http://www.ngskintools.com/")
+        raise ValueError,"Failed to load. Go get it. | {0}".format(err)
+
 
 def mrsShots():
     try:
