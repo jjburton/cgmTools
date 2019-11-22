@@ -43,6 +43,8 @@ import cgm.core.lib.math_utils as MATH
 from Red9.core import Red9_AnimationUtils as r9Anim
 import cgm.core.mrs.lib.general_utils as BLOCKGEN
 import cgm.core.classes.GuiFactory as cgmUI
+import cgm.core.lib.constraint_utils as CONSTRAINT
+
 mUI = cgmUI.mUI
 reload(cgmGEN)
 """
@@ -381,9 +383,18 @@ class dat(object):
             #Controls...
             ml_controls = mModule.UTILS.controls_get(mModule)#rigNull.moduleSet.getMetaList()
             _m['mControls'] = ml_controls
-            _m['mCore'] = ml_controls
             try:_m['mCore'] = mModule.mControlsCore
-            except:pass
+            except:_m['mCore'] = ml_controls
+            
+            for mObj in ml_controls:
+                if CONSTRAINT.get_constraintsTo(mObj.mNode):
+                    try:
+                        _m['mControls'].remove(mObj)
+                        log.warning("Constrained: {0}".format(mObj))
+                        _m['mCore'].remove(mObj)
+                    except:pass
+                        
+
                 
             """
             l_controls = []
@@ -485,8 +496,6 @@ class dat(object):
             for k in _keys:
                 log.info("{0} : {1}".format(k,d_timeContext[k]))
             log.info(cgmGEN._str_subLine)
-            
-        
         pprint.pprint(d_timeContext['res'])
 
             
@@ -524,6 +533,12 @@ class dat(object):
         _d['mMirror'] = mObj.getMessageAsMeta('mirrorControl')
         
         self.dat[mObj] = _d
+        
+        if CONSTRAINT.get_constraintsTo(mObj.mNode):
+            try:
+                self.dat['mControls'].remove(mObj)
+                log.warning("Constrained: {0}".format(mObj))
+            except:pass        
         return _d
 
     #@cgmGEN.Timer
@@ -1025,7 +1040,13 @@ class dat(object):
         log.debug(cgmGEN.logString_sub("second pass context..."))
         #pprint.pprint(self.d_context)            """
         
-        log.info(self)
+        #log.info(self)
+        for mObj in self.d_context['mControls']:
+            if CONSTRAINT.get_constraintsTo(mObj.mNode):
+                try:
+                    self.d_context['mControls'].remove(mObj)
+                    log.warning("Constrained: {0}".format(mObj))
+                except:pass        
         return self.d_context['mControls']
     
     #@cgmGEN.Timer

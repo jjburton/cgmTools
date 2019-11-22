@@ -766,7 +766,12 @@ d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'direct':['rigJoints']}
 
 #@cgmGEN.Timer
-def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False, rewire = False,core=False):
+def controls_getDat(self, keys = None,
+                    ignore = [],
+                    report = False,
+                    listOnly = False,
+                    rewire = False,
+                    core=False):
     """
     Function to find all the control data for comparison for mirroing or other reasons
     

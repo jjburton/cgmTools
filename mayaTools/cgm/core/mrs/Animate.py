@@ -58,6 +58,7 @@ import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.search_utils as SEARCH
+import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS

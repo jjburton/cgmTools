@@ -2121,7 +2121,7 @@ def groupToConditionNodeSet(group,chooseAttr = 'switcher', controlObject = None,
     children = search.returnChildrenObjects(group) #Check for children
 
     if not children: #If none, break out
-        guiFactory("'%s' has no children! Aborted."%group)
+        log.error("'%s' has no children! Aborted."%group)
         return False
     if controlObject is None:
         controlObject = group

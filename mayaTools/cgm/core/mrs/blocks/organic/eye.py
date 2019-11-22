@@ -97,6 +97,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_controls',
                        'rig_frame',
                        'rig_lidSetup',
+                       'rig_highlightSetup',
                        'rig_cleanUp']
 
 
@@ -183,6 +184,8 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'numLidSplit_u':'int',
                  'numLidSplit_v':'int',
                  'lidHandleOffset':'float',
+                 'highlightSetup':'none:simple:sdk',
+                 
                  
                  
 }
@@ -2273,8 +2276,23 @@ def skeleton_build(self, forceNew = True):
         mPrerigNull.connectChildNode(mEyeOrbJoint.mNode,'eyeOrbJoint')
         mRoot = mEyeOrbJoint
 
-    if len(ml_joints) > 1:
-        ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5
+    #if len(ml_joints) > 1:
+    #    ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5
+        
+    #>> Highlight ===============================================================================
+    if self.highlightSetup:
+        _highlightSetup = self.getEnumValueString('highlightSetup')
+        log.debug("|{0}| >> highlight: {1}.".format(_str_func,_highlightSetup))
+        
+        _d_hl = copy.copy(_d_base)
+        _d_hl['cgmNameModifier'] = 'highlight'        
+        
+        mHighlightJoint = mEyeJoint.doDuplicate()
+        name(mHighlightJoint,_d_hl)
+        
+        mHighlightJoint.p_parent = mRoot
+        mPrerigNull.connectChildNode(mHighlightJoint.mNode,'eyeHighlightJoint')        
+        ml_joints.append(mHighlightJoint)
         
     if self.lidBuild:#=====================================================
         _lidBuild = self.getEnumValueString('lidBuild')
@@ -2347,96 +2365,6 @@ def skeleton_build(self, forceNew = True):
     
 
     
-    
-    
-    #>> Head ===================================================================================
-    log.debug("|{0}| >> Head...".format(_str_func))
-    p = POS.get( ml_prerigHandles[-1].jointHelper.mNode )
-    mHeadHelper = ml_formHandles[0].orientHelper
-    
-    #...create ---------------------------------------------------------------------------
-    mHead_jnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
-    mHead_jnt.parent = False
-    #self.copyAttrTo(_baseNameAttrs[-1],mHead_jnt.mNode,'cgmName',driven='target')
-    
-    #...orient ----------------------------------------------------------------------------
-    #cgmMeta.cgmObject().getAxisVector
-    CORERIG.match_orientation(mHead_jnt.mNode, mHeadHelper.mNode)
-    JOINT.freezeOrientation(mHead_jnt.mNode)
-    
-    #...name ----------------------------------------------------------------------------
-    #mHead_jnt.doName()
-    #mHead_jnt.rename(_l_namesToUse[-1])
-    for k,v in _l_namesToUse[-1].iteritems():
-        mHead_jnt.doStore(k,v)
-    mHead_jnt.doName()
-    
-    if self.neckBuild:#...Neck =====================================================================
-        log.debug("|{0}| >> neckBuild...".format(_str_func))
-        if len(ml_prerigHandles) == 2 and self.neckJoints == 1:
-            log.debug("|{0}| >> Single neck joint...".format(_str_func))
-            p = POS.get( ml_prerigHandles[0].jointHelper.mNode )
-            
-            mBaseHelper = ml_prerigHandles[0].orientHelper
-            
-            #...create ---------------------------------------------------------------------------
-            mNeck_jnt = cgmMeta.cgmObject(mc.joint (p=(p[0],p[1],p[2])))
-            
-            #self.copyAttrTo(_baseNameAttrs[0],mNeck_jnt.mNode,'cgmName',driven='target')
-            
-            #...orient ----------------------------------------------------------------------------
-            #cgmMeta.cgmObject().getAxisVector
-            TRANS.aim_atPoint(mNeck_jnt.mNode,
-                              mHead_jnt.p_position,
-                              'z+', 'y+', 'vector',
-                              vectorUp=mHeadHelper.getAxisVector('z-'))
-            JOINT.freezeOrientation(mNeck_jnt.mNode)
-            
-            #mNeck_jnt.doName()
-            
-            mHead_jnt.p_parent = mNeck_jnt
-            ml_joints.append(mNeck_jnt)
-            
-            #mNeck_jnt.rename(_l_namesToUse[0])
-            for k,v in _l_namesToUse[0].iteritems():
-                mNeck_jnt.doStore(k,v)
-            mNeck_jnt.doName()
-        else:
-            log.debug("|{0}| >> Multiple neck joint...".format(_str_func))
-            
-            _d = self.atBlockUtils('skeleton_getCreateDict', self.neckJoints +1)
-            
-            mOrientHelper = ml_prerigHandles[0].orientHelper
-            
-            ml_joints = JOINT.build_chain(_d['positions'][:-1], parent=True, worldUpAxis= mOrientHelper.getAxisVector('z-'))
-            
-            for i,mJnt in enumerate(ml_joints):
-                #mJnt.rename(_l_namesToUse[i])
-                for k,v in _l_namesToUse[i].iteritems():
-                    mJnt.doStore(k,v)
-                mJnt.doName()                
-            
-            #self.copyAttrTo(_baseNameAttrs[0],ml_joints[0].mNode,'cgmName',driven='target')
-            
-        mHead_jnt.p_parent = ml_joints[-1]
-        ml_joints[0].parent = False
-    else:
-        mHead_jnt.parent = False
-        #mHead_jnt.rename(_l_namesToUse[-1])
-        
-    ml_joints.append(mHead_jnt)
-    
-    for mJnt in ml_joints:
-        mJnt.displayLocalAxis = 1
-        mJnt.radius = _radius
-    if len(ml_joints) > 1:
-        mHead_jnt.radius = ml_joints[-1].radius * 5
-
-    mRigNull.msgList_connect('moduleJoints', ml_joints)
-    self.msgList_connect('moduleJoints', ml_joints)
-    self.atBlockUtils('skeleton_connectToParent')
-    
-    return ml_joints
 
 
 #=============================================================================================================
@@ -2486,6 +2414,10 @@ def rig_dataBuffer(self):
     self.str_lidSetup = False
     if mBlock.lidBuild:
         self.str_lidSetup  = mBlock.getEnumValueString('lidBuild')
+        
+    self.str_highlightSetup = False
+    if mBlock.highlightSetup:
+        self.str_highlightSetup = mBlock.getEnumValueString('highlightSetup')
         
     #Logic checks ========================================================================
     self.b_needEyeOrb = False
@@ -2957,6 +2889,27 @@ def rig_shapes(self):
                 #s.overrideEnabled = 1
                 #s.overrideDisplayType = 2
                 
+        
+        mHighlight = mPrerigNull.getMessageAsMeta('eyeHighlightJoint')
+        if mHighlight:#==============================================================================
+            log.debug("|{0}| >> highlight ...".format(_str_func))
+            mHighlightDirectJoint = mHighlight.getMessageAsMeta('rigJoint')
+            
+            mHighlightShape = cgmMeta.asMeta( CURVES.create_fromName('circle',
+                                                                direction = 'z+',
+                                                                size = mBlock.jointRadius ,
+                                                                absoluteSize=False),'cgmObject',setClass=True)
+            mHighlightShape.doSnapTo(mBlock.mNode)
+            pos = mBlock.getPositionByAxisDistance('z+',
+                                                   self.f_sizeAvg * .25 + mBlock.controlOffset)
+        
+            mHighlightShape.p_position = pos
+            mHandleFactory.color(mHighlightShape.mNode, controlType='sub')
+            CORERIG.shapeParent_in_place(mHighlightDirectJoint.mNode,mHighlightShape.mNode,False)
+            
+            mRigNull.connectChildNode(mHighlightDirectJoint,'controlHighlight','rigNull')#Connect            
+            
+                
         if self.str_lidSetup:#Lid setup =======================================================================
             log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidSetup))
             if self.str_lidSetup == 'clam':
@@ -3223,8 +3176,21 @@ def rig_controls(self):
                                 ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
                                 
-                                    
+        mControlHighlight = mRigNull.getMessageAsMeta('controlHighlight')
+        #mControlHighlight ================================================================================
+        if mControlHighlight:
+            log.debug("|{0}| >> Found highlight : {1}".format(_str_func, mControlHighlight))
             
+            _d = MODULECONTROL.register(mControlHighlight,
+                                        addDynParentGroup = False,
+                                        addSDKGroup=True,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ")
+            
+            mControlHighlight = _d['mObj']
+            ml_controlsAll.append(mControlHighlight)
+            
+        #controlHighlight
         #Close out...
         mHandleFactory = mBlock.asHandleFactory()
         for mCtrl in ml_controlsAll:
@@ -3271,6 +3237,7 @@ def rig_frame(self):
     mBlendJoint = mRigNull.getMessageAsMeta('blendEye')
     mDirect = mRigNull.getMessageAsMeta('directEye')
     mRigRoot = mRigNull.getMessageAsMeta('rigRoot')
+    
     if mRigRoot:
         mRootParent = mRigRoot
     ml_joints = [mJointFK,mJointIK,mBlendJoint,mSettings,mDirect]
@@ -3546,7 +3513,72 @@ def rig_frame(self):
         
     return
 
+@cgmGEN.Timer
+def rig_highlightSetup(self):
+    _short = self.d_block['shortName']
+    _str_func = 'rig_highlightSetup'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
 
+    if not self.str_highlightSetup:
+        log.debug("|{0}| >> No highlight setup...".format(_str_func))
+        return True
+    
+    _short = self.d_block['shortName']    
+    _lidSetup = self.str_lidSetup
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    mSettings = mRigNull.settings
+    mRootParent = self.mConstrainNull
+    mModule = self.mModule
+    _jointOrientation = self.d_orientation['str']
+    _side = mBlock.atUtils('get_side')
+    
+    mRigRoot = mRigNull.getMessageAsMeta('rigRoot')
+    mHighLight = mRigNull.getMessageAsMeta('controlHighlight')
+    mControlFK = mRigNull.getMessageAsMeta('fkEye')
+    mBlendJoint = mRigNull.getMessageAsMeta('blendEye')
+    
+    mHighLight.masterGroup.p_parent = mRigRoot
+    
+    
+    mPlug_highlight = cgmMeta.cgmAttr(mSettings,"highlight",attrType='bool',value = True, keyable=True,hidden=False)
+    mPlug_highlight.doConnectOut('{0}.scale'.format(mHighLight.masterGroup.mNode))
+    
+
+    if self.str_highlightSetup == 'sdk':
+        log.debug("|{0}| >> sdk highlight...".format(_str_func))
+        _d_toDo = {'hl_xFollow':.25,
+                   'hl_xOffset':-15,
+                   'hl_yFollow':.15,
+                   'hl_yOffset':10}
+        
+        for k,v in _d_toDo.iteritems():
+            cgmMeta.cgmAttr(mHighLight,k,attrType = 'float', value = v,
+                            hidden = False,keyable=False)
+            
+        if mBlendJoint:
+            mBlend = mBlendJoint
+        else:
+            mBlend = mControlFK
+            
+        mSDK = mHighLight.sdkGroup
+        
+        for k in 'x','y':
+            mPlug_mult = cgmMeta.cgmAttr(mHighLight,"res_hlFollowMult",attrType='float',keyable=False,hidden=False)
+            _arg1 = "{0} = {1}.rotate{2} * {3}.hl_{4}Follow".format(mPlug_mult.p_combinedShortName,
+                                                                    mBlend.mNode,
+                                                                    k.upper(),
+                                                                    mHighLight.mNode,
+                                                                    k)
+            _arg2 = "{0}.r{3} = {1} + {2}.hl_{3}Offset".format(mSDK.mNode,
+                                                               mPlug_mult.p_combinedShortName,
+                                                               mHighLight.mNode,
+                                                               k)
+            
+            for _arg in _arg1,_arg2:
+                NODEFACTORY.argsToNodes(_arg).doBuild()    
+    
     
 
 def create_clamBlinkCurves(self, ml_uprSkinJoints = None, ml_lwrSkinJoints = None):
@@ -3756,9 +3788,17 @@ def create_lidFollow(self):
     mEyeJoint = mRigNull.getMessageAsMeta('blendEye') or mRigNull.getMessageAsMeta('fkEye')
     mSettings = mRigNull.settings
     
-    mPlug_autoFollow = cgmMeta.cgmAttr(mSettings,"autoFollow",attrType = 'float', value = 1.0,
+    #mPlug_autoFollow = cgmMeta.cgmAttr(mSettings,"autoFollow",attrType = 'float', value = 1.0,
+    #                                   hidden = False,keyable=True,maxValue=1.0,minValue=0)	    
+    #self.mPlug_autoFollow = mPlug_autoFollow
+    
+    mPlug_followUpr = cgmMeta.cgmAttr(mSettings,"lidFollowUpr",attrType = 'float', value = 1.0,
                                        hidden = False,keyable=True,maxValue=1.0,minValue=0)	    
-    self.mPlug_autoFollow = mPlug_autoFollow    
+    mPlug_followLwr = cgmMeta.cgmAttr(mSettings,"lidFollowLwr",attrType = 'float', value = 1.0,
+                                       hidden = False,keyable=True,maxValue=1.0,minValue=0)
+    
+    self.mPlug_followUpr = mPlug_followUpr
+    self.mPlug_followLwr = mPlug_followLwr
     
     mZeroLoc = mEyeJoint.doCreateAt()
     mZeroLoc.addAttr('cgmName','zero')
@@ -3863,14 +3903,21 @@ def create_lidFollow(self):
     
     #Contraints --------------------------------------------------------------   
     log.debug("|{0}| >> Contraints...".format(_str_func))
-    d_autolidBlend = NODEFACTORY.createSingleBlendNetwork(mPlug_autoFollow,
-                                                          [mSettings.mNode,'resultAutoFollowOff'],
-                                                          [mSettings.mNode,'resultAutoFollowOn'],
-                                                          hidden = True,keyable=False)    
+    #d_autolidBlend = NODEFACTORY.createSingleBlendNetwork(mPlug_autoFollow,
+    #                                                      [mSettings.mNode,'resultAutoFollowOff'],
+    #                                                      [mSettings.mNode,'resultAutoFollowOn'],
+    #                                                      hidden = True,keyable=False)    
     
+    d_followAttrs = {'upr':mPlug_followUpr,
+                     'lwr':mPlug_followLwr}
     for k in 'upr','lwr':
         log.debug("|{0}| >> {1}...".format(_str_func,k))            
         _d = self.d_lidData[k]
+        d_autolidBlend = NODEFACTORY.createSingleBlendNetwork(d_followAttrs[k],
+                                                              [mSettings.mNode,'resultAutoFollow{0}Off'.format(k.capitalize())],
+                                                              [mSettings.mNode,'resultAutoFollow{0}On'.format(k.capitalize())],
+                                                              hidden = True,keyable=False)           
+        
         #mRoot = _d['mRoot']
         mHandle = _d['mHandle']
         
@@ -4291,6 +4338,15 @@ def rig_cleanUp(self):
             ATTR.set_standardFlags(mCtrl.mNode, ['scale'])
     else:
         log.debug("|{0}| >>  scale setup...".format(_str_func))
+        for mJnt in self.d_joints['ml_moduleJoints']:
+            mJnt.segmentScaleCompensate = 0
+        
+        for mJnt in mSettings.getAllChildren():
+            try:
+                mJnt.segmentScaleCompensate = 0
+            except:
+                pass
+
         
         
     self.mDeformNull.dagLock(True)
@@ -4298,7 +4354,6 @@ def rig_cleanUp(self):
     
     #Lid Defaults ===============================================================
     if self.str_lidSetup:
-        mPlug_autoFollow = self.mPlug_autoFollow
         mPlug_leftLimit = self.mPlug_leftLimit#store
         mPlug_rightLimit = self.mPlug_rightLimit#store
         mPlug_uprUpLimit = self.mPlug_uprUpLimit#store
@@ -4307,7 +4362,8 @@ def rig_cleanUp(self):
         mPlug_lwrDnLimit = self.mPlug_lwrDnLimit#store
         mPlug_lwrDnStart = self.mPlug_lwrDnStart#store		
     
-        _l_defaults = [{"plug":mPlug_autoFollow,'setting':1},
+        _l_defaults = [{"plug":self.mPlug_followLwr,'setting':1},
+                       {"plug":self.mPlug_followUpr,'setting':1},
                        {"plug":mPlug_uprUpLimit,'setting':-30},
                        {"plug":mPlug_lwrDnLimit,'setting':15}]
     
