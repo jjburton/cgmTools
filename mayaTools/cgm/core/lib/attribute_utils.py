@@ -428,7 +428,7 @@ def get(*a, **kws):
                 return mc.getAttr(_combined, **kws)[0]
             else:
                 _res = {}
-                _indices = get_compoundIndices(_combined)
+                _indices = get_compoundIndices(_combined) or []
                 for v in _indices:
                     _plug = mc.listConnections(_combined)		
                     if _plug:_res[v] = _plug
@@ -570,7 +570,7 @@ def set(node, attr = None, value = None, lock = False,**kws):
             return _root,_v
             
         if _aType in ['TdataCompound']:
-            log.info('TdataCompound...')
+            log.debug('TdataCompound...')
             if '[' in _attr:
                 _attrClean, _idx = splitBracket(_attr)
                 #_parent = get_parent(_obj,_attrClean)
