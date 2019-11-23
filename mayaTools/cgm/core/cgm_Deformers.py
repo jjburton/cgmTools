@@ -428,7 +428,7 @@ class cgmBlendShape(cgmMeta.cgmNode):
 
         _targets = self.bsShapes_get()
         _match = []
-        if isTransform(target):
+        if cgmMeta.isTransform(target):
             for shape in mc.listRelatives(target,shapes=True,fullPath=True):
                 if shape in _targets:
                     _match.append(shape)
@@ -456,7 +456,7 @@ class cgmBlendShape(cgmMeta.cgmNode):
 
         _d_targetsData = self.get_targetWeightsDict()
         _match = []
-        if isTransform(target):
+        if cgmMeta.isTransform(target):
             for shape in mc.listRelatives(target,shapes=True,fullPath=True):
                 for i in _d_targetsData.keys():
                     for ii in _d_targetsData[i].keys():

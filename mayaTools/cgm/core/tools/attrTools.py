@@ -16,7 +16,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 import maya.cmds as mc
@@ -145,6 +145,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_context = mUI.MelMenu( l='Context', pmc=self.buildMenu_context)           
         self.uiMenu_valueModes = mUI.MelMenu( l='Values', pmc=self.buildMenu_values)           
         self.uiMenu_keysModes = mUI.MelMenu( l='Keys', pmc=self.buildMenu_keys)           
+        self.uiMenu_utils = mUI.MelMenu( l='Utils', pmc=self.buildMenu_utils)           
         
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)           
         #pass#...don't want em  
@@ -222,7 +223,52 @@ class ui(cgmUI.cgmGUI):
                     label='Report',
                     ann='Print the current values report.',
                     c = cgmGEN.Callback(get_keys, self, self.var_context.value, 'all',True))  
+        
+    def buildMenu_utils( self, *args):
+        self.uiMenu_utils.clear()
+        
+        _en = False
+        if  self.var_context.value == 'selection':
+            _en = True
             
+        mUI.MelMenuItemDiv(parent=self.uiMenu_utils,label = 'Selection')
+        mUI.MelMenuItem(parent=self.uiMenu_utils,
+                    label='Channelbox Bridge',
+                    ann='Copy the selected channelbox attributes to the prime node and drive this node from that',
+                    en = True,
+                    c = cgmGEN.Callback(self.uiFunc_channelBoxBridge))          
+        
+
+        
+        return
+        
+        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_valueModes)
+        #self.uiOptions_menuMode = []		
+        _v = self.var_valuesMode.value
+        
+        _d_annos = {'primeAttr':'First attribute values will be pushed',
+                    'primeAttrPer':'First attribute value per key will be pushed',
+                    'primeNode':'Values from primeNode will be pushed',
+                    'primeNodePer':'Values from primenode per key will be pushed',
+                    'each':'Values from each object will be pushed',
+                    }        
+
+        for i,item in enumerate(['primeAttr','primeAttrPer','primeNode','primeNodePer','each']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=self.uiMenu_valueModes,collection = uiRC,
+                        label=item,
+                        ann=_d_annos.get(item,'Fill out the dict!'),                        
+                        c = cgmGEN.Callback(self.var_valuesMode.setValue,item),                                  
+                        rb = _rb)
+            
+        mUI.MelMenuItemDiv(parent=self.uiMenu_valueModes)
+        mc.menuItem(parent=self.uiMenu_valueModes,collection = uiRC,
+                    label='Report',
+                    ann='Print the current values report.',
+                    c = cgmGEN.Callback(get_values, self, self.var_context.value, True))           
+
     def buildMenu_values( self, *args):
         self.uiMenu_valueModes.clear()
         
@@ -1356,6 +1402,30 @@ class ui(cgmUI.cgmGUI):
         self.uiFunc_updateScrollAttrList()
         return
             
+    def uiFunc_channelBoxBridge(self):
+        _str_func = 'uiFunc_channelBoxBridge'
+        log.debug("|{0}| ...".format(_str_func))
+        
+        _res_context = get_context(self,'selection',True)
+
+        _primeNode =_res_context['primeNode']
+        _l_primeAttrs = _res_context['attrs']
+        _l_targets = _res_context['targets']        
+        _l_channelbox = _res_context['channelbox'] 
+        
+        if not _l_channelbox:
+            raise ValueError,"Must have attributes selected from the channel box"
+        if not len(_l_targets) > 1:
+            raise ValueError,"Must have more than one target"
+        
+        for o in _l_targets[1:]:
+            if o == _primeNode:pass
+            log.debug(cgmGEN.logString_sub(_str_func,o))
+            for a in _l_channelbox:
+                log.debug(cgmGEN.logString_sub(_str_func,a))
+                ATTR.copy_to(o,a,_primeNode,a, outConnections=False,inConnection=True,driven='source')
+                
+        
     def uiFunc_attrManage_fromScrollList(self,**kws):
         def simpleProcess(self, indicies, attrs, func,**kws):
             for i in indicies:
