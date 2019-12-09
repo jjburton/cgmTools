@@ -56,7 +56,7 @@ example:
 	def insert_init(self,*args,**kws):
 		#self.window                      = None
 		
-		self.categoryList                = ["Character", "Environment", "Vehicles", "Props", "Interactables", "Level", "Prototype"]
+		self.categoryList                = ["Character", "Environment", "Vehicles", "Props", "Interactables", "Level", "Prototype", "Cutscene"]
 		self.categoryIndex               = 0
 
 		#self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0)
