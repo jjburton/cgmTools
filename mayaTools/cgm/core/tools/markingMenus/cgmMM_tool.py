@@ -1913,7 +1913,9 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
         else:
             MMCONTEXT.func_process(SNAP.aim, self._l_sel ,selectionMode,'Snap aim', **kws)
     else:
-        kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
+        kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,
+               
+               'scalePivot' : False,
                'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
         
         if snapMode in ['point','closestPoint']:
@@ -1941,7 +1943,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
             else:
                 raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)        
     
-        MMCONTEXT.func_process(SNAP.go, self._l_sel ,selectionMode, 'Snap', **kws)
+        MMCONTEXT.func_process(SNAP.go, self._l_sel ,selectionMode,'Snap',noSelect=False, **kws)
     
     
     return
