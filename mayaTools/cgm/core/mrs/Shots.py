@@ -1,5 +1,6 @@
 import maya.cmds as mc
-import pyunify.lib.node as node
+#import pyunify.lib.node as node
+import cgm.core.cgm_Meta as cgmMeta
 import json
 from functools import partial
 import operator
@@ -116,7 +117,7 @@ example:
 
     def RemoveShot(self, *args):
         self.animDict.pop(args[0], None)
-        self.animListNode.SetAttr("subAnimList", json.dumps(self.animDict))
+        self.animListNode.subAnimList = self.animDict#json.dumps(self.animDict)
 
         self.Sort(self.sortType)
 
@@ -156,11 +157,11 @@ example:
     def AddShot(self, name, minVal, maxVal):
         # create if not found
         if not self.animListNode:
-            self.animListNode = node.Transform(name="AnimListNode")
-            self.animListNode.AddAttr("subAnimList", attributeType = 'string')
+            self.animListNode = cgmMeta.cgmObject(name="AnimListNode")#node.Transform(name="AnimListNode")
+            self.animListNode.addAttr("subAnimList", attrType = 'string')
 
         self.animDict[name] = [minVal, maxVal, maxVal - minVal]
-        self.animListNode.SetAttr("subAnimList", json.dumps(self.animDict))
+        self.animListNode.subAnimList =  self.animDict#json.dumps(self.animDict)
 
         self.Sort(self.sortType)
 
@@ -250,7 +251,7 @@ example:
         if mc.menuItem(self.autoAdjustFramesMI, q=True, checkBox=True ) and shift != 0:
             self.ShiftTimeRanges(minVal, shift, ignoreKeys = [args[0]])
         
-        self.animListNode.SetAttr("subAnimList", json.dumps(self.animDict))
+        self.animListNode.subAnimList = self.animDict#json.dumps(self.animDict)
         
         self.UpdateShotList()
 
@@ -268,7 +269,7 @@ example:
         if mc.menuItem(self.autoAdjustFramesMI, q=True, checkBox=True ) and shift != 0:
             self.ShiftTimeRanges(self.animDict[args[0]][0], shift, ignoreKeys = [args[0]])
         
-        self.animListNode.SetAttr("subAnimList", json.dumps(self.animDict))
+        self.animListNode.subAnimList = self.animDict#json.dumps(self.animDict)
         self.UpdateShotList()
 
     def ShiftTimeRanges(self, startTime, shift, ignoreKeys = []):
@@ -302,7 +303,7 @@ example:
         self.animDict[newName] = self.animDict.pop(key)        
         self.animUIDict[newName] = self.animUIDict.pop(key)
 
-        self.animListNode.SetAttr("subAnimList", json.dumps(self.animDict))
+        self.animListNode.subAnimList = self.animDict#json.dumps(self.animDict)
 
         # Adjust UI elements to reflect new name
         mc.textField(self.animUIDict[newName]['nameField'], e=True, changeCommand=partial(self.RenameShot, newName))
@@ -318,10 +319,10 @@ example:
         # Find anim list node
         animListNodes = mc.ls("*.subAnimList")
         if len(animListNodes) > 0:
-            self.animListNode = node.GetNodeType(animListNodes[0])
-            animListString = self.animListNode.GetAttr("subAnimList")
+            self.animListNode = cgmMeta.asMeta(animListNodes)[0]
+            animListString = self.animListNode.subAnimList
             if animListString:
-                self.animDict = json.loads(animListString)
+                self.animDict = animListString#json.loads(animListString)
 
                 for key in self.animDict:
                     if len(self.animDict[key]) == 2:
@@ -333,8 +334,8 @@ class AnimList(object):
 
         animListNodes = mc.ls("*.subAnimList")
         if len(animListNodes) > 0:
-            animListNode = node.GetNodeType(animListNodes[0])
-            animListString = animListNode.GetAttr("subAnimList")
+            animListNode = cgmMeta.asMeta(animListNodes)[0]
+            animListString = animListNode.subAnimList
             if animListString:
                 self.shotDict = json.loads(animListString)
 
