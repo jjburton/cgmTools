@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 This is for more advanced snapping functionality.
 ================================================================
 """
-__version__ = '0.1.10282019'
+__version__ = '0.1.12212019'
 
 import copy
 import pprint
@@ -28,10 +28,10 @@ from cgm.core import cgm_General as cgmGEN
 
 #Data ================================================================================================
 d_dirFramework = {
-'game':{'content':['Character','Enviornment','FX','Poses','Props',
+'game':{'content':['Character','Enviornment','FX','Poses','Props','Cutscene',
                           'UI','VisDev'],
                    #'audio':['BGM','Debug','SFX','UI'],
-         'export':['Character','Enviornment','FX','Props','UI'],
+         'export':['Character','Enviornment','FX','Props','UI','Cutscene'],
                    #'audio':['BGM','Debug','SFX']},
                    },
 

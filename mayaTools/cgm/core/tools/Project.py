@@ -1090,12 +1090,13 @@ def buildFrame_dirExport(self,parent):
     except:pass
     
     mScrollList.mDat = self.mDat
+    mScrollList.str_structureMode = 'export'
     
     #Connect the functions to the buttons after we add the scroll list...
     button_verify(edit=True,
-                  c=lambda *a:uiProject_verifyDir(self,'content',None,mScrollList),)
+                  c=lambda *a:uiProject_verifyDir(self,'export',None,mScrollList),)
     button_add(edit=True,
-               c=lambda *a:uiProject_addDir(self,'content',mScrollList),
+               c=lambda *a:uiProject_addDir(self,'export',mScrollList),
                )    
     
     mScrollList.set_filterObj(_textField)
@@ -1261,7 +1262,7 @@ class data(object):
         pprint.pprint(_d)
         
     
-    def asset_addDir(self, path = None, name = None, aType = 'character'):
+    def asset_addDir(self, path = None, name = None, dType = 'content', aType = 'character'):
         '''
         Insert a new SubFolder to the path, makes the dir and sets
         '''
@@ -1269,8 +1270,12 @@ class data(object):
         if not mPath.exists():
             raise StandardError('Invalid Path: {0}'.format(path))
         
-        promptstring = 'Add {0} '.format(aType)
-        l_subs = self.d_structure.get(aType)
+        promptstring = 'Add {0} '.format(dType)
+        l_subs = self.d_structure.get(dType)
+        
+        if not l_subs:
+            pprint.pprint(vars())
+            raise ValueError,"No subs found for : {0}".format(dType)
         
         result = mc.promptDialog(
                 title=promptstring,
@@ -1333,7 +1338,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self(e=True, sc = self.selCommand)
         self.mDat = None
         self.uiPopUpMenu = None
-        
+        self.str_structureMode = 'content'
         self.set_selCallBack(self.select_popup)
         
     def __getitem__( self, idx ):
@@ -1452,6 +1457,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         '''
         Insert a new SubFolder to the path, makes the dir and sets
         '''
+        cgmGEN.func_snapShot(vars())
         if self.mDat:
             if self.mDat.asset_addDir(path,dType,aType):
                 self.rebuild()
@@ -1554,9 +1560,12 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                           'sub':'sub project'}
                 for t in ['char','prop','env','sub']:
                     _t = CORESTRINGS.byMode(d_toDo.get(t),'capitalize')
+                    #print '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))
                     mUI.MelMenuItem(_popUp,
                                     ann = "Add {0} asset to path: {1}".format(_t,_path),
-                                    c=cgmGEN.Callback(self.uiPath_addAsset,_path,'content','{0}Content'.format(t)),
+                                    c= cgmGEN.Callback(self.uiPath_addAsset,_path,
+                                                       self.str_structureMode,
+                                                       '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))),
                                     #c= lambda *a:self.uiPath_addAsset(_path,'content','{0}Content'.format(t)),
                                     label = _t)
 
