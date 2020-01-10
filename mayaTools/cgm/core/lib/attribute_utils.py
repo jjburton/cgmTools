@@ -307,6 +307,33 @@ def set_alias(node, attr = None, alias = None):
             mc.aliasAttr(_d['combined'],remove=True)
             log.warning("'{0}' cleared of alias!".format(_d['combined']))
 
+
+def get_valueDict(target,**kws):
+    res = {}
+    
+    l_targetAttrs = mc.listAttr(target,**kws)
+    if not l_targetAttrs:
+        raise ValueError,"No attrs found. kws: {0}".format(kws)
+    
+    for a in l_targetAttrs:
+        try:
+            res[a] = get(target,a)
+        except Exception,error:
+            log.warning(error)	
+            log.warning("'%s.%s'couldn't query"%(target,a))
+    return res
+
+def set_valueDict(target,d={}):
+    if not d:
+        raise ValueError,"No data passed"
+    
+    for a,v in d.iteritems():
+        try:
+            set(target,a,v)
+        except Exception,error:
+            log.warning(error)	
+            log.warning("'%s.%s'couldn't query"%(target,a))    
+
 def compare_attrs(source, targets, **kws):
     """   
     Call for comparing a source object to targets to check values and attributes

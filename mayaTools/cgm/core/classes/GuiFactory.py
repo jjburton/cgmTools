@@ -142,8 +142,8 @@ class markingMenu(object):#mUI.BaseMelWindow
         try:mc.menu(parent,e = True, deleteAllItems = True)
         except Exception,err:
             log.error("Failed to delete menu items")
-            for a in err.args():
-                print a
+            #for a in err.args():
+                #print a
                 
         mc.menuItem('test',p = parent)
                 

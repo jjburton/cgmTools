@@ -331,13 +331,20 @@ class AnimList(object):
     def __init__(self):
         self.shotDict = {}
         self.shotList = []
-
+        
         animListNodes = mc.ls("*.subAnimList")
         if len(animListNodes) > 0:
             animListNode = cgmMeta.asMeta(animListNodes)[0]
             animListString = animListNode.subAnimList
             if animListString:
-                self.shotDict = json.loads(animListString)
+                #the try here is for the older version of the data object before moving to cgm methods
+                try:self.shotDict = json.loads(animListString)
+                except:
+                    self.shotDict = animListString
+                    #for k,v in animListString.iteritems():
+                    #    self.shotDict.append([k,v])
+                    #self.shotDict = animListString
+                    
 
         self.SortedList(1)
 

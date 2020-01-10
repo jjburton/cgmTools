@@ -5180,12 +5180,13 @@ def mmUI_part(self,parent = None):
     d_setup = {'Key':{'mode':'key'},
                'bdKey':{'mode':'bdKey'},
                'Reset':{'mode':'reset'},
-               'Next Key':{'mode':'nextKey'},
-               'Prev Key':{'mode':'prevKey'},
+               'Tween':{'mode':'tweenDrag'},
+               #'Next Key':{'mode':'nextKey'},
+               #'Prev Key':{'mode':'prevKey'},
                
                }
     
-    for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
+    for m in ['Key','bdKey','Reset','Tween']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
                   'contextMode':_context,
@@ -5297,12 +5298,14 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
     d_setup = {'Key':{'mode':'key'},
                'bdKey':{'mode':'bdKey'},
                'Reset':{'mode':'reset'},
-               'Next Key':{'mode':'nextKey'},
-               'Prev Key':{'mode':'prevKey'},
+               'Tween':{'mode':'tweenDrag'},
+               
+               #'Next Key':{'mode':'nextKey'},
+               #'Prev Key':{'mode':'prevKey'},
                
                }
     
-    for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
+    for m in ['Key','bdKey','Reset','Tween']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
                   'contextMode':_context,
