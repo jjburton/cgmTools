@@ -28,19 +28,19 @@ from cgm.core import cgm_General as cgmGEN
 
 #Data ================================================================================================
 d_dirFramework = {
-'game':{'content':['Character','Enviornment','FX','Poses','Props','Cutscene',
+'game':{'content':['Character','Environment','FX','Poses','Props','Cutscene',
                           'UI','VisDev'],
                    #'audio':['BGM','Debug','SFX','UI'],
-         'export':['Character','Enviornment','FX','Props','UI','Cutscene'],
+         'export':['Character','Environment','FX','Props','UI','Cutscene'],
                    #'audio':['BGM','Debug','SFX']},
                    },
 
 'character':{'content':['animation','templates','builds','textures','poses','weights','geo'],
              'export':['animation']},
-'enviornment':{'content':['animation','textures','geo'],
+'environment':{'content':['animation','textures','geo'],
              'export':['animation']},
-'sub':{'content':['animation','enviornment'],
-       'export':['animation','enviornment']},
+'sub':{'content':['animation','environment'],
+       'export':['animation','environment']},
 'prop':{'content':['animation','templates','builds','textures','poses','weights','geo'],
         'export':['animation']},
              }
@@ -94,15 +94,15 @@ _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
 _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
                     {'n':'farClip','t':'float','dv':100000}]
 
-_structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','Enviornment']},
+_structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','Environment']},
                       {'n':'charContent','t':'text','dv':d_dirFramework['character']['content']},
                       {'n':'charExport','t':'text','dv':d_dirFramework['character']['export']},
                       {'n':'propContent','t':'text','dv':d_dirFramework['prop']['content']},
                       {'n':'propExport','t':'text','dv':d_dirFramework['prop']['export']},
                       {'n':'subContent','t':'text','dv':d_dirFramework['sub']['content']},
                       {'n':'subExport','t':'text','dv':d_dirFramework['sub']['export']},                      
-                      {'n':'envContent','t':'text','dv':d_dirFramework['enviornment']['content']},
-                      {'n':'envExport','t':'text','dv':d_dirFramework['enviornment']['content']}]
+                      {'n':'envContent','t':'text','dv':d_dirFramework['environment']['content']},
+                      {'n':'envExport','t':'text','dv':d_dirFramework['environment']['content']}]
 
 _d_defaultsMap = {'general':_projSettings,
                   'anim':_animSettings,
