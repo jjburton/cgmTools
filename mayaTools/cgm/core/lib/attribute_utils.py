@@ -448,7 +448,7 @@ def get(*a, **kws):
             return None
         
         if attrType in ['TdataCompound']:
-            log.info('TdataCompound...')
+            log.debug('TdataCompound...')
             if '[' in _attr:
                 _plug = mc.listConnections(_combined)		
                 if _plug:return _plug

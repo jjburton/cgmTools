@@ -181,7 +181,7 @@ def get_targets(node=None, fullPath = True, select = False):
     if not _call:
         _to = get_constraintsTo(node,True)
         if _to:
-            log.info("|{0}| >> Not a constraint node. Found contraints to. Returning first".format(_str_func))
+            log.debug("|{0}| >> Not a constraint node. Found contraints to. Returning first".format(_str_func))
             return get_targets(_to[0],fullPath,select)
             
         raise ValueError,"|{0}| >> {1} not a known type of constraint. node: {2}".format(_str_func,_type,node)

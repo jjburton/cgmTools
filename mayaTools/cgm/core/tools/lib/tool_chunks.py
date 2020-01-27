@@ -687,6 +687,14 @@ def uiSection_mrs(parent):
                 l='cgmSnapTools',
                 ann = "Launch cgmSnapTools - a tool for snapping things around in maya",
                 c=lambda *a: TOOLCALLS.cgmSnapTools())    
+    mc.menuItem(parent = parent,
+                l='cgmAttrTools',
+                ann = "Launch cgmAttrTools",
+                c=lambda *a: TOOLCALLS.attrTools())    
+    mc.menuItem(parent = parent,
+                l='cgmJointTools',
+                ann = "Launch cgmJointTools",
+                c=lambda *a: TOOLCALLS.jointTools())    
     
     mUI.MelMenuItemDiv(parent,label='Move')
     
@@ -715,11 +723,15 @@ def uiSection_mrs(parent):
 
     
     mUI.MelMenuItemDiv(parent,label='Learn')
+    mc.menuItem(parent = parent,
+                l='cgmTools Documentation',
+                ann = "cgmTools Docs | ...",
+                c=lambda *a: webbrowser.open("http://docs.cgmonks.com/"))    
     
     mc.menuItem(parent = parent,
                 l='MRS Documentation',
-                ann = "Access to MRS Docmenation || Subscription required.",
-                c=lambda *a: webbrowser.open("https://www.cgmonastery.com/teams/mrs-collaborative/"))      
+                ann = "Access to MRS Docmenation |",
+                c=lambda *a: webbrowser.open("http://mrsdocs.cgmonastery.com/"))
 
     
 def uiSection_hotkeys(parent):
