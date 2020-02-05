@@ -1,5 +1,6 @@
 import copy
 import re
+import random
 
 import logging
 logging.basicConfig()
@@ -22,17 +23,35 @@ from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import NodeFactory as cgmNodeFactory
-from cgm.core.rigger.lib import morpheus_sharedData as MORPHYDATA
-from cgm.lib import (curves,
-                     deformers,
-                     distance,
-                     search,
-                     lists,
-                     modules,
-                     constraints,
-                     rigging,
-                     attributes,
-                     joints)
+
+import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.search_utils as SEARCH
+
+d_reset = {'hair':1, 'face':7, 'brows':8, 'nose':7, 'ears':5,}
+def randomize(prefix='mk_head',reset = False):
+    mSettings = cgmMeta.asMeta("{0}:settingsControl".format(prefix))
+    _settings = mSettings.mNode
+    
+    _frame = mc.currentTime(q=True)
+    
+    for a in 'ears','nose','brows','hair','teeth','face':
+        l_options = ATTR.get_enumList(_settings, a)
+        if l_options:
+            if reset:
+                v = d_reset.get(a,1)
+            else:
+                v = random.randint(1,len(l_options)-1)
+                while v == l_options[ATTR.get(_settings,a)]:
+                    v = random.randint(1,len(l_options)-1)                
+            ATTR.set(_settings,a,v)
+            log.info("{0} | {1}".format(a,l_options[v]))
+        else:
+            pass
+        
+    mc.refresh()#...thinking this makes the attr change register
+    mc.currentTime(_frame -1)
+    mc.currentTime(_frame)
+
 
 
 def headRig_connectToBody(*args, **kws):
