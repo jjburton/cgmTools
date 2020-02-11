@@ -18,7 +18,7 @@ def Bake():
 
     bakeSetName = "bakeSet"
     if(mc.optionVar(exists='py_bake_set')):
-        bakeSetName = mc.optionVar(q='py_bake_set')
+        bakeSetName = mc.optionVar(q='cgm_bake_set')
 
     try:
         topNode = mc.ls(sl=True)[0]
@@ -90,10 +90,10 @@ def Prep():
     deleteSetName = "deleteSet"
     exportSetName = "exportSet"
 
-    if(mc.optionVar(exists='py_delete_set')):
-        deleteSetName = mc.optionVar(q='py_delete_set')
-    if(mc.optionVar(exists='py_export_set')):
-        exportSetName = mc.optionVar(q='py_export_set')
+    if(mc.optionVar(exists='cgm_delete_set')):
+        deleteSetName = mc.optionVar(q='cgm_delete_set')
+    if(mc.optionVar(exists='cgm_export_set')):
+        exportSetName = mc.optionVar(q='cgm_export_set')
 
     try:
         topNode = mc.ls(sl=True)[0]
