@@ -17,7 +17,7 @@ def Bake():
     baked = False
 
     bakeSetName = "bakeSet"
-    if(mc.optionVar(exists='py_bake_set')):
+    if(mc.optionVar(exists='cgm_bake_set')):
         bakeSetName = mc.optionVar(q='cgm_bake_set')
 
     try:
