@@ -49,7 +49,7 @@ def randomize(prefix='mk_head',reset = False):
             pass
         
     mc.refresh()#...thinking this makes the attr change register
-    mc.currentTime(_frame -1)
+    mc.currentTime(_frame -1)#...this makes the skin clusters update. Couldn't get eval to work on them
     mc.currentTime(_frame)
 
 

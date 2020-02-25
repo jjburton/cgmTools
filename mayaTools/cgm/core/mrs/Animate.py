@@ -2204,9 +2204,8 @@ def uiCB_contextualAction(self,**kws):
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
     
     pprint.pprint(d_contextSettings)
-    _ml_controls = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
     
-
+    _ml_controls = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
     
     if not _ml_controls:
         return log.error("No controls in context")
@@ -2643,7 +2642,6 @@ def uiCB_contextualAction(self,**kws):
         mc.currentTime(self.mDat.d_timeContext.get('frameInitial',1.0))
         if _autoKey:mc.autoKeyframe(state=True)
         mc.refresh(su=0)
-        
         if err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
             
@@ -5181,6 +5179,19 @@ def mmUI_part(self,parent = None):
                'bdKey':{'mode':'bdKey'},
                'Reset':{'mode':'reset'},
                'Tween':{'mode':'tweenDrag'},
+               'all':{'mode':'select'},
+               'add mirror':{'mode':'mirrorSelect'},
+               'mirror only':{'mode':'mirrorSelectOnly'},
+               'fk':{'mode':'selectFK'},
+               'ik':{'mode':'selectIK'},
+               'ikEnd':{'mode':'selectIKEnd'},
+               'seg':{'mode':'selectSeg'},
+               'direct':{'mode':'selectDirect'},
+               'Push':{'mode':'mirrorPush'},
+               'Pull':{'mode':'mirrorPull'},
+               'SymLeft':{'mode':'symLeft'},
+               'SymRight':{'mode':'symRight'},
+               'Flip':{'mode':'mirrorFlip'}               
                #'Next Key':{'mode':'nextKey'},
                #'Prev Key':{'mode':'prevKey'},
                
@@ -5199,19 +5210,16 @@ def mmUI_part(self,parent = None):
                     c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
 
-        
-            
-    
-    
+
     #Select =============================================================================
-    d_setup = {'all':{'mode':'select'},
+    """d_setup = {'all':{'mode':'select'},
                'add mirror':{'mode':'mirrorSelect'},
                'mirror only':{'mode':'mirrorSelectOnly'},
                'fk':{'mode':'selectFK'},
                'ik':{'mode':'selectIK'},
                'ikEnd':{'mode':'selectIKEnd'},
                'seg':{'mode':'selectSeg'},
-               'direct':{'mode':'selectDirect'},}
+               'direct':{'mode':'selectDirect'},}"""
 
     ['select','selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']
     _select = mc.menuItem(p=parent,l="Select",subMenu=True)
@@ -5230,16 +5238,16 @@ def mmUI_part(self,parent = None):
                 )
 
     #Mirror =============================================================================
-    d_setup = {'Push':{'mode':'mirrorPush'},
+    """d_setup = {'Push':{'mode':'mirrorPush'},
                'Pull':{'mode':'mirrorPull'},
                'SymLeft':{'mode':'symLeft'},
                'SymRight':{'mode':'symRight'},
-               'Flip':{'mode':'mirrorFlip'}}
+               'Flip':{'mode':'mirrorFlip'}}"""
     
     _mirror = mc.menuItem(p=parent,l="Mirror",subMenu=True)
 
     for m in ['Push','Pull','SymLeft','SymRight','Flip']:
-        _d = d_setup[m]
+        _d = d_setup.get(m)
         _d_tmp = {'mode':_d['mode'],
                   'contextMode':_context,
                   'contextTime':_contextTime,                  
@@ -5251,14 +5259,7 @@ def mmUI_part(self,parent = None):
                     c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
         
-    _children = mc.menuItem(p=parent,l="Children",subMenu=True)
-    mmUI_section(self,_children,children=True)
-    
-    _siblings = mc.menuItem(p=parent,l="Siblings",subMenu=True)
-    mmUI_section(self,_siblings,siblings=True)
-    
-    
-    
+    #Toggle --------------------------------------------------------------------------------
     _toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)
     
     l_settings = ['visSub','visDirect','visRoot']
@@ -5284,6 +5285,95 @@ def mmUI_part(self,parent = None):
             _mode = 'puppetSettings'
         """
         
+    ###Children/Siblings ------------------------------------------------------------
+    """
+    _children = mc.menuItem(p=parent,l="Children",subMenu=True)
+    mmUI_section(self,_children,'part',children=True)
+    
+    _siblings = mc.menuItem(p=parent,l="Siblings",subMenu=True)
+    mmUI_section(self,_siblings,'part',siblings=True)"""
+    
+    
+    
+    for section in 'Children','Siblings':
+        _sub = mc.menuItem(p=parent,l=section,subMenu=True)
+        _children = False
+        _siblings = False
+        
+        if section == 'Children':
+            _children = True
+        else:
+            _siblings = True
+        
+        #Switch =============================================================================
+        _select = mc.menuItem(p=_sub,l="Switch",subMenu=True)
+    
+        for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll',
+                  'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
+            #_d = d_setup[m]
+            _d_tmp = {'mode':m,
+                      'contextMode':_context,
+                      'contextTime':_contextTime,                  
+                      'contextMirror':False,
+                      'contextChildren':_children,
+                      'contextSiblings':_siblings}
+    
+            mc.menuItem(p=_select,l=m,
+                        c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp))
+        
+        #Basic ============================================================================
+        for m in ['Key','bdKey','Reset','Tween']:
+            _d = d_setup.get(m)
+            _d_tmp = {'mode':_d.get('mode'),
+                      'contextMode':_context,
+                      'contextTime':_contextTime,
+                      'contextMirror':_d.get('mirror',False),
+                      'contextChildren':_children,
+                      'contextSiblings':_siblings}
+            
+            mc.menuItem(p=_sub,l=m,
+                        c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
+                    )
+    
+        
+        #Select =============================================================================
+        #['select','selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']
+        _select = mc.menuItem(p=_sub,l="Select",subMenu=True)
+        
+        for m in ['all','add mirror','mirror only','fk','ik','ikEnd','seg','direct']:
+            _d = d_setup[m]
+            _d_tmp = {'mode':_d['mode'],
+                      'contextMode':_context,
+                      'contextTime':_contextTime,                  
+                      'contextMirror':_d.get('mirror',False),
+                      'contextChildren':_d.get('children',_children),
+                      'contextSiblings':_d.get('siblings',_siblings)}
+            
+            mc.menuItem(p=_select,l=m,
+                        c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
+                    )
+    
+        #Mirror =============================================================================       
+        _mirror = mc.menuItem(p=_sub,l="Mirror",subMenu=True)
+    
+        for m in ['Push','Pull','SymLeft','SymRight','Flip']:
+            _d = d_setup[m]
+            _d_tmp = {'mode':_d['mode'],
+                      'contextMode':_context,
+                      'contextTime':_contextTime,                  
+                      'contextMirror':True,
+                      'contextChildren':_d.get('children',_children),
+                      'contextSiblings':_d.get('siblings',_siblings)}
+            
+            mc.menuItem(p=_mirror,l=m,
+                        c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
+                    )
+                
+    
+    
+    return
+   
+        
     return
 
 
@@ -5292,7 +5382,7 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
     _str_func = 'mmUI_part'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     
-    _context = context
+    _context = 'part'
 
     #Basic =============================================================================
     d_setup = {'Key':{'mode':'key'},

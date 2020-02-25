@@ -2338,14 +2338,15 @@ def skeleton_build(self, forceNew = True):
             _specialEndHandling=True
             
         if self.numControls == 1 and not self.buildEnd == 2:
-            log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
             if len(ml_jointHelpers) > 1:
+                log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                                            
                 mEndAim = ml_jointHelpers.pop(-1)
                 
             
         if not _specialEndHandling and self.buildEnd and self.buildEnd != 2:
-            log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
-            ml_jointHelpers.pop(-1)
+            if len(ml_jointHelpers) > 1:
+                log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
+                ml_jointHelpers.pop(-1)
                 
         #pprint.pprint(ml_jointHelpers)
         
