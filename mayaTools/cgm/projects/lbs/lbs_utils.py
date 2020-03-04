@@ -28,8 +28,16 @@ import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.search_utils as SEARCH
 
 d_reset = {'hair':1, 'face':7, 'brows':8, 'nose':7, 'ears':5,}
-def randomize(prefix='mk_head',reset = False):
-    mSettings = cgmMeta.asMeta("{0}:settingsControl".format(prefix))
+l_faceTypes = [False, 'hardRound','softSquare', 'softRound_1', 'softRound_2']
+l_faceRandoms = ['chinForm','lipThickLower','lipThickUpr', ]#'jawLineIn'
+l_options = [0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0]
+
+def randomize(prefix='mk_head',reset = False, eyes = True):
+    if prefix:
+        mSettings = cgmMeta.asMeta("{0}:settingsControl".format(prefix))
+    else:
+        mSettings = cgmMeta.asMeta("settingsControl")
+        
     _settings = mSettings.mNode
     
     _frame = mc.currentTime(q=True)
@@ -47,6 +55,81 @@ def randomize(prefix='mk_head',reset = False):
             log.info("{0} | {1}".format(a,l_options[v]))
         else:
             pass
+        
+    #BlendShapes ---------------------------------------
+    if prefix:
+        mBSNode = cgmMeta.asMeta("{0}:bsFace".format(prefix))
+    else:
+        mBSNode = cgmMeta.asMeta("bsFace")
+        
+    if mBSNode:
+        log.info("BS Node")
+        
+        d_vs = {}
+        for k in l_faceTypes + l_faceRandoms:
+            if k:
+                d_vs[k] = 0.0
+                
+        if not reset:
+            #Pick face option and get a value for that ------------------------
+            h = l_faceTypes[ random.randint(0,len(l_faceTypes)-1) ]
+            if h:
+                v = random.randint(0,100) * .01
+                d_vs[h] = v
+                
+            #Face randoms -----------------------------------------------
+            for k in l_faceRandoms:
+                d_vs[k] = random.randint(0,100) * .01
+            
+        #Loop through and set the values ---------------------------------------
+        for k,v in d_vs.iteritems():
+            log.info("{0} | {1}".format(k,v))            
+            ATTR.set(mBSNode.mNode, k, v)
+        
+    #Eye Options -------------------------------------------------------
+    import cgm.core.lib.math_utils as COREMATH
+    
+    if eyes:
+        d_ranges = {'tx':[-20,15],
+                    'ty':[-10,20],
+                    'scale':[70,110]}
+        
+        tx = random.randint(d_ranges['tx'][0],d_ranges['tx'][1]) * .1
+        ty = random.randint(d_ranges['ty'][0],d_ranges['ty'][1]) * .1
+        scale = random.randint(d_ranges['scale'][0],d_ranges['scale'][1]) * .01
+        
+        if tx < 0.0:
+            log.info("Tx > Scale...")                        
+            scale = COREMATH.Clamp(scale, tx, d_ranges['scale'][1]*.01)
+            scale *= .9
+        
+        for s in 'L','R':
+                
+            if prefix:
+                mEye = cgmMeta.asMeta("{0}:{1}_fullLid_eyeRoot_rig_anim".format(prefix,s))
+            else:
+                mEye = cgmMeta.asMeta("{0}_fullLid_eyeRoot_rig_anim".format(s))
+                
+            if reset:
+                mEye.resetAttrs(['tx','ty','tz','sx','sy','sz'])
+            else:
+                if s == 'R':
+                    mEye.tx = tx
+                else:
+                    mEye.tx = -tx
+                
+                mEye.ty = ty
+                mEye.sx = scale
+                mEye.sy = scale
+                mEye.sz = scale
+                
+                if scale < 1.0:
+                    pass
+                    #mEye.tz = scale * .5
+                else:
+                    mEye.tz = scale
+                
+                
         
     mc.refresh()#...thinking this makes the attr change register
     mc.currentTime(_frame -1)#...this makes the skin clusters update. Couldn't get eval to work on them
