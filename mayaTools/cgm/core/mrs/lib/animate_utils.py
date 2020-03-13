@@ -622,8 +622,10 @@ class dat(object):
         sel = mc.ls(sl=True)
         ml_sel = cgmMeta.asMeta(mc.ls(sl=True))
         ml_check = copy.copy(ml_sel)
+        
         self._sel = sel
         self._ml_sel = ml_sel
+        log.info("Selected: {0}".format(len(self._sel)))
         self.d_context = {'mControls':[],
                           'mControlsMirror':[],
                           'mPuppets':[],
@@ -726,7 +728,7 @@ class dat(object):
             for i,mObj in enumerate(ml_check):
                 log.debug(cgmGEN.logString_sub(_str_func,"First pass check: {0}".format(mObj)))
                 
-                if i > _cap:
+                if context != 'control' and i > _cap:
                     log.debug("|{0}| >> Large number of items selected, stopping processing at {1}".format(_str_func,i))              
                     break
                 
@@ -749,7 +751,6 @@ class dat(object):
                         if mModule not in self.d_context['mModules']:
                             self.d_context['mModules'].append(mModule)
                         res.append(mModule)                
-                
                 if context == 'puppet':
                     if mPuppet not in self.d_context['mPuppets']:
                         self.d_context['mPuppets'].append(mPuppet)
@@ -1702,7 +1703,27 @@ class dat(object):
         
         
         
-        
+def _uiCB_getPoseInputNodes(self,**kws):
+    '''
+    Node passed into the __PoseCalls in the UI
+    '''
+    _dat = {
+        'contextMode' : kws.get('context') or self.var_mrsContext_mode.value,
+        'contextChildren' : kws.get('children') or self.var_mrsContext_children.value,
+        'contextSiblings' : kws.get('siblings') or self.var_mrsContext_siblings.value,
+        'contextMirror' : kws.get('mirror') or self.var_mrsContext_mirror.value,
+        'contextCore' : kws.get('core') or self.var_mrsContext_core.value,        
+    }
+    #_contextSettings = MRSANIMUTILS.get_contextDict(self.__class__.TOOLNAME)
+    print len(mc.ls(sl=1))
+    #pprint.pprint(_dat)
+    _ml_controls = self.mDat.context_get(**_dat)
+    #pprint.pprint(_ml_controls)
+    log.info("Controls: {0}".format(len(_ml_controls)))        
+    # posenodes = []
+    #_sel = mc.ls(sl=1)
+    #pprint.pprint(_sel)        
+    return [mObj.mNode for mObj in _ml_controls]
         
 #@cgmGEN.Timer
 def get_buffer_dat(update = False):

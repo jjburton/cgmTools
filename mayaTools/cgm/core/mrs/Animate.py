@@ -1092,12 +1092,15 @@ class ui(cgmUI.cgmGUI):
         '''
         Node passed into the __PoseCalls in the UI
         '''
+        return MRSANIMUTILS._uiCB_getPoseInputNodes(self)
+        
+        """
         # posenodes = []
         uiCB_contextualAction(self,**{'mode':'select'})
         _sel = mc.ls(sl=1)
         #pprint.pprint(_sel)        
         
-        return _sel
+        return _sel"""
         
 
 

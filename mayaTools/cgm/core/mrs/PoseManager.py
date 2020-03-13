@@ -933,7 +933,10 @@ class manager(mUI.MelColumn):
         '''
         Node passed into the __PoseCalls in the UI
         '''
-        print 'here'
+        
+        return MRSANIMUTILS._uiCB_getPoseInputNodes(self)
+        
+        
         _dat = {
             'contextMode' : kws.get('context') or self.var_mrsContext_mode.value,
             'contextChildren' : kws.get('children') or self.var_mrsContext_children.value,
@@ -941,14 +944,9 @@ class manager(mUI.MelColumn):
             'contextMirror' : kws.get('mirror') or self.var_mrsContext_mirror.value,
             'contextCore' : kws.get('core') or self.var_mrsContext_core.value,        
         }
-        #_contextSettings = MRSANIMUTILS.get_contextDict(self.__class__.TOOLNAME)
         
-        pprint.pprint(_dat)
         _ml_controls = self.mDat.context_get(**_dat)
-        
-        # posenodes = []
-        #_sel = mc.ls(sl=1)
-        #pprint.pprint(_sel)        
+        log.info("Controls: {0}".format(len(_ml_controls)))
         return [mObj.mNode for mObj in _ml_controls]
     
     def uiBuild_path(self):
@@ -1155,7 +1153,7 @@ class manager(mUI.MelColumn):
         
     def get_poseNodes(self,select=False):
         nodes = self._uiCB_getPoseInputNodes()
-        log.info("Initial nodes: {0}".format(nodes))
+        log.info("Initial nodes: {0}".format(len(nodes)))
         l_start = []
         if not nodes:
             log.debug("No nodes found.Checking pose file to build list...")

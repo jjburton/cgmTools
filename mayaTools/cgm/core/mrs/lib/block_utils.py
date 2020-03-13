@@ -484,6 +484,40 @@ def set_nameTag(self,nameTag = None):
         self.doName()
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    
+def set_nameIter(self,nameTag = None):
+    try:
+        _short = self.p_nameShort
+        _str_func = 'set_nameIter'
+        log.debug(cgmGEN.logString_start(_str_func))
+
+        
+        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        
+        if nameTag is None:
+            log.debug("|{0}| >> getting value by ui prompt".format(_str_func))
+            _cgmName = self.getMayaAttr('nameIter')
+            _title = 'Set name iter tag...'
+            result = mc.promptDialog(title=_title,
+                                     message='Block: {0} | Current: {1}'.format(_short,_cgmName),
+                                     button=['OK', 'Cancel'],
+                                     text = _cgmName,
+                                     defaultButton='OK',
+                                     cancelButton='Cancel',
+                                     dismissString='Cancel')
+            if result == 'OK':
+                nameTag =  mc.promptDialog(query=True, text=True)
+                log.debug("|{0}| >> from prompt: {1}".format(_str_func,nameTag))
+            else:
+                log.error("|{0}| >> Change cancelled.".format(_str_func)+ '-'*80)
+                #self.doName()
+                return False
+        if nameTag:
+            self.nameIter = nameTag
+        #self.doName()
+        
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    
 
 def set_blockNullFormState(self,state=True, define = True, form=True,prerig=True):
     _str_func = 'set_blockNullFormState'

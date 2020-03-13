@@ -2210,8 +2210,14 @@ class ui(cgmUI.cgmGUI):
                             label ='Edit NameList',
                             ann = 'Ui Prompt to edit nameList',
                             c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                                         'atUtils','nameList_uiPrompt',
-                                                                         **{}))
+                                                'atUtils','nameList_uiPrompt',
+                                                **{}))
+            mUI.MelMenuItem(_popUp,
+                            label ='Edit Iter Name',
+                            ann = 'Ui Prompt to edit Iter Name',
+                            c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                'atUtils','set_nameIter',
+                                                **{}))
             
             #...side ----------------------------------------------------------------------------------------
             sub_side = mUI.MelMenuItem(_popUp,subMenu=True,
