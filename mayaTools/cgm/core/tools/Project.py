@@ -27,6 +27,7 @@ __MAYALOCAL = 'CGMPROJECT'
 import copy
 import os
 import pprint
+import getpass
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -201,7 +202,8 @@ class ui(cgmUI.cgmGUI):
         
         self.d_tf = {}
         self.d_uiTypes = {}
-    
+        self.d_buttons = {}
+        
     def uiProject_new(self):
         _str_func = 'uiProject_new'
         log.debug("|{0}| >>...".format(_str_func))        
@@ -231,9 +233,14 @@ class ui(cgmUI.cgmGUI):
         self.mDat.fillDefaults(True)
         self.uiProject_fill()
         
+    def uiProject_getProjctPathsFromLocal(self):
+        self.mDat.projectPaths_getActive()
+        self.uiProject_fill()
+        
     def uiProject_pushPaths(self):
         _str_func = 'uiProject_load'
-        log.debug("|{0}| >>...".format(_str_func))        
+        log.debug("|{0}| >>...".format(_str_func))
+        
         
         mPath = PATHS.Path( self.d_tf['paths']['content'].getValue() )
         if mPath.exists():
@@ -285,12 +292,12 @@ class ui(cgmUI.cgmGUI):
         log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
         self.reload_headerImage()
                     
-    
+        
     def uiProject_fill(self):
         _str_func = 'uiProject_fill'
         log.debug("|{0}| >>...".format(_str_func))
                 
-        for dType in ['general','anim','paths','structure']:
+        for dType in ['general','anim','pathsProject','structure']:
             log.debug(cgmGEN.logString_sub(_str_func,dType))
             
             for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
@@ -304,13 +311,58 @@ class ui(cgmUI.cgmGUI):
                             self.d_tf[dType][k].setValue(','.join(v))
                         else:
                             self.d_tf[dType][k].setValue(v[0])
+                            
                     else:
                         if v is not None:
                             self.d_tf[dType][k].setValue(v)
                             
                 except Exception,err:
-                    log.error("Missing data field or failure: {0}".format(k))
+                    log.error("Missing data field or failure: dtype:{0} | {1}".format(dType,k))
                     log.error("err | {0}".format(err))
+                    
+        #User paths...
+        _user = getpass.getuser()
+        d_user = self.mDat.d_pathsUser.get(_user,{})
+        d_pathsUse = copy.copy(self.mDat.d_pathsProject)
+        if d_user:
+            log.warning("Found user path dat!")
+            for k,v in d_user.iteritems():
+                if v:
+                    d_pathsUse[k]=v
+        else:
+            d_pathsUse = self.mDat.d_pathsProject
+            log.warning("Using project paths dat!")
+            
+        for k,v in d_pathsUse.iteritems():
+            try:
+                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                if v is not None:
+                    self.d_tf['paths'][k].setValue(v)
+                        
+            except Exception,err:
+                log.error("{0} | Missing data field or failure: {0}".format(_str_func,k))
+                log.error("err | {0}".format(err))
+                
+                
+        #Lock fields...
+        _enable = True
+        if self.mDat.d_project['lock'] == 'True':
+            _enable = False
+            
+        for k,tf in self.d_tf['pathsProject'].iteritems():
+            tf(edit=True,
+               bgc = (1,1,1),
+               ut = 'cgmUITemplate',
+               en=_enable)
+               
+        for k,tf in self.d_buttons['pathsProject'].iteritems():
+            tf(edit=True,
+               ut = 'cgmUITemplate',
+               en=_enable)            
+            
+            
+            
+        
                     
         
         self.uiLabel_file(edit=True, label = self.mDat.str_filepath)
@@ -333,7 +385,6 @@ class ui(cgmUI.cgmGUI):
             
         #if revert is not True:
         self.mDat.read(path)
-        
         self.uiProject_fill()
         
 
@@ -382,7 +433,7 @@ class ui(cgmUI.cgmGUI):
             
             
         for dType,d in PU._dataConfigToStored.iteritems():
-            if dType in ['enviornment']:
+            if dType in ['enviornment','pathsUser']:
                 continue
             
             log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(dType,d)))
@@ -390,6 +441,7 @@ class ui(cgmUI.cgmGUI):
             for k,ui in self.d_tf.get(dType,{}).iteritems():
                 try:_type = self.d_uiTypes[dType][k]
                 except:_type = None
+                
                 log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(k,ui)))
                     
                 if _type == 'stringList':
@@ -403,7 +455,18 @@ class ui(cgmUI.cgmGUI):
                     self.mDat.__dict__[d][k] = _v
                 else:
                     self.mDat.__dict__[d][k] = ui.getValue()            
+                    
+        ###Local paths
+        _d_local = {}
+        for k,v in self.mDat.__dict__['d_paths'].iteritems():
+            if v != self.mDat.__dict__['d_pathsProject'][k]:
+                _d_local[k] = v
             
+        _user = getpass.getuser()
+        self.mDat.d_pathsUser[_user] = _d_local
+        log.debug(cgmGEN.logString_sub(_str_func,"Local Dat user: {0}".format(k,_user)))
+            
+        
         """
         for k,ui in self.d_tf['general'].iteritems():
             self.mDat.d_project[k] = ui.getValue()
@@ -411,8 +474,9 @@ class ui(cgmUI.cgmGUI):
         for k,ui in self.d_tf['paths'].iteritems():
             self.mDat.d_paths[k] = ui.getValue()
             """
-        self.mDat.log_self()
+        #self.mDat.log_self()
         self.mDat.write( path)
+        return log.warning("Saved complete!")
         
     def uiProject_saveAs(self):
         _str_func = 'uiProject_saveAs'
@@ -444,6 +508,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItemDiv( self.uiMenu_utils, label='Processes..' )
         mUI.MelMenuItem( self.uiMenu_utils, l="Push nameStyle",
                          c = lambda *a:mc.evalDeferred(self.mDat.nameStyle_push,lp=True))
+        
+        
+        mUI.MelMenuItem( self.uiMenu_utils, l="Get Project Paths from Local",
+                         c = lambda *a:mc.evalDeferred(self.uiProject_getProjctPathsFromLocal,lp=True))        
+        
         
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
@@ -721,9 +790,13 @@ class ui(cgmUI.cgmGUI):
                 for t in PU.l_nameConventions:
                     _d[key].append(t)                
             elif key == 'projectPathMode':
-                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')                
-                for t in PU.l_projectPathModes:
+                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                
+            elif key in ['lock']:
+                _d[key] =   mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                for t in ['False','True']:
                     _d[key].append(t)                
+
                     
             else:
                 #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
@@ -754,11 +827,14 @@ class ui(cgmUI.cgmGUI):
                                     )	
         _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
         
-        #>>>Hold ===================================================================================== 
-        cgmUI.add_LineSubBreak()
-        self.d_tf['paths'] = {}
-        _d = self.d_tf['paths']
-        self.d_uiTypes['paths'] = {}
+        #>>>Project =====================================================================================
+        cgmUI.add_Header('Project')
+        self.d_tf['pathsProject'] = {}
+        _d = self.d_tf['pathsProject']
+        self.d_uiTypes['pathsProject'] = {}
+        
+        self.d_buttons['pathsProject'] = {}
+        _d2 = self.d_buttons['pathsProject']
         
         for key in PU.l_projectPaths:
             mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
@@ -770,12 +846,50 @@ class ui(cgmUI.cgmGUI):
             #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
             _d[key] =  mUI.MelTextField(_row,
                                         ann='Project Path | {0}'.format(key),
+                                        cc = cgmGEN.Callback(self.uiCC_checkPath,key,'project'),
+                                        text = '')
+            
+            _d2[key] = mUI.MelButton(_row,
+                                     l = 'Set',
+                                     ut = 'cgmUITemplate',
+                                     c = cgmGEN.Callback(self.uiButton_setPathToTextField,key,'project'),
+                                     #en = _d.get('en',True),
+                                     #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
+                                     #ann = _d.get('ann',b))
+                                     )            
+            
+            _row.setStretchWidget(_d[key])
+            mUI.MelSpacer(_row,w=5)
+            _row.layout()
+            
+        cgmUI.add_LineSubBreak()
+        
+        #>>>Local =====================================================================================
+        mc.setParent(_inside)
+        cgmUI.add_Header('Local')
+        #cgmUI.add_LineSubBreak()
+        self.d_tf['paths'] = {}
+        _d = self.d_tf['paths']
+        self.d_uiTypes['paths'] = {}
+
+        for key in PU.l_projectPaths:
+            mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+            
+            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+            mUI.MelSpacer(_row,w=5)                          
+            mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
+            #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
+            _d[key] =  mUI.MelTextField(_row,
+                                        ann='Local Path | {0}'.format(key),
+                                        cc = cgmGEN.Callback(self.uiCC_checkPath,key,'local'),
                                         text = '')
             
             mc.button(parent=_row,
                       l = 'Set',
                       ut = 'cgmUITemplate',
-                      c = cgmGEN.Callback(self.uiButton_setPathToTextField,key)
+                      c = cgmGEN.Callback(self.uiButton_setPathToTextField,key,'local'),
+                      
                       #en = _d.get('en',True),
                       #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
                       #ann = _d.get('ann',b))
@@ -784,7 +898,21 @@ class ui(cgmUI.cgmGUI):
             _row.setStretchWidget(_d[key])
             mUI.MelSpacer(_row,w=5)
             _row.layout()
-
+            
+    def uiCC_checkPath(self, key, mode='local'):
+        
+        if mode == 'local':
+            mField = self.d_tf['paths'][key]
+        else:
+            mField = self.d_tf['pathsProject'][key]
+            
+        _value = mField.getValue()
+        
+        if not PATHS.Path(_value).exists():
+            raise ValueError,"Invalid path: {0}".format(_value)
+        else:
+            log.warning("Path {0}| {1} changed to: {2}".format(mode, key, _value))
+        
     def buildFrame_content(self,parent):
         try:self.var_projectContentCollapse
         except:self.create_guiOptionVar('projectContentCollapse',defaultValue = 0)
@@ -831,14 +959,21 @@ class ui(cgmUI.cgmGUI):
             mUI.MelSpacer(_row,w=5)
             _row.layout()
     
-    def uiButton_setPathToTextField(self,key):
+    def uiButton_setPathToTextField(self,key,mode='project'):
         basicFilter = "*"
         if key in ['image']:
             x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=1)
         else:
             x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
+            
         if x:
-            self.d_tf['paths'][key].setValue( x[0] )
+            if not PATHS.Path(x[0]).exists():
+                raise ValueError,"Invalid path: {0}".format(x[0])
+            
+            if mode == 'project':
+                self.d_tf['pathsProject'][key].setValue( x[0] )
+            else:
+                self.d_tf['paths'][key].setValue( x[0] )
             #self.optionVarExportDirStore.setValue( self.exportDirectory )    
             
             if key in ['image']:
@@ -1189,6 +1324,11 @@ class data(object):
                     mD[k2] = CORESTRINGS.byMode(v,_nameStyle)
                     log.debug("set: {0}".format(k2))
                 
+    def projectPaths_getActive(self):
+        for k,v in self.d_pathsProject.iteritems():
+            _v2 = self.d_paths.get(k)
+            if _v2:
+                self.d_pathsProject[k] = _v2
         
     def validateFilepath(self, filepath = None, fileMode = 0):
         '''
@@ -1219,19 +1359,27 @@ class data(object):
             filepath = self.str_filepath
             
         filepath = self.validateFilepath(filepath)
+        log.warning('Write to: {0}'.format(filepath))
             
         ConfigObj = configobj.ConfigObj(indent_type='\t')
         ConfigObj['configType']= 'cgmProject'
         
         for k,d in PU._dataConfigToStored.iteritems():
-            log.debug("Dat: {0}".format(k))
-            ConfigObj[k] = self.__dict__[d] 
+            _dat = self.__dict__.get(d,None)
+            if _dat:
+                log.debug("Dat: {0}".format(k))
+                #pprint.pprint(self.__dict__[d])
+                #print (self.__dict__[d])
+                ConfigObj[k] = _dat
+                log.debug("...")
         
+        log.debug('....')
         ConfigObj.filename = filepath
         ConfigObj.write()
         
         if update:
             self.str_filepath = filepath
+        log.warning('Complete')
         return True
         
     def read(self, filepath = None, report = False):
@@ -1251,7 +1399,11 @@ class data(object):
             #raise ValueError,"This isn't a cgmSkinConfig config | {0}".format(filepath)
                 
         for k in PU._dataConfigToStored.keys():
+            log.debug("Checking...{0}".format(k))
+            
             if _config.has_key(k):
+                pprint.pprint(_config[k])
+                
                 self.__dict__[PU._dataConfigToStored[k]] = _config[k]
             else:
                 log.error("Config file missing section {0}".format(k))
@@ -1263,8 +1415,9 @@ class data(object):
         return True
     
     def log_self(self):
-        _d = copy.copy(self.__dict__)
-        pprint.pprint(_d)
+        #_d = copy.copy(self.__dict__)
+        #print (_d)
+        pprint.pprint(self.__dict__)
         
     
     def asset_addDir(self, path = None, name = None, dType = 'content', aType = 'character'):
@@ -1387,12 +1540,12 @@ class cgmProjectDirList(mUI.BaseMelWidget):
     
     def report(self):
         log.debug(cgmGEN.logString_start('report'))                
-        log.info("Dat: "+cgmGEN._str_subLine)
+        log.debug("Dat: "+cgmGEN._str_subLine)
         return
         for i,mObj in enumerate(self._l_dat):
             print ("{0} | {1} | {2}".format(i,self._l_strings[i],mObj))
             
-        log.info("Loaded "+cgmGEN._str_subLine)
+        log.debug("Loaded "+cgmGEN._str_subLine)
         for i,mObj in enumerate(self._ml_loaded):
             print("{0} | {1}".format(i, mObj))
             

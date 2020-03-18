@@ -48,14 +48,16 @@ d_dirFramework = {
 
 _dataConfigToStored = {'general':'d_project',
                        'paths':'d_paths',
+                       'pathsUser':'d_pathsUser',
+                       'pathsProject':'d_pathsProject',
                        'anim':'d_animSettings',
                        'structure':'d_structure',
-                       'assets':'d_assets',
                        'world':'d_world'}
 
 l_projectPathModes = ['art','content','root']
-l_projectDat = ['name','type','projectPathMode','nameStyle']
+l_projectDat = ['name','type','nameStyle','lock']
 l_nameConventions = ['none','lower','capital','upper','camelCase','capFirst']
+l_userMode = ['general','master']
 l_projectTypes = ['unity','unreal','commercial']
 l_projectPaths = ['root','content','export','image']
 
@@ -72,7 +74,10 @@ _fpsStrings = ['2', '3', '4', '5', '6', '8', '10', '12', '15', '16', '20', '23.9
 #Settings/Options ... ---------------------------------------------------------------------------
 _projSettings = [{'n':'name','t':'text','dv':'Name me'},
                  {'n':'type','t':l_projectTypes,'dv':'unity'},
-                 {'n':'projectPathMode','t':l_projectPathModes,'dv':'art'},
+                 {'n':'type','t':l_projectTypes,'dv':'unity'},
+                 {'n':'lock','t':'bool','dv':'false'},
+                 
+                 #{'n':'projectPathMode','t':l_projectPathModes,'dv':'art'},
                  {'n':'nameStyle','t':l_nameConventions,'dv':'none'},
                  ]
                  
