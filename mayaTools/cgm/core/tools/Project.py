@@ -451,9 +451,14 @@ class ui(cgmUI.cgmGUI):
         #Recent -------------------------------------------------------------------
         self.mPathList.verify()
         _recent = mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Recent",subMenu=True)
+        
+        project_names = []
         for i,p in enumerate(self.mPathList.l_paths):
+            proj = data(filepath=p)
+            name = proj.d_project['name']
+            project_names.append(name)
             mUI.MelMenuItem(_recent,
-                            label = PATHS.Path(p).asTruncate(2,3),
+                            label = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
                             ann = "Set the project to: {0} | {1}".format(i,p),
                             c=cgmGEN.Callback(self.uiProject_load,p))
             

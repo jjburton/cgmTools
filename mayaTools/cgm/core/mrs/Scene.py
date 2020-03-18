@@ -8,9 +8,15 @@ import subprocess
 import re
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import asset_utils as ASSET
+from cgm.core.tools import Project as Project
 
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
+
+import cgm.core.cgmPy.path_Utils as PATHS
+import cgm.images as cgmImages
+
+mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
 #>>>======================================================================
 import logging
@@ -61,13 +67,14 @@ example:
 
 		#self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0)
 
-		self.optionVarDirStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_directory_list", varType = "string")
-		self.optionVarLastDirStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_directory", varType = "string")
+		self.optionVarProjectStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_project", varType = "string")
+		# self.optionVarDirStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_directory_list", varType = "string")
+		# self.optionVarLastDirStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_directory", varType = "string")
 		self.optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
 		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
 		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
 		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
-		self.optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_export_directory", varType = "string")
+		# self.optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_export_directory", varType = "string")
 		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		
@@ -103,12 +110,16 @@ example:
 		self.fileListMenuItems           = []
 		self.batchExportItems            = []
 
-		self.previousDirectoryList       = self.GetPreviousDirectories()
-		self.previousLoadedDirectory     = self.GetPreviousDirectory()
+		# self.previousDirectoryList       = self.GetPreviousDirectories()
+		# self.previousLoadedDirectory     = self.GetPreviousDirectory()
 		self.exportDirectory             = None
 
-		self.LoadOptions()
+		self.v_bgc = [.6,.3,.3]
+
 		# self.CreateWindow()
+
+	def post_init(self,*args,**kws):
+		self.LoadOptions()
 
 	@property
 	def directory(self):
@@ -150,14 +161,16 @@ example:
 		self.showBaked     = bool(self.showBakedStore.getValue())
 		self.categoryIndex = int(self.categoryStore.getValue())
 		
-		self.exportDirectory = self.optionVarExportDirStore.getValue() if self.optionVarExportDirStore.getValue() else ""
+		#self.exportDirectory = self.optionVarExportDirStore.getValue() if self.optionVarExportDirStore.getValue() else ""
 		#self.exportCommand   = mc.optionVar(q=self.exportCommandStore) if mc.optionVar(exists=self.exportCommandStore) else ""
+		if self.optionVarProjectStore.getValue():
+			self.LoadProject(self.optionVarProjectStore.getValue())
 
 	def SaveOptions(self, *args):
 		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
 		
 		self.showBakedStore.setValue(self.showBaked)
-		self.optionVarExportDirStore.setValue( self.exportDirectory )
+		# self.optionVarExportDirStore.setValue( self.exportDirectory )
 		self.categoryStore.setValue( self.categoryIndex )
 		#mc.optionVar( stringValue = [self.exportCommandStore, self.exportCommand] )
 		
@@ -218,16 +231,28 @@ example:
 		##############################
 		# Top Column Layout 
 		##############################
+		
+
 		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate') #mc.columnLayout(adjustableColumn=True)
 		
+		_imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
+		imageRow = mUI.MelHRowLayout(_directoryColumn,bgc=self.v_bgc)
+		
+		#mUI.MelSpacer(imageRow,w=10)
+		self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
+		self.uiImage_Project.setImage(_imageFailPath)
+		#mUI.MelSpacer(imageRow,w=10)	
+		imageRow.layout()    
+
 		cgmUI.add_LineSubBreak()
 
 		_uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
+		
 		mUI.MelLabel(_uiRow_dir,l='Directory', w=100)
-		self.directoryTF = mUI.MelTextField(_uiRow_dir, changeCommand=self.ChangeAnimationDirectory)
+		self.directoryTF = mUI.MelTextField(_uiRow_dir, editable = False, bgc=(.8,.8,.8))
 		self.directoryTF.setValue( self.directory )
 
-		mUI.MelButton(_uiRow_dir, label='set', ut = 'cgmUITemplate', command=self.SetAnimationDirectory, width=100)
+		#mUI.MelButton(_uiRow_dir, label='set', ut = 'cgmUITemplate', command=self.SetAnimationDirectory, width=100)
 
 		mUI.MelSpacer(_uiRow_dir,w=5)
 
@@ -236,9 +261,9 @@ example:
 
 		_uiRow_export = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
 		mUI.MelLabel(_uiRow_export,l='Export Dir', w=100)
-		self.exportDirectoryTF = mUI.MelTextField(_uiRow_export, changeCommand=self.ChangeExportDirectory)
+		self.exportDirectoryTF = mUI.MelTextField(_uiRow_export, editable = False, bgc=(.8,.8,.8))
 		self.exportDirectoryTF.setValue( self.exportDirectory )
-		mUI.MelButton(_uiRow_export, label='set', ut = 'cgmUITemplate', command=self.SetExportDirectory, width=100)
+		#mUI.MelButton(_uiRow_export, label='set', ut = 'cgmUITemplate', command=self.SetExportDirectory, width=100)
 
 		mUI.MelSpacer(_uiRow_export,w=5)                      
 
@@ -247,6 +272,9 @@ example:
 		_uiRow_export.layout()
 
 		mc.setParent(_MainForm)
+
+		_uiRow_export(e=True, vis=False)
+		_uiRow_dir(e=True, vis=False)
 
 		##############################
 		# Main Asset Lists 
@@ -562,8 +590,8 @@ example:
 		# mc.showWindow( self.window )
 
 	def show( self ):
-		if self.previousLoadedDirectory:
-			self.LoadCategoryList(self.previousLoadedDirectory)
+		# if self.previousLoadedDirectory:
+		# 	self.LoadCategoryList(self.previousLoadedDirectory)
 
 		self.LoadPreviousSelection()
 		
@@ -577,7 +605,7 @@ example:
 		_str_func = 'build_menus[{0}]'.format(self.__class__.TOOLNAME)            
 		log.info("|{0}| >>...".format(_str_func))   
 		
-		self.uiMenu_FileMenu = mUI.MelMenu( l='File', pmc=self.buildMenu_file)		        
+		self.uiMenu_FileMenu = mUI.MelMenu( l='Projects', pmc=self.buildMenu_file)		        
 		self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
 		self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools)  
 		self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
@@ -585,20 +613,21 @@ example:
 	def buildMenu_file( self, *args):
 		self.uiMenu_FileMenu.clear()
 		#>>> Reset Options			
-		mUI.MelMenuItem( self.uiMenu_FileMenu, l="Open",
-						 #en = _b_reload,
-						 c = lambda *a:mc.evalDeferred(self.OpenDirectory,lp=True))
-						 #c=cgmGEN.Callback(reloadUI,self.__class__,self.WINDOW_NAME))
-						 #c=lambda *a: reloadUI(self.__class__,self.WINDOW_NAME))		
+		
+		mPathList = cgmMeta.pathList('cgmProjectPaths')
+
+		project_names = []
+		for i,p in enumerate(mPathList.mOptionVar.value):
+			proj = Project.data(filepath=p)
+			name = proj.d_project['name']
+			project_names.append(name)
+			mUI.MelMenuItem( self.uiMenu_FileMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
+						 c = partial(self.LoadProject,p))
 		
 		mUI.MelMenuItemDiv( self.uiMenu_FileMenu )
 
-		mUI.MelMenuItem( self.uiMenu_FileMenu, l="Clear List",
-						 #en = _b_reload,
-						 #c = cgmGEN.Callback(resetUI(str(self.WINDOW_NAME))))
-						 c = lambda *a:mc.evalDeferred(self.ClearPreviousDirectories,lp=True))                         
-						 #c=cgmGEN.Callback( resetUI,self.__class__, self.WINDOW_NAME, self.l_optionVars))                         
-						 #c=lambda *a: resetUI(self.__class__, self.WINDOW_NAME, self.l_optionVars))    
+		mUI.MelMenuItem( self.uiMenu_FileMenu, l="MRSProject",
+						 c = lambda *a:mc.evalDeferred(Project.ui,lp=True))                         
 
 		# self.fileListMenuItems.append(mc.menuItem( label='Open', c=self.OpenDirectory ))
 		# self.fileListMenuItems.append(mc.menuItem( d=True ))
@@ -728,17 +757,17 @@ example:
 		self.SaveOptions()
 
 	def LoadCategoryList(self, directory="", *args):
-		p = self.GetPreviousDirectories()
-		if len(p) >= 10:
-			for i in range(len(p) - 9):
-				self.optionVarDirStore.removeIndex(0)
+		# p = self.GetPreviousDirectories()
+		# if len(p) >= 10:
+		# 	for i in range(len(p) - 9):
+		# 		self.optionVarDirStore.removeIndex(0)
 
-		if directory not in p:
-			self.optionVarDirStore.append(directory)
+		# if directory not in p:
+		# 	self.optionVarDirStore.append(directory)
 
 		self.directory = directory
 
-		self.buildMenu_file()
+		#self.buildMenu_file()
 
 		# populate animation info list
 		#fileExtensions = ['mb', 'ma']
@@ -760,9 +789,7 @@ example:
 		charList = sorted(charList, key=lambda v: v.upper())
 
 		self.UpdateAssetList(charList)
-
-		self.StoreCurrentDirectory()
-		
+	
 		self.animationList['items'] = []
 		self.animationList['scrollList'].clear()
 		
@@ -886,28 +913,6 @@ example:
 		if x:
 			self.LoadCategoryList(x[0])
 
-	def ChangeAnimationDirectory(self, *args):
-		newPath = self.directory
-		if os.path.exists(newPath):
-			self.LoadCategoryList(newPath)
-
-	def SetExportDirectory(self, *args):
-		basicFilter = "*"
-		x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
-		if x:
-			self.exportDirectory = x[0]
-
-		self.exportDirectoryTF.setValue( self.exportDirectory )
-		self.optionVarExportDirStore.setValue( self.exportDirectory )
-		#self.SaveOptions()
-
-	def ChangeExportDirectory(self, *args):
-		newPath = self.exportDirectory
-		if os.path.exists(newPath):
-			#self.LoadCategoryList(newPath)
-			self.exportDirectory = newPath
-			self.SaveOptions()
-
 	def GetPreviousDirectories(self, *args):
 		if type(self.optionVarDirStore.getValue()) is list:
 			return self.optionVarDirStore.getValue()
@@ -918,14 +923,11 @@ example:
 		self.assetList['items'] = charList
 		self.assetList['scrollList'].setItems(charList)
 
-	def GetPreviousDirectory(self, *args):
-		if self.optionVarLastDirStore.getValue():
-			return self.optionVarLastDirStore.getValue()
-		else:
-			return None
-
-	def StoreCurrentDirectory(self, *args):
-		self.optionVarLastDirStore.setValue(self.directory)
+	# def GetPreviousDirectory(self, *args):
+	# 	if self.optionVarLastDirStore.getValue():
+	# 		return self.optionVarLastDirStore.getValue()
+	# 	else:
+	# 		return None
 
 	def StoreCurrentSelection(self, *args):
 		if self.assetList['scrollList'].getSelectedItem():
@@ -1104,6 +1106,31 @@ example:
 	def OpenDirectory(self, path):
 		#subprocess.Popen('explorer %s' % path)
 		os.startfile(path)
+
+	def LoadProject(self, path, *args):
+		if not os.path.exists(path):
+			mel.eval('warning "No Project Set"')
+
+		proj = Project.data(filepath=path)
+
+		if os.path.exists(proj.d_paths['content']):
+			self.optionVarProjectStore.setValue( path )
+
+			self.LoadCategoryList(proj.d_paths['content'])
+			
+			self.exportDirectory = proj.d_paths['export']
+
+			self.exportDirectoryTF.setValue( self.exportDirectory )
+			# self.optionVarExportDirStore.setValue( self.exportDirectory )
+
+			if os.path.exists(proj.d_paths['image']):
+				self.uiImage_Project.setImage(proj.d_paths['image'])
+			else:
+				_imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
+				self.uiImage_Project.setImage(_imageFailPath)
+
+		else:
+			mel.eval('error "Project path does not exist"')
 
 	def OpenAssetDirectory(self, *args):
 		self.OpenDirectory(self.categoryDirectory)
@@ -1378,8 +1405,8 @@ def PurgeData():
 	optionVarLastVariationStore.purge()
 	optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
 	optionVarLastVersionStore.purge()
-	optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_export_directory", varType = "string")
-	optionVarExportDirStore.purge()
+	# optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_export_directory", varType = "string")
+	# optionVarExportDirStore.purge()
 	showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
 	showBakedStore.purge()
 	categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
