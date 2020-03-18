@@ -1114,6 +1114,7 @@ def initializeTemplates():
     mc.rowColumnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
     mc.columnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)  
     mc.frameLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor) 
+    mc.text(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor) 
 
     # Define our Locked
     if mc.uiTemplate( 'cgmUILockedTemplate', exists=True ):
@@ -1121,6 +1122,7 @@ def initializeTemplates():
     mc.uiTemplate('cgmUILockedTemplate')
     mc.textField(dt = 'cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor, h=20)
     mc.frameLayout(dt='cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor) 
+    mc.text(dt='cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor) 
 
 #=========================================================================
 # OptionVars

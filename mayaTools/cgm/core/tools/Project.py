@@ -53,6 +53,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 import cgm.core.classes.GuiFactory as cgmUI
+reload(cgmUI)
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
 reload(COREPATHS)
@@ -203,6 +204,7 @@ class ui(cgmUI.cgmGUI):
         self.d_tf = {}
         self.d_uiTypes = {}
         self.d_buttons = {}
+        self.d_labels = {}
         
     def uiProject_new(self):
         _str_func = 'uiProject_new'
@@ -346,19 +348,45 @@ class ui(cgmUI.cgmGUI):
                 
         #Lock fields...
         _enable = True
+        _editable = True
+        _color = 1,1,1
+        _template = 'cgmUITemplate'
+        
         if self.mDat.d_project['lock'] == 'True':
             _enable = False
+            _editable = False
+            _color = .2,.2,.2
+            _template = 'cgmUILockedTemplate'
             
-        for k,tf in self.d_tf['pathsProject'].iteritems():
-            tf(edit=True,
-               bgc = (1,1,1),
-               ut = 'cgmUITemplate',
-               en=_enable)
+            for k,tf in self.d_tf['pathsProject'].iteritems():
+                tf(edit=True,visible=False)
+                
+            for k,tf in self.d_labels['pathsProject'].iteritems():
+                tf(edit=True,visible=True,
+                   label = self.d_tf['pathsProject'][k].getValue())
+                
+            for k,tf in self.d_buttons['pathsProject'].iteritems():
+                tf(edit=True,
+                   visible =False)
+            
+        
+        else:
+            for k,tf in self.d_tf['pathsProject'].iteritems():
+                tf(edit=True,visible=True)
+            for k,tf in self.d_labels['pathsProject'].iteritems():
+                tf(edit=True,visible=False)
+                
+            for k,tf in self.d_buttons['pathsProject'].iteritems():
+                tf(edit=True,
+                   visible =True)
+                    
+        #for k,tf in self.d_tf['pathsProject'].iteritems():
+            #tf(edit=True,
+               #bgc = _color,
+               #ut = _template,
+               #en=True,)
                
-        for k,tf in self.d_buttons['pathsProject'].iteritems():
-            tf(edit=True,
-               ut = 'cgmUITemplate',
-               en=_enable)            
+     
             
             
             
@@ -830,6 +858,8 @@ class ui(cgmUI.cgmGUI):
         #>>>Project =====================================================================================
         cgmUI.add_Header('Project')
         self.d_tf['pathsProject'] = {}
+        self.d_labels['pathsProject'] = {}
+        _d3 =  self.d_labels['pathsProject']
         _d = self.d_tf['pathsProject']
         self.d_uiTypes['pathsProject'] = {}
         
@@ -845,9 +875,13 @@ class ui(cgmUI.cgmGUI):
             mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
             #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
             _d[key] =  mUI.MelTextField(_row,
-                                        ann='Project Path | {0}'.format(key),
-                                        cc = cgmGEN.Callback(self.uiCC_checkPath,key,'project'),
-                                        text = '')
+                                    ann='Project Path | {0}'.format(key),
+                                    cc = cgmGEN.Callback(self.uiCC_checkPath,key,'project'),
+                                    )
+            _d3[key] =  mUI.MelLabel(_row,
+                                     ann='Project Path | {0}'.format(key),
+                                     vis=False,
+                                     )            
             
             _d2[key] = mUI.MelButton(_row,
                                      l = 'Set',
@@ -862,10 +896,11 @@ class ui(cgmUI.cgmGUI):
             mUI.MelSpacer(_row,w=5)
             _row.layout()
             
-        cgmUI.add_LineSubBreak()
         
         #>>>Local =====================================================================================
         mc.setParent(_inside)
+        cgmUI.add_LineSubBreak()
+        
         cgmUI.add_Header('Local')
         #cgmUI.add_LineSubBreak()
         self.d_tf['paths'] = {}
@@ -1402,7 +1437,7 @@ class data(object):
             log.debug("Checking...{0}".format(k))
             
             if _config.has_key(k):
-                pprint.pprint(_config[k])
+                #pprint.pprint(_config[k])
                 
                 self.__dict__[PU._dataConfigToStored[k]] = _config[k]
             else:
