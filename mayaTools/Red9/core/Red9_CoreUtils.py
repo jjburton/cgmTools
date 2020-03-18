@@ -256,10 +256,21 @@ def filterListByString(input_list, filter_string, matchcase=False):
     the filtering used in the UI's is consistent. Used by the poseSaver, facialUI,
     MetaUI and many others.
 
+    see : https://docs.python.org/3.3/howto/regex.html , http://www.pyregex.com , or search for Regex cheat sheets
+
     :param iniput_list: list of strings to be filtered
     :param filter_string: string to use in the filter, supports comma separated search strings
         eg : 'brows,smile,funnel'
     :param matchcase: whether to match or ignore case sensitivity
+
+    .. note::
+        this is a Regex search but it's managed under the hood.
+        >> 'attack knife' would yield matches with 'attack and knife in the string, similar to 'attack*.*knife in windows, compiles to ('attack.*knife')
+        >> 'attack..knife' would yield matches with 'attack12knife' 2 wildcards between the params (dots are wildcards in regex), compiles to ('attack..knife')
+        >> 'attack.*knife' would yield matches with 'attack_big_massive_knife' because of the .* is multiple wildcards between the search params, compiles to ('attack.*knife')
+        >> 'attack,knife' would yield matches with either 'attack' and 'knife' in the string, compiles to ('attack|knife') with the '|' or operator
+        >> 'attack|knife' same as above
+        >> 'attack$' would match 'we_attack' but not 'they_attacked' as the $ is used here as the end of the search string
     '''
 
     if not matchcase:
@@ -354,7 +365,7 @@ class FilterNode_Settings(object):
     '''
     Simple concept, this settings object is passed into the filterNode Calls
     and is used to setup how hierarchies are processed and filtered. This is
-    class is used through out Red in conjunction with the filterNode class. 
+    class is used through out Red in conjunction with the filterNode class.
 
     Default settings bound:
         * nodeTypes: []  - search for given Maya nodeTypes'
@@ -420,7 +431,7 @@ class FilterNode_Settings(object):
 
     def filterIsActive(self):
         '''
-        the filter is deemed to be active if any of the filterSettings would 
+        the filter is deemed to be active if any of the filterSettings would
         produce a hierarchy search.
         '''
         if self.nodeTypes or self.searchAttrs or self.searchPattern or self.hierarchy or self.metaRig:
@@ -454,7 +465,7 @@ class FilterNode_Settings(object):
         '''
         reset the MAIN filter args only
 
-        :param rigData: this is a cached attr and not fully handled 
+        :param rigData: this is a cached attr and not fully handled
             by the UI hence the option NOT to reset, used by the UI presetFill calls
         '''
         self.nodeTypes = []
@@ -471,7 +482,7 @@ class FilterNode_Settings(object):
 
     def setByDict(self, data):
         '''
-        set the filetrSettings via a dict correctly formatted, used 
+        set the filetrSettings via a dict correctly formatted, used
         to pull the data back from an MRig that has this data bound to it
 
         :param data: dict of data formatted as per the filterSettings keys.
@@ -502,7 +513,7 @@ class FilterNode_Settings(object):
         :param filepath: file path to write the configFile out to
 
         .. note::
-            If filepath doesn't exists or you pass in just the short name of the config you 
+            If filepath doesn't exists or you pass in just the short name of the config you
             want to load then we try and find a matching config in the default presets dir in Red9
         '''
         self.resetFilters()
@@ -529,18 +540,21 @@ class FilterNode_UI(object):
         # Make a single filterNode instance
         self._filterNode = FilterNode()
         self._filterNode.settings.transformClamp = True
+        self.win = 'NodeSearch'
+        self.cbNodeTypes = []  # checkBox store for nodeTypes
 
     @classmethod
     def show(cls):
         cls()._showUI()
 
-    def _showUI(self):
-        self.win = 'NodeSearch'
-        self.cbNodeTypes = []  # checkBox store for nodeTypes
-
+    def close(self):
         if cmds.window(self.win, exists=True):
             cmds.deleteUI(self.win, window=True)
-        window = cmds.window(self.win, title=LANGUAGE_MAP._SearchNodeUI_.title, widthHeight=(400, 400))
+
+    def _showUI(self):
+        self.close()
+
+        window = cmds.window(self.win, title=LANGUAGE_MAP._SearchNodeUI_.title)  # , widthHeight=(400, 400))
         cmds.menuBarLayout()
         cmds.menu(l=LANGUAGE_MAP._Generic_.vimeo_menu)
         cmds.menuItem(l=LANGUAGE_MAP._Generic_.vimeo_help,
@@ -622,8 +636,9 @@ class FilterNode_UI(object):
         cmds.separator(h=15, style='none')
         cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp',
                              c=lambda *args: (r9Setup.red9ContactInfo()), h=22, w=200)
+        cmds.separator(h=15, style='none')
         cmds.showWindow(window)
-        cmds.window(self.win, e=True, widthHeight=(400, 400))
+        # cmds.window(self.win, e=True, widthHeight=(400, 400))
 
     def __uiCall(self, mode):
         if mode == 'intersection':
@@ -685,21 +700,30 @@ class FilterNode(object):
     If the arg roots[] is given then the code filters the hierarchy's of these roots.
     If roots is not given then the functions will search globally at a scene level.
 
-    Note that the main call, ProcessFilter() is only part of this class, there are 
+    Note that the main call, ProcessFilter() is only part of this class, there are
     many other specific filtering functions for finding nodes in your Maya scene.
 
     This is a crucial class and used extensively in Red9 where ever hierarchies
-    are in need of filtering. Used in conjunction with a FilterNode_Settings object 
-    which,if not given, gets bound to self.settings. 
+    are in need of filtering. Used in conjunction with a FilterNode_Settings object
+    which,if not given, gets bound to self.settings.
 
     >>> flt = FilterNode(rootNode)
     >>> flt.settings.nodeTypes=['nurbsCurve']
     >>> filt.settings.searchPattern=['Ctrl']
     >>> filt.ProcessFilter()
 
-    The above makes a filterNode class, we pass in our hierarchies rootNode (string), 
-    then set the internal settings to filter the hierarchy for all child nurbsCurves 
+    The above makes a filterNode class, we pass in our hierarchies rootNode (string),
+    then set the internal settings to filter the hierarchy for all child nurbsCurves
     who's name includes 'Ctrl'. Finally the ProcessFilter runs the main call.
+
+    .. note::
+        the searchPattern is a compiled Regex search but it's managed under the hood.
+        >> 'attack knife' would yield matches with 'attack and knife in the string, similar to 'attack*.*knife in windows, compiles to ('attack.*knife')
+        >> 'attack..knife' would yield matches with 'attack12knife' 2 wildcards between the params (dots are wildcards in regex), compiles to ('attack..knife')
+        >> 'attack.*knife' would yield matches with 'attack_big_massive_knife' because of the .* is multiple wildcards between the search params, compiles to ('attack.*knife')
+        >> 'attack,knife' would yield matches with either 'attack' and 'knife' in the string, compiles to ('attack|knife') with the '|' or operator
+        >> 'attack|knife' same as above
+        >> 'attack$' would match 'we_attack' but not 'they_attacked' as the $ is used here as the end of the search string
     '''
     def __init__(self, roots=None, filterSettings=None):
         '''
@@ -734,7 +758,6 @@ class FilterNode(object):
         else:
             self.processMode = 'Scene'
 
-
     # Properties Block
     # ---------------------------------------------------------------------------------
 
@@ -766,7 +789,7 @@ class FilterNode(object):
 
     def __mrig_cast_settings(self):
         '''
-        get connected metaNodes relative to the rootNode then validate if we have an mRig to 
+        get connected metaNodes relative to the rootNode then validate if we have an mRig to
         process, if we do then we look for the internal filterSettings data the new rigs carry
         and overload the filterSettings of this class with some of that data
         '''
@@ -874,8 +897,7 @@ class FilterNode(object):
                         self.hierarchy.extend(cmds.listRelatives(node, ad=True, f=True, type='transform') or [])
             return self.hierarchy
         else:
-            raise StandardError('rootNodes not given to class - processing at SceneLevel Only - lsHierarchy is therefore invalid') 
-
+            raise StandardError('rootNodes not given to class - processing at SceneLevel Only - lsHierarchy is therefore invalid')
 
     # Node Management Block
     # ---------------------------------------------------------------------------------
@@ -906,7 +928,7 @@ class FilterNode(object):
         self.foundNodeTypes = []
         typeMatched = []
         if logging_is_debug():
-            log.debug('lsSearchNodeTypes : params : nodeTypes=%s, nodes=%s, incRoots=%i, transformClamp=%i'\
+            log.debug('lsSearchNodeTypes : params : nodeTypes=%s, nodes=%s, incRoots=%i, transformClamp=%i'
                    % (nodeTypes, nodes, incRoots, transformClamp))
 
         if not isinstance(nodeTypes, list):
@@ -999,7 +1021,6 @@ class FilterNode(object):
 
         log.debug('NodeTypes Found: %s', self.foundNodeTypes)
         return self.foundNodeTypes
-
 
     # Easy wrappers for .completion if an instance is taken
     # ---------------------------------------------------------------------------------
@@ -1129,7 +1150,6 @@ class FilterNode(object):
                 # if curve.keyTimeValue.isLocked(): return False
             return safeCurves
 
-
     # Attribute Management Block
     # ---------------------------------------------------------------------------------
 
@@ -1155,8 +1175,9 @@ class FilterNode(object):
             similarly 'NOT:myAttr=2.33' will exclude if the value is equal
             see the ..\Red9\tests\Red9_CoreUtilTests.py for live unittest examples
 
-        TODO: current Implementation DOES NOT allow multiple attr tests as only 1 val per key 
-            in the excludeAttrs and includeAttrs is currently supported!!!!!!
+        .. note::
+            current Implementation DOES NOT allow multiple attr tests as only 1 val per key
+            in the excludeAttrs and includeAttrs is currently supported!!
         '''
 
         self.foundAttributes = []
@@ -1280,7 +1301,6 @@ class FilterNode(object):
         else:
             return self.foundAttributes
 
-
     # Name Management Block
     # ---------------------------------------------------------------------------------
 
@@ -1294,7 +1314,7 @@ class FilterNode(object):
         :param incRoots: Include the given root nodes in the search, default=True
             Valid only if the Class is in 'Selected' processMode only.
 
-        .. note:: 
+        .. note::
             If the searchPattern has an entry in the form NOT:searchtext then this will be forcibly
             excluded from the filter. ie, My_L_Foot_Ctrl will be excluded with the following pattern
             ['Ctrl','NOT:My'] where Ctrl finds it, but the 'NOT:My' tells the filter to skip it if found
@@ -1340,7 +1360,6 @@ class FilterNode(object):
             self.foundPattern = [node for node in nodes if incRegex.search(nodeNameStrip(node))]
 
         return self.foundPattern
-
 
     # Character Set Management Block
     # ---------------------------------------------------------------------------------
@@ -1438,7 +1457,6 @@ class FilterNode(object):
                 rigCtrls.extend(ctrls)
         return rigCtrls
 
-
     # Main Search Call which uses the Settings Object
     # ---------------------------------------------------------------------------------
 
@@ -1495,7 +1513,7 @@ class FilterNode(object):
 
             # MetaClass Filter ------------------------------
             if self.settings.metaRig:
-                # run the main getChildren calls for hierarchy structure  
+                # run the main getChildren calls for hierarchy structure
                 nodes = self.lsMetaRigControllers(incMain=self.settings.incRoots)
                 addToIntersection(nodes)
                 if not nodes:
@@ -1543,10 +1561,6 @@ class FilterNode(object):
 def getBlendTargetsFromMesh(node, asList=True, returnAll=False, levels=4, indexes=False):  # levels=1)
     '''
     quick func to return the blendshape targets found from a give mesh's connected blendshape's
-
-    TODO: missing index's used to be an issue if you'd deleted a target Maya would leave the 
-    index free resulting in blank targets, doesn't seem to do that now?? Also what do we 
-    return and in what format if we have multiple blendShapes on the node?
 
     :param node: node to inspect for blendShapes, or the blendshape itself
     :param asList: return as a straight list of target names or a dict of data
@@ -1707,7 +1721,7 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix', returnfails=
 
         if unmatched and logging_is_debug():
             for node in unmatched:
-                infoPrint+='\n!! Unresolved Matched Node !! : Match Method : %s : %s' % (matchMethod, node.split('|')[-1])
+                infoPrint += '\n!! Unresolved Matched Node !! : Match Method : %s : %s' % (matchMethod, node.split('|')[-1])
 
     log.debug('\nMatched Log : \n%s' % infoPrint)
     infoPrint = None
@@ -1870,10 +1884,13 @@ class LockChannels(object):
         def show(cls):
             cls()._showUI()
 
-        def _showUI(self):
+        def close(self):
             if cmds.window(self.win, exists=True):
                 cmds.deleteUI(self.win, window=True)
-            window = cmds.window(self.win, title=LANGUAGE_MAP._LockChannelsUI_.title, s=False, widthHeight=(260, 410))
+
+        def _showUI(self):
+            self.close()
+            window = cmds.window(self.win, title=LANGUAGE_MAP._LockChannelsUI_.title, s=False)  # widthHeight=(260, 410))
             cmds.menuBarLayout()
             cmds.menu(l=LANGUAGE_MAP._Generic_.vimeo_menu)
             cmds.menuItem(l=LANGUAGE_MAP._Generic_.vimeo_help,
@@ -1989,9 +2006,9 @@ class LockChannels(object):
             cmds.separator(h=15, style='none')
             cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp',
                                  c=lambda *args: (r9Setup.red9ContactInfo()), h=22, w=200)
-
+            cmds.separator(h=15, style='none')
             cmds.showWindow(window)
-            cmds.window(self.win, e=True, widthHeight=(260, 410))
+            # cmds.window(self.win, e=True, widthHeight=(260, 410))
 
         def __uicheckboxCallbacksAttr(self, mode, attrs):
             if not isinstance(attrs, list):
@@ -2078,7 +2095,6 @@ class LockChannels(object):
                     # print self.attrs
             LockChannels.processState(cmds.ls(sl=True, l=True), self.attrs, mode, self.hierarchy, self.userDefined)
 
-
     # MapFile calls
     # ----------------------------------
     def _buildAttrStateDict(self, nodes):
@@ -2140,7 +2156,7 @@ class LockChannels(object):
             Here we're dealing with 2 possible sets of data, either decoded by the
             ConfigObj decoder or a JSON deserializer and there's subtle differences in the dict
             thats returned hence the decodeString() calls
-        TODO: Add progress bar?
+
         '''
         if not nodes:
             nodes = cmds.ls(sl=True, l=True)
@@ -2165,7 +2181,9 @@ class LockChannels(object):
                 currentAttrs = r9Anim.getChannelBoxAttrs(node, asDict=False)
                 for attr in currentAttrs:
                     try:
-                        cmds.setAttr('%s.%s' % (node, attr), keyable=False, lock=True, channelBox=False)
+                        # do not just blanket lock these!
+                        if not attr in ['rotate', 'translate', 'scale']:
+                            cmds.setAttr('%s.%s' % (node, attr), keyable=False, lock=True, channelBox=False)
                     except:
                         log.info('%s : failed to set initial state' % attr)
 
@@ -2174,21 +2192,21 @@ class LockChannels(object):
                 if not decodeString(self.statusDict[key]['keyable']) == None:
                     for attr in self.statusDict[key]['keyable']:
                         try:
-                            # print 'keyable',attr
+#                             print 'keyable',attr
                             cmds.setAttr('%s.%s' % (node, attr), k=True, l=False)
                         except:
                             log.debug('%s : failed to set keyable attr status' % attr)
                 if not decodeString(self.statusDict[key]['locked']) == None:
                     for attr in self.statusDict[key]['locked']:
                         try:
-                            # print 'locked',attr
+#                             print 'locked',attr
                             cmds.setAttr('%s.%s' % (node, attr), k=True, l=True)
                         except:
                             log.debug('%s : failed to set locked attr status' % attr)
                 if not decodeString(self.statusDict[key]['nonKeyable']) == None:
                     for attr in self.statusDict[key]['nonKeyable']:
                         try:
-                            # print 'nonKeyable',attr
+#                             print 'nonKeyable',attr
                             cmds.setAttr('%s.%s' % (node, attr), cb=True)
                             cmds.setAttr('%s.%s' % (node, attr), l=False, k=False)
                         except:
@@ -2196,7 +2214,7 @@ class LockChannels(object):
         log.info('<< AttrMap Processed >>')
 
     @staticmethod
-    def processState(nodes, attrs=None, mode=None, hierarchy=False, userDefined=False):
+    def processState(nodes, attrs=None, mode=None, hierarchy=False, userDefined=False, attrKws={}):
         '''
         Easy wrapper to manage channels that are keyable / locked
         in the channelBox.
@@ -2206,11 +2224,13 @@ class LockChannels(object):
         :param mode: 'lock', 'unlock', 'hide', 'unhide', 'fullkey', 'lockall'
         :param hierarchy: process all child nodes, default is now False
         :param usedDefined: process all UserDefined attributes on all nodes
+        :param attrKws: if mode=None then these are the flags passed to the setAttr
+            command to control the node states, ie: {'keyable':True, 'lock':False, 'channelBox':True}
 
         >>> r9Core.LockChannels.processState(nodes, attrs=["sx", "sy", "sz", "v"], mode='lockall')
         >>>
         >>> # note: if attrs='all' we now set it to the following for ease:
-        >>> ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "v", "nds", "radius"]
+        >>> ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "v", "radius"]
         '''
         userDefAttrs = set()
         if not nodes:
@@ -2223,7 +2243,7 @@ class LockChannels(object):
             nodes = FilterNode(nodes).lsHierarchy(incRoots=True)
         _attrs = attrs
         if attrs == 'all':
-            _attrs = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "v", "nds", "radius", "radi"]
+            _attrs = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "v", "radius"]
         if attrs == 'transforms':
             _attrs = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"]
 
@@ -2232,7 +2252,8 @@ class LockChannels(object):
         if not type(_attrs) == set:
             _attrs = set(_attrs)
 
-        attrKws = {}
+        if mode:
+            attrKws = {}
 
         if mode == 'lock':
             attrKws['lock'] = True
@@ -2243,13 +2264,13 @@ class LockChannels(object):
         elif mode == 'unhide':
             attrKws['keyable'] = True
         elif mode == 'nonkeyable':
-            attrKws['cb'] = True
+            attrKws['channelBox'] = True
         elif mode == 'keyable':
-            attrKws['cb'] = False
+            attrKws['channelBox'] = False
         elif mode == 'fullkey':
             attrKws['keyable'] = True
             attrKws['lock'] = False
-			# force unlock the compounds also!
+            # force unlock the compounds also?
             if attrs == 'all' or attrs == 'transforms':
                 _attrs = _attrs | set(['translate', 'rotate', 'scale'])
         elif mode == 'lockall':
@@ -2263,7 +2284,7 @@ class LockChannels(object):
                     userDefAttrs = set(userDef)
             for attr in (_attrs | userDefAttrs):
                 try:
-                    log.debug('node: %s.%s' % (node,attr))
+                    log.debug('node: %s.%s' % (node, attr))
                     '''
                     If you pass in .tx but you've already locked the compound .translate then
                     the unlock will fail as it's parent compound is locked... do we fix this?
@@ -2392,9 +2413,23 @@ class TimeOffset(object):
     >>> flt.incRoots=True
     >>> flt.printSettings()
     >>>
-    >>> r9Core.TimeOffset().fromSelected(offset, filterSettings=flt, flocking=False, randomize=False)
+    >>> r9Core.TimeOffset.fromSelected(offset, filterSettings=flt, flocking=False, randomize=False)
 
     '''
+
+    # list of nodes processed by the systems so we no longer run the risk of offsetting a node twice!
+    _processed = {'animcurves': [],
+                  'sound': [],
+                  'animclips': [],
+                  'mnodes': [],
+                  'image_planes': [],
+                  'mnode_internals': []}
+
+    def __init__(self, cache_object=None):
+        if cache_object:
+            self._processed = cache_object
+            print 'consuming current cached object'
+
     @classmethod
     def fullScene(cls, offset, timelines=False, timerange=None, ripple=True, startfrm=False):
         '''
@@ -2412,18 +2447,22 @@ class TimeOffset(object):
 
         log.debug('TimeOffset Scene : offset=%s, timelines=%s' %
                   (offset, str(timelines)))
+        cls._processed = {}  # clear the cache
+
         with r9General.undoContext():
-            cls.animCurves(offset, timerange=timerange, ripple=ripple)
-            cls.sound(offset, mode='Scene', timerange=timerange, ripple=ripple)
-            cls.animClips(offset, mode='Scene', timerange=timerange, ripple=ripple)
+            cls._processed['mnodes'], cls._processed['mnode_internals'] = cls.metaNodes(offset, timerange=timerange, ripple=ripple)
+            cls._processed['animcurves'] = cls.animCurves(offset, timerange=timerange, ripple=ripple)
+            cls._processed['sound'] = cls.sound(offset, mode='Scene', timerange=timerange, ripple=ripple)
+            cls._processed['animclips'] = cls.animClips(offset, mode='Scene', timerange=timerange, ripple=ripple)
             if timelines:
                 cls.timelines(offset)
-            cls.metaNodes(offset, timerange=timerange, ripple=ripple)
-            print('Scene Offset Successfully')
+
+        print('Scene Offset Successfully')
+        return cls._processed
 
     @classmethod
     def fromSelected(cls, offset, nodes=None, filterSettings=None, flocking=False,
-                     randomize=False, timerange=None, ripple=True, mRigs=False, startfrm=False):
+                     randomize=False, timerange=None, ripple=True, mRigs=False, startfrm=False, currentSystem=False):
         '''
         Process the current selection list and offset as appropriate.
 
@@ -2439,6 +2478,11 @@ class TimeOffset(object):
             calculating the offset for you such that timerange[0] starts at the offset frm value, only works if timerange is passed in
         :param filterSettings: this is a FilterSettings_Node object used to pass all
             the filter types into the FilterNode code. Internally the following is true:
+        :param currentSystem: mRigs flag only: if True we check for the mSystemRoot attr (bool) on mNodes and if set,
+            we skip the node and all childnodes from that node. Why?? The mSystsmRoot attr is a marker to denote the
+            root of a given mRig system, by respecting this we clamp searches to the current system and prevent
+            walking into the connected child sub-system. Primarily used in ProPack to stop facial nodes being
+            returned and processed as part of the connected body rig.
 
             | settings.nodeTypes: list[] - search nodes of type
             | settings.searchAttrs: list[] - search nodes with Attrs of name
@@ -2446,6 +2490,7 @@ class TimeOffset(object):
             | settings.hierarchy: bool - process all children from the roots
             | settings.incRoots: bool - include the original root nodes in the filter
         '''
+#         currentSystem = True
         if timerange and startfrm:
             offset = offset - timerange[0]
             log.info('New Offset calculated based on given Start Frm and timerange : %s' % offset)
@@ -2460,6 +2505,7 @@ class TimeOffset(object):
                 basenodes = [nodes]
             else:
                 basenodes = nodes
+        cls._processed = {}  # clear the cache
 
         # deal with mNodes / mRigs
         # ======================================
@@ -2470,18 +2516,35 @@ class TimeOffset(object):
         if mRigs:
             _mrigs = []
             for node in basenodes:
+                # get directly connected mSystemRoots to the given node
                 mrig = r9Meta.getConnectedMetaSystemRoot(node)
                 if mrig and mrig not in _mrigs:
                     _mrigs.append(mrig)
+                    if not currentSystem:
+                        # PRO_PACK : extend those to child mRigs (facial connected to body as child)
+                        _child_mrigs = mrig.getChildSystemRoots()
+#                         _child_mrigs = mrig.getChildMetaNodes(walk=True, mInstances=['Pro_MetaRig','Pro_MetaRig_FacialUI'])
+                        if _child_mrigs:
+                            _mrigs.extend(_child_mrigs)
+
+            # ensure a clean list
+            _mrigs = list(set(_mrigs))
+
             if _mrigs:
+                mNodes.extend(_mrigs)
                 for rig in _mrigs:
-                    mNodes.extend(mrig.getChildMetaNodes(walk=True))
+                    _children = rig.getChildMetaNodes(walk=True, currentSystem=currentSystem)
+                    for _child in _children:
+                        if _child not in mNodes:
+                            mNodes.append(_child)
                     filtered.extend(rig.getChildren())
 
         # process everything
         # ======================================
         elif filterSettings:
             filtered = FilterNode(basenodes, filterSettings).processFilter()
+        else:
+            filtered = basenodes
 
         if filtered:
             with r9General.undoContext():
@@ -2498,31 +2561,35 @@ class TimeOffset(object):
                             rand = random.uniform(0, offset)
                             increment = cachedOffset + rand
                             cachedOffset += rand
-                        cls.animCurves(increment, node,
-                                       timerange=timerange,
-                                       ripple=ripple)
+                        cls._processed['animcurves'] = cls.animCurves(increment, node,
+                                                                      timerange=timerange,
+                                                                      ripple=ripple)
                         if logging_is_debug():
                             log.debug('animData randon/flock modified offset : %f on node: %s' % (increment, nodeNameStrip(node)))
                 else:
-                    cls.animCurves(offset, nodes=filtered,
-                                   timerange=timerange,
-                                   ripple=ripple)
-                    cls.sound(offset, mode='Selected',
-                                    audioNodes=FilterNode().lsSearchNodeTypes('audio', filtered),
-                                    timerange=timerange,
-                                    ripple=ripple)
-                    cls.animClips(offset, mode='Selected',
-                                    clips=FilterNode().lsSearchNodeTypes('animClip', filtered),
-                                    timerange=timerange,
-                                    ripple=ripple)
-                    cls.metaNodes(offset, timerange=timerange, ripple=ripple, mNodes=mNodes)
+                    cls._processed['mnodes'], cls._processed['mnode_internals'] = cls.metaNodes(offset, mNodes=mNodes,
+                                                                                                timerange=timerange,
+                                                                                                ripple=ripple)
+
+                    cls._processed['animcurves'] = cls.animCurves(offset, nodes=filtered, timerange=timerange, ripple=ripple)
+
+                    cls._processed['sound'] = cls.sound(offset, mode='Selected',
+                                                    audioNodes=FilterNode().lsSearchNodeTypes('audio', filtered),
+                                                    timerange=timerange,
+                                                    ripple=ripple)
+
+                    cls._processed['animclips'] = cls.animClips(offset, mode='Selected',
+                                                                clips=FilterNode().lsSearchNodeTypes('animClip', filtered),
+                                                                timerange=timerange,
+                                                                ripple=ripple)
                 log.info('Selected Nodes Offset Successfully')
+
+                return cls._processed
         else:
             raise StandardError('Nothing selected or returned from the Hierarchy filter to offset')
 
-    @staticmethod
-    @r9General.Timer
-    def animCurves(offset, nodes=None, timerange=None, ripple=True):
+    @classmethod
+    def animCurves(cls, offset, nodes=None, timerange=None, ripple=True):
         '''
         Shift Animation curves. If nodes are fed in to process then we do
         a number of aggressive searches to find all linked animation data.
@@ -2535,12 +2602,11 @@ class TimeOffset(object):
         :param ripple: manage the upper range of keys and ripple them with the offset
         '''
         safeCurves = FilterNode.lsAnimCurves(nodes, safe=True)
+        curves_moved = []
 
         if safeCurves:
             log.debug('AnimCurve Offset = %s ============================' % offset)
             # log.debug(''.join([('offset: %s\n' % curve) for curve in safeCurves]))
-            moved = 0
-
             if timerange:
                 rippleRange = (timerange[0], 1000000000)
                 if offset > 0:
@@ -2553,6 +2619,13 @@ class TimeOffset(object):
                 log.debug('Cutting time range : %s>%s' % (cutTimeBlock[0], cutTimeBlock[1]))
 
             for curve in safeCurves:
+                # bail if already processed
+                if 'animcurves' in cls._processed and curve in cls._processed['animcurves']:
+                    log.debug('skipping already processed animcurve : %s' % curve)
+                    continue
+                if 'mnode_internals' in cls._processed and curve in cls._processed['mnode_internals']:
+                    log.debug('skipping already processed animcurve : %s' % curve)
+                    continue
                 try:
                     if timerange:
                         try:
@@ -2568,11 +2641,12 @@ class TimeOffset(object):
                     else:
                         cmds.keyframe(curve, edit=True, r=True, timeChange=offset)
                     log.debug('offsetting: %s' % curve)
-                    moved += 1
+                    curves_moved.append(curve)
                 except StandardError, err:
                     log.info('Failed to offset curves fully : %s' % curve)
                     log.debug(err)
-            log.info('%i : AnimCurves were offset' % moved)
+            log.info('%i : AnimCurves were offset' % len(curves_moved))
+        return curves_moved
 
     @staticmethod
     def timelines(offset):
@@ -2585,8 +2659,8 @@ class TimeOffset(object):
                              min=cmds.playbackOptions(q=True, min=True) + offset,
                              max=cmds.playbackOptions(q=True, max=True) + offset)
 
-    @staticmethod
-    def sound(offset, mode='Scene', audioNodes=None, timerange=None, ripple=True):
+    @classmethod
+    def sound(cls, offset, mode='Scene', audioNodes=None, timerange=None, ripple=True):
         '''
         Offset Audio nodes.
 
@@ -2595,15 +2669,23 @@ class TimeOffset(object):
         :param audioNodes: optional, given nodes to process
         :param timerange: optional timerange to process (outer bounds only)
         :param ripple: when shifting nodes ripple the offset to sounds after the range,
-            if ripple=False we only shift audio that starts in tghe bounds of the timerange
+            if ripple=False we only shift audio that starts in the bounds of the timerange
         '''
+        sounds_offset = []
         if mode == 'Scene':
             audioNodes = cmds.ls(type='audio')
         if audioNodes:
-            nodesOffset = 0
             log.debug('AudioNodes Offset ============================')
             for sound in audioNodes:
                 try:
+                    # bail if already processed
+                    if 'sound' in cls._processed and sound in cls._processed['sound']:
+                        log.debug('skipping already processed sound : %s' % sound)
+                        continue
+                    if 'mnode_internals' in cls._processed and sound in cls._processed['mnode_internals']:
+                        log.debug('skipping already processed sound : %s' % sound)
+                        continue
+
                     audioNode = r9Audio.AudioNode(sound)
                     if timerange:
                         if not audioNode.startFrame > timerange[0]:
@@ -2613,14 +2695,15 @@ class TimeOffset(object):
                             log.info('Skipping Sound : %s > sound starts after the timerange ends' % sound)
                             continue
                     audioNode.offsetTime(offset)
-                    nodesOffset += 1
+                    sounds_offset.append(sound)
                     log.debug('offset : %s' % sound)
                 except:
                     log.debug('Failed to offset audio node %s' % sound)
-            log.info('%i : SoundNodes were offset' % nodesOffset)
+            log.info('%i : SoundNodes were offset' % len(sounds_offset))
+        return sounds_offset
 
-    @staticmethod
-    def animClips(offset, mode='Scene', clips=None, timerange=None, ripple=True):
+    @classmethod
+    def animClips(cls, offset, mode='Scene', clips=None, timerange=None, ripple=True):
         '''
         Offset Trax Clips
 
@@ -2631,12 +2714,21 @@ class TimeOffset(object):
         :param ripple: when shifting nodes ripple the offset to clips after the range,
             if ripple=False we only shift clips that starts in tghe bounds of the timerange
         '''
+        clips_moved = []
         if mode == 'Scene':
             clips = cmds.ls(type='animClip')
         if clips:
             log.debug('Clips Offset ============================')
             for clip in clips:
                 try:
+                    # bail if already processed
+                    if 'animclips' in cls._processed and clip in cls._processed['animclips']:
+                        log.debug('skipping already processed animclip : %s' % clip)
+                        continue
+                    if 'mnode_internals' in cls._processed and clip in cls._processed['mnode_internals']:
+                        log.debug('skipping already processed animclip : %s' % clip)
+                        continue
+
                     startFrame = cmds.getAttr('%s.startFrame' % clip)
                     if timerange:
                         if not startFrame > timerange[0]:
@@ -2646,42 +2738,52 @@ class TimeOffset(object):
                             log.info('Skipping Clip : %s > clip starts after the timerange begins' % clip)
                             continue
                     cmds.setAttr('%s.startFrame' % clip, startFrame + offset)
+                    clips_moved.append(clip)
                     log.debug('offset : %s' % clip)
                 except:
                     pass
-            log.info('%i : AnimClips were offset' % len(clips))
+            log.info('%i : AnimClips were offset' % len(clips_moved))
+        return clips_moved
 
-    @staticmethod
-    @r9General.Timer
-    def metaNodes(offset, timerange=None, ripple=True, mNodes=None):
+    @classmethod
+    def metaNodes(cls, offset, timerange=None, ripple=True, mNodes=None):
         '''
         Offset special handling for MetaNodes. Inspect the metaNode and see if
         the 'timeOffset' method has been implemented and if so, call it.
 
-        .. note::
-            ONLY runs in Scene mode and timerange and ripple are down to the metaNode
-            to handle in it's internal implementation
-
         :param offset: amount to offset the sounds nodes by
         :param timerange: optional timerange to process (outer bounds only)
         :param ripple: when shifting nodes ripple the offset to clips after the range,
-            if ripple=False we only shift clips that starts in tghe bounds of the timerange
+            if ripple=False we only shift clips that starts in the bounds of the timerange
+
+        .. note::
+            each timeOffset function implemented within a MetaClass must now return ALL Maya nodes (dag path)
+            that were processed by it (other than itself) so that these can be flagged as processed and
+            removed from the standard nodeType handlers in the TimeOffset class
         '''
-        nodesoffset = []
+        mNodes_offset = []
+        mNodes_internal_offset = []  # nodes OTHER than the mNode itself that the function offset
         if not mNodes:
             mNodes = r9Meta.getMetaNodes()
         if mNodes:
             log.debug('MetaData Offset ============================')
-            for mNode in mNodes:
+            for mNode in set(mNodes):
+                # bail if already processed
+                if 'mnode' in cls._processed and mNode.mNode in cls._processed['mnode']:
+                    log.debug('skipping already processed mNode : %s' % mNode)
+                    continue
+
                 if 'timeOffset' in dir(mNode) and callable(getattr(mNode, 'timeOffset')):
-                    mNode.timeOffset(offset, timerange=timerange, ripple=ripple)
-                    nodesoffset.append(mNode)
-            if nodesoffset:
+                    mNodes_internal_offset.extend(mNode.timeOffset(offset, timerange=timerange, ripple=ripple, cache_object=cls._processed) or [])
+                    mNodes_offset.append(mNode.mNode)  # set to cache as dag path to make sure we cover duplicate systems
+                log.debug('offset mnode : %s' % mNode)
+            if mNodes_offset:
                 log.info('================================')
                 log.info('timeOffset generic mClass called')
                 log.info('================================')
-            for i, node in enumerate(nodesoffset):
+            for i, node in enumerate(mNodes_offset):
                 log.info('%i : MetaData %s.timeOffset : called %s ' % (i, node.__class__.__name__, node))
+        return mNodes_offset, mNodes_internal_offset
 
 # -------------------------------------------------------------------------------------
 # Math functions ----
@@ -2736,6 +2838,49 @@ def valueToMappedRange(value, currentMin, currentMax, givenMin, givenMax):
     valueScaled = float(value - currentMin) / float(currentSpan)
     # Convert the 0-1 range into a value in the right range.
     return givenMin + (valueScaled * givenSpan)
+
+# def ui_dpi_scaling_factors(width=False, height=False, factor=False):
+#     '''
+#     this is a bodge really, but needed to remap the UI scales to 4k setups in some of
+#     the core StudioPack UI's. This basically uses a scaling factor based on the DPI of
+#     the screen setups. This is also used in ProPack to control some of the widget sizes
+#     so we can consistently scale icon widgets as expected.
+#     '''
+#     is_4k, _, _, ppi = r9Setup.maya_screen_mapping()
+#
+#     _factor = 1
+#
+#     if int(ppi) > 290: # 300% resolution scaling
+#         _factor = 2.15
+#     elif int(ppi) >= 240: # 250% resolution scaling
+#         _factor = 2.05
+#     elif int(ppi) >= 140:  # 150% resolution scaling
+#         _factor = 1.5
+#
+#     if factor:
+#         return _factor
+#
+#     _width = width * _factor
+#     _height = height * _factor
+#
+#     if width and height:
+#         return _width, _height
+#     elif width:
+#         return _width
+#     elif height:
+#         return _height
+#
+# #    if is_4k:
+#         # base size mapping setups
+# #        if width:
+# #            _width = max(valueToMappedRange(width, 500, 7673, 333, 5115), 100)
+# #        if height:
+# #           _height = max(valueToMappedRange(height, 355, 2021, 65, 1175), 100)
+#
+# #        # now multiply by the dpi, based on 144.0dpi being default
+# #        _width = _width * (144.0 / ppi)
+# #        _height = _height * (144.0 / ppi)
+
 
 def timeIsInRange(baseRange=(), testRange=(), start_inRange=True, end_inRange=True):
     '''
@@ -2965,4 +3110,3 @@ class MatrixOffset(object):
                     # cmds.setAttr('%s.scalePivot' % node, rotScal[1][0][0], rotScal[1][0][1], rotScal[1][0][2])   ?? why were we doing this ??
             except:
                 log.warning('Failed to apply offset Matrix too : %s' % node)
-

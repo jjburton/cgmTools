@@ -12,7 +12,7 @@ This is a new implementation of the PoseSaver core, same file format
 and ConfigObj but now supports relative pose data handled via a
 posePointCloud and the snapping core
 
-.. note:: 
+.. note::
 
     I use the node short name as the key in the dictionary so
     ALL NODES must have unique names or you may get unexpected  results!
@@ -49,7 +49,7 @@ def getFolderPoseHandler(posePath):
     a more detailed explanation.
 
     TODO: have this also accept a pointer to a handler file rather than a direct
-    poseHnadler.py file in each folder. This means we could point a folder to a generic handler 
+    poseHnadler.py file in each folder. This means we could point a folder to a generic handler
     inside our presets folder rather than having the code logic in each folder.
     '''
     poseHandler = None
@@ -83,6 +83,7 @@ class DataMap(object):
         self.filepath = ''  # path to load / save
         self.__filepath = ''
         self.filename = ''  # short name of the pose
+        self._read_mute = False  # a back-door to prevent the _readPose() call happening, allowing us to modify cached data safely
 
         self.dataformat = 'config'
         self._dataformat_resolved = None
@@ -186,7 +187,7 @@ class DataMap(object):
         if the poseFolder has a poseHandler.py file use that to
         return the nodes to use for the pose instead
 
-        :param rootNode: rootNode passed to the search poseHandlers 
+        :param rootNode: rootNode passed to the search poseHandlers
             poseGetNodesLoad or poseGetNodesSave functions
         :param mode: 'save' or 'load'
         '''
@@ -237,9 +238,9 @@ class DataMap(object):
         '''
         the returned list of attrs from this function will be
         COMPLETELY ignored by the pose system. They will not be saved
-        or loaded. 
+        or loaded.
 
-        .. note:: 
+        .. note::
             Currently only supported under MetaRig
         '''
         if self.metaRig and self.metaRig.hasAttr('poseSkippedAttrs'):
@@ -250,7 +251,7 @@ class DataMap(object):
         '''
         Attrs returned here will be cached prior to pose load, then restored in-tact afterwards
 
-        :param nodesToLoad: nodes that the pose is about to load the data too, 
+        :param nodesToLoad: nodes that the pose is about to load the data too,
             this is the already processed nodeList
         :param parentSpaceAttrs: attributes we want to be ignored by the load system
         '''
@@ -308,7 +309,6 @@ class DataMap(object):
                 'quaternion': [rots.x, rots.y, rots.z, rots.w],
                 'euler': euler}
 
-
     def _collectNodeData_attrs(self, node, key):
         '''
         Capture and build attribute data from this node and fill the
@@ -338,7 +338,7 @@ class DataMap(object):
 
     def _collectNodeData(self, node, key):
         '''
-        To Be Overloaded : what data to push into the main dataMap 
+        To Be Overloaded : what data to push into the main dataMap
         for each node found collected. This is the lowest level collect call
         for each node in the array.
         '''
@@ -583,7 +583,6 @@ class DataMap(object):
             except:
                 log.debug('Pose Object Key : %s : has no Attr block data' % key)
 
-
     def _applyData(self, *args, **kws):
         '''
         To Be Overloaded:
@@ -633,11 +632,15 @@ class DataMap(object):
             self._dataformat_resolved = 'json'
 
     @r9General.Timer
-    def _readPose(self, filename=None):
+    def _readPose(self, filename=None, force=False):
         '''
         Read the pose file and build up the internal poseDict
-        TODO: do we allow the data to be filled from the pose filter thats stored???????
+
+        :param filename: path to the file to read
+        :param force: fore the read, ignoring the internal _read_mute var
         '''
+        if self._read_mute and not force:
+            return
         if not filename:
             filename = self.filepath
         if filename:
@@ -718,7 +721,7 @@ class DataMap(object):
 
         if self.filepath:
             self._readPose(self.filepath)
-            log.info('Pose Read Successfully from : %s' % self.filepath)
+            log.debug('Pose Read Successfully from : %s' % self.filepath)
 
         # fill the skip list, these attrs will be totally ignored by the code
         self.skipAttrs = self.getSkippedAttrs(nodes[0])
@@ -751,14 +754,14 @@ class DataMap(object):
         '''
         matchedPairs = []
         unmatched = []
-        log.info('using matchMethod : %s' % self.matchMethod)
+        log.debug('using matchMethod : %s' % self.matchMethod)
 
         if not matchMethod:
             matchMethod = self.matchMethod
 
         # standard match method logic
         if matchMethod == 'stripPrefix' or matchMethod == 'base':
-            log.info('matchMethodStandard : %s' % matchMethod)
+            log.debug('matchMethodStandard : %s' % matchMethod)
             matchedPairs = r9Core.matchNodeLists([key for key in self.poseDict.keys()], nodes, matchMethod=matchMethod)
 
         # pose data specific logic
@@ -876,9 +879,9 @@ class DataMap(object):
         '''
         Generic entry point for the Data Save.
 
-        :param nodes: nodes to store the data against OR the rootNode if the 
+        :param nodes: nodes to store the data against OR the rootNode if the
             filter is active.
-        :param filepath: posefile to save - if not given the pose is cached on this 
+        :param filepath: posefile to save - if not given the pose is cached on this
             class instance.
         :param useFilter: use the filterSettings or not.
         :param storeThumbnail: save a thumbnail or not
@@ -911,11 +914,11 @@ class DataMap(object):
         '''
         Generic entry point for the Data Load.
 
-        :param nodes:  if given load the data to only these. If given and filter=True 
+        :param nodes:  if given load the data to only these. If given and filter=True
             this is the rootNode for the filter.
-        :param filepath: file to load - if not given the pose is loaded from a 
+        :param filepath: file to load - if not given the pose is loaded from a
             cached instance on this class.
-        :param useFilter: If the pose has an active Filter_Settings block and this 
+        :param useFilter: If the pose has an active Filter_Settings block and this
             is True then use the filter on the destination hierarchy.
         '''
 
@@ -953,12 +956,12 @@ class PoseData(DataMap):
 
     >>> node = '|group|Rig|Body|TestCtr'
     >>> poseDict['TestCtr'] 
-    >>> poseDict['TestCtr']['ID'] = 0   index in the Hierarchy used to build the data up 
-    >>> poseDict['TestCtr']['longName'] = '|group|Rig|Body|TestCtr' 
-    >>> poseDict['TestCtr']['attrs']['translateX'] = 0.5 
-    >>> poseDict['TestCtr']['attrs']['translateY'] = 1.0 
-    >>> poseDict['TestCtr']['attrs']['translateZ'] = 22 
-    >>> 
+    >>> poseDict['TestCtr']['ID'] = 0   index in the Hierarchy used to build the data up
+    >>> poseDict['TestCtr']['longName'] = '|group|Rig|Body|TestCtr'
+    >>> poseDict['TestCtr']['attrs']['translateX'] = 0.5
+    >>> poseDict['TestCtr']['attrs']['translateY'] = 1.0
+    >>> poseDict['TestCtr']['attrs']['translateZ'] = 22
+    >>>
     >>> # if we're storing as MetaData we also include:
     >>> poseDict['TestCtr']['metaData']['metaAttr'] = CTRL_L_Thing    = the attr that wires this node to the MetaSubsystem
     >>> poseDict['TestCtr']['metaData']['metaNodeID'] = L_Arm_System  = the metaNode this node is wired to via the above attr
@@ -982,19 +985,19 @@ class PoseData(DataMap):
         >>> pose=r9Pose.PoseData()
         >>> pose.metaPose=True
         >>> pose.filepath='C:/mypose.pose'
-        >>> 
+        >>>
         >>> # processPoseFile does just that, processes and build up the list of data but doesn't apply it
         >>> pose.processPoseFile(nodes='myRootNode')
-        >>> 
+        >>>
         >>> # now we can dial in a percentage of the pose, we bind this to a floatSlider in the UI
         >>> pose._applyData(percent=20)
 
     .. note::
-        If the root node of the hierarchy passed into the poseSave() has a message attr 
-        'exportSkeletonRoot' or 'animSkeletonRoot' and that message is connected to a 
-        skeleton then the pose will also include an internal 'skeleton' pose, storing all 
-        child joints into a separate block in the poseFile that can be used by the 
-        PoseCompare class/function. 
+        If the root node of the hierarchy passed into the poseSave() has a message attr
+        'exportSkeletonRoot' or 'animSkeletonRoot' and that message is connected to a
+        skeleton then the pose will also include an internal 'skeleton' pose, storing all
+        child joints into a separate block in the poseFile that can be used by the
+        PoseCompare class/function.
 
         For metaData based rigs this calls a function on the metaRig class getSkeletonRoots()
         which wraps the 'exportSkeletonRoot' attr, allowing you to overload this behaviour
@@ -1094,10 +1097,10 @@ class PoseData(DataMap):
         :param percent: percent of the pose to load
 
         This is only now used IF we're dealing with PoseBlending or
-        manipulating the data via the mirrorIndex, else we divert to 
+        manipulating the data via the mirrorIndex, else we divert to
         running the default _applyData_attrs from the DataMap!!
 
-        Limitations are that the DataMap call deals with unitConversion 
+        Limitations are that the DataMap call deals with unitConversion
         for linear attrs, this doesn't for speed
 
         '''
@@ -1155,7 +1158,7 @@ class PoseData(DataMap):
         apply the attrs for the pose.
 
         .. note: 
-            when dealing with pose blending or mirrorInverse handling we BY-PASS the 
+            when dealing with pose blending or mirrorInverse handling we BY-PASS the
             sceneUnit conversions done in the main attr handler. This is for speed as generally
             complex adjustments such as blending in poses wouldn't be done between scenes in different Maya sceneUnits.
         '''
@@ -1170,16 +1173,16 @@ class PoseData(DataMap):
     # Main Calls ----------------------------------------
 
     # @r9General.Timer
-    def poseSave(self, nodes, filepath=None, useFilter=True, storeThumbnail=True):
+    def poseSave(self, nodes, filepath=None, useFilter=True, storeThumbnail=True, modelPanel=None):  # 'modelPanel4'):
         '''
         Entry point for the generic PoseSave.
 
-        :param nodes: nodes to store the data against OR the rootNode if the 
+        :param nodes: nodes to store the data against OR the rootNode if the
             filter is active.
-        :param filepath: posefile to save - if not given the pose is cached on this 
+        :param filepath: posefile to save - if not given the pose is cached on this
             class instance.
         :param useFilter: use the filterSettings or not.
-        :param storeThumbnail: generate and store a thu8mbnail from the screen to go alongside the pose
+        :param storeThumbnail: generate and store a thubmbnail from the screen to go alongside the pose
         '''
         # push args to object - means that any poseHandler.py file has access to them
         if filepath:
@@ -1197,7 +1200,7 @@ class PoseData(DataMap):
             if storeThumbnail:
                 sel = cmds.ls(sl=True, l=True)
                 cmds.select(cl=True)
-                r9General.thumbNailScreen(self.filepath, self.thumbnailRes[0], self.thumbnailRes[1])
+                r9General.thumbNailScreen(self.filepath, self.thumbnailRes[0], self.thumbnailRes[1], modelPanel=modelPanel)
                 if sel:
                     cmds.select(sel)
         log.info('Pose Saved Successfully to : %s' % self.filepath)
@@ -1222,6 +1225,10 @@ class PoseData(DataMap):
             the stored pose and the current rig settings, current spaces are maintained.
             This only checks those nodes in the snapList and only runs under relative mode.
         :param percent: percentage of the pose to apply, used by the poseBlender in the UIs
+
+        .. note::
+            Relative mode currently relies on the controller / reference node thats passed in to be Y-up in it's native state,
+            thats to say the Y axis pointing upwards. We'll be patching this moving forwards
         '''
 
         objs = cmds.ls(sl=True, l=True)
@@ -1357,7 +1364,7 @@ class PoseBlender(object):
 
     def _blendPose(self, filepath, slider, *args):
         '''
-        this has been expanded to possibly support multiple floatSliders blending 
+        this has been expanded to possibly support multiple floatSliders blending
         multiple poses at once, managing the cache accordingly
         '''
         if not self._poseBlendUndoChunkOpen or not slider == self._poseSliderActive:
@@ -1403,7 +1410,7 @@ class PoseBlender(object):
     def show(self):
         '''
         main blender UI, simple but generic and allows us to dial in a percentage
-        of the given pose. This is basically a wrap for the other UI's and functions 
+        of the given pose. This is basically a wrap for the other UI's and functions
         that call this method so we have a single class managing the UI and functionality.
         '''
         # self.poseNode.processPoseFile(self.nodes)
@@ -1455,23 +1462,23 @@ class PosePointCloud(object):
     >>> # the filter settings object in the same way for any of the Red9 tools
     >>> import Red9.core.Red9_PoseSaver as r9Pose
     >>> import Red9.core.Red9_Meta as r9Meta
-    >>> 
+    >>>
     >>> # grab our mRig node
     >>> mrig=r9Meta.getMetaRigs()[0]
-    >>> 
+    >>>
     >>> ppc=r9Pose.PosePointCloud(nodes=mrig.ctrl_main)
     >>> ppc.settings.metaRig=True
     >>> ppc.prioritySnapOnly=True  # for rigs you can turn this on so that ONLY those nodes in the filterPriority list get built and used
-    >>> 
+    >>>
     >>> # build the cloud system
     >>> ppc.buildOffsetCloud()   # you can also pass a root point in, used as the base pivot ( rootReference='pSphere1')
-    >>> 
+    >>>
     >>> # to apply the cloud, snapping the rig into the clouds pose
     >>> ppc.applyPosePointCloud()
-    >>> 
+    >>>
     >>> # to sync the cloud to the rigs current frame, allowing you to update the clouds internal pose
     >>> ppc.updatePosePointCloud()
-    >>> 
+    >>>
     >>> # delete the ppc node
     >>> ppc.delete()
     '''
@@ -1607,7 +1614,7 @@ class PosePointCloud(object):
 
     def generateVisualReference(self):
         '''
-        Generic call that's used to overload the visual handling 
+        Generic call that's used to overload the visual handling
         of the PPC is other instances such as the AnimationPPC
         '''
         if self.meshes and self.isVisible:
@@ -1645,7 +1652,7 @@ class PosePointCloud(object):
         self.getInputNodes()
 
         if self.mayaUpAxis == 'y':
-            cmds.setAttr('%s.rotateOrder' % self.posePointRoot, 2)
+            cmds.setAttr('%s.rotateOrder' % self.posePointRoot, 2)  # to prevent as much gimal as possible
         if self.rootReference:  # and not mesh:
             r9Anim.AnimFunctions.snap([self.rootReference, self.posePointRoot])
 
@@ -1680,7 +1687,6 @@ class PosePointCloud(object):
     def shapeSwapMeshes(self, selectable=True):
         '''
         Swap the mesh Geo so it's a shape under the PPC transform root
-        TODO: Make sure that the duplicate message link bug is covered!!
         '''
         currentCount = len(cmds.listRelatives(self.posePointRoot, type='shape'))
         for i, mesh in enumerate(self.meshes):
@@ -1803,8 +1809,8 @@ class PoseCompare(object):
         :param longName: compare the longName DAG path stores against each node, note that the compare strips out any namespaces before compare
 
         .. note::
-            In the new setup if the pose being generated had it's settings.nodeTypes=['joint'] or we found the 
-            exportSkeletonRoot jnt (mrig) then we add a whole new dict to serialize the current skeleton data to the pose, 
+            In the new setup if the pose being generated had it's settings.nodeTypes=['joint'] or we found the
+            exportSkeletonRoot jnt (mrig) then we add a whole new dict to serialize the current skeleton data to the pose,
             this means that we can then compare a pose on a rig via the internal skeleton transforms as well
             as the actual rig controllers... makes validation a lot more accurate for export
                 * 'poseDict'     = [poseData] main controller data
@@ -2026,4 +2032,3 @@ def batchPatchPoses(posedir, config, poseroot, load=True, save=True, patchfunc=N
                                useFilter=True,
                                storeThumbnail=False)
             log.info('Processed Pose File :  %s' % f)
-

@@ -25,7 +25,7 @@
 
     Thanks for trying the workflows, all comments more than welcomed
 
-    PLEASE NOTE: this code is in the process of being re-built for the 
+    PLEASE NOTE: this code is in the process of being re-built for the
     Red9 ProPack where we intend to bind HIK to the remapping by default
 
 
@@ -33,12 +33,10 @@
 '''
 
 
-
-# import maya.cmds as cmds
-# import maya.mel as mel
 import maya.cmds as cmds
 import pymel.core as pm
 import Red9_AnimationUtils as r9Anim
+import Red9_CoreUtils as r9Core
 import Red9.startup.setup as r9Setup
 import Red9.core.Red9_General as r9General
 
@@ -73,7 +71,7 @@ class Bindsettings(object):
     @property
     def align_to_control_trans(self):
         return self.__align_to_control_trans
-    
+
     @align_to_control_trans.setter
     def align_to_control_trans(self, value):
         if value:
@@ -86,7 +84,7 @@ class Bindsettings(object):
     @property
     def align_to_source_trans(self):
         return self.__align_to_source_trans
-    
+
     @align_to_source_trans.setter
     def align_to_source_trans(self, value):
         if value:
@@ -99,7 +97,7 @@ class Bindsettings(object):
     @property
     def align_to_control_rots(self):
         return self.__align_to_control_rots
-    
+
     @align_to_control_rots.setter
     def align_to_control_rots(self, value):
         if value:
@@ -155,11 +153,10 @@ class BindNodeBase(object):
 
         log.info(self.settings.print_settings())
 
-
     @property
     def sourceNode(self):
         return self.__source
-    
+
     @sourceNode.setter
     def sourceNode(self, node):
         if not cmds.objExists(node):
@@ -228,7 +225,6 @@ class BindNodeBase(object):
         self.BindNode['Root'] = self.BindNode['Main']
         pm.select(self.BindNode['Root'])
 
-
     def align_bind_node(self):
         '''
         Align the newly made BindNode as required
@@ -247,7 +243,6 @@ class BindNodeBase(object):
             pm.delete(pm.orientConstraint(self.destinationNode, self.BindNode['Root']))
         if self.settings.align_to_source_rots:
             pm.delete(pm.orientConstraint(self.sourceNode, self.BindNode['Root']))
-
 
     def link_bind_node(self):
         '''
@@ -276,7 +271,6 @@ class BindNodeBase(object):
 
         # Add the BindMarkers so that we can ID these nodes and connections later
         self.add_bind_markers(self.destinationNode, self.BindNode['Root'])
-
 
     def add_binder_node(self):
         '''
@@ -322,7 +316,6 @@ class BindNodeTwin(BindNodeBase):
         self.BindNode['Root'] = self.make_base_geo('Locator', '%s_Trans_BND' % Name)
         pm.parent(self.BindNode['Main'], self.BindNode['Root'])
         pm.select(self.BindNode['Root'])
-
 
     def align_bind_node(self, **kws):
         '''
@@ -399,7 +392,6 @@ class BindNodeAim(BindNodeBase):
         # self.settings.base_scale=tempScale
         pm.select(self.BindNode['Root'])
 
-
     def align_bind_node(self, **kws):
         '''
         Overwrite the default behaviour: Align the newly made BindNode as required for this bind
@@ -440,7 +432,7 @@ class AnimBinderUI(object):
     @staticmethod
     def _contactDetails(opentype='email'):
         if opentype == 'email':
-            cmds.confirmDialog(title='Contact', \
+            cmds.confirmDialog(title='Contact',
                            message=("Autodesk MasterClass - Live Animation Binding\n" +
                                     "Mark Jackson\n" +
                                     "____________________________________________\n\n" +
@@ -456,7 +448,7 @@ class AnimBinderUI(object):
     def _UI(self):
         if cmds.window(self.win, exists=True):
             cmds.deleteUI(self.win, window=True)
-        cmds.window(self.win, title=self.win, menuBar=True, sizeable=False, widthHeight=(300, 380))
+        cmds.window(self.win, title=self.win, menuBar=True, sizeable=True, widthHeight=(300, 380))
 
         cmds.menu(label='Help')
         cmds.menuItem(label='Watch MasterClass Video', c=lambda x: self._contactDetails(opentype='vimeo'))
@@ -464,7 +456,6 @@ class AnimBinderUI(object):
         # cmds.menuItem(label='Contact', c=lambda x:self._contactDetails(opentype='email'))
         cmds.menuItem(label='Blog', c=r9Setup.red9_blog)
         cmds.menuItem(label='Red9HomePage', c=r9Setup.red9_website_home)
-
 
         cmds.columnLayout(adjustableColumn=True)
         cmds.text(fn="boldLabelFont", label="Advanced Bind Options")
@@ -546,6 +537,13 @@ class AnimBinderUI(object):
 
     @classmethod
     def Show(cls):
+        if r9Setup.has_pro_pack():
+            cmds.confirmDialog(title='UI Deprecated',
+                               message=('This version of the AnimationBinder has been superseded by '
+                                        'the new build in Red9 ProPack and is here for legacy purposes.\n'
+                                        '\nIf making a fresh Binder we recommend using the version in ProPack!'),
+                               icon='information',
+                               button='thankyou', messageAlign='center')
         cls()._UI()
 
 
@@ -640,7 +638,7 @@ def match_given_hierarchys(source, dest):
                 break
     return nameMatched
 
-def bind_skeletons(source, dest, method='connect', scales=False, verbose=False):
+def bind_skeletons(source, dest, method='connect', scales=False, verbose=False, unlock=False):
     '''
     From 2 given root joints search through each hierarchy for child joints, match
     them based on node name, then connect their trans/rots directly, or
@@ -650,6 +648,7 @@ def bind_skeletons(source, dest, method='connect', scales=False, verbose=False):
     :param dest: the root node of the driven skeleton
     :param method: the method used for the connection, either 'connect' or 'constrain'
     :param scale: do we bind the scales of the destination skel to the source??
+    :param unlock: if True force unlock the required transform attrs on the destination skeleton first
     '''
 
     sourceJoints = cmds.listRelatives(source, ad=True, f=True, type='joint')
@@ -672,9 +671,12 @@ def bind_skeletons(source, dest, method='connect', scales=False, verbose=False):
     if scales:
         cmds.scaleConstraint(source, dest, mo=True)
 
+    # attrs to 'connect' and also to ensure are unlocked
     attrs = ['rotateX', 'rotateY', 'rotateZ', 'translateX', 'translateY', 'translateZ']
     if scales:
-        attrs = attrs + ['scaleX', 'scaleY', 'scaleZ']
+        attrs = attrs + ['scaleX', 'scaleY', 'scaleZ', 'inverseScale']
+    if unlock:
+        r9Core.LockChannels().processState(dest, attrs=attrs, mode='fullkey', hierarchy=True)
 
     for sJnt, dJnt in match_given_hierarchys(sourceJoints, destJoints):
         if method == 'connect':
@@ -758,4 +760,3 @@ def removeBindMarker(ctrls=None, *args):
         ctrls = cmds.ls(sl=True, l=True)
     for ctr in ctrls:
         cmds.deleteAttr('%s.%s' % (ctr, BAKE_MARKER))
-

@@ -45,6 +45,8 @@ class _MainMenus_(object):
     red9_vimeo_ann = "Open Red9Vimeo Channel"
     red9_facebook = "Red9_Facebook"
     red9_facebook_ann = "Open Red9Facebook page"
+    red9_twitter = "Red9_Twitter"
+    red9_twitter_ann = "Open Red9Twitter Feed"
     red9_api_docs = "Red9_API Docs"
     red9_api_docs_ann = "Open Red9 API code reference page"
     red9_details = "Red9_Details"
@@ -86,7 +88,7 @@ class _MainMenus_(object):
     collapse_mrig_ann = 'ONLY Applicable for Meta based mRig systems\nCollapse the keys in the selected TimeRange (Red highlighted)'
 
     insert_padding = 'Red9: Insert Padding'
-    pad_selected = 'Pad : Selected Only'
+    pad_selected = 'Pad : Selected Objects Only'
     pad_selected_ann = 'Insert time in the selected TimeRange (Red highlighted)'
     pad_full_scene = 'Pad : Full Scene'
     pad_full_scene_ann = 'Insert time in the selected TimeRange (Red highlighted)'
@@ -94,7 +96,7 @@ class _MainMenus_(object):
     pad_mrigs_ann = 'ONLY Applicable for Meta based mRig systems\nInsert time in the selected TimeRange (Red highlighted)'
 
     inverse_anim = 'Red9: Reverse Animation'
-    inverse_selected = 'Reverse: Selected Only'
+    inverse_selected = 'Reverse: Selected Objects Only'
     inverse_selected_ann = 'ONLY Applicable for Meta based mRig systems\nReverse the animation data over the selected timeRange'
     inverse_mrigs = 'Reverse: Selected mRigs'
     inverse_mrigs_ann = 'ONLY Applicable for Meta based mRig systems\nReverse the animation data over the selected timeRange for the entire mRig'
@@ -424,7 +426,7 @@ checkBoxes will process all children of the roots'''
     pose_clear = 'Clear'
     pose_clear_ann = 'Load Pose data for the given Hierarchy or Selections'
     search_filter = 'searchFilter : '
-    search_filter_ann = 'Filter the folder, allows multiple filters separated by ","'
+    search_filter_ann = 'Filter the folder, allows multiple filters separated by "," spaces can be used as wildcards as well as ".*"'
     sortby_name = 'sortBy Name'
     sortby_date = 'sortBy Date'
     pose_load = 'Load Pose'
