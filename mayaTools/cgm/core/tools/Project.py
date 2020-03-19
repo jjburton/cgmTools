@@ -19,7 +19,7 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__version__ = "10.28.2019"
+__version__ = "1.03.18.2020"
 __MAYALOCAL = 'CGMPROJECT'
 
 
@@ -58,6 +58,7 @@ import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
 reload(COREPATHS)
 import cgm.core.lib.string_utils as CORESTRINGS
+import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.tools.lib.project_utils as PU
 import cgm.core.lib.mayaSettings_utils as MAYASET
 reload(MAYASET)
@@ -67,7 +68,8 @@ mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
 mUI = cgmUI.mUI
 
-
+_colorGood = CORESHARE._d_colors_to_RGB['greenWhite']
+_colorBad = CORESHARE._d_colors_to_RGB['redWhite']
         
 #RangeSlider|MainPlaybackRangeLayout|formLayout9|formLayout13|optionMenuGrp1
 #timeField -e -v `playbackOptions -q -ast` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField2; timeField -e -v `playbackOptions -q -aet` RangeSlider|MainPlaybackRangeLayout|formLayout9|timeField5;
@@ -355,6 +357,10 @@ class ui(cgmUI.cgmGUI):
                     _name = d.get('n')
                     _d[_name](edit=True,enable = _enable)
                     
+                    if self.d_uiTypes[k][_name] in ['string','stringList']:
+                        _d[_name](edit=True,bgc = _color)
+                        
+                    
                 except Exception,err:
                     log.error("Failure {0} | {1} | {2}".format(k,_name,err))
                
@@ -404,6 +410,8 @@ class ui(cgmUI.cgmGUI):
             d_pathsUse = self.mDat.d_pathsProject
             log.warning("Using project paths dat!")
             
+            
+
         l_pathsMissing = []
         for k,v in d_pathsUse.iteritems():
             try:
@@ -412,10 +420,13 @@ class ui(cgmUI.cgmGUI):
                     _exists = PATHS.Path(v).exists()
                     if _exists:
                         self.d_tf['paths'][k].setValue(v,executeChangeCB=False)
+                        self.d_tf['paths'][k](e=True, bgc= _colorGood)
+                        
                     else:
                         log.error("Invalid path | {0} || Please resolve locally: {1}".format(k,v))
                         l_pathsMissing.append(k)
                         self.d_tf['paths'][k].setValue('',executeChangeCB=False)
+                        self.d_tf['paths'][k](e=True, bgc=_colorBad)
                         
             except Exception,err:
                 log.error("{0} | Missing data field or failure: {0}".format(_str_func,k))
@@ -1176,8 +1187,12 @@ class ui(cgmUI.cgmGUI):
         _value = mField.getValue()
         
         if not PATHS.Path(_value).exists():
+            mField(edit=True,bgc = _colorBad)
+            
             raise ValueError,"uiCC_checkPath | Invalid path: {0}".format(_value)
         else:
+            mField(edit=True,bgc = _colorGood)
+            
             log.warning("Path {0}| {1} changed to: {2}".format(mode, key, _value))
         
     def buildFrame_content(self,parent):
@@ -1234,13 +1249,18 @@ class ui(cgmUI.cgmGUI):
             x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
             
         if x:
+            if mode == 'project':
+                mField = self.d_tf['pathsProject'][key]
+            else:
+                mField = self.d_tf['paths'][key]
+            
             if not PATHS.Path(x[0]).exists():
+                mField(edit=True,bgc = _colorBad)
                 raise ValueError,"Invalid path: {0}".format(x[0])
             
-            if mode == 'project':
-                self.d_tf['pathsProject'][key].setValue( x[0] )
-            else:
-                self.d_tf['paths'][key].setValue( x[0] )
+            mField.setValue( x[0] )
+            mField(edit=True,bgc = _colorGood)
+            
             #self.optionVarExportDirStore.setValue( self.exportDirectory )    
             
             if key in ['image']:
