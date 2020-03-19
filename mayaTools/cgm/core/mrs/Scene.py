@@ -62,7 +62,7 @@ example:
 	def insert_init(self,*args,**kws):
 		#self.window                      = None
 		
-		self.categoryList                = ["Character", "Environment", "Vehicles", "Props", "Interactables", "Level", "Prototype", "Cutscene"]
+		self.categoryList                = ["Character", "Environment", "Props"]
 		self.categoryIndex               = 0
 
 		#self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0)
@@ -97,7 +97,10 @@ example:
 		self.openRigMB                   = None
 		self.importRigMB                 = None
 		self.exportQueueFrame            = None
+		self.categoryMenu                = None
 		self.categoryMenuItemList        = []
+
+		self.project                     = None
 
 		self.exportCommand               = ""
 
@@ -155,7 +158,7 @@ example:
 
 	@property
 	def category(self):
-		return self.categoryList[self.categoryIndex]
+		return self.categoryList[self.categoryIndex] if len(self.categoryList) > self.categoryIndex else self.categoryList[0]
 
 	def LoadOptions(self, *args):
 		self.showBaked     = bool(self.showBakedStore.getValue())
@@ -287,9 +290,9 @@ example:
 								   label=self.category,ut='cgmUITemplate',
 								   ann='Select the asset category')
 
-		_category_menu = mUI.MelPopupMenu(self.categoryText, button=1 )
+		self.categoryMenu = mUI.MelPopupMenu(self.categoryText, button=1 )
 		for i,category in enumerate(self.categoryList):
-			self.categoryMenuItemList.append( mUI.MelMenuItem(_category_menu, label=category, c=partial(self.SetCategory,i)) )
+			self.categoryMenuItemList.append( mUI.MelMenuItem(self.categoryMenu, label=category, c=partial(self.SetCategory,i)) )
 			if i == self.categoryIndex:
 				self.categoryMenuItemList[i]( e=True, enable=False)
 		
@@ -665,7 +668,14 @@ example:
 						 c = lambda *a:mc.evalDeferred(self.UpdateToLatestRig,lp=True))
 
 
+	def buildMenu_category(self, *args):
+		self.categoryMenu.clear()
+		self.categoryMenuItemList = []
 
+		for i,category in enumerate(self.categoryList):
+			self.categoryMenuItemList.append( mUI.MelMenuItem(self.categoryMenu, label=category, c=partial(self.SetCategory,i)) )
+			if i == self.categoryIndex:
+				self.categoryMenuItemList[i]( e=True, enable=False)
 
 	# def ConstructMenuBar(self, *args):
 	# 	if self.fileMenu:
@@ -1112,23 +1122,27 @@ example:
 		if not os.path.exists(path):
 			mel.eval('warning "No Project Set"')
 
-		proj = Project.data(filepath=path)
+		self.project = Project.data(filepath=path)
 
-		if os.path.exists(proj.d_paths['content']):
+		if os.path.exists(self.project.d_paths['content']):
 			self.optionVarProjectStore.setValue( path )
 
-			self.LoadCategoryList(proj.d_paths['content'])
+			self.LoadCategoryList(self.project.d_paths['content'])
 			
-			self.exportDirectory = proj.d_paths['export']
+			self.exportDirectory = self.project.d_paths['export']
 
 			self.exportDirectoryTF.setValue( self.exportDirectory )
 			# self.optionVarExportDirStore.setValue( self.exportDirectory )
 
-			if os.path.exists(proj.d_paths['image']):
-				self.uiImage_Project.setImage(proj.d_paths['image'])
+			self.categoryList = self.project.d_structure['assetTypes']
+
+			if os.path.exists(self.project.d_paths['image']):
+				self.uiImage_Project.setImage(self.project.d_paths['image'])
 			else:
 				_imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
 				self.uiImage_Project.setImage(_imageFailPath)
+
+			self.buildMenu_category()
 
 		else:
 			mel.eval('error "Project path does not exist"')
