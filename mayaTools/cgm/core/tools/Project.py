@@ -59,6 +59,8 @@ import cgm.core.lib.path_utils as COREPATHS
 reload(COREPATHS)
 import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.core.tools.lib.project_utils as PU
+import cgm.core.lib.mayaSettings_utils as MAYASET
+reload(MAYASET)
 reload(PU)
 import cgm.images as cgmImages
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
@@ -248,7 +250,7 @@ class ui(cgmUI.cgmGUI):
         if mPath.exists():
             mel.eval('setProject "{0}";'.format(mPath.asString()))
         else:
-            log.error('Invalid Path: {0}'.format(mPath))
+            log.debug('uiProject_pushPaths | Invalid Path: {0}'.format(mPath))
             
             
     def uiProject_toScene(self):
@@ -294,65 +296,17 @@ class ui(cgmUI.cgmGUI):
         log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
         self.reload_headerImage()
                     
-        
-    def uiProject_fill(self):
-        _str_func = 'uiProject_fill'
+    def uiProject_lock(self):
+        _str_func = 'uiProject_lock'
         log.debug("|{0}| >>...".format(_str_func))
-                
-        for dType in ['general','anim','pathsProject','structure']:
-            log.debug(cgmGEN.logString_sub(_str_func,dType))
-            
-            for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
-                try:
-                    log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-                    try:_type = self.d_uiTypes[dType][k]
-                    except:_type = None
-                        
-                    if _type == 'stringList' and v:
-                        if len(v)>1:
-                            self.d_tf[dType][k].setValue(','.join(v))
-                        else:
-                            self.d_tf[dType][k].setValue(v[0])
-                            
-                    else:
-                        if v is not None:
-                            self.d_tf[dType][k].setValue(v)
-                            
-                except Exception,err:
-                    log.error("Missing data field or failure: dtype:{0} | {1}".format(dType,k))
-                    log.error("err | {0}".format(err))
-                    
-        #User paths...
-        _user = getpass.getuser()
-        d_user = self.mDat.d_pathsUser.get(_user,{})
-        d_pathsUse = copy.copy(self.mDat.d_pathsProject)
-        if d_user:
-            log.warning("Found user path dat!")
-            for k,v in d_user.iteritems():
-                if v:
-                    d_pathsUse[k]=v
-        else:
-            d_pathsUse = self.mDat.d_pathsProject
-            log.warning("Using project paths dat!")
-            
-        for k,v in d_pathsUse.iteritems():
-            try:
-                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-                if v is not None:
-                    self.d_tf['paths'][k].setValue(v)
-                        
-            except Exception,err:
-                log.error("{0} | Missing data field or failure: {0}".format(_str_func,k))
-                log.error("err | {0}".format(err))
-                
-                
+        
         #Lock fields...
         _enable = True
         _editable = True
         _color = 1,1,1
         _template = 'cgmUITemplate'
         
-        if self.mDat.d_project['lock'] == 'True':
+        if self.d_tf['general']['lock'].getValue() == 'True':#self.mDat.d_project['lock'] == 'True':
             _enable = False
             _editable = False
             _color = .2,.2,.2
@@ -379,17 +333,97 @@ class ui(cgmUI.cgmGUI):
             for k,tf in self.d_buttons['pathsProject'].iteritems():
                 tf(edit=True,
                    visible =True)
+                
+        #Locking fields...
+        log.debug(cgmGEN.logString_sub(_str_func,'Locking fields...'))
+        
+        d_toDo  = {'world':PU._worldSettings,
+                   'structure':PU._structureSettings,
+                   'anim':PU._animSettings}
+
+        #pprint.pprint(d_toDo)
+        for k,l in d_toDo.iteritems():
+            log.debug(cgmGEN.logString_sub(_str_func,k))
+            
+            _d = self.d_tf[k]
+            
+            for d in l:
+                try:
+                    log.debug(cgmGEN.logString_msg(_str_func,d))
+                    _type = d.get('t')
+                    _dv = d.get('dv')
+                    _name = d.get('n')
+                    _d[_name](edit=True,enable = _enable)
                     
-        #for k,tf in self.d_tf['pathsProject'].iteritems():
-            #tf(edit=True,
-               #bgc = _color,
-               #ut = _template,
-               #en=True,)
+                except Exception,err:
+                    log.error("Failure {0} | {1} | {2}".format(k,_name,err))
                
      
             
+      
+        
+    def uiProject_fill(self):
+        _str_func = 'uiProject_fill'
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        l_errs = []
+        
+        for dType in ['general','anim','pathsProject','structure']:
+            log.debug(cgmGEN.logString_sub(_str_func,dType))
             
+            for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
+                try:
+                    log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                    try:_type = self.d_uiTypes[dType][k]
+                    except:_type = None
+                        
+                    if _type == 'stringList' and v:
+                        if len(v)>1:
+                            self.d_tf[dType][k].setValue(','.join(v))
+                        else:
+                            self.d_tf[dType][k].setValue(v[0])
+                            
+                    else:
+                        if v is not None:
+                            self.d_tf[dType][k].setValue(v,executeChangeCB=False)
+                            
+                except Exception,err:
+                    log.error("Missing data field or failure: dtype:{0} | {1}".format(dType,k))
+                    log.error("err | {0}".format(err))
+                    
+        #User paths...
+        _user = getpass.getuser()
+        d_user = self.mDat.d_pathsUser.get(_user,{})
+        d_pathsUse = copy.copy(self.mDat.d_pathsProject)
+        if d_user:
+            log.warning("Found user path dat!")
+            for k,v in d_user.iteritems():
+                if v:
+                    d_pathsUse[k]=v
+        else:
+            d_pathsUse = self.mDat.d_pathsProject
+            log.warning("Using project paths dat!")
             
+        l_pathsMissing = []
+        for k,v in d_pathsUse.iteritems():
+            try:
+                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                if v is not None:
+                    _exists = PATHS.Path(v).exists()
+                    if _exists:
+                        self.d_tf['paths'][k].setValue(v,executeChangeCB=False)
+                    else:
+                        log.error("Invalid path | {0} || Please resolve locally: {1}".format(k,v))
+                        l_pathsMissing.append(k)
+                        self.d_tf['paths'][k].setValue('',executeChangeCB=False)
+                        
+            except Exception,err:
+                log.error("{0} | Missing data field or failure: {0}".format(_str_func,k))
+                log.error("err | {0}".format(err))
+                
+                
+        if l_pathsMissing:
+            l_errs.append("Paths failed: {0}".format(','.join(l_pathsMissing)))
         
                     
         
@@ -403,6 +437,10 @@ class ui(cgmUI.cgmGUI):
         self.uiScrollList_dirContent.rebuild( self.mDat.d_paths.get('content'))
         self.uiScrollList_dirExport.rebuild(self.mDat.d_paths.get('export'))
         
+        self.uiProject_lock()
+        
+        if l_errs:
+            log.error(l_errs)
         
     def uiProject_load(self,path=None,revert=False):
         _str_func = 'uiProject_load'
@@ -425,7 +463,7 @@ class ui(cgmUI.cgmGUI):
         self.path_projectConfig = self.mDat.str_filepath
         self.mPathList.append(self.mDat.str_filepath)
         
-        self.mPathList.log_self()        
+        #self.mPathList.log_self()        
         
         
         #Set pose path
@@ -521,7 +559,7 @@ class ui(cgmUI.cgmGUI):
 
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
-        self.uiMenu_utils = mUI.MelMenu(l='Utils', pmc = cgmGEN.Callback(self.buildMenu_utils))
+        self.uiMenu_utils = mUI.MelMenu(l='Utils', pmc = cgmGEN.Callback(self.buildMenu_utils),tearOff=True)
         
         self.uiMenu_help = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
         
@@ -540,6 +578,52 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelMenuItem( self.uiMenu_utils, l="Get Project Paths from Local",
                          c = lambda *a:mc.evalDeferred(self.uiProject_getProjctPathsFromLocal,lp=True))        
+        
+        
+        mUI.MelMenuItemDiv( self.uiMenu_utils, label='Maya Settings..' )
+        
+        for a in 'inTangent','outTangent','both':
+            
+            if a == 'inTangent':
+                fnc = MAYASET.defaultInTangent_set
+                _current = MAYASET.defaultInTangent_get()
+            elif a == 'outTangent':
+                fnc = MAYASET.defaultOutTangent_set
+                _current = MAYASET.defaultOutTangent_get()
+            else:
+                fnc = MAYASET.defaultTangents_set
+                _current = MAYASET.defaultOutTangent_get()
+                
+            _sub = mUI.MelMenuItem( self.uiMenu_utils, l=a,
+                             subMenu=True)
+            
+            for t in PU._tangents:
+                if t == _current:
+                    _l = "{0}(current)".format(t)
+                else:
+                    _l = t
+                    
+                mUI.MelMenuItem( _sub,
+                                 l=_l,                
+                c = cgmGEN.Callback(fnc,t))        
+                
+        
+
+        
+        mUI.MelMenuItemDiv( self.uiMenu_utils, label='Global Settings..' )
+        mUI.MelMenuItem( self.uiMenu_utils, l="World Match",
+                         c = lambda *a:mc.evalDeferred(self.fncMayaSett_world,lp=True))
+        mUI.MelMenuItem( self.uiMenu_utils, l="Anim Match",
+                         c = lambda *a:mc.evalDeferred(self.fncMayaSett_anim,lp=True))
+        mUI.MelMenuItem( self.uiMenu_utils, l="All Match",
+                         c = lambda *a:mc.evalDeferred(self.fncMayaSett_all,lp=True))
+        
+        mUI.MelMenuItemDiv( self.uiMenu_utils,)
+        
+        mUI.MelMenuItem( self.uiMenu_utils, l="Query",
+                         c = lambda *a:self.fncMayaSett_query())        
+        
+        
         
         
     def buildMenu_first(self):
@@ -606,6 +690,151 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
         
+        
+    def fncMayaSett_do(self,world=False,anim=False):
+        _str_func = 'ui.fncMayaSett_do'
+        log.info("|{0}| >>...".format(_str_func))
+        
+        d_settings  = {'world':PU._worldSettings,
+                       'anim':PU._animSettings}
+        d_toDo = {}
+        if world:
+            d_toDo['world'] = d_settings['world']
+        if anim:
+            d_toDo['anim'] = d_settings['anim']
+            
+        d_nameToSet = {'world':{'worldUp':MAYASET.sceneUp_set,
+                                'linear':MAYASET.distanceUnit_set,
+                                'angular':MAYASET.angularUnit_set},
+                       'anim':{'frameRate':MAYASET.frameRate_set,
+                               'defaultInTangent':MAYASET.defaultInTangent_set,
+                               'defaultOutTangent':MAYASET.defaultOutTangent_set,
+                               'weightedTangents':MAYASET.weightedTangets_set},}
+            
+        #pprint.pprint(d_toDo)
+        for k,l in d_toDo.iteritems():
+            log.info(cgmGEN.logString_sub(_str_func,k))
+            
+            _d = self.d_tf[k]
+            
+            for d in l:
+                try:
+                    
+                    log.info(cgmGEN.logString_msg(_str_func,d))
+                    _type = d.get('t')
+                    _dv = d.get('dv')
+                    _name = d.get('n')
+                    
+                    _value = _d[_name].getValue()
+                    
+                    fnc = d_nameToSet.get(k,{}).get(_name)
+                    log.info(cgmGEN.logString_msg(_str_func,"name: {0} | value: {1}".format(_name,_value)))
+                    
+                    if fnc:
+                        fnc(_value)
+                    else:
+                        log.warning("No function found for {0} | {1}".format(k,_name))
+                except Exception,err:
+                    log.error("Failure {0} | {1} | {2}".format(k,_name,err))
+                
+                """
+
+                if cgmValid.isListArg(_type):
+                    
+                    _d[_name] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                    
+                    for t in _type:
+                        _d[_name].append(t)
+            
+                    #_d[key].selectByIdx(self.setMode,False)                
+                    _d[_name].setValue(_dv)
+                    self.d_uiTypes[k][_name] = 'optionMenu'
+                elif _type == 'bool':
+                    _d[_name] =  mUI.MelCheckBox(_row,
+                                                 ann='{0} settings | {1}'.format(_name,d),
+                                                  )
+                    _d[_name].setValue(_dv)
+                    self.d_uiTypes[k][_name] = 'bool'
+                else:
+                    #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
+                    self.d_uiTypes[k][_name] = 'string'
+                    
+                    if cgmValid.isListArg(_dv):
+                        log.debug("ListArg: {0} | {1}".format(_name,_dv))
+                        if len(_dv)>1:
+                            _dv = ','.join([CORESTRINGS.byMode(v,_nameStyle) for v in _dv])
+                        else:
+                            _dv = CORESTRINGS.byMode(_dv[0],_nameStyle)
+                            
+                        self.d_uiTypes[k][_name] = 'stringList'
+                        
+                    _d[_name] =  mUI.MelTextField(_row,
+                                                ann='{0} settings | {1}'.format(_name,d),
+                                                text = _dv)
+                    
+                _row.setStretchWidget(_d[_name])
+                mUI.MelSpacer(_row,w=5)
+                _row.layout()"""
+        
+    def fncMayaSett_world(self):
+        self.fncMayaSett_do(True,False)
+        
+    def fncMayaSett_anim(self):
+        self.fncMayaSett_do(False,True)
+        
+    def fncMayaSett_all(self):
+        self.fncMayaSett_do(True,True)
+        
+    def fncMayaSett_query(self):
+        
+        _str_func = 'ui.fncMayaSett_do'
+        log.info("|{0}| >>...".format(_str_func))
+        
+        d_settings  = {'world':PU._worldSettings,
+                       'anim':PU._animSettings}
+
+            
+        d_nameToCheck = {'world':{'worldUp':MAYASET.sceneUp_get,
+                                'linear':MAYASET.distanceUnit_get,
+                                'angular':MAYASET.angularUnit_get},
+                       'anim':{'frameRate':MAYASET.frameRate_get,
+                               'defaultInTangent':MAYASET.defaultInTangent_get,
+                               'defaultOutTangent':MAYASET.defaultOutTangent_get,
+                               'weightedTangents':MAYASET.weightedTangents_get},}
+            
+        #pprint.pprint(d_toDo)
+        for k,l in d_settings.iteritems():
+            log.info(cgmGEN.logString_sub(_str_func,k))
+            
+            _d = self.d_tf[k]
+            
+            for d in l:
+                try:
+                    
+                    log.debug(cgmGEN.logString_msg(_str_func,d))
+                    _type = d.get('t')
+                    _dv = d.get('dv')
+                    _name = d.get('n')
+                    
+                    _value = _d[_name].getValue()
+                    
+                    fnc = d_nameToCheck.get(k,{}).get(_name)
+                    
+                    if fnc:
+                        _current = fnc()
+                        
+
+                        
+                        if _value != _current:
+                            log.warning(cgmGEN.logString_msg(_str_func,"name: {0} | setting: {1} | found :{2}".format(_name,_value,_current)))
+                        else:
+                            log.debug(cgmGEN.logString_msg(_str_func,"name: {0} | setting: {1} | found :{2}".format(_name,_value,_current)))
+                        
+                    else:
+                        log.warning("No function found for {0} | {1}".format(k,_name))
+                except Exception,err:
+                    log.error("Failure {0} | {1} | {2}".format(k,_name,err))        
+    
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()
         
@@ -764,7 +993,7 @@ class ui(cgmUI.cgmGUI):
             self.pathProject = self.tf_projectPath.getValue()
         
         if not PATHS.Path(self.pathProject):
-            log.error("|{0}| >> Invalid path: {1}".format(_str_func,self.pathProject))            
+            log.debug("|{0}| >> Invalid path: {1}".format(_str_func,self.pathProject))            
             self.pathProject = ''
             return 
         
@@ -823,7 +1052,10 @@ class ui(cgmUI.cgmGUI):
             elif key in ['lock']:
                 _d[key] =   mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in ['False','True']:
-                    _d[key].append(t)                
+                    _d[key].append(t)
+                    
+                if key == 'lock':
+                    _d[key](edit=True, cc = lambda *a:self.uiProject_lock())
 
                     
             else:
@@ -944,7 +1176,7 @@ class ui(cgmUI.cgmGUI):
         _value = mField.getValue()
         
         if not PATHS.Path(_value).exists():
-            raise ValueError,"Invalid path: {0}".format(_value)
+            raise ValueError,"uiCC_checkPath | Invalid path: {0}".format(_value)
         else:
             log.warning("Path {0}| {1} changed to: {2}".format(mode, key, _value))
         
@@ -1032,7 +1264,7 @@ def uiProject_addDir(self,pSet = None, mScrollList = None):
     mPath = PATHS.Path(_path)
     
     if not mPath.exists():
-        raise ValueError,"Invalid Path: {0}".format(_path)
+        raise ValueError,"uiProject_addDir | Invalid Path: {0}".format(_path)
     
     log.debug(cgmGEN.logString_msg(_str_func,'Path: {0}'.format(mPath)))
     
@@ -1079,7 +1311,7 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
     mPath = PATHS.Path(_path)
     
     if not mPath.exists():
-        raise ValueError,"Invalid Path: {0}".format(_path)
+        raise ValueError,"uiProject_verifyDir | Invalid Path: {0}".format(_path)
     
     log.debug(cgmGEN.logString_msg(_str_func,'Path: {0}'.format(mPath)))
     
@@ -1461,7 +1693,7 @@ class data(object):
         '''
         mPath = PATHS.Path(path)
         if not mPath.exists():
-            raise StandardError('Invalid Path: {0}'.format(path))
+            raise StandardError('asset_addDir | Invalid Path: {0}'.format(path))
         
         promptstring = 'Add {0} '.format(dType)
         l_subs = self.d_structure.get(dType)
@@ -1623,7 +1855,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         '''
         mPath = PATHS.Path(path)
         if not mPath.exists():
-            raise StandardError('Invalid Path: {0}'.format(path))
+            raise StandardError('uiPath_addDir | Invalid Path: {0}'.format(path))
         
         promptstring = 'Add Dir '.format(mPath.asFriendly())
         
@@ -1664,7 +1896,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         '''
         mPath = PATHS.Path(path)
         if not mPath.exists():
-            raise StandardError('Invalid Path: {0}'.format(path))
+            raise StandardError('uiPath_removeDir | Invalid Path: {0}'.format(path))
         
         promptstring = 'Remove Dir '.format(mPath.asFriendly())
         
@@ -1837,7 +2069,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         mPath = PATHS.Path(path)
         if not mPath.exists():
-            log.error("Invalid path: {0}".format(path))
+            log.debug("Invalid path: {0}".format(path))
             self.update_display()
             
             return False        

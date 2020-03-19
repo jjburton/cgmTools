@@ -336,7 +336,7 @@ class cgmGUI(mUI.BaseMelWindow):
     def post_init(self,*args,**kws):
         """ This is meant to be overloaded per gui """
         _str_func = 'post_init[{0}]'.format(self.__class__.TOOLNAME)            
-        log.info("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >>...".format(_str_func))
 
     def setup_baseVariables(self):
         _str_func = 'setup_baseVariables[{0}]'.format(self.__class__.TOOLNAME)            

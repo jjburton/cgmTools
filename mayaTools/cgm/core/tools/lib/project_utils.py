@@ -68,7 +68,8 @@ _fps = [2,3,4,5,6,8,10,12,15,16,20,23.976,
         24,25,29.97,30,40,48,50,
         60,75,80,100,120]
 
-_fpsStrings = ['2', '3', '4', '5', '6', '8', '10', '12', '15', '16', '20', '23.976', '24', '25', '29.97', '30', '40', '48', '50', '60', '75', '80', '100', '120']
+_fpsStrings = ['2fps', '3fps', '4fps', '5fps', '6fps', '8fps', '10fps', '12fps', '15fps', '16fps', '20fps',
+               '23.976fps', '24fps', '25fps', '29.97fps', '30fps', '40fps', '48fps', '50fps', '60fps', '75fps', '80fps', '100fps', '120fps']
 
 
 #Settings/Options ... ---------------------------------------------------------------------------
@@ -81,7 +82,7 @@ _projSettings = [{'n':'name','t':'text','dv':'Name me'},
                  {'n':'nameStyle','t':l_nameConventions,'dv':'none'},
                  ]
                  
-_animSettings = [{'n':'frameRate','t':_fpsStrings,'dv':'24'},
+_animSettings = [{'n':'frameRate','t':_fpsStrings,'dv':'24fps'},
                  {'n':'defaultInTangent','t':_tangents,'dv':'linear'},
                  {'n':'defaultOutTangent','t':_tangents,'dv':'linear'},
                  {'n':'weightedTangents','t':'bool','dv':False},

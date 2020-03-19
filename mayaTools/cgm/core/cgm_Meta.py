@@ -7651,7 +7651,7 @@ class pathList(object):
         log.debug(cgmGEN.logString_start(_str_func))
         mPath = PATHS.Path(arg)
         if mPath.exists():
-            log.info(cgmGEN.logString_msg(_str_func,'Path exists | {0}'.format(arg)))
+            log.debug(cgmGEN.logString_msg(_str_func,'Path exists | {0}'.format(arg)))
             _friendly = mPath.asFriendly()
             self.mOptionVar.append(_friendly)
             self.l_paths.append(_friendly)

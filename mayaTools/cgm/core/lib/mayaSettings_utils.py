@@ -75,7 +75,7 @@ def angularUnit_set(arg) :
     _str_func = 'angularUnit_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
-    d_validArgs = {'deg':['deg','degree'],
+    d_validArgs = {'deg':['deg','degree','degrees'],
                    'rad':['rad','radian']
                    }
     
@@ -94,14 +94,21 @@ def frameRate_set(arg):
     _str_func = 'frameRate_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
-    d_validArgs = {'ntsc':['n','ntsc'],
-                   'pal':['p','pal'],
-                   'film':['f', 'film'],
-                   'game':['g','game'],
-                   'ntscf':['ntscf']
-                   }
+    if VALID.valueArg(arg):
+        _arg = '{0}fps'.format(arg)
+        
+    else:
+        d_validArgs = {'ntsc':['n','ntsc'],
+                       'pal':['p','pal'],
+                       'film':['f', 'film'],
+                       'game':['g','game'],
+                       'ntscf':['ntscf']
+                       }
+        
+        _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func,noneValid=True)
     
-    _arg = VALID.kw_fromDict(arg,d_validArgs, calledFrom=_str_func)
+    if not _arg:
+        _arg=arg
     
     log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
 
@@ -129,9 +136,19 @@ def sceneUp_set(arg):
 def defaultTangents_get():
     _str_func = 'defaultTangents_get'
     log.debug(cgmGEN.logString_start(_str_func))    
-    return mc.keyTangent(q = 1, itt = True, ott = True)  
+    return mc.keyTangent(q = 1, g=1, itt = True, ott = True)  
 
-def defaultTangents_set(arg):
+def defaultInTangent_set(arg):
+    return defaultTangents_set(arg,True,False)
+def defaultOutTangent_set(arg):
+    return defaultTangents_set(arg,False,True)
+
+def defaultInTangent_get():
+    return mc.keyTangent(q = 1, g=1, itt = True, ott = True)[0]
+def defaultOutTangent_get():
+    return mc.keyTangent(q = 1, g=1, itt = True, ott = True)[1]  
+
+def defaultTangents_set(arg, inTangent=True,outTangent=True):
     _str_func = 'defaultTangents_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
@@ -147,7 +164,14 @@ def defaultTangents_set(arg):
     log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
     
     #Couldn't use True for setting the Tangent type had to use _arg
-    mc.keyTangent(g= 1, itt = _arg, ott = _arg)
+    
+    _d = {'g':1}
+    if inTangent:
+        _d['itt']= _arg
+    if outTangent:
+        _d['ott'] = _arg
+        
+    mc.keyTangent(**_d)
     
 def weightedTangents_get():
     _str_func = 'weightedTangents_get'
