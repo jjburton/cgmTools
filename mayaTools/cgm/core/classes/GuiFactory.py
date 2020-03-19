@@ -411,6 +411,9 @@ class cgmGUI(mUI.BaseMelWindow):
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Print Tools Help",
                          c=lambda *a: log_selfReport(self) )
         mUI.MelMenuItemDiv( self.uiMenu_HelpMenu )
+        
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Log Self",
+                         c=lambda *a: log_selfReport(self) )   
 
         # Update Mode
         iMenu_loggerMaster = mUI.MelMenuItem( self.uiMenu_HelpMenu, l='Logger Level', subMenu=True)
@@ -1042,6 +1045,7 @@ guiButtonColor = [.35,.35,.35]
 guiHelpBackgroundColor = [0.8, 0.8, 0.8]
 guiHelpBackgroundReservedColor = [0.411765 , 0.411765 , 0.411765]
 guiHelpBackgroundLockedColor = [0.837, 0.399528, 0.01674]
+
 def initializeTemplates():
     if mc.uiTemplate( 'cgmUITemplate', exists=True ):
         mc.deleteUI( 'cgmUITemplate', uiTemplate=True )

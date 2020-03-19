@@ -612,7 +612,23 @@ example:
 		self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
 		self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools)  
 		self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
+		
+	def buildMenu_help( self, *args):
+		self.uiMenu_HelpMenu.clear()
+	
+		_log = mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Logs:",subMenu=True)
+	
+	
+		mUI.MelMenuItem( _log, l="Dat",
+			             c=lambda *a: self.project.log_self())
 
+		mc.menuItem(parent=self.uiMenu_HelpMenu,
+			        l = 'Get Help',
+			        c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
+			        rp = 'N')    
+		mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Log Self",
+			             c=lambda *a: cgmUI.log_selfReport(self) )
+		
 	def buildMenu_file( self, *args):
 		self.uiMenu_FileMenu.clear()
 		#>>> Reset Options			
@@ -1123,21 +1139,23 @@ example:
 			mel.eval('warning "No Project Set"')
 
 		self.project = Project.data(filepath=path)
+		
+		d_userPaths = self.project.userPaths_get()
 
-		if os.path.exists(self.project.d_paths['content']):
+		if os.path.exists(d_userPaths['content']):
 			self.optionVarProjectStore.setValue( path )
 
-			self.LoadCategoryList(self.project.d_paths['content'])
+			self.LoadCategoryList(d_userPaths['content'])
 			
-			self.exportDirectory = self.project.d_paths['export']
+			self.exportDirectory = d_userPaths['export']
 
 			self.exportDirectoryTF.setValue( self.exportDirectory )
 			# self.optionVarExportDirStore.setValue( self.exportDirectory )
 
 			self.categoryList = self.project.d_structure['assetTypes']
 
-			if os.path.exists(self.project.d_paths['image']):
-				self.uiImage_Project.setImage(self.project.d_paths['image'])
+			if os.path.exists(d_userPaths['image']):
+				self.uiImage_Project.setImage(d_userPaths['image'])
 			else:
 				_imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
 				self.uiImage_Project.setImage(_imageFailPath)
