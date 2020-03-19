@@ -1616,6 +1616,27 @@ class data(object):
             _v2 = self.d_paths.get(k)
             if _v2:
                 self.d_pathsProject[k] = _v2
+    
+    def userPaths_get(self,user = None):
+        
+        if user is None:
+            _user = getpass.getuser()
+        else:
+            _user = user
+            
+        d_user = self.d_pathsUser.get(_user,{})
+        
+        d_pathsUse = copy.copy(self.d_pathsProject)
+        if d_user:
+            log.warning("Found user path dat!")
+            for k,v in d_user.iteritems():
+                if v:
+                    d_pathsUse[k]=v
+        else:
+            d_pathsUse = self.d_pathsProject
+            log.warning("Using project paths dat!")
+            
+        return d_pathsUse
         
     def validateFilepath(self, filepath = None, fileMode = 0):
         '''

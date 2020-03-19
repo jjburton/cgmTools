@@ -624,7 +624,7 @@ example:
 			proj = Project.data(filepath=p)
 			name = proj.d_project['name']
 			project_names.append(name)
-			en = os.path.exists(proj.d_paths['export'])
+			en = os.path.exists(proj.userPaths_get()['export'])
 			mUI.MelMenuItem( self.uiMenu_FileMenu, en=en, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
 						 c = partial(self.LoadProject,p))
 		
