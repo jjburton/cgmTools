@@ -640,7 +640,7 @@ example:
 			proj = Project.data(filepath=p)
 			name = proj.d_project['name']
 			project_names.append(name)
-			en = os.path.exists(proj.userPaths_get()['export'])
+			en = os.path.exists(proj.userPaths_get()['content'])
 			mUI.MelMenuItem( self.uiMenu_FileMenu, en=en, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
 						 c = partial(self.LoadProject,p))
 		
@@ -1161,6 +1161,8 @@ example:
 				self.uiImage_Project.setImage(_imageFailPath)
 
 			self.buildMenu_category()
+
+			mc.workspace( d_userPaths['content'], openWorkspace=True )
 
 		else:
 			mel.eval('error "Project path does not exist"')
