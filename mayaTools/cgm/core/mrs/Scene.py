@@ -2,10 +2,11 @@ import maya.cmds as mc
 import maya.mel as mel
 from functools import partial
 import os
-import fnmatch
+from shutil import copyfile
+#import fnmatch
 import cgm.lib.pyui as pyui
-import subprocess
-import re
+#import subprocess
+#import re
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import asset_utils as ASSET
 from cgm.core.tools import Project as Project
@@ -99,6 +100,8 @@ example:
 		self.exportQueueFrame            = None
 		self.categoryMenu                = None
 		self.categoryMenuItemList        = []
+		self.sendToProjectMenuItemList   = []
+		self.sendToProjectMenu           = None
 
 		self.project                     = None
 
@@ -122,7 +125,11 @@ example:
 		# self.CreateWindow()
 
 	def post_init(self,*args,**kws):
-		self.LoadOptions()
+		if self.optionVarProjectStore.getValue():
+			self.LoadProject(self.optionVarProjectStore.getValue())
+		else:
+			mPathList = cgmMeta.pathList('cgmProjectPaths')
+			self.LoadProject(mPathList.mOptionVar.value[0])
 
 	@property
 	def directory(self):
@@ -166,8 +173,10 @@ example:
 		
 		#self.exportDirectory = self.optionVarExportDirStore.getValue() if self.optionVarExportDirStore.getValue() else ""
 		#self.exportCommand   = mc.optionVar(q=self.exportCommandStore) if mc.optionVar(exists=self.exportCommandStore) else ""
-		if self.optionVarProjectStore.getValue():
-			self.LoadProject(self.optionVarProjectStore.getValue())
+
+		self.SetCategory(self.categoryIndex)
+		self.LoadPreviousSelection()
+
 
 	def SaveOptions(self, *args):
 		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
@@ -177,8 +186,6 @@ example:
 		self.categoryStore.setValue( self.categoryIndex )
 		#mc.optionVar( stringValue = [self.exportCommandStore, self.exportCommand] )
 		
-		#self.LoadVersionList()
-
 	def TagAsset(self, *args):
 		pass
 
@@ -220,21 +227,12 @@ example:
 		cgmMeta.cgmOptionVar('cgm_export_set', varType="string").setValue(exportSet)
 
 	def build_layoutWrapper(self,parent):
-		# if mc.window("cgmSceneUI", q=True, exists=True):
-		# 	mc.deleteUI("cgmSceneUI")
-
-		# self.window = mc.window( "cgmSceneUI", title="cgmScene", iconName='cgmScene' )
-		
-		#self.menuBarLayout = mc.menuBarLayout()
-		#self.buildMenu_file()
 
 		_MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
-
 
 		##############################
 		# Top Column Layout 
 		##############################
-		
 
 		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate') #mc.columnLayout(adjustableColumn=True)
 		
@@ -255,8 +253,6 @@ example:
 		self.directoryTF = mUI.MelTextField(_uiRow_dir, editable = False, bgc=(.8,.8,.8))
 		self.directoryTF.setValue( self.directory )
 
-		#mUI.MelButton(_uiRow_dir, label='set', ut = 'cgmUITemplate', command=self.SetAnimationDirectory, width=100)
-
 		mUI.MelSpacer(_uiRow_dir,w=5)
 
 		_uiRow_dir.setStretchWidget(self.directoryTF)
@@ -266,7 +262,6 @@ example:
 		mUI.MelLabel(_uiRow_export,l='Export Dir', w=100)
 		self.exportDirectoryTF = mUI.MelTextField(_uiRow_export, editable = False, bgc=(.8,.8,.8))
 		self.exportDirectoryTF.setValue( self.exportDirectory )
-		#mUI.MelButton(_uiRow_export, label='set', ut = 'cgmUITemplate', command=self.SetExportDirectory, width=100)
 
 		mUI.MelSpacer(_uiRow_export,w=5)                      
 
@@ -298,7 +293,7 @@ example:
 		
 		self.assetList = self.build_searchable_list(_catForm, sc=self.LoadAnimationList)
 
-		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
 		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", command=self.OpenRig )
 		self.importRigMB = mUI.MelMenuItem(pum, label="Import Rig", command=self.ImportRig )
@@ -328,7 +323,7 @@ example:
 	
 		self.animationList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
 
-		pum = mUI.MelPopupMenu(self.animationList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		pum = mUI.MelPopupMenu(self.animationList['scrollList'])
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAnimationDirectory )
 
 		self.animationButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateAnimation)
@@ -355,7 +350,7 @@ example:
 	
 		self.variationList = self.build_searchable_list(_variationForm, sc=self.LoadVersionList)
 
-		pum = mUI.MelPopupMenu(self.variationList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		pum = mUI.MelPopupMenu(self.variationList['scrollList'])
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
 
 		self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
@@ -373,7 +368,7 @@ example:
 			attachControl=[
 				(self.variationList['formLayout'], 'top', 0, _variationBtn),
 				(self.variationList['formLayout'], 'bottom', 0, self.variationButton)] )
-	
+		
 
 		# Version
 		_versionForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
@@ -383,9 +378,10 @@ example:
 	
 		self.versionList = self.build_searchable_list(_versionForm, sc=self.StoreCurrentSelection)
 
-		pum = mUI.MelPopupMenu(self.versionList['scrollList'], pmc=self.UpdateCharTSLPopup)
+		pum = mUI.MelPopupMenu(self.versionList['scrollList'], pmc=self.UpdateVersionTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
 		mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
+		self.sendToProjectMenu = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )		
 
 		self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
@@ -531,73 +527,7 @@ example:
 				(_assetsForm, 'bottom', 0, _bottomColumn)] )
 	
 
-		# _MainForm( edit=True, 
-
-		# 	attachForm =
-		# 	[(_directoryColumn,'top', 0), 
-		# 	(_directoryColumn,'left', 0), 
-		# 	(_directoryColumn,'right', 0), 
-		# 	(_assetsForm, 'left', 0), 
-		# 	(c4_upperColumn, 'right', 0), 
-		# 	(self.assetList['scrollList'], 'left', 0), 
-		# 	(_bottomColumn, 'left', 0), 
-		# 	(_bottomColumn, 'bottom', 0), 
-		# 	(_bottomColumn, 'right', 0), 
-		# 	(self.versionList.textScrollList, 'right', 0),
-		# 	(self.assetButton, 'left', 0), 
-		# 	(self.versionButton, 'right', 0) ], 
-
-		# 	attachControl =
-		# 	[(_assetsForm, 'top', 0, _directoryColumn), 
-		# 	(c2_upperColumn, 'top', 0, _directoryColumn), 
-		# 	(c2_upperColumn, 'right', 0, c3_upperColumn), 
-		# 	(c3_upperColumn, 'top', 0, _directoryColumn), 
-		# 	(c3_upperColumn, 'right', 0, c4_upperColumn), 
-		# 	(c4_upperColumn, 'top', 0, _directoryColumn), 
-		# 	(self.assetList['scrollList'], 'bottom', 0, self.assetButton), 
-		# 	(self.assetList['scrollList'], 'top', 0, _assetsForm),
-		# 	(self.animationList['scrollList'], 'bottom', 0, self.animationButton), 
-		# 	(self.animationList['scrollList'], 'left', 0, _assetsForm), 
-		# 	(self.animationList['scrollList'], 'right', 4, self.variationList.textScrollList),
-		# 	(self.animationList['scrollList'], 'top', 0, c3_upperColumn),
-		# 	(self.variationList.textScrollList, 'left', 5, c2_upperColumn),
-		# 	(self.variationList.textScrollList, 'right', 4, self.versionList.textScrollList),
-		# 	(self.variationList.textScrollList, 'bottom', 0, self.versionButton), 
-		# 	(self.variationList.textScrollList, 'top', 0, c2_upperColumn),
-		# 	(self.versionList.textScrollList, 'left', 5, c3_upperColumn),
-		# 	(self.versionList.textScrollList, 'bottom', 0, self.versionButton), 
-		# 	(self.versionList.textScrollList, 'top', 0, c3_upperColumn),
-		# 	(self.assetButton, 'bottom', 3, _bottomColumn),
-		# 	(self.assetButton, 'right', 5, c2_upperColumn),
-		# 	(self.animationButton, 'bottom', 3, _bottomColumn),
-		# 	(self.animationButton, 'left', 5, _assetsForm),
-		# 	(self.animationButton, 'right', 5, c3_upperColumn),
-		# 	(self.variationButton, 'bottom', 3, _bottomColumn),
-		# 	(self.variationButton, 'left', 5, c2_upperColumn),
-		# 	(self.variationButton, 'right', 5, c4_upperColumn),
-		# 	(self.versionButton, 'bottom', 3, _bottomColumn),
-		# 	(self.versionButton, 'left', 5, c3_upperColumn)], 
-
-		# 	attachPosition =
-		# 	[(self.assetList['scrollList'], 'right', 2, 25),
-		# 	(self.animationList['scrollList'], 'left', 2, 25),
-		# 	(c4_upperColumn, 'left', 2, 75),
-		# 	(_assetsForm, 'right', 2, 25), 
-		# 	(c2_upperColumn, 'left', 2, 25), 
-		# 	(c2_upperColumn, 'right', 2, 50),
-		# 	(c3_upperColumn, 'left', 2, 50), 
-		# 	(c3_upperColumn, 'right', 2, 75)], 
-
-		# 	attachNone=(_bottomColumn, 'top') )
-
-		# mc.showWindow( self.window )
-
-	def show( self ):
-		# if self.previousLoadedDirectory:
-		# 	self.LoadCategoryList(self.previousLoadedDirectory)
-
-		self.LoadPreviousSelection()
-		
+	def show( self ):		
 		self.setVisibility( True )
 
 
@@ -693,27 +623,6 @@ example:
 			if i == self.categoryIndex:
 				self.categoryMenuItemList[i]( e=True, enable=False)
 
-	# def ConstructMenuBar(self, *args):
-	# 	if self.fileMenu:
-	# 		mc.deleteUI(self.fileMenu, control=True)
-	# 		self.fileMenu = None
-	# 		self.fileListMenuItems = []
-	# 	if self.optionsMenu:
-	# 		mc.deleteUI(self.optionsMenu, control=True)
-	# 		self.optionsMenu = None
-	# 	if self.toolsMenu:
-	# 		mc.deleteUI(self.toolsMenu, control=True)
-	# 		self.toolsMenu = None
-
-	# 	mc.setParent(self.menuBarLayout)
-
-	# 	self.fileMenu = mc.menu( label='File' )
-
-	# 	self.optionsMenu = mc.menu( label='Options' )
-	# 	#self.setExportCommandMI = mc.menuItem( label='Custom Export Command', c=self.SetExportCommand )
-
-	# 	self.toolsMenu = mc.menu( label='Tools' )
-
 
 	#####
 	## Searchable Lists
@@ -773,6 +682,7 @@ example:
 
 	def SetCategory(self, index, *args):
 		self.categoryIndex = index
+
 		mc.button( self.categoryText, e=True, label=self.category )
 		for i,category in enumerate(self.categoryMenuItemList):
 			if i == self.categoryIndex:
@@ -1131,7 +1041,6 @@ example:
 		self.LoadVersionList()
 
 	def OpenDirectory(self, path):
-		#subprocess.Popen('explorer %s' % path)
 		os.startfile(path)
 
 	def LoadProject(self, path, *args):
@@ -1164,6 +1073,8 @@ example:
 
 			mc.workspace( d_userPaths['content'], openWorkspace=True )
 
+			self.LoadOptions()
+
 		else:
 			mel.eval('error "Project path does not exist"')
 
@@ -1193,7 +1104,7 @@ example:
 		filePath = self.versionFile
 		mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem())
 
-	def UpdateCharTSLPopup(self, *args):
+	def UpdateAssetTSLPopup(self, *args):
 		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 		if os.path.exists(rigPath):
 			mc.menuItem( self.openRigMB, e=True, enable=True )
@@ -1201,6 +1112,65 @@ example:
 		else:
 			mc.menuItem( self.openRigMB, e=True, enable=False )
 			mc.menuItem( self.importRigMB, e=True, enable=False )
+
+	def UpdateVersionTSLPopup(self, *args):	
+		for item in self.sendToProjectMenuItemList:
+			mc.deleteUI(item, menuItem=True)
+
+		self.sendToProjectMenuItemList = []
+
+		asset = self.versionFile
+
+		mPathList = cgmMeta.pathList('cgmProjectPaths')
+
+		project_names = []
+		for i,p in enumerate(mPathList.mOptionVar.value):
+			proj = Project.data(filepath=p)
+			name = proj.d_project['name']
+			project_names.append(name)
+
+			if self.project.userPaths_get()['content'] == proj.userPaths_get()['content']:
+				continue
+
+			item = mUI.MelMenuItem( self.sendToProjectMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
+						 c = partial(self.SendToProject,{'filename':asset,'project':p}))
+			self.sendToProjectMenuItemList.append(item)
+
+	def SendToProject(self, infoDict, *args):
+		newProject = Project.data(filepath=infoDict['project'])
+
+		newFilename = os.path.normpath(infoDict['filename']).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+
+		if os.path.exists(newFilename):
+			result = mc.confirmDialog(
+					title='Destination file exists!',
+					message='The destination file already exists. Would you like to overwrite it?',
+					button=['Yes', 'Cancel'],
+					defaultButton='Yes',
+					cancelButton='Cancel',
+					dismissString='Cancel')
+
+			if result != 'Yes':
+				return False
+
+		if not os.path.exists(os.path.dirname(newFilename)):
+			os.makedirs(os.path.dirname(newFilename))
+
+		copyfile(infoDict['filename'], newFilename)
+
+		if os.path.exists(newFilename):
+			result = mc.confirmDialog(
+					title='Change Project?',
+					message='Change to the new project?',
+					button=['Yes', 'Cancel'],
+					defaultButton='Yes',
+					cancelButton='Cancel',
+					dismissString='Cancel')
+
+			if result == 'Yes':
+				self.LoadProject(infoDict['project'])
+				self.LoadOptions()
+
 
 	def OpenRig(self, *args):
 		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
@@ -1211,23 +1181,6 @@ example:
 		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 		if os.path.exists(rigPath):
 			mc.file(rigPath, i=True, f=True, pr=True)
-
-	# def SetExportCommand(self, *args):
-	# 	result = mc.promptDialog(
-	# 		title='Set Export Command',
-	# 		message='Command:',
-	# 		scrollableField=True,
-	# 		text=self.exportCommand,
-	# 		button=['OK', 'Cancel'],
-	# 		defaultButton='OK',
-	# 		cancelButton='Cancel',
-	# 		dismissString='Cancel')
-
-	# 	if result == 'OK':
-	# 		self.exportCommand = mc.promptDialog(query=True, text=True)
-	# 		mc.button( self.exportButton, e=True, en=True if self.exportCommand != "" else False )
-
-	# 	self.SaveOptions()
 
 	def AddToExportQueue(self, *args):
 		if self.versionList['scrollList'].getSelectedItem() != None:
@@ -1363,9 +1316,6 @@ example:
 		for obj in exportObjs:
 			mc.select(obj)
 
-			#assetName = metaTag.GetTag(node.Node(obj), "assetName")
-			#if not assetName:
-			#	assetName = obj.split(':')[0].split('|')[-1]
 			assetName = obj.split(':')[0].split('|')[-1]
 			
 			exportFile = os.path.normpath(os.path.join(exportAnimPath, self.exportFileName) )
@@ -1379,19 +1329,6 @@ example:
 
 			exportObjs = mc.ls(sl=True)
 
-			# topExportObjs = []
-			# for obj in exportObjs:
-			# 	longName = mc.ls(obj, l=True)[0]
-			# 	memberOfHeirarchy = False
-			# 	for compareObj in exportObjs:
-			# 		if obj == compareObj:
-			# 			continue
-			# 		if compareObj in longName:
-			# 			memberOfHeirarchy = True
-			# 			break
-			# 	if not memberOfHeirarchy:
-			# 		topExportObjs.append(obj)
-
 			# mc.select(topExportObjs)
 			for obj in exportObjs:
 				try:
@@ -1401,20 +1338,7 @@ example:
 			
 			mc.select(exportObjs, hi=True)
 			
-			'''
-			if os.path.exists(self.exportFile):
-				result = mc.confirmDialog(
-						title='File Exists',
-						message='Overwrite?',
-						button=['Yes', 'Cancel'],
-						defaultButton='Yes',
-						cancelButton='Cancel',
-						dismissString='Cancel')
-
-				if result != 'Yes':
-					return False
-			'''
-			
+		
 			if(exportFBXFile):
 				mel.eval('FBXExportSplitAnimationIntoTakes -c')
 				animList = SHOTS.AnimList()
