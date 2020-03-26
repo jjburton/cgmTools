@@ -60,22 +60,15 @@ example:
 	TOOLNAME = 'cgmScene'
 	WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
 
-	def insert_init(self,*args,**kws):
-		#self.window                      = None
-		
+	def insert_init(self,*args,**kws):	
 		self.categoryList                = ["Character", "Environment", "Props"]
 		self.categoryIndex               = 0
 
-		#self.create_guiOptionVar('matchFrameCollapse',defaultValue = 0)
-
 		self.optionVarProjectStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_project", varType = "string")
-		# self.optionVarDirStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_directory_list", varType = "string")
-		# self.optionVarLastDirStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_directory", varType = "string")
 		self.optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
 		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
 		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
 		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
-		# self.optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_export_directory", varType = "string")
 		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		
@@ -108,21 +101,16 @@ example:
 		self.exportCommand               = ""
 
 		self.showBakedOption             = None
-		#self.recursiveAnimListOption    = None
 		
 		self.showBaked                   = False
-		#self.recursiveAnimList          = False
 		
 		self.fileListMenuItems           = []
 		self.batchExportItems            = []
 
-		# self.previousDirectoryList       = self.GetPreviousDirectories()
-		# self.previousLoadedDirectory     = self.GetPreviousDirectory()
 		self.exportDirectory             = None
 
 		self.v_bgc = [.6,.3,.3]
 
-		# self.CreateWindow()
 
 	def post_init(self,*args,**kws):
 		if self.optionVarProjectStore.getValue():
@@ -171,11 +159,10 @@ example:
 		self.showBaked     = bool(self.showBakedStore.getValue())
 		self.categoryIndex = int(self.categoryStore.getValue())
 		
-		#self.exportDirectory = self.optionVarExportDirStore.getValue() if self.optionVarExportDirStore.getValue() else ""
-		#self.exportCommand   = mc.optionVar(q=self.exportCommandStore) if mc.optionVar(exists=self.exportCommandStore) else ""
-
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
+
+		self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
 
 
 	def SaveOptions(self, *args):
@@ -1133,10 +1120,10 @@ example:
 				continue
 
 			item = mUI.MelMenuItem( self.sendToProjectMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
-						 c = partial(self.SendToProject,{'filename':asset,'project':p}))
+						 c = partial(self.SendVersionFileToProject,{'filename':asset,'project':p}))
 			self.sendToProjectMenuItemList.append(item)
 
-	def SendToProject(self, infoDict, *args):
+	def SendVersionFileToProject(self, infoDict, *args):
 		newProject = Project.data(filepath=infoDict['project'])
 
 		newFilename = os.path.normpath(infoDict['filename']).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
@@ -1171,6 +1158,8 @@ example:
 				self.LoadProject(infoDict['project'])
 				self.LoadOptions()
 
+	def SendLatestRigToProject():
+		pass
 
 	def OpenRig(self, *args):
 		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
