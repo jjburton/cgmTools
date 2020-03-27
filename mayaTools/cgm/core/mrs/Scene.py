@@ -64,7 +64,7 @@ example:
 		self.categoryList                = ["Character", "Environment", "Props"]
 		self.categoryIndex               = 0
 
-		self.optionVarProjectStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_project", varType = "string")
+		self.optionVarProjectStore       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
 		self.optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
 		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
 		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
@@ -84,9 +84,9 @@ example:
 		self.queueTSL                    = None #pyui.UIList()
 		self.updateCB                    = None
 		self.menuBarLayout               = None
-		self.fileMenu                    = None
-		self.toolsMenu                   = None
-		self.optionsMenu                 = None
+		self.uiMenu_FileMenu             = None
+		self.uiMenu_ToolsMenu            = None
+		self.uiMenu_OptionsMenu          = None
 		self.categoryText                = None
 		self.openRigMB                   = None
 		self.importRigMB                 = None
@@ -163,7 +163,6 @@ example:
 		self.LoadPreviousSelection()
 
 		self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
-
 
 	def SaveOptions(self, *args):
 		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
@@ -600,6 +599,13 @@ example:
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Update Selected Rigs",
 						 c = lambda *a:mc.evalDeferred(self.UpdateToLatestRig,lp=True))
 
+		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Remap Unlinked Textures",
+						 c = lambda *a:mc.evalDeferred(self.RemapTextures,lp=True))
+
+	def RemapTextures(self, *args):
+		import cgm.tools.findTextures as findTextures
+
+		findTextures.FindAndRemapTextures()
 
 	def buildMenu_category(self, *args):
 		self.categoryMenu.clear()
