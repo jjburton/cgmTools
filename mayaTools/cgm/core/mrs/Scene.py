@@ -71,6 +71,8 @@ example:
 		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
 		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
+		self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
+
 		
 		## sizes
 		self.__itemHeight                = 35
@@ -1152,13 +1154,34 @@ example:
 		copyfile(infoDict['filename'], newFilename)
 
 		if os.path.exists(newFilename):
+			result = 'Cancel'
+			if not self.alwaysSendReferenceFiles.getValue():
+				result = mc.confirmDialog(
+						title='Send Missing References?',
+						message='Copy missing references as well?',
+						button=['Yes', 'Yes and Stop Asking', 'Cancel'],
+						defaultButton='Yes',
+						cancelButton='No',
+						dismissString='No')
+
+			if result == 'Yes and Stop Asking':
+				self.alwaysSendReferenceFiles.setValue(1)
+
+			if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
+				for refFile in mc.file(query=True, reference=True):
+					newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+					if not os.path.exists(newRefFilename):
+						if not os.path.exists(os.path.dirname(newRefFilename)):
+							os.makedirs(os.path.dirname(newRefFilename))
+						copyfile(refFile, newRefFilename)
+
 			result = mc.confirmDialog(
 					title='Change Project?',
 					message='Change to the new project?',
-					button=['Yes', 'Cancel'],
+					button=['Yes', 'No'],
 					defaultButton='Yes',
-					cancelButton='Cancel',
-					dismissString='Cancel')
+					cancelButton='No',
+					dismissString='No')
 
 			if result == 'Yes':
 				self.LoadProject(infoDict['project'])
