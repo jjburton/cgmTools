@@ -28,9 +28,12 @@ def cgmMeshTools( *a ):
     cgmMeshToolsWin = meshTools.run()
     
 def mrsUI():
-    import cgm.core.mrs.Builder as MRSBUILDER
-    reload(MRSBUILDER)
-    MRSBUILDER.ui()
+    try:
+        import cgm.core.mrs.Builder as MRSBUILDER
+        reload(MRSBUILDER)
+        MRSBUILDER.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)    
     
 def mrsANIMATE():
     import cgm.core.mrs.Animate as MRSANIMATE
@@ -101,7 +104,7 @@ def mrsShots():
         reload(SHOTS)
         x = SHOTS.ShotUI()
     except Exception,err:
-        log.warning("[DEV] failed to load. | {0}".format(err))
+        cgmGEN.cgmException(Exception,err)
 
 def mrsScene():
     try:
@@ -109,7 +112,10 @@ def mrsScene():
         reload(SCENE)
         x = SCENE.ui()
     except Exception,err:
-        log.warning("[mrsScene] failed to load. | {0}".format(err))
+        cgmGEN.cgmException(Exception,err)    
+    #except Exception,err:
+    #    log.warning("[mrsScene] failed to load. | {0}".format(err))
+        
 
 def cgmProject():
     try:
@@ -117,7 +123,10 @@ def cgmProject():
         reload(PROJECT)
         x = PROJECT.ui()
     except Exception,err:
-        log.warning("[cgmProject] failed to load. | {0}".format(err))
+        cgmGEN.cgmException(Exception,err)
+    #except Exception,err:
+    #    log.warning("[cgmProject] failed to load. | {0}".format(err))
+    #    raise Exception,err
 
 def loadPuppetBox( *a ):
     from cgm.tools import puppetBox
@@ -130,16 +139,20 @@ def loadPuppetBox2( *a ):
     cgmPuppetBoxWin = puppetBox2.run()	
 
 def loadCGMSimpleGUI( *a ):
-    from cgm.core.classes import GuiFactory as uiFactory
-    reload(uiFactory)
-    uiFactory.cgmGUI()
+    try:
+        
+        from cgm.core.classes import GuiFactory as uiFactory
+        reload(uiFactory)
+        uiFactory.cgmGUI()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)        
 
 def reload_cgmCore( *a ):
     try:
         import cgm.core
         cgm.core._reload()	
-    except Exception,error:log.warning("[reload_cgmCoreFail]{%s}"%error)
-
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 
 def testMorpheus( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM

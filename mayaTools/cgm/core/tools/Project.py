@@ -210,6 +210,7 @@ class ui(cgmUI.cgmGUI):
         self.d_buttons = {}
         self.d_labels = {}
         
+        
     def uiProject_new(self):
         _str_func = 'uiProject_new'
         log.debug("|{0}| >>...".format(_str_func))        
@@ -482,7 +483,7 @@ class ui(cgmUI.cgmGUI):
         #self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
         
         #self.uiImage_Project.setImage(mThumb)
-        
+        self.var_project.value = self.mDat.str_filepath
         self.var_pathLastProject.value = self.mDat.str_filepath
     
     def reload_headerImage(self):
@@ -902,6 +903,8 @@ class ui(cgmUI.cgmGUI):
                 self.uiProject_load(mPath)        
             except Exception,err:
                 log.error("Failed to load last: {0} | {1}".format(mPath, err))
+                cgmGEN.cgmException(Exception,err)    
+
                 
     def bUI_main(self,parent):
         #self.mLabel_projectName = mUI.MelLabel(parent,label='Project X'.upper(), al = 'center', ut = 'cgmUIHeaderTemplate')

@@ -6,7 +6,7 @@ from shutil import copyfile
 #import fnmatch
 import cgm.lib.pyui as pyui
 #import subprocess
-#import re
+import re
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.lib import asset_utils as ASSET
 from cgm.core.tools import Project as Project
