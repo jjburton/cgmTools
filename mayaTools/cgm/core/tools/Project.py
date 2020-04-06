@@ -897,7 +897,7 @@ class ui(cgmUI.cgmGUI):
         
         
         #Attempting to autoload our last
-        mPath = PATHS.Path(self.var_pathLastProject.value )
+        mPath = PATHS.Path(self.var_project.value )
         if mPath.exists():
             try:
                 self.uiProject_load(mPath)        
