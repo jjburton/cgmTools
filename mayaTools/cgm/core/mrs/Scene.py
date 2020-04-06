@@ -28,7 +28,7 @@ log.setLevel(logging.INFO)
 
 
 #>>> Root settings =============================================================
-__version__ = '1.5.09072019'
+__version__ = "1.04.06.2020"
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]
@@ -228,6 +228,7 @@ example:
 		imageRow = mUI.MelHRowLayout(_directoryColumn,bgc=self.v_bgc)
 		
 		#mUI.MelSpacer(imageRow,w=10)
+		self.uiImage_ProjectRow =imageRow
 		self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
 		self.uiImage_Project.setImage(_imageFailPath)
 		#mUI.MelSpacer(imageRow,w=10)	
@@ -1043,7 +1044,16 @@ example:
 			mel.eval('warning "No Project Set"')
 
 		self.project = Project.data(filepath=path)
-		
+		_bgColor = self.v_bgc
+		try:
+			_bgColor = self.project.d_colors['project']
+		except Exception,err:
+			log.warning("No project color stored | {0}".format(err))
+			
+		try:self.uiImage_ProjectRow(edit=True, bgc = _bgColor)
+		except Exception,err:
+			log.warning("Failed to set bgc: {0} | {1}".format(_bgColor,err))
+			
 		d_userPaths = self.project.userPaths_get()
 
 		if os.path.exists(d_userPaths['content']):
@@ -1057,6 +1067,7 @@ example:
 			# self.optionVarExportDirStore.setValue( self.exportDirectory )
 
 			self.categoryList = self.project.d_structure['assetTypes']
+			
 
 			if os.path.exists(d_userPaths['image']):
 				self.uiImage_Project.setImage(d_userPaths['image'])

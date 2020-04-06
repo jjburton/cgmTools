@@ -49,6 +49,7 @@ d_dirFramework = {
 _dataConfigToStored = {'general':'d_project',
                        'paths':'d_paths',
                        'pathsUser':'d_pathsUser',
+                       'colors':'d_colors',
                        'pathsProject':'d_pathsProject',
                        'anim':'d_animSettings',
                        'structure':'d_structure',
@@ -94,6 +95,9 @@ _worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
                   {'n':'angular','t':['degrees','radians'],'dv':'degrees'},                   
                    ]
 
+_colorSettings = [{'n':'project','t':'color','dv':[.6,.3,.3]},
+                  ]
+
 _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
                     {'n':'farClip','t':'float','dv':100000}]
 
@@ -113,6 +117,7 @@ _structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','En
 _d_defaultsMap = {'general':_projSettings,
                   'anim':_animSettings,
                   'world':_worldSettings,
+                  'colors':_colorSettings,
                   'structure':_structureSettings,}
 
 

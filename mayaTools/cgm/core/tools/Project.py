@@ -19,7 +19,7 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__version__ = "1.03.18.2020"
+__version__ = "1.04.06.2020"
 __MAYALOCAL = 'CGMPROJECT'
 
 
@@ -88,6 +88,7 @@ def buildFrames(self,parent):
         
     d_toDo  = {'world':PU._worldSettings,
                'structure':PU._structureSettings,
+               'colors':PU._colorSettings,
                'anim':PU._animSettings}
     
     _nameStyle = self.d_tf['general']['nameStyle'].getValue()
@@ -144,6 +145,11 @@ def buildFrames(self,parent):
                                               )
                 _d[_name].setValue(_dv)
                 self.d_uiTypes[k][_name] = 'bool'
+            elif _type == 'color':
+                _d[_name] = mUI.MelButton(_row,bgc= [1,1,1], l = '',
+                                          c= cgmGEN.Callback(self.uiButton_colorSet,'colors',_name))
+                self.d_uiTypes[k][_name] = 'color'
+                
             else:
                 #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
                 self.d_uiTypes[k][_name] = 'string'
@@ -266,8 +272,6 @@ class ui(cgmUI.cgmGUI):
         import cgm.core.mrs.Scene as SCENE
         SCENE.ui()
         
-        
-        
     def uiProject_clear(self,path=None,revert=False):
         _str_func = 'uiProject_clear'
         log.debug("|{0}| >>...".format(_str_func))
@@ -287,7 +291,6 @@ class ui(cgmUI.cgmGUI):
                     log.error("err | {0}".format(err))
                     
         self.path_projectConfig = None
-        
         
         #Set pose path
         
@@ -375,7 +378,7 @@ class ui(cgmUI.cgmGUI):
         
         l_errs = []
         
-        for dType in ['general','anim','pathsProject','structure']:
+        for dType in ['general','anim','pathsProject','structure','colors']:
             log.debug(cgmGEN.logString_sub(_str_func,dType))
             
             for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
@@ -389,7 +392,9 @@ class ui(cgmUI.cgmGUI):
                             self.d_tf[dType][k].setValue(','.join(v))
                         else:
                             self.d_tf[dType][k].setValue(v[0])
-                            
+                    elif _type == 'color' and v:
+                        self.d_tf[dType][k](edit=True, bgc = v)
+                        
                     else:
                         if v is not None:
                             self.d_tf[dType][k].setValue(v,executeChangeCB=False)
@@ -398,6 +403,10 @@ class ui(cgmUI.cgmGUI):
                     log.error("Missing data field or failure: dtype:{0} | {1}".format(dType,k))
                     log.error("err | {0}".format(err))
                     
+                    
+        self.uiImage_ProjectRow(edit=True, bgc = self.mDat.d_colors.get('project',[1,1,1]))
+
+        
         #User paths...
         _user = getpass.getuser()
         d_user = self.mDat.d_pathsUser.get(_user,{})
@@ -531,6 +540,9 @@ class ui(cgmUI.cgmGUI):
                     log.debug('StringList: {0} | {1} | {2}'.format(dType,k,_v))
                     
                     self.mDat.__dict__[d][k] = _v
+                elif _type == 'color':
+                    self.mDat.__dict__[d][k] = ui(q=True, bgc=True)
+                    
                 else:
                     self.mDat.__dict__[d][k] = ui.getValue()            
                     
@@ -959,6 +971,7 @@ class ui(cgmUI.cgmGUI):
         
         
         #mUI.MelSpacer(imageRow,w=10)
+        self.uiImage_ProjectRow = imageRow
         self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
         self.uiImage_Project.setImage(_imageFailPath)
         #mUI.MelSpacer(imageRow,w=10)	
@@ -1244,6 +1257,25 @@ class ui(cgmUI.cgmGUI):
             mUI.MelSpacer(_row,w=5)
             _row.layout()
     
+    def uiButton_colorSet(self,d,key):
+        
+        result = mc.colorEditor(rgb = self.mDat.d_colors[key])
+        buffer = result.split()
+        if '1' == buffer[3]:
+            
+            values = mc.colorEditor(query=True, rgb=True)
+            print 'RGB = ' + str(values)
+
+            self.d_tf[d][key](edit = 1, bgc = values)
+            
+            if key == 'project':
+                self.uiImage_ProjectRow(edit=True, bgc = values)
+            
+            self.mDat.d_colors[key] = values
+        else:
+            print 'Editor was dismissed'
+            
+        
     def uiButton_setPathToTextField(self,key,mode='project'):
         basicFilter = "*"
         if key in ['image']:
@@ -1713,12 +1745,19 @@ class data(object):
             log.debug("Checking...{0}".format(k))
             
             if _config.has_key(k):
-                #pprint.pprint(_config[k])
-                
-                self.__dict__[PU._dataConfigToStored[k]] = _config[k]
+                _d = _config[k]
+                if issubclass(type(_d),dict):
+                    self.__dict__[PU._dataConfigToStored[k]] = {}
+                    for _k,_item in _d.iteritems():
+                        log.debug("{0} | {1}".format(_k,_item))
+                        self.__dict__[PU._dataConfigToStored[k]][_k] = decodeString(_item)                    
+                else:
+                    self.__dict__[PU._dataConfigToStored[k]]  = _d
+                #_v = decodeString(_config[k])
+                #log.debug("{0} | {1}".format(type(_v),_v))
+                #self.__dict__[PU._dataConfigToStored[k]] = _v
             else:
-                log.error("Config file missing section {0}".format(k))
-                return False
+                log.debug("Config file missing section {0}".format(k))
             
         if report:self.log_self()
         self.str_filepath = str(mPath)
@@ -1773,7 +1812,66 @@ class data(object):
                         log.warning("Dir already exists: {0}".format(mSub))                    
             return mDir.asFriendly()
         return log.warning("Asset add cancelled")
-
+    
+def decodeString(val):
+    '''
+    From configObj the return is a string, we want to encode
+    it back to it's original state so we pass it through this
+    '''
+    try:
+        # configobj section handler to push back to native dict
+        try:
+            from Red9.packages.configobj import Section
+            if issubclass(type(val), Section):
+                return val.dict()
+        except:
+            log.debug('failed to convert configObj section %s' % val)
+        
+        if cgmValid.isListArg(val):
+            return [decodeString(v) for v in val]
+        
+        if not issubclass(type(val), str) and not type(val) == unicode:
+            # log.debug('Val : %s : is not a string / unicode' % val)
+            # log.debug('ValType : %s > left undecoded' % type(val))
+            return val
+        if val == 'False' or val == 'True' or val == 'None':
+            # log.debug('Decoded as type(bool)')
+            return eval(val)
+        elif val == '[]':
+            # log.debug('Decoded as type(empty list)')
+            return eval(val)
+        elif val == '()':
+            # log.debug('Decoded as type(empty tuple)')
+            return eval(val)
+        elif val == '{}':
+            # log.debug('Decoded as type(empty dict)')
+            return eval(val)
+        elif (val[0] == '[' and val[-1] == ']'):
+            # log.debug('Decoded as type(list)')
+            return eval(val)
+        elif (val[0] == '(' and val[-1] == ')'):
+            # log.debug('Decoded as type(tuple)')
+            return eval(val)
+        elif (val[0] == '{' and val[-1] == '}'):
+            # log.debug('Decoded as type(dict)')
+            return eval(val)
+        try:
+            encoded = int(val)
+            # log.debug('Decoded as type(int)')
+            return encoded
+        except:
+            pass
+        try:
+            encoded = float(val)
+            # log.debug('Decoded as type(float)')
+            return encoded
+        except:
+            pass
+    except:
+        return
+    # log.debug('Decoded as type(string)')
+    return val
+    
 class cgmProjectDirList(mUI.BaseMelWidget):
     '''
     NOTE: you probably want to use the MelObjectScrollList instead!
