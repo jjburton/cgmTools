@@ -84,7 +84,7 @@ def Bake():
 
     return baked
 
-def Prep():
+def Prep(removeNamespace = False):
     prepped = True
 
     deleteSetName = "deleteSet"
@@ -106,7 +106,7 @@ def Prep():
     topNodeSN = topNode.split(':')[-1]
 
     namespaces = topNode.split(':')[:-1]
-        
+    
     # import reference
     if( mc.referenceQuery(topNode, isNodeReferenced=True) ):
         refFile = mc.referenceQuery( topNode ,filename=True )
@@ -128,6 +128,12 @@ def Prep():
     else:
         ns = "%s_" % topNode
 
+    exportSet = "%s%s" % (ns, exportSetName)
+
+    if removeNamespace:
+        for obj in mc.listRelatives(mc.sets(exportSet, q=True), ad=True) + mc.sets(exportSet, q=True):
+            mc.rename(obj, obj.split(':')[-1])
+
     # delete garbage
     deleteSet = "%s%s" % (ns, deleteSetName)
     if(mc.objExists(deleteSet)):
@@ -135,6 +141,9 @@ def Prep():
     else:
         print "No delete set found."  
         prepped = False
+
+    if(mc.objExists(exportSet)):
+        mc.delete(mc.listRelatives(mc.sets(exportSet, q=True), ad=True, type='constraint'))
 
     # export
     newTopNode = '%s%s' % (ns, topNodeSN)
@@ -149,7 +158,6 @@ def Prep():
     # revert to previous settings
     mc.currentTime(currentTime)
 
-    exportSet = "%s%s" % (ns, exportSetName)
     if(mc.objExists(exportSet)):
         mc.select( mc.sets( exportSet, q=True ) ) 
     else:
@@ -157,6 +165,15 @@ def Prep():
         mc.select( topNode )
         prepped = False
 
+    exportObjs = mc.ls(sl=True)
+    for obj in exportObjs:
+        try:
+            mc.parent(obj, w=True)
+        except:
+            print "%s already a child of 'world'" % obj
+
+    mc.select(exportObjs)
+    
     mc.refresh()
 
     return prepped

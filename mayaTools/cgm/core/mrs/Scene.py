@@ -60,7 +60,7 @@ example:
 	TOOLNAME = 'cgmScene'
 	WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
 
-	def insert_init(self,*args,**kws):	
+	def insert_init(self,*args,**kws):
 		self.categoryList                = ["Character", "Environment", "Props"]
 		self.categoryIndex               = 0
 
@@ -70,14 +70,14 @@ example:
 		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
 		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
 		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
+		self.removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
 
-		
 		## sizes
 		self.__itemHeight                = 35
 		self.__cw1                       = 125
-		
+
 		# UI elements
 		self.assetList                   = None #pyui.SearchableList()
 		self.animationList               = None #pyui.SearchableList()
@@ -90,12 +90,15 @@ example:
 		self.uiMenu_ToolsMenu            = None
 		self.uiMenu_OptionsMenu          = None
 		self.categoryText                = None
+		self.openInExplorerMB            = None
 		self.openRigMB                   = None
-		self.importRigMB                 = None
+		self.referenceRigMB              = None
 		self.exportQueueFrame            = None
 		self.categoryMenu                = None
 		self.categoryMenuItemList        = []
 		self.sendToProjectMenuItemList   = []
+		self.assetRigMenuItemList        = []
+		self.assetReferenceRigMenuItemList  = []
 		self.sendToProjectMenu           = None
 
 		self.project                     = None
@@ -103,15 +106,17 @@ example:
 		self.exportCommand               = ""
 
 		self.showBakedOption             = None
-		
+		self.removeNamespaceOption       = None
+
 		self.showBaked                   = False
-		
+		self.removeNamespace             = False
+
 		self.fileListMenuItems           = []
 		self.batchExportItems            = []
 
 		self.exportDirectory             = None
 
-		self.v_bgc = [.6,.3,.3]
+		self.v_bgc                       = [.6,.3,.3]
 
 
 	def post_init(self,*args,**kws):
@@ -135,19 +140,19 @@ example:
 	
 	@property
 	def assetDirectory(self):
-		return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() ))
+		return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
 
 	@property
 	def animationDirectory(self):
-		return os.path.normpath(os.path.join( self.assetDirectory, 'animation', self.animationList['scrollList'].getSelectedItem() ))
+		return os.path.normpath(os.path.join( self.assetDirectory, 'animation', self.animationList['scrollList'].getSelectedItem() )) if self.animationList['scrollList'].getSelectedItem() else None
 
 	@property
 	def variationDirectory(self):
-		return os.path.normpath(os.path.join( self.animationDirectory, self.variationList['scrollList'].getSelectedItem() ))
+		return os.path.normpath(os.path.join( self.animationDirectory, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
 
 	@property
 	def versionFile(self):
-		return os.path.normpath(os.path.join( self.variationDirectory, self.versionList['scrollList'].getSelectedItem() ))
+		return os.path.normpath(os.path.join( self.variationDirectory, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None
 
 	@property
 	def exportFileName(self):
@@ -160,16 +165,25 @@ example:
 	def LoadOptions(self, *args):
 		self.showBaked     = bool(self.showBakedStore.getValue())
 		self.categoryIndex = int(self.categoryStore.getValue())
+		self.removeNamespace = bool(self.removeNamespaceStore.getValue())
 		
+		if self.showBakedOption:
+			self.showBakedOption(e=True, v = self.showBaked)
+		if self.removeNamespaceOption:
+			self.removeNamespaceOption(e=True, v = self.removeNamespace)
+
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
 
 		self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
 
 	def SaveOptions(self, *args):
+		print "Saving options"
 		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
-		
+		self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
+
 		self.showBakedStore.setValue(self.showBaked)
+		self.removeNamespaceStore.setValue(self.removeNamespace)
 		# self.optionVarExportDirStore.setValue( self.exportDirectory )
 		self.categoryStore.setValue( self.categoryIndex )
 		#mc.optionVar( stringValue = [self.exportCommandStore, self.exportCommand] )
@@ -282,9 +296,9 @@ example:
 		self.assetList = self.build_searchable_list(_catForm, sc=self.LoadAnimationList)
 
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
-		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
-		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", command=self.OpenRig )
-		self.importRigMB = mUI.MelMenuItem(pum, label="Import Rig", command=self.ImportRig )
+		self.openInExplorerMB = mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
+		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", subMenu=True )
+		self.referenceRigMB = mUI.MelMenuItem(pum, label="Reference Rig", subMenu=True )
 
 		self.assetButton = mUI.MelButton(_catForm, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
 
@@ -527,7 +541,7 @@ example:
 		log.info("|{0}| >>...".format(_str_func))   
 		
 		self.uiMenu_FileMenu = mUI.MelMenu( l='Projects', pmc=self.buildMenu_file)		        
-		self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
+		self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)
 		self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools)  
 		self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
 		
@@ -567,26 +581,16 @@ example:
 		mUI.MelMenuItem( self.uiMenu_FileMenu, l="MRSProject",
 						 c = lambda *a:mc.evalDeferred(Project.ui,lp=True))                         
 
-		# self.fileListMenuItems.append(mc.menuItem( label='Open', c=self.OpenDirectory ))
-		# self.fileListMenuItems.append(mc.menuItem( d=True ))
-		
-		# for d in self.GetPreviousDirectories():
-		# 	self.fileListMenuItems.append(mc.menuItem(label=d, c=partial(self.LoadCategoryList,d)))
-		
-		# self.fileListMenuItems.append(mc.menuItem( label='Clear List', c=self.ClearPreviousDirectories ))
-
 	def buildMenu_options( self, *args):
 		self.uiMenu_OptionsMenu.clear()
 		#>>> Reset Options		
 
 		self.showBakedOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show baked versions",
-						 #en = _b_reload,
 						 checkBox=self.showBaked,
 						 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
-						 #c=cgmGEN.Callback(reloadUI,self.__class__,self.WINDOW_NAME))
-						 #c=lambda *a: reloadUI(self.__class__,self.WINDOW_NAME))	
-
-		# self.showBakedOption    = mc.menuItem( label='Show baked versions', checkBox=self.showBaked, c=self.SaveOptions )
+		self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
+						 checkBox=self.removeNamespace,
+						 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 	
 	def buildMenu_tools( self, *args):
 		self.uiMenu_ToolsMenu.clear()
@@ -686,7 +690,9 @@ example:
 				self.categoryMenuItemList[i]( e=True, enable=True)
 
 		self.LoadCategoryList(self.directory)
-		self.SaveOptions()
+
+		self.categoryStore.setValue(self.categoryIndex)
+		#self.SaveOptions()
 
 	def LoadCategoryList(self, directory="", *args):
 		# p = self.GetPreviousDirectories()
@@ -1100,13 +1106,35 @@ example:
 		mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem())
 
 	def UpdateAssetTSLPopup(self, *args):
-		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
-		if os.path.exists(rigPath):
+
+		assetList = ASSET.AssetDirectory(self.assetDirectory)
+		directoryList = assetList.GetFullPaths()
+
+		#rigPath = #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
+		if len(assetList.versions) > 0:
 			mc.menuItem( self.openRigMB, e=True, enable=True )
-			mc.menuItem( self.importRigMB, e=True, enable=True )
+			mc.menuItem( self.referenceRigMB, e=True, enable=True )
 		else:
 			mc.menuItem( self.openRigMB, e=True, enable=False )
-			mc.menuItem( self.importRigMB, e=True, enable=False )
+			mc.menuItem( self.referenceRigMB, e=True, enable=False )
+
+		for item in self.assetRigMenuItemList:
+			mc.deleteUI(item, menuItem=True)
+		for item in self.assetReferenceRigMenuItemList:
+			mc.deleteUI(item, menuItem=True)
+
+		self.assetRigMenuItemList = []
+		self.assetReferenceRigMenuItemList = []
+
+		for i,rig in enumerate(assetList.versions):
+			item = mUI.MelMenuItem( self.openRigMB, l=rig,
+						 c = partial(self.OpenRig,directoryList[i]))
+			self.assetRigMenuItemList.append(item)
+
+			item = mUI.MelMenuItem( self.referenceRigMB, l=rig,
+						 c = partial(self.ReferenceRig,directoryList[i]))
+			self.assetReferenceRigMenuItemList.append(item)
+
 
 	def UpdateVersionTSLPopup(self, *args):	
 		for item in self.sendToProjectMenuItemList:
@@ -1190,15 +1218,16 @@ example:
 	def SendLatestRigToProject():
 		pass
 
-	def OpenRig(self, *args):
-		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
+	def OpenRig(self, filename, *args):
+		rigPath = filename #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 		if os.path.exists(rigPath):
 			mc.file(rigPath, o=True, f=True, ignoreVersion=True)
 
-	def ImportRig(self, *args):
-		rigPath = os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
+	def ReferenceRig(self, filename, *args):
+		rigPath = filename #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 		if os.path.exists(rigPath):
-			mc.file(rigPath, i=True, f=True, pr=True)
+			assetName = os.path.basename(os.path.dirname(rigPath))
+			mc.file(rigPath, r=True, ignoreVersion=True, gl=True, mergeNamespacesOnClash=False, namespace=assetName)
 
 	def AddToExportQueue(self, *args):
 		if self.versionList['scrollList'].getSelectedItem() != None:
@@ -1266,6 +1295,7 @@ example:
 
 		#exec(self.exportCommand)
 		import cgm.core.tools.bakeAndPrep as bakeAndPrep
+		reload(bakeAndPrep)
 		import cgm.core.mrs.Shots as SHOTS
 
 		exportObjs = mc.ls(sl=True)
@@ -1343,19 +1373,11 @@ example:
 			if( exportAsRig ):
 				exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
-			bakeAndPrep.Prep()
+			bakeAndPrep.Prep(self.removeNamespace)
 
-			exportObjs = mc.ls(sl=True)
-
-			# mc.select(topExportObjs)
-			for obj in exportObjs:
-				try:
-					mc.parent(obj, w=True)
-				except:
-					print "%s already a child of 'world'" % obj
-			
-			mc.select(exportObjs, hi=True)
-			
+			exportTransforms = mc.ls(sl=True)
+		
+			mc.select(exportTransforms, hi=True)		
 		
 			if(exportFBXFile):
 				mel.eval('FBXExportSplitAnimationIntoTakes -c')
@@ -1367,6 +1389,10 @@ example:
 				print 'FBXExport -f \"{}\" -s'.format(exportFile)
 				mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
 			
+				if len(exportObjs) > 1 and self.removeNamespace:
+					# Deleting the exported transforms in case another file has duplicate export names
+					mc.delete(obj)
+
 		return True
 
 def PurgeData():

@@ -68,3 +68,26 @@ example:
 
     def ChangeVersion(self, version):
       mc.file(os.path.join(os.path.dirname(self.referenceFile), version), loadReference=self.referenceNode)
+
+class AssetDirectory(object):
+    name = ""
+
+    def __init__(self, dir):
+        self.directory = dir
+        self.name = os.path.basename(dir)
+
+
+    @property
+    def versions(self):
+      versions = []
+      for f in os.listdir(self.directory):
+          result = re.search('%s_rig_.*[0-9]+\.m[b|a]' % self.name, f)
+          if result:
+              versions.append(f)
+
+      versions.sort()
+
+      return versions
+
+    def GetFullPaths(self):
+      return [os.path.join(self.directory, x) for x in self.versions]
