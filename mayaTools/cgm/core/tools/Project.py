@@ -89,6 +89,7 @@ def buildFrames(self,parent):
     d_toDo  = {'world':PU._worldSettings,
                'structure':PU._structureSettings,
                'colors':PU._colorSettings,
+               'exportOptions':PU._exportOptionSettings,
                'anim':PU._animSettings}
     
     _nameStyle = self.d_tf['general']['nameStyle'].getValue()
@@ -101,7 +102,7 @@ def buildFrames(self,parent):
         except:self.create_guiOptionVar(_key,defaultValue = 0)
         mVar_frame = self.__dict__['var_'+_key]
         
-        _frame = mUI.MelFrameLayout(parent,label = k.capitalize(),vis=True,
+        _frame = mUI.MelFrameLayout(parent,label = CORESTRINGS.capFirst(k),vis=True,
                                     collapse=mVar_frame.value,
                                     collapsable=True,
                                     enable=True,
