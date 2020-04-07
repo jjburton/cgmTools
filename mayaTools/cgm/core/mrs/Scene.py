@@ -139,16 +139,32 @@ example:
 		return os.path.normpath(os.path.join( self.directory, self.category ))
 	
 	@property
+	def selectedAsset(self):
+		return self.assetList['scrollList'].getSelectedItem()
+
+	@property
 	def assetDirectory(self):
 		return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
+
+	@property
+	def selectedAnimation(self):
+		return self.animationList['scrollList'].getSelectedItem()	
 
 	@property
 	def animationDirectory(self):
 		return os.path.normpath(os.path.join( self.assetDirectory, 'animation', self.animationList['scrollList'].getSelectedItem() )) if self.animationList['scrollList'].getSelectedItem() else None
 
 	@property
+	def selectedVariation(self):
+		return self.variationList['scrollList'].getSelectedItem()
+
+	@property
 	def variationDirectory(self):
 		return os.path.normpath(os.path.join( self.animationDirectory, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
+
+	@property
+	def selectedVersion(self):
+		return self.versionList['scrollList'].getSelectedItem()
 
 	@property
 	def versionFile(self):
@@ -297,9 +313,13 @@ example:
 		self.assetList = self.build_searchable_list(_catForm, sc=self.LoadAnimationList)
 
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
+		self.renameAssetMB = mUI.MelMenuItem(pum, label="Rename Asset", command=self.RenameAsset )
 		self.openInExplorerMB = mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
 		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", subMenu=True )
 		self.referenceRigMB = mUI.MelMenuItem(pum, label="Reference Rig", subMenu=True )
+		self.refreshAssetListMB = mUI.MelMenuItem(pum, label="Refresh", command=self.LoadCategoryList )
+
+
 
 		self.assetButton = mUI.MelButton(_catForm, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
 
@@ -704,7 +724,8 @@ example:
 		# if directory not in p:
 		# 	self.optionVarDirStore.append(directory)
 
-		self.directory = directory
+		if directory:		
+			self.directory = directory
 
 		#self.buildMenu_file()
 
@@ -713,7 +734,7 @@ example:
 
 		charList = []
 
-		categoryDirectory = os.path.join(directory, self.category)
+		categoryDirectory = os.path.join(self.directory, self.category)
 		if os.path.exists(categoryDirectory):
 			for d in os.listdir(categoryDirectory):
 				#for ext in fileExtensions:
@@ -1090,6 +1111,61 @@ example:
 		else:
 			mel.eval('error "Project path does not exist"')
 
+	def RenameAsset(self, *args):
+		result = mc.promptDialog(
+				title='Rename Object',
+				message='Enter Name:',
+				button=['OK', 'Cancel'],
+				defaultButton='OK',
+				cancelButton='Cancel',
+				dismissString='Cancel')
+
+		if result == 'OK':
+			newName = mc.promptDialog(query=True, text=True)
+			print 'Renaming %s to %s' % (self.selectedAsset, newName)
+
+			originalAssetName = self.selectedAsset
+
+			# rename animations
+			for animation in os.listdir(os.path.join(self.assetDirectory, 'animation')):
+				for variation in os.listdir(os.path.join(self.assetDirectory, 'animation', animation)):
+					for version in os.listdir(os.path.join(self.assetDirectory, 'animation', animation, variation)):
+						if originalAssetName in version:
+							originalPath = os.path.join(self.assetDirectory, 'animation', animation, variation, version)
+							newPath = os.path.join(self.assetDirectory, 'animation', animation, variation, version.replace(originalAssetName, newName))
+							os.rename(originalPath, newPath)
+
+			# rename rigs
+			for baseFile in os.listdir(self.assetDirectory):
+				if os.path.isfile(os.path.join(self.assetDirectory, baseFile)):
+					if originalAssetName in baseFile:
+						originalPath = os.path.join(self.assetDirectory, baseFile)
+						newPath = os.path.join(self.assetDirectory, baseFile.replace(originalAssetName, newName))
+						os.rename(originalPath, newPath)
+
+			# rename folder
+			os.rename(self.assetDirectory, self.assetDirectory.replace(originalAssetName, newName))
+
+			self.LoadCategoryList(self.directory)
+			self.assetList['scrollList'].selectByValue( newName )
+
+			self.LoadAnimationList()
+
+			if self.optionVarLastAnimStore.getValue():
+				self.animationList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
+
+			self.LoadVariationList()
+
+			if self.optionVarLastVariationStore.getValue():
+				self.variationList['scrollList'].selectByValue( self.optionVarLastVariationStore.getValue() )
+
+			self.LoadVersionList()
+
+			if self.optionVarLastVersionStore.getValue():
+				self.versionList['scrollList'].selectByValue( self.optionVarLastVersionStore.getValue() )
+
+
+
 	def OpenAssetDirectory(self, *args):
 		self.OpenDirectory(self.categoryDirectory)
 
@@ -1118,17 +1194,6 @@ example:
 
 	def UpdateAssetTSLPopup(self, *args):
 
-		assetList = ASSET.AssetDirectory(self.assetDirectory)
-		directoryList = assetList.GetFullPaths()
-
-		#rigPath = #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
-		if len(assetList.versions) > 0:
-			mc.menuItem( self.openRigMB, e=True, enable=True )
-			mc.menuItem( self.referenceRigMB, e=True, enable=True )
-		else:
-			mc.menuItem( self.openRigMB, e=True, enable=False )
-			mc.menuItem( self.referenceRigMB, e=True, enable=False )
-
 		for item in self.assetRigMenuItemList:
 			mc.deleteUI(item, menuItem=True)
 		for item in self.assetReferenceRigMenuItemList:
@@ -1137,14 +1202,26 @@ example:
 		self.assetRigMenuItemList = []
 		self.assetReferenceRigMenuItemList = []
 
-		for i,rig in enumerate(assetList.versions):
-			item = mUI.MelMenuItem( self.openRigMB, l=rig,
-						 c = partial(self.OpenRig,directoryList[i]))
-			self.assetRigMenuItemList.append(item)
+		if self.assetDirectory:
+			assetList = ASSET.AssetDirectory(self.assetDirectory)
+			directoryList = assetList.GetFullPaths()
 
-			item = mUI.MelMenuItem( self.referenceRigMB, l=rig,
-						 c = partial(self.ReferenceRig,directoryList[i]))
-			self.assetReferenceRigMenuItemList.append(item)
+			#rigPath = #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
+			if len(assetList.versions) > 0:
+				mc.menuItem( self.openRigMB, e=True, enable=True )
+				mc.menuItem( self.referenceRigMB, e=True, enable=True )
+			else:
+				mc.menuItem( self.openRigMB, e=True, enable=False )
+				mc.menuItem( self.referenceRigMB, e=True, enable=False )
+
+			for i,rig in enumerate(assetList.versions):
+				item = mUI.MelMenuItem( self.openRigMB, l=rig,
+							 c = partial(self.OpenRig,directoryList[i]))
+				self.assetRigMenuItemList.append(item)
+
+				item = mUI.MelMenuItem( self.referenceRigMB, l=rig,
+							 c = partial(self.ReferenceRig,directoryList[i]))
+				self.assetReferenceRigMenuItemList.append(item)
 
 
 	def UpdateVersionTSLPopup(self, *args):	
@@ -1192,7 +1269,7 @@ example:
 
 		copyfile(infoDict['filename'], newFilename)
 
-		if os.path.exists(newFilename):
+		if os.path.exists(newFilename) and os.path.normpath(mc.file(q=True, loc=True)) == os.path.normpath(infoDict['filename']):
 			result = 'Cancel'
 			if not self.alwaysSendReferenceFiles.getValue():
 				result = mc.confirmDialog(
