@@ -50,6 +50,7 @@ _dataConfigToStored = {'general':'d_project',
                        'paths':'d_paths',
                        'pathsUser':'d_pathsUser',
                        'colors':'d_colors',
+                       'exportOptions':'d_exportOptions',
                        'pathsProject':'d_pathsProject',
                        'anim':'d_animSettings',
                        'structure':'d_structure',
@@ -114,10 +115,13 @@ _structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','En
                       {'n':'envContent','t':'text','dv':d_dirFramework['environment']['content']},
                       {'n':'envExport','t':'text','dv':d_dirFramework['environment']['content']}]
 
+_exportOptionSettings = [{'n':'removeNameSpace','t':'bool','dv':False}]
+
 _d_defaultsMap = {'general':_projSettings,
                   'anim':_animSettings,
                   'world':_worldSettings,
                   'colors':_colorSettings,
+                  'exportOptions':_exportOptionSettings,
                   'structure':_structureSettings,}
 
 

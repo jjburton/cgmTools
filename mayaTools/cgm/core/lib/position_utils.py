@@ -122,7 +122,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
                 for vert in edgeVerts:
                     posList.append(mc.pointPosition(vert,**kws_pp))
                 _res = MATH.get_average_pos(posList)
-            elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint']:
+            elif _cType in ['surfaceCV','curveCV','editPoint','surfacePoint','curvePoint','cv','bezierCurve']:
                 _res = mc.pointPosition (_OBJ,**kws_pp)
                 #_res =  mc.pointPosition(_OBJ)            
             else:
