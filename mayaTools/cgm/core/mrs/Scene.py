@@ -28,7 +28,7 @@ log.setLevel(logging.INFO)
 
 
 #>>> Root settings =============================================================
-__version__ = "1.04.06.2020"
+__version__ = "1.04.07.2020"
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]
