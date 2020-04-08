@@ -1388,6 +1388,17 @@ example:
 
 		exportObjs = mc.ls(sl=True)
 
+		cameras = []
+		exportCams = []
+
+		for obj in exportObjs:
+			if mc.listRelatives(obj, shapes=True, type='camera'):
+				cameras.append(obj)
+				exportCams.append( bakeAndPrep.MakeExportCam(obj) )
+				exportObjs.remove(obj)
+
+		exportObjs += exportCams
+
 		addNamespaceSuffix = False
 		exportFBXFile = False
 		exportAsRig = False
@@ -1445,11 +1456,9 @@ example:
 
 		mc.file(rn=bakedLoc)
 
-		for obj in exportObjs:
-			mc.select(obj)
-			bakeAndPrep.Bake()
+		bakeAndPrep.Bake(exportObjs)
 
-		for obj in exportObjs:
+		for obj in exportObjs:			
 			mc.select(obj)
 
 			assetName = obj.split(':')[0].split('|')[-1]
@@ -1464,9 +1473,9 @@ example:
 			bakeAndPrep.Prep(self.removeNamespace)
 
 			exportTransforms = mc.ls(sl=True)
-		
+
 			mc.select(exportTransforms, hi=True)		
-		
+
 			if(exportFBXFile):
 				mel.eval('FBXExportSplitAnimationIntoTakes -c')
 				animList = SHOTS.AnimList()
@@ -1480,26 +1489,35 @@ example:
 				if len(exportObjs) > 1 and self.removeNamespace:
 					# Deleting the exported transforms in case another file has duplicate export names
 					mc.delete(obj)
+					mc.delete(exportTransforms)
 
 		return True
 
 def PurgeData():
-	optionVarDirStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_directory_list", varType = "string")
-	optionVarDirStore.purge()
-	optionVarLastDirStore       = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_directory", varType = "string")
-	optionVarLastDirStore.purge()
+	
+	optionVarProjectStore       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
+	optionVarProjectStore.purge()
+	
 	optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
 	optionVarLastAssetStore.purge()
+	
 	optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
 	optionVarLastAnimStore.purge()
+	
 	optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
 	optionVarLastVariationStore.purge()
+	
 	optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
 	optionVarLastVersionStore.purge()
-	# optionVarExportDirStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_export_directory", varType = "string")
-	# optionVarExportDirStore.purge()
+	
 	showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
 	showBakedStore.purge()
+	
+	removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
+	removeNamespaceStore.purge()
+	
 	categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 	categoryStore.purge()
 	
+	alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
+	alwaysSendReferenceFiles.purge()

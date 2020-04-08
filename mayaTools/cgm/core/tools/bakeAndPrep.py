@@ -13,31 +13,12 @@ def BakeAndPrep():
 
     return prepped
 
-def Bake():
+def Bake(assets):
     baked = False
 
     bakeSetName = "bakeSet"
     if(mc.optionVar(exists='cgm_bake_set')):
         bakeSetName = mc.optionVar(q='cgm_bake_set')
-
-    try:
-        topNode = mc.ls(sl=True)[0]
-    except:
-        print "Select top node and try again."
-        return
-
-    currentTime = mc.currentTime(q=True)
-
-    topNodeSN = topNode.split(':')[-1]
-
-    # gather data
-    
-    namespaces = topNode.split(':')[:-1]
-
-    if len(namespaces) > 0:
-        ns = ':'.join( topNode.split(':')[:-1] ) + ':'
-    else:
-        ns = "%s_" % topNode.split('|')[-1]
 
     # set tangent options to spline
     currentTangent = mc.keyTangent( q=True, g=True, ott=True )[0]
@@ -47,11 +28,33 @@ def Bake():
     _evalMode = mc.evaluationManager(q=True, mode=True)
     mc.evaluationManager(mode='off')
     
-    
-    # bake
-    bakeSet = "%s%s" % (ns, bakeSetName)
-    if(mc.objExists(bakeSet)):
-        mc.bakeResults( mc.sets( bakeSet, q=True ), 
+    bakeTransforms = []
+    bakeSets = []
+
+    currentTime = mc.currentTime(q=True)
+
+    for asset in assets:
+        if ':' in assets:
+            topNodeSN = asset.split(':')[-1]
+
+            # gather data
+            namespaces = asset.split(':')[:-1]
+
+            if len(namespaces) > 0:
+                ns = ':'.join( asset.split(':')[:-1] ) + ':'
+            else:
+                ns = "%s_" % asset.split('|')[-1]
+            
+            # bake
+            bakeSet = "%s%s" % (ns, bakeSetName)
+            if(mc.objExists(bakeSet) and bakeSet not in bakeSets):
+                bakeSets.append(bakeSet)
+                bakeTransforms += mc.sets(bakeSet, q=True)
+        else:
+            bakeTransforms.append(asset)
+
+    if len(bakeTransforms) > 0:
+        mc.bakeResults( bakeTransforms, 
                         simulation=True, 
                         t=( mc.playbackOptions(q=True, min=True), mc.playbackOptions(q=True, max=True) ), 
                         sampleBy=1, 
@@ -63,13 +66,12 @@ def Bake():
                         bakeOnOverrideLayer = False, 
                         minimizeRotation = True, 
                         controlPoints = False, 
-                        shape = False )
+                        shape = True )
 
-        mc.setInfinity(mc.sets( bakeSet, q=True ), pri='constant', poi='constant')
+        mc.setInfinity(bakeTransforms, pri='constant', poi='constant')
 
         baked = True
     else:
-        print "No bake set found."
         baked = False
 
     mc.keyTangent( g=True, ott=currentTangent )
@@ -129,9 +131,15 @@ def Prep(removeNamespace = False):
         ns = "%s_" % topNode
 
     exportSet = "%s%s" % (ns, exportSetName)
+    exportSetObjs = []
 
-    if removeNamespace:
-        for obj in mc.listRelatives(mc.sets(exportSet, q=True), ad=True) + mc.sets(exportSet, q=True):
+    if mc.objExists(exportSet):
+        exportSetObjs = mc.sets(exportSet, q=True)
+    else:
+        exportSetObjs = [topNode]
+
+    if removeNamespace and len(exportSetObjs) > 0:
+        for obj in mc.listRelatives(exportSetObjs, ad=True) + exportSetObjs:
             mc.rename(obj, obj.split(':')[-1])
 
     # delete garbage
@@ -142,8 +150,8 @@ def Prep(removeNamespace = False):
         print "No delete set found."  
         prepped = False
 
-    if(mc.objExists(exportSet)):
-        mc.delete(mc.listRelatives(mc.sets(exportSet, q=True), ad=True, type='constraint'))
+    if len(exportSetObjs) > 0:
+        mc.delete(mc.listRelatives(exportSetObjs, ad=True, type='constraint'))
 
     # export
     newTopNode = '%s%s' % (ns, topNodeSN)
@@ -173,7 +181,15 @@ def Prep(removeNamespace = False):
             print "%s already a child of 'world'" % obj
 
     mc.select(exportObjs)
-    
+
     mc.refresh()
 
     return prepped
+
+def MakeExportCam(inputCam):
+    inputCamShape = mc.listRelatives(inputCam, shapes=True)[0]
+    exportCam, exportCamShape = mc.camera(name='exportCam')
+    mc.parentConstraint(inputCam, exportCam, mo=False)
+    mc.connectAttr('%s.focalLength' % inputCam, '%s.focalLength' % exportCamShape)
+
+    return exportCam
