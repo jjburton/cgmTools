@@ -60,7 +60,7 @@ example:
       return versions
 
     def UpdateToLatest(self):
-      if self.versions[-1] != self.assetFile:
+      if self.versions[-1] != self.assetFile.split('{')[0]:
         self.ChangeVersion(self.versions[-1])
         return True
 

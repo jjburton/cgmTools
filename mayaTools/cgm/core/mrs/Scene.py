@@ -1489,7 +1489,10 @@ example:
 				if len(exportObjs) > 1 and self.removeNamespace:
 					# Deleting the exported transforms in case another file has duplicate export names
 					mc.delete(obj)
-					mc.delete(exportTransforms)
+					try:
+						mc.delete(exportTransforms)
+					except:
+						pass
 
 		return True
 

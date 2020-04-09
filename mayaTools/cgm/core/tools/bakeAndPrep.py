@@ -34,24 +34,27 @@ def Bake(assets):
     currentTime = mc.currentTime(q=True)
 
     for asset in assets:
-        if ':' in assets:
-            topNodeSN = asset.split(':')[-1]
+        #if ':' in assets:
+        topNodeSN = asset.split(':')[-1]
 
-            # gather data
-            namespaces = asset.split(':')[:-1]
+        # gather data
+        namespaces = asset.split(':')[:-1]
 
-            if len(namespaces) > 0:
-                ns = ':'.join( asset.split(':')[:-1] ) + ':'
-            else:
-                ns = "%s_" % asset.split('|')[-1]
-            
-            # bake
-            bakeSet = "%s%s" % (ns, bakeSetName)
-            if(mc.objExists(bakeSet) and bakeSet not in bakeSets):
+        if len(namespaces) > 0:
+            ns = ':'.join( asset.split(':')[:-1] ) + ':'
+        else:
+            ns = "%s_" % asset.split('|')[-1]
+        
+        # bake
+        bakeSet = "%s%s" % (ns, bakeSetName)
+        if mc.objExists(bakeSet):
+            if bakeSet not in bakeSets:
                 bakeSets.append(bakeSet)
                 bakeTransforms += mc.sets(bakeSet, q=True)
         else:
             bakeTransforms.append(asset)
+        #else:
+        #    bakeTransforms.append(asset)
 
     if len(bakeTransforms) > 0:
         mc.bakeResults( bakeTransforms, 
@@ -138,10 +141,6 @@ def Prep(removeNamespace = False):
     else:
         exportSetObjs = [topNode]
 
-    if removeNamespace and len(exportSetObjs) > 0:
-        for obj in mc.listRelatives(exportSetObjs, ad=True) + exportSetObjs:
-            mc.rename(obj, obj.split(':')[-1])
-
     # delete garbage
     deleteSet = "%s%s" % (ns, deleteSetName)
     if(mc.objExists(deleteSet)):
@@ -150,8 +149,16 @@ def Prep(removeNamespace = False):
         print "No delete set found."  
         prepped = False
 
-    if len(exportSetObjs) > 0:
-        mc.delete(mc.listRelatives(exportSetObjs, ad=True, type='constraint'))
+    if exportSetObjs:
+        for exportObj in exportSetObjs:
+            mc.delete(mc.listRelatives(exportObj, ad=True, type='constraint'))
+
+    if removeNamespace and len(exportSetObjs) > 0:
+        for obj in mc.listRelatives(exportSetObjs, ad=True) + exportSetObjs:
+            if ':' in obj:
+                mc.rename(obj, obj.split(':')[-1])
+
+        exportSetObjs = [x.split(':')[-1] for x in exportSetObjs]
 
     # export
     newTopNode = '%s%s' % (ns, topNodeSN)
