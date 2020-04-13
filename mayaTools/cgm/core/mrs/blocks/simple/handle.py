@@ -1237,6 +1237,9 @@ def rig_skeleton(self):
     BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'],
                                      d_rotateOrders, d_preferredAngles)
     
+    for mJnt in ml_joints:
+        mJnt.segmentScaleCompensate = 0
+        
     ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints, 'rig', self.mRigNull,'rigJoints')
     
     if self.mBlock.addAim:
@@ -1298,9 +1301,9 @@ def rig_shapes(self):
     else:
         mControl = mMainHandle.doCreateAt()
         
-    if mBlock.addScalePivot and mMainHandle.getMessage('scalePivotHelper'):
+    if mBlock.addScalePivot and mBlock.getMessage('scalePivotHelper'):
         log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
-        TRANS.scalePivot_set(mControl.mNode, mMainHandle.scalePivotHelper.p_position)
+        TRANS.scalePivot_set(mControl.mNode, mBlock.scalePivotHelper.p_position)
         
         
     if mBlock.addCog and mBlock.getMessage('cogHelper'):

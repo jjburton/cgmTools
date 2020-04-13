@@ -1963,7 +1963,6 @@ def ribbon(jointList = None,
                 else:
                     mPlug_aimResult = mPlug_inverseNormalized
                 
-                reload(NodeF)
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NODEFAC.argsToNodes(arg).doBuild()

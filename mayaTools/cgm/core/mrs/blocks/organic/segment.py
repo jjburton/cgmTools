@@ -1728,6 +1728,7 @@ def rig_controls(self):
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
         
         if str_ikBase == 'hips':
+            p_pelvis = ml_fkJoints[0].p_position
             ml_fkJoints = ml_fkJoints[1:]
         
         ml_fkJoints[0].parent = mRoot
@@ -1771,6 +1772,8 @@ def rig_controls(self):
             
             #Register our snapToTarget -------------------------------------------------------------
             self.atUtils('get_switchTarget', mControlIK,ml_blend[self.int_handleEndIdx])
+            
+            
             """
             mSnapTarget = mControlIK.doCreateAt(setClass=True)
             mSnapTarget.p_parent = ml_blend[self.int_handleEndIdx]
@@ -1805,6 +1808,10 @@ def rig_controls(self):
             log.debug("|{0}| >> IK Base handle snap target : {1}".format(_str_func, mSnapTarget))
             mSnapTarget.p_parent = ml_blend[0]        
             mSnapTarget.setAttrFlags()"""
+            
+            if str_ikBase == 'hips' and mBlock.scaleSetup:
+                log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
+                TRANS.scalePivot_set(mControlBaseIK.mNode, p_pelvis)                
             
         mIKControlMid = mRigNull.getMessageAsMeta('controlIKMid')
         if mIKControlMid:

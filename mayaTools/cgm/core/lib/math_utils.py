@@ -596,39 +596,42 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
     _res = []
     
     if mode in ['midPeak','blendUpMid','midBlendDown']:
-        idx_mid = get_midIndex(count)
-        
-        if maxValue == minValue:
-            return [maxValue for i in range(count)]
-            
-        
-        blendFactor = (float(maxValue) - float(minValue))/(idx_mid)
-        
-        if is_even(count):
-            for i in range(idx_mid):
-                _res.append( i * blendFactor)
-            _rev = copy.copy(_res)
-            if mode == 'blendUpMid':
-                _res = _res + [maxValue for i in range(idx_mid)]
-            elif mode == 'midBlendDown':
-                _res.reverse()
-                _res = [maxValue for i in range(idx_mid)] + _res
-            else:
-                _rev.reverse()
-                _res.extend(_rev)
+        if count == 3:
+            _res = [minValue, maxValue/2.0, maxValue]
         else:
-            for i in range(idx_mid):
-                _res.append( i * blendFactor)
+            idx_mid = get_midIndex(count)
+            
+            if maxValue == minValue:
+                return [maxValue for i in range(count)]
                 
-            if mode == 'blendUpMid':
-                _res = _res + [maxValue for i in range(idx_mid-1)]
-            elif mode == 'midBlendDown':
-                _res.reverse()
-                _res = [maxValue for i in range(idx_mid-1)] + _res
-            else:
+            
+            blendFactor = (float(maxValue) - float(minValue))/(idx_mid)
+            
+            if is_even(count):
+                for i in range(idx_mid):
+                    _res.append( i * blendFactor)
                 _rev = copy.copy(_res)
-                _rev.reverse()
-                _res.extend(_rev[1:])
+                if mode == 'blendUpMid':
+                    _res = _res + [maxValue for i in range(idx_mid)]
+                elif mode == 'midBlendDown':
+                    _res.reverse()
+                    _res = [maxValue for i in range(idx_mid)] + _res
+                else:
+                    _rev.reverse()
+                    _res.extend(_rev)
+            else:
+                for i in range(idx_mid):
+                    _res.append( i * blendFactor)
+                    
+                if mode == 'blendUpMid':
+                    _res = _res + [maxValue for i in range(idx_mid-1)]
+                elif mode == 'midBlendDown':
+                    _res.reverse()
+                    _res = [maxValue for i in range(idx_mid-1)] + _res
+                else:
+                    _rev = copy.copy(_res)
+                    _rev.reverse()
+                    _res.extend(_rev[1:])
             
     elif mode == 'max':
         return [maxValue for i in range(count)]

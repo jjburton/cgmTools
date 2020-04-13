@@ -10124,7 +10124,9 @@ def prerig_get_upVector(self, markPos = False):
     _blockType = self.blockType
     _tag_orient = 'orientHelper'
     if _blockType in ['head']:
-        _tag_orient = 'orientNeckHelper'
+        if self.neckBuild:
+            _tag_orient = 'orientNeckHelper'
+        
     mOrient = self.getMessageAsMeta(_tag_orient)
     
     if not mVectorRP:

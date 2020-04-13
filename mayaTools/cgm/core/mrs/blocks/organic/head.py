@@ -1501,7 +1501,7 @@ def rig_prechecks(self):
             
         #Checking our data points
         ml_pre = mBlock.msgList_get('prerigHandles')
-        if len(ml_pre) != mBlock.neckControls +1:
+        if mBlock.neckBuild and len(ml_pre) != mBlock.neckControls +1:
             self.l_precheckErrors.append('Not enough preHandles for the neckControls count. | neckControls: {0} | prerig: {1} | Excpected: {2}'.format(mBlock.neckControls,len(ml_pre),mBlock.neckControls+1))
             
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -1887,6 +1887,9 @@ def rig_shapes(self):
                 log.debug("|{0}| >> FK/IK head necessary...".format(_str_func))          
                 b_FKIKhead = True            
             
+            
+
+            
             #IK ----------------------------------------------------------------------------------
             mIK = ml_rigJoints[-1].doCreateAt()
             #CORERIG.shapeParent_in_place(mIK,l_lolis,False)
@@ -1901,32 +1904,38 @@ def rig_shapes(self):
             mIK.doName()    
             CORERIG.colorControl(mIK.mNode,_side,'main')
             self.mRigNull.connectChildNode(mIK,'headIK','rigNull')#Connect
+            self.mRigNull.connectChildNode(mIK,'controlIK','rigNull')#Connect
             
-            if b_FKIKhead:
-                l_lolis = []
-                l_starts = []
-                for axis in ['x+','z-','x-']:
-                    pos = mHeadHelper.getPositionByAxisDistance(axis, _size * .75)
-                    ball = CURVES.create_fromName('sphere',_size/10)
-                    mBall = cgmMeta.cgmObject(ball)
-                    mBall.p_position = pos
-                    mc.select(cl=True)
-                    p_end = DIST.get_closest_point(mHeadHelper.mNode, ball)[0]
-                    p_start = mHeadHelper.getPositionByAxisDistance(axis, _size * .25)
-                    l_starts.append(p_start)
-                    line = mc.curve (d=1, ep = [p_start,p_end], os=True)
-                    l_lolis.extend([ball,line])
+            self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect
+            
+            
+            """                
+                if b_FKIKhead:
+                    l_lolis = []
+                    l_starts = []
+                    for axis in ['x+','z-','x-']:
+                        pos = mHeadHelper.getPositionByAxisDistance(axis, _size * .75)
+                        ball = CURVES.create_fromName('sphere',_size/10)
+                        mBall = cgmMeta.cgmObject(ball)
+                        mBall.p_position = pos
+                        mc.select(cl=True)
+                        p_end = DIST.get_closest_point(mHeadHelper.mNode, ball)[0]
+                        p_start = mHeadHelper.getPositionByAxisDistance(axis, _size * .25)
+                        l_starts.append(p_start)
+                        line = mc.curve (d=1, ep = [p_start,p_end], os=True)
+                        l_lolis.extend([ball,line])
+                        
+                    mFK = ml_fkJoints[-1]
+                    CORERIG.shapeParent_in_place(mFK,l_lolis,False)
+                    mFK.doStore('cgmTypeModifier','fk')
+                    mFK.doName()
                     
-                mFK = ml_fkJoints[-1]
-                CORERIG.shapeParent_in_place(mFK,l_lolis,False)
-                mFK.doStore('cgmTypeModifier','fk')
-                mFK.doName()
-                
-                CORERIG.colorControl(mFK.mNode,_side,'main')
-                
-                self.mRigNull.connectChildNode(mFK,'headFK','rigNull')#Connect
-            else:
-                self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect
+                    CORERIG.colorControl(mFK.mNode,_side,'main')
+                    
+                    self.mRigNull.connectChildNode(mFK,'headFK','rigNull')#Connect
+                else:
+                    self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect
+                    """
             
                 
         else:
@@ -2309,6 +2318,7 @@ def rig_controls(self):
                 
                 
             mControlSegMidIK = False
+            
             #controlSegMidIK =============================================================================
             if mRigNull.getMessage('controlSegMidIK'):
                 mControlSegMidIK = mRigNull.controlSegMidIK
@@ -2642,11 +2652,16 @@ def rig_frame(self):
         
         mHeadFK = mRigNull.getMessageAsMeta('headFK')
         mHeadIK = mRigNull.getMessageAsMeta('headIK')
-        if mHeadIK:
+        if mHeadIK and mBlock.neckBuild:
             log.debug("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
             mTopHandleDriver = mHeadIK.driver
-        else:
+        elif mHeadFK:
             mTopDriver = mHeadFK
+            mTopHandleDriver = mHeadFK
+        else:
+            mTopDriver = mHeadIK
+            mTopHandleDriver = mHeadIK
+            
             
         _ikNeck = mBlock.getEnumValueString('neckIK')
         
@@ -2661,6 +2676,8 @@ def rig_frame(self):
             mTopTwistDriver = mHeadFK
             #mAimParent = self.mDeformNull
             
+        #Tmp parent till logic worked out
+        ml_rigJoints[-1].masterGroup.parent = mTopHandleDriver
         
         #>> headFK ========================================================================================
         """We use the ik head sometimes."""

@@ -314,7 +314,12 @@ example:
 
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
 		self.renameAssetMB = mUI.MelMenuItem(pum, label="Rename Asset", command=self.RenameAsset )
+
+		
 		self.openInExplorerMB = mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
+		self.openMayaFileHereMB = mUI.MelMenuItem(pum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen(self.categoryDirectory ))
+				
+				
 		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", subMenu=True )
 		self.referenceRigMB = mUI.MelMenuItem(pum, label="Reference Rig", subMenu=True )
 		self.refreshAssetListMB = mUI.MelMenuItem(pum, label="Refresh", command=self.LoadCategoryList )
@@ -1168,6 +1173,12 @@ example:
 
 	def OpenAssetDirectory(self, *args):
 		self.OpenDirectory(self.categoryDirectory)
+		
+	def uiPath_mayaOpen(self,path=None):
+		_res = mc.fileDialog2(fileMode=1, dir=path)
+		if _res:
+			log.warning("Opening: {0}".format(_res[0]))
+			mc.file(_res[0], o=True, f=True, pr=True)
 
 	def OpenAnimationDirectory(self, *args):
 		self.OpenDirectory( os.path.normpath(os.path.join(self.assetDirectory, 'animation') ))
