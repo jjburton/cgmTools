@@ -1338,8 +1338,6 @@ example:
 		self.RefreshQueueList()
 
 	def BatchExport(self, *args):
-		import pyunify.pipe.asset as asset
-
 		for animDict in self.batchExportItems:
 			self.assetList['scrollList'].selectByValue( animDict["asset"] )
 			self.LoadAnimationList()
@@ -1357,7 +1355,7 @@ example:
 					masterNode = item
 
 				if mc.checkBox(self.updateCB, q=True, v=True):
-					rig = asset.Asset(item)
+					rig = ASSET.Asset(item)
 					if rig.UpdateToLatest():
 						self.SaveVersion()
 
