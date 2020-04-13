@@ -317,7 +317,7 @@ example:
 
 		
 		self.openInExplorerMB = mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
-		self.openMayaFileHereMB = mUI.MelMenuItem(pum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen(self.categoryDirectory ))
+		self.openMayaFileHereMB = mUI.MelMenuItem(pum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.categoryDirectory, self.selectedAsset) ))
 				
 				
 		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", subMenu=True )
@@ -1385,8 +1385,17 @@ example:
 		else:
 			mc.frameLayout(self.exportQueueFrame, e=True, collapse=True)
 
-	# arg 1:
-	# 0 is 
+	# args[0]:
+	# 0 is bake and prep, don't export
+	# 1 is export as a regular asset
+	#   - export the asset into the asset/animation directory
+	# 2 is export as a cutscene 
+	#   - cutscene means it adds the namespace to the 
+	#   - asset and exports all of the assets into the
+	#   - same directory
+	# 3 is export as a rig
+	#   - export into the base asset directory with
+	#   - just the asset name
 	def RunExportCommand(self, *args):
 		print "args = {}".format(args)
 
