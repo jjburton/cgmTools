@@ -2664,13 +2664,22 @@ def rig_dataBuffer(self):
         #self.str_ikRollSetup = ATTR.get_enumValueString(mBlock.mNode,'ikRollSetup')
         #self.str_ikExtendSetup = ATTR.get_enumValueString(mBlock.mNode,'ikExtendSetup')
         
+        
+        self.b_legMode = False
+        
+        str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')        
+        
+        if 'leg' in mBlock.blockProfile or str_ikEnd in ['pad','foot']:
+            log.debug("|{0}| >> 'leg' setup...".format(_str_func))
+            self.b_legMode = True
+        
         #Single chain ============================================================================
         self.b_singleChain = False
         ml_joints = self.d_joints['ml_skinJoints']
         len_joints = len(ml_joints)
         len_prerigHandles = len(ml_prerigHandles)
         
-        if mBlock.numControls <= 2:
+        if mBlock.numControls <= 2 and len_joints <=2:
             self.b_singleChain = True
             if len_joints ==1:
                 self.b_ikNeedEnd = True
@@ -4247,6 +4256,7 @@ def rig_shapes(self):
         log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
         log.debug(self)        
         #_str_func = '[{0}] > rig_shapes'.format(_short)
+        self.p_scalePivot = None
         
         mBlock = self.mBlock
         bb_ik = None
@@ -4423,6 +4433,7 @@ def rig_shapes(self):
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
                 
                 
+                self.p_scalePivot  = mPivotHelper.p_position
                 
                 if mBlock.blockProfile in ['arm']:
                     log.debug("|{0}| >> default IK shape...".format(_str_func))                
@@ -4941,6 +4952,9 @@ def rig_controls(self):
                 
                 mPivot = mRigNull.getMessage(str_a,asMeta=True)[0]
                 
+                if a == 'back':
+                    self.p_scalePivot = mPivot.p_position
+                    
                 d_buffer = MODULECONTROL.register(mPivot,
                                                   typeModifier='pivot',
                                                   mirrorSide= self.d_module['mirrorDirection'],
@@ -4999,6 +5013,12 @@ def rig_controls(self):
             self.atUtils('get_switchTarget', mControlIK,ml_blend[self.int_handleEndBaseIdx])
                     
             log.debug(cgmGEN._str_subLine)
+            
+            
+            if self.b_legMode and mBlock.scaleSetup:
+                log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
+                if self.p_scalePivot:                
+                    TRANS.scalePivot_set(mControlIK.mNode, self.p_scalePivot )                     
     
         #...ikBase
         mIKControlBase = mRigNull.getMessageAsMeta('controlIKBase')
@@ -5070,7 +5090,7 @@ def rig_controls(self):
                     
             log.debug(cgmGEN._str_subLine)
             
-        
+
         mIKBallRotationControl = mRigNull.getMessageAsMeta('controlBallRotation')
         if mIKBallRotationControl:
             log.debug("|{0}| >> Found controlBallRotation : {1}".format(_str_func, mIKBallRotationControl))
@@ -5840,7 +5860,9 @@ def rig_frame(self):
             log.debug("|{0}| >> mIKControlEnd ...".format(_str_func))
             mIKHandleDriver = mIKControlEnd
             mIKControlEnd.masterGroup.p_parent =mIKControl
+            
         mPivotResultDriver = mIKControl
+        
         #Pivot Driver =======================================================================================
         mPivotHolderHandle = ml_formHandles[-1]
         if mPivotHolderHandle.getMessage('pivotHelper'):
@@ -6388,14 +6410,11 @@ def rig_frame(self):
                     mIKBallRotationControl.aimBack = 0.0
                     """
                     
-                elif str_ikEnd == 'bank':
+                elif str_ikEnd in ['bank','pad'] or self.b_pivotSetup:
                     mc.orientConstraint([mPivotResultDriver.mNode],
                                             ml_ikJoints[self.int_handleEndIdx].mNode,
                                             maintainOffset = True)
-                elif str_ikEnd == 'pad':
-                    mc.orientConstraint([mPivotResultDriver.mNode],
-                                        ml_ikJoints[self.int_handleEndIdx].mNode,
-                                        maintainOffset = True)                    
+
                 else:
                     mc.orientConstraint([mIKEndDriver.mNode],
                                         ml_ikJoints[self.int_handleEndIdx].mNode,
@@ -7184,6 +7203,7 @@ def rig_blendFrame(self):
             for mJnt in ml_ikScaleDrivers[1:self.int_handleEndIdx]:
                 _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
                 _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True,
+                                            skip = str_aimAxis,
                                             scaleCompensate=False)#Point contraint loc to the object
                 CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
         
@@ -7856,7 +7876,7 @@ def rig_cleanUp(self):
             #mDynGroup.dynFollow.p_parent = self.mConstrainNull
             
             if mHandle == mControlIK:
-                if str_blockProfile in ['leg'] or str_ikEnd in ['pad','foot']:
+                if self.b_legMode:
                     #_idx = ml_targetDynParents.index( self.dynTargets(puppet))
                     ATTR.set_default(mHandle.mNode,'space','puppet')
             
@@ -8052,7 +8072,7 @@ def rig_cleanUp(self):
             ATTR.set_default(ml_handleJoints[0].mNode, 'stable_0', 1.0)
             ml_handleJoints[0].stable_0 = 1.0
             
-        if str_blockProfile in ['leg'] or str_ikEnd in ['pad','foot']:
+        if 'leg' in str_blockProfile or str_ikEnd in ['pad','foot']:
             log.debug("|{0}| >> 'leg' setup...".format(_str_func))
             
             if mSettings.hasAttr('FKIK'):

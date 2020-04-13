@@ -477,7 +477,11 @@ def rig_disconnect(self,force=False):
             #if not _b_faceState:attributes.doBreakConnection("%s.scale"%_str_joint)
             #attributes.doBreakConnection("%s.scale"%_str_joint)
 
-        if l_constraints:mc.delete(l_constraints)
+        if l_constraints:
+            mc.delete(l_constraints)
+            
+            for mJnt in ml_skinJoints:
+                mJnt.scale = 1,1,1
         return True        
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
