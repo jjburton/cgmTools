@@ -35,6 +35,7 @@ import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.mrs.RigBlocks as RIGBLOCKS
 import cgm.core.mrs.lib.general_utils as BLOCKGEN
+from cgm.core.tools import Project as PROJECT
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -48,6 +49,143 @@ __version__ = 'alpha.1.10212019'
 
 
     #MRSBATCH.process_blocks_rig('D:/Dropbox/cgmMRS/maya/batch/master_template_v01.mb')
+
+
+
+def create_Scene_batchFile(dat = [], batchFile = None, process = False,
+                           postProcesses = True, deleteAfterProcess = False):
+    
+    _str_func = 'create_Scene_batchFile'
+    cgmGEN.log_start(_str_func)
+    
+    if batchFile is None:
+        var_project = cgmMeta.cgmOptionVar('cgmVar_projectCurrent',defaultValue = '')
+        
+        mProject = PROJECT.data(filepath = var_project.value )
+        
+        mPath_root = PATHS.Path( mProject.d_paths['root'])
+        if mPath_root.exists():
+            log.debug('Root | : {0}'.format(mPath_root.asFriendly()))
+            
+        else:
+            log.debug('Root | Invalid Path: {0}'.format(mPath_root))
+        _batchPath = os.path.join(mPath_root.asFriendly(),'mrsScene_batch.py')
+        
+    log.debug("batchFile : {0}".format(_batchPath))
+    
+    
+    l_pre = ['import maya',
+    'from maya import standalone',
+    'standalone.initialize()',
+    
+    'from maya.api import OpenMaya as om2',
+    'om2.MGlobal.displayInfo("Begin")',
+    
+    'import cgm.core.mrs.lib.batch_utils as MRSBATCH']
+    
+    l_post = ['except:',
+    '    import msvcrt#...waits for key',
+    '    om2.MGlobal.displayInfo("Hit a key to continue")',
+    '    msvcrt.getch()',
+    'om2.MGlobal.displayInfo("End")',
+    'standalone.uninitialize()'    ]
+    
+    log.debug(cgmGEN.logString_sub(_str_func,"Checks ..."))
+    
+    l_paths = []
+    l_dirs = []
+    #l_check = VALID.listArg(f)
+    l_mFiles = []
+    l_batch = []
+
+    #if not l_check:
+        #log.debug(cgmGEN.logString_msg(_str_func,"No file passed. Using current"))
+        #l_check = [mc.file(q=True, sn=True)]
+        
+
+    _dat = ['dat = [']
+    
+    for d2 in dat:
+        _dat.append('{')
+        for k,d in d2.iteritems():
+            _dat.append("'{0}' : '{1}',".format(k,d))
+        _dat.append('},')
+    _dat.append(']')
+        
+    mTar = PATHS.Path(_batchPath)
+    _l = "try:doTheThing"
+    
+    #_l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
+    
+    if mTar.getWritable():
+        if mTar.exists():
+            os.remove(mTar)
+            
+        log.warning("Writing file: {0}".format(_batchPath))
+
+        with open( _batchPath, 'a' ) as TMP:
+            for l in l_pre + _dat + [_l] + l_post:
+                TMP.write( '{0}\n'.format(l) )
+                
+        l_batch.append(mTar)
+                
+    else:
+        log.warning("Not writable: {0}".format(_batchPath))    
+        
+        
+        
+        
+    return
+    for f in l_check:
+        mFile = PATHS.Path(f)
+        if not mFile.exists():
+            log.error("Invalid file: {0}".format(f))
+            continue
+        
+        log.debug(cgmGEN.logString_sub(_str_func))
+        
+        _path = mFile.asFriendly()
+        l_paths.append(_path)
+        _name = mFile.name()
+        
+        _d = mFile.up().asFriendly()
+        log.debug(cgmGEN.logString_msg(_str_func,_name))
+        _batchPath = os.path.join(_d,_name+'_batch.py')
+        log.debug(cgmGEN.logString_msg(_str_func,"batchPath: "+_batchPath))
+        log.debug(cgmGEN.logString_msg(_str_func,"template: "+_path))
+        
+        
+        mTar = PATHS.Path(_batchPath)
+        _l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
+        
+        if mTar.getWritable():
+            if mTar.exists():
+                os.remove(mTar)
+                
+            log.warning("Writing file: {0}".format(_batchPath))
+ 
+            with open( _batchPath, 'a' ) as TMP:
+                for l in l_pre + [_l] + l_post:
+                    TMP.write( '{0}\n'.format(l) )
+                    
+            l_batch.append(mTar)
+                    
+        else:
+            log.warning("Not writable: {0}".format(_batchPath))
+            
+    
+    if process:
+        log.debug(cgmGEN.logString_sub(_str_func,"Processing ..."))        
+        for f in l_batch:
+            log.warning("Processing file: {0}".format(f.asFriendly()))            
+            #subprocess.call([sys.argv[0].replace("maya.exe","mayapy.exe"),f.asFriendly()])
+            subprocess.Popen([sys.argv[0].replace("maya.exe",
+                                                  "mayapy.exe"),'-i',
+                              f.asFriendly()],
+                             creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
+            
+            if deleteAfterProcess:
+                os.remove(f)
 
 
 def create_MRS_batchFile(f=None, blocks = [None], process = False,
@@ -203,7 +341,6 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = False):
     t1 = time.time()
     
     try:
-        
         if not blocks:
             #cgmGEN.logString_sub(_str_func,'No blocks arg')
             
@@ -236,7 +373,6 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = False):
         
                 '''
                 mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
-                
                 
                 if postProcesses:
                     log.info('mirror_verify...')
