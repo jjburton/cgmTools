@@ -52,7 +52,7 @@ __version__ = 'alpha.1.10212019'
 
 
 
-def create_Scene_batchFile(dat = [], batchFile = None, process = False,
+def create_Scene_batchFile(dat = [], batchFile = None, process = True,
                            postProcesses = True, deleteAfterProcess = False):
     
     _str_func = 'create_Scene_batchFile'
@@ -77,16 +77,21 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = False,
     l_pre = ['import maya',
     'from maya import standalone',
     'standalone.initialize()',
-    
+    'from cgm.core.mrs import Scene',
+    'import maya.mel as mel',
     'from maya.api import OpenMaya as om2',
     'om2.MGlobal.displayInfo("Begin")',
+    'import maya.cmds as mc',
+    'mc.loadPlugin("fbxmaya")',
+    'import cgm.core.mrs.lib.batch_utils as MRSBATCH',
+    '']
     
-    'import cgm.core.mrs.lib.batch_utils as MRSBATCH']
-    
-    l_post = ['except:',
+    l_post = ['except Exception,err:',
+              '    print err',
     '    import msvcrt#...waits for key',
     '    om2.MGlobal.displayInfo("Hit a key to continue")',
     '    msvcrt.getch()',
+    '',
     'om2.MGlobal.displayInfo("End")',
     'standalone.uninitialize()'    ]
     
@@ -108,12 +113,22 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = False,
     for d2 in dat:
         _dat.append('{')
         for k,d in d2.iteritems():
-            _dat.append("'{0}' : '{1}',".format(k,d))
+            if k == 'objs':
+                if d:
+                    _l_tmp = ','.join("'{0}'".format(o) for o in d)
+                    _dat.append('"{0}" : [{1}],'.format(k,_l_tmp))
+                else:
+                    _dat.append("'objs' : [ ],")
+            elif 'Path' in k:
+                _l_tmp = ','.join("'{0}'".format(o) for o in d)
+                _dat.append('"{0}" : [{1}],'.format(k,_l_tmp))                
+            else:
+                _dat.append('"{0}" : "{1}",'.format(k,d))
         _dat.append('},')
     _dat.append(']')
         
     mTar = PATHS.Path(_batchPath)
-    _l = "try:doTheThing"
+    _l = "try:Scene.BatchExport(dat)"
     
     #_l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
     
@@ -133,7 +148,17 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = False,
         log.warning("Not writable: {0}".format(_batchPath))    
         
         
-        
+    if process:
+        log.debug(cgmGEN.logString_sub(_str_func,"Processing ..."))        
+        log.warning("Processing file: {0}".format(mTar.asFriendly()))            
+        #subprocess.call([sys.argv[0].replace("maya.exe","mayapy.exe"),f.asFriendly()])
+        subprocess.Popen([sys.argv[0].replace("maya.exe",
+                                              "mayapy.exe"),'-i',
+                          mTar.asFriendly()],
+                         creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
+            
+        if deleteAfterProcess:
+            os.remove(f)
         
     return
     for f in l_check:

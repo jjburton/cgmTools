@@ -1,10 +1,22 @@
 import maya.cmds as mc
 import os
+import pprint
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
-def BakeAndPrep():
-    baked = Bake()
+def BakeAndPrep(bakeSetName = 'bakeSet',
+                deleteSetName = "deleteSet",
+                exportSetName = "exportSet",
+                startFrame = None,
+                endFrame = None):
+    
+    baked = Bake(bakeSetName,startFrame = startFrame,endFrame=endFrame)
     if baked:
-        prepped = Prep()
+        prepped = Prep(deleteSetName,
+                       exportSetName)
     else:
         print "Not baked, so not prepping"
 
@@ -13,12 +25,21 @@ def BakeAndPrep():
 
     return prepped
 
-def Bake(assets):
+def Bake(assets, bakeSetName = 'bakeSet',
+         startFrame = None,
+         endFrame = None):
+    _str_func = 'Bake'
+    
+    if startFrame is None:
+        startFrame =  mc.playbackOptions(q=True, min=True)
+    if endFrame is None:
+        endFrame =  mc.playbackOptions(q=True, max=True)
+        
+    
     baked = False
 
-    bakeSetName = "bakeSet"
-    if(mc.optionVar(exists='cgm_bake_set')):
-        bakeSetName = mc.optionVar(q='cgm_bake_set')
+    #if(mc.optionVar(exists='cgm_bake_set')):
+        #bakeSetName = mc.optionVar(q='cgm_bake_set')
 
     # set tangent options to spline
     currentTangent = mc.keyTangent( q=True, g=True, ott=True )[0]
@@ -32,9 +53,12 @@ def Bake(assets):
     bakeSets = []
 
     currentTime = mc.currentTime(q=True)
+    log.debug("{0} ||currentTime: {1}".format(_str_func,currentTime))
 
     for asset in assets:
         #if ':' in assets:
+        log.debug("{0} || asset: {1}".format(_str_func,asset))
+        
         topNodeSN = asset.split(':')[-1]
 
         # gather data
@@ -55,11 +79,17 @@ def Bake(assets):
             bakeTransforms.append(asset)
         #else:
         #    bakeTransforms.append(asset)
+        log.debug("{0} || bakeSet: {1}".format(_str_func,bakeSet))
 
     if len(bakeTransforms) > 0:
+        log.debug("{0} || baking transforms".format(_str_func))
+        
+        #pprint.pprint(bakeTransforms)
+        log.debug("{0} || time | start: {1} | end: {2}".format(_str_func,startFrame,endFrame))
+        
         mc.bakeResults( bakeTransforms, 
                         simulation=True, 
-                        t=( mc.playbackOptions(q=True, min=True), mc.playbackOptions(q=True, max=True) ), 
+                        t=( startFrame, endFrame), 
                         sampleBy=1, 
                         disableImplicitControl=True,
                         preserveOutsideKeys = False, 
@@ -82,23 +112,25 @@ def Bake(assets):
     #eval mode restore ----
     if _evalMode[0] != 'off':
         print "Eval mode restored: {0}".format(_evalMode[0])
-        
         mc.evaluationManager(mode = _evalMode[0])
 
     mc.currentTime(currentTime)
 
     return baked
 
-def Prep(removeNamespace = False):
+def Prep(removeNamespace = False, 
+         deleteSetName = "deleteSet",
+         exportSetName = "exportSet"):
+    
+    _str_func = 'Prep'
+    
     prepped = True
-
-    deleteSetName = "deleteSet"
-    exportSetName = "exportSet"
-
-    if(mc.optionVar(exists='cgm_delete_set')):
-        deleteSetName = mc.optionVar(q='cgm_delete_set')
-    if(mc.optionVar(exists='cgm_export_set')):
-        exportSetName = mc.optionVar(q='cgm_export_set')
+    
+    
+    #if(mc.optionVar(exists='cgm_delete_set')):
+    #    deleteSetName = mc.optionVar(q='cgm_delete_set')
+    #if(mc.optionVar(exists='cgm_export_set')):
+    #    exportSetName = mc.optionVar(q='cgm_export_set')
 
     try:
         topNode = mc.ls(sl=True)[0]
@@ -111,6 +143,10 @@ def Prep(removeNamespace = False):
     topNodeSN = topNode.split(':')[-1]
 
     namespaces = topNode.split(':')[:-1]
+    
+    log.debug("{0} || topNode: {1}".format(_str_func,format(topNodeSN)))
+    
+    log.debug("{0} || ref import".format(_str_func))
     
     # import reference
     if( mc.referenceQuery(topNode, isNodeReferenced=True) ):
@@ -125,6 +161,8 @@ def Prep(removeNamespace = False):
 
         mc.file(topRefFile, ir=True)
 
+    log.debug("{0} || namespaces".format(_str_func))
+    
     if len(namespaces) > 0:
         for space in namespaces[:-1]:
             mc.namespace( removeNamespace = space, mergeNamespaceWithRoot = True)
@@ -135,7 +173,10 @@ def Prep(removeNamespace = False):
 
     exportSet = "%s%s" % (ns, exportSetName)
     exportSetObjs = []
-
+    
+    log.debug("{0} || export set: {1}".format(_str_func,exportSet))
+    
+    
     if mc.objExists(exportSet):
         exportSetObjs = mc.sets(exportSet, q=True)
     else:
@@ -143,6 +184,10 @@ def Prep(removeNamespace = False):
 
     # delete garbage
     deleteSet = "%s%s" % (ns, deleteSetName)
+    
+    
+    log.debug("{0} || delete set: {1}".format(_str_func,deleteSet))
+    
     if(mc.objExists(deleteSet)):
         mc.delete( mc.sets( deleteSet, q=True ) )  
     else:
@@ -151,10 +196,12 @@ def Prep(removeNamespace = False):
 
     if exportSetObjs:
         for exportObj in exportSetObjs:
-            mc.delete(mc.listRelatives(exportObj, ad=True, type='constraint'))
+            log.debug("{0} || exportObj: {1}".format(_str_func,exportObj))
+            
+            mc.delete(mc.listRelatives(exportObj, ad=True, type='constraint', fullPath = 1))
 
     if removeNamespace and len(exportSetObjs) > 0:
-        for obj in mc.listRelatives(exportSetObjs, ad=True) + exportSetObjs:
+        for obj in mc.listRelatives(exportSetObjs, ad=True, fullPath = 1) + exportSetObjs:
             if ':' in obj:
                 mc.rename(obj, obj.split(':')[-1])
 
@@ -165,6 +212,9 @@ def Prep(removeNamespace = False):
     if not mc.objExists(newTopNode):
         if mc.objExists(topNode):
             newTopNode = topNode
+            
+    log.debug("{0} || topNode: {1}".format(_str_func,newTopNode))
+            
     
     # revert to old name
     #for i, tempObj in enumerate(namespaceTransforms):
@@ -182,6 +232,8 @@ def Prep(removeNamespace = False):
 
     exportObjs = mc.ls(sl=True)
     for obj in exportObjs:
+        log.debug("{0} || parent pass: {1}".format(_str_func,obj))
+        
         try:
             mc.parent(obj, w=True)
         except:
@@ -194,7 +246,7 @@ def Prep(removeNamespace = False):
     return prepped
 
 def MakeExportCam(inputCam):
-    inputCamShape = mc.listRelatives(inputCam, shapes=True)[0]
+    inputCamShape = mc.listRelatives(inputCam, shapes=True, fullPath = 1)[0]
     exportCam, exportCamShape = mc.camera(name='exportCam')
     mc.parentConstraint(inputCam, exportCam, mo=False)
     mc.connectAttr('%s.focalLength' % inputCam, '%s.focalLength' % exportCamShape)
