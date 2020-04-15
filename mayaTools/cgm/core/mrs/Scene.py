@@ -183,14 +183,9 @@ example:
 		self.categoryIndex = int(self.categoryStore.getValue())
 		self.removeNamespace = bool(self.removeNamespaceStore.getValue())
 		
-		if self.showBakedOption:
-			self.showBakedOption(e=True, v = self.showBaked)
-		if self.removeNamespaceOption:
-			self.removeNamespaceOption(e=True, v = self.removeNamespace)
-
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
-
+		
 		self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
 
 	def SaveOptions(self, *args):
@@ -1172,7 +1167,10 @@ example:
 
 
 	def OpenAssetDirectory(self, *args):
-		self.OpenDirectory(self.categoryDirectory)
+		if self.selectedAsset:
+			self.OpenDirectory( os.path.join(self.categoryDirectory, self.selectedAsset) )
+		else:
+			self.OpenDirectory( self.categoryDirectory )
 		
 	def uiPath_mayaOpen(self,path=None):
 		_res = mc.fileDialog2(fileMode=1, dir=path)
