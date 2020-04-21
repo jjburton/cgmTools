@@ -1203,6 +1203,9 @@ def ribbon(jointList = None,
         l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedName,
                                                    '{0}.arcLength'.format(mInfoNode.mNode),
                                                    "{0}.baseDist".format(mCrv.mNode)))"""
+        
+        #l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedName,
+
         l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedName,
                                                    '{0}.arcLengthInV'.format(mArcLen.mNode),
                                                    "{0}.baseDist".format(mArcLen.mNode)))        
@@ -1967,15 +1970,13 @@ def ribbon(jointList = None,
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NODEFAC.argsToNodes(arg).doBuild()
                 
-                if not skipAim:
-                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
             
                 if squashStretch == 'simple':
                     for axis in ['scaleX','scaleY']:
                         mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
                         
-                mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
-        
+                if not skipAim:
+                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))                
         else:
             for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
                 mActive_aim =  md_distDat['aim']['active']['mDist'][i]
@@ -2067,14 +2068,13 @@ def ribbon(jointList = None,
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NODEFAC.argsToNodes(arg).doBuild()
-                
-                if not skipAim:
-                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
-            
+                            
                 if not ml_outFollicles:
                     for axis in ['scaleX','scaleY']:
-                        mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))                    
-                mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
+                        mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
+                        
+                if not skipAim:
+                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
             
         if squashStretch in ['single','both']:
             if ml_outFollicles or ml_upFollicles:
