@@ -70,7 +70,11 @@ import cgm.core.rig.general_utils as RIGGEN
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
-def find_tmpFiles(path = None, level = None, cleanFiles = False):
+def find_tmpFiles(path = None, level = None, cleanFiles = False,
+                  l_mask = ['max',
+                            'mab',
+                            'markdown',
+                            'mapping']):
     """
     Function for walking below a given directory looking for modules to reload. It finds modules that have pyc's as
     well for help in reloading. There is a cleaner on it as well to clear all pycs found.
@@ -106,9 +110,11 @@ def find_tmpFiles(path = None, level = None, cleanFiles = False):
     _l_weirdFiles = []
     _d_weirdFiles = {}
     
-    log.debug("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,path))                                               
+    log.debug("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,path))
+    
     _i = 0
     for root, dirs, files in os.walk(path, True, None):
+        
         # Parse all the files of given path and reload python modules
         _mRoot = PATH.Path(root)
         _split = _mRoot.split()
@@ -125,10 +131,16 @@ def find_tmpFiles(path = None, level = None, cleanFiles = False):
             _pycd = False
             _long = os.path.join(root,f)
             
+            if '.' not in f:
+                continue
+            
             _dot_split = f.split('.')
             _extension = _dot_split[-1]
             
-            if len(_extension) > 2:
+            if _extension in l_mask:
+                continue
+            
+            if len(_extension) > 3:
                 if _extension.startswith('ma') or _extension.startswith('mb'):
                     _l_weirdFiles.append(f)
                     _d_weirdFiles[f] = os.path.join(root,f)
@@ -154,6 +166,7 @@ def find_tmpFiles(path = None, level = None, cleanFiles = False):
     else:
         if _d_weirdFiles:
             pprint.pprint(_d_weirdFiles)
+            log.warning( cgmGEN.logString_msg(_str_func,"Found {0} files".format(len(_d_weirdFiles.keys()))) )
         else:
             log.warning( cgmGEN.logString_msg(_str_func,"No files found.") )
     return
