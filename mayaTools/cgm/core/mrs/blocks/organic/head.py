@@ -1368,12 +1368,23 @@ def skeleton_build(self, forceNew = True):
         #...orient ----------------------------------------------------------------------------
         #cgmMeta.cgmObject().getAxisVector
         #CORERIG.match_orientation(mHead_jnt.mNode, mHeadHelper.mNode)
-        p_orientAxis = mHeadHelper.getPositionByAxisDistance('z+', 100)
-        
-        TRANS.aim_atPoint(mHead_jnt.mNode,
-                          p_orientAxis,
-                          'y-', 'z+', 'vector',
-                          vectorUp=mHeadHelper.getAxisVector('y+'))
+        if self.neckBuild:
+            """
+            mVec_up = self.atUtils('prerig_get_upVector')
+            
+            TRANS.aim_atPoint(mHead_jnt.mNode,
+                              ml_prerigHandles[-2].p_position,
+                              'y-', 'z+', 'vector',
+                              vectorUp=mVec_up)"""
+            mHead_jnt.p_orient = ml_prerigHandles[-1].p_orient
+            
+        else:
+            p_orientAxis = mHeadHelper.getPositionByAxisDistance('z+', 100)
+            
+            TRANS.aim_atPoint(mHead_jnt.mNode,
+                              p_orientAxis,
+                              'y-', 'z+', 'vector',
+                              vectorUp=mHeadHelper.getAxisVector('y+'))
         """
         TRANS.aim_atPoint(mHead_jnt.mNode,
                           p_orientAxis,

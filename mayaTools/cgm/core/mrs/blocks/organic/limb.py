@@ -1773,7 +1773,7 @@ def get_baseNameAttrs(self):
     
     if self.buildLeverBase:
         _baseNameAttrs.insert(0,'nameLever')
-        _l_baseNames.instert(0,self.nameLever)
+        _l_baseNames.insert(0,self.nameLever)
     
     return _l_baseNames, _baseNameAttrs
 #=============================================================================================================
@@ -2841,6 +2841,7 @@ def rig_dataBuffer(self):
             self.d_squashStretch['driverSetup'] = _driverSetup
             
             #self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
+            #self.d_squashStretch['additiveScaleEnds'] = 1
             self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
             self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
             self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
@@ -4444,6 +4445,8 @@ def rig_shapes(self):
                     mIKFormHandle = ml_formHandles[-1]
                     #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
                     bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
+                    
+                    bb_ik = [v * 1.25 for v in bb_ik]
                 
                     _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
                     SNAP.go(_ik_shape,self.ml_handleTargets[self.int_handleEndIdx].mNode)
@@ -5344,6 +5347,7 @@ def rig_segments(self):
                     idx_parent = ml_handleJoints.index(mParent)
                     #mBlendParent = mParent.masterGroup.getParent(asMeta=True)
                     mBlendParent = ml_blendJoints[idx_parent]
+                    
                     if mParent == ml_handleJoints[0]:
                         #First handle ================================================================
                         log.debug("|{0}| >> First handle...".format(_str_func))
@@ -5447,6 +5451,9 @@ def rig_segments(self):
                         mFollow.doStore('cgmTypeModifier','follow')
                         mFollow.doStore('cgmType','driver')
                         mFollow.doName()
+                        
+                        mFollow.p_orient = ml_handleJoints[-2].p_orient
+                        
                     
                         mAimBack = mSegHandle.doCreateAt()
                         mAimBack.p_parent = mBlendParent
@@ -5454,15 +5461,17 @@ def rig_segments(self):
                         mAimBack.doStore('cgmTypeModifier','back')
                         mAimBack.doStore('cgmType','aimer')
                         mAimBack.doName()
+                        mAimBack.p_orient = ml_handleJoints[-2].p_orient
                         
                         log.debug("|{0}| >> Stable up...".format(_str_func))
-                        mStableUp = mBlendParent.doCreateAt()
+                        mStableUp = mSegHandle.doCreateAt()#mBlendParent.doCreateAt()
                         mStableUp.p_parent = mBlendParent.mNode
                         mStableUp.doStore('cgmName',mSegHandle)                
                         mStableUp.doStore('cgmTypeModifier','stableEnd')
                         mStableUp.doStore('cgmType','upObj')
                         mStableUp.rotateOrder = 0#...thing we have to have this to xyz to work right
                         mStableUp.doName()
+                        mStableUp.p_orient = ml_handleJoints[-2].p_orient
                         
                         mc.orientConstraint(mBlendParent.mNode, mStableUp.mNode,
                                             maintainOffset = True,
@@ -5470,8 +5479,10 @@ def rig_segments(self):
                         
                         #mc.pointConstraint(mBlendParent.mNode,mStableUp.mNode)
                         mConstrain = mStableUp.doGroup(True,asMeta=True,typeModifier = 'orient')
+                        mStableUp.p_parent = False
                         mc.orientConstraint(mBlendParentsParent.mNode, mConstrain.mNode,
-                                            maintainOffset = True)
+                                            maintainOffset = False)
+                        mStableUp.p_parent = mConstrain
                         
                         mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
                                          aimVector = [0,0,-1], upVector = self.v_twistUp,#[-1,0,0], 
@@ -5645,7 +5656,8 @@ def rig_segments(self):
                 mMasterCurve = res_segScale[1]
                 self.fnc_connect_toRigGutsVis( mMasterCurve )
     
-                mMasterCurve.p_parent = ml_blendJoints[i]#mRoot#ml_blendJoints[i]
+                #mMasterCurve.p_parent = ml_blendJoints[i]#mRoot#ml_blendJoints[i]
+                mMasterCurve.p_parent = mRoot
                 
                 _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
                       'baseName' : "{0}_seg_{1}".format(ml_blendJoints[i].cgmName,i),
@@ -5731,7 +5743,10 @@ def rig_segments(self):
                     if ml_drivers:
                         log.debug("|{0}| >> Found drivers".format(_str_func))
                         #mJnt.masterGroup.p_parent = mRigNull
-                        mc.scaleConstraint([mObj.mNode for mObj in ml_drivers],mJnt.masterGroup.mNode,maintainOffset=True)
+                        mc.scaleConstraint([mObj.mNode for mObj in ml_drivers],
+                                           mJnt.masterGroup.mNode,
+                                           skip='z',
+                                           maintainOffset=True)
                         
                         
             for mHandle in ml_handleJoints:
@@ -7540,6 +7555,7 @@ def rig_pivotSetup(self):
                 mToeControl = False
                 log.debug(cgmGEN.logString_sub(_str_func,'roll control setup'))
                 ml_ikJoints = mRigNull.msgList_get('ikJoints')
+                
                 if self.mToe:
                     mToeIK = ml_ikJoints.pop(-1)
                     b_realToe = True
@@ -7547,6 +7563,9 @@ def rig_pivotSetup(self):
                     #mToeControl.masterGroup.p_parent = mParentUse
                     mc.parentConstraint(mToeControl.mNode, mToeIK.mNode,maintainOffset = False)
                     
+                    if self.b_scaleSetup:
+                        mc.scaleConstraint(mToeControl.mNode, mToeIK.mNode,maintainOffset = False)
+                        
                     
                 if self.mBall:
                     mBallIK = ml_ikJoints.pop(-1)
@@ -7561,6 +7580,10 @@ def rig_pivotSetup(self):
                     mParentUse = mBallControl
                     mc.parentConstraint(mBallControl.mNode, mBallIK.mNode,maintainOffset = False)
                     mc.pointConstraint( mBallHingeControl.mNode,mBallControl.masterGroup.mNode,maintainOffset = False)
+                    
+                    if self.b_scaleSetup:
+                        mc.scaleConstraint(mBallControl.mNode, mBallIK.mNode,maintainOffset = False)
+                    
                     
                     mPivotResultDriver.p_parent = mBallHingeControl
                     if mToeControl:
@@ -7583,7 +7606,9 @@ def rig_pivotSetup(self):
                 if not mBlock.buildLeverEnd:
                     mc.delete(mAnkleIK.getConstraintsTo())
                     mc.orientConstraint([mBallHingeControl.mNode],mAnkleIK.mNode,maintainOffset=True)
-             
+
+                    if self.b_scaleSetup:
+                        mc.scaleConstraint(mBallHingeControl.mNode, mAnkleIK.mNode,maintainOffset = False)             
                 
                 """
                 #Create foot IK -----------------------------------------------------------------------------

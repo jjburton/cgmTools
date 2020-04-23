@@ -61,6 +61,8 @@ import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.tools.lib.project_utils as PU
 import cgm.core.lib.mayaSettings_utils as MAYASET
+import cgm.core.mrs.lib.scene_utils as SCENEUTILS
+reload(SCENEUTILS)
 reload(MAYASET)
 reload(PU)
 import cgm.images as cgmImages
@@ -647,7 +649,6 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelMenuItem( self.uiMenu_utils, l="Query",
                          c = lambda *a:self.fncMayaSett_query())        
-        
         
         
         
@@ -1428,14 +1429,13 @@ def buildFrame_dirContent(self,parent):
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
     
     #Utils -------------------------------------------------------------------------------------------
-    _row = mUI.MelHLayout(_inside,padding=10,)
+    _row = mUI.MelHLayout(_inside,padding=3,)
     button_clear = mUI.MelButton(_row,
                                    label='Clear',ut='cgmUITemplate',
                                     c=lambda *a:self.uiScrollList_dirContent.clearSelection(),
                                     ann='Clear selection the scroll list to update')     
     button_refresh = mUI.MelButton(_row,
                                    label='Refresh',ut='cgmUITemplate',
-                                    #c=lambda *a:self.uiScrollList_dirContent.rebuild(),
                                     c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                                     ann='Force the scroll list to update')
     
@@ -1445,7 +1445,16 @@ def buildFrame_dirContent(self,parent):
     
     button_verify = mUI.MelButton(_row,
                                    label='Verify Dir',ut='cgmUITemplate',
-                                    ann='Verify the directories from the project Type')    
+                                    ann='Verify the directories from the project Type')  
+    
+    mUI.MelButton(_row,
+                  label='Query',ut='cgmUITemplate',
+                   c=lambda *a: SCENEUTILS.find_tmpFiles( self.d_tf['paths']['content'].getValue()),
+                   ann='Query trash files')    
+    mUI.MelButton(_row,
+                  label='Clean',ut='cgmUITemplate',
+                   c=lambda *a: SCENEUTILS.find_tmpFiles( self.d_tf['paths']['content'].getValue(),cleanFiles=1),
+                   ann='Clean trash files')
     _row.layout()
     #--------------------------------------------------------------------------------------------
     
@@ -1509,7 +1518,7 @@ def buildFrame_dirExport(self,parent):
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
     
     #Utils -------------------------------------------------------------------------------------------
-    _row = mUI.MelHLayout(_inside,padding=10,)
+    _row = mUI.MelHLayout(_inside,padding=3,)
     button_clear = mUI.MelButton(_row,
                                    label='Clear',ut='cgmUITemplate',
                                     c=lambda *a:self.uiScrollList_dirContent.clearSelection(),
@@ -1527,6 +1536,18 @@ def buildFrame_dirExport(self,parent):
     button_verify = mUI.MelButton(_row,
                                    label='Verify Dir',ut='cgmUITemplate',
                                     ann='Verify the directories from the project Type')    
+    
+    """
+    mUI.MelButton(_row,
+                  label='Query',ut='cgmUITemplate',
+                   c=lambda *a: SCENEUTILS.find_tmpFiles( self.d_tf['paths']['export'].getValue()),
+                   ann='Query trash files')    
+    mUI.MelButton(_row,
+                  label='Clean',ut='cgmUITemplate',
+                   c=lambda *a: SCENEUTILS.find_tmpFiles( self.d_tf['paths']['export'].getValue(),cleanFiles=1),
+                   ann='Clean trash files')    
+    """
+    
     _row.layout()
     #--------------------------------------------------------------------------------------------    
     

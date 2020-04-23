@@ -198,7 +198,7 @@ example:
 
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
-
+		
 		self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
 
 	def SaveOptions(self, *args):
@@ -1186,7 +1186,10 @@ example:
 
 
 	def OpenAssetDirectory(self, *args):
-		self.OpenDirectory(self.categoryDirectory)
+		if self.selectedAsset:
+			self.OpenDirectory( os.path.join(self.categoryDirectory, self.selectedAsset) )
+		else:
+			self.OpenDirectory( self.categoryDirectory )
 
 	def uiPath_mayaOpen(self,path=None):
 		_res = mc.fileDialog2(fileMode=1, dir=path)
