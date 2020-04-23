@@ -63,7 +63,9 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = True,
         
         mProject = PROJECT.data(filepath = var_project.value )
         
-        mPath_root = PATHS.Path( mProject.d_paths['root'])
+        d_paths = mProject.userPaths_get()
+        
+        mPath_root = PATHS.Path( d_paths['root'])
         if mPath_root.exists():
             log.debug('Root | : {0}'.format(mPath_root.asFriendly()))
             
