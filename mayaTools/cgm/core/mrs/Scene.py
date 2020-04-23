@@ -75,7 +75,7 @@ example:
 		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
 		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
 		self.removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
-		self.useMayaPyStore                   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
+		self.useMayaPyStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
 
@@ -116,7 +116,7 @@ example:
 
 		self.showBaked                   = False
 		self.removeNamespace             = False
-		self.useMayaPy = self.useMayaPyStore.getValue()
+		self.useMayaPy                   = self.useMayaPyStore.getValue()
 
 		self.fileListMenuItems           = []
 		self.batchExportItems            = []
@@ -1512,8 +1512,8 @@ example:
 				exportSetName = mc.optionVar(q='cgm_export_set')                
 
 			d = {
-			    'file':mc.file(q=True, sn=True),
-			    'objs':mc.ls(sl=1),
+			'file':mc.file(q=True, sn=True),
+			'objs':mc.ls(sl=1),
 			'mode':args[0],
 			'exportName':self.exportFileName,
 			'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
@@ -1523,6 +1523,7 @@ example:
 			'bakeSetName':bakeSetName,
 			'exportSetName':exportSetName,
 			'deleteSetName':deleteSetName,
+            'animationName':self.selectedAnimation
 			}
 
 			#pprint.pprint(d)
@@ -1538,6 +1539,7 @@ example:
 		            categoryExportPath = categoryExportPath,
 		            exportAnimPath = exportAnimPath,
 		            removeNamespace = self.removeNamespace,
+                    animationName = self.selectedAnimation
 		            )        
 
 		return True
@@ -1723,6 +1725,7 @@ def ExportScene(mode = 0,
                 bakeSetName = None,
                 exportSetName = None,
                 deleteSetName = None,
+                animationName = None,
                 ):
 
 	#exec(self.exportCommand)
@@ -1803,7 +1806,7 @@ def ExportScene(mode = 0,
 	if exportAsCutscene:
 		log.info("export as cutscene...")
 
-		#exportAnimPath = os.path.normpath(os.path.join(exportAnimPath, self.animationList['scrollList'].getSelectedItem()))
+		exportAnimPath = os.path.normpath(os.path.join(exportAnimPath, animationName))
 		if not os.path.exists(exportAnimPath):
 			os.mkdir(exportAnimPath)
 
