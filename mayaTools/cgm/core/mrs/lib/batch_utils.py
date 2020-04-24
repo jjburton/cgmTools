@@ -71,7 +71,16 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = True,
             
         else:
             log.debug('Root | Invalid Path: {0}'.format(mPath_root))
+            
+        mPath_content = PATHS.Path( d_paths['content'])
+        if mPath_content.exists():
+            log.debug('Root | : {0}'.format(mPath_content.asFriendly()))
+        else:
+            log.debug('Root | Invalid Path: {0}'.format(mPath_content))        
+            
+            
         _batchPath = os.path.join(mPath_root.asFriendly(),'mrsScene_batch.py')
+    
         
     log.debug("batchFile : {0}".format(_batchPath))
     
@@ -85,6 +94,7 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = True,
     'om2.MGlobal.displayInfo("Begin")',
     'import maya.cmds as mc',
     'mc.loadPlugin("fbxmaya")',
+    'mc.workspace("{0}",openWorkspace=1)'.format(mPath_content.asFriendly()),
     'import cgm.core.mrs.lib.batch_utils as MRSBATCH',
     '']
     
