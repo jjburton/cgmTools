@@ -1397,15 +1397,18 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
             
     else:
         log.debug(cgmGEN.logString_msg(_str_func,'list...'))
-        
-        for k in _dat:
+        if _dat:
+            for k in _dat:
             #if case == 'lower':
                 #k2 = k2.lower()
                 
-            mSub = PATHS.Path( os.path.join(mPath, k))
-            if not mSub.exists():
-                os.makedirs(mSub)
-                log.warning("created dir: {0}".format(mSub))          
+                mSub = PATHS.Path( os.path.join(mPath, k))
+                if not mSub.exists():
+                    os.makedirs(mSub)
+                    log.warning("created dir: {0}".format(mSub))
+        else:
+            log.warning(cgmGEN.logString_msg(_str_func,'No dat found'))
+            
         
     if mScrollList:
         mScrollList.rebuild(self.d_tf['paths'][pSet].getValue())
