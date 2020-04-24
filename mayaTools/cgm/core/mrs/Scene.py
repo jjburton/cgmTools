@@ -1347,9 +1347,9 @@ example:
 
 	def AddToExportQueue(self, *args):
 		if self.versionList['scrollList'].getSelectedItem() != None:
-			self.batchExportItems.append( {"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getSelectedItem()} )
+			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getSelectedItem()} )
 		elif self.variationList != None:
-			self.batchExportItems.append( {"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
+			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
 
 		self.RefreshQueueList()
 
@@ -1388,43 +1388,52 @@ example:
 			          'deleteSetName':deleteSetName}
 
 			for animDict in self.batchExportItems:
-				self.assetList['scrollList'].selectByValue( animDict["asset"] )
-				self.LoadAnimationList()
-				self.animationList['scrollList'].selectByValue( animDict["animation"])
-				self.LoadVariationList()
-				self.variationList['scrollList'].selectByValue( animDict["variation"])
-				self.LoadVersionList()
-				self.versionList['scrollList'].selectByValue( animDict["version"])
+				# self.assetList['scrollList'].selectByValue( animDict["asset"] )
+				# self.LoadAnimationList()
+				# self.animationList['scrollList'].selectByValue( animDict["animation"])
+				# self.LoadVariationList()
+				# self.variationList['scrollList'].selectByValue( animDict["variation"])
+				# self.LoadVersionList()
+				# self.versionList['scrollList'].selectByValue( animDict["version"])
 
 				#mc.file(self.versionFile, o=True, f=True, ignoreVersion=True)
 
-				masterNode = None
-				for item in mc.ls("*:master", r=True):
-					if len(item.split(":")) == 2:
-						masterNode = item
+				# masterNode = None
+				# for item in mc.ls("*:master", r=True):
+				# 	if len(item.split(":")) == 2:
+				# 		masterNode = item
 
-					if mc.checkBox(self.updateCB, q=True, v=True):
-						rig = ASSET.Asset(item)
-						if rig.UpdateToLatest():
-							self.SaveVersion()
+				# 	if mc.checkBox(self.updateCB, q=True, v=True):
+				# 		rig = ASSET.Asset(item)
+				# 		if rig.UpdateToLatest():
+				# 			self.SaveVersion()
 
-				if masterNode is None:
-					objs = []
-				else:
-					objs = [masterNode]
-
-				categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, self.category))
-				exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList['scrollList'].getSelectedItem()))
+				# if masterNode is None:
+				# 	objs = []
+				# else:
+				# 	objs = [masterNode]
+				categoryDirectory = os.path.normpath(os.path.join( self.directory, animDict["category"] ))
+				assetDirectory = os.path.normpath(os.path.join( categoryDirectory, animDict["asset"] ))
+				animationDirectory = os.path.normpath(os.path.join( assetDirectory, 'animation', animDict["animation"] ))
+				variationDirectory = os.path.normpath(os.path.join( animationDirectory, animDict["variation"] ))
+				versionFile = os.path.normpath(os.path.join( variationDirectory, animDict["version"] ))
+				
+				categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, animDict["category"]))
+				exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, animDict["asset"]))
 				exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, 'animation'))                
 
+				exportFileName = '%s_%s_%s.fbx' % (animDict["asset"], animDict["animation"], animDict["variation"])
+
 				d = {
-				    'file':PATHS.Path(self.versionFile).asString(),
-				    'objs':objs,
-				'mode':1, #Probably needs to be able to specify this
-				'exportName':self.exportFileName,
-				'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
-				'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
-				'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
+					'file':PATHS.Path(versionFile).asString(),
+					#'objs':objs,
+					'mode':-1, #Probably needs to be able to specify this
+					'exportName':exportFileName,
+					'animationName':animDict["animation"],
+					'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
+					'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
+					'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
+					'updateAndIncrement' : int(mc.checkBox(self.updateCB, q=True, v=True))
 				}                
 
 				d.update(d_base)
@@ -1472,7 +1481,7 @@ example:
 	def RefreshQueueList(self, *args):
 		self.queueTSL.clear()
 		for item in self.batchExportItems:
-			self.queueTSL.append( "%s - %s - %s - %s" % (item["asset"],item["animation"],item["variation"],item["version"]))
+			self.queueTSL.append( "%s - %s - %s - %s - %s" % (item["category"], item["asset"],item["animation"],item["variation"],item["version"]))
 
 		if len(self.batchExportItems) > 0:
 			mc.frameLayout(self.exportQueueFrame, e=True, collapse=False)
@@ -1495,6 +1504,7 @@ example:
 		exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList['scrollList'].getSelectedItem()))
 		exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, 'animation'))
 
+		d_userPaths = self.project.userPaths_get()
 
 		if self.useMayaPy:
 			reload(BATCH)
@@ -1523,7 +1533,8 @@ example:
 			'bakeSetName':bakeSetName,
 			'exportSetName':exportSetName,
 			'deleteSetName':deleteSetName,
-            'animationName':self.selectedAnimation
+            'animationName':self.selectedAnimation,
+            'workspace':d_userPaths['content']
 			}
 
 			#pprint.pprint(d)
@@ -1539,7 +1550,8 @@ example:
 		            categoryExportPath = categoryExportPath,
 		            exportAnimPath = exportAnimPath,
 		            removeNamespace = self.removeNamespace,
-                    animationName = self.selectedAnimation
+                    animationName = self.selectedAnimation,
+                    workspace=d_userPaths['content']
 		            )        
 
 		return True
@@ -1573,6 +1585,9 @@ def BatchExport(dataList = []):
 		_d['deleteSetName'] = fileDat.get('deleteSetName')
 		_d['exportSetName'] = fileDat.get('exportSetName')
 		_d['bakeSetName'] = fileDat.get('bakeSetName')
+		_d['animationName'] = fileDat.get('animationName')
+		_d['workspace'] = fileDat.get('workspace')
+		_d['updateAndIncrement'] = fileDat.get('updateAndIncrement')
 
 		log.info(mFile)
 		pprint.pprint(_d)
@@ -1585,25 +1600,25 @@ def BatchExport(dataList = []):
 
 		mc.file(_path, open = 1, f = 1)
 
-		if not _d['exportObjs']:
-			log.info(cgmGEN.logString_sub(_str_func,"Trying to find masters..."))
+		# if not _d['exportObjs']:
+		# 	log.info(cgmGEN.logString_sub(_str_func,"Trying to find masters..."))
 
-			l_masters = []
-			for item in mc.ls("*:master", r=True):
-				if len(item.split(":")) == 2:
-					masterNode = item
-					l_masters.append(item)
+		# 	l_masters = []
+		# 	for item in mc.ls("*:master", r=True):
+		# 		if len(item.split(":")) == 2:
+		# 			masterNode = item
+		# 			l_masters.append(item)
 
-				#if mc.checkBox(self.updateCB, q=True, v=True):
-					#rig = ASSET.Asset(item)
-					#if rig.UpdateToLatest():
-						#self.SaveVersion()
+		# 		#if mc.checkBox(self.updateCB, q=True, v=True):
+		# 			#rig = ASSET.Asset(item)
+		# 			#if rig.UpdateToLatest():
+		# 				#self.SaveVersion()
 
-			if l_masters:
-				log.info(cgmGEN.logString_msg(_str_func,"Found..."))
-				pprint.pprint(l_masters)
+		# 	if l_masters:
+		# 		log.info(cgmGEN.logString_msg(_str_func,"Found..."))
+		# 		pprint.pprint(l_masters)
 
-				_d['exportObjs'] = l_masters
+		# 		_d['exportObjs'] = l_masters
 
 
 		#if _objs:
@@ -1704,6 +1719,7 @@ def BatchExport(dataList = []):
 
 
 # args[0]:
+# -1 is unknown mode
 # 0 is bake and prep, don't export
 # 1 is export as a regular asset
 #   - export the asset into the asset/animation directory
@@ -1715,7 +1731,7 @@ def BatchExport(dataList = []):
 #   - export into the base asset directory with
 #   - just the asset name
 
-def ExportScene(mode = 0,
+def ExportScene(mode = -1,
                 exportObjs = None,
                 exportName = None,
                 categoryExportPath = None,
@@ -1726,7 +1742,12 @@ def ExportScene(mode = 0,
                 exportSetName = None,
                 deleteSetName = None,
                 animationName = None,
+                workspace = None,
+                updateAndIncrement = False
                 ):
+
+	if workspace:
+		mc.workspace( workspace, openWorkspace=True )
 
 	#exec(self.exportCommand)
 	import cgm.core.tools.bakeAndPrep as bakeAndPrep
@@ -1756,10 +1777,37 @@ def ExportScene(mode = 0,
 
 
 	log.info("mode check...")
+	if mode == -1:
+		log.info("unknown mode, attempting to auto detect")
+		if not exportObjs:
+			exportObjs = []
+			wantedSets = []
+			for set in mc.ls('*%s' % exportSetName, r=True):
+				if len(set.split(':')) == 2:
+					ns = set.split(':')[0]
+					for p in mc.ls(mc.sets(set,q=True)[0], l=True)[0].split('|'):
+						if mc.objExists(p) and ns in p:
+							exportObjs.append(p)
+							break
+				if len(set.split(':')) == 1:
+					objName = set.replace('_%s' % exportSetName, '')
+					if mc.objExists(objName):
+						exportObjs.append(objName)
+
+		if len(exportObjs) > 1:
+			log.info("More than one export obj found, setting cutscene mode: 2")
+			mode = 2
+		elif len(exportObjs) == 1:
+			log.info("One export obj found, setting regular asset mode: 1")
+			mode = 1
+		else:
+			log.info("Auto detection failed. Exiting.")
+			return
+
 	if mode > 0:
 		exportFBXFile = True
 
-	if len(exportObjs) > 1 :
+	if len(exportObjs) > 1 and mode != 2:
 		result = mc.confirmDialog(
 		    title='Multiple Object Selected',
 		    message='Will export in cutscene mode, is this what you intended? If not, hit Cancel, select one object and try again.',
@@ -1869,7 +1917,6 @@ def ExportScene(mode = 0,
 		if( exportAsRig ):
 			exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
-
 		bakeAndPrep.Prep(removeNamespace, deleteSetName,exportSetName)
 
 		exportTransforms = mc.ls(sl=True)
@@ -1881,7 +1928,6 @@ def ExportScene(mode = 0,
 		for i,o in enumerate(mc.ls(sl=1)):
 			log.info("{0} | {1}".format(i,o))
 
-
 		if(exportFBXFile):
 			mel.eval('FBXExportSplitAnimationIntoTakes -c')
 			for shot in animList.shotList:
@@ -1890,7 +1936,7 @@ def ExportScene(mode = 0,
 				mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
 
 			#mc.file(exportFile, force=True, options="v=0;", exportSelected=True, pr=True, type="FBX export")
-			print 'FBXExport -f \"{}\" -s'.format(exportFile)
+			log.info('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
 			mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
 			#mc.FBXExport(f= exportFile)
 

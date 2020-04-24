@@ -7,9 +7,9 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-def BakeAndPrep(bakeSetName = 'bakeSet',
-                deleteSetName = "deleteSet",
-                exportSetName = "exportSet",
+def BakeAndPrep(bakeSetName = 'bake_tdSet',
+                deleteSetName = "delete_tdSet",
+                exportSetName = "export_tdSet",
                 startFrame = None,
                 endFrame = None):
     

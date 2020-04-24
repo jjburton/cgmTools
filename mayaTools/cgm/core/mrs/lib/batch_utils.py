@@ -15,6 +15,7 @@ import re
 import pprint
 import time
 import os
+import os.path
 import sys
 import subprocess, os
 
@@ -73,8 +74,8 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = True,
             log.debug('Root | Invalid Path: {0}'.format(mPath_root))
             
         mPath_content = PATHS.Path( d_paths['content'])
-        if mPath_content.exists():
-            log.debug('Root | : {0}'.format(mPath_content.asFriendly()))
+        if os.path.exists(mPath_content):
+            log.debug('Root | : {0}'.format(mPath_content))
         else:
             log.debug('Root | Invalid Path: {0}'.format(mPath_content))        
             
@@ -94,7 +95,7 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = True,
     'om2.MGlobal.displayInfo("Begin")',
     'import maya.cmds as mc',
     'mc.loadPlugin("fbxmaya")',
-    'mc.workspace("{0}",openWorkspace=1)'.format(mPath_content.asFriendly()),
+    'mc.workspace("{0}",openWorkspace=1)'.format(mPath_content),
     'import cgm.core.mrs.lib.batch_utils as MRSBATCH',
     '']
     
