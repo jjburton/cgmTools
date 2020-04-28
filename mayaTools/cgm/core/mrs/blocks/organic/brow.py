@@ -144,11 +144,12 @@ l_attrsStandard = ['side',
                    'visLabels',
                    'jointRadius',
                    'jointDepth',
+                   'buildSDK',                   
                    'controlOffset',
                    'conDirectOffset',
                    'moduleTarget',]
 
-d_attrsToMake = {'browType':'full:side',
+d_attrsToMake = {'browType':'full:split:side',
                  'formForeheadNum':'int',
                  'formBrowNum':'int',
                  #'paramStart':'float',
@@ -1825,7 +1826,7 @@ def rig_prechecks(self):
         self.l_precheckErrors.append("Brow setup not completed: {0}".format(str_browSetup))
     
     str_browType = mBlock.getEnumValueString('browType')
-    if str_browType not in ['full']:
+    if str_browType not in ['full','split']:
         self.l_precheckErrors.append("Brow setup not completed: {0}".format(str_browType))
                 
     if mBlock.scaleSetup:
@@ -1853,9 +1854,12 @@ def rig_dataBuffer(self):
     
     self.b_scaleSetup = mBlock.scaleSetup
     
-    self.str_browSetup = False
-    if mBlock.browSetup:
-        self.str_browSetup  = mBlock.getEnumValueString('browSetup')
+    #self.str_browSetup = False
+    #if mBlock.browSetup:
+    #    self.str_browSetup  = mBlock.getEnumValueString('browSetup')
+        
+    for k in ['browSetup','buildSDK','browType']:
+        self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k) or False
         
     #Logic checks ========================================================================
 
@@ -2005,7 +2009,12 @@ def rig_skeleton(self):
     md_handles = {'brow':{}}
     md_handleShapes = {'brow':{}}
     
-    for k in ['center','left','right']:
+    #if self.str_browType == 'full':
+    l_handleKeys = ['center','left','right']
+    #    else:
+    #    l_handleKeys = ['left','right']
+    
+    for k in l_handleKeys:
         log.debug("|{0}| >> {1}...".format(_str_func,k))        
         ml_helpers = self.mPrerigNull.msgList_get('brow{0}PrerigHandles'.format(k.capitalize()))
         ml_handleShapes = self.mPrerigNull.msgList_get('brow{0}PrerigShapes'.format(k.capitalize()))
@@ -2062,17 +2071,18 @@ def rig_shapes(self):
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         
         #Brow center ================================================================================
-        mBrowCenter = self.md_handles['brow']['center'][0].doCreateAt()
-        mBrowCenterShape = self.md_handleShapes['brow']['center'][0].doDuplicate(po=False)
-        mBrowCenterShape.scale = [1.5,1.5,1.5]
-        
-        mBrowCenter.doStore('cgmName','browMain')
-        mBrowCenter.doName()
-        
-        CORERIG.shapeParent_in_place(mBrowCenter.mNode,
-                                     mBrowCenterShape.mNode,False)
-        
-        mRigNull.connectChildNode(mBrowCenter,'browMain','rigNull')#Connect
+        if self.str_browType == 'full':
+            mBrowCenter = self.md_handles['brow']['center'][0].doCreateAt()
+            mBrowCenterShape = self.md_handleShapes['brow']['center'][0].doDuplicate(po=False)
+            mBrowCenterShape.scale = [1.5,1.5,1.5]
+            
+            mBrowCenter.doStore('cgmName','browMain')
+            mBrowCenter.doName()
+            
+            CORERIG.shapeParent_in_place(mBrowCenter.mNode,
+                                         mBrowCenterShape.mNode,False)
+            
+            mRigNull.connectChildNode(mBrowCenter,'browMain','rigNull')#Connect
         
         
         #Handles ================================================================================
@@ -2146,15 +2156,19 @@ def rig_controls(self):
         
         
         
+        if self.str_browType == 'full':
+            mBrowMain = mRigNull.browMain
+            _d = MODULECONTROL.register(mBrowMain,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = False)
+            ml_controlsAll.append(_d['mObj'])
+            ml_segmentHandles.append(_d['mObj'])
         
-        mBrowMain = mRigNull.browMain
-        _d = MODULECONTROL.register(mBrowMain,
-                                    mirrorSide= self.d_module['mirrorDirection'],
-                                    mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = False)
-        ml_controlsAll.append(_d['mObj'])
-        ml_segmentHandles.append(_d['mObj'])
         
+        b_sdk = False
+        if self.str_buildSDK == 'dag':
+            b_sdk = True
         #Handles ================================================================================
         log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
         for k,d in self.md_handles.iteritems():
@@ -2165,6 +2179,7 @@ def rig_controls(self):
                     log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                     _d = MODULECONTROL.register(mHandle,
                                                 mirrorSide= side,
+                                                addSDKGroup=b_sdk,
                                                 mirrorAxis="translateX,rotateY,rotateZ",
                                                 makeAimable = False)
                     
@@ -2255,10 +2270,10 @@ def rig_frame(self):
     mRootParent = self.mDeformNull
     mModule = self.mModule
     
-    
-    mBrowMain = mRigNull.browMain
-    mBrowMain.masterGroup.p_parent = self.mDeformNull
-    
+    if self.str_browType == 'full':
+        mBrowMain = mRigNull.browMain
+        mBrowMain.masterGroup.p_parent = self.mDeformNull
+        
     #Parenting ============================================================================
     log.debug("|{0}| >>Parenting...".format(_str_func)+ '-'*80)
     
@@ -2285,54 +2300,112 @@ def rig_frame(self):
     ml_right = copy.copy(md_brow['right'])
     ml_center = md_brow['center']
     ml_left = md_brow['left']
-    ml_right.reverse()
-    
-    ml_ribbonJoints = ml_right + ml_center + ml_left
-    
+
     md_handles = self.md_handles
     md_brow = md_handles['brow']
     ml_rightHandles = copy.copy(md_brow['right'])
+    ml_leftHandles = md_brow['left']    
     ml_centerHandles = md_brow['center']
-    ml_leftHandles = md_brow['left']
-    ml_rightHandles.reverse()    
     
-    
-    ml_skinDrivers = ml_rightHandles + ml_centerHandles + ml_leftHandles
-    
-    d_ik = {'jointList':[mObj.mNode for mObj in ml_ribbonJoints],
-            'baseName' : self.d_module['partName'] + '_ikRibbon',
-            'orientation':'xyz',
-            'loftAxis' : 'z',
-            'tightenWeights':False,
-            'driverSetup':'stableBlend',
-            'squashStretch':None,
-            'connectBy':'constraint',
-            'squashStretchMain':'arcLength',
-            'paramaterization':'fixed',#mBlock.getEnumValueString('ribbonParam'),
-            #masterScalePlug:mPlug_masterScale,
-            #'settingsControl': mSettings.mNode,
-            'extraSquashControl':True,
-            'influences':ml_skinDrivers,
-            'moduleInstance' : self.mModule}    
-    
-    
-    res_ribbon = IK.ribbon(**d_ik)
+    if self.str_browType == 'split':
+        d_sides = {'left':{'ribbonJoints':ml_left,
+                           'skinDrivers':ml_leftHandles},
+                   'right':{'ribbonJoints':ml_right,
+                           'skinDrivers':ml_rightHandles}}
+        
+        for _side,dat in d_sides.iteritems():
+            d_ik = {'jointList':[mObj.mNode for mObj in dat['ribbonJoints']],
+                    'baseName' : self.d_module['partName'] + "_{0}".format(_side) + '_ikRibbon',
+                    'extendEnds':True,
+                    'attachEndsToInfluences':1,
+                    'orientation':'xyz',
+                    'loftAxis' : 'z',
+                    'tightenWeights':False,
+                    'driverSetup':'stable',#'stableBlend',
+                    'squashStretch':None,
+                    'connectBy':'constraint',
+                    'squashStretchMain':'arcLength',
+                    'paramaterization':'fixed',#mBlock.getEnumValueString('ribbonParam'),
+                    #masterScalePlug:mPlug_masterScale,
+                    #'settingsControl': mSettings.mNode,
+                    'extraSquashControl':True,
+                    'influences':dat['skinDrivers'],
+                    'moduleInstance' : self.mModule}    
+            
+            
+            res_ribbon = IK.ribbon(**d_ik)
+            
+            
+            
+            
+            
+            mc.pointConstraint([md_brow['left'][0].mNode, md_brow['right'][0].mNode],
+                               ml_centerHandles[0].masterGroup.mNode,
+                               skip = 'z',
+                               maintainOffset=True)
+            mc.parentConstraint([ml_centerHandles[0].mNode],
+                               ml_center[0].mNode,
+                               maintainOffset=True)            
+        
+    else:
+        ml_right.reverse()
+        ml_rightHandles.reverse()    
+        
+        ml_ribbonJoints = ml_right + ml_center + ml_left
+        
+
+        ml_skinDrivers = ml_rightHandles + ml_centerHandles + ml_leftHandles
+        
+        d_ik = {'jointList':[mObj.mNode for mObj in ml_ribbonJoints],
+                'baseName' : self.d_module['partName'] + '_ikRibbon',
+                'orientation':'xyz',
+                'loftAxis' : 'z',
+                'tightenWeights':False,
+                'driverSetup':'stable',#'stableBlend',
+                'squashStretch':None,
+                'connectBy':'constraint',
+                'squashStretchMain':'arcLength',
+                'paramaterization':'fixed',#mBlock.getEnumValueString('ribbonParam'),
+                #masterScalePlug:mPlug_masterScale,
+                #'settingsControl': mSettings.mNode,
+                'extraSquashControl':True,
+                'influences':ml_skinDrivers,
+                'moduleInstance' : self.mModule}    
+        
+        
+        res_ribbon = IK.ribbon(**d_ik)
     
     #Setup some constraints============================================================================
-    md_brow['center'][0].masterGroup.p_parent = mBrowMain
+    if self.str_browType == 'full':
+        md_brow['center'][0].masterGroup.p_parent = mBrowMain
     
-    mc.pointConstraint([md_brow['left'][0].mNode, md_brow['right'][0].mNode],
-                       md_brow['center'][0].masterGroup.mNode,
-                       maintainOffset=True)
-    
-    
+        mc.pointConstraint([md_brow['left'][0].mNode, md_brow['right'][0].mNode],
+                           md_brow['center'][0].masterGroup.mNode,
+                           skip = 'z',
+                           maintainOffset=True)
+        
+        
     for side in ['left','right']:
         ml = md_brow[side]
-        ml[0].masterGroup.p_parent = mBrowMain
+        if self.str_browType == 'full':
+            ml[0].masterGroup.p_parent = mBrowMain
         mc.pointConstraint([ml[0].mNode, ml[-1].mNode],
                            ml[1].masterGroup.mNode,
                            maintainOffset=True)
         
+        if side == 'left':
+            _v_aim = [-1,0,0]
+        else:
+            _v_aim = [1,0,0]
+            
+        mc.aimConstraint([ml[-1].mNode],
+                         ml[1].masterGroup.mNode,
+                         maintainOffset = True, weight = 1,
+                         aimVector = _v_aim,
+                         upVector = [0,1,0],
+                         worldUpVector = [0,1,0],
+                         worldUpObject = ml[-1].masterGroup.mNode,
+                         worldUpType = 'objectRotation')            
         
         
     #pprint.pprint(vars())

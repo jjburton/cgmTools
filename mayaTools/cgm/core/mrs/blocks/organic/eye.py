@@ -2594,20 +2594,34 @@ def rig_skeleton(self):
         
         mEyeRigJoint.p_parent = mEyeBlend
         
-        ml_jointsToConnect.extend([mEyeIK])
+        #ml_jointsToConnect.extend([mEyeIK])
         ml_jointsToHide.append(mEyeBlend)    
     log.debug(cgmGEN._str_subLine)
     
     #EyeLid =====================================================================================
     log.debug("|{0}| >> Eye...".format(_str_func)+'-'*40)
-    reload(BLOCKUTILS)
+    #reload(BLOCKUTILS)
     self.d_lidData = {}
     
 
         
-        
-        
     if self.str_lidSetup == 'clam':
+        mHighlight = mBlock.prerigNull.getMessageAsMeta('eyeHighlightJoint')
+        if mHighlight:
+            #doSingleJoint('eyeHighlight')
+            
+            mDriver = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                              [mHighlight],
+                                                              'driver',
+                                                              mRigNull,
+                                                              singleMode = True,
+                                                              cgmType='driver')[0]
+            
+            mRigJoint = mHighlight.getMessageAsMeta('rigJoint')
+            mRigJoint.doStore('driverJoint',mDriver)
+            mHighlight.doStore('driverJoint',mDriver)
+                        
+        
         #Need to make our lid roots and orient
         for tag in 'upr','lwr':
             log.debug("|{0}| >> {1}...".format(_str_func,tag))
@@ -2796,8 +2810,9 @@ def rig_shapes(self):
                 CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,True)
                 
             mSettings.doStore('mClass','cgmObject')
-            mSettings.doStore('cgmName','{0}_eyeRoot'.format(self.d_module['partName']))
-            mSettings.doName()
+            #mSettings.doStore('cgmName','{0}_eyeRoot'.format(self.d_module['partName']))
+            #mSettings.doName()
+            mSettings.rename('{0}_eyeRoot'.format(self.d_module['partName']))
                 
             mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
             mRigNull.connectChildNode(mSettings,'rigRoot','rigNull')#Connect
@@ -2815,11 +2830,12 @@ def rig_shapes(self):
         
         #Logic ====================================================================================
         mFKEye = mRigNull.getMessageAsMeta('fkEye')
+        mEyeOrientHelper = mBlock.eyeOrientHelper
+        
         if mFKEye:
             log.debug("|{0}| >> FK eye...".format(_str_func))  
             log.debug(mFKEye)
             
-            mEyeOrientHelper = mBlock.eyeOrientHelper
             
             #_shape_fk = CURVES.create_fromName('sphere', size = [v*1.1 for v in self.v_baseSize])
             #SNAP.go(_shape_fk,mFKEye.mNode)
@@ -2834,11 +2850,17 @@ def rig_shapes(self):
                 mRigNull.connectChildNode(mFKEye,'settings','rigNull')#Connect
                 
             
-        
         mIKEye = mRigNull.getMessageAsMeta('ikEye')
         if mIKEye:
             log.debug("|{0}| >> IK eye...".format(_str_func))  
             log.debug(mIKEye)
+            
+            #IK direct shape... ----------------------------------------------------------------------
+            CORERIG.shapeParent_in_place(mIKEye.mNode,mEyeOrientHelper.mNode,1)
+            mHandleFactory.color(mIKEye.mNode, controlType = 'sub')
+            
+            mRigNull.connectChildNode(mIKEye.mNode,'controlIKDirect','rigNull')#Connect
+            
             
             #Create shape... -----------------------------------------------------------------------        
             log.debug("|{0}| >> Creating shape...".format(_str_func))
@@ -3007,7 +3029,7 @@ def rig_controls(self):
         #>> vis Drivers ==============================================================================	
         mPlug_visSub = self.atBuilderUtils('build_visSub')
         mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True,
-                                          attrType='bool', defaultValue = False,
+                                          attrType='bool', defaultValue = True,
                                           keyable = False,hidden = False)
         
         #Settings ========================================================================================
@@ -3055,6 +3077,23 @@ def rig_controls(self):
             mControlIK = _d['mObj']
             ml_controlsAll.append(mControlIK)
             self.atUtils('get_switchTarget', mControlIK, mBlendJoint)
+            
+        mControlIKDirect = mRigNull.getMessageAsMeta('controlIKDirect')
+        if mControlIKDirect:
+            log.info("|{0}| >> Found ik direct : {1}".format(_str_func, mControlIKDirect))
+            
+            _d = MODULECONTROL.register(mControlIKDirect,
+                                        addDynParentGroup = False,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = True)
+            
+            #mControl= _d['mObj']
+            ml_controlsAll.append( _d['mObj'])
+            for mShape in _d['mObj'].getShapes(asMeta=True):
+                ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))            
+            
+        #controlIKDirect
         
         #>> Direct Controls ==================================================================================
         log.debug("|{0}| >> Direct Eye controls...".format(_str_func))
@@ -3182,8 +3221,8 @@ def rig_controls(self):
             log.debug("|{0}| >> Found highlight : {1}".format(_str_func, mControlHighlight))
             
             _d = MODULECONTROL.register(mControlHighlight,
-                                        addDynParentGroup = False,
-                                        addSDKGroup=True,
+                                        addDynParentGroup = 1,
+                                        #addSDKGroup=True,
                                         mirrorSide= self.d_module['mirrorDirection'],
                                         mirrorAxis="translateX,rotateY,rotateZ")
             
@@ -3279,7 +3318,7 @@ def rig_frame(self):
         #Aim setup ---------------------------------------------------------------
         log.debug("|{0}| >> Aim setup...".format(_str_func, mControlIK))    
         mc.aimConstraint(mControlIK.mNode,
-                         mJointIK.mNode,
+                         mJointIK.masterGroup.mNode,
                          maintainOffset = False, weight = 1,
                          aimVector = self.d_orientation['vectorAim'],
                          upVector = self.d_orientation['vectorUp'],
@@ -3305,7 +3344,7 @@ def rig_frame(self):
     
         mIKGroup.parent = mSettings
         mControlIK.masterGroup.parent = mIKGroup
-        mJointIK.p_parent = mIKGroup
+        mJointIK.masterGroup.p_parent = mIKGroup
         
         #FK...
         FKGroup = mSettings.doCreateAt()
@@ -3546,15 +3585,19 @@ def rig_highlightSetup(self):
     mPlug_highlight.doConnectOut('{0}.scale'.format(mHighLight.masterGroup.mNode))
     
 
-    if self.str_highlightSetup == 'sdk':
+    if  mBlock.highlightSetup:
         log.debug("|{0}| >> sdk highlight...".format(_str_func))
+        
+        mHighlightDriver = mBlock.prerigNull.getMessageAsMeta('eyeHighlightJoint').getMessageAsMeta('driverJoint')
+        mHighlightDriver.p_parent = mHighLight.masterGroup
+        
         _d_toDo = {'hl_xFollow':.25,
                    'hl_xOffset':-15,
                    'hl_yFollow':.15,
                    'hl_yOffset':10}
         
         for k,v in _d_toDo.iteritems():
-            cgmMeta.cgmAttr(mHighLight,k,attrType = 'float', value = v,
+            cgmMeta.cgmAttr(mHighlightDriver,k,attrType = 'float', value = v,
                             hidden = False,keyable=False)
             
         if mBlendJoint:
@@ -3562,18 +3605,18 @@ def rig_highlightSetup(self):
         else:
             mBlend = mControlFK
             
-        mSDK = mHighLight.sdkGroup
+        #mSDK = mHighLight.sdkGroup
         
         for k in 'x','y':
-            mPlug_mult = cgmMeta.cgmAttr(mHighLight,"res_hlFollowMult",attrType='float',keyable=False,hidden=False)
+            mPlug_mult = cgmMeta.cgmAttr(mHighlightDriver,"res_hlFollowMult",attrType='float',keyable=False,hidden=False)
             _arg1 = "{0} = {1}.rotate{2} * {3}.hl_{4}Follow".format(mPlug_mult.p_combinedShortName,
                                                                     mBlend.mNode,
                                                                     k.upper(),
-                                                                    mHighLight.mNode,
+                                                                    mHighlightDriver.mNode,
                                                                     k)
-            _arg2 = "{0}.r{3} = {1} + {2}.hl_{3}Offset".format(mSDK.mNode,
+            _arg2 = "{0}.r{3} = {1} + {2}.hl_{3}Offset".format(mHighlightDriver.mNode,
                                                                mPlug_mult.p_combinedShortName,
-                                                               mHighLight.mNode,
+                                                               mHighlightDriver.mNode,
                                                                k)
             
             for _arg in _arg1,_arg2:
@@ -4315,7 +4358,27 @@ def rig_cleanUp(self):
         #pprint.pprint(ml_targetDynParents)        
         
         log.debug(cgmGEN._str_subLine)
+        
+    if mBlock.highlightSetup:
+        log.debug("|{0}| >> highlight...".format(_str_func))
+        mHighLight = mRigNull.getMessageAsMeta('controlHighlight')
+        mHighlightDriver = mBlock.prerigNull.getMessageAsMeta('eyeHighlightJoint').getMessageAsMeta('driverJoint')
+                
+        ml_targetDynParents = [mHighlightDriver] + self.ml_dynParentsAbove + self.ml_dynEndParents
+        
+        if mBlendJoint:
+            ml_targetDynParents.insert(0, mBlendJoint)
+        elif mControlFK:
+            ml_targetDynParents.insert(0, mControlFK)
+            
 
+        mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mHighLight,dynMode=1)
+        for mTar in ml_targetDynParents:
+            mDynGroup.addDynParent(mTar)
+        mDynGroup.rebuild()
+        
+        for mChild in mHighlightDriver.getChildren(asMeta=1):
+            mChild.resetAttrs()
 
     #Settings =================================================================================
     log.debug("|{0}| >> Settings...".format(_str_func))
