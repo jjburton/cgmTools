@@ -224,6 +224,8 @@ def get_mayaType(node = None):
             return 'editPoint' 
         
         raise RuntimeError,"Shouldn't have gotten here. Need another check for component type. '{0}'".format(_node)
+    #elif mc.listRelatives(_node,shapes=True,fullPath=False) == None:
+        #return 'shape'
     return _intialCheck
 
 def is_component(arg = None):
@@ -1131,21 +1133,22 @@ def MeshDict(mesh = None, pointCounts = True, calledFrom = None):
     _shape = None
     _callObjType = None
     
-    if _type in ['mesh']:
-        _mesh = mesh
-        _callObjType = 'meshCall'
-    elif _type in ['shape']:
+    if mc.listRelatives(mesh,shapes=True,fullPath=False) is None:
         _shape = mesh
         _callObjType = 'shapeCall'
         _mesh = getTransform(mesh)
+        _shapes = mc.listRelatives(_mesh,shapes=True,fullPath=False)
+        
+        
+    elif _type in ['mesh']:
+        _mesh = mesh
+        _callObjType = 'meshCall'
+        _shapes = mc.listRelatives(_mesh,shapes=True,fullPath=False)
+        if _shape is None:
+            _shape = _shapes[0]
     else:
         raise ValueError,"{0} error. Not a usable mesh type : obj: '{1}' | type: {2}".format(_str_func, mesh, _type)
 
-    _shapes = mc.listRelatives(_mesh,shapes=True,fullPath=False)
-    
-    if _shape is None:
-        _shape = _shapes[0]
-        
     _return = {'mesh':_mesh,
                'meshType':_type,
                'shapes':_shapes,

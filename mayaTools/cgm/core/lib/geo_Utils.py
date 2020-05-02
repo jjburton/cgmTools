@@ -945,13 +945,14 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
 
     for o in targets:  
         try:
-            _d_mesh = VALID.MeshDict(o, False, calledFrom=_str_funcName)     
+            _d_mesh = VALID.MeshDict(o, False, calledFrom=_str_funcName)
             _l_pos = get_shapePosData(_d_mesh['shape'],_space)
             _l_targets.append(o)
             _l_posData.append(_l_pos)
             _l_meshDicts.append(_d_mesh)
-        except:
-            log.error("{0}>> Target: {1} failed to resolve.".format(_str_funcName,o))
+        except Exception,err:
+            pprint.pprint(vars())
+            log.error("{0}>> Target: {1} failed to resolve. | {2}".format(_str_funcName,o,err))
 
     try:
         _baseObj = _l_targets[_baseIndex]
@@ -1511,7 +1512,7 @@ def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
                     _neg_id = _d_vtxToID[vtx_neg]
                     if not _d_matches.get(vtx):
                         _d_matches[vtx] = [vtx_neg]
-                    elif neg_id not in _d_matches[vtx]:
+                    elif _neg_id not in _d_matches[vtx]:
                         _d_matches[vtx].append(vtx_neg)
                     if not _d_matches.get(vtx_neg):
                         _d_matches[vtx_neg] = [vtx]
