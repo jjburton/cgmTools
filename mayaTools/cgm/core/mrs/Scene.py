@@ -364,6 +364,7 @@ example:
 
 		pum = mUI.MelPopupMenu(self.animationList['scrollList'])
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAnimationDirectory )
+		mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
 
 		self.animationButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateAnimation)
 
@@ -391,6 +392,7 @@ example:
 
 		pum = mUI.MelPopupMenu(self.variationList['scrollList'])
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
+		mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
 
 		self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
 
@@ -421,7 +423,8 @@ example:
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
 		mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
 		self.sendToProjectMenu = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )		
-
+		mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
+		
 		self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
 		_versionForm( edit=True, 
@@ -841,7 +844,7 @@ example:
 		self.LoadVersionList()
 
 		if len(self.versionList['items']) > 0:
-			self.versionList['scrollList'].selectByIdx(0)
+			self.versionList['scrollList'].selectByIdx( len(self.versionList['items'])-1 )
 
 		self.StoreCurrentSelection()
 
@@ -1344,6 +1347,12 @@ example:
 		if os.path.exists(rigPath):
 			assetName = os.path.basename(os.path.dirname(rigPath))
 			mc.file(rigPath, r=True, ignoreVersion=True, gl=True, mergeNamespacesOnClash=False, namespace=assetName)
+
+	def AddLastToExportQueue(self, *args):
+		if self.variationList != None:
+			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
+
+		self.RefreshQueueList()
 
 	def AddToExportQueue(self, *args):
 		if self.versionList['scrollList'].getSelectedItem() != None:
