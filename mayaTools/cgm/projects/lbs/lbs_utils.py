@@ -27,10 +27,13 @@ from cgm.core.classes import NodeFactory as cgmNodeFactory
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.search_utils as SEARCH
 
-d_reset = {'hair':1, 'face':7, 'brows':8, 'nose':7, 'ears':5,}
-l_faceTypes = [False, 'hardRound','softSquare', 'softRound_1', 'softRound_2']
-l_faceRandoms = ['chinForm','lipThickLower','lipThickUpr', ]#'jawLineIn'
+d_reset = {'hair':1, 'face':7, 'brows':8, 'nose':9, 'ears':5,}
+l_faceTypes = [False, 'hardRound']
+l_faceRandoms = ['chinFrom','lipThickLwr','lipThickUpr','chinLong','lipBig','faceLong','lipSmall',
+                 'cheekLine','cheek_in','cheek_out','jawNarrow' ]#'jawLineIn'
 l_options = [0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0]
+
+d_onlyPairs = {'lipSmall':'lipBig', 'cheek_in':'cheek_out'}
 
 def randomize(prefix='mk_head',reset = False, eyes = True):
     if prefix:
@@ -81,6 +84,13 @@ def randomize(prefix='mk_head',reset = False, eyes = True):
             for k in l_faceRandoms:
                 d_vs[k] = random.randint(0,100) * .01
             
+        
+        for k1,k2 in d_onlyPairs.items():
+            _pair = [k1,k2]
+            if d_vs.get(k1) and d_vs.get(k2):
+                d_vs[_pair[random.randint(0,1)]] = 0.0
+            
+            
         #Loop through and set the values ---------------------------------------
         for k,v in d_vs.iteritems():
             log.info("{0} | {1}".format(k,v))            
@@ -90,7 +100,7 @@ def randomize(prefix='mk_head',reset = False, eyes = True):
     import cgm.core.lib.math_utils as COREMATH
     
     if eyes:
-        d_ranges = {'tx':[-20,15],
+        d_ranges = {'tx':[-20,40],
                     'ty':[-10,20],
                     'scale':[70,110]}
         
@@ -136,6 +146,36 @@ def randomize(prefix='mk_head',reset = False, eyes = True):
     mc.currentTime(_frame)
 
 
+def headRig_post():
+    import cgm.core.classes.NodeFactory as NODEFAC
+    NODEFAC.build_conditionNetworkFromGroup('noses_grp', 'nose', 'settingsControl')
+    NODEFAC.build_conditionNetworkFromGroup('brows_grp', 'brows', 'settingsControl')    
+    NODEFAC.build_conditionNetworkFromGroup('hair_grp', 'hair', 'settingsControl')    
+    NODEFAC.build_conditionNetworkFromGroup('ears_grp', 'ears', 'settingsControl')    
+    
+    #L_eyeOrb_cstJnt
+    #L_lid_cstJnt
+    #eye_datJnt
+    
+    import cgm.core.rig.shader_utils as SHADERS
+    SHADERS.create_uvPickerNetwork('head_eyeLook_anim','iris',mode=2)
+    SHADERS.create_uvPickerNetwork('head_eyeLook_anim','highlight',mode=2)
+    
+    import cgm.core.lib.attribute_utils as ATTR
+    
+    ATTR.connect('head_eyeLook_anim.res_irisU','eye_place2d.offsetU')
+    ATTR.connect('head_eyeLook_anim.res_irisV','eye_place2d.offsetV')
+    
+    ATTR.connect('head_eyeLook_anim.res_highlightU','highlight_place2d.offsetU')
+    ATTR.connect('head_eyeLook_anim.res_highlightV','highlight_place2d.offsetV')
+    
+    #eye dat joint...
+    ATTR.connect('head_eyeLook_anim.res_irisU','eye_datJnt.tx')
+    ATTR.connect('head_eyeLook_anim.res_irisV','eye_datJnt.ty')
+    
+    ATTR.connect('head_eyeLook_anim.res_highlightU','eye_datJnt.rx')
+    ATTR.connect('head_eyeLook_anim.res_highlightV','eye_datJnt.ry')    
+    
 
 def headRig_connectToBody(*args, **kws):
     """

@@ -7200,7 +7200,7 @@ def skeleton_getBind(self,select=False):
     if mModule:
         mRigNull = mModule.rigNull
         if not mRigNull:
-            closeOut()
+            #closeOut()
             return log.error(cgmGEN.logString_sub(_str_func,'No rigNull'))
         # return log.error("|{0}| >> No joints found".format(_str_func))                
         if mRigNull:

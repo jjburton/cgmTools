@@ -1174,6 +1174,7 @@ def getUSplitList(curve=None, points=3, markPoints=False,
                     _shapeUse.append(shape)
                 else:
                     log.debug("|{0}| >> invalid shape: {1} | {2}".format(_str_func,_type,shape))
+            
             if len(_shapeUse)==1:
                 _shapeUse=_shapeUse[0]
             else:
