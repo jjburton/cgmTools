@@ -60,6 +60,9 @@ import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 import cgm.core.lib.shapeCaster as SHAPECASTER
+import cgm.core.rig.general_utils as RIGGEN
+import cgm.core.lib.string_utils as STR
+
 reload(SHAPECASTER)
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
@@ -74,7 +77,8 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.1.09122018'
 def log_start(str_func):
     log.debug("|{0}| >> ...".format(str_func)+'/'*60)
-    
+
+#@cgmGEN.Timer
 def color(self, target = None, side = None, controlType = None, transparent = None,shaderOnly =True):
     _str_func = 'color'
     log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
@@ -1276,7 +1280,11 @@ class handleFactory(object):
             #jack
             _jointHelper = CURVES.create_fromName(baseShape,  direction= shapeDirection, size = _size,bakeScale = False,baseSize=1.0)
             mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
-            mJointCurve.doSnapTo(mHandle.mNode)            
+            mJointCurve.doSnapTo(mHandle.mNode)
+            
+            if baseShape == 'axis3d':
+                mJointCurve.addAttr('cgmColorLock',True,lock=True,hidden=True)
+                
 
 
             if mHandle.hasAttr('cgmName'):
@@ -1412,8 +1420,9 @@ class handleFactory(object):
     
 
 def rootMotionHelper(self,mHandle=None,
-                     baseShape = 'arrowSingleFat3d',
-                     shapeDirection = 'y-', size = 1.0,
+                     baseShape = 'axis3d',#'arrowSingleFat3d',
+                     shapeDirection = 'z+',#'y-', 
+                     size = 1.0,
                      snapToGround = True):
     try:
         if not mHandle:mHandle = self
@@ -1422,7 +1431,7 @@ def rootMotionHelper(self,mHandle=None,
         if _bfr:
             mc.delete(_bfr)
 
-        pprint.pprint(vars())
+        #pprint.pprint(vars())
         
         """
          mHandleFactory.addRootMotionHelper(baseShape='arrowSingleFat3d',
@@ -1433,7 +1442,6 @@ def rootMotionHelper(self,mHandle=None,
             CORERIG.shapeParent_in_place(mMotionJoint.mNode, mShape.mNode, False,True)
             mMotionJoint.p_parent = mPrerigNull
         """
-        
         
         
         #helper ======================================================================================
@@ -1456,7 +1464,12 @@ def rootMotionHelper(self,mHandle=None,
             mDag = mShape
             CORERIG.match_transform(mCurve.mNode, mHandle)            
         
-        color(self,mDag)
+        if baseShape != 'axis3d':
+            color(self,mDag)
+        else:
+            mDag.addAttr('cgmColorLock',True,lock=True,hidden=True)            
+            
+        
         if mHandle.hasAttr('cgmName'):
             ATTR.copy_to(mHandle.mNode,'cgmName',mDag.mNode,driven='target')
             
@@ -1620,7 +1633,11 @@ def pivotHelper(self,mHandle=None,
             mTrack.p_parent = mPivotRootHandle
             mGroup = mTopLoft.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
             mc.parentConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
-            mPivotRootHandle.connectChildNode(mTopLoft, 'topLoft' ,'handle')#Connect                    
+            mc.scaleConstraint(mTrack.mNode, mGroup.mNode, maintainOffset =True)
+            
+            mPivotRootHandle.connectChildNode(mTopLoft, 'topLoft' ,'handle')#Connect
+            
+            mHandleFactory.color(mTopLoft.mNode,_side,'sub')
             
 
 
@@ -1801,4 +1818,505 @@ def backup(self,ml_handles = None):
         
         if not ml_handles:
             raise ValueError,"{0} | ml_handles required".format(_str_func)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
+
+def create_face_anchor(self, pos, mSurface,tag,k,side=None,controlType = 'main',orientToSurf = False,
+                       nameDict=None, size = 1.0,mStateNull=None):
+    mHandle = cgmMeta.validateObjArg(self.doCreateAt(),'cgmControl',setClass=1)
+    
+    #Position 
+    datClose = DIST.get_closest_point_data(mSurface.mNode, targetPoint=pos)
+    pClose = datClose['position']
+    
+    mHandle.p_position = pClose
+    
+    if orientToSurf:
+        mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
+                            aimVector = [0,0,1], upVector = [0,1,0],
+                            worldUpObject = self.mNode,
+                            worldUpType = 'objectrotation', 
+                            worldUpVector = [0,1,0]))
+    
+    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',(size) * 4)
+    
+    mBall = cgmMeta.validateObjArg( CURVES.create_fromName('semiSphere', size = size), 
+                                      'cgmControl',setClass=1)
+    mBall.doSnapTo(mHandle)
+    mBall.p_position = pBall
+    
+    _crvLinear = CORERIG.create_at(create='curveLinear',
+                                   l_pos=[pClose,pBall])
+    
+    CORERIG.shapeParent_in_place(mHandle.mNode, mBall.mNode,False)
+    CORERIG.shapeParent_in_place(mHandle.mNode, _crvLinear,False)            
+
+    mHandle._verifyMirrorable()
+    
+    if mStateNull:mHandle.p_parent = mStateNull
+    
+    if nameDict:
+        RIGGEN.store_and_name(mHandle,nameDict)
+    else:
+        mHandle.doStore('cgmName',tag)
+        mHandle.doStore('cgmType','anchor')
+        mHandle.doName()
+        
+    _key = tag
+    if k:
+        _key = _key+k.capitalize()
+        
+    color(self,mHandle.mNode, side = side, controlType=controlType)
+
+    return mHandle
+
+def create_face_handle(self, pos, tag, k, side,
+                       controlType = 'main',
+                       mainShape = 'squareRounded',
+                       mHandleShape = None,
+                       mSurface = None,
+                       jointShape = 'axis3d',
+                       jointSize = None,
+                       size = 1.0,
+                       offset = 1,
+                       mStateNull = None,
+                       mNoTransformNull = None,
+                       depthAttr = 'jointDepth',
+                       offsetAttr = 'controlOffset',
+                       mDriver = None,
+                       mAttachCrv = None,
+                       mode = None,
+                       plugShape = 'shapeHelper',
+                       plugDag = 'dagHelper',
+                       attachToSurf = False,
+                       orientToDriver = False,
+                       orientToNormal = False,
+                       aimGroup = 0,nameDict = None):
+    _str_func = 'create_face_handle'
+    #Main handle ==================================================================================
+    #Create...
+    _mainSize = size
+    if controlType == 'sub':
+        _mainSize = size*.7
+        
+    if mHandleShape:
+        mHandle = mHandleShape
+    else:
+        mHandle = cgmMeta.validateObjArg( CURVES.create_fromName(mainShape, size = _mainSize), 
+                                      'cgmControl',setClass=1)
+        mHandle._verifyMirrorable()
+        mHandle.doSnapTo(self)
+        if pos:mHandle.p_position = pos
+    
+    mHandle.p_parent = mStateNull
+    
+    #Name...
+    if nameDict:
+        dUse = copy.copy(nameDict)
+        dUse['cgmType'] = plugShape
+        
+        RIGGEN.store_and_name(mHandle,dUse)
+    else:
+        mHandle.doStore('cgmName',tag)
+        mHandle.doStore('cgmType', plugShape)
+        mHandle.doName()
+        
+        
+    _key = tag
+    if k:
+        _key = _key+k.capitalize()
+    """
+    mMasterGroup = mHandle.doGroup(True,True,
+                                   asMeta=True,
+                                   typeModifier = 'master',
+                                   setClass='cgmObject')"""
+
+
+    color(self, mHandle.mNode,side = side, controlType=controlType)
+    mStateNull.connectChildNode(mHandle, _key+STR.capFirst(plugShape),'block')
+    
+    if mSurface and not orientToDriver and orientToNormal:
+        mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
+                                aimVector = [0,0,1], upVector = [0,1,0],
+                                worldUpObject = self.mNode,
+                                worldUpType = 'objectrotation', 
+                                worldUpVector = [0,1,0]))
+    
+    #Main handle ==================================================================================
+    #Create...
+    if jointSize is None:
+        jointSize = size/2.0
+        
+    mDagHelper = cgmMeta.validateObjArg( CURVES.create_fromName(jointShape, size = jointSize,
+                                                                bakeScale=1), 
+                                      'cgmControl',setClass=1)
+    
+    if jointShape in ['axis3d']:
+        mDagHelper.addAttr('cgmColorLock',True,lock=True,hidden=True)            
+    else:
+        color(self, mDagHelper.mNode,side = side, controlType='sub')
+        
+    mDagHelper._verifyMirrorable()
+    mDagHelper.doSnapTo(self)
+    
+    if not mHandleShape:
+        mDagHelper.p_orient = mHandle.p_orient
+        mDagHelper.p_parent = mStateNull
+    
+    if pos:mDagHelper.p_position = pos
+    
+    #Name...
+    if nameDict:
+        dUse = copy.copy(nameDict)
+        dUse['cgmType'] = plugDag               
+        RIGGEN.store_and_name(mDagHelper,dUse)
+    else:
+        mDagHelper.doStore('cgmName',tag)
+        mDagHelper.doStore('cgmType',plugDag)
+        mDagHelper.doName()
+        
+        
+
+    """
+    mMasterGroup = mDagHelper.doGroup(True,True,
+                                   asMeta=True,
+                                   typeModifier = 'master',
+                                   setClass='cgmObject')"""
+
+
+    mStateNull.connectChildNode(mDagHelper, _key+STR.capFirst(plugDag),'block')
+    
+        
+    if mSurface or mAttachCrv:
+        if attachToSurf:
+            #Attach group... -------------------------------------------------------------------------------
+            mTrack = mHandle.doCreateAt()
+            mTrack.p_parent = mNoTransformNull
+            
+            if mAttachCrv:
+                mTrack.rename("{0}_curveDriver".format(mHandle.p_nameBase))
+                
+                _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mAttachCrv.mNode,None,driver= mDriver)
+                
+                md = _res[-1]
+                mFollicle = md['mDrivenLoc']
+                for k in ['mDriverLoc','mDrivenLoc','mTrack']:
+                    md[k].p_parent = mNoTransformNull
+                    md[k].v = False
+                
+                mTrack.p_position = md['mDrivenLoc'].p_position
+                mc.pointConstraint( md['mDrivenLoc'].mNode,mTrack.mNode,maintainOffset=0)
+                
+                if mSurface:
+                    log.debug(cgmGEN.logString_msg(_str_func,'Attach curve'))
+                    #We need a second driver point on the surface
+                    mSurfaceTrack = mHandle.doCreateAt()
+                    mSurfaceTrack.p_parent = mNoTransformNull                    
+                    mSurfaceTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mSurfaceTrack.mNode,mSurface.mNode,None,
+                                                        driver= mDagHelper)
+                    
+                    md = _res[-1]
+                    mFollicle = md['mFollicle']
+                    for k in ['mDriverLoc','mFollicle']:
+                        md[k].p_parent = mNoTransformNull
+                        md[k].v = False
+                    
+                    mSurfaceTrack.p_position = md['mFollicle'].p_position
+                    mc.pointConstraint(mFollicle.mNode,mSurfaceTrack.mNode,maintainOffset=0)                    
+                
+            else:
+                mTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
+                _res = RIGCONSTRAINT.attach_toShape(mTrack.mNode,mSurface.mNode,None,driver= mDriver)
+                
+                md = _res[-1]
+                mFollicle = md['mFollicle']
+                for k in ['mDriverLoc','mFollicle']:
+                    md[k].p_parent = mNoTransformNull
+                    md[k].v = False
+                
+                mTrack.p_position = md['mFollicle'].p_position
+                mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
+                
+            mDepth = mTrack.doCreateAt(setClass=1)
+            mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))
+            mDepth.p_parent = mTrack
+            
+            mDagHelper.p_parent = mDepth
+            
+            if mode == 'handle':
+                mPush = mTrack.doCreateAt(setClass=1)
+                mPush.rename("{0}_pushDriver".format(mHandle.p_nameBase))
+                
+                mPush.p_parent = mTrack
+                mHandle.p_parent = mPush
+                ATTR.connect('{0}.{1}'.format(self.mNode,offsetAttr), "{0}.tz".format(mPush.mNode))
+            
+            else:
+                mHandle.p_parent = mTrack
+
+                if mAttachCrv:
+                    mCrvTrack = mHandle.doCreateAt()
+                    mCrvTrack.rename("{0}_crvDriver".format(mHandle.p_nameBase))
+                    mCrvTrack.p_parent = mNoTransformNull
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mCrvTrack.mNode,mAttachCrv.mNode,'conPoint')
+                    TRANS.parent_set(_res[0], mNoTransformNull.mNode)                    
+                    
+                    log.debug(cgmGEN.logString_msg('attachCrv'))
+                    mDagHelper.p_parent = mCrvTrack
+                    mDagHelper.resetAttrs()
+                    
+                    if orientToDriver:
+                        mc.orientConstraint(mDriver.mNode, mCrvTrack.mNode,maintainOffset = False)
+                    
+                    if mSurface:
+                        log.debug(cgmGEN.logString_msg(_str_func,'Attach curve'))
+                        mPush = mSurfaceTrack.doCreateAt(setClass=1)
+                        mPush.rename("{0}_pushDriver".format(mHandle.p_nameBase))
+                        
+                        mPush.p_parent = mSurfaceTrack
+                        mHandle.p_parent = mPush
+                        ATTR.connect('{0}.{1}'.format(self.mNode,offsetAttr), "{0}.tz".format(mPush.mNode))
+                        
+                        if orientToDriver:
+                            mc.orientConstraint(mDriver.mNode, mSurfaceTrack.mNode,maintainOffset = False)
+                            
+                    mHandle.resetAttrs('translate')
+                        
+                else:
+                    mHandle.p_position = mTrack.p_position
+                    mDagHelper.resetAttrs()
+                    
+                    if mSurface:
+                        mPush = mHandle.doCreateAt(setClass=1)
+                        mPush.rename("{0}_pushDirect".format(mHandle.p_nameBase))
+                        
+                        mPush.p_parent = mTrack
+                        mHandle.p_parent = mPush
+                        ATTR.connect('{0}.{1}'.format(self.mNode,offsetAttr), "{0}.tz".format(mPush.mNode))
+                        
+                        #if orientToDriver:
+                        #    mc.orientConstraint(mDriver.mNode, mSurfaceTrack.mNode,maintainOffset = False)                    
+                    
+            ATTR.connect('{0}.{1}'.format(self.mNode,depthAttr), "{0}.tz".format(mDepth.mNode))
+            
+            if orientToDriver:
+                mc.orientConstraint(mDriver.mNode, mTrack.mNode,maintainOffset = False)
+        else:
+            _dat = DIST.get_closest_point_data(mSurface.mNode, targetObj=mHandle)
+            mHandle.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.controlOffset)
+            mDagHelper.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.getMayaAttr(depthAttr))
+
+    if aimGroup:
+        mHandle.doGroup(True,True,
+                        asMeta=True,
+                        typeModifier = 'aim',
+                        setClass='cgmObject')
+
+    mDagHelper.doStore('shapeHelper',mHandle)
+    mHandle.doStore('dagHelper',mDagHelper)
+    
+    return mHandle,mDagHelper
+
+def create_face_anchorHandleCombo(self, pos, tag, k, side,
+                                controlType = 'main',
+                                mHandleShape = None,
+                                mSurface = None,
+                                jointShape = 'axis3d',
+                                jointSize = None,
+                                handleSize = 1.0,
+                                handleShape = 'squareRounded',
+                                size = 1.0,
+                                offset = 1,
+                                mStateNull = None,
+                                mNoTransformNull = None,
+                                mDriver = None,
+                                mAttachCrv = None,
+                                mode = None,
+                                depthAttr = 'jointDepth',
+                                offsetAttr = 'controlOffset',
+                                
+                                plugShape = 'shapeHelper',
+                                plugDag = 'dagHelper',
+                                attachToSurf = False,
+                                orientToDriver = False,
+                                aimGroup = 0,nameDict = None,
+                                anchorSize = 1.0,
+                                orientToSurf = False,**kws):
+                                    
+    d_anchor = copy.copy(nameDict)
+    d_anchor['cgmType'] = 'preAnchor'
+    
+    mAnchor = create_face_anchor(self, pos, mSurface,tag,k,side,controlType,orientToSurf,
+                                 d_anchor, anchorSize,mStateNull)
+    
+    d_use = mAnchor.getNameDict(ignore=['cgmType'])
+    
+    mShape, mDag = create_face_handle(self,mAnchor.p_position,
+                                      tag,
+                                      None,
+                                      side,
+                                      mDriver=mAnchor,
+                                      mSurface=mSurface,
+                                      mHandleShape = mHandleShape,
+                                      mainShape = handleShape,
+                                      jointShape=jointShape,
+                                      jointSize = jointSize,
+                                      controlType=controlType,
+                                      mode=mode,
+                                      plugDag= plugDag,
+                                      plugShape= plugShape,
+                                      depthAttr = depthAttr,
+                                      offsetAttr = offsetAttr,
+                                      attachToSurf=attachToSurf,
+                                      orientToDriver = orientToDriver,
+                                      nameDict= d_use,
+                                      mStateNull = mStateNull,
+                                      mNoTransformNull=mNoTransformNull)
+    
+    try:kws.get('ml_handles').extend([mAnchor,mShape,mDag])
+    except:pass
+    
+    try:kws.get('md_handles')[tag] = mShape
+    except:pass
+    
+    try:kws.get('md_handles')[tag+'Joint'] = mDag
+    except:pass
+    
+    try:kws.get('ml_jointHandles').append(mDag)
+    except:pass
+    
+    try:kws.get('md_mirrorDat')[side].extend([mAnchor,mShape,mDag])    
+    except:pass
+    
+    
+    return mAnchor,mShape,mDag
+    
+
+def create_visualTrack(self,mHandle, mTarget,tag='track',mParent = None):
+    _str_func = 'create_visualTrack'
+    log.debug("|{0}| >> visualConnection ".format(_str_func, tag))
+    trackcrv,clusters = CORERIG.create_at([mHandle.mNode,
+                                           mTarget.mNode],#ml_handleJoints[1]],
+                                          'linearTrack',
+                                          baseName = '{0}_midTrack'.format(tag))
+
+    mTrackCrv = cgmMeta.asMeta(trackcrv)
+    if mParent:mTrackCrv.p_parent = mParent
+    color(self, trackcrv, controlType = 'sub')
+
+    for s in mTrackCrv.getShapes(asMeta=True):
+        s.overrideEnabled = 1
+        s.overrideDisplayType = 2    
+    
+def backup(self,ml_handles = None):
+    try:
+        _str_func = 'segment_handles'
+        log_start(_str_func)
+        
+        mBlock = self.mBlock
+        mRigNull = self.mRigNull
+        _offset = self.v_offset
+        _jointOrientation = self.d_orientation['str']
+        
+        if not ml_handles:
+            raise ValueError,"{0} | ml_handles required".format(_str_func)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
+    
+def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
+    try:
+        _str_func = 'rp'
+        log_start(_str_func)
+        log.debug("|{0}| >> settings: {1}...".format(_str_func,settingsPlace))
+        
+        if not ml_targets:
+            ml_targets = self.msgList_get('formHandles')
+        
+        mBlock = self
+        v_offset = self.atUtils('get_shapeOffset')
+        
+        if self.getEnumValueString('rigSetup') == 'digit':
+            v_offset = v_offset * .5
+
+        _jointOrientation = self.atUtils('get_baseJointOrientation')
+        
+        if settingsPlace == None:
+            settingsPlace = self.getEnumValueString('settingsPlace')
+        
+        if settingsPlace == 'cog':
+            return
+
+        if settingsPlace in ['start','end']:
+            mMesh_tmp =  self.atUtils('get_castMesh')
+            str_meshShape = mMesh_tmp.getShapes()[0]
+            
+            idx_start, idx_end = self.atUtils('get_handleIndices')
+            
+            if settingsPlace == 'start':
+                _mTar = ml_targets[idx_start]
+            else:
+                _mTar = self.msgList_get('formHandles')[-1]
+                """
+                mIKOrientHandle = self.getMessageAsMeta('ikOrientHandle')
+                if mIKOrientHandle:
+                    _mTar = mIKOrientHandle
+                else:
+                    _mTar = ml_targets[-1]"""            
+            
+            d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
+            
+            str_settingsDirections = d_directions.get(self.getEnumValueString('settingsDirection'),'y+')
+            
+            pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
+            if not pos:
+                log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
+                pos = _mTar.getPositionByAxisDistance(str_settingsDirections,v_offset * 5)
+                
+            vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+            newPos = DIST.get_pos_by_vec_dist(pos,vec,v_offset * 4)
+            
+            _settingsSize = v_offset * 2
+            
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
+                                                                           '{0}+'.format(_jointOrientation[2]),
+                                                                           baseSize=1.0),'cgmObject',setClass=True)
+
+            
+            mSettingsShape.doSnapTo(_mTar.mNode)
+            
+            
+            mSettingsShape.p_position = newPos
+            mMesh_tmp.delete()
+            
+            SNAP.aim_atPoint(mSettingsShape.mNode,
+                             _mTar.p_position,
+                             aimAxis=_jointOrientation[0]+'+',
+                             mode = 'vector',
+                             vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
+            
+            #mSettingsShape.parent = _mTar
+            mSettings = mSettingsShape
+            CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+            
+            mSettings.doStore('cgmName',self.p_nameBase)
+            mSettings.doStore('cgmTypeModifier','settings')            
+            mSettings.doStore('cgmType','shapeHelper')
+            mSettings.doName()
+            
+            color(self, mSettings.mNode, controlType = 'sub')
+            
+            self.connectChildNode(mSettings,'settingsHelper','block')#Connect
+            
+            mSettings.doStore('handleTag','settings')            
+            
+            if mPrerigNull:
+                mSettings.p_parent = mPrerigNull
+
+        else:
+            raise ValueError,"Unknown settingsPlace: {1}".format(settingsPlace)
+        
+        return mSettings
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())

@@ -54,6 +54,7 @@ from cgm.lib import (search,
                      rigging,
                      distance,
                      skinning)
+import cgm.core.lib.attribute_utils as ATTR
 
 class data(object):
     '''
@@ -192,6 +193,7 @@ class data(object):
         self.d_sourceInfluences = _d['influences']
         self.d_weights = _d['weights']
         return True
+    
             
     def write(self, filepath = None):
         '''
@@ -210,6 +212,7 @@ class data(object):
         ConfigObj.filename = filepath
         ConfigObj.write()
         return True
+    
         
     def read(self, filepath = None, report = False):
         '''
@@ -283,7 +286,8 @@ def applySkin(*args,**kws):
     _d_influenceModes = {'target':{'expectedKWs':[],'skinned':True,'indexMatch':True},#...use the target influences
                          'config':{},
                          'source':{},
-                         'list':{}
+                         'list':{},
+                         'msgLink':{},
                          }    
     class fncWrap(cgmGeneral.cgmFuncCls):
 
@@ -375,6 +379,17 @@ def applySkin(*args,**kws):
                 if len(_l_joints) != len(_l_configInfluenceList):
                     return self._FailBreak_("Non matching counts on target influences({0}) and config data({1}) | Cannot use '{2}' influenceMode".format(len(_l_joints),len(_l_configInfluenceList),_mode))                
                 _l_jointTargets = _l_joints
+            
+            elif _mode == 'msgLink':
+                _msgLink = self.d_kws.get('msgLink','rigJoint')
+                _l_jointTargets = []
+                for o in _l_configInfluenceList:
+                    jnt = ATTR.get_message(o,_msgLink)
+                    log.info( "No msgLink on jnt | link: {0} | jnt: {1}".format(_msgLink,jnt) )
+                    if not jnt:
+                        return self._FailBreak_("No msgLink on jnt | link: {0} | jnt: {1}".format(_msgLink,o))
+                    _l_jointTargets.append(jnt[0])
+                
                
             elif _mode == 'target':
                 if not _targetSkin:

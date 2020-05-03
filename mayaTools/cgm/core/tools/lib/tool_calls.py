@@ -1,7 +1,17 @@
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Tools
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+#>>>======================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=========================================================================
+
 import cgm.core.cgm_General as cgmGEN
+import webbrowser
+
 def red9( *a ):
     import Red9
     reload(Red9)
@@ -18,14 +28,22 @@ def cgmMeshTools( *a ):
     cgmMeshToolsWin = meshTools.run()
     
 def mrsUI():
-    import cgm.core.mrs.Builder as MRSBUILDER
-    reload(MRSBUILDER)
-    MRSBUILDER.ui()
+    try:
+        import cgm.core.mrs.Builder as MRSBUILDER
+        reload(MRSBUILDER)
+        MRSBUILDER.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)    
     
 def mrsANIMATE():
     import cgm.core.mrs.Animate as MRSANIMATE
     reload(MRSANIMATE)
     MRSANIMATE.ui()
+    
+def mrsPOSER():
+    import cgm.core.mrs.PoseManager as MRSPOSER
+    reload(MRSPOSER)
+    MRSPOSER.ui()
     
 def cgmSnapTools():
     try:
@@ -76,10 +94,39 @@ def ngskin():
         from ngSkinTools.ui.mainwindow import MainWindow
         MainWindow.open()    
     except Exception,err:
-        log.warning("Failed to load. Go get it. | {0}".format(err))
         webbrowser.open("http://www.ngskintools.com/")
+        raise ValueError,"Failed to load. Go get it. | {0}".format(err)
 
 
+def mrsShots():
+    try:
+        import cgm.core.mrs.Shots as SHOTS
+        reload(SHOTS)
+        x = SHOTS.ShotUI()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+
+def mrsScene():
+    try:
+        import cgm.core.mrs.Scene as SCENE
+        reload(SCENE)
+        x = SCENE.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)    
+    #except Exception,err:
+    #    log.warning("[mrsScene] failed to load. | {0}".format(err))
+        
+
+def cgmProject():
+    try:
+        import cgm.core.tools.Project as PROJECT
+        reload(PROJECT)
+        x = PROJECT.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+    #except Exception,err:
+    #    log.warning("[cgmProject] failed to load. | {0}".format(err))
+    #    raise Exception,err
 
 def loadPuppetBox( *a ):
     from cgm.tools import puppetBox
@@ -92,16 +139,20 @@ def loadPuppetBox2( *a ):
     cgmPuppetBoxWin = puppetBox2.run()	
 
 def loadCGMSimpleGUI( *a ):
-    from cgm.core.classes import GuiFactory as uiFactory
-    reload(uiFactory)
-    uiFactory.cgmGUI()
+    try:
+        
+        from cgm.core.classes import GuiFactory as uiFactory
+        reload(uiFactory)
+        uiFactory.cgmGUI()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)        
 
 def reload_cgmCore( *a ):
     try:
         import cgm.core
         cgm.core._reload()	
-    except Exception,error:log.warning("[reload_cgmCoreFail]{%s}"%error)
-
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 
 def testMorpheus( *a ):
     from cgm.core.tests import cgmMeta_test as testCGM

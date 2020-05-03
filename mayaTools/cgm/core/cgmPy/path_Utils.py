@@ -334,6 +334,14 @@ class Path(str):
         returns the splits tuple - ie the path tokens
         '''
         return list( self._splits )
+    
+    def asTruncate(self,startCull = 1,endCull=1,sep='|'):
+        _l = self.split()
+        try:
+            return "{0} ... {1}".format(sep.join(_l[:startCull]),sep.join(_l[-endCull:]))
+        except:
+            return self.asString()
+        
     def asDir( self ):
         '''
         makes sure there is a trailing / on the end of a path
@@ -900,6 +908,5 @@ def findInPyPath( filename ):
     the sys.path variable
     '''
     return findFirstInPaths( filename, sys.path )
-
 
 #end

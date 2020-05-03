@@ -78,14 +78,21 @@ def skin_mesh(mMesh,ml_joints,**kws):
         _mesh = mMesh.mNode
         
         try:
+            kws_heat = copy.copy(kws)
+            _defaults = {'heatmapFalloff' : 1,
+                         'maximumInfluences' : 2,
+                         'normalizeWeights' : 1, 
+                         'dropoffRate':7}
+            for k,v in _defaults.iteritems():
+                if kws_heat.get(k) is None:
+                    kws_heat[k]=vars
+                    
             skin = mc.skinCluster (l_joints,
                                    _mesh,
                                    tsb=True,
                                    bm=2,
                                    wd=0,
-                                   heatmapFalloff = 1,
-                                   maximumInfluences = 2,
-                                   normalizeWeights = 1, dropoffRate=7)
+                                   **kws)
         except Exception,err:
             log.warning("|{0}| >> heat map fail | {1}".format(_str_func,err))
             skin = mc.skinCluster (l_joints,

@@ -665,6 +665,7 @@ def get_puppet_heirarchy_context(mModule, context = 'below', asList = False, rep
     if context == 'scene':
         raise NotImplementedError,'{0} || scene mode not done'.format(_str_func)
         _res = get_scene_block_heirarchy()
+        
     elif context == 'root':
         ml_roots = []
         ml_puppets = []

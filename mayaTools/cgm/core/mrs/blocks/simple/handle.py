@@ -57,6 +57,8 @@ import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 reload(MODULECONTROL)
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
+import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
+reload(RIGSHAPES)
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
@@ -119,6 +121,9 @@ d_block_profiles = {
            'addPivot':True,            
            'baseSize':[10,10,10],
             },
+    'snapPoint':{'cgmName':'snapPoint',
+                 'rotPivotPlace':'jointHelper',
+                 },
     'cylinder':{'proxyShape':'shapers',
                 'cgmName':'cylinder',
                 'loftShape':'circle',
@@ -170,10 +175,14 @@ l_attrsStandard = ['side',
                    'addAim',
                    'addPivot',
                    'addCog',
+                   'buildSDK',
                    'addScalePivot',
                    'proxy',
+                   'proxyType',
+                   'buildSDK',
                    'numShapers',
                    'numSubShapers',
+                   'numSpacePivots',
                    'blockProfile',
                    'loftSides',
                    'loftSplit',
@@ -203,6 +212,7 @@ d_defaultSettings = {'version':__version__,
                      'shapeDirection':2,
                      'axisAim':2,
                      'axisUp':4,
+                     'buildSDK':0,
                      'attachPoint':'end',
                      'rotPivotPlace':0,
                      'visLabels':True,
@@ -225,16 +235,19 @@ d_wiring_form = {'msgLinks':['formNull'],
 #=============================================================================================================
 #>> AttrMask 
 #=============================================================================================================
-_d_attrStateOn = {0:[],
+_d_attrStateOn = {0:['basicShape','shapeDirection'],
                   1:['hasJoint'],
-                  2:['rotPivotPlace','basicShape'],
+                  2:['rotPivotPlace'],
                   3:[],
                   4:[]}
 
 d_attrProfileMask = {'simple':['proxyShape','loftList','shapersAim','loftSetup',
                             'loftShape','numSubShapers','numShapers'],
                      'shaperList':['proxyShape','basicShape'],
-                     'shaperes':['proxyShape','basicShape']}
+                     'snapPoint':['proxyShape','loftList','shapersAim','loftSetup',
+                                  'loftDegree','loftSides','loftSplit',
+                            'loftShape','numSubShapers','numShapers'],
+                     'shapers':['proxyShape','basicShape']}
 for k in 'sphere','cone':
     d_attrProfileMask[k] = d_attrProfileMask['simple']
 
@@ -388,60 +401,62 @@ def define(self):
         self.addAttr('cgmColorLock',True,lock=True,hidden=True)    
         mDefineNull = self.atUtils('stateNull_verify','define')
         
-        #Get our base attr dat ============================================================
-        _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
-                                   'x-':{'end':[-1,0,0],'up':[0,1,0]},
-                                   'y+':{'end':[0,1,0],'up':[0,0,-1]},
-                                   'y-':{'end':[0,1,0],'up':[0,0,-1]},
-                                   'z+':{'end':[0,0,1],'up':[0,1,0]},
-                                   'z-':{'end':[0,0,-1],'up':[0,1,0]}}
-        _shapeDirection = self.getEnumValueString('shapeDirection')
-
-        _dBase = self.baseDat
-
-        _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
-        _dBase['lever'] = [-1 * v for v in _dBase['end']]
-        self.baseDat = _dBase        
-
-        #Aim Controls ==================================================================
-        _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
-              'start':{'color':'white'},
-              'end':{'color':'blueBright','defaults':{'tz':1}},
-              'up':{'color':'greenBright','defaults':{'ty':.5}},
-              'lever':{'color':'purple','defaults':{'tz':-.25}}}
+        if self.blockProfile not in ['snapPoint']:
+            #Get our base attr dat ============================================================
+            _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
+                                       'x-':{'end':[-1,0,0],'up':[0,1,0]},
+                                       'y+':{'end':[0,1,0],'up':[0,0,-1]},
+                                       'y-':{'end':[0,1,0],'up':[0,0,-1]},
+                                       'z+':{'end':[0,0,1],'up':[0,1,0]},
+                                       'z-':{'end':[0,0,-1],'up':[0,1,0]}}
+            _shapeDirection = self.getEnumValueString('shapeDirection')
     
-        md_handles = {}
-        ml_handles = []
-        md_vector = {}
-        md_jointLabels = {}
+            _dBase = self.baseDat
     
-        _l_order = ['aim','end','up','start']
-        
-        reload(self.UTILS)
-        _resDefine = self.UTILS.create_defineHandles(self, _l_order,
-                                                     _d, _size,
-                                                     rotVecControl=True,
-                                                     startScale=True,
-                                                     blockUpVector = _dBase['up'])
-        
-       
-        
-        #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0]},
-        
-        self.UTILS.define_set_baseSize(self)
-        
-        md_vector = _resDefine['md_vector']
-        md_handles = _resDefine['md_handles']
-        
-        mAimGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
-        mAimGroup.p_parent = mDefineNull
-        mAimGroup.rename('aim_null')
-        mAimGroup.doConnectIn('visibility',"{0}.addAim".format(self.mNode))
+            _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
+            _dBase['lever'] = [-1 * v for v in _dBase['end']]
+            self.baseDat = _dBase        
     
-        md_handles['aim'].p_parent = mAimGroup
-        md_vector['aim'].p_parent = mAimGroup
+            
+            #Aim Controls ==================================================================
+            _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
+                  'start':{'color':'white'},
+                  'end':{'color':'blueBright','defaults':{'tz':1}},
+                  'up':{'color':'greenBright','defaults':{'ty':.5}},
+                  'lever':{'color':'purple','defaults':{'tz':-.25}}}
         
-        _end = md_handles['end'].mNode
+            md_handles = {}
+            ml_handles = []
+            md_vector = {}
+            md_jointLabels = {}
+        
+            _l_order = ['aim','end','up','start']
+            
+            reload(self.UTILS)
+            _resDefine = self.UTILS.create_defineHandles(self, _l_order,
+                                                         _d, _size,
+                                                         rotVecControl=True,
+                                                         startScale=True,
+                                                         blockUpVector = _dBase['up'])
+            
+           
+            
+            #'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0]},
+            
+            self.UTILS.define_set_baseSize(self)
+            
+            md_vector = _resDefine['md_vector']
+            md_handles = _resDefine['md_handles']
+            
+            mAimGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
+            mAimGroup.p_parent = mDefineNull
+            mAimGroup.rename('aim_null')
+            mAimGroup.doConnectIn('visibility',"{0}.addAim".format(self.mNode))
+        
+            md_handles['aim'].p_parent = mAimGroup
+            #md_vector['aim'].p_parent = mAimGroup
+            
+            _end = md_handles['end'].mNode
         
         self.UTILS.rootShape_update(self)        
         _dat = self.baseDat
@@ -485,44 +500,46 @@ def formDelete(self):
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
-        for k in ['end','rp','up','lever','aim','start']:
-            mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
-            if mHandle:
-                l_const = mHandle.getConstraintsTo()
-                if l_const:
-                    log.debug("currentConstraints...")
-                    pos = mHandle.p_position
+        if self.blockProfile not in ['snapPoint']:
+            for k in ['end','rp','up','lever','aim','start']:
+                mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
+                if mHandle:
+                    l_const = mHandle.getConstraintsTo()
+                    if l_const:
+                        log.debug("currentConstraints...")
+                        pos = mHandle.p_position
+                        
+                        for i,c in enumerate(l_const):
+                            log.debug("{0} : {1}".format(i,c))
+                            if not mc.ls(c,type='aimConstraint'):
+                                mc.delete(c)
+                        mHandle.p_position = pos
+                        
+                    if k == 'end':
+                        #_end = mHandle.mNode
+                        #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                        #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                        #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+                        _end = mHandle.mNode                    
+                        _baseSize = []
+                        for a in 'width','height','length':
+                            _baseSize.append(ATTR.get(_end,a))
+                        self.baseSize = _baseSize
+                        _dat = self.baseDat
+                        _dat['baseSize'] = self.baseSize
+                        self.baseDat = _dat
                     
-                    for i,c in enumerate(l_const):
-                        log.debug("{0} : {1}".format(i,c))
-                        if not mc.ls(c,type='aimConstraint'):
-                            mc.delete(c)
-                    mHandle.p_position = pos
+                        
+                    mHandle.v = True
+                    mHandle.template = False
                     
-                if k == 'end':
-                    #_end = mHandle.mNode
-                    #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-                    #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-                    #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
-                    _end = mHandle.mNode                    
-                    _baseSize = []
-                    for a in 'width','height','length':
-                        _baseSize.append(ATTR.get(_end,a))
-                    self.baseSize = _baseSize
-                    _dat = self.baseDat
-                    _dat['baseSize'] = self.baseSize
-                    self.baseDat = _dat
+                mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
+                if mHandle:
+                    mHandle.template=False
                 
-                    
-                mHandle.v = True
-                mHandle.template = False
-                
-            mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
-            if mHandle:
-                mHandle.template=False
+            self.defineLoftMesh.v = True
+            self.defineLoftMesh.template = False
             
-        self.defineLoftMesh.v = True
-        self.defineLoftMesh.template = False
         mNoTransformNull = self.getMessageAsMeta('noTransFormNull')
         if mNoTransformNull:
             mNoTransformNull.delete()
@@ -535,11 +552,17 @@ def form(self):
         _str_func = 'form'        
         _short = self.mNode
         _shape = self.getEnumValueString('basicShape')
+        
+        mFormNull = BLOCKUTILS.formNull_verify(self)
+        
+        if self.blockProfile in ['snapPoint']:
+            return True
+
         mHandleFactory = self.asHandleFactory(self)
         _shapeDirection = self.getEnumValueString('shapeDirection')
         _proxyShape = self.getEnumValueString('proxyShape')
         _side = self.UTILS.get_side(self)
-        
+
         #If we have a loftList setup, we need to validate those attributes
         _int_shapers = self.numShapers
         for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
@@ -571,7 +594,6 @@ def form(self):
                         ATTR.set(_short,str_attr,strValue)
 
         #Create temple Null  ==================================================================================
-        mFormNull = BLOCKUTILS.formNull_verify(self)
         
         
         mGeoGroup = self.doCreateAt(setClass='cgmObject')
@@ -585,12 +607,14 @@ def form(self):
         
 
         #BaseDat ==================================================================================
+        mDefineEndObj = self.defineEndHelper
+        mDefineUpObj = self.defineUpHelper        
         self.defineLoftMesh.v = 0
         mRootUpHelper = self.defineUpHelper    
-        _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+        #_mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+        _mVectorAim = MATH.get_vector_of_two_points(self.p_position, mDefineEndObj.p_position,True)
         _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
-        mDefineEndObj = self.defineEndHelper
-        mDefineUpObj = self.defineUpHelper
+
         mDefineStartObj = self.defineStartHelper
         _l_basePos = [self.p_position]
         
@@ -648,7 +672,9 @@ def form(self):
         
             log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)
             mRootUpHelper = self.vectorUpHelper    
-            _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+            #_mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+            _mVectorAim = MATH.get_vector_of_two_points(self.p_position, mDefineEndObj.p_position,True)
+            
             _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
             mDefineEndObj = self.defineEndHelper
             mDefineUpObj = self.defineUpHelper
@@ -858,17 +884,36 @@ def prerig(self):
         _short = self.p_nameShort
         _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
         _l_baseNames = ATTR.datList_get(self.mNode, 'baseNames')
+        
         _shape = self.getEnumValueString('basicShape')
+        _shapeDirection = self.getEnumValueString('shapeDirection')
         
         _side = self.atUtils('get_side')
-            
+        _size = DIST.get_bb_size(self.mNode,True,True)
+        
+        #Create preRig Null  ==================================================================================
+        mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
+        
         self.atUtils('module_verify')
+        mHandleFactory =  self.asHandleFactory(self.mNode)
     
         ml_formHandles = self.msgList_get('formHandles')
         
         _proxyShape = self.getEnumValueString('proxyShape')
         b_shapers = False
-        if _proxyShape == 'shapers':
+        if self.blockProfile in ['snapPoint']:
+            log.debug("|{0}| >> snapPoint ...".format(_str_func)+ '-'*60)            
+            mMain = self
+            crv = CURVES.create_fromName(_shape, size = _size, direction= _shapeDirection )
+            mCrv = cgmMeta.validateObjArg(crv,setClass='cgmObject')
+            self.connectChildNode(mCrv,'shapeHelper')
+            mCrv.doSnapTo(self)
+            mCrv.p_parent = mPrerigNull
+            BLOCKSHAPES.color(self, mCrv)
+            
+            
+            
+        elif _proxyShape == 'shapers':
             log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
             mMain = self
             b_shapers = True
@@ -877,19 +922,16 @@ def prerig(self):
             mMain = ml_formHandles[0]
 
 
-        mHandleFactory =  self.asHandleFactory(mMain.mNode)
+        mHandleFactory =  self.asHandleFactory(self.mNode)
         
-        #Create preRig Null  ==================================================================================
-        mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
-        _size = DIST.get_bb_size(self.mNode,True,True)
-        
+
         if self.hasJoint:
             _sizeSub = _size * .2   
         
             log.debug("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
         
             #Joint Helper ==========================================================================================
-            mJointHelper = mHandleFactory.addJointHelper(baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
+            mJointHelper = mHandleFactory.addJointHelper('axis3d',baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
             ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
                                    lock=False, visible=True,keyable=False)
         
@@ -922,7 +964,7 @@ def prerig(self):
             mc.scaleConstraint([ml_formHandles[0].mNode],mDriverGroup.mNode, maintainOffset = True)
  
             #mHandleFactory.addPivotSetupHelper()
-            ml_formHandles[0].connectChildNode(mPivot,'pivotHelper')
+            self.connectChildNode(mPivot,'pivotHelper')
 
             if _shape in ['pyramid','semiSphere','circle','square']:
                 mPivot.p_position = self.p_position
@@ -1126,6 +1168,13 @@ def rig_dataBuffer(self):
         mRigNull = self.mRigNull
         mPrerigNull = mBlock.prerigNull
         ml_formHandles = mBlock.msgList_get('formHandles')
+        if not ml_formHandles:
+            mJointHelper = mBlock.getMessageAsMeta('jointHelper')
+            if mJointHelper:
+                ml_formHandles = [mJointHelper]
+            else:
+                ml_formHandles = mBlock
+                
         self.ml_formHandles=ml_formHandles
         ml_prerigHandles = mBlock.msgList_get('prerigHandles')
         
@@ -1143,6 +1192,18 @@ def rig_dataBuffer(self):
         
         #DynParents =============================================================================
         self.UTILS.get_dynParentTargetsDat(self)
+        
+        #Settings Parent
+        self.mSettingsParent = None
+        if mBlock.blockProfile in ['snapPoint']:
+            mModuleParent =  self.d_module['mModuleParent']
+            if mModuleParent:
+                mSettings = mModuleParent.rigNull.settings
+            else:
+                log.debug("|{0}| >>  using puppet...".format(_str_func))
+                mSettings = self.d_module['mMasterControl'].controlVis
+            
+            self.mSettingsParent = mSettings
         
         #rotateOrder =============================================================================
         _str_orientation = self.d_orientation['str']
@@ -1176,6 +1237,9 @@ def rig_skeleton(self):
     BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'],
                                      d_rotateOrders, d_preferredAngles)
     
+    for mJnt in ml_joints:
+        mJnt.segmentScaleCompensate = 0
+        
     ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints, 'rig', self.mRigNull,'rigJoints')
     
     if self.mBlock.addAim:
@@ -1207,7 +1271,7 @@ def rig_shapes(self):
     _start = time.clock()
     
     mBlock = self.mBlock
-    ml_formHandles = mBlock.msgList_get('formHandles')
+    ml_formHandles = self.ml_formHandles
     mMainHandle = ml_formHandles[0]
     ml_jointHelpers = mBlock.msgList_get('jointHelpers')
     mHelper = ml_jointHelpers[0]
@@ -1229,20 +1293,43 @@ def rig_shapes(self):
     log.info("|{0}| >> Main control shape...".format(_str_func))
     _str_rotPivot = mBlock.getEnumValueString('rotPivotPlace')
     
-    if _str_rotPivot == 'cog' and mBlock.addCog and mMainHandle.getMessage('cogHelper'):
+    if _str_rotPivot == 'cog' and mBlock.addCog and mBlock.getMessage('cogHelper'):
         log.info("|{0}| >> Cog pivot setup... ".format(_str_func))    
-        mControl = mMainHandle.cogHelper.doCreateAt()
+        mControl = mBlock.cogHelper.doCreateAt()
     elif _str_rotPivot == 'jointHelper':
         mControl = mHelper.doCreateAt()        
     else:
         mControl = mMainHandle.doCreateAt()
         
-    if mBlock.addScalePivot and mMainHandle.getMessage('scalePivotHelper'):
+    if mBlock.addScalePivot and mBlock.getMessage('scalePivotHelper'):
         log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
-        TRANS.scalePivot_set(mControl.mNode, mMainHandle.scalePivotHelper.p_position)
+        TRANS.scalePivot_set(mControl.mNode, mBlock.scalePivotHelper.p_position)
+        
+        
+    if mBlock.addCog and mBlock.getMessage('cogHelper'):
+        log.info("|{0}| >> Cog helper setup... ".format(_str_func))
+        mCog = mBlock.cogHelper.doCreateAt()
+        mCog.p_parent = False
+        #ATTR.break_connection(mCog.mNode,'visibility')
+        
+        CORERIG.shapeParent_in_place(mCog.mNode,mBlock.cogHelper.shapeHelper.mNode,True)
+
+        mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect    
+        CORERIG.colorControl(mCog.mNode,_side,'sub')
+        
+        mCog.doStore('cgmName','cog')
+        mCog.doStore('cgmAlias','cog')
+        
+        mCog.doName()
+        
+    
         
     #Shape -------------------------------------------------------------------------------------
-    if mBlock.getEnumValueString('proxyShape') == 'shapers':
+    mShapeHelper = mBlock.getMessageAsMeta('shapeHelper')
+    if mShapeHelper:
+        CORERIG.shapeParent_in_place(mControl,mShapeHelper.mNode,True)
+        
+    elif mBlock.getEnumValueString('proxyShape') == 'shapers':
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           offset = _offset,
                                           mode = 'singleCurve')#limbHandle
@@ -1251,6 +1338,7 @@ def rig_shapes(self):
         
     else:
         CORERIG.shapeParent_in_place(mControl,mMainHandle.mNode,True)
+        
     mControl = cgmMeta.validateObjArg(mControl,'cgmObject',setClass=True)
     ATTR.copy_to(_short_module,'cgmName',mControl.mNode,driven='target')
     mControl.doName()    
@@ -1314,19 +1402,11 @@ def rig_shapes(self):
             mJnt.radius = .00001
             
     #Pivots =======================================================================================
-    if mMainHandle.getMessage('pivotHelper'):
-        mBlock.atBlockUtils('pivots_buildShapes', mMainHandle.pivotHelper, mRigNull)
+    if mBlock.getMessage('pivotHelper'):
+        RIGSHAPES.pivotShapes(self,mBlock.pivotHelper)
         
-        """
-        log.info("|{0}| >> Pivot helper found".format(_str_func))
-        mPivotHelper = mBlock.pivotHelper
-        for a in 'center','front','back','left','right':
-            str_a = 'pivot' + a.capitalize()
-            if mPivotHelper.getMessage(str_a):
-                log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
-                mPivot = mPivotHelper.getMessage(str_a,asMeta=True)[0].doDuplicate(po=False)
-                mRigNull.connectChildNode(mPivot,str_a,'rigNull')#Connect    
-                mPivot.parent = False"""
+        #mBlock.atBlockUtils('pivots_buildShapes', mMainHandle.pivotHelper, mRigNull)
+
 
     log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
     
@@ -1339,7 +1419,7 @@ def rig_controls(self):
       
         mBlock = self.mBlock
         ml_formHandles = mBlock.msgList_get('formHandles')
-        mMainHandle = ml_formHandles[0]    
+        mMainHandle = self.mRootFormHandle#ml_formHandles[0]    
         mRigNull = self.mRigNull
         ml_controlsAll = []#we'll append to this list and connect them all at the end
         mRootParent = self.mDeformNull
@@ -1356,29 +1436,75 @@ def rig_controls(self):
         
         if self.mBlock.addAim:        
             mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+            
+        #Cog ========================================================================================
+        log.debug("|{0}| >> Root...".format(_str_func))
+
+        
+        mRoot = mRigNull.getMessageAsMeta('rigRoot')
+        if mRoot:
+            log.debug("|{0}| >> Found rigRoot : {1}".format(_str_func, mRoot))
+            
+            
+            _d = MODULECONTROL.register(mRoot,
+                                        addDynParentGroup = True,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = True)
+            
+            mRoot = _d['mObj']
+            mRoot.masterGroup.parent = mRootParent
+            mRootParent = mRoot#Change parent going forward...
+            ml_controlsAll.append(mRoot)        
         
         #mHandle ========================================================================================
-        log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))    
+        log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))
+        d_space = {'addDynParentGroup':True}
+        if mBlock.numSpacePivots:
+            d_space['addSpacePivots'] = mBlock.numSpacePivots
+            
         _d = MODULECONTROL.register(mHandle,
-                                    addSpacePivots = 1,
-                                    addDynParentGroup = True,
                                     addConstraintGroup=False,
+                                    addSDKGroup = mBlock.buildSDK,
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = True)
+                                    makeAimable = True,**d_space)
         
         mHandle = _d['mObj']
         mHandle.masterGroup.parent = mRootParent
         ml_controlsAll.append(mHandle)            
         
         #>> settings ========================================================================================
-        if mSettings != mHandle:
+        if mSettings.mNode != mHandle.mNode:
             log.info("|{0}| >> Settings setup : {1}".format(_str_func, mSettings))        
             MODULECONTROL.register(mSettings)
             mSettings.masterGroup.parent = mHandle
             ml_controlsAll.append(mSettings)
+            
+            
+        #Settings Parent ==================================================================================
+        if self.mSettingsParent:
+            str_attr = "snapPoint_{0}".format(self.d_module['partName'])
+
+            #Build the network
+            self.mSettingsParent.addAttr(str_attr,enumName = 'off:lock:on',
+                                         defaultValue = 2, value = 0,
+                                         attrType = 'enum',keyable = False,
+                                         hidden = False)
+            str_objName = mHandle.mNode
+            str_driver = self.mSettingsParent.mNode
+            mHandle.overrideEnabled = 1
+            d_ret = NODEFACTORY.argsToNodes("%s.overrideVisibility = if %s.%s > 0"%(str_objName,str_driver,str_attr)).doBuild()
+            log.debug(d_ret)
+            d_ret = NODEFACTORY.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_objName,str_driver,str_attr)).doBuild()
+            
+            for shape in mc.listRelatives(mHandle.mNode,shapes=True,fullPath=True):
+                log.debug(shape)
+                mc.connectAttr("%s.overrideVisibility"%str_objName,"%s.overrideVisibility"%shape,force=True)
+                mc.connectAttr("%s.overrideDisplayType"%str_objName,"%s.overrideDisplayType"%shape,force=True)            
+            
     
-        #>> Direct Controls ========================================================================================
+        #>> Direct Controls ================================================================================
         ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
         ml_controlsAll.extend(ml_rigJoints)
         
@@ -1398,8 +1524,9 @@ def rig_controls(self):
             for mShape in mObj.getShapes(asMeta=True):
                 ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
     
+    
         # Pivots =================================================================================================
-        if mMainHandle.getMessage('pivotHelper'):
+        if mBlock.getMessage('pivotHelper'):
             log.info("|{0}| >> Pivot helper found".format(_str_func))
             for a in 'center','front','back','left','right':#This order matters
                 str_a = 'pivot' + a.capitalize()
@@ -1470,7 +1597,7 @@ def rig_frame(self):
         
         mBlock = self.mBlock
         ml_formHandles = mBlock.msgList_get('formHandles')
-        mMainHandle = ml_formHandles[0]            
+        mMainHandle = self.mRootFormHandle#ml_formHandles[0]    
         mRigNull = self.mRigNull
         mHandle = mRigNull.handle        
         log.info("|{0}| >> Found mHandle : {1}".format(_str_func, mHandle))
@@ -1481,7 +1608,7 @@ def rig_frame(self):
         mRootParent = self.mDeformNull
         
         #Pivot Setup ========================================================================================
-        if mMainHandle.getMessage('pivotHelper'):
+        if mBlock.getMessage('pivotHelper'):
             log.info("|{0}| >> Pivot setup...".format(_str_func))
             
             mPivotResultDriver = mHandle.doCreateAt()
@@ -1575,54 +1702,39 @@ def rig_cleanUp(self):
     #>>>> mSettings.masterGroup.parent = mHandle
     
     #>>  DynParentGroups - Register parents for various controls ============================================
-    ml_baseDynParents_start = []
-    ml_baseDynParents_end = []
-    
-    #Start parents....
-    if mModuleParent:
-        mi_parentRigNull = mModuleParent.rigNull
-        if mi_parentRigNull.getMessage('cog'):
-            ml_baseDynParents_start.append( mi_parentRigNull.cog )
-        else:
-            ml_baseDynParents_start.append( mi_parentRigNull.msgList_get('rigJoints')[-1] )
-    
-    #End parents....
-    ml_baseDynParents_end.append(mMasterNull.puppetSpaceObjectsGroup)
-    ml_baseDynParents_end.append(mMasterNull.worldSpaceObjectsGroup)
+    #>>  DynParentGroups - Register parents for various controls ============================================
+    ml_baseDynParents = []
+    ml_endDynParents = self.ml_dynParentsAbove + self.ml_dynEndParents# + [mRoot]
+    ml_ikDynParents = []
     
     
-    #...Handle -----------------------------------------------------------------------------------
-    ml_baseHandleDynParents = []
-
-    #ml_baseDynParents = [ml_controlsFK[0]]
-    _moveStart = False
-    if not ml_baseDynParents_start:
-        _moveStart = True
+    #...Handle -----------------------------------------------------------------------------------   
+    ml_targetDynParents = copy.copy(ml_baseDynParents)
+    ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
+    ml_targetDynParents.extend(ml_endDynParents)
+    
+    ml_targetDynParents.append(self.md_dynTargetsParent['world'])
+    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
+    
+    mRoot = mRigNull.getMessageAsMeta('rigRoot')
+    if mRoot:
+        ml_targetDynParents.insert(0,mRoot)
         
-    ml_baseHandleDynParents = copy.copy(ml_baseDynParents_start)
-    ml_baseHandleDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
-    ml_baseHandleDynParents.extend(ml_baseDynParents_end)
-    
-    if _moveStart:
-        mPuppetSpace = ml_baseHandleDynParents.pop(-2)
-        ml_baseHandleDynParents.insert(0,mPuppetSpace)
-    """
-    mBlendDriver =  mHandle.getMessage('blendDriver',asMeta=True)
-    if mBlendDriver:
-        mBlendDriver = mBlendDriver[0]
-        ml_baseDynParents.insert(0, mBlendDriver)  
-        mBlendDriver.addAttr('cgmAlias','neckDriver')
-    """
     
     #Add our parents
-    mDynGroup = mHandle.dynParentGroup
-    log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-    mDynGroup.dynMode = 0
-
-    for o in ml_baseHandleDynParents:
-        mDynGroup.addDynParent(o)
-    mDynGroup.rebuild()
-
+    mDynGroup = mHandle.getMessageAsMeta('dynParentGroup')
+    if mDynGroup:
+        log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
+        mDynGroup.dynMode = 0
+    
+        for o in ml_targetDynParents:
+            mDynGroup.addDynParent(o)
+        mDynGroup.rebuild()
+    else:
+        mc.parentConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                            mHandle.masterGroup.mNode,maintainOffset = True)
+        mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                            mHandle.masterGroup.mNode,maintainOffset = True)
     #mDynGroup.dynFollow.parent = mMasterDeformGroup
     
     #Direct ---------------------------------------------------------------------------------------------
@@ -1631,8 +1743,8 @@ def rig_cleanUp(self):
             _short_direct = mControl.p_nameBase
             if mControl.getMessage('dynParentGroup'):
                 log.info("|{0}| >> Direct control: {1}".format(_str_func,_short_direct))
-                ml_directHandleDynParents = copy.copy(ml_baseDynParents_start)
-                ml_directHandleDynParents.extend(ml_baseDynParents_end)
+                ml_directHandleDynParents = copy.copy(ml_baseDynParents)
+                ml_directHandleDynParents.extend(ml_endDynParents)
                 
                 mDriver = mControl.masterGroup.getParent(asMeta=True)
                 if mDriver:
@@ -1660,7 +1772,7 @@ def rig_cleanUp(self):
         mHeadLookAt.setAttrFlags(attrs='v')
         
         #...dynParentGroup...
-        ml_headLookAtDynParents = copy.copy(ml_baseDynParents_start)
+        ml_headLookAtDynParents = copy.copy(ml_baseDynParents)
         ml_headLookAtDynParents.extend(mHeadLookAt.msgList_get('spacePivots',asMeta = True))
         ml_headLookAtDynParents.extend(ml_baseDynParents_end)
         
@@ -1702,6 +1814,10 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         
+        if self.blockProfile in ['snapPoint']:
+            return True
+            
+        
         if skin:
             mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
             if not mModuleTarget:
@@ -1715,26 +1831,33 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         
         ml_geo = self.msgList_get('proxyMeshGeo')
         ml_proxy = []
+        mMeshCheck = self.getMessageAsMeta('proxyHelper')
         
         if ml_geo:
+            log.debug("|{0}| >> ml_geo...".format(_str_func))
             
             str_setup = self.getEnumValueString('proxyShape')
             if str_setup in ['shapers']:
                 d_kws = {}
                 mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
                 ml_proxy = [mMesh]
-            else:
-                for i,mGeo in enumerate(ml_geo):
-                    log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
-                    if mGeo.getMayaType() == 'nurbsSurface':
-                        d_kws = {'mode':'general',
-                                 'uNumber':self.loftSplit,
-                                 'vNumber':self.loftSides,
-                                 }
-                        mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
-                    else:
-                        mMesh = mGeo.doDuplicate(po=False)
-                    ml_proxy.append(mMesh)            
+                
+            for i,mGeo in enumerate(ml_geo):
+                if mGeo == mMeshCheck:
+                    print 'nope...'
+                    continue
+                log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
+                if mGeo.getMayaType() == 'nurbsSurface':
+                    d_kws = {'mode':'general',
+                             'uNumber':self.loftSplit,
+                             'vNumber':self.loftSides,
+                             }
+                    mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
+                else:
+                    mMesh = mGeo.doDuplicate(po=False)
+                    mMesh.p_parent = False
+                    
+                ml_proxy.append(mMesh)            
             """
             for i,mGeo in enumerate(ml_geo):
                 log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
@@ -1750,10 +1873,18 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                 #mDup.inheritsTransform = True
                 ml_proxy.append(mMesh)        """
         
-        
+            for mGeo in ml_proxy:
+                CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
             #mDup = self.proxyHelper.doDuplicate(po=False)
-
-                    
+            
+            if len(ml_proxy) > 1:
+                _mesh = mc.polyUnite([mObj.mNode for mObj in ml_proxy], ch=False )[0]
+                mMesh = cgmMeta.asMeta(_mesh)
+                for mObj in ml_proxy[1:]:
+                    try:mObj.delete()
+                    except:pass
+                ml_proxy = [mMesh]
+ 
             for i,mMesh in enumerate(ml_proxy):
                 if parent and skin:
                     mMesh.p_parent=parent
@@ -1778,8 +1909,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     log.debug("|{0}| >> ...".format(_str_func))  
     _start = time.clock()
 
-    
     mBlock = self
+    
+    if self.blockProfile in ['snapPoint']:
+        log.debug("|{0}| >> snapPoint".format(_str_func))  
+        
+        return True
+    
     mModule = self.moduleTarget    
     
     mRigNull = mModule.rigNull
@@ -1810,9 +1946,17 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
             mc.delete([mObj.mNode for mObj in _bfr])
         else:
             return _bfr
-      
+    
+    if not self.proxyType:
+        log.info("No proxyType set")                            
+        return False
+        
     #>> Build bbProxy -----------------------------------------------------------------------------
+    mMeshCheck = mBlock.getMessageAsMeta('proxyHelper')
     ml_geo = mBlock.msgList_get('proxyMeshGeo')
+    #if not ml_geo and mMeshCheck:
+        #ml_geo = [mMeshCheck]
+            
     ml_proxy = []
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
     str_setup = self.getEnumValueString('proxyShape')
@@ -1821,11 +1965,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
         mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
         ml_proxy = [mMesh]
         
-    elif ml_geo:
+    if ml_geo:
         for i,mGeo in enumerate(ml_geo):
+            #if mGeo == mMeshCheck:
+            #    continue
             log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
             if mGeo.getMayaType() == 'nurbsSurface':
-                mMesh = RIGCREATE.get_meshFromNurbs(mBlock.proxyHelper,
+                mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
                                                     mode = 'general',
                                                     uNumber = mBlock.loftSplit, vNumber=mBlock.loftSides)
             else:
@@ -1833,8 +1979,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
                 #mMesh.p_parent = False
                 #mDup = mBlock.proxyHelper.doDuplicate(po=False)
             ml_proxy.append(mMesh)
-                
+    else:
+        log.debug("|{0}| >> no ml_geo".format(_str_func))                                
+        
     for i,mMesh in enumerate(ml_proxy):
+        log.debug("|{0}| >> proxyMesh: {1}".format(_str_func,mMesh))                                
         mMesh.p_parent = ml_rigJoints[0]
         mMesh.rename("{0}_{1}_mesh".format(mBlock.p_nameBase,i))
     #mDup.inheritsTransform = True
@@ -1860,7 +2009,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
     
     
     for mProxy in ml_proxy:
-        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False)
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
         
         

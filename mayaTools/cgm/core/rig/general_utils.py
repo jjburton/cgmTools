@@ -80,7 +80,6 @@ def reset_channels(nodes=None,selectedChannels=False, transformsOnly=False, excl
     '''
     gChannelBoxName = mel.eval('$temp=$gChannelBoxName')
     _reset = {}
-    
     if not nodes:
         nodes = mc.ls(sl=True)
         if not nodes:
@@ -585,6 +584,8 @@ def check_nameMatches(self,mlControls,justReport = False):
 def store_and_name(mObj,d):
     _str_func = 'store_and_name'
     for t,v in d.iteritems():
+        if v in [None]:
+            continue
         log.debug("|{0}| >> {1} | {2}.".format(_str_func,t,v))            
         mObj.doStore(t,v)
     mObj.doName()
@@ -757,6 +758,7 @@ def split_blends(driven1 = None,
                                  'on':{},
                                  'off':{},
                                  'sum':{}}
+                
                 for i,mObj in enumerate(mDriven):
                     log.debug("|{0}| >> buildNetwork | On: {1}".format(_str_func,mObj) + cgmGEN._str_subLine)
                     dat['mPlugs']['1'][i] = cgmMeta.cgmAttr(mSettings,

@@ -18,7 +18,7 @@ log.setLevel(logging.INFO)
 import maya.cmds as mc
 
 # From cgm ==============================================================
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.cgmPy import validateArgs as VALID
@@ -30,8 +30,6 @@ from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger.lib import rig_Utils as rUtils
 import cgm.core.rigger.lib.spacePivot_utils as SPACEPIVOTS
-reload(SPACEPIVOTS)
-reload(ATTR)
 """
 from cgm.lib import (attributes,
                      cgmMath,
@@ -70,6 +68,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
              makeMirrorable = True,#'(bool - True) -- Setup for mirrorability (using red9) -- implied by other mirror args
              addDynParentGroup = False,#'(False) -- Add a dynParent group setup
              addExtraGroups = False,#'(int - False) -- Number of nested extra groups desired
+             addSDKGroup = False,
              addConstraintGroup = False,#'(bool - False) -- If a group just above the control is desired for consraining
              freezeAll = False,#'(bool - False) -- Freeze all transforms on the control object
              noFreeze = False,
@@ -104,7 +103,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
         mi_control = cgmMeta.validateObjArg(controlObject,'cgmControl', setClass=True)
         
         str_mirrorAxis = VALID.stringArg(mirrorAxis,calledFrom = _str_func)
-        str_mirrorSide = cgmGeneral.verify_mirrorSideArg(mirrorSide)#VALID.stringArg(mirrorSide,calledFrom = _str_func)
+        str_mirrorSide = cgmGEN.verify_mirrorSideArg(mirrorSide)#VALID.stringArg(mirrorSide,calledFrom = _str_func)
         b_makeMirrorable = VALID.boolArg(makeMirrorable,calledFrom = _str_func)
     
         _addMirrorAttributeBridges = kws.get('addMirrorAttributeBridges',False)
@@ -121,6 +120,11 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
         ml_groups = []#Holder for groups
         ml_constraintGroups = []
         ml_spacePivots = []
+        
+        ml_children = mi_control.getChildren(asMeta=1)
+        if ml_children:
+            for mChild in ml_children:
+                mChild.p_parent = False        
     
         #Copy Transform ================================================================================================
         if copyTransform is not None:
@@ -201,13 +205,21 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
             mi_control._verifyAimable()  
        
         #First our master group:
-        i_masterGroup = (cgmMeta.asMeta(mi_control.doGroup(True), 'cgmObject', setClass=True))
-        i_masterGroup.doStore('cgmName',mi_control)
-        i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
-        i_masterGroup.doName()
-        mi_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
+        i_master = mi_control.getMessageAsMeta('masterGroup')
+        if not i_master:
+            i_masterGroup = mi_control.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass=True)
+        #i_masterGroup.doStore('cgmName',mi_control)
+        #i_masterGroup.addAttr('cgmTypeModifier','master',lock=True)
+        #i_masterGroup.doName()
+        #mi_control.connectChildNode(i_masterGroup,'masterGroup','groupChild')
+        
+        if addSDKGroup:
+            log.debug('addSDKGroup...')
+            mConstrain = mi_control.doGroup(True,True,asMeta=True,typeModifier = 'sdk',setClass=True)
+            
     
         if addDynParentGroup:
+            log.debug('addDynParentGroup...')            
             i_dynGroup = (cgmMeta.cgmObject(mi_control.doGroup(True)))
             i_dynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mi_control,dynGroup=i_dynGroup)
             i_dynGroup.doName()
@@ -218,6 +230,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
             mi_control.connectChildNode(i_zeroGroup,'zeroGroup','groupChild')"""
     
         if addExtraGroups:
+            log.debug('addExtraGroups...')                        
             for i in range(addExtraGroups):
                 i_group = (cgmMeta.asMeta(mi_control.doGroup(True),'cgmObject',setClass=True))
                 if type(addExtraGroups)==int and addExtraGroups>1:#Add iterator if necessary
@@ -227,6 +240,8 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
             mi_control.msgList_connect("extraGroups",ml_groups,'groupChild')
     
         if addConstraintGroup:#ConstraintGroups
+            log.debug('addConstraintGroup...')                        
+            
             i_constraintGroup = (cgmMeta.asMeta(mi_control.doGroup(True),'cgmObject',setClass=True))
             i_constraintGroup.addAttr('cgmTypeModifier','constraint',lock=True)
             i_constraintGroup.doName()
@@ -236,6 +251,8 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
     
         #Space Pivot ============================================================================================
         if addSpacePivots:
+            log.debug('addSpacePivots...')                        
+            
             parent = mi_control.getMessage('masterGroup')[0]
             for i in range(int(addSpacePivots)):
                 #i_pivot = rUtils.create_spaceLocatorForObject(mi_control.mNode,parent)
@@ -245,14 +262,18 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
     
     
         #Mirror Setup ============================================================================================
-        if str_mirrorSide is not None or b_makeMirrorable:
+        if str_mirrorSide or b_makeMirrorable:
             for mObj in [mi_control] + ml_spacePivots:
                 mi_control._verifyMirrorable()
                 l_enum = cgmMeta.cgmAttr(mi_control,'mirrorSide').p_enum
+                
                 if str_mirrorSide in l_enum:
                     #log.debug("|{0}| >> Rotate order not set on: {1}".format(_str_func,mi_control.p_nameShort))                  
                     #log.debug("%s >> %s >> found in : %s"%(_str_funcCombined, "mirrorSetup", l_enum))		
                     mi_control.mirrorSide = l_enum.index(str_mirrorSide)
+                else:
+                    log.error("mirrorSide {0} | mControl: {1}".format(str_mirrorSide,mObj))
+                
                 if str_mirrorAxis:
                     mi_control.mirrorAxis = str_mirrorAxis
             for mObj in mi_control.msgList_get('spacePivots'):
@@ -337,10 +358,13 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
         for i,mShape in enumerate(mi_control.getShapes(asMeta=True)):
             mShape.rename("{0}_shape_{1}".format(str_base,i))
             #mShape.doName()
-        
+            
+        if ml_children:
+            for mChild in ml_children:
+                mChild.p_parent = mi_control        
         #return ============================================================================================
         #pprint.pprint(vars())
         
         return {'mObj':mi_control,'instance':mi_control,'ml_groups':ml_groups,'ml_constraintGroups':ml_constraintGroups}	
-    except Exception,err: cgmGeneral.cgmExceptCB(Exception,err)
+    except Exception,err: cgmGEN.cgmExceptCB(Exception,err)
 

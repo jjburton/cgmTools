@@ -883,10 +883,10 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
     mTarget1 = cgmMeta.cgmObject(targets[0])
     l_cvs = mc.ls("{0}.cv[*]".format(mTarget1.getShapes()[0]),flatten=True)
     points = len(l_cvs)
+    l_use = copy.copy(targets)
     
     if cap:
         log.debug(cgmGEN.logString_sub(_str_func,"cap"))
-        l_use = copy.copy(targets)
         for i,loft in enumerate([targets[0],targets[-1]]):
             log.debug(cgmGEN.logString_msg(_str_func,"duping: {0}".format(loft)))
             mLoft = cgmMeta.asMeta(loft)

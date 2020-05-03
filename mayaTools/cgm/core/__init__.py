@@ -56,6 +56,7 @@ _l_core_order = ['cgm_General',
                  'cgm_PuppetMeta',
                  'mrs.RigBlocks',
                  'cgm_RigMeta',
+                 'rig.dynamic_utils',
                  'tools.lightLoomLite',
                  'cgmPy.validateArgs',
                  'rigger.ModuleFactory',
@@ -99,7 +100,6 @@ def _reload(stepConfirm=False):
             try:
                 mel.eval('python("import {0} as {1};")'.format(str_module,_key))
                 log.info("|{0}| >> ... {1} loaded local as [{2}]".format(_str_func,m,_key))  
-                
             except Exception,err:
                 log.error(err)
                 

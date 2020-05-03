@@ -175,6 +175,14 @@ class ui(cgmUI.cgmGUI):
             ann = 'Select Link',
             c = cgmGEN.Callback( self.uiFunc_select_from_ui, 2),
             label = "Select Link")
+        mUI.MelMenuItem(self.uiPopUpMenu_source,
+            ann = 'Clear List',
+            c = cgmGEN.Callback( self.uiFunc_clear_list, 0),
+            label = "Clear List")
+        mUI.MelMenuItem(self.uiPopUpMenu_source,
+            ann = 'Select All',
+            c = cgmGEN.Callback( self.uiFunc_select_all_in_list, 0),
+            label = "Select All")
 
         self.uiPopUpMenu_target = mUI.MelPopupMenu(self.parent_target_scroll,button = 3)
 
@@ -186,7 +194,14 @@ class ui(cgmUI.cgmGUI):
             ann = 'Select Link',
             c = cgmGEN.Callback( self.uiFunc_select_from_ui, 3),
             label = "Select Link")
-
+        mUI.MelMenuItem(self.uiPopUpMenu_target,
+            ann = 'Clear List',
+            c = cgmGEN.Callback( self.uiFunc_clear_list, 1),
+            label = "Clear List")
+        mUI.MelMenuItem(self.uiPopUpMenu_source,
+            ann = 'Select All',
+            c = cgmGEN.Callback( self.uiFunc_select_all_in_list, 1),
+            label = "Select All")
 
         self.parent_target_scroll(e=True, allowMultiSelection=self.var_mocap_allow_multiple_targets.value)
 
@@ -485,6 +500,15 @@ class ui(cgmUI.cgmGUI):
                 if link[1] == idx:
                     self.parent_source_scroll.selectByIdx(link[0])
 
+    def uiFunc_clear_list(self, mode):
+        if mode == 0:
+            self.parent_source_scroll.clear()
+        else:
+            self.parent_target_scroll.clear()
+
+    def uiFunc_select_all_in_list(self, mode):
+        pass
+        
     def uiFunc_select_from_ui(self, mode):
       mc.select(cl=True)
 

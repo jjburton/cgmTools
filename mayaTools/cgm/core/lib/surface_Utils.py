@@ -42,6 +42,7 @@ import cgm.core.lib.curve_Utils as CURVES
 
 import cgm.core.lib.shared_data as SHARED
 reload(SHARED)
+reload(MATH)
 
 from cgm.lib import (distance,
                      locators,
@@ -58,7 +59,53 @@ from cgm.lib import (distance,
                      cgmMath)
 
 #>>> Utilities
-#===================================================================   
+#===================================================================
+
+def get_shapeCurve(shape, value, mode = 'u', offset=None,d_curves = {}):
+    _str_func = 'get_shapeCurve'
+    
+    _crv = d_curves.get(value)
+    if _crv:return _crv
+    _crv = mc.duplicateCurve("{0}.{1}[{2}]".format(shape,mode,value), ch = 0, rn = 0, local = 0)[0]
+    if offset:
+        DIST.offsetShape_byVector(_crv,offset,component='cv')
+    if d_curves:
+        d_curves[value] = _crv
+    log.debug("|{0}| >> created: {1} ...".format(_str_func,_crv))      
+    return _crv
+
+
+def get_surfaceSplitCurves(surface = None,
+                           l_values = [],
+                           count = None,
+                           mode = 'u',
+                           offset=None,
+                           cullStartEnd=True):
+    
+    _str_func = 'get_surfaceSplitCurves'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    _shape = SHAPES.get_nonintermediate(surface)
+    
+    if mode == 'u':
+        l_base = get_dat(_shape, uKnots=True)['uKnots']
+        minKnot = ATTR.get(_shape,'minValueU')
+        maxKnot = ATTR.get(_shape,'maxValueU')
+    else:
+        l_base = get_dat(_shape, vKnots=True)['vKnots']
+        minKnot = ATTR.get(_shape,'minValueV')
+        maxKnot = ATTR.get(_shape,'maxValueV')
+        
+    if count is not None:
+        l_values = MATH.get_splitValueList(minKnot,maxKnot,count,cullStartEnd=cullStartEnd)
+        
+    res = []
+    for v in l_values:
+        crv = get_shapeCurve(_shape,v,mode,offset=offset)
+        res.append(crv)
+        
+    return res
+    
+
 def get_splitValues(surface = None,
                     values = [], mode='u',
                     knotIndices = [],
@@ -71,7 +118,7 @@ def get_splitValues(surface = None,
                     curvesConnect = False,
                     connectionPoints=9):
     """
-    Function to split a curve up u positionally 
+    Function to split a surface
     
     :parameters:
         'curve'(None)  -- Curve to split
@@ -195,11 +242,10 @@ def get_splitValues(surface = None,
     l_finalCurves = []
     
     
-    
     def getCurve(uValue,l_newCurves):
         _crv = d_curves.get(uValue)
         if _crv:return _crv
-        _crv = mc.duplicateCurve("{0}.u[{1}]".format(_shape,uValue), ch = 0, rn = 0, local = 0)[0]
+        _crv = mc.duplicateCurve("{0}.{1}[{2}]".format(_shape,mode,uValue), ch = 0, rn = 0, local = 0)[0]
         if offset:
             DIST.offsetShape_byVector(_crv,offset,component='cv')
         d_curves[uValue] = _crv
@@ -328,9 +374,6 @@ def get_dat(surface = None, uKnots = True, vKnots = True):
 
     if mSurfaceInfo:mSurfaceInfo.delete()
     return _res
-
-
-
 
 def attachObjToSurface(*args,**kws):
     """

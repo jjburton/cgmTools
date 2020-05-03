@@ -29,7 +29,7 @@ import maya.mel as MEL
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.cgmPy import path_Utils as cgmPath
 PATH = cgmPath
-from cgm.core import cgm_General as cgmGen
+from cgm.core import cgm_General as cgmGEN
 
 #from cgm.lib.zoo.zooPy.path import Path
 #import cgm.lib.zoo.zooPy.path as zooPath
@@ -292,29 +292,29 @@ def get_module_data(path = None, level = None, mode = 0, cleanPyc = False):
         
     
     if mode == 1:
-        log.info(cgmGen._str_subLine)        
+        log.info(cgmGEN._str_subLine)        
         log.info("|{0}| >> Found {1} pyc files under: {2}".format(_str_func,len(_l_pyc),path))
         for m in _l_pyc:
             print(m)
         return _l_pyc   
     
     if _b_debug:
-        cgmGen.log_info_dict(_d_files,"Files")
-        cgmGen.log_info_dict(_d_names,"Imports")
+        cgmGEN.log_info_dict(_d_files,"Files")
+        cgmGEN.log_info_dict(_d_names,"Imports")
     
     if _l_duplicates:
-        log.debug(cgmGen._str_subLine)
+        log.debug(cgmGEN._str_subLine)
         log.error("|{0}| >> DUPLICATE MODULES....")
         for m in _l_duplicates:
             if _b_debug:print(m)
     log.debug("|{0}| >> Found {1} modules under: {2}".format(_str_func,len(_d_files.keys()),path))
     
-    log.debug(cgmGen._str_subLine)    
+    log.debug(cgmGEN._str_subLine)    
     log.debug("|{0}| >> Ordered MODULES....".format(_str_func))
     for k in _l_ordered_list:
         if _b_debug:print(k)
         
-    log.debug(cgmGen._str_subLine)
+    log.debug(cgmGEN._str_subLine)
     log.debug("|{0}| >> PYCD MODULES({1})....".format(_str_func,len(_l_pycd)))
     for k in _l_pycd:
         if _b_debug:print(k)
@@ -342,7 +342,7 @@ def import_file(mFile = None, namespace = None):
     if namespace is not None:
         kws = {'namespace':namespace}
         
-    if cgmGen.__mayaVersion__ == 11111:
+    if cgmGEN.__mayaVersion__ == 11111:
         if 'cat' == 'dog':
             #file -import -type "mayaAscii"  -ignoreVersion -ra true -mergeNamespacesOnClash false -namespace "test" -options "v=0;"  -pr  -importFrameRate true  -importTimeRange "override" "D:/Dropbox/cgmMRS/maya/demo/mrsMakers_gettingStarted/sphere.ma";
     
@@ -373,4 +373,44 @@ def import_file(mFile = None, namespace = None):
     mc.delete(_name)    
     return _res
     
+    
+def verify_dir_fromDict(root = None, d = {}, case = None):
+    l_keys = []
+    d_toDo = {}
+
+    _str_func = 'verify_dir_fromDict'
+    log.info("|{0}| >>...".format(_str_func))
+    
+    mRoot = cgmPath.Path(root)
+    if not mRoot.exists():
+        
+        log.error("Invalid root: {0}".format(root))
+        return False
+
+    _pathRoot = mRoot.asFriendly()
+    log.info("|{0}| >> root: {1}".format(_str_func,_pathRoot))
+    
+    for k,l in d.iteritems():
+        #log.info("|{0}| >> k: {1}".format(_str_func,k))
+        if case == 'lower':
+            k = k.lower()
+            
+        mDir =  cgmPath.Path( os.path.join(mRoot, k))
+        if not mDir.exists():
+            os.makedirs(mDir)
+            log.warning("created dir: {0}".format(mDir))
+            
+        
+        for k2 in l:
+            if case == 'lower':
+                k2 = k2.lower()
+                
+            mSub = cgmPath.Path( os.path.join(mRoot, k, k2))
+            if not mSub.exists():
+                os.makedirs(mSub)
+                log.warning("created dir: {0}".format(mSub))                
+            
+        
+
+ 
 

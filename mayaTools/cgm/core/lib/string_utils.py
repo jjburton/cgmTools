@@ -7,11 +7,17 @@ Website : http://www.cgmonks.com
 ------------------------------------------
 
 """
-__MAYALOCAL = 'STRING'
+__MAYALOCAL = 'CORESTRING'
 
 import pprint
 import cgm.core.cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
+
+
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 
 def levenshtein(s1, s2):
     '''algorithm taken from https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Python '''
@@ -35,8 +41,8 @@ def levenshtein(s1, s2):
     return previous_row[-1]
 
 def capFirst(s1):
-    return "{0}{1}".format(s1[0].capitalize(),s1[1:])
-
+    try:return "{0}{1}".format(s1[0].capitalize(),s1[1:])
+    except:return s1
 
 def camelCase(arg = None):
     """
@@ -59,12 +65,34 @@ def camelCase(arg = None):
                         _first = True
                     else:
                         l_new.append(a[0].capitalize()+a[1:])
-                
         return ''.join(l_new)
-
-
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+        
+
+def byMode(arg,mode='none'):
+    _str_func = 'byMode'
+    log.debug("|{0}| >>...".format(_str_func))
+    if mode in ['none',None,'None']:
+        return str(arg)
+    elif mode in ['upper','upr']:
+        return str(arg).upper()
+    elif mode in ['cap','capitalize']:
+        return str(arg).capitalize()
+    elif mode in ['cc','camelcase','camelCase']:
+        return camelCase(arg)
+    elif mode in ['lwr','lower']:
+        return str(arg).lower()
+    elif mode in ['cf','capFirst','capfirst']:
+        return capFirst(arg)
+
+        
+
+def short(arg = 'D:\repos\cgmtools\mayaTools\cgm\core\mrs\PoseManager.py',max = 10):
+    if len(arg) < max:
+        return arg
+    return ("...  {0}".format(arg[-max:]))
+    
         
 #>>> Utilities
 #===================================================================

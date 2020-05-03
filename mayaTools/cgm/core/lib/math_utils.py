@@ -596,39 +596,42 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
     _res = []
     
     if mode in ['midPeak','blendUpMid','midBlendDown']:
-        idx_mid = get_midIndex(count)
-        
-        if maxValue == minValue:
-            return [maxValue for i in range(count)]
-            
-        
-        blendFactor = (float(maxValue) - float(minValue))/(idx_mid)
-        
-        if is_even(count):
-            for i in range(idx_mid):
-                _res.append( i * blendFactor)
-            _rev = copy.copy(_res)
-            if mode == 'blendUpMid':
-                _res = _res + [maxValue for i in range(idx_mid)]
-            elif mode == 'midBlendDown':
-                _res.reverse()
-                _res = [maxValue for i in range(idx_mid)] + _res
-            else:
-                _rev.reverse()
-                _res.extend(_rev)
+        if count == 3:
+            _res = [minValue, maxValue/2.0, maxValue]
         else:
-            for i in range(idx_mid):
-                _res.append( i * blendFactor)
+            idx_mid = get_midIndex(count)
+            
+            if maxValue == minValue:
+                return [maxValue for i in range(count)]
                 
-            if mode == 'blendUpMid':
-                _res = _res + [maxValue for i in range(idx_mid-1)]
-            elif mode == 'midBlendDown':
-                _res.reverse()
-                _res = [maxValue for i in range(idx_mid-1)] + _res
-            else:
+            
+            blendFactor = (float(maxValue) - float(minValue))/(idx_mid)
+            
+            if is_even(count):
+                for i in range(idx_mid):
+                    _res.append( i * blendFactor)
                 _rev = copy.copy(_res)
-                _rev.reverse()
-                _res.extend(_rev[1:])
+                if mode == 'blendUpMid':
+                    _res = _res + [maxValue for i in range(idx_mid)]
+                elif mode == 'midBlendDown':
+                    _res.reverse()
+                    _res = [maxValue for i in range(idx_mid)] + _res
+                else:
+                    _rev.reverse()
+                    _res.extend(_rev)
+            else:
+                for i in range(idx_mid):
+                    _res.append( i * blendFactor)
+                    
+                if mode == 'blendUpMid':
+                    _res = _res + [maxValue for i in range(idx_mid-1)]
+                elif mode == 'midBlendDown':
+                    _res.reverse()
+                    _res = [maxValue for i in range(idx_mid-1)] + _res
+                else:
+                    _rev = copy.copy(_res)
+                    _rev.reverse()
+                    _res.extend(_rev[1:])
             
     elif mode == 'max':
         return [maxValue for i in range(count)]
@@ -656,6 +659,32 @@ def normalizeListToSum(L, normalizeTo=1.0):
     norm = normalizeList(L)
     normSum = [float(i)/sum(L) for i in L]
     return [i * normalizeTo for i in normSum]
+
+def get_evenSplitDict(L):
+    """
+    Generate a split side list. Assumes right to left values, splits mid out if odd
+    """
+    _len = len(L)
+    _mid = get_midIndex(_len)
+    
+    _midV = L[_mid]
+    
+    if is_even(_len):
+        _l_right = L[:_mid]
+        _l_left = L[_mid:]
+        _res = {'start':_l_right,
+                'end':_l_left}
+    else:
+        _midV = L[_mid]
+        _l_right = L[:_mid]
+        _l_left = L[_mid+1:]
+        _res = {'center':[_midV],
+                'start':_l_right,
+                'end':_l_left}
+        
+    return _res
+        
+
 
 def get_splitValueList(minU = 0,
                        maxU = 1,
@@ -752,7 +781,7 @@ def get_splitValueList(minU = 0,
             l_uValues.append(maxU)
         log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  
 
-    if cullStartEnd and len(l_uValues)>3:
+    if cullStartEnd and len(l_uValues)>2:
         l_uValues = l_uValues[1:-1]
 
     return l_uValues

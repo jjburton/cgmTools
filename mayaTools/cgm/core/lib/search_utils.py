@@ -567,6 +567,7 @@ def get_selectedFromChannelBox(attributesOnly = False):
     returnRaw() -- whether you just want channels or objects combined with selected attributes
 
     """    
+    _str_func = 'get_selectedFromChannelBox'
     _sel = mc.ls(sl=True)
     ChannelBoxName = mel.eval('$tmp = $gChannelBoxName');
 
@@ -578,18 +579,28 @@ def get_selectedFromChannelBox(attributesOnly = False):
 
     channels = []
     if sma:
+        log.debug(cgmGEN.logString_msg(_str_func,"sma: {0}".format(sma)))
         channels.extend(sma)
     if ssa:
+        log.debug(cgmGEN.logString_msg(_str_func,"ssa: {0}".format(sma)))        
         channels.extend(ssa)
     if sha:
+        log.debug(cgmGEN.logString_msg(_str_func,"sha: {0}".format(sha)))        
         channels.extend(sha)
     if soa:
+        log.debug(cgmGEN.logString_msg(_str_func,"soa: {0}".format(soa)))        
         channels.extend(soa)
     
     if channels and _sel:
         _channels_long = []
         for c in channels:
-            _channels_long.append(ATTR.get_nameLong(_sel[0],c))
+            _channels_long.append(c)
+            """
+            _l = ATTR.get_nameLong(_sel[0],c)
+            if '.weight' not in _l:
+                _channels_long.append(_l)
+            else:
+                _channels_long.append(c)"""
             
         if attributesOnly:
             return _channels_long
@@ -597,7 +608,9 @@ def get_selectedFromChannelBox(attributesOnly = False):
             _res = []
             for item in _sel:
                 for attr in _channels_long:
-                    _res.append("{0}.{1}".format(item,attr))
+                    _comb = "{0}.{1}".format(item,attr)
+                    if mc.objExists(_comb):
+                        _res.append(_comb)
             return _res
     return False 
 

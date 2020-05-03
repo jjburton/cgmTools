@@ -511,7 +511,11 @@ def uiBuild_cgmMenu( *args ):
     _dev = mc.menuItem(p=menu,l='Dev',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_dev(_dev)
     
-    #>>Help ----------------------------------------------------------------------
+    #>>utils ----------------------------------------------------------------------
+    #_utils = mc.menuItem(p=menu,l='Dev',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_utils(menu)    
+    
+    #>>Git ----------------------------------------------------------------------
     _git = mc.menuItem(p=menu,l='Git',subMenu = True, tearOff = True)
     #cgmUI.uiSection_help(_help)
     UICHUNKS.uiSection_git(_git)    

@@ -312,9 +312,10 @@ def limbRoot(self):
 
         CORERIG.shapeParent_in_place(mLimbRoot.mNode,mRootCrv.mNode, False)
 
-        for a in 'cgmName','cgmDirection','cgmModifier':
-            if ATTR.get(_short_module,a):
-                ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
+        #for a in 'cgmName','cgmDirection','cgmModifier':
+        #    if ATTR.get(_short_module,a):
+        #        ATTR.copy_to(_short_module,a,mLimbRoot.mNode,driven='target')
+        mLimbRoot.doStore('cgmName',self.d_module['partName'])
 
         mLimbRoot.doStore('cgmTypeModifier','limbRoot')
         mLimbRoot.doName()
@@ -351,7 +352,7 @@ def rootOrCog(self,mHandle = None):
         
             CORERIG.override_color(mCog.mNode,'white')
         
-            mCog.doStore('cgmName','cog')
+            mCog.doStore('cgmName','{0}_cog'.format(self.d_module['partName']))
             mCog.doStore('cgmAlias','cog')
             mCog.doName()
         
@@ -377,8 +378,9 @@ def rootOrCog(self,mHandle = None):
             #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
     
             CORERIG.shapeParent_in_place(mRoot.mNode,mRootCrv.mNode, False)
-    
-            ATTR.copy_to(self.mModule.mNode,'cgmName',mRoot.mNode,driven='target')
+            
+            mRoot.doStore('cgmName',self.d_module['partName'])
+            #ATTR.copy_to(self.mModule.mNode,'cgmName',mRoot.mNode,driven='target')
             mRoot.doStore('cgmTypeModifier','root')
             mRoot.doName()
     
@@ -571,72 +573,65 @@ def settings(self,settingsPlace = None,ml_targets = None):
             else:
                 log.warning("|{0}| >> Settings. Cog option but no cog found...".format(_str_func))
                 settingsPlace = 'start'
-            
+                
+                
+        mSettingsHelper = mBlock.getMessageAsMeta('settingsHelper')
+        
         if settingsPlace in ['start','end']:
-            #_settingsSize = _offset * 2
-            mMesh_tmp =  mBlock.atUtils('get_castMesh')
-            str_meshShape = mMesh_tmp.getShapes()[0]
-            
             if settingsPlace == 'start':
                 _mTar = ml_targets[0]
             else:
-                _mTar = ml_targets[self.int_handleEndIdx]            
-            
-            d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
-            
-            str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
-            
-            pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
-            if not pos:
-                log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
-                pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_offset * 5)
-            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
-            vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
-            newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
-            
-            #LOC.create(position=pos)
+                _mTar = ml_targets[self.int_handleEndIdx]
+                
+                
+            #_settingsSize = _offset * 2
+            if not mSettingsHelper:
+                
+                mMesh_tmp =  mBlock.atUtils('get_castMesh')
+                str_meshShape = mMesh_tmp.getShapes()[0]
             
 
-            #_settingsSize = mBlock.UTILS.get_castSize(mBlock,_mTar)['max'][0]
-            #_settingsSize = MATH.average(_settingsSize,(_offset * 2))
-            #_settingsSize = DIST.get_between_points(pos,newPos)
-            _settingsSize = _offset * 2
             
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
-                                                                           '{0}+'.format(_jointOrientation[2]),
-                                                                           baseSize=1.0),'cgmObject',setClass=True)
+                d_directions = {'up':'y+','down':'y-','in':'x+','out':'x-'}
+                
+                str_settingsDirections = d_directions.get(mBlock.getEnumValueString('settingsDirection'),'y+')
+                
+                pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
+                if not pos:
+                    log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
+                    pos = _mTar.getPositionByAxisDistance(str_settingsDirections,_offset * 5)
+                    
+                vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
+                newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
 
+                _settingsSize = _offset * 2
+                
+                mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
+                                                                               '{0}+'.format(_jointOrientation[2]),
+                                                                               baseSize=1.0),'cgmObject',setClass=True)
+    
+                
+                mSettingsShape.doSnapTo(_mTar.mNode)
+                
+                #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
+                
+                mSettingsShape.p_position = newPos
+                mMesh_tmp.delete()
             
-            mSettingsShape.doSnapTo(_mTar.mNode)
-            
-            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
-            
-            mSettingsShape.p_position = newPos
-            mMesh_tmp.delete()
-            
-            SNAP.aim_atPoint(mSettingsShape.mNode,
-                             _mTar.p_position,
-                             aimAxis=_jointOrientation[0]+'+',
-                             mode = 'vector',
-                             vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
+                SNAP.aim_atPoint(mSettingsShape.mNode,
+                                 _mTar.p_position,
+                                 aimAxis=_jointOrientation[0]+'+',
+                                 mode = 'vector',
+                                 vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
+            else:
+                mSettingsShape = mSettingsHelper.doDuplicate(po=False)
             
             mSettingsShape.parent = _mTar
-            
-            #mSettings = _mTar.doCreateAt(setClass='cgmObject')
-            #mSettings.p_position = newPos
-            #mSettings.p_parent = _mTar
-            #mSettings.rotateOrder = _mTar.rotateOrder
-            #mSettings.p_orient = _mTar.p_orient
-            #mSettings.rotateAxis = mSettings.p_orient
-            #mSettings.rotate = 0,0,0
-            
-            #CORERIG.shapeParent_in_place(mSettings,mSettingsShape.mNode,False)
-            
+
             mSettings = mSettingsShape
-            reload(CORERIG)
             CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
             
-            ATTR.copy_to(self.d_module['shortName'],'cgmName',mSettings.mNode,driven='target')
+            ATTR.copy_to(self.mModule.mNode,'cgmName',mSettings.mNode,driven='target')
 
             mSettings.doStore('cgmTypeModifier','settings')
             mSettings.doName()
@@ -854,14 +849,14 @@ def lever(self,ball = False):
             #mOrientHelper = mBlock.orientHelper
             #_mVectorLeverUp = MATH.get_obj_vector(mOrientHelper.mNode,'y+',asEuclid=True)
             
-            mMesh_tmp =  mBlock.atUtils('get_castMesh')
-            str_meshShape = mMesh_tmp.getShapes()[0]
-            pos = RAYS.cast(str_meshShape,
+            mBall_tmp =  mBlock.atUtils('get_castMesh')
+            str_ballShape = mBall_tmp.getShapes()[0]
+            pos = RAYS.cast(str_ballShape,
                             startPoint=_mTar.p_position,
                             vector=_mVectorLeverUp).get('near')
             
-            #pos = RAYS.get_cast_pos(_mTar.mNode,_mVectorLeverUp,shapes = str_meshShape)
-            #SNAPCALLS.get_special_pos([_mTar,str_meshShape],'castNear',str_settingsDirections,False)
+            #pos = RAYS.get_cast_pos(_mTar.mNode,_mVectorLeverUp,shapes = str_ballShape)
+            #SNAPCALLS.get_special_pos([_mTar,str_ballShape],'castNear',str_settingsDirections,False)
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,_offset * 4)
             
@@ -879,7 +874,7 @@ def lever(self,ball = False):
             l_lolis.extend([ball,line])        
             ATTR.set(mDup.mNode, 't{0}'.format(_jointOrientation[0]), dist_lever * .8)
             CORERIG.shapeParent_in_place(mLeverFK.mNode,l_lolis,False)
-            mMesh_tmp.delete()
+            mBall_tmp.delete()
 
         #Main clav section ========================================
         """
@@ -919,7 +914,53 @@ def lever(self,ball = False):
 
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
+l_pivotOrder = BLOCKSHARE._l_pivotOrder
+d_pivotBankNames = BLOCKSHARE._d_pivotBankNames
+def pivotShapes(self, mPivotHelper = None):
+    """
+    Builder of shapes for pivot setup. Excpects to find pivotHelper on block
     
+    :parameters:
+        self(cgmRigBlock)
+        mRigNull(cgmRigNull) | if none provided, tries to find it
+
+    :returns
+        dict
+    """
+    _str_func = 'pivotShapes'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    _offset = self.v_offset
+    _jointOrientation = self.d_orientation['str']
+
+    if mRigNull is None:
+        mRigNull = self.moduleTarget.rigNull
+        
+    if mPivotHelper is None:
+        if not self.getMessage('pivotHelper'):
+            raise ValueError,"|{0}| >> No pivots helper found. mBlock: {1}".format(_str_func,mBlock)
+        mPivotHelper = mBlock.pivotHelper
+        
+    for a in l_pivotOrder:
+        str_a = 'pivot' + a.capitalize()
+        if mPivotHelper.getMessage(str_a):
+            log.debug("|{0}| >> Found: {1}".format(_str_func,str_a))
+            mPivotOrig = mPivotHelper.getMessage(str_a,asMeta=True)[0]
+            mPivot = mPivotOrig.doDuplicate(po=False)
+            mRigNull.connectChildNode(mPivot,str_a,'rigNull')#Connect
+            _nameSet = NAMETOOLS.combineDict( mPivotOrig.getNameDict(ignore=['cgmType','cgmTypeModifier','cgmDirection']))
+            mPivot.parent = False            
+            mPivot.cgmName = "{0}_{1}".format(self.d_module['partName'], _nameSet)
+            if mPivot.getMayaAttr('cgmDirection'):
+                mPivot.deleteAttr('cgmDirection')
+            #mPivot.rename("{0}_{1}".format(self.d_module['partName'], mPivot.p_nameBase))
+            mPivot.doName()
+    return True
+
+
 def backup(self,ml_handles = None):
     try:
         _str_func = 'segment_handles'

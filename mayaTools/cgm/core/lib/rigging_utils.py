@@ -38,6 +38,8 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import transform_utils as TRANS
+import cgm.core.lib.list_utils as LISTS
+
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.math_utils as COREMATH
@@ -803,92 +805,113 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
 
     :returns
         name(str)
-    """   
-    _str_func = 'create_at'
-    
-    obj = VALID.mNodeString(obj)
-    _create = create
-    
-    log.debug("|{0}| >> obj:{1}".format(_str_func,obj))  
-    log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
-    
-    if midPoint:
-        _d = TRANS.POS.get_midPointDict(obj)
-        objTrans = _d['position']
-        objRot = _d['rotation']
-        objRotAxis = None
+    """
+    try:
         
-    elif _create in ['null','joint']:
-        objTrans = TRANS.position_get(obj)#mc.xform (obj, q=True, ws=True, rp=True)
-        objRot = TRANS.orient_get(obj)#mc.xform (obj, q=True, ws=True, ro=True)
-        objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)   
+        _str_func = 'create_at'
+        
+        obj = VALID.mNodeString(obj)
+        _create = create
+        
+        log.debug("|{0}| >> obj:{1}".format(_str_func,obj))  
+        log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
+        
+        if l_pos:
+            l_pos2 = []
+            for i,v in enumerate(l_pos):
+                if v == l_pos[-1] and l_pos[-1] not in l_pos2:
+                    l_pos2.append(v)
+                else:
+                    l_match = []
+                    _key = i+1
+                    for v2 in l_pos[_key:]:
+                        if COREMATH.is_vector_equivalent(v,v2):
+                            log.warning(cgmGEN.logString_msg(_str_func,"Matching values: {0} | {1}".format(v,v2)))
+                            l_match.append(_key)
+                    if _key not in l_match:
+                        l_pos2.append(v)
+            if l_pos2:
+                l_pos = l_pos2
+        
+        if midPoint:
+            _d = TRANS.POS.get_midPointDict(obj)
+            objTrans = _d['position']
+            objRot = _d['rotation']
+            objRotAxis = None
             
-    if _create == 'null':
-        _created = mc.group (w=True, empty=True)
-        if not midPoint:
-            mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
-            
-        mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
-        mc.xform(_created, ws=True, ro= objRot,p=False)
-        if objRotAxis:
-            mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
-        
-    elif _create == 'joint':
-        mc.select(cl=True)
-        _created = mc.joint()
-        if not midPoint:        
-            mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
-        mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
-        mc.xform(_created, ws=True, ro= objRot,p=False)
-        if objRotAxis:
-            mc.xform(_created, ws=True, ra= objRotAxis,p=False)
-        
-    elif _create in ['curve','curveLinear','linearTrack','cubicTrack']:
-        if not l_pos:
-            l_pos = []
-            #_sel = mc.ls(sl=True,flatten=True)
-            for i,o in enumerate(obj):
-                p = TRANS.position_get(o)
-                log.debug("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
-                l_pos.append(p)
-        
-        if len(l_pos) <= 1:
-            raise ValueError,"Must have more than one position to create curve"
-        if _create in ['linearTrack','cubicTrack']:
-            _d = 1
-            if _create == 'cubicTrack':
-                _d = 3
-            _trackCurve = mc.curve(d=1,p=l_pos)
-            _trackCurve = mc.rename(_trackCurve,"{0}_trackCurve".format(baseName))
-    
-            l_clusters = []
-            #_l_clusterParents = [mStartHandle,mEndHandle]
-            for i,cv in enumerate(mc.ls(['{0}.cv[*]'.format(_trackCurve)],flatten=True)):
-                _res = mc.cluster(cv, n = '{0}_{1}_cluster'.format(baseName,i))
-                TRANS.parent_set( _res[1], obj[i])
-                ATTR.set(_res[1],'visibility',0)
-                l_clusters.append(_res)
-                ATTR.set(_res[1],'visibility',False)
+        elif _create in ['null','joint']:
+            objTrans = TRANS.position_get(obj)#mc.xform (obj, q=True, ws=True, rp=True)
+            objRot = TRANS.orient_get(obj)#mc.xform (obj, q=True, ws=True, ro=True)
+            objRotAxis = mc.xform(obj, q=True, ws = True, ra=True)   
                 
-            return _trackCurve,l_clusters
-            
+        if _create == 'null':
+            _created = mc.group (w=True, empty=True)
+            if not midPoint:
+                mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
                 
-                
-        elif _create == 'curve':
-            knot_len = len(l_pos)+3-1		
-            _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
-        else:
-            _created = mc.curve (d=1, ep = l_pos, k = [i for i in range(0,len(l_pos))], os=True)
+            mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
+            mc.xform(_created, ws=True, ro= objRot,p=False)
+            if objRotAxis:
+                mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
             
-        log.debug("|{0}| >> created: {1}".format(_str_func,_created))  
+        elif _create == 'joint':
+            mc.select(cl=True)
+            _created = mc.joint()
+            if not midPoint:        
+                mc.xform(_created, roo = mc.xform(obj, q=True, roo=True ))#...match rotateOrder    
+            mc.move (objTrans[0],objTrans[1],objTrans[2], [_created])
+            mc.xform(_created, ws=True, ro= objRot,p=False)
+            if objRotAxis:
+                mc.xform(_created, ws=True, ra= objRotAxis,p=False)
+            
+        elif _create in ['curve','curveLinear','linearTrack','cubicTrack']:
+            if not l_pos:
+                l_pos = []
+                #_sel = mc.ls(sl=True,flatten=True)
+                for i,o in enumerate(obj):
+                    p = TRANS.position_get(o)
+                    log.debug("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
+                    l_pos.append(p)
+            
+            if len(l_pos) <= 1:
+                raise ValueError,"Must have more than one position to create curve"
+            if _create in ['linearTrack','cubicTrack']:
+                _d = 1
+                if _create == 'cubicTrack':
+                    _d = 3
+                _trackCurve = mc.curve(d=1,p=l_pos)
+                _trackCurve = mc.rename(_trackCurve,"{0}_trackCurve".format(baseName))
         
-    elif _create == 'locator':
-        raise NotImplementedError,"locators not done yet"
-    else: 
-        raise NotImplementedError,"|{0}| >> unknown mode: {1}".format(_str_func,_create)  
-
-    mc.select(_created)
-    return _created
+                l_clusters = []
+                #_l_clusterParents = [mStartHandle,mEndHandle]
+                for i,cv in enumerate(mc.ls(['{0}.cv[*]'.format(_trackCurve)],flatten=True)):
+                    _res = mc.cluster(cv, n = '{0}_{1}_cluster'.format(baseName,i))
+                    TRANS.parent_set( _res[1], obj[i])
+                    ATTR.set(_res[1],'visibility',0)
+                    l_clusters.append(_res)
+                    ATTR.set(_res[1],'visibility',False)
+                    
+                return _trackCurve,l_clusters
+                
+                    
+                    
+            elif _create == 'curve':
+                knot_len = len(l_pos)+3-1		
+                _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
+            else:
+                _created = mc.curve (d=1, ep = l_pos, k = [i for i in range(0,len(l_pos))], os=True)
+                
+            log.debug("|{0}| >> created: {1}".format(_str_func,_created))  
+            
+        elif _create == 'locator':
+            raise NotImplementedError,"locators not done yet"
+        else: 
+            raise NotImplementedError,"|{0}| >> unknown mode: {1}".format(_str_func,_create)  
+    
+        mc.select(_created)
+        return _created
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
     
 def create_joint_at(obj = None):
     """
@@ -1155,6 +1178,8 @@ def getControlShader(direction = 'center', controlType = 'main',
     """
     Proxy mode modifies the base value and setups up a different shader
     """
+    _str_func = getControlShader
+    
     if directProxy:
         _node = "cgmShader_directProxy"
     else:
@@ -1176,11 +1201,10 @@ def getControlShader(direction = 'center', controlType = 'main',
         ATTR.connect("{0}.outColor".format(_node), "{0}.surfaceShader".format(_set))
         
         if directProxy:
-            ATTR.set(_node,'transparency',1)
             ATTR.set(_node,'ambientColorR',0)
             ATTR.set(_node,'ambientColorG',0)
             ATTR.set(_node,'ambientColorB',0)
-            ATTR.set(_node,'transparency',.5)
+            ATTR.set(_node,'transparency',1.0)
             ATTR.set(_node,'incandescence',0)
         else:
             if controlType == 'puppetmesh':
@@ -1197,27 +1221,54 @@ def getControlShader(direction = 'center', controlType = 'main',
             else:
                 _color = SHARED._d_side_colors[direction][controlType]
                 _rgb = SHARED._d_colors_to_RGB[_color]
-            
-                ATTR.set(_node,'diffuse',1.0)
-            
-            if proxy:
+
+            if proxy and controlType not in ['pupil']:
                 #_rgb = [v * .75 for v in _rgb]
                 _hsv = [v for v in get_HSV_fromRGB(_rgb[0],_rgb[1],_rgb[2])]
-                _hsv[1] = .5
-                
+                _hsv[1] = .6
+                _hsv[2] = .8                
+                #_hsv = [v * .5]
                 _rgb = get_RGB_fromHSV(_hsv[0],_hsv[1],_hsv[2])
-                ATTR.set(_node,'diffuse',.75)
-
+                ATTR.set(_node,'diffuse',.1)
+                
             ATTR.set(_node,'colorR',_rgb[0])
             ATTR.set(_node,'colorG',_rgb[1])
             ATTR.set(_node,'colorB',_rgb[2])
+            ATTR.set(_node,'diffuse',.497)
+            
+            ATTR.set(_node,'ambientColorR',_rgb[0]*.5)
+            ATTR.set(_node,'ambientColorG',_rgb[1]*.5)
+            ATTR.set(_node,'ambientColorB',_rgb[2]*.5)
+            
+            ATTR.set(_node,'specularColorR',.25)
+            ATTR.set(_node,'specularColorG',.25)
+            ATTR.set(_node,'specularColorB',.25)
             
             if transparent:
-                ATTR.set(_node,'ambientColorR',_rgb[0]*.1)
-                ATTR.set(_node,'ambientColorG',_rgb[1]*.1)
-                ATTR.set(_node,'ambientColorB',_rgb[2]*.1)        
-                ATTR.set(_node,'transparency',.5)
-                ATTR.set(_node,'incandescence',0)
+                _d = {'transparency':.6,
+                      'incandescence':0,
+                      'diffuse':0.1,
+                      'cosinePower':.95,
+                      'specularColorR':0,
+                      'specularColorG':0,
+                      'specularColorB':0,
+                      'reflectivity':0
+                      }
+                
+                for a,v in _d.iteritems():
+                    try:
+                        ATTR.set(_node,a,v)
+                    except Exception,err:
+                        log.error(cgmGEN.logString_msg(_str_func, "Failed to set: {0} | {1} | {2}".format(a,v,err)))
+
+                
+                
+            if controlType in ['pupil']:
+                ATTR.set(_node,'diffuse',0)
+                ATTR.set(_node,'specularColorR',0)
+                ATTR.set(_node,'specularColorG',0)
+                ATTR.set(_node,'specularColorB',0)                
+                
       
     if not _set:
         _set = ATTR.get_driven(_node,'outColor',True)[0] 
@@ -1280,9 +1331,10 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
     else:
         _color = SHARED._d_side_colors_index[direction][controlType]
         
+            
     _shader = False
     _set = False
-    
+
     if shaderSetup:
         _shader, _set = getControlShader(direction,controlType,transparent,proxy,directProxy)
         

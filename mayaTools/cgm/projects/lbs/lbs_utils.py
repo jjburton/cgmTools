@@ -1,5 +1,6 @@
 import copy
 import re
+import random
 
 import logging
 logging.basicConfig()
@@ -22,18 +23,159 @@ from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import NodeFactory as cgmNodeFactory
-from cgm.core.rigger.lib import morpheus_sharedData as MORPHYDATA
-from cgm.lib import (curves,
-                     deformers,
-                     distance,
-                     search,
-                     lists,
-                     modules,
-                     constraints,
-                     rigging,
-                     attributes,
-                     joints)
 
+import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.search_utils as SEARCH
+
+d_reset = {'hair':1, 'face':7, 'brows':8, 'nose':9, 'ears':5,}
+l_faceTypes = [False, 'hardRound']
+l_faceRandoms = ['chinFrom','lipThickLwr','lipThickUpr','chinLong','lipBig','faceLong','lipSmall',
+                 'cheekLine','cheek_in','cheek_out','jawNarrow' ]#'jawLineIn'
+l_options = [0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0]
+
+d_onlyPairs = {'lipSmall':'lipBig', 'cheek_in':'cheek_out'}
+
+def randomize(prefix='mk_head',reset = False, eyes = True):
+    if prefix:
+        mSettings = cgmMeta.asMeta("{0}:settingsControl".format(prefix))
+    else:
+        mSettings = cgmMeta.asMeta("settingsControl")
+        
+    _settings = mSettings.mNode
+    
+    _frame = mc.currentTime(q=True)
+    
+    for a in 'ears','nose','brows','hair','teeth','face':
+        l_options = ATTR.get_enumList(_settings, a)
+        if l_options:
+            if reset:
+                v = d_reset.get(a,1)
+            else:
+                v = random.randint(1,len(l_options)-1)
+                while v == l_options[ATTR.get(_settings,a)]:
+                    v = random.randint(1,len(l_options)-1)                
+            ATTR.set(_settings,a,v)
+            log.info("{0} | {1}".format(a,l_options[v]))
+        else:
+            pass
+        
+    #BlendShapes ---------------------------------------
+    if prefix:
+        mBSNode = cgmMeta.asMeta("{0}:bsFace".format(prefix))
+    else:
+        mBSNode = cgmMeta.asMeta("bsFace")
+        
+    if mBSNode:
+        log.info("BS Node")
+        
+        d_vs = {}
+        for k in l_faceTypes + l_faceRandoms:
+            if k:
+                d_vs[k] = 0.0
+                
+        if not reset:
+            #Pick face option and get a value for that ------------------------
+            h = l_faceTypes[ random.randint(0,len(l_faceTypes)-1) ]
+            if h:
+                v = random.randint(0,100) * .01
+                d_vs[h] = v
+                
+            #Face randoms -----------------------------------------------
+            for k in l_faceRandoms:
+                d_vs[k] = random.randint(0,100) * .01
+            
+        
+        for k1,k2 in d_onlyPairs.items():
+            _pair = [k1,k2]
+            if d_vs.get(k1) and d_vs.get(k2):
+                d_vs[_pair[random.randint(0,1)]] = 0.0
+            
+            
+        #Loop through and set the values ---------------------------------------
+        for k,v in d_vs.iteritems():
+            log.info("{0} | {1}".format(k,v))            
+            ATTR.set(mBSNode.mNode, k, v)
+        
+    #Eye Options -------------------------------------------------------
+    import cgm.core.lib.math_utils as COREMATH
+    
+    if eyes:
+        d_ranges = {'tx':[-20,40],
+                    'ty':[-10,20],
+                    'scale':[70,110]}
+        
+        tx = random.randint(d_ranges['tx'][0],d_ranges['tx'][1]) * .1
+        ty = random.randint(d_ranges['ty'][0],d_ranges['ty'][1]) * .1
+        scale = random.randint(d_ranges['scale'][0],d_ranges['scale'][1]) * .01
+        
+        if tx < 0.0:
+            log.info("Tx > Scale...")                        
+            scale = COREMATH.Clamp(scale, tx, d_ranges['scale'][1]*.01)
+            scale *= .9
+        
+        for s in 'L','R':
+                
+            if prefix:
+                mEye = cgmMeta.asMeta("{0}:{1}_fullLid_eyeRoot_rig_anim".format(prefix,s))
+            else:
+                mEye = cgmMeta.asMeta("{0}_fullLid_eyeRoot_rig_anim".format(s))
+                
+            if reset:
+                mEye.resetAttrs(['tx','ty','tz','sx','sy','sz'])
+            else:
+                if s == 'R':
+                    mEye.tx = tx
+                else:
+                    mEye.tx = -tx
+                
+                mEye.ty = ty
+                mEye.sx = scale
+                mEye.sy = scale
+                mEye.sz = scale
+                
+                if scale < 1.0:
+                    pass
+                    #mEye.tz = scale * .5
+                else:
+                    mEye.tz = scale
+                
+                
+        
+    mc.refresh()#...thinking this makes the attr change register
+    mc.currentTime(_frame -1)#...this makes the skin clusters update. Couldn't get eval to work on them
+    mc.currentTime(_frame)
+
+
+def headRig_post():
+    import cgm.core.classes.NodeFactory as NODEFAC
+    NODEFAC.build_conditionNetworkFromGroup('noses_grp', 'nose', 'settingsControl')
+    NODEFAC.build_conditionNetworkFromGroup('brows_grp', 'brows', 'settingsControl')    
+    NODEFAC.build_conditionNetworkFromGroup('hair_grp', 'hair', 'settingsControl')    
+    NODEFAC.build_conditionNetworkFromGroup('ears_grp', 'ears', 'settingsControl')    
+    
+    #L_eyeOrb_cstJnt
+    #L_lid_cstJnt
+    #eye_datJnt
+    
+    import cgm.core.rig.shader_utils as SHADERS
+    SHADERS.create_uvPickerNetwork('head_eyeLook_anim','iris',mode=2)
+    SHADERS.create_uvPickerNetwork('head_eyeLook_anim','highlight',mode=2)
+    
+    import cgm.core.lib.attribute_utils as ATTR
+    
+    ATTR.connect('head_eyeLook_anim.res_irisU','eye_place2d.offsetU')
+    ATTR.connect('head_eyeLook_anim.res_irisV','eye_place2d.offsetV')
+    
+    ATTR.connect('head_eyeLook_anim.res_highlightU','highlight_place2d.offsetU')
+    ATTR.connect('head_eyeLook_anim.res_highlightV','highlight_place2d.offsetV')
+    
+    #eye dat joint...
+    ATTR.connect('head_eyeLook_anim.res_irisU','eye_datJnt.tx')
+    ATTR.connect('head_eyeLook_anim.res_irisV','eye_datJnt.ty')
+    
+    ATTR.connect('head_eyeLook_anim.res_highlightU','eye_datJnt.rx')
+    ATTR.connect('head_eyeLook_anim.res_highlightV','eye_datJnt.ry')    
+    
 
 def headRig_connectToBody(*args, **kws):
     """

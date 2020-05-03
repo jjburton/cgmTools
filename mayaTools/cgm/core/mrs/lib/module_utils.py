@@ -26,7 +26,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #========================================================================
-__version__ = '1.04292019'
+__version__ = '1.05312019'
 
 import maya.cmds as mc
 
@@ -71,7 +71,8 @@ def get_partName(self):
     
     try:#Quick select sets ================================================================
         _d = NAMETOOLS.get_objNameDict(self.mNode)
-        _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
+        if not _d.get('cgmName'):
+            _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
         log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
         
         _str= NAMETOOLS.returnCombinedNameFromDict(_d)
@@ -209,8 +210,12 @@ def verify_faceObjectSet(self):
         mParentModule = self.getMessageAsMeta('moduleParent')
         if not mParentModule:
             mParentModule = mModulePuppet
+            mParentRigNull = mModulePuppet
+        else:
+            mParentRigNull = mParentModule.rigNull
+            
+        mFaceSet = mRigNull.getMessageAsMeta('faceSet')
         
-        mFaceSet = mParentModule.rigNull.getMessageAsMeta('faceSet')
         #mParentSet = mParentModule.rigNull.getMessageAsMeta('moduleSet')
         
         _created = False
@@ -220,7 +225,7 @@ def verify_faceObjectSet(self):
         else:
             _created = True
             mFaceSet = cgmMeta.cgmObjectSet(setType='animSet',qssState=True)
-            mParentModule.rigNull.connectChildNode(mFaceSet.mNode,'faceSet','rigNull')
+            mParentRigNull.connectChildNode(mFaceSet.mNode,'faceSet','rigNull')
         
         mRigNull.connectChildNode(mFaceSet.mNode,'faceSet')        
         mFaceSet.doStore('cgmName',"{0}_face".format(get_partName(mParentModule)))
@@ -472,7 +477,11 @@ def rig_disconnect(self,force=False):
             #if not _b_faceState:attributes.doBreakConnection("%s.scale"%_str_joint)
             #attributes.doBreakConnection("%s.scale"%_str_joint)
 
-        if l_constraints:mc.delete(l_constraints)
+        if l_constraints:
+            mc.delete(l_constraints)
+            
+            for mJnt in ml_skinJoints:
+                mJnt.scale = 1,1,1
         return True        
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
@@ -626,10 +635,11 @@ def get_attachPoint(self, mode = 'end',idx = None, noneValid = True):
         
         mParentRigNull = mParentModule.rigNull
         
-        if mode == 'index':
-            l_msgLinks = ['moduleJoints']
-        else:
-            l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+        #if mode == 'index':
+        l_msgLinks = ['moduleJoints']
+        #else:
+        #l_msgLinks = ['blendJoints','fkJoints','moduleJoints']
+            
         _direct = False
         if mParentModule.moduleType in ['head'] and mode == 'end':
             l_msgLinks = ['rigJoints']
@@ -687,10 +697,11 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
         #ml_targetJoints = mParentRigNull.msgList_get('rigJoints',asMeta = True, cull = True)
         _plugUsed = None
         
-        if mode == 'index':
-            l_msgLinks = ['moduleJoints']
-        else:
-            l_msgLinks = ['blendJoints','fkJoints','moduleJoints']        
+        #if mode == 'index':
+        l_msgLinks = ['rigJoints']
+        _plugUsed = 'rigJoints'
+        #else:
+        #    l_msgLinks = ['blendJoints','fkJoints','moduleJoints']        
         
 
         _direct = False
@@ -726,12 +737,18 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
         if _plugUsed not in ['handleJoints'] and _direct != True:
             if mTarget.getMessage('masterGroup'):
                 log.debug("|{0}| >>  masterGroup found found. ".format(_str_func))
+                reload(NAMETOOLS)
+                mMasterGroup = mTarget.masterGroup
+                _alias = NAMETOOLS.get_combinedNameDict(mTarget.mNode,ignore=['cgmType','cgmTypeModifier'])
+                mMasterGroup.doStore('cgmAlias', _alias)
+                
                 return mTarget.masterGroup
             if mTarget.getMessage('dynParentGroup'):
                 log.debug("|{0}| >>  dynParentGroup found. ".format(_str_func,self))
                 mDynParentGroup = mTarget.dynParentGroup
                 #if not mDynParentGroup.hasAttr('cgmAlias'):
-                mDynParentGroup.doStore('cgmAlias', mTarget.cgmName)
+                _alias = NAMETOOLS.get_combinedNameDict(mTarget.mNode,ignore=['cgmType','cgmTypeModifier'])
+                mDynParentGroup.doStore('cgmAlias', _alias)
                 log.debug("|{0}| >> alias: {1}".format(_str_func,mDynParentGroup.cgmAlias))
                 return mDynParentGroup
                 mTarget = mTarget.dynParentGroup
@@ -752,8 +769,13 @@ d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'segmentHandles':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
 
-@cgmGEN.Timer
-def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = False, rewire = False,core=False):
+#@cgmGEN.Timer
+def controls_getDat(self, keys = None,
+                    ignore = [],
+                    report = False,
+                    listOnly = False,
+                    rewire = False,
+                    core=False):
     """
     Function to find all the control data for comparison for mirroing or other reasons
     
@@ -783,6 +805,9 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         except Exception,err:
             log.error("{0} | {1}".format(self,err))        
     
+    
+    _isReferenced = self.isReferenced()
+    
     def addMObj(mObj,mList):
         if mObj not in mList:
             _mClass = mObj.getMayaAttr('mClass')
@@ -792,7 +817,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 if mObj in ml_objs:
                     ml_objs.remove(mObj)
                 else:
-                    if rewire:
+                    if rewire and not _isReferenced:
                         log.warning("|{0}| >> Repair on. Connecting: {1}".format(_str_func,mObj))
                         mRigNull.msgList_append('controlsAll',mObj)
                         mRigNull.moduleSet.append(mObj.mNode)                        
@@ -800,10 +825,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                         log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
             log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
             mList.append(mObj)
-                
-                    
 
-    
     mRigNull = self.rigNull
     try:ml_objs = mRigNull.moduleSet.getMetaList() or []
     except:ml_objs = []
@@ -870,7 +892,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
                 ml_controls.append(mSpace)
     
     ml_core = []
-    for k in 'root','fk','ik','segmentHandles','face':
+    for k in 'settings','cog','root','settings','fk','ik','segmentHandles','face':
         ml = md_controls.get(k)
         if ml:ml_core.extend(ml)
     
@@ -892,7 +914,7 @@ def controls_getDat(self, keys = None, ignore = [], report = False, listOnly = F
         #raise ValueError,("|{0}| >> Resolve missing controls! | {1}".format(_str_func, ml_objs))
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
-    if rewire:
+    if rewire and not _isReferenced:
         log.warning("|{0}| >> rewire... ".format(_str_func))        
         for mObj in ml_controls:
             if not mObj.getMessageAsMeta('rigNull'):
@@ -1596,6 +1618,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
                 ml_controls.append(mRigNull.controlIKBase)
             if mRigNull.getMessage('controlIKMid'):
                 ml_controls.append(mRigNull.controlIKMid)
+               
                 
             ml_ikJoints = mRigNull.msgList_get('ikJoints')
             ml_blendJoints = mRigNull.msgList_get('blendJoints')
@@ -1621,17 +1644,20 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
             #We need to store the blendjoint target for the ik control or loc it
             for i,mCtrl in enumerate(ml_controls):
                 if mCtrl.getMessage('switchTarget'):
-                    mCtrl.resetAttrs(transformsOnly = True)
                     md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
                     md_controls[i] = mCtrl
                 else:
-                    raise ValueError,"mCtrl: {0}  missing switchTarget".format(mCtrl)
+                    log.error("mCtrl: {0}  missing switchTarget".format(mCtrl))
+                    
+            
+            for i,mCtrl in md_controls.iteritems():
+                mCtrl.resetAttrs(transformsOnly = True)
             
             mSettings.FKIK = 1
             
             for i,mLoc in md_locs.iteritems():
                 SNAP.go(md_controls[i].mNode,mLoc.mNode)
-                #mLoc.delete()
+                mLoc.delete()
             
             for i,v in md_datPostCompare.iteritems():
                 mBlend = ml_blendJoints[i]
@@ -1780,3 +1806,27 @@ def get_uiString(self,showSide=True):
         log.debug(cgmGEN.logString_start(_str_func,'ERROR'))
         log.error(err)
         return self.mNode
+    
+    
+def uiMenu_picker(self,parent = None):
+    _short = self.p_nameShort
+    ml_done = []
+    try:mc.setParent(parent)
+    except:pass
+    
+    md_dat,ml = controls_getDat(self)
+    
+    l_keys = ['root','settings','ik','fk','direct']
+    for k in l_keys:
+        _ml = md_dat.get(k)
+        if _ml:
+            mc.menuItem(en=True,divider = True, label = k)
+            for mControl in _ml:
+                _str = mControl.p_nameBase
+                d = {'ann':'[{0}] Control: {1} '.format(k,_str),
+                     'c':cgmGEN.Callback(mControl.select),
+                     'label':"{0}".format(_str)}            
+                mc.menuItem(**d)
+            
+    return
+

@@ -29,21 +29,16 @@ from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.transform_utils as TRANS
-
-#reload(LOCINATOR)
+import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
+reload(MMUTILS)
 import cgm.core.tools.toolbox as TOOLBOX
-#reload(TOOLBOX)
 import cgmToolbox
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 reload(DYNPARENTTOOL)
 from cgm.core.mrs import Builder as RBUILDER
 from cgm.core.lib import node_utils as NODES
-from cgm.core.tools.markingMenus import cgmMMPuppet as MMPuppet
-reload(MMPuppet)
 import cgm.core.mrs.Animate as MRSANIMATE
 reload(MRSANIMATE)
-#reload(mmTemplate)
-#from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.lib import search
 from cgm.lib import locators
 from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
@@ -51,22 +46,13 @@ from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.tools import meshTools
 from cgm.core.tools import attrTools as ATTRTOOLS
 import cgm.core.tools.setTools as SETTOOLS
-reload(SETTOOLS)
-#from cgm.tools import locinator
-#from cgm.tools import tdTools
-#from cgm.tools import attrTools
 import cgm.core.rig.general_utils as RIGGEN
-reload(RIGGEN)
 import cgm.core.lib.name_utils as NAMES
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
-reload(TOOLCALLS)
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
-#reload(UISNAPCALLS)
 import cgm.core.tools.lib.annotations as TOOLANNO
-#reload(TOOLANNO)
 import cgm.core.rig.joint_utils as JOINTS
-#reload(JOINTS)
 """
 reload(UICHUNKS)
 reload(MMPuppet)
@@ -170,7 +156,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                 log.info("{0} button >> error {1}".format(self._str_MM, err))     
     
     def button_CallBack(self, func, *a, **kws ):
-        killUI()
+        MMUTILS.kill_mmTool()
         mmCallback(func,*a,**kws)
 
     def toggleVarAndReset(self, optionVar):
@@ -185,7 +171,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
     def reset(self):
         log.info("{0} >> reset".format(self._str_MM))        
         mUI.Callback(cgmUI.do_resetGuiInstanceOptionVars(self.l_optionVars,False))
-        #killUI()
+        #MMUTILS.killUI()
 
     def report(self):
         cgmUI.log_selfReport(self)
@@ -317,7 +303,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=uiHelp,l = 'Reset Options',
                     c=cgmGEN.Callback(self.button_action,self.reset))           
         mc.menuItem(p=uiHelp,l = 'Force Kill MM',
-                    c=lambda *a:killUI())
+                    c=lambda *a:MMUTILS.kill_mmTool())
                     #c=cgmGEN.Callback(self.button_action,self.reset))   
         
         mc.menuItem(p=uiHelp,l='Reload local python',
@@ -366,7 +352,8 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,
                     en = self._b_sel,
                     l = 'Reset',
-                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
+                    c = lambda *a:RIGGEN.reset_channels_fromMode(mode=self.var_resetMode.value,
+                                                                 selectedChannels=1),
                     #c = mmCallback(ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),
                     rp = "S")           
         
@@ -384,7 +371,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,
                     en = self._b_sel,
                     l = 'Reset',
-                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
+                    c = lambda *a:RIGGEN.reset_channels_fromMode(mode=self.var_resetMode.value),
                     #c = mmCallback( ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),
                     rp = "S")   
  
@@ -473,8 +460,8 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=parent,
                     en = self._b_sel,
                     l = 'Reset',
-                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
-                    #c = mmCallback( ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),
+                    c = lambda *a:RIGGEN.reset_channels_fromMode(mode=self.var_resetMode.value,
+                                                                selectedChannels=1),
                     rp = "S")   
   
         mc.menuItem(p=parent,l='Key',subMenu=True,
@@ -1926,7 +1913,9 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
         else:
             MMCONTEXT.func_process(SNAP.aim, self._l_sel ,selectionMode,'Snap aim', **kws)
     else:
-        kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,'scalePivot' : False,
+        kws = {'position' : False, 'rotation' : False, 'rotateAxis' : False,'rotateOrder' : False,
+               
+               'scalePivot' : False,
                'pivot' : 'rp', 'space' : 'w', 'mode' : 'xform'}
         
         if snapMode in ['point','closestPoint']:
@@ -1954,7 +1943,7 @@ def snap_action(self, snapMode = 'point',selectionMode = 'eachToLast'):
             else:
                 raise ValueError,"Uknown pivotMode: {0}".format(_pivotMode)        
     
-        MMCONTEXT.func_process(SNAP.go, self._l_sel ,selectionMode, 'Snap', **kws)
+        MMCONTEXT.func_process(SNAP.go, self._l_sel ,selectionMode,'Snap',noSelect=False, **kws)
     
     
     return
@@ -2082,7 +2071,7 @@ def deleteKey():
 def ui_CallAndKill(func, *a, **kws ):
     try:
         _str_func = 'ui_CallAndKill'
-        killUI()
+        MMUTILS.kill_mmTool()
         try:return func( *a, **kws )
         except Exception,err:
             try:log.info("Func: {0}".format(func.__name__))
@@ -2110,10 +2099,10 @@ class mmCallback(object):
     def __call__( self, *args ):
         try:
             _res = self._func( *self._args, **self._kwargs )
-            killUI()            
+            MMUTILS.kill_mmTool()            
             return _res
         except Exception,err:
-            #killUI()            
+            #MMUTILS.killUI()            
             #try:log.info("Func: {0}".format(self._func.__name__))
             #except:log.info("Func: {0}".format(self._func))
             if self._args:

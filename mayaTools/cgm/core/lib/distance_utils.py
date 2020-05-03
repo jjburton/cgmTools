@@ -536,6 +536,24 @@ def get_average_position(posList):
         posZ.append(posBuffer[2])
     return [float(sum(posX)/len(posList)), float(sum(posY)/len(posList)), float(sum(posZ)/len(posList))]
 
+def get_pos_by_linearPct(point1,point2,f=.5):
+    """
+    Get the pct distance between two points by vector distance
+    
+    :parameters:
+        pos1
+        pos2
+        pct
+
+    :returns
+        pos(double3)
+    """       
+    vec = MATHUTILS.get_vector_of_two_points(point1,point2)
+    d = get_distance_between_points(point1,point2)
+    
+    return get_pos_by_vec_dist(point1,vec,d*f)
+    
+
 
 def get_pos_by_vec_dist(startPos,vec,distance = 1):
     """
@@ -1018,8 +1036,6 @@ def get_closest_point_data(targetSurface = None, targetObj = None, targetPoint =
         _node = _created[1]
         _shape = _created[2]
         _type = _created[3]
-        
-        
 
         #_norm = get_normalized_uv(_shape, _u,_v)
         _res = {}
@@ -1042,12 +1058,17 @@ def get_closest_point_data(targetSurface = None, targetObj = None, targetPoint =
                 _res['normUV'] = _norm['uv']
                 _res['normalizedU'] = _norm['uValue']
                 _res['normalizedV'] = _norm['vValue']
+                
+                _res['normal'] = mc.pointOnSurface([targetSurface], u = _u, v= _v, normal=True)
+                _res['normalizedNormal'] = mc.pointOnSurface([targetSurface],u = _u, v= _v,
+                                                             normalizedNormal=True)
+                
             else:
                 _res['closestFaceIndex']=mc.getAttr(_node+'.closestFaceIndex')
                 _res['closestVertexIndex']=mc.getAttr(_node+'.closestVertexIndex')
         mc.delete([_loc],_created[0],_node)
         return _res
-    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def get_normalizedWeightsByDistance(obj,targets,normalizeTo=1.0):
     _str_func = 'get_normalizedWeightsByDistance'

@@ -1,14 +1,10 @@
 global proc cgmMarkingMenu() {
-	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;reload(cgmMM_tool);cgmMM_tool.run()");
-	}
-
-
-global proc cgmMarkingMenu() {
-	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;reload(cgmMM_tool);cgmMM_tool.run()");
+	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;reload(cgmMM_tool);");
+	python("import maya.cmds as mc;mc.evalDeferred(cgmMM_tool.run,lp=True);");
 	}
 
 global proc cgmMarkingMenuKillUI() {
-	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;cgmMM_tool.killUI();");
+	python("import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS;mc.evalDeferred(MMUTILS.kill_mmTool,lp=True);");
 	}
 	
 global proc cgmMarkingMenuKillUIBAK () {

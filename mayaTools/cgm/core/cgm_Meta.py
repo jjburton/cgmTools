@@ -43,6 +43,7 @@ from cgm.core.lib import name_utils as NAMES
 reload(NAMES)
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import constraint_utils as CONSTRAINT
+import cgm.core.cgmPy.path_Utils as PATHS
 
 from cgm.lib.ml import ml_resetChannels
 from cgm.lib import lists
@@ -505,6 +506,8 @@ class cgmNode(r9Meta.MetaClass):
     def getNameBase(self):
         return NAMES.base(self.mNode)
     
+    def asAttrString(self,arg):
+        return "{0}.{1}".format(self.mNode,str(arg))
     def getNameMatches(self,report=False):
         """Get any other nodes sharing the same base node as this one"""
         _str_func = 'getNameMatches'
@@ -777,7 +780,8 @@ class cgmNode(r9Meta.MetaClass):
             buffer = mc.listRelatives(self.mNode,parent=True,type='transform') or False
         if buffer:
             return buffer[0]
-        return False    
+        return False
+    getDag = getTransform
     
     #========================================================================================================     
     #>>> Attributes 
@@ -978,7 +982,8 @@ class cgmNode(r9Meta.MetaClass):
                 _res = "{0}.{1}".format(self.mNode,d_plugTypes.get(attr))
         if _res and asMeta:
             return validateAttrArg(_res)
-        return _res        
+        return _res
+    
     
     #========================================================================================================     
     #>>> Message stuff 
@@ -1272,20 +1277,24 @@ class cgmNode(r9Meta.MetaClass):
             #if self.isTransform():
             #log.info("{0}>> transform loc: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t1)))
             #t1 = time.time()     
-            if fastMode:
-                buffer = cgmObject(mc.spaceLocator()[0])
-                buffer.rotateOrder = self.rotateOrder
-                
-                objTrans = mc.xform(self.mNode, q=True, ws=True, sp=True)
-                objRot = mc.xform(self.mNode, q=True, ws=True, ro=True)
-                objRotAxis = mc.xform(self.mNode, q=True, os=True, ra=True)
+            #if fastMode:
+            buffer = cgmObject(mc.spaceLocator()[0])
+            buffer.rotateOrder = self.rotateOrder
             
-                mc.move (objTrans[0],objTrans[1],objTrans[2], buffer.mNode)			
-                mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
-                for i,a in enumerate(['X','Y','Z']):
-                    ATTR.set(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
+            if forceBBCenter:
+                objTrans = POS.get(self.mNode,'bb')
             else:
-                buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
+                objTrans = mc.xform(self.mNode, q=True, ws=True, sp=True)
+                
+            objRot = mc.xform(self.mNode, q=True, ws=True, ro=True)
+            objRotAxis = mc.xform(self.mNode, q=True, os=True, ra=True)
+        
+            mc.move (objTrans[0],objTrans[1],objTrans[2], buffer.mNode)			
+            mc.rotate (objRot[0], objRot[1], objRot[2], buffer.mNode, ws=True)
+            for i,a in enumerate(['X','Y','Z']):
+                ATTR.set(buffer.mNode, 'rotateAxis{0}'.format(a), objRotAxis[i])                    
+            #else:
+                #buffer = locators.locMeObject(self.mNode,forceBBCenter = forceBBCenter)                    
         if not buffer:
             return False
         
@@ -1295,8 +1304,9 @@ class cgmNode(r9Meta.MetaClass):
         #if nameLink:
             #i_loc.connectChildNode(self,'cgmName')
         if not nameLink:
-            i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
-            i_loc.doName()
+            #i_loc.doCopyNameTagsFromObject(self.mNode,ignore=['cgmType'])
+            #i_loc.doName()
+            i_loc.rename(NAMES.get_base(self.mNode)+'_loc')
             #log.info("{0}>> name: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t1)))
             #t1 = time.time()            
         #log.info("{0}>> total: {1}".format(_str_func, "%0.3f seconds"%(time.time() - t_master)))            
@@ -3052,7 +3062,7 @@ class cgmObject(cgmNode):
     def getTransformInversePoint(self,*a,**kws):
         return TRANS.transformInversePoint(self,*a,**kws)
     
-    def dagLock(self,state=True,ignore = None):
+    def dagLock(self,state=True,ignore = None, visibilty= True,keyable = False):
         _attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']
         _ignore = VALID.listArg(ignore)
         if ignore:
@@ -3060,8 +3070,8 @@ class cgmObject(cgmNode):
                 if a in _attrs:
                     _attrs.remove(a)
         kws = {'lock':True,
-               'visible':False,
-               'keyable':False}
+               'visible':visibilty,
+               'keyable':keyable}
         if not state:
             for k,v in kws.iteritems():
                 kws[k] = not v
@@ -3241,14 +3251,14 @@ class cgmObject(cgmNode):
     #========================================================================================================
     #>>> Constraints ...
     #========================================================================================================
-    def getConstraintsTo(self, asMeta = False, fullPath = False):	
-        buffer = CONSTRAINT.get_constraintsTo(self,fullPath)
+    def getConstraintsTo(self, asMeta = False, fullPath = False, **kws):
+        buffer = CONSTRAINT.get_constraintsTo(self,fullPath, **kws)
         if asMeta and buffer:
             return validateObjListArg(buffer)
         return buffer
 
-    def getConstraintsFrom(self,asMeta = False, fullPath = False):
-        buffer = CONSTRAINT.get_constraintsFrom(self,fullPath)
+    def getConstraintsFrom(self,asMeta = False, fullPath = False, **kws):
+        buffer = CONSTRAINT.get_constraintsFrom(self,fullPath, **kws)
         if asMeta and buffer:
             return validateObjListArg(buffer)
         return buffer
@@ -3856,6 +3866,19 @@ class cgmControl(cgmObject):
         except StandardError,error:
             log.error("%s._hasSwitch>> _hasSwitch fail | %s"%(self.getShortName(),error))
             return False	
+        
+    def controller_get(self):
+        if cgmGEN.__mayaVersion__ < 2018:
+            log.warning('Controllers not supported before maya 2018')
+            return True
+        
+        mController = self.getMessageAsMeta('mController')
+        if not mController:
+            mc.controller(self.mNode)
+            mController = asMeta(mc.controller(self.mNode,q=True)[0])
+            self.connectParentNode(mController,'mController','source')
+        return mController
+    
 
     #>>> Lock stuff
     #========================================================================    
@@ -4536,7 +4559,7 @@ class cgmOptionVar(object):
                 except:
                     log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
         object.__setattr__(self, self.name, value)
-        log.info(self)
+        log.debug(self)
 
     def uiPrompt_value(self,title = None):
         if title is None:
@@ -4664,6 +4687,10 @@ class cgmOptionVar(object):
             mc.optionVar(fv=(self.name,0))
         elif doType == 'string':
             mc.optionVar(sv=(self.name,''))
+        elif doType == 'bool':
+            mc.optionVar(iv=(self.name,0))
+        elif doType == 'data':
+            mc.optionVar(sv=(self.name,''))
 
     def clear(self):
         """
@@ -4719,6 +4746,16 @@ class cgmOptionVar(object):
         else:
             log.debug("'%s' wasn't found in '%s'"%(value,self.name))
 
+    def removeIndex(self,value):
+        if type(self.getValue()) is list and value < len(self.getValue()):
+            try:         
+                mc.optionVar(removeFromArray = (self.name,value))
+                self.update(self.form)
+                #log.debug("'%s' removed from '%s'"%(value,self.name))
+            except:
+                log.debug("'%s' failed to remove '%s'"%(value,self.name))
+        else:
+            log.debug("'%s' isn't a list or is smaller than the given value of %i"%(self.name,value))
 
     def extend(self,valuesList):
         assert type(valuesList) is list,"'%s' not a list"%(valuesList)
@@ -4781,7 +4818,7 @@ class cgmOptionVar(object):
         log.info(cgmGEN._str_baseStart * 2 + " OptionVar: {0} | type: {1} | value: {2}".format(self.name,self.varType,self.value))
         if issubclass(type(_value),list):
             for i,v in enumerate(_value):
-                log.info("idx: {0} | obj: {1}".format(i,v))
+                log.info("idx: {0} | {1}".format(i,v))
         log.info(cgmGEN._str_subLine)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
@@ -6893,7 +6930,8 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
     _mClass = ATTR.get(_argShort,'mClass')
 
     _UUID2016 = False#...a flag to see if we need a reg UUID attr 
-    try:_UUID2016= mc.ls(_argShort, uuid=True)[0]
+    try:
+        _UUID2016 = mc.ls(_argShort, uuid=True)[0]
     except:pass
 
     if _UUID2016:
@@ -6901,7 +6939,7 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
         _UUID = _UUID2016
         try:
             ATTR.delete(_argShort,'UUID')				    
-            log.debug("Clearing attr UUID...")
+            log.debug("Clearing attr UUID: {0}".format(arg))
         except:pass
     else:
         _UUID = ATTR.get(_argShort,'UUID')
@@ -7600,6 +7638,58 @@ def validateAttrListArg(l_args = None,defaultType = 'float',noneValid = False,**
 class cgmBlendShape(cgmNode):
     def __init__(self):
         raise DeprecationWarning,"cgmBlendshape moved to cgm_Deformers.cgmBlendshape"
+    
+    
+    
+class pathList(object):
+    def __init__(self, optionVar = 'testPath'):
+        self.l_paths = []
+        self.mOptionVar = cgmOptionVar(optionVar,'string')
+    
+    def append(self, arg = None):
+        _str_func = 'pathList.append'
+        log.debug(cgmGEN.logString_start(_str_func))
+        mPath = PATHS.Path(arg)
+        if mPath.exists():
+            log.debug(cgmGEN.logString_msg(_str_func,'Path exists | {0}'.format(arg)))
+            _friendly = mPath.asFriendly()
+            self.mOptionVar.append(_friendly)
+            self.l_paths.append(_friendly)
+            
+        else:
+            log.warning(cgmGEN.logString_msg(_str_func,'Invalid Path | {0}'.format(arg)))
+            
+    def verify(self):
+        _str_func = 'pathList.verify'
+        log.debug(cgmGEN.logString_start(_str_func))
+        self.l_paths = []
+        
+        for p in self.mOptionVar.value:
+            log.debug(p)
+            mPath = PATHS.Path(p)
+            if not mPath.exists():
+                log.warning(cgmGEN.logString_msg(_str_func,"Path doesn't exist. removing: {0}".format(p)))
+                self.mOptionVar.remove(p)
+            else:
+                self.l_paths.append(p)
+                
+    def remove(self,arg = None):
+        _str_func = 'pathList.remove'
+        log.debug(cgmGEN.logString_start(_str_func))
+        self.mOptionVar.remove(arg)
+        
+    def log_self(self):
+        log.info(cgmGEN._str_hardBreak)        
+        log.info(cgmGEN.logString_start('pathList.log_self'))
+        self.mOptionVar.report()
+        
+        log.info(cgmGEN.logString_start('//pathList.log_self'))
+        log.info(cgmGEN._str_hardBreak)
+        
+    def clear(self):
+        self.mOptionVar.clear()
+        self.l_paths = []
+    
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
 #=========================================================================    

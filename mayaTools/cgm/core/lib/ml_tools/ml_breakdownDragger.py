@@ -80,7 +80,9 @@ class BreakdownDragger(utl.Dragger):
                  maxValue=None,
                  defaultValue=0,
                  title = 'Breakdown'):
-        
+        super(BreakdownDragger, self).__init__(defaultValue=defaultValue, minValue=minValue, maxValue=maxValue, name=name, title=title)
+        #utl.Dragger.__init__(self, defaultValue=defaultValue, minValue=minValue, maxValue=maxValue, name=name, title=title)
+                
         self.keySel = utl.KeySelection()
         if self.keySel.selectedKeys():
             pass
@@ -91,9 +93,6 @@ class BreakdownDragger(utl.Dragger):
         
         if not self.keySel.curves:
             return
-        
-        utl.Dragger.__init__(self, defaultValue=defaultValue, minValue=minValue, maxValue=maxValue, name=name, title=title)
-
         
         #setup tangent type
         itt,ott = utl.getHoldTangentType()

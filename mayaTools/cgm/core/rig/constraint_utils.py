@@ -9,6 +9,9 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+
+__MAYALOCAL = 'RIGCONSTRAINTS'
+
 # From Python =============================================================
 import copy
 import re
@@ -43,7 +46,7 @@ import cgm.core.lib.node_utils as NODES
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.list_utils as LISTS
 
-def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
+def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver = None):
     """
     :parameters:
         obj - transform to attach
@@ -63,6 +66,8 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
     try:
         _str_func = 'attach_toShape'
         mObj = cgmMeta.validateObjArg(obj,'cgmObject')
+        mDriver = cgmMeta.validateObjArg(driver,'cgmObject',noneValid=True)
+        
         targetShape = VALID.mNodeString(targetShape)
         log.debug("targetShape: {0}".format(targetShape))
 
@@ -72,7 +77,8 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
 
         log.debug("|{0}| >> jnt: {1} | {2}".format(_str_func,mObj.mNode, d_closest))
         #pprint.pprint(d_closest)
-
+        md_res = {}
+        
         if d_closest['type'] in ['mesh','nurbsSurface']:
             log.debug("|{0}| >> Follicle mode...".format(_str_func))
             _shape = SHAPES.get_nonintermediate(d_closest['shape'] )
@@ -97,6 +103,9 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
                 i_follicleShape.parameterU = d_closest['normalizedU']
                 i_follicleShape.parameterV = d_closest['normalizedV']
             _res = [i_follicleTrans.mNode, i_follicleShape.mNode]
+            
+            md_res['mFollicle'] = i_follicleTrans
+            md_res['mFollicleShape'] = i_follicleShape
         else:
             log.debug("|{0}| >> Curve mode...".format(_str_func))
             #d_returnBuff = distance.returnNearestPointOnCurveInfo(obj,crv)
@@ -116,31 +125,145 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
             mPOCI.doStore('cgmName',mObj)            
             mPOCI.doName()            
             _res = [mTrack.mNode, mPOCI.mNode]
+            
 
-        if connectBy is None:
-            return _res 
+        if mDriver:
+            if d_closest['type'] in ['nurbsSurface']:
+                mFollicle = i_follicleTrans
+                mFollShape = i_follicleShape
+                
+                minU = ATTR.get(_shape,'minValueU')
+                maxU = ATTR.get(_shape,'maxValueU')
+                minV = ATTR.get(_shape,'minValueV')
+                maxV = ATTR.get(_shape,'maxValueV')        
+        
+                mDriverLoc = mDriver.doLoc()
+                mc.pointConstraint(mDriver.mNode,mDriverLoc.mNode)
+                #mLoc = mObj.doLoc()
+                
+                str_baseName = "{0}_to_{1}".format(mDriver.p_nameBase, mObj.p_nameBase)
+                mPlug_normalizedU = cgmMeta.cgmAttr(mDriverLoc.mNode,
+                                                   "{0}_normalizedU".format(str_baseName),
+                                                   attrType = 'float',
+                                                   hidden = False,
+                                                   lock=False)
+                mPlug_sumU = cgmMeta.cgmAttr(mDriverLoc.mNode,
+                                            "{0}_sumU".format(str_baseName),
+                                            attrType = 'float',
+                                            hidden = False,
+                                            lock=False)
+                
+                mPlug_normalizedV = cgmMeta.cgmAttr(mDriverLoc.mNode,
+                                                   "{0}_normalizedV".format(str_baseName),
+                                                   attrType = 'float',
+                                                   hidden = False,
+                                                   lock=False)
+                mPlug_sumV = cgmMeta.cgmAttr(mDriverLoc.mNode,
+                                            "{0}_sumV".format(str_baseName),
+                                            attrType = 'float',
+                                            hidden = False,
+                                            lock=False)
+                
+                #res_closest = DIST.create_closest_point_node(mLoc.mNode, mCrv_reparam.mNode,True)
+                log.debug("|{0}| >> Closest info {1}".format(_str_func,_res))
+        
+                srfNode = mc.createNode('closestPointOnSurface')
+                mc.connectAttr("%s.worldSpace[0]" % _shape, "%s.inputSurface" % srfNode)
+                mc.connectAttr("%s.translate" % mDriverLoc.mNode, "%s.inPosition" % srfNode)
+                #mc.connectAttr("%s.position" % srfNode, "%s.translate" % mLoc.mNode, f=True)
+                
+                #mClosestPoint =  cgmMeta.validateObjArg(srfNode,setClass=True)
+                #mClosestPoint.doStore('cgmName',mObj)
+                #mClosestPoint.doName()
+                
+                log.debug("|{0}| >> paramU {1}.parameterU | {2}".format(_str_func,srfNode,
+                                                                        ATTR.get(srfNode,'parameterU')))
+                log.debug("|{0}| >> paramV {1}.parameterV | {2}".format(_str_func,srfNode,
+                                                                        ATTR.get(srfNode,'parameterV')))
+                
+        
+                l_argBuild = []
+                mPlug_uSize = cgmMeta.cgmAttr(mDriverLoc.mNode,
+                                              "{0}_uSize".format(str_baseName),
+                                              attrType = 'float',
+                                              hidden = False,
+                                              lock=False)        
+                mPlug_vSize = cgmMeta.cgmAttr(mDriverLoc.mNode,
+                                              "{0}_vSize".format(str_baseName),
+                                              attrType = 'float',
+                                              hidden = False,
+                                              lock=False)
+                
+                l_argBuild.append("{0} = {1} - {2}".format(mPlug_vSize.p_combinedName,
+                                                           maxV,minV))
+                l_argBuild.append("{0} = {1} - {2}".format(mPlug_uSize.p_combinedName,
+                                                           maxU,minU))        
+                
+                l_argBuild.append("{0} = {1} + {2}.parameterU".format(mPlug_sumU.p_combinedName,
+                                                                      minU,
+                                                                      srfNode))
+                
+                l_argBuild.append("{0} = {1} / {2}".format(mPlug_normalizedU.p_combinedName,
+                                                           mPlug_sumU.p_combinedName,
+                                                           mPlug_uSize.p_combinedName))
+                
+                l_argBuild.append("{0} = {1} + {2}.parameterV".format(mPlug_sumV.p_combinedName,
+                                                                      minV,
+                                                                      srfNode))
+                
+                l_argBuild.append("{0} = {1} / {2}".format(mPlug_normalizedV.p_combinedName,
+                                                           mPlug_sumV.p_combinedName,
+                                                           mPlug_vSize.p_combinedName))        
+                
+                
+                for arg in l_argBuild:
+                    log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                    NODEFACTORY.argsToNodes(arg).doBuild()        
+                
+                ATTR.connect(mPlug_normalizedU.p_combinedShortName,
+                             '{0}.parameterU'.format(mFollShape.mNode))
+                ATTR.connect(mPlug_normalizedV.p_combinedShortName,
+                             '{0}.parameterV'.format(mFollShape.mNode))
+                
+                
+                md_res['mDriverLoc'] = mDriverLoc
+                
+            elif d_closest['type'] in ['curve','nurbsCurve']:
+                mDriverLoc = mDriver.doLoc()
+                mc.pointConstraint(mDriver.mNode,mDriverLoc.mNode)
+                
+                _resClosest = DIST.create_closest_point_node(mDriverLoc.mNode,
+                                                             _shape,True) 
+                _loc = _resClosest[0]
+                
 
-        elif connectBy == 'parent':
+                md_res['mDriverLoc'] = mDriverLoc
+                md_res['mDrivenLoc'] = cgmMeta.asMeta(_loc)
+                md_res['mTrack'] = mTrack
+                
+            else:
+                log.warning(cgmGEN.logString_msg(_str_func,"Shape type not currently supported for driver setup. Type: {0}".format(d_closest['type'])))
+        
+        #if connectBy is None:
+            #return _res 
+        if connectBy == 'parent':
             mObj.p_parent = _trackTransform
-            return _res
         elif connectBy == 'conPoint':
             mc.pointConstraint(_trackTransform, mObj.mNode,maintainOffset = True)
-            return _res
         elif connectBy == 'conParent':
             mc.parentConstraint(_trackTransform, mObj.mNode,maintainOffset = True)
-            return _res        
         elif connectBy == 'parentGroup':
             mGroup = mObj.doGroup(asMeta=True)
             #_grp = TRANS.group_me(obj,True)
             #TRANS.parent_set(_grp,_trackTransform)
             mGroup.p_parent = _trackTransform
-            return _res + [mGroup.mNode]        
+            _res = _res + [mGroup.mNode]        
         elif connectBy == 'conPointGroup':
             mLoc = mObj.doLoc()            
             mLoc.p_parent = _trackTransform
             mGroup = mObj.doGroup(asMeta=True)
             mc.pointConstraint(mLoc.mNode,mGroup.mNode)
-            return _res + [mGroup.mNode]        
+            _res = _res + [mGroup.mNode]        
 
         elif connectBy == 'conPointOrientGroup':
             mLoc = mObj.doLoc()            
@@ -149,20 +272,29 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent'):
 
             mc.pointConstraint(mLoc.mNode,mGroup.mNode)
             mc.orientConstraint(mLoc.mNode,mGroup.mNode)
-            return _res + [mGroup.mNode]        
+            _res = _res + [mGroup.mNode]        
 
         elif connectBy == 'conParentGroup':
             mLoc = mObj.doLoc()            
             mLoc.p_parent = _trackTransform
             mGroup = mObj.doGroup(asMeta=True)
             mc.parentConstraint(mLoc.mNode,mGroup.mNode)
-            return _res + [mGroup.mNode]        
-
+            _res = _res + [mGroup.mNode]        
+        elif connectBy is None:
+            pass
         else:
-            raise NotImplementedError,"|{0}| >>invalid connectBy: {1}".format(_str_func,connectBy)  
+            raise NotImplementedError,"|{0}| >>invalid connectBy: {1}".format(_str_func,connectBy)        
+        
+        if md_res:
+            return _res , md_res
+        return _res
 
         #pprint.pprint(vars())
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+
+
+    
+
 
 def driven_disconnect(driven = None, driver = None, mode = 'best'):
     """
@@ -761,3 +893,132 @@ def build_aimSequence(l_driven = None,
         else:
             mObj.followRoot = .5
 
+d_wiring_l = {'modules':[u'L_feather1_limb', u'L_feather2_limb', u'L_feather3_limb',
+                         u'L_feather4_limb', u'L_feather5_limb', u'L_index_limb'],
+            'driven':{1:[0,3],
+                      2:[0,3],
+                      3:[0,5],
+                      4:[3,5],
+                      }}
+d_wiring_r = {'modules':[u'R_feather1_limb', u'R_feather2_limb', u'R_feather3_limb',
+                         u'R_feather4_limb', u'R_feather5_limb', u'R_index_limb'],
+            'driven':{1:[0,3],
+                      2:[0,3],
+                      3:[0,5],
+                      4:[3,5],
+                      }}
+
+d_wiring_r_hawk = {'modules':
+                   ['R_feather1_limb_part',
+                    'R_feather2_limb_part',
+                    'R_feather3_limb_part',
+                    'R_feather4_limb_part',
+                    'R_feather5_limb_part',
+                    'R_index_limb_part'],
+                   'driven':{1:[0,3],
+                             2:[0,3],
+                             3:[0,5],
+                             4:[3,5],
+                             
+                             }}
+d_wiring_l_hawk = {'modules':
+                   ['L_feather1_limb_part',
+                    'L_feather2_limb_part',
+                    'L_feather3_limb_part',
+                    'L_feather4_limb_part',
+                    'L_feather5_limb_part',
+                    'L_index_limb_part'],
+                   'driven':{1:[0,3],
+                             2:[0,3],
+                             3:[0,5],
+                             4:[3,5],
+                             
+                             }}
+
+def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
+    """
+    
+    """
+    try:
+        _str_func = 'wing_temp'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        ml_roots = []
+        ml_parts = []
+        ml_rigNulls = []
+        ml_blendDrivers = []
+        
+        #Dat get...
+        for part in d_wiring['modules']:
+            mPart = cgmMeta.asMeta(part)
+            mRigNull = mPart.rigNull
+            ml_parts.append(mPart)
+            ml_rigNulls.append(mRigNull)
+            ml_roots.append(mRigNull.rigRoot)
+            ml_joints = mRigNull.msgList_get('blendJoints')
+            if not ml_joints:
+                for plug in 'fkAttachJoints','fkJoints':
+                    ml_test = mRigNull.msgList_get(plug)
+                    if ml_test:
+                        ml_joints = ml_test
+                        break
+            ml_blendDrivers.append(ml_joints[0])
+            
+        pprint.pprint(vars())
+        
+        #Generate driver locs...
+        for d,s in d_wiring['driven'].iteritems():
+            mPart = ml_parts[d]
+            mRoot = ml_roots[d]
+            mRigNull = ml_rigNulls[d]
+            mAttach = mRigNull.getMessageAsMeta('attachDriver')
+            
+            log.info(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(d,s)))
+            
+            #...loc -----------------------------------------------------------------------
+            log.info(cgmGEN.logString_msg(_str_func,'loc...'))
+            mLoc = mRoot.getMessageAsMeta('featherDriver')
+            if mLoc:
+                mLoc.delete()
+                
+            mLoc = ml_roots[d].doLoc()
+            mLoc.rename("{0}_featherLoc".format(mPart.p_nameBase))
+            mLoc.p_parent = mRoot.masterGroup.p_parent
+            mLoc.v=False
+            mLoc.doStore('cgmAlias','feather')
+            
+            mRoot.connectChildNode(mLoc.mNode,'featherDriver','mPart')
+            
+            #...drivers ------------------------------------------------------------
+            ml_drivers = [ml_blendDrivers[v] for v in s]
+            l_drivers = [mObj.mNode for mObj in ml_drivers]
+            _vList = DIST.get_normalizedWeightsByDistance(mLoc.mNode,
+                                                          l_drivers)
+            
+            
+            _orient = mc.orientConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
+            l_constraints = [_orient]
+            if mode == 'slidingPosition':
+                _point = mc.pointConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
+                l_constraints.append(_point)
+            else:
+                _point = mc.pointConstraint(mAttach.mNode, mLoc.mNode, maintainOffset = 1)
+            
+            for c in l_constraints:
+                CONSTRAINT.set_weightsByDistance(c[0],_vList)
+                
+            ATTR.set(_orient[0],'interpType',2)
+            mLoc.dagLock()
+            
+            mDynGroup = mRoot.dynParentGroup
+            mDynGroup.addDynParent(mLoc)
+            mDynGroup.rebuild()
+            
+            _len = len(ATTR.get_enumList(mRoot.mNode,'space'))
+            mRoot.space = _len -1
+            
+            
+
+        
+        return True
+    except Exception,err:cgmGEN.cgmException(Exception,err)

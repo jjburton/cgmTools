@@ -86,9 +86,6 @@ requires the StudioPack codebase to run</p>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.pro_pack.core.animation.Anim_Transfer" title="Red9.pro_pack.core.animation.Anim_Transfer"><code class="xref py py-obj docutils literal"><span class="pre">Anim_Transfer</span></code></a>([mrig])</td>
 <td>main animation transfer class for bouncing data to and from fbx to the Red9 Rig</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">LimbMatchingUI</span></code></td>
-<td></td>
-</tr>
 </tbody>
 </table>
 <dl class="function">
@@ -108,7 +105,7 @@ requires the StudioPack codebase to run</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>baseRange</strong> &#8211; [start,end] which we want to see if our testRange falls within</li>
 <li><strong>testRange</strong> &#8211; [start,end] that we&#8217;re testing</li>
-<li><strong>mode</strong> &#8211; &#8216;byRange_start&#8217;, &#8216;byRange_end&#8217;, &#8216;&#8217;  modifies the ranges sent to test, if 
+<li><strong>mode</strong> &#8211; &#8216;byRange_start&#8217;, &#8216;byRange_end&#8217;, &#8216;&#8217;  modifies the ranges sent to test, if
 * byRange_start - then we send [None,end] to test, ignoring the start and only testing if the end falls within bound
 * byRange_end - then we send [start,None] to test, ignoring the end and only testing if the start falls within bound
 * byRange - we test that the testRange falls within both the baseRanges start and end times
@@ -142,7 +139,7 @@ requires the StudioPack codebase to run</p>
 <dl class="function">
 <dt id="Red9.pro_pack.core.animation.playback_performance">
 <code class="descname">playback_performance</code><span class="sig-paren">(</span><em>iteration=3</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.playback_performance" title="Permalink to this definition">¶</a></dt>
-<dd><p>a simple performance checker to test actual framerate rather than 
+<dd><p>a simple performance checker to test actual framerate rather than
 using the frameRate HUD with isn&#8217;t accurate</p>
 </dd></dl>
 
@@ -179,6 +176,14 @@ parallel evaluation &amp; playback</p>
 <p class="first admonition-title">Note</p>
 <p class="last">as of 2018 this is no longer needed due to Autodesk optimizations</p>
 </div>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.animation.get_valid_filter_preset">
+<code class="descname">get_valid_filter_preset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.get_valid_filter_preset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the currently set preset from the red9config file, this is generated
+from the AnimationUI. If the last selected preset no longer exists on disc
+then we default to the PROJECT_DATA.data.pose_basePreset var</p>
 </dd></dl>
 
 <dl class="function">
@@ -271,6 +276,12 @@ parallel evaluation &amp; playback</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.pro_pack.core.animation.hik_get_binder_property_node">
+<code class="descname">hik_get_binder_property_node</code><span class="sig-paren">(</span><em>mrig</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.hik_get_binder_property_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>from a given mRig return the HIK property node / retarget setup node</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.pro_pack.core.animation.animMap_validate_preload">
 <code class="descname">animMap_validate_preload</code><span class="sig-paren">(</span><em>mrig</em>, <em>filepath=None</em>, <em>infoDict=None</em>, <em>match='exact'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.animMap_validate_preload" title="Permalink to this definition">¶</a></dt>
 <dd><p>generic call that raises a user prompt, used by the Animation_Load UI to validate the internal
@@ -319,7 +330,7 @@ the AnimMap base code, verify before we hit the load calls ;)</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">PySide.QtGui.QMainWindow</span></code>, <code class="xref py py-class docutils literal"><span class="pre">Ui_MainWindow</span></code></p>
 <dl class="attribute">
 <dt id="Red9.pro_pack.core.animation.AnimationStore_PreLoad.staticMetaObject">
-<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimationStore_PreLoad.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object at 0x0000000020EDB908&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimationStore_PreLoad.staticMetaObject" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -328,6 +339,18 @@ the AnimMap base code, verify before we hit the load calls ;)</p>
 <dt id="Red9.pro_pack.core.animation.AnimationStore">
 <em class="property">class </em><code class="descname">AnimationStore</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimationStore" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">PySide.QtGui.QMainWindow</span></code>, <code class="xref py py-class docutils literal"><span class="pre">Ui_MainWindow</span></code></p>
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.AnimationStore.show">
+<code class="descname">show</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimationStore.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>overload to control splitter size once the ui is up</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.AnimationStore.closeEvent">
+<code class="descname">closeEvent</code><span class="sig-paren">(</span><em>event</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimationStore.closeEvent" title="Permalink to this definition">¶</a></dt>
+<dd><p>close event to push the sizes to the settings object</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.AnimationStore.saveAnimMap">
 <code class="descname">saveAnimMap</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimationStore.saveAnimMap" title="Permalink to this definition">¶</a></dt>
@@ -342,7 +365,7 @@ the AnimMap base code, verify before we hit the load calls ;)</p>
 
 <dl class="attribute">
 <dt id="Red9.pro_pack.core.animation.AnimationStore.staticMetaObject">
-<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimationStore.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object at 0x0000000020EDF048&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimationStore.staticMetaObject" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -466,7 +489,9 @@ It will however temporarily flatten animCurves to capture the collapsed effect o
 <li><strong>nodes</strong> &#8211; if use filter is on this is the root of the systems to filter from, else it&#8217;s given nodes to process</li>
 <li><strong>filepath</strong> &#8211; r9Anim file to load</li>
 <li><strong>useFilter</strong> &#8211; do we process all children of this rig or just selected</li>
-<li><strong>timerange</strong> &#8211; specific a timerange to store, else store all</li>
+<li><strong>timerange</strong> &#8211; specify a timerange to store, If no timerange is passed
+then it will use the current timeLine PlaybackRange, OR if you have a
+highlighted range of time selected (in red) it&#8217;ll use this instead.</li>
 <li><strong>storeThumbnail</strong> &#8211; this will be an avi but currently it&#8217;s a pose thumbnail</li>
 <li><strong>force</strong> &#8211; allow force write on a read only file</li>
 </ul>
@@ -499,8 +524,8 @@ the mRig&#8217;s internal data, else we use the timecode binding supplied</li>
 <li><strong>timecodeBinding</strong> &#8211; (frm, str(&#8216;00:00:00:00&#8217;))  Tuple where the first arg is the frame at which the second arg&#8217;s SMPTE timecode
 has been set as reference, basically we&#8217;re saying that the timecode at frm is x</li>
 <li><strong>referenceNode</strong> &#8211; reference node used as the offset Node for relative loading</li>
-<li><strong>relativeRots</strong> &#8211; &#8216;projected&#8217; or &#8216;absolute&#8217; - how to calculate the offset, default=&#8217;projected&#8217;</li>
-<li><strong>relativeTrans</strong> &#8211; &#8216;projected&#8217; or &#8216;absolute&#8217; - how to calculate the offset, default=&#8217;projected&#8217;</li>
+<li><strong>relativeRots</strong> &#8211; &#8216;projected&#8217;, &#8216;absolute&#8217; or &#8216;skip&#8217; - how to calculate the offset, default=&#8217;projected&#8217;</li>
+<li><strong>relativeTrans</strong> &#8211; &#8216;projected&#8217;, &#8216;absolute&#8217; or &#8216;skip&#8217; - how to calculate the offset, default=&#8217;projected&#8217;</li>
 <li><strong>manageRanges</strong> &#8211; do we (0, 1, 2) = leave, extend or set the timeranges according to the anim data loaded</li>
 <li><strong>manageFileName</strong> &#8211; if True and the current Maya scene has no filename other than a blank scene (ie freshly loaded rig)
 then we take the r9Anim&#8217;s filename and rename the Maya scene accordingly</li>
@@ -512,11 +537,18 @@ time=startFarme-blendRange to hold the current data before we load the new keys.
 to ensure the data is preserved</li>
 <li><strong>merge</strong> &#8211; if True we allow the data to be merged over any current keys, else we cut all keys in the load range first</li>
 <li><strong>smartbake</strong> &#8211; only valid if we&#8217;re loading with a referenceNode, this tries to respect current keys when doing the processing rather than frame baking</li>
+<li><strong>loadInternalRig</strong> &#8211; If True and the r9Anim was created from a rig that was referenced then re-create that reference and load the r9Anim data onto
+the resulting nodes. This is used in the Direct Load calls as the prime way to import the rigs prior to loading</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Relative mode currently relies on the controller / reference node thats passed in to be Y-up in it&#8217;s native state,
+thats to say the Y axis pointing upwards. We&#8217;ll be patching this moving forwards</p>
+</div>
 </dd></dl>
 
 <dl class="method">
@@ -524,14 +556,15 @@ to ensure the data is preserved</li>
 <code class="descname">extractData_Export</code><span class="sig-paren">(</span><em>manageExport='byAll'</em>, <em>sort=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimMap.extractData_Export" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract the key IDs for the exportLoops found in the r9Anim file, this
 passes through the manageExport code to match loop timings with the
-r9Anim offset/start and end ranges</p>
+r9Anim offset/start and end ranges. This data is then handled by the Pro_MetaRig_Base class
+as it&#8217;s only restorable to Pro_MetaRig systems.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>manageExport</strong> &#8211; [], byAll, byName, byRange_start, byRange_end, byRange uses the timeWithinRange call
-if given a list then we use that as a search for specific ExportLoops in the data</li>
+<li><strong>manageExport</strong> &#8211; [], byAll, byName, byRange_start, byRange_end, byRange uses the timeWithinRange call.
+if given a list then we use these entries as a search for specific ExportLoops in the data</li>
 <li><strong>sort</strong> &#8211; sort the returned data by the endFrame in each loops data</li>
 </ul>
 </td>
@@ -545,9 +578,10 @@ internal startFrame and endFrame ranges have been set to process against</p>
 </div>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># to simply read the data and get access to it prior to any processing</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span> <span class="o">=</span> <span class="n">AnimMap</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">r9anim</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">_readPose</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">_readPose</span><span class="p">()</span>  <span class="c1"># simple file parse</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">amap</span><span class="o">.</span><span class="n">infoDict</span><span class="p">[</span><span class="s1">&#39;exporter&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">extractData_Export</span><span class="p">()</span>  <span class="c1"># returns the extracted export data that matches the params</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -558,17 +592,32 @@ internal startFrame and endFrame ranges have been set to process against</p>
 <dd><p>Extract the key IDs for the AudioNodes found in the r9Anim file, this
 passes through the manageExport code to match loop timings with the
 r9Anim offset/start and end ranges. In-order for the audio to get into the r9Anim
-it MUST be connected to an mRig via the AudioGrp node, all managed in the Exporter</p>
+it MUST be connected to an mRig via the AudioGrp node, all managed in the Exporter.
+This data is then handled by the Pro_MetaRig_Base class as it&#8217;s only restorable
+to Pro_MetaRig systems.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>manageAudio</strong> &#8211; [], byAll, byName, byRange_start, byRange_end, uses the timeWithinRange call
-if given a list then we use that as a search for specific ExportLoops in the data</li>
-<li><strong>sort</strong> &#8211; sort the returned data by the endFrame in each loops data</li>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>manageAudio</strong> &#8211; [], byAll, byName, byRange_start, byRange_end, uses the timeWithinRange call.
+if given a list then we use these entries as a search for specific AudioNodes in the data.</td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li>False : don&#8217;t restore any audioData,</li>
+<li>[] : if you pass in a list then we take that list and match internal audioNode names to it</li>
+<li>&#8216;byName&#8217; : restore only audioNodes who name matches the r9Anim&#8217;s name</li>
+<li>&#8216;byRange&#8217;: restore audioNodes that fall within the timerange of the imported r9Anim</li>
+<li>&#8216;byRange_start&#8217; : restore audioNodes that start after the timerange of the importer r9Anim (ignore end time data)</li>
+<li>&#8216;byRange_end&#8217; : restore audioNodes that end before the timerange of the importer r9Anim (ignore start time data)</li>
+<li>&#8216;byAll&#8217; : restore ALL audioNodes in the r9Anim infoData block</li>
 </ul>
-</td>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sort</strong> &#8211; sort the returned data by the endFrame in each loops data</td>
 </tr>
 </tbody>
 </table>
@@ -579,35 +628,130 @@ internal startFrame and endFrame ranges have been set to process against.</p>
 </div>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># to simply read the data and get access to it prior to any processing</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span> <span class="o">=</span> <span class="n">AnimMap</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">r9anim</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">_readPose</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">amap</span><span class="o">.</span><span class="n">infoDict</span><span class="p">[</span><span class="s1">&#39;audioGrp&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">filepath</span> <span class="o">=</span> <span class="n">filepath</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">_readPose</span><span class="p">()</span>  <span class="c1"># simple file parse</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">amap</span><span class="o">.</span><span class="n">infoDict</span><span class="p">[</span><span class="s1">&#39;audioGrp&#39;</span><span class="p">]</span>  <span class="c1"># the actual data from the file itself</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">amap</span><span class="o">.</span><span class="n">extractData_Audio</span><span class="p">()</span>  <span class="c1"># returns the extracted audio data that matches the params</span>
 </pre></div>
 </div>
+<dl class="docutils">
+<dt>TODO: modify the filepath handlers to look for the given file in the workspace or the current</dt>
+<dd>r9anim path if os.path/exists(path) fails on the actual path extracted here</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.AnimMap.extractData_ImagePlanes">
 <code class="descname">extractData_ImagePlanes</code><span class="sig-paren">(</span><em>manageImagePlanes='byAll'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimMap.extractData_ImagePlanes" title="Permalink to this definition">¶</a></dt>
-<dd><p>extra the imagePlane data if found, this is only relevant for FacialUI sub-classes</p>
+<dd><p>extract the imagePlane data if found, this is only relevant for FacialUI sub-classes.
+This data is then handled by the Pro_MetaRig_Base class as it&#8217;s only restorable
+to Pro_MetaRig systems.</p>
+<dl class="docutils">
+<dt>TODO: modify the filepath handlers to look for the given file in the workspace or the current</dt>
+<dd>r9anim path if os.path/exists(path) fails on the actual path extracted here</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.AnimMap.extractData_referenced_rig">
 <code class="descname">extractData_referenced_rig</code><span class="sig-paren">(</span><em>load=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimMap.extractData_referenced_rig" title="Permalink to this definition">¶</a></dt>
 <dd><p>extra the mrig referenced in the data if found, this is used as a buffer
-&amp; consistent methiod for grabbing the info dict data</p>
+&amp; consistent method for grabbing the info dict data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>load</strong> &#8211; if load=True and the mRig was referenced when the r9Anim was saved then
+we restore that reference including the namespace and refgrp and return the new mRig
+that was loaded. If False then we just restore the ref information [refpath, namespace, refgrp]</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>TODO: modify the filepath handlers to look for the given file in the workspace or the current</dt>
+<dd>r9anim path if os.path/exists(path) fails on the actual path extracted here</dd>
+</dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.animation.load_r9anim_direct">
+<code class="descname">load_r9anim_direct</code><span class="sig-paren">(</span><em>filepath=None</em>, <em>open=False</em>, <em>force=True</em>, <em>loadAsStored=True</em>, <em>loadFromFrm=None</em>, <em>manageRanges=1</em>, <em>manageFileName=True</em>, <em>manageExport='byName'</em>, <em>manageAudio='byRange_start'</em>, <em>manageImagePlanes=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.load_r9anim_direct" title="Permalink to this definition">¶</a></dt>
+<dd><p>load a given r9Anim directly using the internal mRig referenced filepath,
+we will reference that rig in under its original namespace then push the
+anim data over to it. This will also restore the Maya sceneName if it&#8217;s currently
+untitled so it matches the r9Anim&#8217;s filename</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filepath</strong> &#8211; filepath of the r9Anim we&#8217;re wanting to restore</li>
+<li><strong>open</strong> &#8211; default=True, if True we make sure we do a &#8216;NewScene&#8217; prior to load, else we import the data into the current scene</li>
+<li><strong>force</strong> &#8211; default=True, if True and &#8220;open&#8221; we force NewScene else we abort if there are unsaved changes</li>
+<li><strong>loadAsStored</strong> &#8211; load the anim data from the original time</li>
+<li><strong>loadFromFrm</strong> &#8211; if not loadAsStored, load the animation data from a given frame by comparing the
+internal startFrm stored in the animMap with the given frame</li>
+<li><strong>manageRanges</strong> &#8211; default=1, do we (0, 1, 2) = leave, extend or set the timeranges according to the anim data loaded</li>
+<li><strong>manageFileName</strong> &#8211; if True and the current Maya scene has no filename other than a blank
+new &#8216;untitled&#8217; scene, then we take the r9Anim&#8217;s filename and rename the Maya scene accordingly</li>
+<li><strong>manageExport</strong> &#8211; default=&#8217;byName&#8217;, do we want to restore the export data</li>
+<li><strong>manageAudio</strong> &#8211; default=&#8217;byRange_start&#8217;, do we want to restore the audio data</li>
+<li><strong>manageImahePlanes</strong> &#8211; default=True, do we want to restore the imnagePlane data</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">for the manage flags please see the main description of their behaviour in the
+Red9_Meta.MetaRig.loadAnimation call. These flags are ONLY supported for mRigs
+inherited from the metadata_pro.Pro_MetaRig_Base class</p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.animation.r9anim_browser_actions">
+<code class="descname">r9anim_browser_actions</code><span class="sig-paren">(</span><em>r9anims</em>, <em>mayafile=False</em>, <em>export=False</em>, <em>playblast=False</em>, <em>_logger=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.r9anim_browser_actions" title="Permalink to this definition">¶</a></dt>
+<dd><p>light wrapper to manage the browser functionality.</p>
+<p>The key to this is the r9Anim file must have been generate by a reference rig.
+This information is stored in the file and if found we restore the reference and
+load the r9anim onto it before passing the rig over to the exporter to manage
+the various output formats. The settings for these are respected from the main
+Red9 ExportUI &gt; Settings data, store in the R9PRO&gt;settings object files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Params r9anims:</th><td class="field-body">list of r9anim files to process</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Params mayafile:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">restore the r9anim and save a Maya file</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Params export:</th><td class="field-body">restore the r9anim and run the exporter on it (usually FBX)</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Params playblast:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">restore the r9anim and create a Playblast from it</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="class">
 <dt id="Red9.pro_pack.core.animation.Anim_Redirect">
 <em class="property">class </em><code class="descname">Anim_Redirect</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Redirect" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">PySide.QtGui.QMainWindow</span></code>, <code class="xref py py-class docutils literal"><span class="pre">Ui_MainWindow</span></code></p>
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Anim_Redirect.closeEvent">
+<code class="descname">closeEvent</code><span class="sig-paren">(</span><em>event</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Redirect.closeEvent" title="Permalink to this definition">¶</a></dt>
+<dd><p>close event to push the sizes to the settings object</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="Red9.pro_pack.core.animation.Anim_Redirect.staticMetaObject">
-<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object at 0x00000000138E2108&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Redirect.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object at 0x0000000020EDF648&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Redirect.staticMetaObject" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -805,6 +949,24 @@ making the re-direct live but generating pairblends</p>
 
 </dd></dl>
 
+<dl class="function">
+<dt id="Red9.pro_pack.core.animation.getNewMrigs">
+<code class="descname">getNewMrigs</code><span class="sig-paren">(</span><em>old_list</em>, <em>new_list</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.getNewMrigs" title="Permalink to this definition">¶</a></dt>
+<dd><p>substract old_tag_list items from new_tag_list and return the difference</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>old_list</strong> &#8211; list of mRigs</li>
+<li><strong>new_list</strong> &#8211; list of mRigs</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="class">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer">
 <em class="property">class </em><code class="descname">Anim_Transfer</code><span class="sig-paren">(</span><em>mrig=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer" title="Permalink to this definition">¶</a></dt>
@@ -824,14 +986,19 @@ making the re-direct live but generating pairblends</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Anim_Transfer.get_data_from_binder">
-<code class="descname">get_data_from_binder</code><span class="sig-paren">(</span><em>binder_hik=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.get_data_from_binder" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.get_data_from_mrig">
 <code class="descname">get_data_from_mrig</code><span class="sig-paren">(</span><em>mrig=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.get_data_from_mrig" title="Permalink to this definition">¶</a></dt>
 <dd><p>propagate the data from the mRig</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.animation.Anim_Transfer.binder_root">
+<code class="descname">binder_root</code><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.binder_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>This uses the HIK_BND.Reference jnt that was marked via the HIK wires</p>
+<dl class="docutils">
+<dt>TODO: do we look at walking UP the hierarchy to find any parent joints</dt>
+<dd>that aren&#8217;t part of the HIK definition???</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
@@ -849,8 +1016,17 @@ making the re-direct live but generating pairblends</p>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.set_timerange_from_binder_joints">
-<code class="descname">set_timerange_from_binder_joints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.set_timerange_from_binder_joints" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_timerange_from_binder_joints</code><span class="sig-paren">(</span><em>jnts=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.set_timerange_from_binder_joints" title="Permalink to this definition">¶</a></dt>
 <dd><p>set scene timeranges using the animation ranges for binder joints animation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>jnts</strong> &#8211; [] if given these are the joints to find the animated range from,
+if not given we use the self.binder_joints array</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -882,7 +1058,7 @@ making the re-direct live but generating pairblends</p>
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.add_export_loop">
 <code class="descname">add_export_loop</code><span class="sig-paren">(</span><em>loopname=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.add_export_loop" title="Permalink to this definition">¶</a></dt>
-<dd><p>add an export loop to mRigs ExportTag, the timeranges for this are taken from 
+<dd><p>add an export loop to mRigs ExportTag, the timeranges for this are taken from
 the internal start and end frames setup during the transfer</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -898,6 +1074,22 @@ the internal start and end frames setup during the transfer</p>
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.openbinderfile">
 <code class="descname">openbinderfile</code><span class="sig-paren">(</span><em>binderfile=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.openbinderfile" title="Permalink to this definition">¶</a></dt>
 <dd><p>open a character binder file in current Maya session</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>binderfile</strong> &#8211; path to character binder file if not bound to the class instance</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">path to character binder file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Anim_Transfer.importbinderfile">
+<code class="descname">importbinderfile</code><span class="sig-paren">(</span><em>binderfile=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.importbinderfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>reference a character binder file in current Maya session</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -958,8 +1150,8 @@ this and wrap in any further management required at the client level.</p>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.rig_to_fbx">
-<code class="descname">rig_to_fbx</code><span class="sig-paren">(</span><em>startFrame=None</em>, <em>endFrame=None</em>, <em>filepath=None</em>, <em>prefix=''</em>, <em>export=True</em>, <em>debug=False</em>, <em>bindscales=True</em>, <em>method='connect'</em>, <em>export_skl=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.rig_to_fbx" title="Permalink to this definition">¶</a></dt>
-<dd><p>from a given Red9 Puppet Rig output a clean FBX skeleton anim via a bound duplicated skeleton method</p>
+<code class="descname">rig_to_fbx</code><span class="sig-paren">(</span><em>startFrame=None</em>, <em>endFrame=None</em>, <em>filepath=None</em>, <em>prefix=''</em>, <em>export=True</em>, <em>debug=False</em>, <em>bindscales=True</em>, <em>method='connect'</em>, <em>export_skl=None</em>, <em>blend_map=False</em>, <em>blend_maprange=1</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.rig_to_fbx" title="Permalink to this definition">¶</a></dt>
+<dd><p>from a given SINGLE Red9 Puppet Rig output a clean FBX skeleton anim via a bound duplicated skeleton method</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -974,6 +1166,11 @@ this and wrap in any further management required at the client level.</p>
 <li><strong>bindscales</strong> &#8211; do we bind scales during the process or ignore them?</li>
 <li><strong>method</strong> &#8211; method used to bind the base skeletons together : &#8216;connect&#8217; or &#8216;constrain&#8217;</li>
 <li><strong>export_skl</strong> &#8211; if given this is the root of the skeleton to process, else we use the self.mrig.exportSkeletonRoot wire</li>
+<li><strong>blend_map</strong> &#8211; if True we create a mapper joint, named &#8216;blendTarget_***&#8217; (name of each blendShape found in the history of
+mrig.renderMeshes). Each target attr on these blends gets mapped to a new attr on the created joint and is connected and
+driven by the blend data. This is so we can extract blend anim data direct to mapped joints for easy, clean fbx outputs</li>
+<li><strong>blend_maprange</strong> &#8211; default=1, if range is more than 1 then we add in a multiplyDivide node between the connection
+so that the jnt attr is mapped to a larger range. This is to try and avoid compression in engine of fine facial data outputs</li>
 </ul>
 </td>
 </tr>
@@ -1033,17 +1230,39 @@ set display attrs of the joints to default values</p>
 </table>
 </dd></dl>
 
+<dl class="staticmethod">
+<dt id="Red9.pro_pack.core.animation.Anim_Transfer.wire_blends_to_jntattrs">
+<em class="property">static </em><code class="descname">wire_blends_to_jntattrs</code><span class="sig-paren">(</span><em>blends</em>, <em>jnt=None</em>, <em>parent=None</em>, <em>range=1</em>, <em>mSystem=None</em>, <em>basewire='blendTargetWeight'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.wire_blends_to_jntattrs" title="Permalink to this definition">¶</a></dt>
+<dd><p>wire all blendshapes found from the exportTag.getNodes call to a driver joint with each channel
+mapped as a connected attr, one jnt per blend node</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>blends</strong> &#8211; blendShapes we want to create mapped joints for</li>
+<li><strong>jnt</strong> &#8211; if given we add attrs per blendTarget to this joint, else we create a fresh joint to take the mapping</li>
+<li><strong>parent</strong> &#8211; re-parent the joint after completion to this node</li>
+<li><strong>range</strong> &#8211; if not 1 then we connect the attrs up via a multipleDivide node, allowing blend value of 1 to be
+mapped to a new max to reduce any compression further down the line</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.fbx_to_binder">
-<code class="descname">fbx_to_binder</code><span class="sig-paren">(</span><em>fbxfiles</em>, <em>binderfile=None</em>, <em>usecurrentscene=False</em>, <em>bake=False</em>, <em>runFilter=True</em>, <em>useTakeData=False</em>, <em>fbx_mode='update_anim'</em>, <em>mayafile=True</em>, <em>r9anim=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.fbx_to_binder" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fbx_to_binder</code><span class="sig-paren">(</span><em>fbxfiles</em>, <em>binderfile=None</em>, <em>usecurrentscene=False</em>, <em>bake=False</em>, <em>runFilter=True</em>, <em>useTakeData=True</em>, <em>fbx_mode='update_anim'</em>, <em>mayafile=True</em>, <em>r9anim=False</em>, <em>import_bnd=False</em>, <em>hikmapping=None</em>, <em>fbx_take=1</em>, <em>spine_fit=False</em>, <em>locomotion_track=False</em>, <em>whole_frame=False</em>, <em>maintain_fps=False</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.fbx_to_binder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main FBX &gt; Binder call, (PRO_TO_BND) loads the FBX file in, loads the binder in, and transfers the data</p>
-<dl class="docutils">
-<dt>..note::</dt>
-<dd>The actual maya file and r9Anim file generation flags are generally NOT used during the Pro_To_BND call, instead
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The actual maya file and r9Anim file generation flags are generally NOT used during the Pro_To_BND call, instead
 during that process we pass the output flags to the ExportManager class to deal with. This is because the exporter
-calls also manage source-control and all clkeint side specific file management. The file handling in this func is
-base level only, generating the files as per the fbx filepath.</dd>
-</dl>
+calls also manage source-control and all client side specific file management. The file handling in this func is
+base level only, generating the files as per the fbx filepath.</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1056,7 +1275,7 @@ on a case by case basis and overload as required</li>
 <li><strong>usecurrentscene</strong> &#8211; if true use the current scene, which then expects a binder file to be already loaded</li>
 <li><strong>bake</strong> &#8211; do we bake the results to the Red9 puppet and clean-up after our-selves? if r9anim is True then this is forced on</li>
 <li><strong>runFilter</strong> &#8211; do we run the curve filter on the baked animation to try and optimise the results, removing static data etc</li>
-<li><strong>useTakeData</strong> &#8211; if True use the internal fbx take[1]&#8217;s timeSpan when setting the ranges</li>
+<li><strong>useTakeData</strong> &#8211; if True use the internal fbx take[1]&#8217;s timeSpan when setting the ranges: True by default (29/12/19)</li>
 <li><strong>fbx_mode</strong> &#8211; fbx management mode used to get the fbx data over to the bnd skeleton
 &#8216;update_anim&#8217; : uses the FBX file import&#8217;s UpdateAnimation Only flags - issue here is that if the fbx file has namespaces then the update fails
 &#8216;reference_copy&#8217; : uses a reference technique, we reference the fbx file in, then copy the anim data directly using the r9Animfuncs to by-pass FBX import limitations
@@ -1064,16 +1283,29 @@ on a case by case basis and overload as required</li>
 <li><strong>mayafile</strong> &#8211; save the resulting Maya files out. This is a flag so that if this func is being called as part of another process
 we can choose if we want the Maya file or Not, in the ProToBnd the maya file is managed by the exporter wrap directly and this is not called</li>
 <li><strong>r9anim</strong> &#8211; export r9Anim filed out. In the ProToBnd the r9Anim file is managed by the exporter wrap directly and this is not called</li>
+<li><strong>import_bnd</strong> &#8211; do we Open or import the binder file</li>
+<li><strong>hikmapping</strong> &#8211; IF the fbx_mode==&#8217;connect_hik&#8217; then this is an additional file that can be passed in to change the HIK properties on the
+fly, allowing us to use the same binder file but with different HIK remapping characteristics</li>
+<li><strong>fbx_take</strong> &#8211; the fbx take to use in the process, default is 1</li>
+<li><strong>spine_fit</strong> &#8211; if True and bake we run the MetaRig SplieIK matching fit calls to better align the splineIK systems with the original data</li>
+<li><strong>locomotion_track</strong> &#8211; if True and bake we run the Locomotion tracker on the mRig to align the locomotion ctrl to the ground plane, tracked to the hips</li>
+<li><strong>whole_frame</strong> &#8211; if True we do math.floor(startFrame) math.ceil(endFrame) on the timeranges baked out to ensure that subframes have a whole frame clamp,
+this does NOT effect the export ranges created, those will be true to the fbx internal take data</li>
+<li><strong>maintain_fps</strong> &#8211; if True we maintain the incoming Binder scenes fps, else we allow FBX to manage it from the incoming fbx file&#8217;s fps</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">the spine_fit and locomotion_track args both require a Full Red9 PuppetRig or at least a fully setup Pro_MetaRig system. Please contact us for more details!</p>
+</div>
 </dd></dl>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.rig_to_binder">
-<code class="descname">rig_to_binder</code><span class="sig-paren">(</span><em>animfiles</em>, <em>binderfile=None</em>, <em>usecurrentscene=False</em>, <em>output_dir=None</em>, <em>bake=False</em>, <em>runFilter=True</em>, <em>xfer_mode='connect_hik'</em>, <em>run_func=None</em>, <em>mayafile=True</em>, <em>r9anim=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.rig_to_binder" title="Permalink to this definition">¶</a></dt>
+<code class="descname">rig_to_binder</code><span class="sig-paren">(</span><em>animfiles</em>, <em>binderfile=None</em>, <em>usecurrentscene=False</em>, <em>output_dir=None</em>, <em>bake=False</em>, <em>runFilter=True</em>, <em>xfer_mode='connect_hik'</em>, <em>run_func=None</em>, <em>mayafile=True</em>, <em>r9anim=False</em>, <em>import_bnd=False</em>, <em>hikmapping=None</em>, <em>spine_fit=False</em>, <em>locomotion_track=False</em>, <em>maintain_fps=False</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.rig_to_binder" title="Permalink to this definition">¶</a></dt>
 <dd><p><a href="#id5"><span class="problematic" id="id6">**</span></a>**  TESTING <a href="#id7"><span class="problematic" id="id8">**</span></a>** TESTING <a href="#id9"><span class="problematic" id="id10">**</span></a>** TESTING <a href="#id11"><span class="problematic" id="id12">**</span></a><a href="#id13"><span class="problematic" id="id14">**</span></a></p>
 <p>Main Maya Animation File &gt; Binder call, (PRO_TO_BND) for animation data on the Red9 Puppet.
 This requires a properly published Red9 BiPedal Puppet rig and an associated BND binder file</p>
@@ -1098,6 +1330,7 @@ on a case by case basis and overload as required</li>
 <li><strong>usecurrentscene</strong> &#8211; if true use the currently loaded scene, which then expects a binder file to be already loaded</li>
 <li><strong>output_dir</strong> &#8211; if given we re-direct the outputs to a new folder, remember we&#8217;re loading maya files so we need to do something
 to stop the process over-writing the input files. if not given we append the scene name with &#8220;_converted&#8221;</li>
+<li><strong>import_bnd</strong> &#8211; do we Open or import the binder file</li>
 <li><strong>bake</strong> &#8211; do we bake the results to the Red9 Puppet and clean-up after our-selves? if r9anim is True then this is forced on</li>
 <li><strong>runFilter</strong> &#8211; do we run the curve filter on the baked animation to try and optimise the results, removing static data etc</li>
 <li><strong>xfer_mode</strong> &#8211; transfer mode used to push the animation data over to the bnd skeleton from the incoming PuppetRig animation file
@@ -1108,6 +1341,8 @@ note that the func is passed the instance of the Transfer class object run_func(
 <li><strong>mayafile</strong> &#8211; save the resulting Maya files out. This is a flag so that if this func is being called as part of another process
 we can choose if we want the Maya file or Not, in the ProToBnd the maya file is managed by the exporter wrap directly and this is not called</li>
 <li><strong>r9anim</strong> &#8211; export r9Anim filed out. In the ProToBnd the r9Anim file is managed by the exporter wrap directly and this is not called</li>
+<li><strong>hikmapping</strong> &#8211; IF the fbx_mode==&#8217;connect_hik&#8217; then this is an additional file that can be passed in to change the HIK properties on the
+fly, allowing us to use the same binder file but with different HIK remapping characteristics</li>
 </ul>
 </td>
 </tr>
@@ -1145,73 +1380,109 @@ the initial BND file reload for each fbx processed</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui">
-<em class="property">class </em><code class="descname">Fbx_To_Bnd_ui</code><span class="sig-paren">(</span><em>fbxfiles=None</em>, <em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI">
+<em class="property">class </em><code class="descname">Pro_To_Bnd_UI</code><span class="sig-paren">(</span><em>files=None</em>, <em>standalone=False</em>, <em>process_mode='fbx'</em>, <em>parent=None</em>, <em>logger=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">PySide.QtGui.QMainWindow</span></code>, <code class="xref py py-class docutils literal"><span class="pre">Ui_mw_fbx_to_bnd</span></code></p>
 <p>Main window for animation transfer from fbx to a Red9 binder rig</p>
+<p>Pro_to_BND  :  Main UI</p>
+<p>TODO: expose the mrig &gt; mrig binding process to the UI as a different input file format flag</p>
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.buildpresets">
-<code class="descname">buildpresets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.buildpresets" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.closeEvent">
+<code class="descname">closeEvent</code><span class="sig-paren">(</span><em>event</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.closeEvent" title="Permalink to this definition">¶</a></dt>
+<dd><p>close event to push the sizes to the settings object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.buildpresets">
+<code class="descname">buildpresets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.buildpresets" title="Permalink to this definition">¶</a></dt>
 <dd><p>populate the binder file presets comboBox from the Project object if set</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setui_feedback">
-<code class="descname">setui_feedback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setui_feedback" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.build_hikpresets">
+<code class="descname">build_hikpresets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.build_hikpresets" title="Permalink to this definition">¶</a></dt>
+<dd><p>fill and manage the HIK combo preset box</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setui_feedback">
+<code class="descname">setui_feedback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setui_feedback" title="Permalink to this definition">¶</a></dt>
 <dd><p>populate ui settings from the users last self.settings data</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.push_settings">
-<code class="descname">push_settings</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.push_settings" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.push_settings">
+<code class="descname">push_settings</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.push_settings" title="Permalink to this definition">¶</a></dt>
 <dd><p>pull the ui state back to the settings file, called prior to the main process call</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setbinder">
-<code class="descname">setbinder</code><span class="sig-paren">(</span><em>browse=True</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setbinder" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.pull_settings">
+<code class="descname">pull_settings</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.pull_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>push the settings back to the UI</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setbinder">
+<code class="descname">setbinder</code><span class="sig-paren">(</span><em>browse=True</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setbinder" title="Permalink to this definition">¶</a></dt>
 <dd><p>set the binder file from the browse button or the change of the preset combo</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setusecurrentscene">
-<code class="descname">setusecurrentscene</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setusecurrentscene" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.open_binder_ui">
+<code class="descname">open_binder_ui</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.open_binder_ui" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setbake">
-<code class="descname">setbake</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setbake" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setusecurrentscene">
+<code class="descname">setusecurrentscene</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setusecurrentscene" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setbake">
+<code class="descname">setbake</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setbake" title="Permalink to this definition">¶</a></dt>
 <dd><p>manage the bake flag and warn about the r9Anim outputs</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setr9anim">
-<code class="descname">setr9anim</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setr9anim" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setr9anim">
+<code class="descname">setr9anim</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setr9anim" title="Permalink to this definition">¶</a></dt>
 <dd><p>set the r9Anim settings</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setupLogFile">
-<code class="descname">setupLogFile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.setupLogFile" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.set_mode">
+<code class="descname">set_mode</code><span class="sig-paren">(</span><em>mode</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.set_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the processing mode</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setimportbnd">
+<code class="descname">setimportbnd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setimportbnd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setupLogFile">
+<code class="descname">setupLogFile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.setupLogFile" title="Permalink to this definition">¶</a></dt>
 <dd><p>creates a log file for the anim transfer code</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.writeToLog">
-<code class="descname">writeToLog</code><span class="sig-paren">(</span><em>line</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.writeToLog" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.writeToLog">
+<code class="descname">writeToLog</code><span class="sig-paren">(</span><em>line</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.writeToLog" title="Permalink to this definition">¶</a></dt>
 <dd><p>func to call to write the supplied data to the log file.
 Closes it every time, because the batch can kill maya outright.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.transfer">
-<code class="descname">transfer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.transfer" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.transfer">
+<code class="descname">transfer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.transfer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main transfer wrap from the UI, including the export call</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.staticMetaObject">
-<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object at 0x00000000138F1D48&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.Fbx_To_Bnd_ui.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.staticMetaObject">
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object at 0x000000000C2D1508&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.staticMetaObject" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1768,15 +2039,100 @@ Closes it every time, because the batch can kill maya outright.</p>
 <code class="descname">setdirection</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Keyerui.setdirection" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="Red9.pro_pack.core.animation.Keyerui.staticMetaObject">
-<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object at 0x0000000013579B08&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.Keyerui.staticMetaObject" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Keyerui.setamples">
 <code class="descname">setamples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Keyerui.setamples" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.animation.Keyerui.staticMetaObject">
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide.QtCore.QMetaObject object at 0x00000000210EAF88&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.Keyerui.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion">
+<em class="property">class </em><code class="descname">Track_locomotion</code><span class="sig-paren">(</span><em>mrig=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>utility class use to create animation on locomotion ctrl</p>
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.mrig">
+<code class="descname">mrig</code><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.mrig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.locomotion_ctrl">
+<code class="descname">locomotion_ctrl</code><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.locomotion_ctrl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.cog_ctrl">
+<code class="descname">cog_ctrl</code><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.cog_ctrl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.set_timeranges">
+<code class="descname">set_timeranges</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.set_timeranges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.delete_locmotion_animation">
+<code class="descname">delete_locmotion_animation</code><span class="sig-paren">(</span><em>attributes=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.delete_locmotion_animation" title="Permalink to this definition">¶</a></dt>
+<dd><p>delete animation on locomotion ctrl if attributes are pass it will delete just given attributes if no attributes
+given, all animation will be deleted</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>attributes</strong> &#8211; list of attributes to be deleted</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.track_to_cog">
+<code class="descname">track_to_cog</code><span class="sig-paren">(</span><em>translates=True</em>, <em>rotates=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.track_to_cog" title="Permalink to this definition">¶</a></dt>
+<dd><p>track COG ctrl animation to the locomotion ctrl</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.project_cog_translation">
+<code class="descname">project_cog_translation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.project_cog_translation" title="Permalink to this definition">¶</a></dt>
+<dd><p>projects the COG translations to the ground plane and extracts the directional vector for the rotates</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.project_cog_translation_rotation">
+<code class="descname">project_cog_translation_rotation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.project_cog_translation_rotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>projects COG translations and rotation to locomotion ctrl maintaining locomotion ctrl in the ground</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.linear_translation">
+<code class="descname">linear_translation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.linear_translation" title="Permalink to this definition">¶</a></dt>
+<dd><p>create a linear translation animation on locomotion ctrl</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.track_cog_ty">
+<code class="descname">track_cog_ty</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.track_cog_ty" title="Permalink to this definition">¶</a></dt>
+<dd><p>create locomotion ctrl animation, tracking just translation Y of COG ctrl</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.track_cog_maintaining_offset">
+<code class="descname">track_cog_maintaining_offset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.track_cog_maintaining_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>create locomotion ctrl animation, tracking COG but maintaining the current
+offset between COG and locomotion ctrl</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Track_locomotion.static">
+<code class="descname">static</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Track_locomotion.static" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple projected extraction without any key management and on the current frame only</p>
+</dd></dl>
 
 </dd></dl>
 

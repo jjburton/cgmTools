@@ -18,6 +18,7 @@ import os
 
 import Red9.startup.setup as r9Setup
 import Red9_Meta as r9Meta
+# import Red9_CoreUtils as r9Core
 import Red9_AnimationUtils as r9Anim
 
 import logging
@@ -43,6 +44,10 @@ class SceneReviewerUI(object):
         if r9Setup.mayaVersion() < 2010:
             raise StandardError('This tool is not supported in versions of Maya running Python2.5')
         cls()._showUI()
+
+    def close(self):
+        if cmds.window(self.win, exists=True):
+            cmds.deleteUI(self.win, window=True)
 
     def _showUI(self):
 
@@ -71,10 +76,10 @@ class SceneReviewerUI(object):
         if not sceneName:
             sceneName = self.getSceneName()
 
-        if cmds.window(self.win, exists=True):
-            cmds.deleteUI(self.win, window=True)
+        self.close()
         window = cmds.window(self.win, title=self.win, s=True, widthHeight=(450, 700))
-        cmds.scrollLayout('reviewScrollLayout', rc=lambda *args:self.resizeTextScrollers())
+
+        cmds.scrollLayout('reviewScrollLayout', rc=lambda *args: self._resizeTextScrollers(), cr=True)
         cmds.columnLayout(adjustableColumn=True, columnAttach=('both', 5))
         cmds.textFieldGrp('author', l=LANGUAGE_MAP._SceneReviewerUI_.author, ed=False, text=author)
         cmds.textFieldGrp('date', l=LANGUAGE_MAP._SceneReviewerUI_.date, ed=False, text=date)
@@ -92,14 +97,14 @@ class SceneReviewerUI(object):
         cmds.rowColumnLayout('SceneNodeActivatorRC', numberOfColumns=2, columnWidth=[(1, 200), (2, 200)])
         cmds.button('setReviewActive', l=LANGUAGE_MAP._SceneReviewerUI_.activate_live_review,
                                         bgc=r9Setup.red9ButtonBGC(1),
-                                        c=lambda x:self._setReviewStatus('active'))
+                                        c=lambda x: self._setReviewStatus('active'))
         cmds.button('setReviewInActive', l=LANGUAGE_MAP._SceneReviewerUI_.disable_live_review,
                                         bgc=r9Setup.red9ButtonBGC(1),
-                                        c=lambda x:self._setReviewStatus('inactive'))
+                                        c=lambda x: self._setReviewStatus('inactive'))
         cmds.setParent('..')
         cmds.separator(h=15, style='none')
         cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp',
-                                 c=lambda *args:(r9Setup.red9ContactInfo()), h=22, w=200)
+                                 c=lambda *args: (r9Setup.red9ContactInfo()), h=22, w=200)
         cmds.showWindow(window)
 
         if self.SceneReviewer.exists():
@@ -140,13 +145,11 @@ class SceneReviewerUI(object):
             cmds.button('setReviewActive', e=True, bgc=r9Setup.red9ButtonBGC(1))
             cmds.button('setReviewInActive', e=True, bgc=r9Setup.red9ButtonBGC(2))
 
-    def resizeTextScrollers(self):
-        width = cmds.scrollLayout('reviewScrollLayout', q=True, w=True) - 20
-        height = cmds.scrollLayout('reviewScrollLayout', q=True, h=True)
+    def _resizeTextScrollers(self):
+        height = (cmds.scrollLayout('reviewScrollLayout', q=True, h=True) / r9Setup.maya_dpi_scaling_factor())
+        width = (cmds.scrollLayout('reviewScrollLayout', q=True, w=True) / r9Setup.maya_dpi_scaling_factor()) - 10  # column attach space = 5 on both
         cmds.scrollField('comment', e=True, h=(height / 2) - 120)
-        cmds.scrollField('comment', e=True, w=width)
         cmds.scrollField('history', e=True, h=(height / 2) - 120)
-        cmds.scrollField('history', e=True, w=width)
         cmds.rowColumnLayout('SceneNodeActivatorRC', e=True, columnWidth=[(1, (width / 2) - 1), (2, (width / 2) - 1)])
 
 
@@ -162,7 +165,7 @@ class SceneReviewer(object):
         self.dataRepository = r9Meta.MetaClass('time1')
         self.dataRepository.addAttr('sceneReport', attrType="string")
         self.sceneScriptNode = "sceneReviewData"
-        self.storedDataDict = {'author':"", 'date':"", 'sceneName':"", 'comment':"", 'history':""}
+        self.storedDataDict = {'author': "", 'date': "", 'sceneName': "", 'comment': "", 'history': ""}
         self.getReportData()
         self.__deleteImportedScriptNodes()
 
@@ -241,6 +244,10 @@ class RecordAttrs(object):
     def show(cls):
         cls()._showUI()
 
+    def close(self):
+        if cmds.window('MouseMoCap', exists=True):
+            cmds.deleteUI('MouseMoCap', window=True)
+
     def addAttrsToRecord(self, attrs=None, *args):
         node = cmds.ls(sl=True, l=True)[0]
         if not attrs:
@@ -285,26 +292,26 @@ class RecordAttrs(object):
             self.recordStop()
 
     def _showUI(self):
-            if cmds.window('MouseMoCap', exists=True):
-                cmds.deleteUI('MouseMoCap', window=True)
-            cmds.window('MouseMoCap', title="MouseMoCap", widthHeight=(260, 180))
+        self.close()
+        cmds.window('MouseMoCap', title="MouseMoCap")  # , widthHeight=(260, 180))
 
-            cmds.columnLayout(adjustableColumn=True)
-            cmds.separator(h=15, style='none')
-            cmds.text('Use the Mouse as a MoCap input devise')
-            cmds.separator(h=15, style='none')
-            cmds.button(label='Set Attributes to Record (chBox)',
-                        ann='Prime Selected Attributes in the channelBox for Recording',
-                         command=partial(self.addAttrsToRecord))
-            cmds.button(label='Remove Record Attributes (chBox)',
-                        ann='Remove Attrs from Record selected in the channelBox',
-                         command=partial(self.removeAttrsToRecord))
-            cmds.separator(h=15, style='none')
-            cmds.button('MouseMoCapRecord', label='RECORD', bgc=[0.1, 0.8, 0.1],
-                         command=partial(self._runRecord))
-            cmds.separator(h=25, style='none')
-            cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp',
-                                 c=lambda *args: (r9Setup.red9ContactInfo()), h=22, w=200)
-            cmds.showWindow('MouseMoCap')
-            cmds.window('MouseMoCap', e=True, widthHeight=(260, 180))
-
+        cmds.columnLayout(adjustableColumn=True, cw=200)
+        cmds.separator(h=15, style='none')
+        cmds.text('     Use the Mouse as a MoCap input devise     ')
+        cmds.separator(h=15, style='none')
+        cmds.button(label='Set Attributes to Record (chBox)',
+                    ann='Prime Selected Attributes in the channelBox for Recording',
+                     command=partial(self.addAttrsToRecord))
+        cmds.separator(h=5, style='none')
+        cmds.button(label='Remove Record Attributes (chBox)',
+                    ann='Remove Attrs from Record selected in the channelBox',
+                     command=partial(self.removeAttrsToRecord))
+        cmds.separator(h=15, style='none')
+        cmds.button('MouseMoCapRecord', label='RECORD', bgc=[0.1, 0.8, 0.1],
+                     command=partial(self._runRecord))
+        cmds.separator(h=25, style='none')
+        cmds.iconTextButton(style='iconOnly', bgc=(0.7, 0, 0), image1='Rocket9_buttonStrap2.bmp',
+                             c=lambda *args: (r9Setup.red9ContactInfo()), h=22, w=200)
+        cmds.separator(h=15, style='none')
+        cmds.showWindow('MouseMoCap')
+#         cmds.window('MouseMoCap', e=True, widthHeight=(260, 180))

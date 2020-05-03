@@ -112,7 +112,7 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
     :returns
         list of constraints(list)
     """   
-    _str_func = 'onLine'
+    _str_func = 'alongLine'
     objList = VALID.mNodeStringList(objList)
     log.info("|{0}| >> ObjList: {1} ".format(_str_func,objList))             
     _len = len(objList)
@@ -173,6 +173,45 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
     if curveBuffer:
         mc.delete(curveBuffer)
     return _l_pos
+
+
+def dag_sort(objList = None):
+    """    
+    Dag sort children under their parent
+    
+    """   
+    _str_func = 'dag_sort'
+    if not objList:
+        objList = mc.ls(sl=1)
+    else:
+        objList = VALID.mNodeStringList(objList)
+    log.info("|{0}| >> ObjList: {1} ".format(_str_func,objList))
+    
+    d_p = {}
+    l_p = []
+    l_world = []
+    
+    for o in objList:
+        p = TRANS.parent_get(o)
+        if not p:
+            l_world.append(o)
+        elif p not in l_p:
+            l = TRANS.children_get(p) or []
+            l.sort()
+            l.reverse()
+            for c in l:
+                try:
+                    mc.reorder(c,front=True)
+                except Exception,err:
+                    print err
+    
+    if l_world:
+        l_world.sort()
+        for o in l_world:
+            try:
+                mc.reorder(o,front=True)
+            except Exception,err:
+                print err            
 
 
 

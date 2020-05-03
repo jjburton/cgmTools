@@ -52,6 +52,7 @@ from cgm.core import cgm_RigMeta as cgmRigMeta
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.rig.create_utils as RIGCREATE
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 
 #Prerig handle making. refactor to blockUtils
 import cgm.core.lib.snap_utils as SNAP
@@ -125,6 +126,10 @@ d_build_profiles = {
                           'numControls':4},               
                'earUp':{'numJoints':4,
                         'numControls':4}},
+    'unityToon':{'default':{'squashMeasure':'arcLength',
+                            'squash':'simple',
+                            'scaleSetup':'on',
+                            }},
     'unityHigh':{'default':{'numJoints':4,
                             'numControls':4},
                  'spine':{'numJoints':6,
@@ -467,6 +472,9 @@ def define(self):
               'rp':{'color':'redBright','defaults':{'tx':.5}},              
               'up':{'color':'greenBright','defaults':{'tz':-1}}}
         
+        for k,d in _d.iteritems():
+            d['arrow'] = 1
+            
         md_handles = {}
         ml_handles = []
         md_vector = {}
@@ -512,7 +520,7 @@ def formDelete(self):
         for k in ['end','rp','up','lever','aim','start']:
             mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
             if mHandle:
-                l_const = mHandle.getConstraintsTo()
+                l_const = mHandle.getConstraintsTo(typeFilter=['point','orient','parent'])
                 if l_const:
                     log.debug("currentConstraints...")
                     pos = mHandle.p_position
@@ -864,7 +872,6 @@ def prerig(self):
             ml_handles.append(mHandle)
             mHandle.p_position = p
             
-            
             if p == _l_pos[-1]:
                 SNAP.aim_atPoint(mHandle.mNode,_l_pos[i-1], aimAxis='z-',mode = 'vector',vectorUp=_worldUpVector)
             else:
@@ -886,15 +893,13 @@ def prerig(self):
             _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, mTrackCurve.mNode, 'conPoint')
             TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
     
-            
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
             
             #Convert to loft curve setup ----------------------------------------------------
             ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
 
             mHandleFactory.color(mHandle.mNode,controlType='sub')
-            #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
-            #LOC.create(position = p)
+        
         
         #ml_handles.append(mEndHandle)
         self.msgList_connect('prerigHandles', ml_handles)
@@ -906,32 +911,6 @@ def prerig(self):
         
         for mHandle in ml_handles:
             mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
-            """
-            #Joint Label ---------------------------------------------------------------------------
-            mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
-            #CORERIG.override_color(mJointLabel.mNode, _dtmp['color'])
-        
-            mJointLabel.p_parent = mHandle
-            mJointLabel.resetAttrs()
-        
-            mJointLabel.radius = 0
-            mJointLabel.side = 0
-            mJointLabel.type = 18
-            mJointLabel.drawLabel = 1
-            mJointLabel.otherType = mHandle.cgmName
-        
-            mJointLabel.doStore('cgmName',mHandle)
-            mJointLabel.doStore('cgmType','jointLabel')
-            mJointLabel.doName()            
-        
-            mJointLabel.dagLock()
-        
-            mJointLabel.overrideEnabled = 1
-            mJointLabel.overrideDisplayType = 2"""
-        
-
-        
-        #Aim the segment
 
 
         #>>Joint placers ================================================================================    
@@ -959,7 +938,6 @@ def prerig(self):
         #Joint placer loft....
         targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
         
-        
         self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
         
         self.atUtils('create_jointLoft',
@@ -969,17 +947,17 @@ def prerig(self):
                      degree = 3,
                      baseName = self.cgmName )        
         
-
         for t in targets:
             ATTR.set(t,'v',0)
-        
         
         #...cog -----------------------------------------------------------------------------
         if self.addCog:
             mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull
-            
-            
-            
+
+        #Settings =======================================================================================
+        mSettings = BLOCKSHAPES.settings(self,mPrerigNull = mPrerigNull)
+        self.msgList_connect('prerigHandles', ml_handles)
+        
         #Point Contrain the rpHandle -------------------------------------------------------------------------
         mVectorRP = self.getMessageAsMeta('vectorRpHelper')
         str_vectorRP = mVectorRP.mNode
@@ -1073,6 +1051,7 @@ def skeleton_build(self, forceNew = True):
             mc.delete(_crv)        
     
         mOrientHelper = ml_formHandles[0].orientHelper
+
         
         reload(JOINT)
         mVecUp = self.atUtils('prerig_get_upVector')
@@ -1088,11 +1067,25 @@ def skeleton_build(self, forceNew = True):
             mJoint.doName()
             #mJoint.rename(_l_names[i])
             
+        #End Fixing --------------------------------
+        #if len(ml_handleJoints) > self.numControls:
+            #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+
+        mEndOrient = self.ikOrientHandle
+        mEnd = ml_joints[-1]
+        log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+        mEnd.jointOrient = 0,0,0
+        SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
+                         vectorUp=mEndOrient.getAxisVector('y+'))
+        JOINT.freezeOrientation(mEnd.mNode) 
+        #-------------------------------------------------------------------------
+            
         ml_joints[0].parent = False
         
         _radius = self.atUtils('get_shapeOffset')
         #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
         #MATH.get_space_value(5)
+
         
         for mJoint in ml_joints:
             mJoint.displayLocalAxis = 1
@@ -1600,7 +1593,8 @@ def rig_shapes(self):
         if ml_blendJoints:
             ml_targets = ml_blendJoints
         else:
-            ml_targets = ml_fkCastTargets        
+            ml_targets = ml_fkCastTargets
+            
         mSettings = RIGSHAPES.settings(self,mBlock.getEnumValueString('settingsPlace'),ml_targets)
         
         
@@ -1738,6 +1732,7 @@ def rig_controls(self):
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
         
         if str_ikBase == 'hips':
+            p_pelvis = ml_fkJoints[0].p_position
             ml_fkJoints = ml_fkJoints[1:]
         
         ml_fkJoints[0].parent = mRoot
@@ -1781,6 +1776,8 @@ def rig_controls(self):
             
             #Register our snapToTarget -------------------------------------------------------------
             self.atUtils('get_switchTarget', mControlIK,ml_blend[self.int_handleEndIdx])
+            
+            
             """
             mSnapTarget = mControlIK.doCreateAt(setClass=True)
             mSnapTarget.p_parent = ml_blend[self.int_handleEndIdx]
@@ -1815,6 +1812,10 @@ def rig_controls(self):
             log.debug("|{0}| >> IK Base handle snap target : {1}".format(_str_func, mSnapTarget))
             mSnapTarget.p_parent = ml_blend[0]        
             mSnapTarget.setAttrFlags()"""
+            
+            if str_ikBase == 'hips' and mBlock.scaleSetup:
+                log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
+                TRANS.scalePivot_set(mControlBaseIK.mNode, p_pelvis)                
             
         mIKControlMid = mRigNull.getMessageAsMeta('controlIKMid')
         if mIKControlMid:
@@ -2685,8 +2686,7 @@ def rig_cleanUp(self):
         #pprint.pprint(ml_targetDynParents)        
         log.debug(cgmGEN._str_subLine)
                   
-        
-        
+
         if mRigNull.getMessage('controlSegMidIK'):
             log.debug("|{0}| >>  IK Mid Handle ... ".format(_str_func))                
             mHandle = mRigNull.controlSegMidIK

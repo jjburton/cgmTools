@@ -47,7 +47,6 @@ import cgm.core.lib.name_utils as NAMES
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
-reload(cgmGEN)
 from cgm.core import cgm_Meta as cgmMeta
 import cgm.core.lib.transform_utils as TRANS
 from cgm.core.cgmPy import path_Utils as CGMPATH
@@ -55,16 +54,21 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.dynParentTool as DYNPARENTTOOL
-reload(DYNPARENTTOOL)
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.lib.search_utils as SEARCH
-reload(SEARCH)
+import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
-reload(RIGGEN)
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
+
+import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
+reload(MMUTILS)
+
+import cgm.core.mrs.PoseManager as POSEMANAGER
+reload(POSEMANAGER)
+
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
                                    ml_resetChannels,
@@ -77,25 +81,14 @@ from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_convertRotationOrder,
                                    ml_copyAnim)
 #>>> Root settings =============================================================
-__version__ = '1.04222019'
+__version__ = '1.07162019'
 __toolname__ ='MRSAnimate'
-_d_contexts = {'control':{'short':'ctrl'},
-               'part':{},
-               'puppet':{'short':'char'},
-               'scene':{},
-               'list':{}}
-_l_contexts = ['control','part','puppet','scene','list']
-_l_contextTime = ['back','previous','current','bookEnd','next','forward','slider','selected']
-_d_shorts = {'back':'<-',
-             'previous':'|<',
-             'bookEnd':'|--|',
-             'current':'now',
-             'selected':'sel',
-             'next':'>|',
-             'slider':'[ ]',
-             'forward':'->'}
-_l_contextKeys = ['each','combined']
+_d_contexts = MRSANIMUTILS._d_contexts
+_l_contexts = MRSANIMUTILS._l_contexts
+_l_contextTime = MRSANIMUTILS._l_contextTime
 
+_d_shorts = MRSANIMUTILS._d_timeShorts
+_l_contextKeys = MRSANIMUTILS._l_contextKeys
 
 _subLineBGC = [.75,.75,.75]
 
@@ -114,6 +107,8 @@ class ui(cgmUI.cgmGUI):
     DEFAULT_SIZE = 300,500
     TOOLNAME = '{0}.cgmUI'.format(__toolname__)
     
+    is_dragging_tween = False
+
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func))        
@@ -129,7 +124,7 @@ class ui(cgmUI.cgmGUI):
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
         
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         self.create_guiOptionVar('puppetFrameCollapse',defaultValue = 0) 
         
         self.uiPopUpMenu_poses = None
@@ -139,6 +134,13 @@ class ui(cgmUI.cgmGUI):
         self._l_contextTime = _l_contextTime
         self._l_contextKeys = _l_contextKeys
         
+        MRSANIMUTILS.uiSetup_context(self,self.__class__.TOOLNAME)
+        
+
+        """
+        try:self.var_poseMatchMethod
+        except:self.var_poseMatchMethod = cgmMeta.cgmOptionVar('cgmVar_poseMatchMethod', defaultValue = 'base')
+            
         try:self.var_mrsContext
         except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                           defaultValue = _l_contexts[0])
@@ -148,7 +150,7 @@ class ui(cgmUI.cgmGUI):
         try:self.var_mrsContextKeys
         except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                           defaultValue = 'each')
-        
+        """
         self.filterSettings = r9Core.FilterNode_Settings()
         self.filterSettings.metaRig = False
         self.filterSettings.transformClamp = False
@@ -157,13 +159,17 @@ class ui(cgmUI.cgmGUI):
         log.debug("build menus... "+'-'*50)
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
         self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
-        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)                 
+        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)
+        #self.uiMenu_picker = mUI.MelMenu( l='Picker',pmc=lambda *a:self.buildMenu_picker(True), tearOff=1)                
         self.uiMenu_help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help()) 
+        
         
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()
         mUI.MelMenuItem( self.uiMenu_help, l="Get Pose Nodes",
                          c=lambda *a: self.get_poseNodes(select=True) )
+        mUI.MelMenuItem( self.uiMenu_help, l="Reset Animate Module",
+                         c=lambda *a: reload(MRSANIMUTILS) )        
 
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',
@@ -188,18 +194,111 @@ class ui(cgmUI.cgmGUI):
                         c=cgmGEN.Callback(self.buildMenu_snap,True))
         log.debug("Snap menu rebuilt")
         
+    def uiFunc_fillPickerMenu():
+        try:
+            mList = self.uiScrollList_blocks
+        except:
+            return log.error("No blocklist")
+        
+        _ml,_l_strings = BLOCKGEN.get_uiModuleScollList_dat(showSide=1,presOnly=1)
+        
+        def getString(pre,string):
+            i = 1
+            _check = ''.join([pre,string])
+            while _check in self._l_strings and i < 100:
+                _check = ''.join([pre,string,' | NAMEMATCH [{0}]'.format(i)])
+                i +=1
+            return _check
+        
+        def get_side(mNode):
+            _cgmDirection = mNode.getMayaAttr('cgmDirection')
+            if _cgmDirection:
+                if _cgmDirection[0].lower() == 'l':
+                    return 'left'
+                return 'right'
+            return 'center'
+        
+        for i,mBlock in enumerate(_ml):
+            _arg = get_side(mBlock)
+            _color = d_colors.get(_arg,d_colors['center'])
+            self._l_itc.append(_color)            
+            self._d_itc[mBlock] = _color
+            try:
+                _str_base = mBlock.UTILS.get_uiString(mBlock)#mBlock.p_nameBase#
+                #_modType = mBlock.getMayaAttr('moduleType')
+                #if _modType:
+                    #_str_base = _str_base + ' | [{0}]'.format(_modType)
+            except:_str_base = 'FAIL | {0}'.format(mBlock.mNode)
+            _pre = _l_strings[i]
+            self._l_strings.append(getString(_pre,_str_base))        
+        
+        
+    def buildMenu_picker(self,force=False, *args,**kws):
+        if self.uiMenu_snap and force is not True:
+            return
+        self.uiMenu_picker.clear()
+        
+        _menu = self.uiMenu_picker
+        
+        try:#Try to get our list dat
+            mList = self.uiScrollList_blocks
+        except:
+            return log.error("No blocklist")        
+        
+        if not mList._ml_scene:
+            mUI.MelMenuItem(_menu, l="None")
+        else:
+            for i,mObj in enumerate(mList._ml_scene):
+                _str = mList._l_strings[i]
+                _sub = mUI.MelMenuItem(_menu, l="{0}".format(_str),tearOff=True,
+                                       subMenu = True)
+                try:
+                    mObj.atUtils('uiMenu_picker',_sub)
+                except:
+                    pass
+        
+
+        mUI.MelMenuItemDiv(self.uiMenu_picker)
+        mUI.MelMenuItem(self.uiMenu_picker, l='Rebuild',
+                        c=cgmGEN.Callback(self.buildMenu_picker,True))
+        log.debug("Snap menu rebuilt")        
+        
+        """
+        try:
+            mList = self.uiScrollList_blocks
+        except:
+            return log.error("No blocklist")
+
+        _menu = self.uiMenu_picker
+
+        ml_blocks = mList.getSelectedBlocks()
+        if not ml_blocks:
+            mUI.MelMenuItem(_menu, l="None")
+            return log.error("Nothing selected")
+            
+        for mBlock in ml_blocks:
+            mBlockModule = mBlock.getBlockModule()
+            
+            _sub = mUI.MelMenuItem(_menu, l="{0}".format(mBlock.UTILS.get_uiString(mBlock)),tearOff=True,
+                                   subMenu = True)            
+            #if 'uiBuilderMenu' in mBlockModule.__dict__.keys():
+            mBlock.atUtils('uiStatePickerMenu',_sub)"""
+        
+        
     def buildMenu_switch(self, *args):
         log.debug("buildMenu_switch..."+'-'*50)
         self.uiMenu_switch.clear()
         
+        d_contextSettings = MRSANIMUTILS.get_contextDict(self.__class__.TOOLNAME)
         self._ml_objList = cgmMeta.validateObjListArg( CONTEXT.get_list(getTransform=True) )
         #pprint.pprint(self._ml_objList)
-        DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True)
+        DYNPARENTTOOL.uiMenu_changeSpace(self,self.uiMenu_switch,True,d_contextSettings)
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options
         
+        parent = self.uiMenu_FirstMenu
         _mDev = mUI.MelMenuItem(self.uiMenu_FirstMenu, l="Dev",subMenu=True)
         mUI.MelMenuItem(_mDev, l="Puppet - Mirror verify",
                         ann = "Please don't mess with this if you don't know what you're doing ",
@@ -209,7 +308,29 @@ class ui(cgmUI.cgmGUI):
                         c = cgmGEN.Callback(uiCB_contextualAction,self,**{'mode':'upToDate','context':'puppet'}))
         mUI.MelMenuItem(_mDev,l="Reset Buffer",
                         ann = "Reset anim buffer",
-                        c = cgmGEN.Callback(uiCB_bufferDat,self,True))                        
+                        c = cgmGEN.Callback(uiCB_bufferDat,self,True))
+        
+        
+        #MatchMode ...
+        POSEMANAGER.uiMenuItem_matchMode(self,self.uiMenu_FirstMenu)
+        
+        """
+        uiPoseMatchMode = mc.menuItem(p=parent, l='Pose Match Method ', subMenu=True)
+        
+        uiRC = mc.radioMenuItemCollection()
+        _v = self.var_poseMatchMethod.value
+        
+        for i,item in enumerate(['base','metaData','stripPrefix','index','mirrorIndex','mirrorIndex_ID']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(p=uiPoseMatchMode,collection = uiRC,
+                        label=item,
+                        c = cgmGEN.Callback(self.var_poseMatchMethod.setValue,item),
+                        rb = _rb)        
+        """
+        
+        
     
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
@@ -252,13 +373,16 @@ class ui(cgmUI.cgmGUI):
         self.cgmUITab_setup = ui_tabs
         
         uiTab_mrs = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
+        #uiTab_poses = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
         uiTab_anim = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')        
         uiTab_settings = mUI.MelFormLayout(ui_tabs,ut='cgmUITemplate')
 
-        for i,tab in enumerate(['MRS','Anim','Settings']):
+        for i,tab in enumerate(['Anim','Tools','Settings']):
             ui_tabs.setLabel(i,tab)
 
         buildTab_mrs(self,uiTab_mrs)
+        #buildTab_poses(self,uiTab_poses)
+        
         #buildTab_anim(self,uiTab_poses)
         reload(TOOLBOX)
         TOOLBOX.optionVarSetup_basic(self)
@@ -313,7 +437,7 @@ class ui(cgmUI.cgmGUI):
         if not CGMPATH.Path(self.posePath):#os.path.exists(self.posePath):
             log.debug('posePath is invalid')
             return self.poses
-        files = os.listdir(self.posePath)
+        files = os.listdir(self.posePath) if os.path.exists(self.posePath) else []
         if sortBy == 'name':
             files = r9Core.sortNumerically(files)
             # files.sort()
@@ -968,12 +1092,15 @@ class ui(cgmUI.cgmGUI):
         '''
         Node passed into the __PoseCalls in the UI
         '''
+        return MRSANIMUTILS._uiCB_getPoseInputNodes(self)
+        
+        """
         # posenodes = []
         uiCB_contextualAction(self,**{'mode':'select'})
         _sel = mc.ls(sl=1)
         #pprint.pprint(_sel)        
         
-        return _sel
+        return _sel"""
         
 
 
@@ -1470,7 +1597,7 @@ class ui(cgmUI.cgmGUI):
         log.info('PosePath : %s' % path)
         poseNode = r9Pose.PoseData(self.filterSettings)
         #poseNode.prioritySnapOnly = mc.checkBox(self.cgmUIcbSnapPriorityOnly, q=True, v=True)
-        poseNode.matchMethod = self.matchMethod
+        poseNode.matchMethod = self.var_poseMatchMethod.value#self.matchMethod
 
         nodes = self.get_poseNodes()
 
@@ -1638,8 +1765,33 @@ class ui(cgmUI.cgmGUI):
 
 
 
+def buildTab_poses(self,parent):
+  
+    #_column = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
+    _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
+    
+    parent(edit = True,
+           af = [(_column,"top",0),
+                 (_column,"left",0),
+                 (_column,"right",0),                        
+                 (_column,"bottom",0)])
+    
+    #_context = MRSANIMUTILS.uiColumn_context(self,_column,header=True)
+
+    _manager = POSEMANAGER.manager(parent = _column)
+    self.mPoseManager = _manager
+    for k in self.__dict__.keys():
+        if str(k).startswith('var_'):
+            self.mPoseManager.__dict__[k] = self.__dict__[k]
+    
+    return _column 
 
 def buildTab_mrs(self,parent):
+    _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
+    
+    _context = MRSANIMUTILS.uiColumn_context(self,_column,header=True)
+    
+    """
     #>>>Context set -------------------------------------------------------------------------------    
     _column = mUI.MelColumn(parent,useTemplate = 'cgmUITemplate') 
     
@@ -1651,7 +1803,7 @@ def buildTab_mrs(self,parent):
 
     uiRC = mUI.MelRadioCollection()
     
-    mVar = self.var_mrsContext
+    mVar = self.var_mrsContext_mode
     _on = mVar.value
 
     for i,item in enumerate(_l_contexts):
@@ -1700,8 +1852,9 @@ def buildTab_mrs(self,parent):
     mUI.MelSpacer(_rowContextSub,w=5)                      
         
     _rowContextSub.layout()
-    
+    """
 
+    buildFrame_mrsTimeContext(self,_column)                
     
     
     #Column below =================================================================
@@ -1710,8 +1863,7 @@ def buildTab_mrs(self,parent):
     mc.setParent(_columnBelow)
     buildFrame_mrsList(self,_columnBelow)    
     buildFrame_mrsAnim(self,_columnBelow)
-    buildFrame_mrsTimeContext(self,_columnBelow)            
-    #buildFrame_poses(self,_columnBelow)    
+    buildFrame_poses(self,_columnBelow)    
     buildFrame_mrsTween(self,_columnBelow)
     buildFrame_mrsHold(self,_columnBelow)        
     buildFrame_mrsMirror(self,_columnBelow)
@@ -1741,9 +1893,9 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
         log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
         
         
-        _context = kws.get('context') or self.var_mrsContext.value
-        _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-        _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+        _context = kws.get('context') or self.var_mrsContext_mode.value
+        _contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+        _contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
         _frame = SEARCH.get_time('current')
         self.mDat.d_context['frameInitial'] = _frame
         
@@ -1764,17 +1916,17 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
         if 'children' in _keys:
             b_children = kws.get('children')
         else:
-            b_children = bool(self.cgmVar_mrsContext_children.value)
+            b_children = bool(self.var_mrsContext_children.value)
         
         if 'siblings' in _keys:
             b_siblings = kws.get('siblings')
         else:
-            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+            b_siblings = bool(self.var_mrsContext_siblings.value)
             
         if 'mirror' in _keys:
             b_mirror = kws.get('mirror')
         else:
-            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            b_mirror = bool(self.var_mrsContext_mirror.value)
             
         if _context == 'control' and b_siblings:
             if b_mirror:
@@ -1989,6 +2141,16 @@ _l_timeFunctions = ['reset','report',
 _l_noReselect = ['aimSnap','aimToIK','aimToFK']
 
 
+def uiCB_contextualActionMM(self,**kws):
+    _res = None
+    try:
+        _res = uiCB_contextualAction(self,**kws)
+    except Exception,err:
+        log.error(err)
+    finally:
+        mc.evalDeferred(MMUTILS.kill_mmTool,lp=True)
+        return _res
+    
 @cgmGEN.Timer
 def uiCB_contextualAction(self,**kws):
     _str_func='uiCB_contextualTime'
@@ -1998,11 +2160,27 @@ def uiCB_contextualAction(self,**kws):
     for k,v in kws.iteritems():
         l_kws.append("{0}:{1}".format(k,v))
     
-    _mode = kws.pop('mode',False)
-    _context = kws.get('context') or self.var_mrsContext.value
-    _contextTime = kws.get('contextTime') or self.var_mrsContextTime.value
-    _contextKeys = kws.get('contextKeys') or self.var_mrsContextKeys.value
+    #_mode = kws.pop('mode',False)
+    #_context = kws.get('context') or self.var_mrsContext_mode.value
+    #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
+    #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
     
+    try:contextArg = self.__class__.TOOLNAME
+    except:contextArg = False
+        
+    d_contextSettings = MRSANIMUTILS.get_contextDict(contextArg)
+    
+
+    _mode = kws.pop('mode',False)
+    
+    for k in ['contextMode','contextTime','contextKeys','contextChildren','contextSiblings','contextMirror','contextKeys']:
+        if kws.get(k) is not None:
+            log.info(cgmGEN.logString_msg(_str_func,"Found: {0} : {1}".format(k,kws.get(k))))
+            d_contextSettings[k] = kws.get(k)
+            
+    _context = d_contextSettings.get('contextMode')
+    _contextTime = d_contextSettings.get('contextTime')
+    _contextKeys = d_contextSettings.get('contextKeys')
 
     d_context = {}
     _mirrorQuery = False
@@ -2027,10 +2205,18 @@ def uiCB_contextualAction(self,**kws):
         return 
     
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
-    _ml_controls = self.mDat.context_get(mirrorQuery=_mirrorQuery,**kws)
+    
+    pprint.pprint(d_contextSettings)
+    
+    _ml_controls = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
+    
+    if not _ml_controls:
+        return log.error("No controls in context")
     
     #First we see if we have a current only function or current time ========================
-    if _mode == 'mirrorVerify':
+    if _mode == 'simpleRes':
+        return _ml_controls
+    elif _mode == 'mirrorVerify':
         if not self.mDat.d_context.get('mPuppets'):
             log.warning("No puppets in context.")
             endCall(self,False)
@@ -2056,7 +2242,6 @@ def uiCB_contextualAction(self,**kws):
             return log.error("Nothing found in context: {0} ".format(_context))
             
             
-        #_l_controls = get_contextualControls(self,_mirrorQuery,**kws)
         _contextTime = 'current'
         
         if _mode == 'report':
@@ -2151,7 +2336,7 @@ def uiCB_contextualAction(self,**kws):
             elif _mode == 'holdCurrentTime':
                 ml_hold.holdRange(True,False)
             elif _mode == 'holdAverageTime':
-                ml_hold.holdRange(False,True)                
+                ml_hold.holdRange(False,True)
             return endCall(self)
         elif _mode == 'mirrorSelect':
             mc.select(_l_controls)
@@ -2162,8 +2347,6 @@ def uiCB_contextualAction(self,**kws):
                 for mObj in  self.mDat.d_context['mControlsMirror']:
                     l_sel.append(mObj.mNode)
             elif _context == 'part':
-                #pprint.pprint( self.mDat.d_context['mModulesMirror'] )
-                #return
                 for mPart in self.mDat.d_context['mModulesMirror']:
                     l_sel.extend([mObj.mNode for mObj in mPart.UTILS.controls_get(mPart)])
             else:
@@ -2226,7 +2409,7 @@ def uiCB_contextualAction(self,**kws):
             self.mDat.key()
             return endCall(self)    
     
-    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**kws)#get_contextTimeDat(self,_mirrorQuery,**kws)
+    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**d_contextSettings)#get_contextTimeDat(self,_mirrorQuery,**kws)
     try:
         if not _res[0]:
             return log.error(_res[1])
@@ -2251,14 +2434,15 @@ def uiCB_contextualAction(self,**kws):
     _primeAxis = False
     _keyResult = False
     err=None
-    if len(_keys):_keyResult=True
+    if len(_keys) > 1:
+        log.info("key result...")
+        _keyResult=True
+    
     _autoKey = mc.autoKeyframe(q=True,state=True)
-    if _autoKey:mc.autoKeyframe(state=False)
+    #if _autoKey:mc.autoKeyframe(state=False)
     _l_cBuffer = []
     mc.refresh(su=1)
     
-
-            
     if _mode == 'pushKey':
         log.debug("|{0}| >> Push Key buffer".format(_str_func))
         self.mDat.snapShot_get()
@@ -2359,7 +2543,8 @@ def uiCB_contextualAction(self,**kws):
                     
                     if _mode == 'reset':
                         RIGGEN.reset_channels_fromMode(controls,_resetMode)
-                        key(f,controls)
+                        if _keyResult:
+                            key(f,controls)
                     
                     elif _mode in ['resetFK','resetIK','resetIKEnd','resetSeg','resetDirect']:
                         l_use = controls
@@ -2375,7 +2560,7 @@ def uiCB_contextualAction(self,**kws):
                             elif _mode == 'resetDirect':
                                 _tag = 'direct'
                                 
-                            l_use = d_buffer.get(mObj,[])
+                            l_use = d_buffer.get(mPart,[])
                             if not l_use:
                                 log.info("Buffering controls for: {0}".format(mPart))
                                 for mObj in self.mDat.d_context['mModules']:
@@ -2385,12 +2570,13 @@ def uiCB_contextualAction(self,**kws):
                                     return log.warning("Context: {0} | No controls found in mode: {1}".format(_context, _mode))
                                     
                         RIGGEN.reset_channels_fromMode(l_use,_resetMode)
-                        for c in controls:
-                            if SEARCH.get_key_indices_from(c):
-                                mc.setKeyframe(c,time = f)
+                        if _keyResult:
+                            for c in controls:
+                                if SEARCH.get_key_indices_from(c):
+                                    mc.setKeyframe(c,time = f)
                                 
                         
-                    elif _mode in ['key','bdKey''delete']:
+                    elif _mode in ['key','bdKey','delete']:
                         mc.select(controls)
                         if _mode == 'key':
                             setKey('default')
@@ -2398,6 +2584,8 @@ def uiCB_contextualAction(self,**kws):
                             setKey('breakdown')
                         elif _mode == 'delete':
                             deleteKey()
+                        print(controls)
+                            
                     elif _mode in ['mirrorPush','mirrorPull',
                                    'symLeft','symRight','mirrorFlip']:
                         log.debug(cgmGEN._str_subLine)
@@ -2457,7 +2645,6 @@ def uiCB_contextualAction(self,**kws):
         mc.currentTime(self.mDat.d_timeContext.get('frameInitial',1.0))
         if _autoKey:mc.autoKeyframe(state=True)
         mc.refresh(su=0)
-        
         if err:
             cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
             
@@ -2471,15 +2658,15 @@ def uiCB_contextualAction(self,**kws):
 
 def buildFrame_mrsTimeContext(self,parent):
     def setContext_time(self,arg):
-        self.var_mrsContextTime.setValue(arg)
+        self.var_mrsContext_time.setValue(arg)
         updateHeader(self)
     def setContext_keys(self,arg):
-        self.var_mrsContextKeys.setValue(arg)
+        self.var_mrsContext_keys.setValue(arg)
         updateHeader(self)        
         
     def updateHeader(self):
-        self.uiFrame_time(edit=True, label = "Time | {0} - {1}".format(self.var_mrsContextKeys.value,
-                                                                       self.var_mrsContextTime.value))        
+        self.uiFrame_time(edit=True, label = "Time | {0} - {1}".format(self.var_mrsContext_keys.value,
+                                                                       self.var_mrsContext_time.value))        
         
     try:self.var_mrsTimeContextFrameCollapse
     except:self.create_guiOptionVar('mrsTimeContextFrameCollapse',defaultValue = 0)
@@ -2510,7 +2697,7 @@ def buildFrame_mrsTimeContext(self,parent):
 
     uiRC = mUI.MelRadioCollection()
 
-    mVar = self.var_mrsContextKeys
+    mVar = self.var_mrsContext_keys
     _on = mVar.value
 
     for i,item in enumerate(_l_contextKeys):
@@ -2541,7 +2728,7 @@ def buildFrame_mrsTimeContext(self,parent):
 
     uiRC = mUI.MelRadioCollection()
 
-    mVar = self.var_mrsContextTime
+    mVar = self.var_mrsContext_time
     _on = mVar.value
 
     for i,item in enumerate(_l_contextTime):
@@ -2557,7 +2744,8 @@ def buildFrame_mrsTimeContext(self,parent):
         #                  ann = "Set time context to: {0}".format(item),                          
         #                  onCommand = cgmGEN.Callback(setContext_time,self,item))        
     _rowContextTime.layout()         
-    
+    mc.setParent(_inside)
+    cgmUI.add_LineBreak()
     updateHeader(self)
     
 def buildFrame_mrsList(self,parent):
@@ -3023,13 +3211,25 @@ def buildFrame_poses(self,parent):
     _frame = mUI.MelFrameLayout(parent,label = 'Poses',vis=True,
                                 collapse=mVar_frame.value,
                                 collapsable=True,
-                                enable=False,
+                                enable=1,
                                 ann="Thanks Red9!",
                                 useTemplate = 'cgmUIHeaderTemplate',
                                 expandCommand = lambda:mVar_frame.setValue(0),
                                 collapseCommand = lambda:mVar_frame.setValue(1)
                                 )	
-    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    #_inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
+    
+    
+    _manager = POSEMANAGER.manager(parent = _frame)
+    self.mPoseManager = _manager
+    for k in self.__dict__.keys():
+        if str(k).startswith('var_'):
+            self.mPoseManager.__dict__[k] = self.__dict__[k]
+    
+    return _manager     
+    
+    
+    return
     
     #Vars ==========================================================================
     self.var_pathMode = cgmMeta.cgmOptionVar('cgmVar_mrs_pathMode',defaultValue = 'local')
@@ -3778,22 +3978,22 @@ def get_context(self, addMirrors = False,**kws):
         if 'children' in _keys:
             b_children = kws.get('children')
         else:
-            b_children = bool(self.cgmVar_mrsContext_children.value)
+            b_children = bool(self.var_mrsContext_children.value)
         
         if 'siblings' in _keys:
             b_siblings = kws.get('siblings')
         else:
-            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+            b_siblings = bool(self.var_mrsContext_siblings.value)
             
         if 'mirror' in _keys:
             b_mirror = kws.get('mirror')
         else:
-            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            b_mirror = bool(self.var_mrsContext_mirror.value)
             
         if 'context' in _keys:
             context = kws.get('context')
         else:
-            context = self.var_mrsContext.value
+            context = self.var_mrsContext_mode.value
         
         if context == 'control' and b_siblings:
             if b_mirror or addMirrors:
@@ -4013,22 +4213,22 @@ def get_contextualControls(self,mirrorQuery=False,**kws):
         if 'children' in _keys:
             b_children = kws.get('children')
         else:
-            b_children = bool(self.cgmVar_mrsContext_children.value)
+            b_children = bool(self.var_mrsContext_children.value)
         
         if 'siblings' in _keys:
             b_siblings = kws.get('siblings')
         else:
-            b_siblings = bool(self.cgmVar_mrsContext_siblings.value)
+            b_siblings = bool(self.var_mrsContext_siblings.value)
             
         if 'mirror' in _keys:
             b_mirror = kws.get('mirror')
         else:
-            b_mirror = bool(self.cgmVar_mrsContext_mirror.value)
+            b_mirror = bool(self.var_mrsContext_mirror.value)
             
         if 'context' in _keys:
             context = kws.get('context')
         else:
-            context = self.var_mrsContext.value
+            context = self.var_mrsContext_mode.value
         
         if context == 'control' and b_siblings:
             if b_mirror:
@@ -4088,7 +4288,7 @@ def uiCB_contextualActionBAK(self, **kws):
             l_kws.append("{0}:{1}".format(k,v))
         
         _mode = kws.pop('mode',False)
-        _context = kws.get('context') or self.var_mrsContext.value
+        _context = kws.get('context') or self.var_mrsContext_mode.value
         
         log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
         
@@ -4099,7 +4299,9 @@ def uiCB_contextualActionBAK(self, **kws):
             _mirrorQuery = True
             
 
-        res_context = get_context(self,**kws)
+        #res_context = get_context(self,**kws)
+        res_context = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
+        
         #pprint.pprint(self.mDat.d_context)
         #return        
         if not res_context:
@@ -4356,7 +4558,7 @@ def uiCB_contextSetValue(self, attr=None,value=None, mode = None,**kws):
     _str_func='cgmUICB_settingsSet'
     log.debug("|{0}| >>  context: {1} | attr: {2} | value: {3} | mode: {4}".format(_str_func,mode,attr,value,mode)+ '-'*80)
     
-    get_context(self,**kws)
+    self.mDat.context_get(**kws)
     
     if mode == 'moduleSettings':
         if not self.mDat.d_context['mModules']:
@@ -4430,7 +4632,7 @@ def uiCB_clear_loaded(self):
 def uiCB_tweenSliderDrop(self):
     _str_func='cgmUICB_tweenSliderDrop'
     """
-    _context = self.var_mrsContext.value
+    _context = self.var_mrsContext_mode.value
     
     #log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
     
@@ -4443,18 +4645,27 @@ def uiCB_tweenSliderDrop(self):
     uiCB_contextualAction(self,**{'mode':mode,'tweenValue':v_tween})
     """
 
+    if self.is_dragging_tween:
+        self.is_dragging_tween = False
+        mc.undoInfo(closeChunk=True)
+
     log.info("Last drag value: {0}".format(self.cgmUISlider_tween.getValue()))
     self.cgmUISlider_tween.setValue(0)
     self.keySel = {}#...clear thiss
-    if not self._sel:
-        return log.error("Nothing in context")    
+    if not self.mDat._sel:
+        return #log.error("Nothing in context")    
     mc.select(self._sel)
     #if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
     return     
-    
+
 def uiCB_tweenSlider(self):
     _str_func='cgmUICB_tweenSlider'
     
+    if not self.is_dragging_tween:
+        mc.undoInfo(openChunk=True)
+        self._sel = mc.ls(sl=True)
+        self.is_dragging_tween = True        
+
     try:self.keySel
     except:self.keySel = {}
     
@@ -4508,7 +4719,7 @@ def uiCB_tweenSlider(self):
                 mc.keyTangent(curve, time=(next,), itt=itt)
                 mc.keyTangent(curve, time=(prev,), ott=ott)
 
-    if not self._sel:
+    if not self.mDat._sel:
         return     
     v_tween = self.cgmUISlider_tween.getValue()
     if v_tween > 0:
@@ -4613,12 +4824,12 @@ def uiCB_bufferDat(self,update=True):
     _str_func='uiCB_bufferDat'
     log.info(cgmGEN.logString_msg(_str_func))
     reload(MRSANIMUTILS)
-    self.mDat = MRSANIMUTILS.MRSDAT
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
 def uiCB_resetSliderDrop(self):
     _str_func='cgmUICB_resetSliderDrop'
     """
-    _context = self.var_mrsContext.value
+    _context = self.var_mrsContext_mode.value
     
     #log.debug("|{0}| >> context: {1} | {2}".format(_str_func,_context,' | '.join(l_kws)))
     
@@ -4632,17 +4843,16 @@ def uiCB_resetSliderDrop(self):
     """
     mc.undoInfo(closeChunk=True)
     if self.b_autoKey:mc.autoKeyframe(state=True)
-    log.info("Last drag value: {0}".format(self.cgmUISlider_tween.getValue()))
     self.cgmUISlider_reset.setValue(0)
     #pprint.pprint(self.d_resetDat)
     self.d_resetDat = {}#...clear thiss
-    if not self._sel:
-        return log.error("Nothing in context")
-    
-    mc.select(self._sel)
+    if not self.mDat._sel:
+        return
+    mc.select(self.mDat._sel)
     #if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
     return     
     
+@cgmGEN.Timer
 def uiCB_resetSlider(self):
     _str_func='cgmUICB_tweenSlider'
     
@@ -4655,10 +4865,17 @@ def uiCB_resetSlider(self):
         mc.undoInfo(openChunk=True)
         if self.b_autoKey:mc.autoKeyframe(state=False)
         
-        uiCB_contextualAction(self,mode='select')
+        #uiCB_contextualAction(self,mode='select')
+        _ml_controls = uiCB_contextualAction(self,mode='simpleRes')#self.mDat.context_get(mirrorQuery=_mirrorQuery,**kws)
+        _selAttrs = SEARCH.get_selectedFromChannelBox(True)
         
-        for i,mCtrl in enumerate(self.mDat.d_context['mControls']):
-            attrs = mc.listAttr(mCtrl.mNode, keyable=True, unlocked=True) or False
+        for mCtrl in _ml_controls:
+            if _selAttrs:
+                attrs = _selAttrs
+                
+            else:
+                attrs = mc.listAttr(mCtrl.mNode, keyable=True, unlocked=True) or False
+                
             self.d_resetDat[mCtrl] = {}
             _short = mCtrl.mNode
             for a in attrs:
@@ -4673,18 +4890,25 @@ def uiCB_resetSlider(self):
                     pass
                 
         
-    if not self._sel:
+    if not self.mDat._sel:
         return
     
     v_reset = self.cgmUISlider_reset.getValue()
+    #log.info("value: {0}".format(v_reset))
     
     for mCtrl,aDat in self.d_resetDat.iteritems():
         for a,vDat in aDat.iteritems():
-            #print("{0} | {1} | {2}".format(mCtrl.mNode,a,vDat['default']))
-            current = vDat['value']
-            setValue = current + ((vDat['default'] - current)*v_reset)
-            #ATTR.set(mCtrl.mNode,a,setValue)
-            mCtrl.__setattr__(a,setValue)
+            try:
+                
+                #print("{0} | {1} | {2}".format(mCtrl.mNode,a,vDat['default']))
+                current = vDat['value']
+                setValue = current + ((vDat['default'] - current)*v_reset)
+                #ATTR.set(mCtrl.mNode,a,setValue)
+                mCtrl.__setattr__(a,setValue)
+            except Exception,err:
+                log.error("Attr fail: {0}.{1}".format(mCtrl,a))
+                self.d_resetDat[mCtrl].pop(a)
+                
             
 #==============================================================================================
 #Marking menu
@@ -4692,6 +4916,15 @@ def uiCB_resetSlider(self):
 @cgmGEN.Timer
 def mmUI_radial(self,parent):
     _str_func = "bUI_radial" 
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
+    
+    
+    mc.menuItem(parent = parent,
+                l = 'Select Last Context',
+                #c = cgmGEN.Callback(self.mDat.select_lastContext),
+                c = lambda *x:self.mDat.select_lastContext(),
+                rp = 'W',
+                )     
     
     #====================================================================		
     #mc.menu(parent,e = True, deleteAllItems = True)
@@ -4741,23 +4974,22 @@ def mmUI_lower(self,parent):
     
     #_optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
     #_optionVar_val_puppetOn = self.var_PuppetMMBuildPuppet.value  
-    
-    try:self.var_mrsContext
-    except:self.var_mrsContext = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
+    """
+    try:self.var_mrsContext_mode
+    except:self.var_mrsContext_mode = cgmMeta.cgmOptionVar('cgmVar_mrsContext_mode',
                                                       defaultValue = _l_contexts[0])
-    try:self.var_mrsContextTime
-    except:self.var_mrsContextTime = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
+    try:self.var_mrsContext_time
+    except:self.var_mrsContext_time = cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
                                                       defaultValue = 'current')
-    try:self.var_mrsContextKeys
-    except:self.var_mrsContextKeys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
+    try:self.var_mrsContext_keys
+    except:self.var_mrsContext_keys = cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                       defaultValue = 'each')    
+    """
     
     
     #Change space menu
-    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
-    
-    
-    
+    DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False,{'contextTime':'current','contextKeys':'each'})
+
     #>>> Control ==========================================================================================    
     mmUI_controls(self,parent)
     mmUI_part(self,parent)
@@ -4802,7 +5034,8 @@ def mmUI_controls(self,parent = None):
     
     mc.menuItem(p=parent,l="-- Controls --",en=False)
     _context = 'control'
-
+    _contextTime = 'current'
+    
     #Mirror =============================================================================
     d_setup = {'Add to selection':{'mode':'mirrorSelect'},
                'Select Only':{'mode':'mirrorSelectOnly'},
@@ -4817,13 +5050,14 @@ def mmUI_controls(self,parent = None):
     for m in ['Add to selection','Select Only','Push','Pull','SymLeft','SymRight','Flip']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':_d.get('mirror',False),
-                  'children':_d.get('children',False),
-                  'siblings':_d.get('siblings',False)}
+                  'contextMode':_context,
+                  'contextMirror':_d.get('mirror',False),
+                  'contextChildren':_d.get('children',False),
+                  'contextTime':_contextTime,                  
+                  'contextSiblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_mirror,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
     return
 
@@ -4834,8 +5068,8 @@ def mmUI_puppet(self,parent = None):
     
     mc.menuItem(p=parent,l="-- Puppet --",en=False)
     _context = 'puppet'
-    
-    self.mDat = MRSANIMUTILS.MRSDAT
+    _contextTime = 'current'
+    self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
 
     
     #Basic =============================================================================
@@ -4851,13 +5085,15 @@ def mmUI_puppet(self,parent = None):
     for m in ['Select','Key','bdKey','Reset','Next Key','Prev Key']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':_d.get('mirror',False),
-                  'children':_d.get('children',False),
-                  'siblings':_d.get('siblings',False)}
+                  'contextMode':_context,
+                  'contextMirror':False,#_d.get('mirror',False),
+                  'contextChildren':False,#_d.get('children',False),
+                  'contextTime':_contextTime,                  
+                  'contextSiblings':False,#_d.get('siblings',False)}
+                  }
         
         mc.menuItem(p=parent,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
         
     #Mirror =============================================================================
@@ -4872,13 +5108,14 @@ def mmUI_puppet(self,parent = None):
     for m in ['Push','Pull','SymLeft','SymRight','Flip']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':_d.get('mirror',False),
-                  'children':_d.get('children',False),
-                  'siblings':_d.get('siblings',False)}
+                  'contextMode':_context,
+                  'contextTime':_contextTime,                  
+                  'contextMirror':_d.get('mirror',False),
+                  'contextChildren':_d.get('children',False),
+                  'contextSiblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_mirror,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )    
         
     #Toggles ===============================================================================
@@ -4895,10 +5132,11 @@ def mmUI_puppet(self,parent = None):
         else:
             l_options = ['off','lock','on']
             _mode = 'puppetSettings'        
-        _d_tmp = {'context':_context,
-                  'mirror':False,
-                  'children':False,
-                  'siblings':False}                  
+        _d_tmp = {'contextMode':_context,
+                  'contextTime':_contextTime,                  
+                  'contextMirror':False,
+                  'contextChildren':False,
+                  'contextSiblings':False}                  
         for v,o in enumerate(l_options):
             mc.menuItem(p=_sub,l=o,
                         c=cgmGEN.Callback(uiCB_contextSetValue,self,n,v,_mode,**_d_tmp))
@@ -4913,6 +5151,7 @@ def mmUI_puppet(self,parent = None):
         """    
     
 
+    
 @cgmGEN.Timer
 def mmUI_part(self,parent = None):
     _str_func = 'mmUI_part'
@@ -4920,6 +5159,7 @@ def mmUI_part(self,parent = None):
     
     mc.menuItem(p=parent,l="-- Part --",en=False)
     _context = 'part'
+    _contextTime = 'current'
     
     #Switch =============================================================================
     _select = mc.menuItem(p=parent,l="Switch",subMenu=True)
@@ -4928,48 +5168,61 @@ def mmUI_part(self,parent = None):
               'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
         #_d = d_setup[m]
         _d_tmp = {'mode':m,
-                  'context':_context,
-                  'mirror':False,
-                  'children':False,
-                  'siblings':False}
+                  'contextMode':_context,
+                  'contextTime':_contextTime,                  
+                  'contextMirror':False,
+                  'contextChildren':False,
+                  'contextSiblings':False}
 
         mc.menuItem(p=_select,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp))
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp))
         
     #Basic =============================================================================
     d_setup = {'Key':{'mode':'key'},
                'bdKey':{'mode':'bdKey'},
                'Reset':{'mode':'reset'},
-               'Next Key':{'mode':'nextKey'},
-               'Prev Key':{'mode':'prevKey'},
-               
-               }
-    
-    for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
-        _d = d_setup[m]
-        _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':_d.get('mirror',False),
-                  'children':_d.get('children',False),
-                  'siblings':_d.get('siblings',False)}
-        
-        mc.menuItem(p=parent,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
-                )
-
-        
-            
-    
-    
-    #Select =============================================================================
-    d_setup = {'all':{'mode':'select'},
+               'Tween':{'mode':'tweenDrag'},
+               'all':{'mode':'select'},
                'add mirror':{'mode':'mirrorSelect'},
                'mirror only':{'mode':'mirrorSelectOnly'},
                'fk':{'mode':'selectFK'},
                'ik':{'mode':'selectIK'},
                'ikEnd':{'mode':'selectIKEnd'},
                'seg':{'mode':'selectSeg'},
-               'direct':{'mode':'selectDirect'},}
+               'direct':{'mode':'selectDirect'},
+               'Push':{'mode':'mirrorPush'},
+               'Pull':{'mode':'mirrorPull'},
+               'SymLeft':{'mode':'symLeft'},
+               'SymRight':{'mode':'symRight'},
+               'Flip':{'mode':'mirrorFlip'}               
+               #'Next Key':{'mode':'nextKey'},
+               #'Prev Key':{'mode':'prevKey'},
+               
+               }
+    
+    for m in ['Key','bdKey','Reset','Tween']:
+        _d = d_setup[m]
+        _d_tmp = {'mode':_d['mode'],
+                  'contextMode':_context,
+                  'contextTime':_contextTime,
+                  'contextMirror':_d.get('mirror',False),
+                  'contextChildren':_d.get('children',False),
+                  'contextSiblings':_d.get('siblings',False)}
+        
+        mc.menuItem(p=parent,l=m,
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
+                )
+
+
+    #Select =============================================================================
+    """d_setup = {'all':{'mode':'select'},
+               'add mirror':{'mode':'mirrorSelect'},
+               'mirror only':{'mode':'mirrorSelectOnly'},
+               'fk':{'mode':'selectFK'},
+               'ik':{'mode':'selectIK'},
+               'ikEnd':{'mode':'selectIKEnd'},
+               'seg':{'mode':'selectSeg'},
+               'direct':{'mode':'selectDirect'},}"""
 
     ['select','selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']
     _select = mc.menuItem(p=parent,l="Select",subMenu=True)
@@ -4977,40 +5230,39 @@ def mmUI_part(self,parent = None):
     for m in ['all','add mirror','mirror only','fk','ik','ikEnd','seg','direct']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':_d.get('mirror',False),
-                  'children':_d.get('children',False),
-                  'siblings':_d.get('siblings',False)}
+                  'contextMode':_context,
+                  'contextTime':_contextTime,                  
+                  'contextMirror':_d.get('mirror',False),
+                  'contextChildren':_d.get('children',False),
+                  'contextSiblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_select,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
 
     #Mirror =============================================================================
-    d_setup = {'Push':{'mode':'mirrorPush'},
+    """d_setup = {'Push':{'mode':'mirrorPush'},
                'Pull':{'mode':'mirrorPull'},
                'SymLeft':{'mode':'symLeft'},
                'SymRight':{'mode':'symRight'},
-               'Flip':{'mode':'mirrorFlip'}}
+               'Flip':{'mode':'mirrorFlip'}}"""
     
     _mirror = mc.menuItem(p=parent,l="Mirror",subMenu=True)
 
     for m in ['Push','Pull','SymLeft','SymRight','Flip']:
-        _d = d_setup[m]
+        _d = d_setup.get(m)
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':_d.get('mirror',False),
-                  'children':_d.get('children',False),
-                  'siblings':_d.get('siblings',False)}
+                  'contextMode':_context,
+                  'contextTime':_contextTime,                  
+                  'contextMirror':True,
+                  'contextChildren':_d.get('children',False),
+                  'contextSiblings':_d.get('siblings',False)}
         
         mc.menuItem(p=_mirror,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
         
-    _children = mc.menuItem(p=parent,l="Children",subMenu=True)
-    mmUI_section(self,_children,children=True)
-    
-    
+    #Toggle --------------------------------------------------------------------------------
     _toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)
     
     l_settings = ['visSub','visDirect','visRoot']
@@ -5018,10 +5270,11 @@ def mmUI_part(self,parent = None):
 
     for n in l_settings:
         _sub = mc.menuItem(p=_toggle,l=n,subMenu=True)
-        _d_tmp = {'context':_context,
-                  'mirror':False,
-                  'children':False,
-                  'siblings':False}                  
+        _d_tmp = {'contextMode':_context,
+                  'contextMirror':False,
+                  'contextTime':_contextTime,                  
+                  'contextChildren':False,
+                  'contextSiblings':False}                  
         for v,o in enumerate(['hide','show']):
             mc.menuItem(p=_sub,l=o,
                         c=cgmGEN.Callback(uiCB_contextSetValue,self,n,v,'moduleSettings',**_d_tmp))
@@ -5035,6 +5288,95 @@ def mmUI_part(self,parent = None):
             _mode = 'puppetSettings'
         """
         
+    ###Children/Siblings ------------------------------------------------------------
+    """
+    _children = mc.menuItem(p=parent,l="Children",subMenu=True)
+    mmUI_section(self,_children,'part',children=True)
+    
+    _siblings = mc.menuItem(p=parent,l="Siblings",subMenu=True)
+    mmUI_section(self,_siblings,'part',siblings=True)"""
+    
+    
+    
+    for section in 'Children','Siblings':
+        _sub = mc.menuItem(p=parent,l=section,subMenu=True)
+        _children = False
+        _siblings = False
+        
+        if section == 'Children':
+            _children = True
+        else:
+            _siblings = True
+        
+        #Switch =============================================================================
+        _select = mc.menuItem(p=_sub,l="Switch",subMenu=True)
+    
+        for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll',
+                  'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
+            #_d = d_setup[m]
+            _d_tmp = {'mode':m,
+                      'contextMode':_context,
+                      'contextTime':_contextTime,                  
+                      'contextMirror':False,
+                      'contextChildren':_children,
+                      'contextSiblings':_siblings}
+    
+            mc.menuItem(p=_select,l=m,
+                        c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp))
+        
+        #Basic ============================================================================
+        for m in ['Key','bdKey','Reset','Tween']:
+            _d = d_setup.get(m)
+            _d_tmp = {'mode':_d.get('mode'),
+                      'contextMode':_context,
+                      'contextTime':_contextTime,
+                      'contextMirror':_d.get('mirror',False),
+                      'contextChildren':_children,
+                      'contextSiblings':_siblings}
+            
+            mc.menuItem(p=_sub,l=m,
+                        c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
+                    )
+    
+        
+        #Select =============================================================================
+        #['select','selectFK','selectIK','selectIKEnd','selectSeg','selectDirect']
+        _select = mc.menuItem(p=_sub,l="Select",subMenu=True)
+        
+        for m in ['all','add mirror','mirror only','fk','ik','ikEnd','seg','direct']:
+            _d = d_setup[m]
+            _d_tmp = {'mode':_d['mode'],
+                      'contextMode':_context,
+                      'contextTime':_contextTime,                  
+                      'contextMirror':_d.get('mirror',False),
+                      'contextChildren':_d.get('children',_children),
+                      'contextSiblings':_d.get('siblings',_siblings)}
+            
+            mc.menuItem(p=_select,l=m,
+                        c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
+                    )
+    
+        #Mirror =============================================================================       
+        _mirror = mc.menuItem(p=_sub,l="Mirror",subMenu=True)
+    
+        for m in ['Push','Pull','SymLeft','SymRight','Flip']:
+            _d = d_setup[m]
+            _d_tmp = {'mode':_d['mode'],
+                      'contextMode':_context,
+                      'contextTime':_contextTime,                  
+                      'contextMirror':True,
+                      'contextChildren':_d.get('children',_children),
+                      'contextSiblings':_d.get('siblings',_siblings)}
+            
+            mc.menuItem(p=_mirror,l=m,
+                        c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
+                    )
+                
+    
+    
+    return
+   
+        
     return
 
 
@@ -5043,28 +5385,30 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
     _str_func = 'mmUI_part'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
     
-    _context = context
+    _context = 'part'
 
     #Basic =============================================================================
     d_setup = {'Key':{'mode':'key'},
                'bdKey':{'mode':'bdKey'},
                'Reset':{'mode':'reset'},
-               'Next Key':{'mode':'nextKey'},
-               'Prev Key':{'mode':'prevKey'},
+               'Tween':{'mode':'tweenDrag'},
+               
+               #'Next Key':{'mode':'nextKey'},
+               #'Prev Key':{'mode':'prevKey'},
                
                }
     
-    for m in ['Key','bdKey','Reset','Next Key','Prev Key']:
+    for m in ['Key','bdKey','Reset','Tween']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':mirror,
-                  'children':children,
-                  'siblings':siblings,
+                  'contextMode':_context,
+                  'contextMirror':mirror,
+                  'contextChildren':children,
+                  'contextSiblings':siblings,
                   }
         
         mc.menuItem(p=parent,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )    
     
     #Select =============================================================================
@@ -5083,14 +5427,14 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
     for m in ['all','mirror','mirror only','fk','ik','ikEnd','seg','direct']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':mirror,
-                  'children':children,
-                  'siblings':siblings,
+                  'contextMode':_context,
+                  'contextMirror':mirror,
+                  'contextChildren':children,
+                  'contextSiblings':siblings,
                   }
         
         mc.menuItem(p=_select,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
 
     #Mirror =============================================================================
@@ -5107,14 +5451,14 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
     for m in ['Push','Pull','SymLeft','SymRight','Flip']:
         _d = d_setup[m]
         _d_tmp = {'mode':_d['mode'],
-                  'context':_context,
-                  'mirror':mirror,
-                  'children':children,
-                  'siblings':siblings,
+                  'contextMode':_context,
+                  'contextMirror':True,
+                  'contextChildren':children,
+                  'contextSiblings':siblings,
                   }
         
         mc.menuItem(p=_mirror,l=m,
-                    c=cgmGEN.Callback(uiCB_contextualAction,self, **_d_tmp),
+                    c=cgmGEN.Callback(uiCB_contextualActionMM,self, **_d_tmp),
                 )
         
     _toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)
@@ -5124,10 +5468,10 @@ def mmUI_section(self,parent = None, context= 'part', mirror = False, children =
 
     for n in l_settings:
         _sub = mc.menuItem(p=_toggle,l=n,subMenu=True)
-        _d_tmp = {'context':_context,
-                  'mirror':mirror,
-                  'children':children,
-                  'siblings':siblings,}
+        _d_tmp = {'contextMode':_context,
+                  'contextMirror':mirror,
+                  'contextChildren':children,
+                  'contextSiblings':siblings,}
         for v,o in enumerate(['hide','show']):
             mc.menuItem(p=_sub,l=o,
                         c=cgmGEN.Callback(uiCB_contextSetValue,self,n,v,'moduleSettings',**_d_tmp))
@@ -5166,7 +5510,7 @@ class mrsScrollList(mUI.BaseMelWidget):
         self.rebuild()
         self.cmd_select = None
         self(e=True, sc = self.selCommand)
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
     def __getitem__( self, idx ):
         return self.getItems()[ idx ]
@@ -5272,7 +5616,7 @@ class mrsScrollList(mUI.BaseMelWidget):
     
     def rebuild( self ):
         _str_func = 'rebuild'
-        self.mDat = MRSANIMUTILS.MRSDAT
+        self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
         
         log.debug(cgmGEN.logString_start(_str_func))
         self.b_selCommandOn = False

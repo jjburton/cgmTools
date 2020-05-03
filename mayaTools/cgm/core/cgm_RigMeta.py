@@ -1782,46 +1782,49 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 
     #@cgmGeneral.Timer
     def doSwitchSpace(self,attr,arg,deleteLoc = True):
-        log.debug(">>> %s.doSwitchSpace(attr = %s, arg = %s, deleteLoc = %s) >> "%(self.p_nameShort,attr,arg,deleteLoc) + "="*75) 		        			
-        
-        sl = mc.ls(sl=True, l=True)
-        
-        #Swich setting shile holding 
-        l_attrs = ['space','follow','orientTo']
-        if attr not in l_attrs:
-            raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Not a valid attr: %s"%attr	
-
-        i_child = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',True)
-        d_attr = cgmMeta.validateAttrArg([i_child.mNode,attr])
-        if not i_child and d_attr:
-            raise StandardError,"cgmDynParentGroup.doSwitchSpace>> doSwitchSpace doesn't have enough info. Rebuild recommended"
-
-        #Validate the arg
-        if type(arg) is int:
-            index = arg
-        elif arg in d_attr['mi_plug'].p_enum:
-            index = d_attr['mi_plug'].p_enum.index(arg)
-        else:
-            raise StandardError,"%s.doSwitchSpace>> faile to find index from -- arg: %s | attr: %s"%(self.getShortName(),arg,attr)
-
-        if index == i_child.getAttr(attr):
-            log.debug("cgmDynParentGroup.doSwitchSpace>> Already that mode")	    
-            return True
-        elif index+1 > len(d_attr['mi_plug'].p_enum):
-            raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Index(%s) greater than options: %s"%(index,d_attr['mi_plug'].getEnum())	
-
-
-        objTrans = mc.xform (i_child.mNode, q=True, ws=True, rp=True)#Get trans
-        objRot = mc.xform (i_child.mNode, q=True, ws=True, ro=True)#Get rot
-        i_loc = i_child.doLoc()#loc
-
-        mc.setAttr("%s.%s"%(i_child.mNode,attr),index)#Change it
-        mc.move (objTrans[0],objTrans[1],objTrans[2], [i_child.mNode])#Set trans
-        mc.rotate (objRot[0], objRot[1], objRot[2], [i_child.mNode], ws=True)#Set rot	
-
-        if deleteLoc:i_loc.delete()
-
-        mc.select(sl)
+        try:
+            log.debug(">>> %s.doSwitchSpace(attr = %s, arg = %s, deleteLoc = %s) >> "%(self.p_nameShort,attr,arg,deleteLoc) + "="*75) 		        			
+            
+            sl = mc.ls(sl=True, l=True)
+            
+            #Swich setting shile holding 
+            l_attrs = ['space','follow','orientTo']
+            if attr not in l_attrs:
+                raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Not a valid attr: %s"%attr	
+    
+            i_child = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',True)
+            d_attr = cgmMeta.validateAttrArg([i_child.mNode,attr])
+            if not i_child and d_attr:
+                raise StandardError,"cgmDynParentGroup.doSwitchSpace>> doSwitchSpace doesn't have enough info. Rebuild recommended"
+    
+            #Validate the arg
+            if type(arg) is int:
+                index = arg
+            elif arg in d_attr['mi_plug'].p_enum:
+                index = d_attr['mi_plug'].p_enum.index(arg)
+            else:
+                raise StandardError,"%s.doSwitchSpace>> faile to find index from -- arg: %s | attr: %s"%(self.getShortName(),arg,attr)
+    
+            if index == i_child.getAttr(attr):
+                log.debug("cgmDynParentGroup.doSwitchSpace>> Already that mode")	    
+                return True
+            elif index+1 > len(d_attr['mi_plug'].p_enum):
+                raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Index(%s) greater than options: %s"%(index,d_attr['mi_plug'].getEnum())	
+    
+    
+            objTrans = mc.xform (i_child.mNode, q=True, ws=True, rp=True)#Get trans
+            objRot = mc.xform (i_child.mNode, q=True, ws=True, ro=True)#Get rot
+            i_loc = i_child.doLoc()#loc
+    
+            mc.setAttr("%s.%s"%(i_child.mNode,attr),index)#Change it
+            mc.move (objTrans[0],objTrans[1],objTrans[2], [i_child.mNode])#Set trans
+            mc.rotate (objRot[0], objRot[1], objRot[2], [i_child.mNode], ws=True)#Set rot	
+    
+            if deleteLoc:i_loc.delete()
+    
+            mc.select(sl)
+        except Exception,err:
+            log.error(err)
 
     def doPurge(self):
         log.debug(">>> %s.doPurge() >> "%(self.p_nameShort) + "="*75) 		        			

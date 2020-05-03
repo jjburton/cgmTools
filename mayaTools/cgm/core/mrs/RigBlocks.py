@@ -9,6 +9,8 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
+__MAYALOCAL = 'RIGBLOCKS'
+
 import maya.cmds as mc
 
 import random
@@ -104,10 +106,17 @@ def get_callSize(mode = None, arg = None, blockType = None, blockProfile = None,
                 if blockType:
                     blockModule = get_blockModule(blockType)
                     if blockProfile:
-                        try:_profileValues = blockModule.d_block_profiles.get(blockProfile,{})
-                        except:_profileValues = {}
-                        if _profileValues.get('baseSize') is not None:
+                        try:
+                            log.debug("|{0}| >> checking block profile...".format(_str_func))                
+                            _profileValues = blockModule.d_block_profiles.get(blockProfile,{})
                             return floatValues(_profileValues['baseSize'])
+                        except:pass
+                    try:
+                        log.debug("|{0}| >> checking defaultSettings...".format(_str_func))
+                        _profileValues = blockModule.d_defaultSettings                                
+                        return floatValues(_profileValues['baseSize'])
+                    except:pass
+                    log.debug("|{0}| >> __baseSize__...".format(_str_func))
                     return floatValues(getattr(blockModule, '__baseSize__', default))
                 return floatValues(default)
             else:
@@ -132,13 +141,16 @@ def get_callSize(mode = None, arg = None, blockType = None, blockProfile = None,
         elif VALID.objString(mode,noneValid=True):
             arg = mode
             mode = 'selection'
+            
         if VALID.isListArg(mode):
             if len(mode)==3:
                 _valueList = True
                 for v in mode:
-                    if not VALID.valueArg(v):
+                    if VALID.valueArg(v) is False:
+                        log.info("|{0}| >> Invalid value arg: {1}".format(_str_func,v))                
                         _valueList = False
                         break
+                    
                 if _valueList:
                     return floatValues(mode)
                 
@@ -368,11 +380,11 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
 
-    def verify(self, blockType = None, size = None, side = None):
+    def verify(self, blockType = None, size = None, side = None,forceReset=False):
         """ 
 
         """
-        return self.UTILS.verify(self,blockType,size,side)
+        return self.UTILS.verify(self,blockType,size,side,forceReset)
 
     def doName(self):
         return self.atUtils('doName')
@@ -1188,6 +1200,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
 
         print res
         return res
+    
     @cgmGEN.Timer
     def verify_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         """
@@ -1204,6 +1217,28 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return self.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
         #mRigFac = rigFactory(self, autoBuild = False)
         #return mRigFac.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
+        
+    @cgmGEN.Timer
+    def proxyMesh_delete(self, forceNew = True, puppetMeshMode = False):
+        """
+        Function to call a blockModule function by string. For menus and other reasons
+        """
+        _str_func = 'proxyMesh_delete'
+        mModuleTarget = self.getMessageAsMeta('moduleTarget')
+        if not mModuleTarget:
+            return log.error( cgmGEN.logString_msg(_str_func,"No module target") )
+        
+        mRigNull = mModuleTarget.getMessageAsMeta('rigNull')
+        if not mRigNull:
+            return log.error( cgmGEN.logString_msg(_str_func,"No mRigNull") )
+        
+        _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
+            mc.delete([mObj.mNode for mObj in _bfr])
+            return True
+            
+        return False
     
 class cgmRigBlockHandle(cgmMeta.cgmControl):
     def __init__(self, node = None, baseShape = None,  baseSize = 1, shapeDirection = 'z+',
@@ -3181,7 +3216,7 @@ class rigFactory(object):
 
             if _mModule.getMessage('moduleParent'):
                 _d['mModuleParent'] = _mModule.moduleParent
-
+                
             """
             if not _mRigNull.getMessage('dynSwitch'):
                 _mDynSwitch = RIGMETA.cgmDynamicSwitch(dynOwner=_mRigNull.mNode)
@@ -3194,6 +3229,9 @@ class rigFactory(object):
             #BlockFactory.puppet_verify()
             self.mBlock.atUtils('puppet_verify')
             _mPuppet = _mModule.modulePuppet
+            
+            mc.editDisplayLayerMembers(_mPuppet.controlLayer.mNode, _mModule.mNode,noRecurse=True)
+            
         else:
             _mPuppet = self.mBlock.moduleTarget
 
@@ -3201,7 +3239,8 @@ class rigFactory(object):
 
         _d['mPuppet'] = _mPuppet
         _mPuppet.UTILS.groups_verify(_mPuppet)
-
+        
+        
         if _hasModule:
             if not _mModule.atUtils('is_skeletonized'):
                 log.warning("|{0}| >> Module isn't skeletonized. Attempting".format(_str_func))
@@ -3273,8 +3312,8 @@ class rigFactory(object):
                 mSettings = self.d_module['mMasterControl'].controlVis
                 
             log.debug("|{0}| >> mModuleParent mSettings: {1}".format(_str_func,mSettings))
-            self.mPlug_visSub_moduleParent = cgmMeta.cgmAttr(mSettings,'visSub')
-            self.mPlug_visDirect_moduleParent = cgmMeta.cgmAttr(mSettings,'visDirect')
+            self.mPlug_visSub_moduleParent = cgmMeta.cgmAttr(mSettings,'visSub','bool')
+            self.mPlug_visDirect_moduleParent = cgmMeta.cgmAttr(mSettings,'visDirect','bool')
 
 
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
@@ -3641,13 +3680,15 @@ class rigFactory(object):
                 log.error("|{0}| >> No steps to build!".format(_str_func))                    
                 return False
             #Build our progress Bar
-            mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
+            try:mayaMainProgressBar = CGMUI.doStartMayaProgressBar(_len)
+            except:mayaMainProgressBar = None
 
             for i,fnc in enumerate(_l_buildOrder):
                 _str_func = '_'.join(fnc.split('_')[1:])
                 
-                mc.progressBar(mayaMainProgressBar, edit=True,
-                               status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)                    
+                if mayaMainProgressBar:
+                    mc.progressBar(mayaMainProgressBar, edit=True,
+                                   status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)                    
                 
                 mc.undoInfo(openChunk=True,chunkName=fnc)
                 
@@ -3679,7 +3720,7 @@ class rigFactory(object):
                     
             #self.mBlock.addAttr('rigNodeBuffer','message',l_diff)
             
-            CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
+            if mayaMainProgressBar:CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
             CGMUI.doEndMayaProgressBar()#Close out this progress bar
             cgmGEN.cgmExceptCB(Exception,err,msg=vars())
@@ -3914,6 +3955,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
                 if mRigBlock:
                     log.info("|{0}| >> from rigBlock...".format(_str_func))                
                     mMasterNull = mRigBlock.doCreateAt()
+                    mMasterNull.resetAttrs()
                 else:
                     mMasterNull = cgmMeta.cgmObject()
             else:
@@ -4233,11 +4275,13 @@ class cgmRigMaster(cgmMeta.cgmObject):
     
             _size = kws.get('size',None)
             _sel = mc.ls(sl=1) or None
-            _callSize = get_callSize(_size,_sel)
-            log.debug("|{0}| >> call size: {1}".format(_str_func,_callSize))            
-            kws['size'] = _callSize#...push back new value
+            log.debug("|{0}| >> size: {1} | sel: {2}".format(_str_func,_size,_sel))
             
-    
+            _callSize = get_callSize(_size,_sel)
+            log.debug("|{0}| >> call size: {1}".format(_str_func,_callSize))
+            
+            kws['size'] = _callSize#...push back new value
+
             super(cgmRigMaster, self).__init__(*args,**kws)
             
             #====================================================================================	

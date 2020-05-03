@@ -60,7 +60,8 @@ def get_install_path(confirm = False,branch=_defaultBranch):
     
     _path = False
     _warn = None
-
+    _path_cgm = None
+    
     try:
         #First we'll see if we have cgm installed...
         try:
@@ -469,7 +470,6 @@ def get_dat(branch = 'master', limit = 3, update = False, reportMode=False):
         print 'More than likely your internet is down or the server is.'
     finally:
         print '...'
-        return False
         
 def get_dat_bit(branch = 'master', limit = 3, update = False):
     """

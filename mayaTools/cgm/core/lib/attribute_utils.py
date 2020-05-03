@@ -307,6 +307,33 @@ def set_alias(node, attr = None, alias = None):
             mc.aliasAttr(_d['combined'],remove=True)
             log.warning("'{0}' cleared of alias!".format(_d['combined']))
 
+
+def get_valueDict(target,**kws):
+    res = {}
+    
+    l_targetAttrs = mc.listAttr(target,**kws)
+    if not l_targetAttrs:
+        raise ValueError,"No attrs found. kws: {0}".format(kws)
+    
+    for a in l_targetAttrs:
+        try:
+            res[a] = get(target,a)
+        except Exception,error:
+            log.warning(error)	
+            log.warning("'%s.%s'couldn't query"%(target,a))
+    return res
+
+def set_valueDict(target,d={}):
+    if not d:
+        raise ValueError,"No data passed"
+    
+    for a,v in d.iteritems():
+        try:
+            set(target,a,v)
+        except Exception,error:
+            log.warning(error)	
+            log.warning("'%s.%s'couldn't query"%(target,a))    
+
 def compare_attrs(source, targets, **kws):
     """   
     Call for comparing a source object to targets to check values and attributes
@@ -413,9 +440,7 @@ def get(*a, **kws):
         log.debug("|{0}| >> arg: {1}".format(_str_func,a))    
         if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
     
-        if "[" in _attr:
-            log.debug("Indexed attr")
-            return mc.listConnections(_combined)
+
     
         try:attrType = mc.getAttr(_d['combined'],type=True)
         except:
@@ -423,8 +448,25 @@ def get(*a, **kws):
             return None
         
         if attrType in ['TdataCompound']:
-            return mc.listConnections(_combined)		
-    
+            log.debug('TdataCompound...')
+            if '[' in _attr:
+                _plug = mc.listConnections(_combined)		
+                if _plug:return _plug
+                return mc.getAttr(_combined, **kws)[0]
+            else:
+                _res = {}
+                _indices = get_compoundIndices(_combined) or []
+                for v in _indices:
+                    _plug = mc.listConnections(_combined)		
+                    if _plug:_res[v] = _plug
+                    else:                    
+                        _res[v] =  get("{0}.{1}[{2}]".format(_obj,_attr,v))
+                return _res
+        
+        if "[" in _attr:
+            log.debug("Indexed attr")
+            return mc.listConnections(_combined)
+        
         if mc.attributeQuery (_attr,node=_obj,msg=True):
             #return mc.listConnections(_combined) or False 
             return get_message(_d)
@@ -545,7 +587,45 @@ def set(node, attr = None, value = None, lock = False,**kws):
         _aType =  mc.getAttr(_combined,type=True)
         _validType = validate_attrTypeName(_aType)
         
+
         
+        def splitBracket(arg):
+            _split = arg.split('[')
+            _root = _split[0]
+            _splitJoin = ''.join(_split[1:])
+            _v = _splitJoin[:-1]
+            return _root,_v
+            
+        if _aType in ['TdataCompound']:
+            log.debug('TdataCompound...')
+            if '[' in _attr:
+                _attrClean, _idx = splitBracket(_attr)
+                #_parent = get_parent(_obj,_attrClean)
+                _children = get_children(_obj,_attrClean)
+                
+                if len(value)!= len(_children):
+                    raise ValueError,"Invalid value length, children: {0} | value: {1}".format(_children,value)
+                
+                for i,a in enumerate(_children):
+                    mc.setAttr("{3}.{0}[{1}].{2}".format(_attrClean,_idx,a,_obj),value[i])
+                    #set(_obj,"{0}[{1}].{2}".format(_attrClean,_idx,a),value[i])
+                return
+            else:
+                if not issubclass(type(value),dict):
+                    raise ValueError,"TdataCompound for multiset must be dict. type: {0} | value: {1}".format(type(value),value)
+                
+                clear_TdataCompound(_d)
+                
+                _children = get_children(_d)
+                for idx,lv in value.iteritems():
+                    if len(lv)!= len(_children):
+                        log.warning("Invalid value list | children: {0} | idx: {1} | lv: {2}".format(_children,idx,lv))
+                        
+                    for i,a in enumerate(_children):
+                        mc.setAttr("{3}.{0}[{1}].{2}".format(_attr,idx,a,_obj),lv[i])                    
+                return
+                
+            
         if is_locked(_combined):
             _wasLocked = True
             mc.setAttr(_combined,lock=False)    
@@ -1908,6 +1988,36 @@ def is_userDefined(*a):
         return True
     return False
 
+def get_nextCompoundIndex(*a):
+    if get_type(*a) != 'TdataCompound':
+        raise ValueError,"must be compound attr"
+    _d = validate_arg(*a)
+
+    l_indices = [int(v) for v in get_compoundIndices(_d)]
+    _res = 0
+    _good = False
+    i = 0
+    while i in l_indices:
+        i+=1
+    return i
+
+def clear_TdataCompound(*a):
+    if get_type(*a) != 'TdataCompound':
+        raise ValueError,"must be compound attr"    
+    _d = validate_arg(*a) 
+    
+    for v in get_compoundIndices(_d):
+        mc.removeMultiInstance("{0}.{1}[{2}]".format(_d['node'],_d['attr'],v))
+    #removeMultiInstance -break true |tentacle_dynFK|tentacle_hairSys|tentacle_hairSysShape.attractionScale[5];
+    
+        
+def get_compoundIndices(*a):
+    if get_type(*a) != 'TdataCompound':
+        raise ValueError,"must be compound attr"
+    _d = validate_arg(*a) 
+    
+    return mc.getAttr(_d['combined'],multiIndices =1)
+    
 def get_range(*a):
     """   
     :parameters:

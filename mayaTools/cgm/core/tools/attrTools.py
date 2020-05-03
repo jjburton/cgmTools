@@ -12,11 +12,11 @@ Website : http://www.cgmonks.com
 # From Python =============================================================
 import copy
 import re
-
+import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 import maya.cmds as mc
@@ -36,10 +36,12 @@ from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import list_utils as LISTS
 from cgm.core.tools.markingMenus.lib import contextual_utils as CONTEXT
 from cgm.core.cgmPy import str_Utils as STRINGS
-reload(STRINGS)
-reload(SEARCH)
+import Red9.core.Red9_CoreUtils as r9Core
+
+#reload(STRINGS)
+#reload(SEARCH)
 #>>> Root settings =============================================================
-__version__ = '2.0.05312017'
+__version__ = '2.0.11222019'
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'
@@ -143,6 +145,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_context = mUI.MelMenu( l='Context', pmc=self.buildMenu_context)           
         self.uiMenu_valueModes = mUI.MelMenu( l='Values', pmc=self.buildMenu_values)           
         self.uiMenu_keysModes = mUI.MelMenu( l='Keys', pmc=self.buildMenu_keys)           
+        self.uiMenu_utils = mUI.MelMenu( l='Utils', pmc=self.buildMenu_utils)           
         
         self.uiMenu_help = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)           
         #pass#...don't want em  
@@ -220,7 +223,52 @@ class ui(cgmUI.cgmGUI):
                     label='Report',
                     ann='Print the current values report.',
                     c = cgmGEN.Callback(get_keys, self, self.var_context.value, 'all',True))  
+        
+    def buildMenu_utils( self, *args):
+        self.uiMenu_utils.clear()
+        
+        _en = False
+        if  self.var_context.value == 'selection':
+            _en = True
             
+        mUI.MelMenuItemDiv(parent=self.uiMenu_utils,label = 'Selection')
+        mUI.MelMenuItem(parent=self.uiMenu_utils,
+                    label='Channelbox Bridge',
+                    ann='Copy the selected channelbox attributes to the prime node and drive this node from that',
+                    en = True,
+                    c = cgmGEN.Callback(self.uiFunc_channelBoxBridge))          
+        
+
+        
+        return
+        
+        uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_valueModes)
+        #self.uiOptions_menuMode = []		
+        _v = self.var_valuesMode.value
+        
+        _d_annos = {'primeAttr':'First attribute values will be pushed',
+                    'primeAttrPer':'First attribute value per key will be pushed',
+                    'primeNode':'Values from primeNode will be pushed',
+                    'primeNodePer':'Values from primenode per key will be pushed',
+                    'each':'Values from each object will be pushed',
+                    }        
+
+        for i,item in enumerate(['primeAttr','primeAttrPer','primeNode','primeNodePer','each']):
+            if item == _v:
+                _rb = True
+            else:_rb = False
+            mc.menuItem(parent=self.uiMenu_valueModes,collection = uiRC,
+                        label=item,
+                        ann=_d_annos.get(item,'Fill out the dict!'),                        
+                        c = cgmGEN.Callback(self.var_valuesMode.setValue,item),                                  
+                        rb = _rb)
+            
+        mUI.MelMenuItemDiv(parent=self.uiMenu_valueModes)
+        mc.menuItem(parent=self.uiMenu_valueModes,collection = uiRC,
+                    label='Report',
+                    ann='Print the current values report.',
+                    c = cgmGEN.Callback(get_values, self, self.var_context.value, True))           
+
     def buildMenu_values( self, *args):
         self.uiMenu_valueModes.clear()
         
@@ -334,10 +382,35 @@ class ui(cgmUI.cgmGUI):
             log.info("|{0}| >> combined: {1} || err: {3}".format(_str_func, combined, err))
         self.uiFunc_updateScrollAttrList()
         
+        
+        
+    def uiFunc_updateDisplay(self):
+        _str_func = 'uiFunc_updateDisplay'  
+        
+        self._l_attrsLoaded = []
+        
+        self.uiScrollList_attr.clear()
+        _filter = self.uiField_attrFilter.getValue()
+        log.info(_filter)
+        
+        for i,a in enumerate(r9Core.filterListByString(self._l_attrsProcessed,
+                                                       _filter,
+                                                       matchcase=False)):
+
+            self.uiScrollList_attr.append(self._d_attrStrings.get(a,a))
+            self._l_attrsLoaded.append(a)
+            
+        pprint.pprint(self._l_attrsLoaded)
+        
     def uiFunc_updateScrollAttrList(self):
         try:
             _str_func = 'uiFunc_updateScrollAttrList'          
             self._l_attrsToLoad = []
+            self._l_attrsLoaded = []
+            self._l_attrsProcessed = []
+            self._l_attrsStrings = []
+            self._d_attrStrings = {}
+            
             _d_processed = {}
             
             if not self._ml_nodes:
@@ -348,7 +421,6 @@ class ui(cgmUI.cgmGUI):
             #['shared','keyable','transforms','user','other']
             
             _shared = self._d_uiCheckBoxes['shared'].getValue()
-            #_keyable = self._d_uiCheckBoxes['keyable'].getValue()
             _default = self._d_uiCheckBoxes['default'].getValue()
             _user = self._d_uiCheckBoxes['user'].getValue()
             _others = self._d_uiCheckBoxes['others'].getValue()
@@ -455,8 +527,8 @@ class ui(cgmUI.cgmGUI):
             _progressBar = cgmUI.doStartMayaProgressBar(len(self._l_attrsToLoad),"Processing...")
             try:
                 for a in self._l_attrsToLoad:
-                    
-                    mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
+                    if _progressBar:
+                        mc.progressBar(_progressBar, edit=True, status = ("{0} Processing attribute: {1}".format(_str_func,a)), step=1)                    
                     
                     try:
                         _short = self._ml_nodes[0].p_nameShort
@@ -549,68 +621,37 @@ class ui(cgmUI.cgmGUI):
                         _l_report.append(_v)
                             
                         #_str = " -- ".join(_l_report)
-                        self.uiScrollList_attr.append(" // ".join(_l_report))
+                        #self._l_attrsStrings.append(" // ".join(_l_report))
+                        #self.uiScrollList_attr.append(" // ".join(_l_report))
+                        self._l_attrsProcessed.append(a)
+                        self._d_attrStrings[a] = " // ".join(_l_report)
+                        
                     except Exception,err:
                         log.info("|{0}| >> {1}.{2} | failed to query. Removing. err: {3}".format(_str_func, _short, a, err))  
                         self._l_attrsToLoad.remove(a)
                     log.debug("|{0}| >> {1} : {2}".format(_str_func, _short, a))  
             except Exception,err:
-                try:cgmUI.doEndMayaProgressBar(_progressBar)
-                except:pass
-                raise Exception,err
-    
+                log.error(err)
+            finally:
+                cgmUI.doEndMayaProgressBar(_progressBar)
+
             #menu(edit=True,cc = uiAttrUpdate)
-            cgmUI.doEndMayaProgressBar(_progressBar)
             
+            self.uiFunc_updateDisplay()
             
             #Reselect
-            if self._l_attrsSelected:
-                _indxs = []
-                for a in self._l_attrsSelected:
-                    log.debug("|{0}| >> Selected? {1}".format(_str_func,a))                              
-                    if a in self._l_attrsToLoad:
-                        self.uiScrollList_attr.selectByIdx(self._l_attrsToLoad.index(a))
-                        
+            try:
+                if self._l_attrsSelected:
+                    _indxs = []
+                    for a in self._l_attrsSelected:
+                        log.debug("|{0}| >> Selected? {1}".format(_str_func,a))                              
+                        if a in self._l_attrsLoaded:
+                            self.uiScrollList_attr.selectByIdx(self._l_attrsLoaded.index(a))
+            except:
+                log.error("Failed to reselect")
                         
                         
             return False
-            """
-            if self.SourceObject and self.SourceObject.update(self.SourceObject.nameLong):
-                if self.HideNonstandardOptionVar.value:
-                    self._l_attrsToLoad.extend(self.SourceObject.transformAttrs)
-                    self._l_attrsToLoad.extend(self.SourceObject.userAttrs)
-                    self._l_attrsToLoad.extend(self.SourceObject.keyableAttrs)
-        
-                    self._l_attrsToLoad = lists.returnListNoDuplicates(self._l_attrsToLoad)
-                else:
-                    self._l_attrsToLoad.extend( mc.listAttr(self.SourceObject.nameLong) )
-        
-                if self.HideTransformsOptionVar.value:
-                    for a in self.SourceObject.transformAttrs:
-                        if a in self._l_attrsToLoad:
-                            self._l_attrsToLoad.remove(a)
-        
-                if self.HideUserDefinedOptionVar.value:
-                    for a in self.SourceObject.userAttrs:
-                        if a in self._l_attrsToLoad:
-                            self._l_attrsToLoad.remove(a)	
-        
-                if self.HideParentAttrsOptionVar.value:
-                    for a in self._l_attrsToLoad:
-                        if (mc.attributeQuery(a, node = self.SourceObject.nameLong, listChildren=True)) is not None:
-                            self._l_attrsToLoad.remove(a)
-        
-                if self.HideCGMAttrsOptionVar.value:
-                    buffer = []
-                    for a in self._l_attrsToLoad:
-                        if 'cgm' not in a:
-                            buffer.append(a)
-                    if buffer:
-                        self._l_attrsToLoad = buffer
-            if self._l_attrsToLoad:	    
-                return True
-        
-            return False        """
         except Exception,err:cgmGEN.cgmException(Exception,err)
 
         
@@ -691,6 +732,16 @@ class ui(cgmUI.cgmGUI):
                                                          dcc = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}),
                                                          selectCommand = self.uiFunc_selectAttr)
         
+        #Search --------------------------------------------------------------------------------
+        _textField = mUI.MelTextField(_MainForm,
+                                      ann='Filter Attrs',
+                                      w=50,
+                                      bgc = [.3,.3,.3],
+                                      en=True,
+                                      text = '')
+        self.uiField_attrFilter = _textField
+        self.uiField_attrFilter(edit=True,
+                                tcc = lambda *a: self.uiFunc_updateDisplay())        
         
         """#>>>Keys Row --------------------------------------------------------------------------------------------        
        
@@ -797,6 +848,9 @@ class ui(cgmUI.cgmGUI):
                         (_row_attrCreate,"right",0),
                         (_row_attrFlags,"left",0),
                         (_row_attrFlags,"right",0),
+                        (self.uiField_attrFilter,"left",0),
+                        (self.uiField_attrFilter,"right",0),                        
+                         
                         (_row_move,"left",0),
                         (_row_move,"right",0),                        
                         (_header_push,"left",0),
@@ -815,12 +869,14 @@ class ui(cgmUI.cgmGUI):
                   ac = [(_row_attrReport,"top",2,_header),
                         (_row_attrCreate,"top",2,_row_attrReport),
                         (_row_attrFlags,"top",2,_row_attrCreate),
+                        (self.uiField_attrFilter,"top",2,_row_attrFlags),
+                        
                         (_row_move,"bottom",0,_header_push),                                                
                         (_header_push,"bottom",2,self.row_setValue),
                         (self.row_setValue,"bottom",2,_row_cgm),                                                
                         #(_row_keyModes,"bottom",0,_row_valueModes),
                         #(_row_valueModes,"bottom",0,self.row_setValue),                        
-                        (self.uiScrollList_attr,"top",2,_row_attrFlags),
+                        (self.uiScrollList_attr,"top",2,self.uiField_attrFilter),
                         (self.uiScrollList_attr,"bottom",0,_row_move)],
                   attachNone = [(_row_cgm,"top")])	        
             
@@ -853,7 +909,7 @@ class ui(cgmUI.cgmGUI):
         _hidden = False
         _connectionsIn = False
         _connectionsOut = False
-        
+        _type = None
         
         _res_context = get_context(self,self.var_context.value,False)
         
@@ -868,13 +924,14 @@ class ui(cgmUI.cgmGUI):
         
         
         for i,idx in enumerate(_indices):
-            _a = self._l_attrsToLoad[idx]
+            _a = self._l_attrsLoaded[idx]
             self._l_attrsSelected.append(_a)
             _d = ATTR.validate_arg(_short, _a)
             _v = ATTR.get(_d)
             log.info("{1}.{2} | value: {3}".format(_str_func, _short,_a, _v))
             if i == 0:
                 _d_prime = _d
+                _type = ATTR.get_type(_d_prime)
                 if ATTR.is_dynamic(_d):
                     _dynamic = True
                     if ATTR.is_numeric(_d):
@@ -892,13 +949,19 @@ class ui(cgmUI.cgmGUI):
                 
         #>>>Pop up menu--------------------------------------------------------------------------------------------        
         mUI.MelMenuItem(_popUp,
-                        label = "prime: {0}".format(self._l_attrsToLoad[_indices[0]]),
+                        label = "prime: {0}".format(self._l_attrsLoaded[_indices[0]]),
                         en=False)
         mUI.MelMenuItem(_popUp,
                         label ='Set Value',
                         ann = 'Enter value desired in pompt. If message, select object(s) to store',
-                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}))        
+                        c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'value'}))
         mUI.MelMenuItemDiv(_popUp)
+        
+        if _type == 'enum':
+            mUI.MelMenuItem(_popUp,
+                            label ='Set Enum',
+                            ann = 'Enter value desired in prompt',
+                            c = cgmGEN.Callback(self.uiFunc_attrManage_fromScrollList,**{'mode':'enumOptions'}))                
         
         
         #Standard Flags--------------------------------
@@ -1339,6 +1402,30 @@ class ui(cgmUI.cgmGUI):
         self.uiFunc_updateScrollAttrList()
         return
             
+    def uiFunc_channelBoxBridge(self):
+        _str_func = 'uiFunc_channelBoxBridge'
+        log.debug("|{0}| ...".format(_str_func))
+        
+        _res_context = get_context(self,'selection',True)
+
+        _primeNode =_res_context['primeNode']
+        _l_primeAttrs = _res_context['attrs']
+        _l_targets = _res_context['targets']        
+        _l_channelbox = _res_context['channelbox'] 
+        
+        if not _l_channelbox:
+            raise ValueError,"Must have attributes selected from the channel box"
+        if not len(_l_targets) > 1:
+            raise ValueError,"Must have more than one target"
+        
+        for o in _l_targets[1:]:
+            if o == _primeNode:pass
+            log.debug(cgmGEN.logString_sub(_str_func,o))
+            for a in _l_channelbox:
+                log.debug(cgmGEN.logString_sub(_str_func,a))
+                ATTR.copy_to(o,a,_primeNode,a, outConnections=False,inConnection=True,driven='source')
+                
+        
     def uiFunc_attrManage_fromScrollList(self,**kws):
         def simpleProcess(self, indicies, attrs, func,**kws):
             for i in indicies:
@@ -1372,7 +1459,7 @@ class ui(cgmUI.cgmGUI):
         _l_channelbox = _res_context['channelbox'] 
         
         if _indices:
-            _d_baseAttr = ATTR.validate_arg(self._ml_nodes[0].mNode,self._l_attrsToLoad[_indices[0]])
+            _d_baseAttr = ATTR.validate_arg(self._ml_nodes[0].mNode,self._l_attrsLoaded[_indices[0]])
         else:
             _d_baseAttr = False
             
@@ -1383,13 +1470,18 @@ class ui(cgmUI.cgmGUI):
 
         if _mode is not None:
             if _mode == 'delete':
-                simpleProcess(self, _indices, self._l_attrsToLoad, ATTR.delete)
+                simpleProcess(self, _indices, self._l_attrsLoaded, ATTR.delete)
                 _done = True             
             elif _mode == 'rename':
                 _fromPrompt = uiPrompt_getValue("Enter Name","Primary attr: '{0}' | type: {1}".format(_str_base,_aType),_d_baseAttr['attr'])                
                 if _fromPrompt is None:
                     log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
                     return False
+            elif _mode == 'enumOptions':
+                _fromPrompt = uiPrompt_getValue("Enter EnumOptions ',' separated","Primary attr: '{0}' | type: {1}".format(_str_base,_aType),ATTR.get_enum(_d_baseAttr['combined']))                
+                if _fromPrompt is None:
+                    log.error("|{0}| >>  Mode: {1} | No value gathered...".format(_str_func,_mode))      
+                    return False            
             elif _mode == 'addAttr':
                 uiPrompt_addAttr(kws['type'],_l_targets)
                 _done = True
@@ -1493,7 +1585,7 @@ class ui(cgmUI.cgmGUI):
                         return False
                     log.info("|{0}| >>  Mode: {1} | storing {2}".format(_str_func,_mode,_sel))  
                     #self._ml_nodes[0].__dict__[self._l_attrsToLoad[_indices[0]]] = _sel
-                    ATTR.set_message(self._ml_nodes[0].mNode, self._l_attrsToLoad[_indices[0]], _sel)
+                    ATTR.set_message(self._ml_nodes[0].mNode, self._l_attrsLoaded[_indices[0]], _sel)
                     _done = True
                 else:
                     _fromPrompt = uiPrompt_getValue("Enter Value","Primary attr: '{0}' | type: {1} | v: {2}".format(_str_base,_aType, ATTR.get(_d_baseAttr)))
@@ -1523,7 +1615,7 @@ class ui(cgmUI.cgmGUI):
             return True
 
         for i in _indices:
-            _a = self._l_attrsToLoad[i]
+            _a = self._l_attrsLoaded[i]
             #for mNode in self._ml_nodes:
             for node in _l_targets:
                 try:
@@ -1564,6 +1656,12 @@ class ui(cgmUI.cgmGUI):
                                 continue
                             if _v is not None:
                                 ATTR.set(_d, value = _v)
+                        elif _mode == 'enumOptions':
+                            if ':' not in _fromPrompt:
+                                raise ValueError,"enumOptions should be separated by ':'"
+                            _v = '"'.split(_fromPrompt)
+                            pprint.pprint([_fromPrompt,_v])
+                            ATTR.set(_d, value = _fromPrompt)
                         elif _mode == 'alias':
                             if not _fromPrompt:_fromPrompt=False
                             ATTR.set_alias(_d, _fromPrompt)
@@ -1912,6 +2010,7 @@ def get_context(self, context = None, report = False):
 
     #_primeNode -----------------------------------------------------------------------------------
     _primeNode = None
+    _trans = False
     _type = None
     if self._ml_nodes:
         _primeNode = self._ml_nodes[0].mNode
@@ -1926,7 +2025,7 @@ def get_context(self, context = None, report = False):
     _indices = self.uiScrollList_attr.getSelectedIdxs()
     if _indices:
         for i in _indices:
-            _l_primeAttrs.append(self._l_attrsToLoad[i])
+            _l_primeAttrs.append(self._l_attrsLoaded[i])
     elif _sel_attrs:
         _l_primeAttrs = _sel_attrs
     else:

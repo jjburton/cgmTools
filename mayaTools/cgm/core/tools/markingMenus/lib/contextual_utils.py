@@ -75,7 +75,7 @@ def get_list(context = 'selection', mType = None, getTransform = False):
     elif _context == 'children':
         log.debug("|{0}| >> children mode...".format(_str_func)) 
         
-        _sel = mc.ls(os, shortNames = False)
+        _sel = mc.ls(sl=True, shortNames = False)
         for o in _sel:
             if mType:
                 if mc.ls(o,type=mType, shortNames = False):

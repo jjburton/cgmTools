@@ -163,7 +163,7 @@ def create(target = None, position = None, tag = True, setMatchTarget=True, pivo
                             if self._l_folliclesToMake:
                                 for f_dat in self._l_folliclesToMake:
                                     _follicle = NODES.add_follicle(f_dat[0],f_dat[2])
-                                    log.info("|finalize| >> Follicle created: {0}".format(_follicle))                        
+                                    log.debug("|finalize| >> Follicle created: {0}".format(_follicle))                        
                                     ATTR.set(_follicle[0],'parameterU',f_dat[1][0])
                                     ATTR.set(_follicle[0],'parameterV',f_dat[1][1])
                                     mc.parent(_loc, _follicle[0])
@@ -214,7 +214,7 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
     """   
     def getAndMove(loc,targets = None,mode=None,forceBBCenter=False):
         
-        log.info("|{0}| >> mode: {1} | targets: {2}".format(_str_func,mode,targets))
+        log.debug("|{0}| >> mode: {1} | targets: {2}".format(_str_func,mode,targets))
         if not targets:
             raise ValueError,"Must have targets"
         
@@ -284,22 +284,22 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
 
     if _type == 'locator':
         if mode and _targets:
-            log.info("|{0}| >> mode override...".format(_str_func))         
+            log.debug("|{0}| >> mode override...".format(_str_func))         
             
             return getAndMove(_loc,_targets,mode,forceBBCenter)
 
         elif _targets:
-            log.info("|{0}| >> source mode...".format(_str_func))
+            log.debug("|{0}| >> source mode...".format(_str_func))
             if len(_targets) >1:
-                log.info("|{0}| >> assuming midPoint...".format(_str_func))
+                log.debug("|{0}| >> assuming midPoint...".format(_str_func))
                 return getAndMove(_loc,_targets,'midPoint',forceBBCenter)
             else:
-                log.info("|{0}| >> singleTarget...".format(_str_func))
+                log.debug("|{0}| >> singleTarget...".format(_str_func))
                 _d = POS.get_info(_targets,boundingBox=forceBBCenter)
                 position(_loc,_d)
                 return True                
         else:
-            log.info("|{0}| >> tagged...".format(_str_func))          
+            log.debug("|{0}| >> tagged...".format(_str_func))          
             _mode = SEARCH.get_nodeTagInfo(_loc,'cgmLocMode')
             if _mode == 'fromTarget':
                 _targets = ATTR.get_message(_loc,'cgmLocSource','cgmLocDat')
@@ -315,7 +315,7 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
 
             elif _mode == 'closestTarget':
                 _targets = ATTR.msgList_get(_loc,'cgmLocSource','cgmLocDat')
-                log.info("|{0}| >> targets: {1}".format(_str_func,_targets))
+                log.debug("|{0}| >> targets: {1}".format(_str_func,_targets))
                 return getAndMove(_loc,_targets,_mode,forceBBCenter)
             elif _mode == 'rayCast':
                 _target = ATTR.get_message(_loc,'meshTarget')

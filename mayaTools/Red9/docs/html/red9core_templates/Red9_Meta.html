@@ -54,7 +54,7 @@
             
   <div class="section" id="red9-meta">
 <h1>Red9_Meta<a class="headerlink" href="#red9-meta" title="Permalink to this headline">¶</a></h1>
-<p>Red9 Meta is a full metaData API that deals with Maya nodes in a more seemless manor. I&#8217;ve
+<p>Red9 Meta is a full metaData API that deals with Maya nodes in a more seamless manor. I&#8217;ve
 tried to do as much documentation as I can both in terms of commenting the code and doing
 examples and Vimeo demos.</p>
 <p>This is a big concept and I&#8217;ll be expanding these docs accordingly when I get more time.</p>
@@ -96,7 +96,7 @@ what each function is expected to return</p>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_Meta.registerMClassNodeMapping" title="Red9.core.Red9_Meta.registerMClassNodeMapping"><code class="xref py py-obj docutils literal"><span class="pre">registerMClassNodeMapping</span></code></a>([nodeTypes])</td>
 <td>Hook to allow you to extend the type of nodes included in all the getMeta searches.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_Meta.isMetaNode" title="Red9.core.Red9_Meta.isMetaNode"><code class="xref py py-obj docutils literal"><span class="pre">isMetaNode</span></code></a>(*args,&nbsp;**kws)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_Meta.isMetaNode" title="Red9.core.Red9_Meta.isMetaNode"><code class="xref py py-obj docutils literal"><span class="pre">isMetaNode</span></code></a>(node[,&nbsp;mTypes,&nbsp;checkInstance,&nbsp;...])</td>
 <td>Simple bool, Maya Node is or isn&#8217;t an mNode</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_Meta.isMetaNodeInherited" title="Red9.core.Red9_Meta.isMetaNodeInherited"><code class="xref py py-obj docutils literal"><span class="pre">isMetaNodeInherited</span></code></a>(node[,&nbsp;mInstances,&nbsp;mode])</td>
@@ -104,6 +104,12 @@ what each function is expected to return</p>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_Meta.getMetaNodes" title="Red9.core.Red9_Meta.getMetaNodes"><code class="xref py py-obj docutils literal"><span class="pre">getMetaNodes</span></code></a>(*args,&nbsp;**kws)</td>
 <td>Get all mClass nodes in scene and return as mClass objects if possible :param mTypes: only return meta nodes of a given type :param mInstances: idea - this will check subclass inheritance, ie, MetaRig would         return ALL nodes who&#8217;s class is inherited from MetaRig.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_Meta.getMetaRigs" title="Red9.core.Red9_Meta.getMetaRigs"><code class="xref py py-obj docutils literal"><span class="pre">getMetaRigs</span></code></a>([mInstances,&nbsp;mClassGrps])</td>
+<td>Wrapper over the get call to fire back specifically MetaRigs.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_Meta.getMetaRigs_fromSelected" title="Red9.core.Red9_Meta.getMetaRigs_fromSelected"><code class="xref py py-obj docutils literal"><span class="pre">getMetaRigs_fromSelected</span></code></a>([singular])</td>
+<td>light wrap over the getMetaRigs function to return a list of mRigs connected</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_Meta.getConnectedMetaNodes" title="Red9.core.Red9_Meta.getConnectedMetaNodes"><code class="xref py py-obj docutils literal"><span class="pre">getConnectedMetaNodes</span></code></a>(*args,&nbsp;**kws)</td>
 <td>From a given set of Maya Nodes return all connected mNodes</td>
@@ -144,10 +150,13 @@ what each function is expected to return</p>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_Meta.MetaHIKControlSetNode" title="Red9.core.Red9_Meta.MetaHIKControlSetNode"><code class="xref py py-obj docutils literal"><span class="pre">MetaHIKControlSetNode</span></code></a>(*args,&nbsp;**kws)</td>
 <td>Casting HIK directly to a metaClass so it&#8217;s treated as meta by default.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_Meta.MetaHUDNode" title="Red9.core.Red9_Meta.MetaHUDNode"><code class="xref py py-obj docutils literal"><span class="pre">MetaHUDNode</span></code></a>(*args,&nbsp;**kws)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode" title="Red9.core.Red9_Meta.MetaHIKPropertiesNode"><code class="xref py py-obj docutils literal"><span class="pre">MetaHIKPropertiesNode</span></code></a>(*args,&nbsp;**kws)</td>
+<td>Casting HIK Properties to a Meta class for easy managing</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_Meta.MetaHUDNode" title="Red9.core.Red9_Meta.MetaHUDNode"><code class="xref py py-obj docutils literal"><span class="pre">MetaHUDNode</span></code></a>(*args,&nbsp;**kws)</td>
 <td>SubClass of the MetaClass, designed as a simple interface for HUD management in Maya.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">MetaTimeCodeHUD</span></code></td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">MetaTimeCodeHUD</span></code></td>
 <td></td>
 </tr>
 </tbody>
@@ -177,6 +186,16 @@ RED9_META_INHERITANCE_MAP : {&#8216;className&#8217;: {&#8216;full&#8217;: [list
 <dt id="Red9.core.Red9_Meta.getMClassMetaRegistry">
 <code class="descname">getMClassMetaRegistry</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.getMClassMetaRegistry" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generic getWrapper to return the Registry from the global</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.core.Red9_Meta.create_mNode_from_gatherInfo">
+<code class="descname">create_mNode_from_gatherInfo</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.create_mNode_from_gatherInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>a simple wrapper to re-construct the correct mNode from a dict() built by
+the MetaClass.gatherInfo_mNode() call. This is primarily aimed at the new
+load_connection_datamap call in ProPack to rebuild entire networks from a
+map file without having to write complex macros to rebuild a system and
+all it&#8217;s wiring.</p>
 </dd></dl>
 
 <dl class="function">
@@ -376,7 +395,7 @@ require change access rights to the &#8216;network&#8217; node itself.</p>
 
 <dl class="function">
 <dt id="Red9.core.Red9_Meta.isMetaNode">
-<code class="descname">isMetaNode</code><span class="sig-paren">(</span><em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.isMetaNode" title="Permalink to this definition">¶</a></dt>
+<code class="descname">isMetaNode</code><span class="sig-paren">(</span><em>node</em>, <em>mTypes=[]</em>, <em>checkInstance=True</em>, <em>returnMClass=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.isMetaNode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Simple bool, Maya Node is or isn&#8217;t an mNode</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -456,6 +475,7 @@ system type without looking at class inheritance. Good for marking key classes a
 <li><strong>dataType</strong> &#8211; default=&#8217;mClass&#8217; return the nodes already instantiated to
 the correct class object. If not then return the Maya node itself</li>
 <li><strong>nTypes</strong> &#8211; only inspect nodes of a given Type</li>
+<li><strong>byname</strong> &#8211; [] a specific list of node names to search for</li>
 </ul>
 </td>
 </tr>
@@ -642,10 +662,9 @@ selected in the UI cmds.select(item) is run. Basically used as a dynamic callbac
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="Red9.core.Red9_Meta.MClassNodeUI.fitTextScrollFucker">
-<code class="descname">fitTextScrollFucker</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MClassNodeUI.fitTextScrollFucker" title="Permalink to this definition">¶</a></dt>
-<dd><p>bodge to resize tghe textScroll as the default Maya control is SHITE!</p>
-</dd></dl>
+<dt id="Red9.core.Red9_Meta.MClassNodeUI.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MClassNodeUI.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="Red9.core.Red9_Meta.MClassNodeUI.graphNetwork">
@@ -752,8 +771,8 @@ with HIK characterNode)</li>
 <dl class="method">
 <dt id="Red9.core.Red9_Meta.MetaClass.isValidMObject">
 <code class="descname">isValidMObject</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaClass.isValidMObject" title="Permalink to this definition">¶</a></dt>
-<dd><p>validate the MObject, without this Maya will crash if the pointer is no longer valid
-TODO: thinking of storing the dagPath when we fill in the mNode to start with and
+<dd><p>validate the MObject, without this Maya will crash if the pointer is no longer valid</p>
+<p>TODO: thinking of storing the dagPath when we fill in the mNode to start with and
 if this test fails, ie the scene has been reloaded, then use the dagPath to refine
 and refill the mNode property back in.... maybe??</p>
 </dd></dl>
@@ -994,6 +1013,15 @@ r9Aninm format in Pro to collect key info on the system being saved against</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="Red9.core.Red9_Meta.MetaClass.gatherInfo_mNode">
+<code class="descname">gatherInfo_mNode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaClass.gatherInfo_mNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>this is now split like this because some times, when sub-classing, we still want to get
+back to this very low level gather call. In ProPack we overload gatherInfo() repeatedly
+but in certain instances, we still want to return just this base info for the mNode.
+This now keeps the info here very dynamic for all child classes no matter how deep they are!</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="Red9.core.Red9_Meta.MetaClass.userinfo">
 <code class="descname">userinfo</code><a class="headerlink" href="#Red9.core.Red9_Meta.MetaClass.userinfo" title="Permalink to this definition">¶</a></dt>
@@ -1089,7 +1117,7 @@ to another node force the connection to the new attr</li>
 <li><strong>allowIncest</strong> &#8211; Over-ride the default behaviour when dealing with child nodes that are
 standard Maya Nodes not metaNodes. Default in this case is to NOT index manage
 the plugs, this flag overloads that, allow multiple parents.</li>
-<li><strong>srcSimple</strong> &#8211; By default when we wire children we expect arrays so both plugs on the src and dest 
+<li><strong>srcSimple</strong> &#8211; By default when we wire children we expect arrays so both plugs on the src and dest
 side of the connection are index managed. This flag stops the index and uses a single simple wire on the
 srcAttr side of the plug ( the child )</li>
 </ul>
@@ -1223,12 +1251,17 @@ RED9_META_REGISTERY ie &#8216;MetaRig&#8217; OR a class object, ie r9Meta.MetaRi
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>walk</strong> &#8211; walk the connected network and return ALL children conntected in the tree</li>
+<li><strong>walk</strong> &#8211; walk the connected network and return ALL children connected in the tree</li>
 <li><strong>mAttrs</strong> &#8211; only return connected nodes that pass the given attribute filter</li>
 <li><strong>stepover</strong> &#8211; if you&#8217;re passing in &#8216;mTypes&#8217; or &#8216;mInstances&#8217; flags then this dictates if
 we continue to walk down a tree if it&#8217;s parent didn&#8217;t match the given type, default is False
 which will abort a tree who&#8217;s parent didn&#8217;t match. With stepover=True we simply stepover
 that node and continue down all child nodes</li>
+<li><strong>currentSystem</strong> &#8211; if True we check for the mSystemRoot attr (bool) on mNodes and if set, we skip
+the node and all childnodes from that node. Why?? The mSystsmRoot attr is a marker to denote the
+root of a given mRig system, by respecting this we clamp searches to the current system and prevent
+walking into the connected child sub-system. Primarily used in ProPack to stop facial nodes being
+returned and processed as part of the connected body rig.</li>
 </ul>
 </td>
 </tr>
@@ -1246,6 +1279,14 @@ by going getChildMetaNodes(mAttrs=&#8217;mClass=MetaRig&#8217;)</p>
 also take ALL of that functions <a href="#id5"><span class="problematic" id="id6">**</span></a>kws functionality in the initial search:
 mTypes=[], mInstances=[], mAttrs=None, dataType=&#8217;mClass&#8217;, skipTypes=[], skipInstances=[]</p>
 </div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.core.Red9_Meta.MetaClass.getChildSystemRoots">
+<code class="descname">getChildSystemRoots</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaClass.getChildSystemRoots" title="Permalink to this definition">¶</a></dt>
+<dd><p>return all child MetaNodes that have the mSystemRoot checkbox set. This is used to denote a child
+MSystem in it&#8217;s own right. Usually used in ProPack to denote a new child MetaRig, ie, facial system
+connected as a child of a mRig body system</p>
 </dd></dl>
 
 <dl class="method">
@@ -1344,7 +1385,7 @@ more flexible as it returns and filters all plugs between self and the given nod
 
 <dl class="method">
 <dt id="Red9.core.Red9_Meta.MetaClass.getNodeConnections">
-<code class="descname">getNodeConnections</code><span class="sig-paren">(</span><em>node</em>, <em>filters=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaClass.getNodeConnections" title="Permalink to this definition">¶</a></dt>
+<code class="descname">getNodeConnections</code><span class="sig-paren">(</span><em>node</em>, <em>filters=[]</em>, <em>bothplugs=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaClass.getNodeConnections" title="Permalink to this definition">¶</a></dt>
 <dd><p>really light wrapper, designed to return all connections
 between a given node and the mNode</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1359,6 +1400,7 @@ between a given node and the mNode</p>
 </tr>
 </tbody>
 </table>
+<p>:param bothplugsL if True we return a list of tuples</p>
 </dd></dl>
 
 </dd></dl>
@@ -1452,7 +1494,7 @@ so don&#8217;t have the search capability that the funct below gives</p>
 
 <dl class="method">
 <dt id="Red9.core.Red9_Meta.MetaRig.addRigCtrl">
-<code class="descname">addRigCtrl</code><span class="sig-paren">(</span><em>node</em>, <em>ctrType</em>, <em>mirrorData=None</em>, <em>boundData=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaRig.addRigCtrl" title="Permalink to this definition">¶</a></dt>
+<code class="descname">addRigCtrl</code><span class="sig-paren">(</span><em>node</em>, <em>ctrType=None</em>, <em>mirrorData=None</em>, <em>boundData=None</em>, <em>namereplace=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaRig.addRigCtrl" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a single CTRL of managed type as a child of this mRig.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1460,9 +1502,10 @@ so don&#8217;t have the search capability that the funct below gives</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>node</strong> &#8211; Maya node to add</li>
-<li><strong>ctrType</strong> &#8211; Attr name to assign this too</li>
+<li><strong>ctrType</strong> &#8211; Attr name to assign this too, if not given we take the short nodename</li>
 <li><strong>mirrorData</strong> &#8211; {side:&#8217;Left&#8217;, slot:int, axis:&#8217;translateX,rotateY,rotateZ&#8217;..}</li>
 <li><strong>boundData</strong> &#8211; {} any additional attrData, set on the given node as attrs</li>
+<li><strong>namereplace</strong> &#8211; [] if given we apply node.replace(namereplace[0], namereplace[1]) before making the wire</li>
 </ul>
 </td>
 </tr>
@@ -1679,7 +1722,7 @@ Arm system.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>systemType</strong> &#8211; Attribute used in the message link. Note this is what you use
-to traserve the Dag tree so use something sensible!</li>
+to traverse the Dag tree so use something sensible!</li>
 <li><strong>side</strong> &#8211; Side to designate the system. This is an enum: Centre,Left,Right</li>
 <li><strong>attr</strong> &#8211; wire name to use in the connections, if not given wire will be side[0]_systemType_&#8217;System&#8217;</li>
 <li><strong>nodeName</strong> &#8211; Name of the MetaClass network node created</li>
@@ -1827,6 +1870,12 @@ based on their mirror side data</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.core.Red9_Meta.MetaRig.mirror_delete_all_markers">
+<code class="descname">mirror_delete_all_markers</code><span class="sig-paren">(</span><em>nodes=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaRig.mirror_delete_all_markers" title="Permalink to this definition">¶</a></dt>
+<dd><p>delete all mirror markers from the rig</p>
 </dd></dl>
 
 <dl class="method">
@@ -2068,7 +2117,9 @@ animation curve/key data</p>
 <li><strong>filepath</strong> &#8211; r9Anim file to load</li>
 <li><strong>incRoots</strong> &#8211; do we include the root node in the load, in metaRig case this is ctrl_main</li>
 <li><strong>useFilter</strong> &#8211; do we process all children of this rig or just selected</li>
-<li><strong>timerange</strong> &#8211; specify a timerange to store, else store all</li>
+<li><strong>timerange</strong> &#8211; specify a timerange to store, If no timerange is passed
+then it will use the current timeLine PlaybackRange, OR if you have a
+highlighted range of time selected (in red) it&#8217;ll use this instead.</li>
 <li><strong>storeThumbnail</strong> &#8211; this will be an avi but currently it&#8217;s a pose thumbnail</li>
 <li><strong>force</strong> &#8211; allow force write on a read only file</li>
 <li><strong>userInfoData</strong> &#8211; user information used by the AnimStore UI only</li>
@@ -2120,7 +2171,7 @@ to be restored from the gathered info</p>
 
 <dl class="method">
 <dt id="Red9.core.Red9_Meta.MetaRig.loadAnimation">
-<code class="descname">loadAnimation</code><span class="sig-paren">(</span><em>filepath, incRoots=True, useFilter=True, loadAsStored=True, loadFromFrm=0, loadFromTimecode=False, timecodeBinding=[None, None], referenceNode=None, relativeRots='projected', relativeTrans='projected', manageRanges=1, manageFileName=True, keyStatics=False, blendRange=0, merge=False, matchMethod='metaData', smartbake=False, *args, **kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaRig.loadAnimation" title="Permalink to this definition">¶</a></dt>
+<code class="descname">loadAnimation</code><span class="sig-paren">(</span><em>filepath, incRoots=True, useFilter=True, loadAsStored=True, loadFromFrm=0, loadFromTimecode=False, timecodeBinding=[None, None], referenceNode=None, relativeRots='projected', relativeTrans='projected', manageRanges=1, manageFileName=True, keyStatics=False, blendRange=0, merge=False, matchMethod='metaData', smartbake=False, loadInternalRig=False, *args, **kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaRig.loadAnimation" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>: PRO_PACK :</dt>
 <dd>Binding of the animMap format for loading animation data from
@@ -2156,6 +2207,8 @@ to ensure the data is preserved</li>
 <li><strong>merge</strong> &#8211; if True we allow the data to be merged over any current keys, else we cut all keys in the load range first</li>
 <li><strong>matchMethod</strong> &#8211; internal matching method used to match nodes to the stored data</li>
 <li><strong>smartbake</strong> &#8211; only valid if we&#8217;re loading with a referenceNode, this tries to respect current keys when doing the processing rather than frame baking</li>
+<li><strong>loadInternalRig</strong> &#8211; If True and the r9Anim was created from a rig that was referenced then re-create that reference and load the r9Anim data onto
+the resulting nodes. This is used in the Direct Load calls as the prime way to import the rigs prior to loading</li>
 </ul>
 </td>
 </tr>
@@ -2489,6 +2542,85 @@ and useful for management in the systems</p>
 <em class="property">class </em><code class="descname">MetaHIKPropertiesNode</code><span class="sig-paren">(</span><em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#Red9.core.Red9_Meta.MetaClass" title="Red9.core.Red9_Meta.MetaClass"><code class="xref py py-class docutils literal"><span class="pre">Red9.core.Red9_Meta.MetaClass</span></code></a></p>
 <p>Casting HIK Properties to a Meta class for easy managing</p>
+<p>** PRO PACK BASED SETUP FOR THE REMAPPING HANDLERS **</p>
+<dl class="attribute">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.floor_contact">
+<code class="descname">floor_contact</code><em class="property"> = ['FootBottomToAnkle', 'FootBackToAnkle', 'FootMiddleToAnkle', 'FootFrontToMiddle', 'FootInToAnkle', 'FootOutToAnkle', 'HandBottomToWrist', 'HandBackToWrist', 'HandMiddleToWrist', 'HandFrontToMiddle', 'HandInToWrist', 'HandOutToWrist']</em><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.floor_contact" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.tips_finger_toes">
+<code class="descname">tips_finger_toes</code><em class="property"> = ['LeftHandThumbTip', 'LeftHandIndexTip', 'LeftHandMiddleTip', 'LeftHandRingTip', 'LeftHandPinkyTip', 'LeftHandExtraFingerTip', 'RightHandThumbTip', 'RightHandIndexTip', 'RightHandMiddleTip', 'RightHandRingTip', 'RightHandPinkyTip', 'RightHandExtraFingerTip', 'LeftFootThumbTip', 'LeftFootIndexTip', 'LeftFootMiddleTip', 'LeftFootRingTip', 'LeftFootPinkyTip', 'LeftFootExtraFingerTip', 'RightFootThumbTip', 'RightFootIndexTip', 'RightFootMiddleTip', 'RightFootRingTip', 'RightFootPinkyTip', 'RightFootExtraFingerTip']</em><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.tips_finger_toes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.roll_pitch">
+<code class="descname">roll_pitch</code><em class="property"> = ['RollExtractionMode', 'LeftForeArmRollEx', 'LeftArmRollEx', 'RightForeArmRollEx', 'RightArmRollEx', 'rightShoulderRoll', 'LeftLegRollEx', 'LeftUpLegRollEx', 'RightLegRollEx', 'RightUpLegRollEx', 'LeftArmRoll', 'LeftArmRollMode', 'LeftForeArmRoll', 'LeftForeArmRollMode', 'LeftLegRoll', 'LeftLegRollMode', 'LeftUpLegRoll', 'LeftUpLegRollMode', 'RightArmRoll', 'RightArmRollMode', 'RightForeArmRoll', 'RightForeArmRollMode', 'RightLegRoll', 'RightLegRollMode', 'RightUpLegRoll', 'RightUpLegRollMode', 'LeftLegFullRollExtraction', 'LeftLegFullRollExtractionMode', 'ParamLeafLeftUpLegRoll1', 'ParamLeafLeftUpLegRoll1Mode', 'ParamLeafLeftUpLegRoll2', 'ParamLeafLeftUpLegRoll2Mode', 'ParamLeafLeftUpLegRoll3', 'ParamLeafLeftUpLegRoll3Mode', 'ParamLeafLeftUpLegRoll4', 'ParamLeafLeftUpLegRoll4Mode', 'ParamLeafLeftUpLegRoll5', 'ParamLeafLeftUpLegRoll5Mode', 'leftHipRoll', 'ParamLeafLeftLegRoll1', 'ParamLeafLeftLegRoll1Mode', 'ParamLeafLeftLegRoll2', 'ParamLeafLeftLegRoll2Mode', 'ParamLeafLeftLegRoll3', 'ParamLeafLeftLegRoll3Mode', 'ParamLeafLeftLegRoll4', 'ParamLeafLeftLegRoll4Mode', 'ParamLeafLeftLegRoll5', 'ParamLeafLeftLegRoll5Mode', 'leftKneeRoll', 'LeftKneeKillPitch', 'RightLegFullRollExtraction', 'RightLegFullRollExtractionMode', 'ParamLeafRightUpLegRoll1', 'ParamLeafRightUpLegRoll1Mode', 'ParamLeafRightUpLegRoll2', 'ParamLeafRightUpLegRoll2Mode', 'ParamLeafRightUpLegRoll3', 'ParamLeafRightUpLegRoll3Mode', 'ParamLeafRightUpLegRoll4', 'ParamLeafRightUpLegRoll4Mode', 'ParamLeafRightUpLegRoll5', 'ParamLeafRightUpLegRoll5Mode', 'rightHipRoll', 'ParamLeafRightLegRoll1', 'ParamLeafRightLegRoll1Mode', 'ParamLeafRightLegRoll2', 'ParamLeafRightLegRoll2Mode', 'ParamLeafRightLegRoll3', 'ParamLeafRightLegRoll3Mode', 'ParamLeafRightLegRoll4', 'ParamLeafRightLegRoll4Mode', 'ParamLeafRightLegRoll5', 'ParamLeafRightLegRoll5Mode', 'rightKneeRoll', 'RightKneeKillPitch', 'LeftArmFullRollExtraction', 'LeftArmFullRollExtractionMode', 'ParamLeafLeftArmRoll1', 'ParamLeafLeftArmRoll1Mode', 'ParamLeafLeftArmRoll2', 'ParamLeafLeftArmRoll2Mode', 'ParamLeafLeftArmRoll3', 'ParamLeafLeftArmRoll3Mode', 'ParamLeafLeftArmRoll4', 'ParamLeafLeftArmRoll4Mode', 'ParamLeafLeftArmRoll5', 'ParamLeafLeftArmRoll5Mode', 'leftShoulderRoll', 'ParamLeafLeftForeArmRoll1', 'ParamLeafLeftForeArmRoll1Mode', 'ParamLeafLeftForeArmRoll2', 'ParamLeafLeftForeArmRoll2Mode', 'ParamLeafLeftForeArmRoll3', 'ParamLeafLeftForeArmRoll3Mode', 'ParamLeafLeftForeArmRoll4', 'ParamLeafLeftForeArmRoll4Mode', 'ParamLeafLeftForeArmRoll5', 'ParamLeafLeftForeArmRoll5Mode', 'leftElbowRoll', 'LeftElbowKillPitch', 'RightArmFullRollExtraction', 'RightArmFullRollExtractionMode', 'ParamLeafRightArmRoll1', 'ParamLeafRightArmRoll1Mode', 'ParamLeafRightArmRoll2', 'ParamLeafRightArmRoll2Mode', 'ParamLeafRightArmRoll3', 'ParamLeafRightArmRoll3Mode', 'ParamLeafRightArmRoll4', 'ParamLeafRightArmRoll4Mode', 'ParamLeafRightArmRoll5', 'ParamLeafRightArmRoll5Mode', 'rightShoulderRoll', 'ParamLeafRightForeArmRoll1', 'ParamLeafRightForeArmRoll1Mode', 'ParamLeafRightForeArmRoll2', 'ParamLeafRightForeArmRoll2Mode', 'ParamLeafRightForeArmRoll3', 'ParamLeafRightForeArmRoll3Mode', 'ParamLeafRightForeArmRoll4', 'ParamLeafRightForeArmRoll4Mode', 'ParamLeafRightForeArmRoll5', 'ParamLeafRightForeArmRoll5Mode', 'RightElbowKillPitch']</em><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.roll_pitch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.measurements">
+<code class="descname">measurements</code><em class="property"> = ['FootBottomToAnkle', 'FootBackToAnkle', 'FootMiddleToAnkle', 'FootFrontToMiddle', 'FootInToAnkle', 'FootOutToAnkle', 'HandBottomToWrist', 'HandBackToWrist', 'HandMiddleToWrist', 'HandFrontToMiddle', 'HandInToWrist', 'HandOutToWrist', 'LeftHandThumbTip', 'LeftHandIndexTip', 'LeftHandMiddleTip', 'LeftHandRingTip', 'LeftHandPinkyTip', 'LeftHandExtraFingerTip', 'RightHandThumbTip', 'RightHandIndexTip', 'RightHandMiddleTip', 'RightHandRingTip', 'RightHandPinkyTip', 'RightHandExtraFingerTip', 'LeftFootThumbTip', 'LeftFootIndexTip', 'LeftFootMiddleTip', 'LeftFootRingTip', 'LeftFootPinkyTip', 'LeftFootExtraFingerTip', 'RightFootThumbTip', 'RightFootIndexTip', 'RightFootMiddleTip', 'RightFootRingTip', 'RightFootPinkyTip', 'RightFootExtraFingerTip']</em><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.measurements" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.get_mapping">
+<code class="descname">get_mapping</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.get_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>get the current mapping state and return a dict {attr:val, ...}</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.get_non_default_values">
+<code class="descname">get_non_default_values</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.get_non_default_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>return values that differ from the default values and have therefore been set by the user</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.reset_defaults">
+<code class="descname">reset_defaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.reset_defaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>reset the default mapping property states</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.save_mapping">
+<code class="descname">save_mapping</code><span class="sig-paren">(</span><em>filepath</em>, <em>skip_measurements=True</em>, <em>skip_rolls=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.save_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>save the current mapping to file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filepath</strong> &#8211; filepath to store the mapping out too</li>
+<li><strong>skip_measurements</strong> &#8211; if true (defulat) we do not store those attrs that are skeleton specific
+only those which control the remapping</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.core.Red9_Meta.MetaHIKPropertiesNode.load_mapping">
+<code class="descname">load_mapping</code><span class="sig-paren">(</span><em>filepath</em>, <em>changes_only=True</em>, <em>verbose=True</em>, <em>skip_measurements=True</em>, <em>skip_rolls=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_Meta.MetaHIKPropertiesNode.load_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>load a previous mapping back from file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filepath</strong> &#8211; filepath to load the mapping from</li>
+<li><strong>changes_only</strong> &#8211; only set those attrs that have changed (limits errors)</li>
+<li><strong>verbose</strong> &#8211; report back all data set, changed or failed</li>
+<li><strong>skip_measurements</strong> &#8211; if true (defulat) we do not store those attrs that are skeleton specific
+only those which control the remapping</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="function">

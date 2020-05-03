@@ -505,6 +505,7 @@ def define(self):
               'start':{'color':'white','name':'neckEnd','defaults':{},'noLock':['translate']},
               'up':{'color':'greenBright','name':'neckUp','defaults':{'tz':-1}},
               'rp':{'color':'redBright','name':'neckRP','defaults':{'tz':-2},'parentTag':'end'}}
+        
         for k,d in _d.iteritems():
             d['vectorLine'] = False
     
@@ -673,8 +674,11 @@ def form(self):
         mFormNull = BLOCKUTILS.formNull_verify(self)
         mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'form')
         
-        _mVectorAim = MATH.get_obj_vector(md_vectorHandles['aim'].mNode,
+        mLoc = self.doLoc()
+        SNAP.aim_atPoint(mLoc.mNode, md_defineHandles['aim'].p_position, vectorUp=self.getAxisVector('y+'))
+        _mVectorAim = MATH.get_obj_vector(mLoc.mNode,
                                           asEuclid=True)
+        mLoc.delete()
         log.debug("vectorAim: {0}".format(_mVectorAim))
     
         pos_self = self.p_position
@@ -818,12 +822,24 @@ def form(self):
             
             #Get base dat =============================================================================
             log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)
-            mRootUpHelper = self.vectorUpHelper    
-            _mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-            _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)
+            mRootUpHelper = self.vectorUpHelper
+            mRootRpHelper = self.vectorRpHelper
+            
             mDefineStartObj = self.defineStartHelper
             mDefineEndObj = self.defineEndHelper
             mDefineUpObj = self.defineUpHelper
+            
+            """
+            mLoc = mRootRpHelper.doLoc()
+            SNAP.aim_atPoint(mLoc.mNode, md_defineHandles['end'].p_position, vectorUp=mRootRpHelper.getAxisVector('y+'))
+            _mVectorAim = MATH.get_obj_vector(mLoc.mNode,asEuclid=True) #self.vectorEndHelper.mNode
+            mLoc.delete()"""
+            
+            _mVectorAim = MATH.get_vector_of_two_points(mDefineStartObj.p_position,
+                                                        mDefineEndObj.p_position, True)
+            
+            _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,asEuclid=True)
+
         
             mDefineLoftMesh = self.defineLoftMesh
             _v_range = DIST.get_distance_between_points(mDefineStartObj.p_position,
@@ -843,6 +859,8 @@ def form(self):
             _l_basePos.append(_end)
             log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
             
+            for i,p in enumerate(_l_basePos):
+                LOC.create(position=p)
             
             for mHandle in mDefineEndObj,mDefineStartObj:
                 mHandle.v=False
@@ -988,9 +1006,9 @@ def prerig(self):
         _side = self.atUtils('get_side')
         log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
         
-        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
         _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
         
+
         #Initial validation ================================================================================
         log.debug("|{0}| >> Initial checks...".format(_str_func)+ '-'*40)
         
@@ -1003,7 +1021,7 @@ def prerig(self):
         
         #>>New handles =====================================================================================
         mHandleFactory = self.asHandleFactory(self.mNode)   
-        
+
         #Settings Helper ====================================================================
         mBBHelper = self.bbHelper
         _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode)
@@ -1152,6 +1170,7 @@ def prerig(self):
             _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
             _sizeUse2 = self.atUtils('get_shapeOffset') * 2
             _sizeUse = min([_sizeUse1,_sizeUse2])
+            _len_set = len(_l_pos)
             
             for i,p in enumerate(_l_pos): #i,mFormHandle in enumerate(ml_formHandles_neck):
                 log.debug("|{0}| >> prerig handle cnt: {1}".format(_str_func,i))
@@ -1178,7 +1197,10 @@ def prerig(self):
                     #SNAP.aim_atPoint(mHandle.mNode,_l_pos[i-1], aimAxis='z-',mode = 'vector',vectorUp=_worldUpVector)
                     
                 else:
-                    mHandle.doStore('cgmName','{0}_{1}'.format(_l_baseNames[0],i))
+                    if _len_set > 2:
+                        mHandle.doStore('cgmName','{0}_{1}'.format(_l_baseNames[0],i))
+                    else:
+                        mHandle.doStore('cgmName','{0}'.format(_l_baseNames[0]))
                     #ml_formHandles_neck[i].connectChildNode(mHandle.mNode,'prerigHandle')
                     SNAP.aim_atPoint(mHandle.mNode,_l_pos[i+1], mode = 'vector',vectorUp=_worldUpVector)
                     
@@ -1346,12 +1368,23 @@ def skeleton_build(self, forceNew = True):
         #...orient ----------------------------------------------------------------------------
         #cgmMeta.cgmObject().getAxisVector
         #CORERIG.match_orientation(mHead_jnt.mNode, mHeadHelper.mNode)
-        p_orientAxis = mHeadHelper.getPositionByAxisDistance('z+', 100)
-        
-        TRANS.aim_atPoint(mHead_jnt.mNode,
-                          p_orientAxis,
-                          'y-', 'z+', 'vector',
-                          vectorUp=mHeadHelper.getAxisVector('y+'))
+        if self.neckBuild:
+            """
+            mVec_up = self.atUtils('prerig_get_upVector')
+            
+            TRANS.aim_atPoint(mHead_jnt.mNode,
+                              ml_prerigHandles[-2].p_position,
+                              'y-', 'z+', 'vector',
+                              vectorUp=mVec_up)"""
+            mHead_jnt.p_orient = ml_prerigHandles[-1].p_orient
+            
+        else:
+            p_orientAxis = mHeadHelper.getPositionByAxisDistance('z+', 100)
+            
+            TRANS.aim_atPoint(mHead_jnt.mNode,
+                              p_orientAxis,
+                              'y-', 'z+', 'vector',
+                              vectorUp=mHeadHelper.getAxisVector('y+'))
         """
         TRANS.aim_atPoint(mHead_jnt.mNode,
                           p_orientAxis,
@@ -1479,7 +1512,7 @@ def rig_prechecks(self):
             
         #Checking our data points
         ml_pre = mBlock.msgList_get('prerigHandles')
-        if len(ml_pre) != mBlock.neckControls +1:
+        if mBlock.neckBuild and len(ml_pre) != mBlock.neckControls +1:
             self.l_precheckErrors.append('Not enough preHandles for the neckControls count. | neckControls: {0} | prerig: {1} | Excpected: {2}'.format(mBlock.neckControls,len(ml_pre),mBlock.neckControls+1))
             
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -1865,6 +1898,9 @@ def rig_shapes(self):
                 log.debug("|{0}| >> FK/IK head necessary...".format(_str_func))          
                 b_FKIKhead = True            
             
+            
+
+            
             #IK ----------------------------------------------------------------------------------
             mIK = ml_rigJoints[-1].doCreateAt()
             #CORERIG.shapeParent_in_place(mIK,l_lolis,False)
@@ -1879,32 +1915,38 @@ def rig_shapes(self):
             mIK.doName()    
             CORERIG.colorControl(mIK.mNode,_side,'main')
             self.mRigNull.connectChildNode(mIK,'headIK','rigNull')#Connect
+            self.mRigNull.connectChildNode(mIK,'controlIK','rigNull')#Connect
             
-            if b_FKIKhead:
-                l_lolis = []
-                l_starts = []
-                for axis in ['x+','z-','x-']:
-                    pos = mHeadHelper.getPositionByAxisDistance(axis, _size * .75)
-                    ball = CURVES.create_fromName('sphere',_size/10)
-                    mBall = cgmMeta.cgmObject(ball)
-                    mBall.p_position = pos
-                    mc.select(cl=True)
-                    p_end = DIST.get_closest_point(mHeadHelper.mNode, ball)[0]
-                    p_start = mHeadHelper.getPositionByAxisDistance(axis, _size * .25)
-                    l_starts.append(p_start)
-                    line = mc.curve (d=1, ep = [p_start,p_end], os=True)
-                    l_lolis.extend([ball,line])
+            self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect
+            
+            
+            """                
+                if b_FKIKhead:
+                    l_lolis = []
+                    l_starts = []
+                    for axis in ['x+','z-','x-']:
+                        pos = mHeadHelper.getPositionByAxisDistance(axis, _size * .75)
+                        ball = CURVES.create_fromName('sphere',_size/10)
+                        mBall = cgmMeta.cgmObject(ball)
+                        mBall.p_position = pos
+                        mc.select(cl=True)
+                        p_end = DIST.get_closest_point(mHeadHelper.mNode, ball)[0]
+                        p_start = mHeadHelper.getPositionByAxisDistance(axis, _size * .25)
+                        l_starts.append(p_start)
+                        line = mc.curve (d=1, ep = [p_start,p_end], os=True)
+                        l_lolis.extend([ball,line])
+                        
+                    mFK = ml_fkJoints[-1]
+                    CORERIG.shapeParent_in_place(mFK,l_lolis,False)
+                    mFK.doStore('cgmTypeModifier','fk')
+                    mFK.doName()
                     
-                mFK = ml_fkJoints[-1]
-                CORERIG.shapeParent_in_place(mFK,l_lolis,False)
-                mFK.doStore('cgmTypeModifier','fk')
-                mFK.doName()
-                
-                CORERIG.colorControl(mFK.mNode,_side,'main')
-                
-                self.mRigNull.connectChildNode(mFK,'headFK','rigNull')#Connect
-            else:
-                self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect
+                    CORERIG.colorControl(mFK.mNode,_side,'main')
+                    
+                    self.mRigNull.connectChildNode(mFK,'headFK','rigNull')#Connect
+                else:
+                    self.mRigNull.connectChildNode(mIK,'settings','rigNull')#Connect
+                    """
             
                 
         else:
@@ -2287,6 +2329,7 @@ def rig_controls(self):
                 
                 
             mControlSegMidIK = False
+            
             #controlSegMidIK =============================================================================
             if mRigNull.getMessage('controlSegMidIK'):
                 mControlSegMidIK = mRigNull.controlSegMidIK
@@ -2620,11 +2663,16 @@ def rig_frame(self):
         
         mHeadFK = mRigNull.getMessageAsMeta('headFK')
         mHeadIK = mRigNull.getMessageAsMeta('headIK')
-        if mHeadIK:
+        if mHeadIK and mBlock.neckBuild:
             log.debug("|{0}| >> Found headIK : {1}".format(_str_func, mHeadIK))
             mTopHandleDriver = mHeadIK.driver
-        else:
+        elif mHeadFK:
             mTopDriver = mHeadFK
+            mTopHandleDriver = mHeadFK
+        else:
+            mTopDriver = mHeadIK
+            mTopHandleDriver = mHeadIK
+            
             
         _ikNeck = mBlock.getEnumValueString('neckIK')
         
@@ -2639,6 +2687,8 @@ def rig_frame(self):
             mTopTwistDriver = mHeadFK
             #mAimParent = self.mDeformNull
             
+        #Tmp parent till logic worked out
+        ml_rigJoints[-1].masterGroup.parent = mTopHandleDriver
         
         #>> headFK ========================================================================================
         """We use the ik head sometimes."""
