@@ -327,7 +327,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         if not objs:
             _sel = mc.ls(sl=1)
             if _sel:objs = _sel
-            
+        
         ml = cgmMeta.asMeta( objs, noneValid = True )
         ml_baseTargets = copy.copy(ml)
         
@@ -716,7 +716,19 @@ class cgmDynFK(cgmMeta.cgmObject):
             mLocParent.p_parent = mGrp
             
             #mc.parent(loc, locParent)
-            
+        
+        # create control joint chain
+        mc.select(cl=True)
+        chain = []
+        for obj in objs:
+            jnt = mc.joint(name='%s_%s_jnt' % (obj.split(':')[-1], name))
+            SNAP.matchTarget_set(jnt, obj)
+            SNAP.matchTarget_snap(jnt)
+
+            chain.append(jnt)
+
+        mc.parent(chain[0], _follicle)
+
         mCrv.rename("{0}_outCrv".format(name))
         mCrvParent = mCrv.getParent(asMeta=1)
         mCrvParent.p_parent = mGrp
