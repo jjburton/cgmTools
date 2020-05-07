@@ -883,4 +883,18 @@ def split_blends(driven1 = None,
         return d_dat
 
     except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,msg=vars())    
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        
+        
+
+def rename_deformers(nodes= [],deformerTypes='all'):
+    if not nodes:
+        nodes = mc.ls(sl=1)
+        
+    ml_nodes = cgmMeta.asMeta(nodes)
+    for mObj in ml_nodes:
+        for mDef in mObj.getDeformers(deformerTypes,True):
+            log.info("Renaming: {0}".format(mDef))
+            mc.rename(mDef.mNode, "{0}_{1}".format(mObj.p_nameBase,
+                                                   SEARCH.get_tagInfoShort(mDef.getMayaType())))
+            #mDef.doName()
