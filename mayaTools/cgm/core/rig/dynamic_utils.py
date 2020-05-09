@@ -721,9 +721,12 @@ class cgmDynFK(cgmMeta.cgmObject):
         mc.select(cl=True)
         chain = []
         for obj in objs:
+            if len(chain) > 0:
+                mc.select(chain[-1])
             jnt = mc.joint(name='%s_%s_jnt' % (obj.split(':')[-1], name))
             SNAP.matchTarget_set(jnt, obj)
-            SNAP.matchTarget_snap(jnt)
+            mObj = cgmMeta.asMeta(jnt)
+            mObj.doSnapTo(mObj.getMessageAsMeta('cgmMatchTarget'))
 
             chain.append(jnt)
 
@@ -738,6 +741,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         mGrp.msgList_connect('mParents',ml_prts)
         mGrp.msgList_connect('mTargets',ml)
         mGrp.msgList_connect('mBaseTargets',ml_baseTargets)
+        mGrp.msgList_connect('mObjJointChain',chain)
         
         mNucleus.doConnectOut('startFrame',"{0}.startFrame".format(mHairSys.mNode))
         
@@ -763,7 +767,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                   'mOutCrv':mGrp.getMessageAsMeta('mOutCrv'),
                   }
             
-            for lnk in 'mLocs','mAims','mParents','mTargets':
+            for lnk in 'mLocs','mAims','mParents','mTargets', 'mObjJointChain':
                 _d[lnk] = mGrp.msgList_get(lnk)
                 
             _res['chains'][i] = _d
