@@ -620,7 +620,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
                     _rev.reverse()
                     _res.extend(_rev)
             else:
-                for i in range(idx_mid):
+                for i in range(idx_mid+1):
                     _res.append( i * blendFactor)
                     
                 if mode == 'blendUpMid':

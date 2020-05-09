@@ -2011,7 +2011,13 @@ def ribbon(jointList = None,
                 #out scale = baseSquashScale * (outBase / outActual)
                 #mBase_aim =  md_distDat['aim']['base']['mDist'][i]
                 
-
+                
+                try:
+                    v_scaleFactor = l_scaleFactors[i]
+                except Exception,err:
+                    log.error("scale facotr idx fail ({0}). Using 1.0 | {1}".format(i,err))
+                    v_scaleFactor = 1.0
+                    
                 if extraSquashControl:
                     #mPlug_segScale
                     mPlug_baseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
@@ -2021,8 +2027,8 @@ def ribbon(jointList = None,
                                                         "{0}_factor_{1}".format(str_baseName,i),
                                                         attrType = 'float',
                                                         hidden = False,
-                                                        initialValue=l_scaleFactors[i],
-                                                        defaultValue=l_scaleFactors[i],
+                                                        initialValue=v_scaleFactor,#l_scaleFactors[i],
+                                                        defaultValue=v_scaleFactor,
                                                         lock=False,
                                                         minValue = 0)
                     mPlug_jointRes = cgmMeta.cgmAttr(mControlSurface.mNode,

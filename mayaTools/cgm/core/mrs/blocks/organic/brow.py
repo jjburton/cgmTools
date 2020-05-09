@@ -1747,9 +1747,9 @@ def skeleton_build(self, forceNew = True):
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
 
-    
-    if self.browType == 0:#Full brow
-        log.debug("|{0}| >>  Full Brow...".format(_str_func))
+    _browType = self.getEnumValueString('browType')
+    if _browType in ['full','split']:#Full brow
+        log.debug("|{0}| >>  {1} Brow...".format(_str_func,_browType))
         
 
         for side in 'left','right','center':

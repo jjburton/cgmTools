@@ -23,7 +23,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 def echoLogger():
     log.info('info')
@@ -1840,7 +1840,7 @@ def prerig(self):
                     idx_end -=1 
                     
         if self.buildEnd:
-            if self.buildLeverEnd or self.buildBall or self.buildToe:
+            if self.buildLeverEnd or self.buildBall or self.buildToe or _ikEnd in ['bank']:
                 pass
             else:
                 log.warning(cgmGEN.logString_msg(_str_func,"Adding to name count for buildEnd"))
@@ -1945,7 +1945,7 @@ def prerig(self):
         if self.buildLeverEnd:
             _count += 1
             _addedEnd = True
-        elif self.buildEnd:
+        elif self.buildEnd and _ikEnd not in ['bank']:
             _count +=1 
         
         #if not self.buildBall:
@@ -4446,9 +4446,9 @@ def rig_shapes(self):
                     #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
                     bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
                     
-                    bb_ik = [v * 1.25 for v in bb_ik]
+                    bb_ik = [v * 1.5 for v in bb_ik]
                 
-                    _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
+                    _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
                     SNAP.go(_ik_shape,self.ml_handleTargets[self.int_handleEndIdx].mNode)
                 
                     CORERIG.shapeParent_in_place(mIKCrv.mNode, _ik_shape, False)
