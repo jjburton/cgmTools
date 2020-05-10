@@ -181,7 +181,39 @@ def buildColumn_main(self,parent, asScroll = False):
 
     return _inside
 
-def uiFunc_make_display_line(parent, label="", text="", button=False, buttonLabel = ">>", buttonCommand=None, buttonInfo=""):
+def uiFunc_process_preset_change(obj, optionMenu):
+    val = optionMenu.getValue()
+
+    if val == "Save Preset":
+        result = mc.promptDialog(
+                title='Save Preset',
+                message='Preset Name:',
+                button=['OK', 'Cancel'],
+                defaultButton='OK',
+                cancelButton='Cancel',
+                dismissString='Cancel')
+
+        if result == 'OK':
+            text = mc.promptDialog(query=True, text=True)
+            if mc.nodePreset(isValidName=text):
+                mc.nodePreset( save=(obj, text) )
+                optionMenu.clear()
+
+                optionMenu.append("Load Preset")
+                for a in mc.nodePreset( list=obj ):
+                    optionMenu.append(a)
+                optionMenu.append("---")
+                optionMenu.append("Save Preset")
+
+                optionMenu.setValue(text)
+            else:
+                print "Invalid name, try again"
+                optionMenu.setValue("Load Preset")
+    elif mc.nodePreset(isValidName=val):
+        if mc.nodePreset(exists=(obj, val)):
+            mc.nodePreset( load=(obj, optionMenu.getValue()) )
+
+def uiFunc_make_display_line(parent, label="", text="", button=False, buttonLabel = ">>", buttonCommand=None, buttonInfo="", presetOptions=False, presetObj=None):
     _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUITemplate',padding = 5)        
 
     mUI.MelSpacer(_row,w=10)
@@ -197,6 +229,19 @@ def uiFunc_make_display_line(parent, label="", text="", button=False, buttonLabe
                          buttonInfo)  
     _row.setStretchWidget(uiTF)
     mUI.MelSpacer(_row,w=10)
+
+    if presetOptions:
+        presetMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
+        presetMenu.append("Load Preset")
+        for a in mc.nodePreset( list=presetObj ):
+            presetMenu.append(a)
+        presetMenu.append("---")
+        presetMenu.append("Save Preset")
+        presetMenu(edit=True,
+            value = "Load Preset",
+            cc = cgmGEN.Callback(uiFunc_process_preset_change, presetObj, presetMenu) )
+        mUI.MelSpacer(_row,w=10)
+
     _row.layout()
 
     return uiTF
@@ -242,9 +287,9 @@ def uiFunc_update_details(self):
 
 
     # Nucleus
-    uiFunc_make_display_line(_details, label='Nucleus:', text=self._mDynFK.get_dat()['mNucleus'].p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,self._mDynFK.get_dat()['mNucleus'].p_nameBase), buttonInfo="Select nucleus transform.")
+    uiFunc_make_display_line(_details, label='Nucleus:', text=dat['mNucleus'].p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,dat['mNucleus'].p_nameBase), buttonInfo="Select nucleus transform.", presetOptions=True, presetObj=dat['mNucleus'].p_nameBase)
 
-    uiFunc_make_display_line(_details, label='Hair System:', text=self._mDynFK.get_dat()['mHairSysShape'].p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,self._mDynFK.get_dat()['mHairSysShape'].p_nameBase), buttonInfo="Select hair system transform.")
+    uiFunc_make_display_line(_details, label='Hair System:', text=dat['mHairSysShape'].p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,dat['mHairSysShape'].p_nameBase), buttonInfo="Select hair system transform.", presetOptions=True, presetObj=dat['mHairSysShape'].p_nameBase)
     # Start Times
 
     _rowStartTimes = mUI.MelHSingleStretchLayout(_details,ut='cgmUITemplate',padding = 5)        
@@ -255,7 +300,7 @@ def uiFunc_update_details(self):
 
     _rowStartTimes.setStretchWidget(mUI.MelSpacer(_rowStartTimes,w=10))
 
-    self.startTimeIF = mUI.MelIntField(_rowStartTimes, v=self._mDynFK.get_dat()['mNucleus'].startFrame )
+    self.startTimeIF = mUI.MelIntField(_rowStartTimes, v=dat['mNucleus'].startFrame )
     self.startTimeIF(edit=True, changeCommand=cgmGEN.Callback(uiFunc_set_start_time,self))
     
     mUI.MelSpacer(_rowStartTimes,w=10)
@@ -313,7 +358,7 @@ def uiFunc_update_details(self):
         mUI.MelSpacer(_row_chains,w=10)
         _row_chains.layout()
 
-        uiFunc_make_display_line(_chainColumn, label='Follicle:', text=chainDat['mFollicle'].p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chainDat['mFollicle'].p_nameBase), buttonInfo="Select follicle transform.")
+        uiFunc_make_display_line(_chainColumn, label='Follicle:', text=chainDat['mFollicle'].p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chainDat['mFollicle'].p_nameBase), buttonInfo="Select follicle transform.", presetOptions=True, presetObj = chainDat['mFollicle'].p_nameBase)
         uiFunc_make_display_line(_chainColumn, label='Group:', text=chainDat['mGrp'].p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chainDat['mGrp'].p_nameBase), buttonInfo="Select group transform.")
 
         _row_bake = mUI.MelHLayout(_chainColumn,ut='cgmUISubTemplate',padding = 1)

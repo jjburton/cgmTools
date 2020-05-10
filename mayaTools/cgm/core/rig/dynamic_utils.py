@@ -188,7 +188,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                  extendStart = None,
                  extendEnd = None,
                  upControl = True,
-                 aimUpMode = 'sequential',
+                 aimUpMode = 'joint',
                  *args,**kws):
         """ 
         
@@ -314,7 +314,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         
     def chain_create(self, objs = None,
                      fwd = None, up=None,
-                     upSetup = None,
+                     upSetup = "manual",
                      extendStart = None,
                      extendEnd = True,
                      name = None, mNucleus=None,
@@ -608,7 +608,25 @@ class cgmDynFK(cgmMeta.cgmObject):
             mc.parentConstraint(ml[0].getParent(), mUp.mNode, mo=True)
             
         
-        
+        # create control joint chain
+        mc.select(cl=True)
+        chain = []
+        for obj in objs:
+            if len(chain) > 0:
+                mc.select(chain[-1])
+            jnt = mc.joint(name='%s_%s_jnt' % (obj.split(':')[-1], name))
+            SNAP.matchTarget_set(jnt, obj)
+            mObj = cgmMeta.asMeta(jnt)
+            mObj.doSnapTo(mObj.getMessageAsMeta('cgmMatchTarget'))
+
+            chain.append(jnt)
+
+        mc.parent(chain[0], _follicle)
+        mInCrv.p_parent = mGrp
+
+        mc.bindSkin(mInCrv.mNode, chain[0], ts=True)
+
+
         log.debug(cgmGEN.logString_msg(_str_func,'aimUpMode: {0}'.format(aimUpMode)))
         
         
@@ -691,6 +709,14 @@ class cgmDynFK(cgmMeta.cgmObject):
                                                   worldUpType = "objectrotation",
                                                   worldUpVector = upAxis.p_vector,
                                                   worldUpObject = mUpUse.mNode )                
+            elif aimUpMode == 'joint':
+                aimConstraint = mc.aimConstraint( mAim.mNode,
+                                                  mLocParent.mNode,
+                                                  aimVector=fwdAxis.p_vector,
+                                                  upVector = upAxis.p_vector,
+                                                  worldUpType = "objectrotation",
+                                                  worldUpVector = upAxis.p_vector,
+                                                  worldUpObject = chain[i] )  
             elif aimUpMode == 'curveNormal':
                 mUpLoc = mLoc.doGroup(False,False,
                                       asMeta=True,
@@ -720,24 +746,6 @@ class cgmDynFK(cgmMeta.cgmObject):
             
             #mc.parent(loc, locParent)
         
-        # create control joint chain
-        mc.select(cl=True)
-        chain = []
-        for obj in objs:
-            if len(chain) > 0:
-                mc.select(chain[-1])
-            jnt = mc.joint(name='%s_%s_jnt' % (obj.split(':')[-1], name))
-            SNAP.matchTarget_set(jnt, obj)
-            mObj = cgmMeta.asMeta(jnt)
-            mObj.doSnapTo(mObj.getMessageAsMeta('cgmMatchTarget'))
-
-            chain.append(jnt)
-
-        mc.parent(chain[0], _follicle)
-        mInCrv.p_parent = mGrp
-
-        mc.bindSkin(mInCrv.mNode, chain[0], ts=True)
-
         mCrv.rename("{0}_outCrv".format(name))
         mCrvParent = mCrv.getParent(asMeta=1)
         mCrvParent.p_parent = mGrp
