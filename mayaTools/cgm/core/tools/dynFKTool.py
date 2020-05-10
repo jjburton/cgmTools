@@ -210,6 +210,8 @@ def uiFunc_update_details(self):
 
     self.detailsFrame.clear()
 
+    dat = self._mDynFK.get_dat()
+
     self.detailsFrame(edit=True, collapse=False)
 
     _details = mUI.MelColumnLayout(self.detailsFrame,useTemplate = 'cgmUISubTemplate') 
@@ -277,20 +279,28 @@ def uiFunc_update_details(self):
     mUI.MelSpacer(_row_time)
     _row_time.layout()   
 
+
+    allChains = []
+    for idx in dat['chains']:
+        allChains += dat['chains'][idx]['mObjJointChain']
+    allTargets = []
+    for idx in dat['chains']:
+        allTargets += dat['chains'][idx]['mTargets']
+
     _row_bake = mUI.MelHLayout(_details,ut='cgmUISubTemplate',padding = 1)
     cgmUI.add_Button(_row_bake,'Bake All Joints',
-        cgmGEN.Callback(uiFunc_bake,self,'all joints'),                         
+        cgmGEN.Callback(uiFunc_bake,self,'chain', allChains),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
         'Bake All Joints')
     cgmUI.add_Button(_row_bake,'Bake All Targets',
-        cgmGEN.Callback(uiFunc_bake,self,'all targets'),                         
+        cgmGEN.Callback(uiFunc_bake,self,'target', allTargets),                         
         'Bake All Targets') 
 
     _row_bake.layout()    
 
     # Chains
-    for chain in self._mDynFK.get_dat()['chains']:
-        chainDat = self._mDynFK.get_dat()['chains'][chain]
+    for idx in dat['chains']:
+        chainDat = dat['chains'][idx]
 
         _row_chains = mUI.MelHSingleStretchLayout(_details,ut='cgmUITemplate',padding = 5)        
 
@@ -308,11 +318,11 @@ def uiFunc_update_details(self):
 
         _row_bake = mUI.MelHLayout(_chainColumn,ut='cgmUISubTemplate',padding = 1)
         cgmUI.add_Button(_row_bake,'Bake Joints',
-            cgmGEN.Callback(uiFunc_bake,self,'joints'),                         
+            cgmGEN.Callback(uiFunc_bake,self,'chain', chainDat['mObjJointChain']),                         
             #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
             'Bake All Joints')
         cgmUI.add_Button(_row_bake,'Bake Targets',
-            cgmGEN.Callback(uiFunc_bake,self,'targets'),                         
+            cgmGEN.Callback(uiFunc_bake,self,'target', chainDat['mTargets']),                         
             'Bake All Targets') 
 
         _row_bake.layout()    
@@ -328,8 +338,19 @@ def uiFunc_update_details(self):
             column = mUI.MelColumnLayout(frame,useTemplate = 'cgmUISubTemplate') 
             uiFunc_create_selection_list(column, [x.p_nameShort for x in chainDat[dat[1]]] )
 
-
     # End Chains
+
+# mode - 'target', 'chain'
+def uiFunc_bake(self, mode, mObjs):
+    # if mode == 'target':
+    #     pass
+    # elif mode == 'chain':
+    #mObjs = [cgmMeta.asMeta(x) for x in objs]
+    for i in range(self.uiFieldInt_start.getValue(),self.uiFieldInt_end.getValue()):
+        mc.currentTime(i, edit=True)
+        for mObj in mObjs:
+            mObj.doSnapTo(mObj.getMessageAsMeta('cgmMatchTarget'))
+            mc.setKeyframe(mObj.mNode, at=['translate', 'rotate'])
 
 
 def uiFunc_updateTimeRange(self, mode='slider'):
@@ -342,7 +363,7 @@ def uiFunc_select_item(item):
     mc.select( item )
 
 def uiFunc_select_list_item(listElement):
-    mc.select( listElement.getSelectedItem() )
+    mc.select( listElement.getSelectedItems() )
 
 def uiFunc_create_selection_list(parent, items):
     itemList = cgmUI.cgmScrollList(parent, numberOfRows = 4, height=75)

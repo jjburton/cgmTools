@@ -455,6 +455,9 @@ class cgmDynFK(cgmMeta.cgmObject):
         #    LOC.create(position=p,name='p_{0}'.format(i))
             
         crv = CORERIG.create_at(create='curve',l_pos= l_pos, baseName = name)
+        mInCrv = cgmMeta.asMeta(crv)
+        mInCrv.rename("{0}_inCrv".format(name))
+        mGrp.connectChildNode(mInCrv.mNode,'mInCrv')
         mc.select(cl=1)
 
         # make the dynamic setup
@@ -477,11 +480,11 @@ class cgmDynFK(cgmMeta.cgmObject):
                 log.info(cgmGEN.logString_msg(_str_func,'Using existing nucleus: {0}'.format(mNucleus.mNode)))
                 self.connectChildNode(mNucleus.mNode,'mNucleus')
         
-        mc.select(crv,add=True)
+        mc.select(mInCrv.mNode,add=True)
         mel.eval('makeCurvesDynamic 2 { "0", "0", "1", "1", "0" }')
 
         # get relevant nodes
-        follicle = mc.listRelatives(crv,parent=True)[0]
+        follicle = mc.listRelatives(mInCrv.mNode,parent=True)[0]
         mFollicle = cgmMeta.asMeta(follicle)
         mFollicle.rename("{0}_foll".format(name))
         mFollicle.getParent(asMeta=1).p_parent = mGrp
@@ -566,7 +569,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         _upVector = None
         if upSetup == 'guess':
             log.debug(cgmGEN.logString_msg(_str_func, 'Resolving up/aim'))
-            poci_base = CURVES.create_pointOnInfoNode(crv,1)
+            poci_base = CURVES.create_pointOnInfoNode(mInCrv.mNode,1)
             mPoci_base = cgmMeta.asMeta(poci_base)
             
             _upVector = mPoci_base.normalizedNormal
@@ -731,6 +734,9 @@ class cgmDynFK(cgmMeta.cgmObject):
             chain.append(jnt)
 
         mc.parent(chain[0], _follicle)
+        mInCrv.p_parent = mGrp
+
+        mc.bindSkin(mInCrv.mNode, chain[0], ts=True)
 
         mCrv.rename("{0}_outCrv".format(name))
         mCrvParent = mCrv.getParent(asMeta=1)
@@ -764,6 +770,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         for i,mGrp in enumerate(ml_chains):
             _d = {'mGrp':mGrp,
                   'mFollicle':mGrp.getMessageAsMeta('mFollicle'),
+                  'mInCrv':self.getMessageAsMeta('mInCrv'),
                   'mOutCrv':mGrp.getMessageAsMeta('mOutCrv'),
                   }
             
