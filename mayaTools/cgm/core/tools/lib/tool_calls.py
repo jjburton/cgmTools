@@ -112,10 +112,18 @@ def mrsScene():
         reload(SCENE)
         x = SCENE.ui()
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)    
+        cgmGEN.cgmException(Exception,err)
+        
+        
     #except Exception,err:
     #    log.warning("[mrsScene] failed to load. | {0}".format(err))
-        
+def cgmSimChain():
+    try:
+        from cgm.core.tools import dynFKTool
+        reload(dynFKTool)
+        dynFKTool.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
 
 def cgmProject():
     try:
