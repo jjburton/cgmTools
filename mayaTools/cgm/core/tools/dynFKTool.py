@@ -40,7 +40,9 @@ import cgm.core.rig.dynamic_utils as RIGDYN
 
 #>>> Root settings =============================================================
 __version__ = '0.05052020'
-__toolname__ ='dynFKTool'
+__toolname__ ='cgmSimChain'
+
+_padding = 5
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -51,7 +53,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 425,350
+    DEFAULT_SIZE = 550,350
     TOOLNAME = '{0}.ui'.format(__toolname__)
     
     _mDynFK = False
@@ -81,6 +83,9 @@ class ui(cgmUI.cgmGUI):
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
+                         c = lambda *a:self.do_dock())  
+
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
 
@@ -109,7 +114,66 @@ class ui(cgmUI.cgmGUI):
                   ac = [(_column,"bottom",2,_row_cgm),
                         ],
                   attachNone = [(_row_cgm,"top")])          
+    
+    def do_dock( self):
+        _str_func = 'do_dock'
+        #log.info("dockCnt: {0}".format(self.dockCnt))
+        #log.debug("uiDock: {0}".format(self.uiDock))                
+        #log.debug("area: {0}".format(self.l_allowedDockAreas[self.var_DockSide.value]))
+        #log.debug("label: {0}".format(self.WINDOW_TITLE))
+        #log.debug("self: {0}".format(self.Get()))                
+        #log.debug("content: {0}".format(self.WINDOW_NAME))
+        #log.debug("floating: {0}".format(not self.var_Dock.value))
+        #log.debug("allowedArea: {0}".format(self.l_allowedDockAreas))
+        #log.debug("width: {0}".format(self.DEFAULT_SIZE[0])) 
+        try:
+            self.uiDock
+        except:
+            log.debug("|{0}| >> making uiDock attr".format(_str_func)) 
+            self.uiDock = False
+            
+        _dock = '{0}Dock'.format(self.__toolName__)   
+        _l_allowed = self.__class__.l_allowedDockAreas
         
+  
+        _content = self.Get()
+            
+        if mc.dockControl(_dock,q=True, exists = True):
+            log.debug('linking...')
+            self.uiDock = _dock
+            mc.dockControl(_dock , edit = True, area=_l_allowed[self.var_DockSide.value],
+                           label=self.WINDOW_TITLE, content=_content,
+                           allowedArea=_l_allowed,
+                           width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])                    
+        #else:
+        else:
+            log.debug('creating...')       
+            mc.dockControl(_dock , area=_l_allowed[self.var_DockSide.value],
+                           label=self.WINDOW_TITLE, content=_content,
+                           allowedArea=_l_allowed,
+                           width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1]) 
+            self.uiDock = _dock
+        
+        
+        """log.info("floating: {0}".format(mc.dockControl(_dock, q = True, floating = True)))
+        log.info("var_Doc: {0}".format(self.var_Dock.value))
+        _floating = mc.dockControl(_dock, q = True, floating = True)
+        if _floating and self.var_Dock == 1:
+            log.info('mismatch')
+            self.var_Dock = 0
+        if not _floating and self.var_Dock == 0:
+            log.info("mismatch2")
+            self.var_Dock = 1"""
+        
+        mc.dockControl(_dock, edit = True, floating = self.var_Dock.value, width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])
+        self.uiDock = _dock   
+        _floating = mc.dockControl(_dock, q = True, floating = True)            
+        if _floating:
+            #log.info("Not visible, resetting position.")
+            #mc.dockControl(self.uiDock, e=True, visible = False)
+            mc.window(_dock, edit = True, tlc = [200, 200])
+        self.var_Dock.toggle()
+
 
 def buildColumn_main(self,parent, asScroll = False):
     """
@@ -117,59 +181,159 @@ def buildColumn_main(self,parent, asScroll = False):
     
     """   
     if asScroll:
-        _inside = mUI.MelScrollLayout(parent,useTemplate = 'cgmUISubTemplate') 
+        _inside = mUI.MelScrollLayout(parent,useTemplate = 'cgmUIHeaderTemplate') 
     else:
-        _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+        _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUIHeaderTemplate') 
     
 
     #>>>Objects Load Row ---------------------------------------------------------------------------------------
-    _row_objLoad = mUI.MelHSingleStretchLayout(_inside,ut='cgmUITemplate',padding = 5)        
+    
+    mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
 
-    mUI.MelSpacer(_row_objLoad,w=10)
-    mUI.MelLabel(_row_objLoad, 
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)        
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    mUI.MelLabel(_row, 
                  l='Dynamic Chain System:')
 
-    uiTF_objLoad = mUI.MelLabel(_row_objLoad,ut='cgmUITemplate',l='',
+    uiTF_objLoad = mUI.MelLabel(_row,ut='cgmUIInstructionsTemplate',l='',
                                 en=True)
 
     self.uiTF_objLoad = uiTF_objLoad
-    cgmUI.add_Button(_row_objLoad,'<<',
+    cgmUI.add_Button(_row,'<<',
                      cgmGEN.Callback(uiFunc_load_selected,self),
                      "Load first selected object.")  
-    _row_objLoad.setStretchWidget(uiTF_objLoad)
-    mUI.MelSpacer(_row_objLoad,w=10)
+    _row.setStretchWidget(uiTF_objLoad)
+    mUI.MelSpacer(_row,w=_padding)
 
-    _row_objLoad.layout()
+    _row.layout()
 
-    self.detailsFrame = mUI.MelFrameLayout(_inside, label="Details", collapsable=True, collapse=True)
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+
+    self.detailsFrame = mUI.MelFrameLayout(_inside, label="Details", collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
 
     uiFunc_update_details(self)
 
     # Create Frame
 
-    self.createFrame = mUI.MelFrameLayout(_inside, label="Create", collapsable=True, collapse=False)
+    self.createFrame = mUI.MelFrameLayout(_inside, label="Create", collapsable=True, collapse=False,useTemplate = 'cgmUIHeaderTemplate')
 
-    _create = mUI.MelColumnLayout(self.createFrame,useTemplate = 'cgmUISubTemplate') 
+    _create = mUI.MelColumnLayout(self.createFrame,useTemplate = 'cgmUIHeaderTemplate') 
 
-    self.itemList = cgmUI.cgmScrollList(_create, numberOfRows = 8, height=100)
-    self.itemList(edit=True, allowMultiSelection=False)
+    cgmUI.add_LineSubBreak()
 
-    cgmUI.add_Button(_create,'Add Selected',
-                     cgmGEN.Callback(uiFunc_add_selected,self),
+    _row = mUI.MelHSingleStretchLayout(_create,ut='cgmUISubTemplate',padding = _padding)
+
+    mUI.MelSpacer(_row,w=_padding)
+    
+    _subRow = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+    self.itemList = cgmUI.cgmScrollList(_subRow, numberOfRows = 8, height=100)
+    self.itemList(edit=True, allowMultiSelection=True)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.setStretchWidget( _subRow )
+
+    _row.layout()
+
+    mUI.MelSeparator(_create,ut='cgmUISubTemplate',h=5)
+
+    _row = mUI.MelHSingleStretchLayout(_create,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    addBtn = cgmUI.add_Button(_row,'Add Selected',
+                     cgmGEN.Callback(uiFunc_list_function,self.itemList, 'add selected'),
                      "Load selected objects.")
 
+    cgmUI.add_Button(_row,'Remove Selected',
+                     cgmGEN.Callback(uiFunc_list_function,self.itemList, 'remove selected'),
+                     "Remove selected objects.")
+
+    cgmUI.add_Button(_row,'Clear',
+                     cgmGEN.Callback(uiFunc_list_function,self.itemList, 'clear'),
+                     "Clear all objects.")
+
+    _row.setStretchWidget( addBtn )
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+
     cgmUI.add_LineSubBreak()
 
-    cgmUI.add_Button(_create,'Make Dynamic Chain',
+    _row = mUI.MelHSingleStretchLayout(_create,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Make Dynamic Chain',
                      cgmGEN.Callback(uiFunc_make_dynamic_chain,self),
-                     "Make Dynamic Chain.")
+                     "Make Dynamic Chain.") )
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()    
 
     cgmUI.add_LineSubBreak()
 
-    self.optionsFrame = mUI.MelFrameLayout(_create, label="Options", collapsable=True, collapse=True)
+    self.optionsFrame = mUI.MelFrameLayout(_create, label="Options", collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+
+    _options = mUI.MelColumnLayout(self.optionsFrame,useTemplate = 'cgmUISubTemplate') 
+
+    mUI.MelSeparator(_options,ut='cgmUISubTemplate',h=5)
+
+    _row = mUI.MelHSingleStretchLayout(_options,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)                          
+    mUI.MelLabel(_row,l='Name: ')        
+
+    self.options_name = mUI.MelTextField(_row,
+            ann='Name',
+            text = 'DynamicChain')
+
+    _row.setStretchWidget( self.options_name )
+
+    mUI.MelSpacer(_row,w=_padding)
+    _row.layout()
+
+
+    mUI.MelSeparator(_options,ut='cgmUISubTemplate',h=5)
+
+    _row = mUI.MelHSingleStretchLayout(_options,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)                          
+    mUI.MelLabel(_row,l='Direction:')  
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+
+    mUI.MelLabel(_row,l='Fwd:') 
+
+    self.fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
+    for dir in directions:
+        self.fwdMenu.append(dir)
+    
+    self.fwdMenu.setValue('z+')
+
+    mUI.MelSpacer(_row,w=_padding)
+    
+    mUI.MelLabel(_row,l='Up:')
+
+    self.upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
+    for dir in directions:
+        self.upMenu.append(dir)
+
+    self.upMenu.setValue('y+')
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
 
     """
-    _row_objLoad.layout()
+    _row.layout()
 
     #>>>Report ---------------------------------------------------------------------------------------
     _row_report = mUI.MelHLayout(_inside ,ut='cgmUIInstructionsTemplate',h=20)
@@ -214,21 +378,21 @@ def uiFunc_process_preset_change(obj, optionMenu):
             mc.nodePreset( load=(obj, optionMenu.getValue()) )
 
 def uiFunc_make_display_line(parent, label="", text="", button=False, buttonLabel = ">>", buttonCommand=None, buttonInfo="", presetOptions=False, presetObj=None):
-    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUITemplate',padding = 5)        
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = _padding)        
 
-    mUI.MelSpacer(_row,w=10)
+    mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row, 
                  l=label)
 
-    uiTF = mUI.MelLabel(_row,ut='cgmUITemplate',l=text,
+    uiTF = mUI.MelLabel(_row,ut='cgmUIInstructionsTemplate',l=text,
                                 en=True)
 
     if button:
         cgmUI.add_Button(_row,buttonLabel,
                          buttonCommand,
-                         buttonInfo)  
+                         buttonInfo)
+    
     _row.setStretchWidget(uiTF)
-    mUI.MelSpacer(_row,w=10)
 
     if presetOptions:
         presetMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
@@ -240,7 +404,8 @@ def uiFunc_make_display_line(parent, label="", text="", button=False, buttonLabe
         presetMenu(edit=True,
             value = "Load Preset",
             cc = cgmGEN.Callback(uiFunc_process_preset_change, presetObj, presetMenu) )
-        mUI.MelSpacer(_row,w=10)
+        
+    mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()
 
@@ -259,27 +424,31 @@ def uiFunc_update_details(self):
 
     self.detailsFrame(edit=True, collapse=False)
 
-    _details = mUI.MelColumnLayout(self.detailsFrame,useTemplate = 'cgmUISubTemplate') 
+    _details = mUI.MelColumnLayout(self.detailsFrame,useTemplate = 'cgmUIHeaderTemplate') 
+
+    cgmUI.add_LineSubBreak()
 
     # Base Name
     uiFunc_make_display_line(_details, label='Base Name:', text=self._mDynFK.baseName, button=False)
 
     # Direction Info
-    _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUITemplate',padding = 5)        
+    _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate',padding = 5)        
 
-    mUI.MelSpacer(_row,w=10)
-    mUI.MelLabel(_row, 
-                 l="Fwd:")
+    mUI.MelSpacer(_row,w=_padding)
 
-    uiTF = mUI.MelLabel(_row,ut='cgmUITemplate',l=self._mDynFK.fwd,
+    mUI.MelLabel(_row, l="Direction:")
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    mUI.MelLabel(_row, l="Fwd:")
+
+    uiTF = mUI.MelLabel(_row,ut='cgmUISubTemplate',l=self._mDynFK.fwd,
                                 en=True)
-
-    _row.setStretchWidget(mUI.MelSpacer(_row,w=10))
 
     mUI.MelLabel(_row, 
                  l="Up:")
 
-    uiTF = mUI.MelLabel(_row,ut='cgmUITemplate',l=self._mDynFK.up,
+    uiTF = mUI.MelLabel(_row,ut='cgmUISubTemplate',l=self._mDynFK.up,
                                 en=True)
 
     mUI.MelSpacer(_row,w=10)
@@ -292,38 +461,62 @@ def uiFunc_update_details(self):
     uiFunc_make_display_line(_details, label='Hair System:', text=dat['mHairSysShape'].p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,dat['mHairSysShape'].p_nameBase), buttonInfo="Select hair system transform.", presetOptions=True, presetObj=dat['mHairSysShape'].p_nameBase)
     # Start Times
 
-    _rowStartTimes = mUI.MelHSingleStretchLayout(_details,ut='cgmUITemplate',padding = 5)        
+    _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate',padding = 5)        
 
-    mUI.MelSpacer(_rowStartTimes,w=10)
-    mUI.MelLabel(_rowStartTimes, 
+    mUI.MelSpacer(_row,w=_padding)
+
+    mUI.MelLabel(_row, 
                  l='Start Time:')
 
-    _rowStartTimes.setStretchWidget(mUI.MelSpacer(_rowStartTimes,w=10))
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.startTimeIF = mUI.MelIntField(_rowStartTimes, v=dat['mNucleus'].startFrame )
-    self.startTimeIF(edit=True, changeCommand=cgmGEN.Callback(uiFunc_set_start_time,self))
+    self.startTimeIF = mUI.MelIntField(_row, v=dat['mNucleus'].startFrame )
+    self.startTimeIF(edit=True, changeCommand=cgmGEN.Callback(uiFunc_set_start_time,self, mode='refresh'))
     
-    mUI.MelSpacer(_rowStartTimes,w=10)
-    _rowStartTimes.layout()
+    cgmUI.add_Button(_row,'<<',
+                     cgmGEN.Callback(uiFunc_set_start_time,self, mode='beginning'),
+                     "Set Start To Beginning of Slider.")  
+
+    mUI.MelSpacer(_row,w=_padding)
+    
+    _row.layout()
 
     # TimeInput Row ----------------------------------------------------------------------------------
-    _row_time = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate')
-    mUI.MelSpacer(_row_time)
-    mUI.MelLabel(_row_time,l='start')
+    _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate')
+    mUI.MelSpacer(_row, w=_padding)
 
-    self.uiFieldInt_start = mUI.MelIntField(_row_time,'cgmLocWinStartFrameField',
+    mUI.MelLabel(_row,l='Bake Time:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    mUI.MelLabel(_row,l='Start:')
+
+    self.uiFieldInt_start = mUI.MelIntField(_row,'cgmLocWinStartFrameField',
                                             width = 40)
-    _row_time.setStretchWidget( mUI.MelSpacer(_row_time) )
-    mUI.MelLabel(_row_time,l='end')
+    
+    mUI.MelLabel(_row,l='End:')
 
-    self.uiFieldInt_end = mUI.MelIntField(_row_time,'cgmLocWinEndFrameField',
+    self.uiFieldInt_end = mUI.MelIntField(_row,'cgmLocWinEndFrameField',
                                           width = 40)
     
-    uiFunc_updateTimeRange(self)
+    cgmUI.add_Button(_row,'<<',
+                     cgmGEN.Callback(uiFunc_updateTimeRange,self, 'min'),
+                     "Set Start To Beginning of Slider.")  
+    cgmUI.add_Button(_row,'[   ]',
+                     cgmGEN.Callback(uiFunc_updateTimeRange,self, 'slider'),
+                     "Set Time to Slider.")  
+    cgmUI.add_Button(_row,'>>',
+                     cgmGEN.Callback(uiFunc_updateTimeRange,self, 'max'),
+                     "Set End To End of Slider.")  
 
-    mUI.MelSpacer(_row_time)
-    _row_time.layout()   
+    uiFunc_updateTimeRange(self, mode='slider')
 
+    mUI.MelSpacer(_row, w=_padding)
+
+    _row.layout()   
+
+    mc.setParent(_details)
+    cgmUI.add_LineSubBreak()
 
     allChains = []
     for idx in dat['chains']:
@@ -332,45 +525,56 @@ def uiFunc_update_details(self):
     for idx in dat['chains']:
         allTargets += dat['chains'][idx]['mTargets']
 
-    _row_bake = mUI.MelHLayout(_details,ut='cgmUISubTemplate',padding = 1)
-    cgmUI.add_Button(_row_bake,'Bake All Joints',
+    _row = mUI.MelHLayout(_details,ut='cgmUISubTemplate',padding = _padding*2)
+    
+    cgmUI.add_Button(_row,'Bake All Joints',
         cgmGEN.Callback(uiFunc_bake,self,'chain', allChains),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
         'Bake All Joints')
-    cgmUI.add_Button(_row_bake,'Bake All Targets',
+    cgmUI.add_Button(_row,'Bake All Targets',
         cgmGEN.Callback(uiFunc_bake,self,'target', allTargets),                         
         'Bake All Targets') 
 
-    _row_bake.layout()    
+    _row.layout()    
 
     # Chains
     for idx in dat['chains']:
         chainDat = dat['chains'][idx]
 
-        _row_chains = mUI.MelHSingleStretchLayout(_details,ut='cgmUITemplate',padding = 5)        
+        _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate',padding = _padding)        
 
-        mUI.MelSpacer(_row_chains,w=10)
-        chainFrame = mUI.MelFrameLayout(_row_chains, label=chainDat['mGrp'].p_nameBase, collapsable=True, collapse=True)
+        mUI.MelSpacer(_row,w=_padding)
+
+        _subChainColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+
+        chainFrame = mUI.MelFrameLayout(_subChainColumn, label=chainDat['mGrp'].p_nameBase, collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
         
-        _chainColumn = mUI.MelColumnLayout(chainFrame,useTemplate = 'cgmUISubTemplate') 
-        _row_chains.setStretchWidget(chainFrame)
+        _chainColumn = mUI.MelColumnLayout(chainFrame,useTemplate = 'cgmUIHeaderTemplate') 
 
-        mUI.MelSpacer(_row_chains,w=10)
-        _row_chains.layout()
+        _row.setStretchWidget(_subChainColumn)
+
+        #mUI.MelSpacer(_row,w=_padding)
+        _row.layout()
+
+        mc.setParent(_chainColumn)
+        cgmUI.add_LineSubBreak()
 
         uiFunc_make_display_line(_chainColumn, label='Follicle:', text=chainDat['mFollicle'].p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chainDat['mFollicle'].p_nameBase), buttonInfo="Select follicle transform.", presetOptions=True, presetObj = chainDat['mFollicle'].p_nameBase)
         uiFunc_make_display_line(_chainColumn, label='Group:', text=chainDat['mGrp'].p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chainDat['mGrp'].p_nameBase), buttonInfo="Select group transform.")
 
-        _row_bake = mUI.MelHLayout(_chainColumn,ut='cgmUISubTemplate',padding = 1)
-        cgmUI.add_Button(_row_bake,'Bake Joints',
+        mc.setParent(_chainColumn)
+        cgmUI.add_LineSubBreak()
+
+        _row = mUI.MelHLayout(_chainColumn,ut='cgmUISubTemplate',padding = _padding*2)
+        cgmUI.add_Button(_row,'Bake Joints',
             cgmGEN.Callback(uiFunc_bake,self,'chain', chainDat['mObjJointChain']),                         
             #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
             'Bake All Joints')
-        cgmUI.add_Button(_row_bake,'Bake Targets',
+        cgmUI.add_Button(_row,'Bake Targets',
             cgmGEN.Callback(uiFunc_bake,self,'target', chainDat['mTargets']),                         
             'Bake All Targets') 
 
-        _row_bake.layout()    
+        _row.layout()    
 
         frameDat = [['Targets', 'mTargets'],
                     ['Locators','mLocs'],
@@ -379,11 +583,24 @@ def uiFunc_update_details(self):
                     ['Parents', 'mParents']]
 
         for dat in frameDat:
-            frame = mUI.MelFrameLayout(_chainColumn, label=dat[0], collapsable=True, collapse=True)
-            column = mUI.MelColumnLayout(frame,useTemplate = 'cgmUISubTemplate') 
-            uiFunc_create_selection_list(column, [x.p_nameShort for x in chainDat[dat[1]]] )
+            frame = mUI.MelFrameLayout(_chainColumn, label=dat[0], collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+            column = mUI.MelColumnLayout(frame,useTemplate = 'cgmUITemplate',height=75) 
+            row = mUI.MelHSingleStretchLayout(column,ut='cgmUIHeaderTemplate',padding = _padding)
+
+            mUI.MelSpacer(row,w=_padding)
+
+            itemList = uiFunc_create_selection_list(row, [x.p_nameShort for x in chainDat[dat[1]]] )
+
+            mUI.MelSpacer(row,w=_padding)
+
+            row.setStretchWidget(itemList)
+
+            row.layout()
 
     # End Chains
+
+    mc.setParent(_details)
+    cgmUI.add_LineSubBreak()
 
 # mode - 'target', 'chain'
 def uiFunc_bake(self, mode, mObjs):
@@ -398,11 +615,16 @@ def uiFunc_bake(self, mode, mObjs):
             mc.setKeyframe(mObj.mNode, at=['translate', 'rotate'])
 
 
-def uiFunc_updateTimeRange(self, mode='slider'):
+def uiFunc_updateTimeRange(self, which='slider', mode='slider'):
     _range = SEARCH.get_time(mode)
     if _range:
-        self.uiFieldInt_start(edit = True, value = _range[0])
-        self.uiFieldInt_end(edit = True, value = _range[1])
+        if which == "min":
+            self.uiFieldInt_start(edit = True, value = _range[0])
+        elif which == "max":
+            self.uiFieldInt_end(edit = True, value = _range[1])
+        elif which == "slider":
+            self.uiFieldInt_start(edit = True, value = _range[0])
+            self.uiFieldInt_end(edit = True, value = _range[1])
 
 def uiFunc_select_item(item):
     mc.select( item )
@@ -415,24 +637,41 @@ def uiFunc_create_selection_list(parent, items):
     itemList.setItems(items)
     itemList(edit=True, selectCommand=cgmGEN.Callback(uiFunc_select_list_item,itemList))
 
+    return itemList
 
-def uiFunc_set_start_time(self):
+def uiFunc_set_start_time(self,mode):
+    if mode == 'beginning':
+        self.startTimeIF(e=True, v=mc.playbackOptions(q=True, min=True))
     self._mDynFK.get_dat()['mNucleus'].startFrame = self.startTimeIF(q=True, v=True)
 
-def uiFunc_add_selected(self):
-    self.itemList.setItems(mc.ls(sl=True))
+def uiFunc_list_function(uiElement, command):
+    allItems = uiElement.getItems()
+    selectedItems = uiElement.getSelectedItems()
+
+    if command == "add selected":
+        uiElement.rebuild()        
+        uiElement.setItems( allItems + mc.ls(sl=True) )
+    elif command == "remove selected":
+        uiElement.rebuild()
+        newList = []
+        for item in allItems:
+            if item not in selectedItems:
+                newList.append( item )
+        uiElement.setItems( newList )
+    elif command == "clear":
+        uiElement.rebuild()
 
 def uiFunc_select_nucleus(self):
     mc.select(self._mDynFK.get_dat()['mNucleus'].p_nameBase)
 
 def uiFunc_make_dynamic_chain(self):
     if not self._mDynFK:
-        mDynFK = RIGDYN.cgmDynFK(baseName='hair')
+        mDynFK = RIGDYN.cgmDynFK(baseName=self.options_name.getValue(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue())
         mDynFK.profile_load('base')
         uiFunc_load_dyn_chain(self, mDynFK.p_nameBase)
     else:
-        pass
-
+        self._mDynFK.chain_create(name = self.options_name.getValue(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue())
+        uiFunc_load_dyn_chain(self, mDynFK.p_nameBase)
 
 def uiFunc_load_dyn_chain(self, chain):
     _str_func = 'uiFunc_load_dyn_chain'  
