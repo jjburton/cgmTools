@@ -426,6 +426,9 @@ def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False
     
     log.debug("|{0}| >> {1} snapping to: {2}.".format(_str_func,NAMES.get_short(_obj),_target[0]))
     
+    go(obj,_target[0],move,rotate,pivot=pivot)
+    return True
+
     _dict = POS.get_info(_target[0])
     
     #cgmGEN.log_info_dict(_dict)
