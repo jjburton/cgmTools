@@ -15,7 +15,7 @@ import time
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -54,7 +54,7 @@ def kill_mmTool(ui='cgmMM'):
                 log.debug(">"*10  + '   cgmMarkingMenu =  %0.3f seconds  ' % (f_seconds) + '<'*10)    
             
                 if sel and f_seconds <= .5:#and not mmActionOptionVar.value:
-                    log.debug("|{0}| >> low time. Set key...".format('cgmMM'))
+                    log.info("|{0}| >> Set key | low time tripped".format('cgmMM'))
                     setKey()
                     
                 #mmTemplate.killChildren(_str_popWindow)
@@ -70,7 +70,7 @@ def kill_mmTool(ui='cgmMM'):
         except Exception,err:
             log.error(err)   
         finally:
-            pass
+            mc.warning("'{0}' killed".format(ui))
         
     mc.evalDeferred(_call,lp=True)
     

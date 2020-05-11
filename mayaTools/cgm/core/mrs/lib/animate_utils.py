@@ -258,10 +258,10 @@ def uiColumn_context(self,parent,header=False):
 def get_sharedDatObject(**kws):
     global MRSDAT
     if MRSDAT:
-        log.info('existing global MRSDAT')
+        log.debug('existing global MRSDAT')
         return MRSDAT
     
-    log.info('new MRSDAT')
+    log.warning('new MRSDAT')
     return dat(**kws)
 
 class dat(object):

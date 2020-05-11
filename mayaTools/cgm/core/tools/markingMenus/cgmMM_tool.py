@@ -14,7 +14,7 @@ from cgm.core import cgm_General as cgmGEN
 #from cgm.core.tools.markingMenus import cgmMMTemplate as mmTemplate
 from cgm.core.lib.zoo import baseMelUI as mUI
 import cgm.core.classes.GuiFactory as cgmUI
-reload(cgmUI)
+#reload(cgmUI)
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import distance_utils as DIST
@@ -30,15 +30,13 @@ from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
-reload(MMUTILS)
+
 import cgm.core.tools.toolbox as TOOLBOX
 import cgmToolbox
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
-reload(DYNPARENTTOOL)
 from cgm.core.mrs import Builder as RBUILDER
 from cgm.core.lib import node_utils as NODES
 import cgm.core.mrs.Animate as MRSANIMATE
-reload(MRSANIMATE)
 from cgm.lib import search
 from cgm.lib import locators
 from cgm.tools.lib import tdToolsLib#...REFACTOR THESE!!!!
@@ -84,25 +82,25 @@ def run():
         #mmWindow = cgmMarkingMenu()
     except Exception,err:
         log.error("Failed to load. err:{0}".format(err))
-        for a in err.args():
-            print a
+        #for a in err.args():
+        #    print a
         
 _str_popWindow = 'cgmMM'#...outside to push to killUI
 
 class cgmMarkingMenu2(cgmUI.markingMenu):
     POPWINDOW = _str_popWindow
     
-    def createUI(self, parent):
-        try:mc.menu(parent,e = True, deleteAllItems = True)
-        except Exception,err:
-            log.error("Failed to delete menu items")
-            for a in err.args():
-                print a
+    def createUI2(self):
+        #try:mc.menu(parent,e = True, deleteAllItems = True)
+        #except Exception,err:
+        #    log.error("Failed to delete menu items")
+        #    for a in err.args():
+        #        print a
                 
         self.var_clockStart.value = time.clock()
                 
         
-        #mc.showWindow('cgmMM')
+        mc.showWindow('cgmMM')
         
 class cgmMarkingMenu(cgmUI.markingMenu):
     POPWINDOW = _str_popWindow
@@ -210,6 +208,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         
         log.debug("|{0}| >> build_menu".format(self._str_MM))                
         
+        
         #Radial Section --------------------------------------------------------------
         _mode = self.var_menuMode.value
         if _mode == 0:
@@ -305,7 +304,8 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         mc.menuItem(p=uiHelp,l = 'Force Kill MM',
                     c=lambda *a:MMUTILS.kill_mmTool())
                     #c=cgmGEN.Callback(self.button_action,self.reset))   
-        
+        mc.menuItem(p=uiHelp, l="Reload marking menu lib",
+                    c=lambda *a:self.reloadLib())
         mc.menuItem(p=uiHelp,l='Reload local python',
                     c = lambda *a: mel.eval('python("from cgm.core import cgm_Meta as cgmMeta;from cgm.core import cgm_Deformers as cgmDeformers;from cgm.core import cgm_General as cgmGen;from cgm.core.rigger import RigFactory as Rig;from cgm.core import cgm_PuppetMeta as cgmPM;from cgm.core import cgm_RigMeta as cgmRigMeta;import Red9.core.Red9_Meta as r9Meta;import cgm.core;cgm.core._reload();import maya.cmds as mc;import cgm.core.cgmPy.validateArgs as cgmValid")'))        
         
@@ -337,6 +337,12 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         LOCINATOR.uiSetupOptionVars(self)
         #MMPuppet.uiSetupOptionVars(self)
         TOOLBOX.uiSetupOptionVars_curveCreation(self)
+        
+    def reloadLib(self):
+        reload(cgmUI)
+        reload(MMUTILS)
+        reload(DYNPARENTTOOL)
+        reload(MRSANIMATE)
         
     #@cgmGEN.Timer
     def bUI_radialRoot_td(self,parent):
