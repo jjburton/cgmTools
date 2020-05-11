@@ -666,11 +666,11 @@ def uiFunc_select_nucleus(self):
 
 def uiFunc_make_dynamic_chain(self):
     if not self._mDynFK:
-        mDynFK = RIGDYN.cgmDynFK(baseName=self.options_name.getValue(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue())
+        mDynFK = RIGDYN.cgmDynFK(baseName=self.options_name.getValue(),objs=self.itemList.getItems(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue())
         mDynFK.profile_load('base')
         uiFunc_load_dyn_chain(self, mDynFK.p_nameBase)
     else:
-        self._mDynFK.chain_create(name = self.options_name.getValue(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue())
+        self._mDynFK.chain_create(name = self.options_name.getValue(),objs=self.itemList.getItems(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue())
         uiFunc_load_dyn_chain(self, mDynFK.p_nameBase)
 
 def uiFunc_load_dyn_chain(self, chain):
