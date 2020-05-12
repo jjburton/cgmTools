@@ -834,6 +834,7 @@ def prerig(self):
             mHandle.scale = 1,1,1"""
             
         _l_pos = CURVES.returnSplitCurveList(mTrackCurve.mNode,self.numControls,markPoints = False)
+        
         #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.numControls-1)] + [_pos_end]
             
         #_sizeUse = self.atUtils('get_shapeOffset')
@@ -965,6 +966,12 @@ def prerig(self):
         
         mc.pointConstraint([ml_jointHandles[0].mNode], str_vectorRP,maintainOffset=False)
         ATTR.set_lock(str_vectorRP,'translate',True)
+        
+        #Move start and end... ------------------------------------------------------------------------
+        ml_handles[0].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .05)
+        ml_handles[-1].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .95)
+        
+        self.atUtils('prerig_handlesLayout','even','cubic',2)
         
         #Close out =======================================================================================
         mNoTransformNull.v = False

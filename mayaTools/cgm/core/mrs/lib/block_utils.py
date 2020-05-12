@@ -7459,7 +7459,7 @@ def changeState(self, state = None, rebuildFrom = None, forceNew = False,checkDe
                               }
     
     stateArgs = BLOCKGEN.validate_stateArg(state)
-    _l_moduleStates = BLOCKSHARE._l_blockStates
+    _l_moduleStates = [v for v in BLOCKSHARE._l_blockStates]
 
     if not stateArgs:
         log.debug("|{0}| >> No state arg.".format(_str_func))            
@@ -7808,7 +7808,7 @@ def getState(self, asString = True, fastCheck=True):
         log.debug(cgmGEN.logString_start(_str_func))
 
         
-        _l_blockStates = BLOCKSHARE._l_blockStates
+        _l_blockStates = [v for v in BLOCKSHARE._l_blockStates]
         
         def returnRes(arg):
             if asString:
@@ -11337,8 +11337,8 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
 
                 mc.polySoftEdge(l_edges, a=0, ch=0)                
                 
-            for s in TRANS.shapes_get(_mesh):
-                GEO.normalCheck(s)
+            #for s in TRANS.shapes_get(_mesh):
+                #GEO.normalCheck(s)
 
             #_mesh = mc.polyUnite([_mesh,_sphere[0]], ch=False )[0]
             #mc.polyNormal(_mesh,setUserNormal = True)
