@@ -70,7 +70,7 @@ def kill_mmTool(ui='cgmMM'):
         except Exception,err:
             log.error(err)   
         finally:
-            mc.warning("'{0}' killed".format(ui))
+            print("... '{0}' killed".format(ui))
         
     mc.evalDeferred(_call,lp=True)
     
