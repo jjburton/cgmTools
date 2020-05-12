@@ -27,7 +27,7 @@ from maya import mel
 
 
 import cgm.core.lib.search_utils as SEARCH
-reload(SEARCH)
+#reload(SEARCH)
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.lib.list_utils as LISTS

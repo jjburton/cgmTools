@@ -38,8 +38,8 @@ from cgm.core.lib import list_utils as LISTS
 from cgm.core.lib import euclid as EUCLID
 import cgm.core.lib.name_utils as NAMES
 
-reload(LISTS)
-reload(SHARED)
+#reload(LISTS)
+#reload(SHARED)
 #Cannot import: DIST, TRANS
 #>>> Utilities
 #===================================================================

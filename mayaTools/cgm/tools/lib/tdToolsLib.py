@@ -29,7 +29,7 @@ import maya.mel as mel
 import subprocess
 
 from cgm.core.classes import DraggerContextFactory
-reload(DraggerContextFactory)
+#reload(DraggerContextFactory)
 
 from cgm.lib.zoo.zooPyMaya import skinWeights
 from cgm.core.lib.zoo.baseMelUI import *
@@ -61,13 +61,13 @@ from cgm.lib import (guiFactory,
 
 from cgm.tools.lib import locinatorLib,namingToolsLib
 
-reload(curves)
-reload(position)
-reload(attributes)
-reload(NameFactoryOld)
-reload(guiFactory)
-reload(modules)
-reload(controlBuilder)
+#reload(curves)
+#reload(position)
+#reload(attributes)
+#reload(NameFactoryOld)
+#reload(guiFactory)
+#reload(modules)
+#reload(controlBuilder)
 """
 
 """

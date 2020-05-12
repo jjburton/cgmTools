@@ -30,7 +30,7 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import name_utils as NAMES
 import cgm.core.lib.position_utils as POS
-reload(POS)
+#reload(POS)
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta

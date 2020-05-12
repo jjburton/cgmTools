@@ -33,9 +33,9 @@ from cgm.tools.lib import (tdToolsLib,
                            locinatorLib,
                            attrToolsLib)
 
-reload(tdToolsLib)
-reload(attrToolsLib)
-reload(guiFactory)
+#reload(tdToolsLib)
+#reload(attrToolsLib)
+#reload(guiFactory)
 
 def run():
 	cgmAttrToolsWin = attrToolsClass()

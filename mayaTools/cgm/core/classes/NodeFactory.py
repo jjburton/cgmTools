@@ -31,7 +31,7 @@ from cgm.core.cgmPy import str_Utils as strUtils
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
+#reload(cgmGeneral)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.lib import attribute_utils as ATTR
@@ -39,7 +39,7 @@ from cgm.lib import (lists,
                      cgmMath,
                      search,
                      attributes)
-reload(search)
+#reload(search)
 
 def createNormalizedClosestPointNode(objToAttach = None, targetSurface = None, **kws):
     """

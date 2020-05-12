@@ -14,7 +14,7 @@ from cgm.lib import (lists,search)
 from cgm.tools.lib import animToolsLib
 from cgm.tools.lib import tdToolsLib
 from cgm.tools.lib import locinatorLib
-reload(animToolsLib)
+#reload(animToolsLib)
 from cgm.lib import locators
 
 

@@ -62,8 +62,8 @@ import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.snapTools as SNAPTOOLS
 import cgm.core.lib.list_utils as LISTS
 
-for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
-    reload(m)
+#for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
+    #reload(m)
 _d_blockTypes = {}
 
 # Factory 

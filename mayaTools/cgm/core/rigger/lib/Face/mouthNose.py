@@ -39,17 +39,17 @@ from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.rigger.lib import joint_Utils as jntUtils
-reload(jntUtils)
+#reload(jntUtils)
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.rigger.lib.Face import faceMod_Utils as faceUtils
-reload(faceUtils)
-reload(mControlFactory)
+#reload(faceUtils)
+#reload(mControlFactory)
 from cgm.core.lib import nameTools
 from cgm.core.lib import curve_Utils as crvUtils
 from cgm.core.lib import rayCaster as rayCast
 from cgm.core.lib import surface_Utils as surfUtils
-reload(surfUtils)
+#reload(surfUtils)
 from cgm.core.rigger.lib import rig_Utils as rUtils
 
 from cgm.lib import (attributes,

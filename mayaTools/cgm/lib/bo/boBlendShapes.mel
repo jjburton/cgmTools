@@ -406,7 +406,7 @@ global proc bbsRec_buildShape(string $base, float $pointArray[], string $compArr
 	
 	//get the mel command by using python to evaluate each vertices movement
 	python("import boBlendShapes");
-	python("reload(boBlendShapes)");
+	python("#reload(boBlendShapes)");
 	
 }
 

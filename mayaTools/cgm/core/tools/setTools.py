@@ -191,7 +191,7 @@ class ui(cgmUI.cgmGUI):
                          #c = Callback(setToolsLib.doSetAllRefState,self,True))	
                          
             mUI.MelMenuItemDiv( refMenu )
-            reload(cgmUI)
+            #reload(cgmUI)
         
             for i,n in enumerate(_refKeys):
                 activeState = False

@@ -826,7 +826,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         
         
         return 
-        reload(dynFKPresets)
+        #reload(dynFKPresets)
         _d = dynFKPresets.d_chain.get(arg)
         if not _d:
             return log.warning("Profile has no data: {0}".format(arg))

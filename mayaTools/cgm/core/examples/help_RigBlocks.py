@@ -12,7 +12,7 @@ Help for learning the basis of working with RigBlocks
 """
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.mrs import RigBlocks as RBLOCKS
-reload(RBLOCKS)
+#reload(RBLOCKS)
 #==============================================================================================
 #>> cgmMeta.cgmObject
 #==============================================================================================

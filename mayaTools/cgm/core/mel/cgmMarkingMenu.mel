@@ -1,5 +1,5 @@
 global proc cgmMarkingMenu() {
-	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;reload(cgmMM_tool);");
+	python("import cgm;import cgm.core.tools.markingMenus.cgmMM_tool as cgmMM_tool;");
 	python("import maya.cmds as mc;mc.evalDeferred(cgmMM_tool.run,lp=True);");
 	}
 

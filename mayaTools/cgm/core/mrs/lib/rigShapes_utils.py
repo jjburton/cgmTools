@@ -63,7 +63,7 @@ import cgm.core.lib.shapeCaster as SHAPECASTER
 import cgm.core.lib.surface_Utils as SURF
 
 
-reload(SHAPECASTER)
+#reload(SHAPECASTER)
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 
@@ -814,7 +814,7 @@ def lever(self,ball = False):
         
         pprint.pprint(vars())
         
-        reload(SURF)
+        #reload(SURF)
          
         #Meat ==============================================================
         mLeverDirect = mRigNull.getMessageAsMeta('leverDirect')

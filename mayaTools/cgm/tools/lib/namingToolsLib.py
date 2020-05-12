@@ -33,8 +33,8 @@ from cgm.lib import *
 from cgm.lib import (guiFactory,
                      dictionary,
                      search)
-reload(search)
-reload(dictionary)
+#reload(search)
+#reload(dictionary)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # UI Stuff
@@ -315,7 +315,7 @@ def uiUpdateAutoNameTag(self,tag):
 def uiGetObjectInfo(self):
 	selected = mc.ls(sl=True,long=True)
 	from cgm.lib.classes import NameFactory as NameFactoryOld
-	reload(NameFactoryOld)
+	#reload(NameFactoryOld)
 	
 	for obj in selected:
 		obj = NameFactoryOld.NameFactory(obj)
@@ -325,7 +325,7 @@ def uiGetObjectInfo(self):
 def uiReturnIterator(self):
 	selected = mc.ls(sl=True)
 	from cgm.lib.classes import NameFactory as NameFactoryOld
-	reload(NameFactoryOld)
+	#reload(NameFactoryOld)
 	
 	for obj in selected:
 		print (NameFactoryOld.returnIterateNumber(obj))
@@ -333,7 +333,7 @@ def uiReturnIterator(self):
 def uiReturnFastName(self):
 	selected = mc.ls(sl=True)
 	from cgm.lib.classes import NameFactory as NameFactoryOld
-	reload(NameFactoryOld)
+	#reload(NameFactoryOld)
 	
 	for obj in selected:
 		print (NameFactoryOld.returnObjectGeneratedNameDict(obj))
@@ -341,7 +341,7 @@ def uiReturnFastName(self):
 def uiReturnSceneUniqueName(self):
 	selected = mc.ls(sl=True)
 	from cgm.lib.classes import NameFactory as NameFactoryOld
-	reload(NameFactoryOld)
+	#reload(NameFactoryOld)
 	
 	for obj in selected:
 		print (NameFactoryOld.returnUniqueGeneratedName(obj,True))

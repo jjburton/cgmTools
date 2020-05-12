@@ -33,11 +33,11 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
-reload(ATTR)
+#reload(ATTR)
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
-reload(BLOCKSHAPES)
+#reload(BLOCKSHAPES)
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.math_utils as MATH
@@ -458,7 +458,7 @@ def rig_cleanUp(self):
          
         #MasterControl =======================================================================
         log.debug("|{0}| >> MasterConrol | dynParent setup...".format(_str_func))
-        reload(MODULECONTROL)
+        #reload(MODULECONTROL)
     
         
         if not _spacePivots:

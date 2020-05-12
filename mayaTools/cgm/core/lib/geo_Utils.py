@@ -31,14 +31,14 @@ import random
 
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
-reload(VALID)
+#reload(VALID)
 from cgm.core.lib import selection_Utils as selUtils
 from cgm.core.cgmPy import OM_Utils as cgmOM
 from cgm.lib import guiFactory
 from cgm.lib import cgmMath
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import rayCaster as cgmRAYS
-reload(cgmRAYS)
+#reload(cgmRAYS)
 from cgm.core.lib import search_utils as SEARCH
 import re
 import cgm.core.lib.distance_utils as DIST
@@ -53,7 +53,7 @@ from cgm.lib import attributes
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 def compare_area(sourceObj, targetList, shouldMatch = True):
     """

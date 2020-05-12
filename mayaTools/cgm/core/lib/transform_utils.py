@@ -34,14 +34,14 @@ import cgm.core.lib.distance_utils as DIST
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import position_utils as POS
-reload(POS)
+#reload(POS)
 from cgm.core.lib import name_utils as NAME
 from cgm.core.lib import snap_utils as SNAP
 
 from cgm.core.lib import euclid as EUCLID
 from cgm.core.lib import attribute_utils as ATTR
-reload(MATH)
-reload(DIST)
+#reload(MATH)
+#reload(DIST)
 
 #Link up some of our ther functions for ease of call
 position_get = POS.get

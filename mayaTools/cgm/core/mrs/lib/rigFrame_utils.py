@@ -136,7 +136,7 @@ def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None,
                  'connectBy':'constraint',
                  'influences':ml_ribbonHandles,
                  'moduleInstance' : mModule}
-        reload(IK)
+        #reload(IK)
         l_midSurfReturn = IK.ribbon(**d_mid)
         
         

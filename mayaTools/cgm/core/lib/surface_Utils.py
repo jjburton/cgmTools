@@ -41,8 +41,8 @@ import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.curve_Utils as CURVES
 
 import cgm.core.lib.shared_data as SHARED
-reload(SHARED)
-reload(MATH)
+#reload(SHARED)
+#reload(MATH)
 
 from cgm.lib import (distance,
                      locators,

@@ -38,7 +38,7 @@ from cgm.lib.classes import NameFactory
 
 from cgm.lib.ml import (ml_resetChannels)
 
-reload(ml_resetChannels)
+#reload(ml_resetChannels)
 
 setTypes = dictionary.setTypes
 

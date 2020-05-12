@@ -306,7 +306,7 @@ def placerLocsToCubey():
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 from cgm.lib import (guiFactory,nodes)
 from cgm.lib.classes import AttrFactory
-reload(nodes)
+#reload(nodes)
 
 
 def singleObjectVisToggle(obj,chooseAttr = 'switcher', controlObject = None, connectTo = 'visibility'):

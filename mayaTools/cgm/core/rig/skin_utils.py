@@ -27,7 +27,7 @@ from maya import mel
 # From cgm ==============================================================
 import cgm.core.cgm_Meta as cgmMeta
 import cgm.core.lib.skin_utils as CORESKIN
-reload(CORESKIN)
+#reload(CORESKIN)
 
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.math_utils as MATH
@@ -40,7 +40,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
-reload(DIST)
+#reload(DIST)
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import euclid as EUCLID
 from cgm.core.lib import attribute_utils as ATTR

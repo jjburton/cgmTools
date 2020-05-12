@@ -35,7 +35,7 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
-reload(RIGCONSTRAINT)
+#reload(RIGCONSTRAINT)
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
@@ -51,12 +51,12 @@ from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.list_utils as LISTS
 from cgm.core.classes import GuiFactory as cgmUI
-reload(cgmUI)
+#reload(cgmUI)
 import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
-reload(BLOCKSHARE)
+#reload(BLOCKSHARE)
 import cgm.core.mrs.lib.general_utils as BLOCKGEN
 
 #=============================================================================================================

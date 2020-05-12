@@ -31,7 +31,7 @@ import pprint
 import webbrowser
 
 from cgm.core import cgm_General as cgmGEN
-reload(cgmGEN)
+#reload(cgmGEN)
 mayaVersion = cgmGEN.__mayaVersion__
 
 # Maya version check

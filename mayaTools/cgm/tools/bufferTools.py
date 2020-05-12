@@ -30,8 +30,8 @@ from cgm.lib import (search,guiFactory)
 
 from cgm.lib import guiFactory
 
-reload(bufferToolsLib)
-reload(guiFactory)
+#reload(bufferToolsLib)
+#reload(guiFactory)
 
 
 def run():

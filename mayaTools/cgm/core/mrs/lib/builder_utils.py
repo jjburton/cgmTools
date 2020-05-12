@@ -37,7 +37,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.lib.geo_Utils as GEO
-reload(GEO)
+#reload(GEO)
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
@@ -60,14 +60,14 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.lib.string_utils as STRING
-reload(STRING)
+#reload(STRING)
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.classes.NodeFactory as NodeF
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 from cgm.core.classes import GuiFactory as cgmUI
-for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN,SNAPCALLS:
-    reload(m)
+#for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN,SNAPCALLS:
+#    reload(m)
 
 from cgm.core.cgmPy import os_Utils as cgmOS
 
@@ -532,7 +532,7 @@ def get_midIK_basePosOrient(self,ml_handles = [], markPos = False, forceMidToHan
         pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,dist_use*2)
         pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use*2)
         
-        reload(LOC)
+        #reload(LOC)
         if markPos:
             LOC.create(position=pos_use,name='pos1')
             LOC.create(position=pos_use2,name='pos2')
@@ -855,7 +855,7 @@ def create_loftMesh(targets = None, name = 'test', degree = 2, uSplit = 0,vSplit
     :returns
         created(list)
     """
-    reload(RAYS)
+    #reload(RAYS)
     _str_func = 'create_loftMesh'
     ml_delete= []
     if targets == None:
@@ -1652,7 +1652,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                                 _v = l_failSafes[i]
                         l_uValues.append( _v )
                     
-                    reload(SURF)
+                    #reload(SURF)
                     l_curves = SURF.get_splitValues(str_meshShape,
                                                     l_uValues,
                                                     mode='u',

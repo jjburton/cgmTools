@@ -27,18 +27,18 @@ d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
 d_defaultAttrSettings = {'blockState':'define'}
 
 
-_l_requiredSkeletonDat = ['__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__']
+_l_requiredSkeletonDat = ('__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__')
 _l_requiredRigDat = []
 
-_l_blockStates = ['define','form','prerig','skeleton','rig']
-_l_requiredModuleDat = ['__version__',
+_l_blockStates = ('define','form','prerig','skeleton','rig')
+_l_requiredModuleDat = ('__version__',
                         'form','is_form','formDelete',
                         'prerig','is_prerig','prerigDelete',
-                        'rig','is_rig','rigDelete']
+                        'rig','is_rig','rigDelete')
 
-_l_controlOrder = ['root','settings','fk','ik','pivots','segmentHandles','direct','face','spacePivots']
+_l_controlOrder = ('root','settings','fk','ik','pivots','segmentHandles','direct','face','spacePivots')
 
-_l_buildProfiles = 'unityLow','unityMed','unityHigh','unityToon','feature'
+_l_buildProfiles = ('unityLow','unityMed','unityHigh','unityToon','feature')
 
 d_build_profiles = {
     'unityLow':{'numRoll':0,
@@ -154,8 +154,8 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'visLabels':'bool',
                    'visMeasure':'bool',}
 
-_l_defineHandlesOrder = ['end','start','up','rp','aim','lever']
-_l_pivotOrder = ['center','back','front','left','right']
+_l_defineHandlesOrder = ('end','start','up','rp','aim','lever')
+_l_pivotOrder = ('center','back','front','left','right')
 _d_pivotBankNames = {'default':{'left':'outer','right':'inner'},
                       'right':{'left':'inner','right':'outer'}}
 
@@ -166,16 +166,16 @@ _d_mirrorAttrCheck = {'loftShape':{'widePos':'wideNeg',
                       'testing':{}}
 
 #>> State Attr Masks =================================================================================
-_l_attrMask_all = ['visibility']
-_l_attrMask_form = ['baseSize','blockScale']
-_l_attrMask_prerig = []
-_l_attrMask_rig = []
+_l_attrMask_all = ('visibility')
+_l_attrMask_form = ('baseSize','blockScale')
+_l_attrMask_prerig = ()
+_l_attrMask_rig = ()
 
 #>> Modules data =================================================================================
-__l_faceModules__ = ['eyebrow','eyelids','eyeball','mouthnose']
-__l_moduleJointSingleHooks__ = ['scaleJoint']
-__l_moduleJointMsgListHooks__ = ['helperJoints','defHelp_joints']
-__l_moduleControlMsgListHooks__ = ['spacePivots']
+__l_faceModules__ = ('eyebrow','eyelids','eyeball','mouthnose')
+__l_moduleJointSingleHooks__ = ('scaleJoint')
+__l_moduleJointMsgListHooks__ = ('helperJoints','defHelp_joints')
+__l_moduleControlMsgListHooks__ = ('spacePivots')
 
 
 #>>General ======================================================================================

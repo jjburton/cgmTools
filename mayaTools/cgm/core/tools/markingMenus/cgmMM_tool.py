@@ -1797,7 +1797,7 @@ def killUI():
     
         
 from cgm.core.classes import DraggerContextFactory as cgmDrag
-reload(cgmDrag)
+#reload(cgmDrag)
 
 def aimSnap_start(targets=[]):
     raySnap_start(targets, None, False, snap=False, aim=True)

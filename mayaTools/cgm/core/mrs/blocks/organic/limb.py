@@ -23,7 +23,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 def echoLogger():
     log.info('info')
@@ -82,8 +82,8 @@ import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
-for m in RIGSHAPES,CURVES,BUILDUTILS,BLOCKSHAPES,CORERIG,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
-    reload(m)
+#for m in RIGSHAPES,CURVES,BUILDUTILS,BLOCKSHAPES,CORERIG,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
+#    reload(m)
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 #reload(CURVES)
 #reload(BUILDUTILS)
@@ -2477,7 +2477,7 @@ def skeleton_build(self, forceNew = True):
                 mJnt.radius = _radius / 2
         self.atBlockUtils('skeleton_connectToParent')
         
-        reload(JOINT)
+        #reload(JOINT)
         #PivotHelper -------------------------------------------------------------------------------------
         if ml_formHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot helper found".format(_str_func))
@@ -3071,7 +3071,7 @@ def rig_skeleton(self):
         self.d_joints['ml_moduleJoints'] = ml_joints
         str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')        
         
-        reload(BLOCKUTILS)
+        #reload(BLOCKUTILS)
         BLOCKUTILS.skeleton_pushSettings(ml_joints,self.d_orientation['str'],
                                          self.d_module['mirrorDirection'],
                                          d_rotateOrders)#d_preferredAngles)
@@ -3139,7 +3139,7 @@ def rig_skeleton(self):
                 
                 SNAP.aim(mLever.mNode, ml_fkJoints[0].mNode, 'z+','y+','vector',
                          self.mVec_up)
-                reload(JOINT)
+                #reload(JOINT)
                 JOINT.freezeOrientation(mLever.mNode)
                 mRigNull.connectChildNode(mLever,'leverFK','rigNull')
             
@@ -5637,7 +5637,7 @@ def rig_segments(self):
                              'moduleInstance' : mModule}
                     
                     
-                    reload(IK)
+                    #reload(IK)
                     l_midSurfReturn = IK.ribbon(**d_mid)            
                     ml_influences.append(mControlMid)
                     
@@ -5646,7 +5646,7 @@ def rig_segments(self):
                     
                 #Ribbon... --------------------------------------------------------------------------------------------
                 log.debug("|{0}| >> Ribbon {1} setup...".format(_str_func,i))
-                reload(IK)
+                #reload(IK)
                 #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
                 
                 
@@ -5797,7 +5797,7 @@ def rig_segments(self):
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
-    reload(IK)
+    #reload(IK)
     #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
     mSurf = IK.ribbon([mObj.mNode for mObj in ml_segJoints],
                       baseName = mBlock.cgmName,
@@ -6168,7 +6168,7 @@ def rig_frame(self):
                         
                 
                 #Build the IK ---------------------------------------------------------------------
-                reload(IK)
+                #reload(IK)
                 if mIKControlEnd and str_ikEnd in ['tipCombo']:
                     mMainIKControl = mIKControlEnd
                 else:
@@ -6585,7 +6585,7 @@ def rig_frame(self):
                 
                 ml_ribbonIkHandles[-1].parent = mIKControl
                 
-                reload(IK)
+                #reload(IK)
                 mSurf = IK.ribbon([mObj.mNode for mObj in ml_ikJoints],
                                   baseName = self.d_module['partName'] + '_ikRibbon',
                                   driverSetup='stable',

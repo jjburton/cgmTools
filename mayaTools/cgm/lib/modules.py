@@ -41,9 +41,9 @@ from cgm.lib import guiFactory
 import copy
 import random
 
-reload(dictionary)
-reload(lists)
-reload(attributes)
+#reload(dictionary)
+#reload(lists)
+#reload(attributes)
 
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())
 settingsDictionary = dictionary.initializeDictionary( settings.getSettingsDictionaryFile())

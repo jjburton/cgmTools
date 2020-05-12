@@ -3,7 +3,7 @@ import cgm.core.cgm_RigMeta as RIGMETA
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
+#reload(rUtils)
 from cgm.core.classes import NodeFactory as NodeF
 import cgm.core.lib.distance_utils as DIST
 

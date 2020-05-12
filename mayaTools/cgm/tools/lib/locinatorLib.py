@@ -31,9 +31,9 @@ import maya.mel as mel
 import subprocess
 
 from cgm.lib.classes import ObjectFactory
-reload(ObjectFactory)
+#reload(ObjectFactory)
 from cgm.lib.classes import OptionVarFactory
-reload(OptionVarFactory)
+#reload(OptionVarFactory)
 
 
 from cgm.lib.classes.ObjectFactory import *
@@ -49,14 +49,14 @@ from cgm.lib import (rigging,
                      modules,
                      position)
 
-reload(attributes)
-reload(lists)
-reload(batch)
-reload(rigging)
-reload(search)
-reload(guiFactory)
-reload(modules)
-reload(locators)
+#reload(attributes)
+#reload(lists)
+#reload(batch)
+#reload(rigging)
+#reload(search)
+#reload(guiFactory)
+#reload(modules)
+#reload(locators)
 
 matchModeKeyingDict = {0:['translateX','translateY','translateZ','rotateX','rotateY','rotateZ'],
                        1:['translateX','translateY','translateZ'],

@@ -11,7 +11,7 @@ log.setLevel(logging.INFO)
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.tools.markingMenus import cgmMMTemplate as mmTemplate
-reload(mmTemplate)
+#reload(mmTemplate)
 from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.lib import search
 

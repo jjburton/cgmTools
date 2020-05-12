@@ -27,7 +27,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.list_utils as LISTS
-reload(SHARED)
+#reload(SHARED)
 
 #CANNOT IMPORT: DIST, LOC
 

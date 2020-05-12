@@ -41,7 +41,7 @@ from cgm.lib import (guiFactory,
 from cgm.tools.lib import (tdToolsLib,
                            locinatorLib)
 
-reload(tdToolsLib)
+#reload(tdToolsLib)
 
 
 def run():

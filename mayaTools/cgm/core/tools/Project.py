@@ -53,18 +53,18 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 import cgm.core.classes.GuiFactory as cgmUI
-reload(cgmUI)
+#reload(cgmUI)
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
-reload(COREPATHS)
+#reload(COREPATHS)
 import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.tools.lib.project_utils as PU
 import cgm.core.lib.mayaSettings_utils as MAYASET
 import cgm.core.mrs.lib.scene_utils as SCENEUTILS
-reload(SCENEUTILS)
-reload(MAYASET)
-reload(PU)
+#reload(SCENEUTILS)
+#reload(MAYASET)
+#reload(PU)
 import cgm.images as cgmImages
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
 

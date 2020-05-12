@@ -42,7 +42,7 @@ from cgm.core.tools import meshTools
 from cgm.core.lib import node_utils as NODES
 import cgm.core.lib.sdk_utils as SDK
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
-reload(TOOLCALLS)
+#reload(TOOLCALLS)
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.projects.CGM as CGMPROJECTS
 from cgm.core.tools import attrTools as ATTRTOOLS
@@ -974,7 +974,7 @@ def uiSection_createFromSel(parent, selection = None):
     
     for m in ['boundingBox','axisBox','castFar','castNear','castCenter','castAllNear','castAllFar']:
 
-            l_use = copy.copy(SHARED._l_axis_by_string)
+            l_use = [v for v in SHARED._l_axis_by_string]
             if m in ['boundingBox']:
                 l_use.insert(0,'center')
             elif m in ['castCenter']:
@@ -1206,7 +1206,7 @@ def uiSection_snap(parent, selection = None ):
     for m in ['boundingBox','axisBox','castFar','castNear','castCenter']:
         mc.menuItem(parent=_pointSpecial,subMenu = True,
                     l = m)
-        l_use = copy.copy(SHARED._l_axis_by_string)
+        l_use = [v for v in SHARED._l_axis_by_string]
         if m in ['boundingBox']:
             l_use.insert(0,'center')
         elif m in ['castCenter']:

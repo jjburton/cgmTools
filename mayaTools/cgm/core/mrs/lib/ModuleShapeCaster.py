@@ -33,7 +33,7 @@ from cgm.core.lib import meta_Utils as metaUtils
 from cgm.core.lib import shapeCaster as ShapeCast
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.snap_utils as SNAP
-reload(Snap)
+#reload(Snap)
 import cgm.core.lib.transform_utils as TRANS
 
 """from cgm.lib import (cgmMath,
@@ -1217,7 +1217,7 @@ class go(object):
         SNAP.go(mi_crvBase, tmplRoot.mNode) #Snap it
         
         dist = distance.returnDistanceBetweenPoints(mi_crvBase.getPosition(),self._ml_controlObjects[-1].getPosition()) * .5
-        reload(TRANS)
+        #reload(TRANS)
         TRANS.position_set(mi_crvBase.mNode, [0,dist,0],relative= True)
         
         i_grp = cgmMeta.cgmObject( mi_crvBase.doGroup() )

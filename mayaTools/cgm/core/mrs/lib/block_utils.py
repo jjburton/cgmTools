@@ -403,7 +403,7 @@ def verify(self, blockType = None, size = None, side = None, forceReset = False)
             blockType = _type
             
         _mBlockModule = self.query_blockModuleByType(blockType)
-        reload(_mBlockModule)
+        #reload(_mBlockModule)
         
         self.doStore('blockType',blockType)
         verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule,forceReset=forceReset)
@@ -3940,7 +3940,7 @@ def mirror_self(self,primeAxis = 'left'):
 
     if 'mirror_self' in mBlockModule.__dict__.keys():
         log.debug("|{0}| >> BlockModule mirror_self call found...".format(_str_func))
-        reload(mBlockModule)
+        #reload(mBlockModule)
         mBlockModule.mirror_self(self,primeAxis)
         return True
     return log.error("No mirror self call found: {0}".format(self))
@@ -6174,7 +6174,7 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
         log.debug("|{0}| >> state: {1}".format(_str_func,_intState))
         
         mBlockModule = self.p_blockModule
-        reload(mBlockModule)
+        #reload(mBlockModule)
         
         def updateDictLists(d1,d2):
             for k,l in d1.iteritems():
@@ -7121,7 +7121,7 @@ def prerig(self):
 
     if 'prerig' in mBlockModule.__dict__.keys():
         log.debug("|{0}| >> BlockModule prerig call found...".format(_str_func))
-        reload(mBlockModule)
+        #reload(mBlockModule)
         mBlockModule.prerig(self)
         #self.atBlockModule('prerig')
 
@@ -8143,7 +8143,7 @@ def nameList_resetToProfile(self,arg = None):
         
         mBlockModule = self.p_blockModule
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-        reload(mBlockModule)
+        #reload(mBlockModule)
         l_nameList_current = self.datList_get('nameList')
         log.debug("|{0}| >>  current: {1}".format(_str_func,l_nameList_current))
         l_nameList = []
@@ -8188,7 +8188,7 @@ def blockProfile_getOptions(self):
         
         mBlockModule = self.p_blockModule
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-        reload(mBlockModule)
+        #reload(mBlockModule)
         
         try:return mBlockModule.d_block_profiles.keys()
         except Exception,err:
@@ -8258,7 +8258,7 @@ def buildProfile_load(self, arg):
     _short = self.mNode
     mBlockModule = self.p_blockModule
     log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-    reload(mBlockModule)
+    #reload(mBlockModule)
     
     _d = BLOCKSHARE.d_build_profiles.get(arg,{})
     
@@ -8453,7 +8453,7 @@ def get_loftCurves(self):
         mCrv.doDuplicate(po=True)
         mCrv.p_parent = False
         ml_newLoft.append(mCrv)"""
-    reload(BUILDUTILS)
+    #reload(BUILDUTILS)
     _mesh = BUILDUTILS.create_loftMesh([mCrv.mNode for mCrv in ml_loftCurves],
                                        name= 'test',
                                        divisions=1,
@@ -10859,7 +10859,7 @@ def blockScale_bake(self,sizeMethod = 'axisSize',force=False,):
                         elif sizeMethod in ['bb','bbSize']:
                             if _d.get('bbSize'):
                                 try:
-                                    reload(TRANS)
+                                    #reload(TRANS)
                                     TRANS.scale_to_boundingBox(_d['str'],_d['bbSize'],freeze=False)
                                 except Exception,err:
                                     log.warning(cgmGEN.logString_msg(_str_func, "{0} | failed to axisSize {1}".format(_d['str'],err)))

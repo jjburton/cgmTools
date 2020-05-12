@@ -40,7 +40,7 @@ import cgm.core.mrs.assets as MRSASSETS
 path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-reload(MODULECONTROL)
+#reload(MODULECONTROL)
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.rigging_utils as CORERIG
 from cgm.core.lib import snap_utils as SNAP
@@ -66,8 +66,8 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.rig.ik_utils as IK
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.mrs.lib.post_utils as MRSPOST
-for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,RIGSHAPES,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
-    reload(m)
+#for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,RIGSHAPES,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
+#    #reload(m)
     
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -2594,7 +2594,7 @@ def rig_segments(self):
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
-    reload(IK)
+    #reload(IK)
     #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
     mSurf = IK.ribbon([mObj.mNode for mObj in ml_segJoints],
                       baseName = mBlock.cgmName,
@@ -2948,7 +2948,7 @@ def rig_frame(self):
                                  'connectBy':'constraint',
                                  'influences':ml_handleJoints,
                                  'moduleInstance' : mModule}
-                        reload(IK)
+                        #reload(IK)
                         l_midSurfReturn = IK.ribbon(**d_mid)
                     
                 if ml_handleJoints:                    
@@ -3350,7 +3350,7 @@ def rig_frame(self):
                                      'connectBy':'constraint',
                                      'influences':ml_ribbonIkHandles,
                                      'moduleInstance' : mModule}
-                            reload(IK)
+                            #reload(IK)
                             l_midSurfReturn = IK.ribbon(**d_mid)
             
             
@@ -3425,7 +3425,7 @@ def rig_frame(self):
                             mSkinCluster.doName()    
             
                             #Tighten the weights...
-                            reload(CORESKIN)
+                            #reload(CORESKIN)
                             CORESKIN.surface_tightenEnds(mSurf.mNode, ml_ribbonIkHandles[0].mNode,
                                                          ml_ribbonIkHandles[-1].mNode, blendLength=5)"""
             

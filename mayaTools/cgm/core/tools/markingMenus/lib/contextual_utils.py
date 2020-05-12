@@ -385,7 +385,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
                 _res = func(objects[1:],objects[0],**kws)               
             if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
         elif processMode in ['eachToNextReverse']:
-            reload(LISTS)
+            #reload(LISTS)
             l_sets = LISTS.get_listPairs(objects)
             l_sets.reverse()
             for i,pair in enumerate(l_sets):

@@ -41,7 +41,7 @@ import cgm.core.mrs.assets as MRSASSETS
 path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-reload(MODULECONTROL)
+#reload(MODULECONTROL)
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.rigging_utils as CORERIG
 from cgm.core.lib import snap_utils as SNAP
@@ -69,8 +69,8 @@ import cgm.core.lib.string_utils as STR
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.rig.create_utils as RIGCREATE
 
-for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
-    reload(m)
+#for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
+#    reload(m)
     
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -1618,7 +1618,7 @@ def prerig(self):
                             _dUse['cgmName'] = tag
                             _dUse['cgmDirection'] = _side
                             _dUse['cgmPosition'] = side
-                            reload(BLOCKSHAPES)
+                            #reload(BLOCKSHAPES)
                             mAnchor = BLOCKSHAPES.create_face_anchor(self,p,
                                                                      mLidSurf,
                                                                      tag,

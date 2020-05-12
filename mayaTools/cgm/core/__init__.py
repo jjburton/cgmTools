@@ -67,6 +67,7 @@ _l_core_order = ['cgm_General',
                  'rigger.ModuleShapeCaster',
                  'rigger.ModuleControlFactory',
                  'classes.DraggerContextFactory',
+                 'lib.zoo.baseMelUI',
                  'classes.SnapFactory',
                  'lib.rayCaster',
                  'lib.meta_Utils',
@@ -74,7 +75,7 @@ _l_core_order = ['cgm_General',
 
 _l_ignoreTags = ['cgm.core.examples',
                  'cgm.lib.gigs',
-                 'cgm.lib.zoo',
+                 #'cgm.lib.zoo',
                  'cgm.projects',
                  'cgm.core.rigger',
                  'cgmMeta_test']
@@ -83,9 +84,11 @@ import cgm
 import copy
 import maya.cmds as mc
 from cgm.core.cgmPy import os_Utils as cgmOS
-reload(cgmOS)
+#reload(cgmOS)
+
 @cgmGen.Timer
 def _reload(stepConfirm=False):
+    
     _str_func = '_reload'
     
     _d_modules, _l_ordered, _l_pycd = cgmOS.get_module_data(cgm.__path__[0],cleanPyc=True)
@@ -93,6 +96,7 @@ def _reload(stepConfirm=False):
     _l_cull = copy.copy(_l_ordered)
     
     Red9.core._reload()
+    reload(cgmOS)
     
     def loadLocal(str_module, module):
         _key = module.__dict__.get('__MAYALOCAL')

@@ -15,9 +15,9 @@ from cgm.lib import locators
 
 import cgmToolbox
 
-reload(locinatorLib)
-reload(tdToolsLib)
-reload(animToolsLib)
+#reload(locinatorLib)
+#reload(tdToolsLib)
+#reload(animToolsLib)
 def run():
 	try:
 		cgmSetKeyMM = setKeyMarkingMenu()

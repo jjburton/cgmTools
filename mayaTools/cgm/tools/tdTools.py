@@ -20,7 +20,7 @@ __version__ = '0.2.11022012'
 from cgm.lib.zoo.zooPyMaya.baseMelUI import *
 
 from cgm.lib.classes import OptionVarFactory 
-reload(OptionVarFactory)
+#reload(OptionVarFactory)
 
 from cgm.lib.classes.OptionVarFactory import *
 
@@ -37,7 +37,7 @@ from cgm.tools.lib import  (tdToolsLib,
                             locinatorLib,
                             namingToolsLib)
 
-reload(tdToolsLib)
+#reload(tdToolsLib)
 reload(namingToolsLib)
 
 def run():

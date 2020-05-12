@@ -30,7 +30,7 @@ import cgm.core.rig.skin_utils as RIGSKIN
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.distance_utils as DIST
-reload(NODEFACTORY)
+#reload(NODEFACTORY)
 from cgm.lib import (curves,
                      deformers,
                      distance,
@@ -41,7 +41,7 @@ from cgm.lib import (curves,
                      rigging,
                      attributes,
                      joints)
-reload(constraints)
+#reload(constraints)
 
 
 def rigJoint_verify(joints = [], name=True, connect=True):

@@ -63,7 +63,7 @@ import cgm.core.lib.shapeCaster as SHAPECASTER
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.string_utils as STR
 
-reload(SHAPECASTER)
+#reload(SHAPECASTER)
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 

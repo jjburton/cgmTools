@@ -46,7 +46,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.lib.constraint_utils as CONSTRAINT
 
 mUI = cgmUI.mUI
-reload(cgmGEN)
+#reload(cgmGEN)
 """
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 import cgm.core.cgmPy.os_Utils as cgmOS

@@ -31,8 +31,8 @@ from cgm.lib import (search,guiFactory)
 
 from cgm.lib import guiFactory
 
-reload(setToolsLib)
-reload(guiFactory)
+#reload(setToolsLib)
+#reload(guiFactory)
 
 #>>>Debug chunk===================================================
 import logging

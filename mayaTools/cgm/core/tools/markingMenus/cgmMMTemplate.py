@@ -10,7 +10,7 @@ from cgm.core import cgm_General as cgmGeneral
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core import cgm_PuppetMeta as cgmPM
 from cgm.core.lib import name_utils as NAMES
-reload(cgmUI)
+#reload(cgmUI)
 
 
 import time

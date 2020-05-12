@@ -35,8 +35,8 @@ from cgm.lib import (search,
                      attributes,
                      dictionary,
                      guiFactory)
-reload(attributes)
-reload(guiFactory)
+#reload(attributes)
+#reload(guiFactory)
 attrTypesDict = {'message':['message','msg','m'],
                  'double':['float','fl','f','doubleLinear','doubleAngle','double','d'],
                  'string':['string','s','str'],

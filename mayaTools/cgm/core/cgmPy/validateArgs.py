@@ -25,7 +25,7 @@ import copy
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import shared_data as SHARED
-reload(SHARED)
+#reload(SHARED)
 from cgm.core.lib import name_utils as NAME
 from cgm.core.lib import euclid as EUCLID
 

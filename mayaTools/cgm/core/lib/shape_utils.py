@@ -33,8 +33,8 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import attribute_utils as ATTR
-reload(SEARCH)
-reload(SHARED)
+#reload(SEARCH)
+#reload(SHARED)
 
 
 

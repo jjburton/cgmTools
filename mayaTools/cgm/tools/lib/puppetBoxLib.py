@@ -22,8 +22,8 @@ from cgm.lib.classes import NameFactory as NameFactoryOld
 from cgm.rigger import PuppetFactory
 from cgm.lib.classes import AttrFactory
 from cgm.rigger.lib import functions
-reload(AttrFactory)
-reload(NameFactoryOld)
+#reload(AttrFactory)
+#reload(NameFactoryOld)
 reload(PuppetFactory)
 
 from cgm.rigger.PuppetFactory import *
@@ -31,8 +31,8 @@ from cgm.rigger.lib.Limb.module import *
 
 
 from cgm.lib import (search,guiFactory,lists,modules)
-reload(search)
-reload(guiFactory)
+#reload(search)
+#reload(guiFactory)
 
 """
 

@@ -1385,7 +1385,7 @@ example:
 
 	def BatchExport(self, *args):
 		if self.useMayaPy:
-			reload(BATCH)
+			#reload(BATCH)
 			log.info('Maya Py!')
 
 			bakeSetName = None
@@ -1525,7 +1525,7 @@ example:
 		d_userPaths = self.project.userPaths_get()
 
 		if self.useMayaPy:
-			reload(BATCH)
+			#reload(BATCH)
 			log.info('Maya Py!')
 
 			bakeSetName = None
@@ -1769,7 +1769,7 @@ def ExportScene(mode = -1,
 
 	#exec(self.exportCommand)
 	import cgm.core.tools.bakeAndPrep as bakeAndPrep
-	reload(bakeAndPrep)
+	#reload(bakeAndPrep)
 	import cgm.core.mrs.Shots as SHOTS
 	_str_func = 'ExportScene'
 

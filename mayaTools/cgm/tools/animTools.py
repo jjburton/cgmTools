@@ -30,9 +30,9 @@ from cgm.tools.lib import (animToolsLib,
                            locinatorLib)
 from cgm.lib import guiFactory
 
-reload(animToolsLib)
-reload(guiFactory)
-reload(locinatorLib)
+#reload(animToolsLib)
+#reload(guiFactory)
+#reload(locinatorLib)
 
 from cgm.lib import (search,guiFactory)
 

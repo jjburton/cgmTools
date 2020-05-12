@@ -15,7 +15,7 @@ from cgm.tools import setTools
 
 import cgmToolbox
 
-reload(setToolsLib)
+#reload(setToolsLib)
 
 
 def run():

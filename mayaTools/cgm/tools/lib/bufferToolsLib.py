@@ -34,8 +34,8 @@ from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
 
 from cgm.lib import (search,guiFactory)
-reload(search)
-reload(guiFactory)
+#reload(search)
+#reload(guiFactory)
 
 """
 

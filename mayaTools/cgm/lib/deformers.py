@@ -39,7 +39,7 @@ from cgm.lib import(distance,
                     lists,
                     nodes,
                     rigging)
-reload(names)
+#reload(names)
 from cgm.lib.classes import NameFactory
 
 typesDictionary = dictionary.initializeDictionary(settings.getTypesDictionaryFile())

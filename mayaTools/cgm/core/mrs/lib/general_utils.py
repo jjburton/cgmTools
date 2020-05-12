@@ -701,7 +701,7 @@ def get_puppet_heirarchy_context(mModule, context = 'below', asList = False, rep
         
     if asList:
         log.debug("|{0}| >> asList...".format(_str_func))
-        reload(cgmGEN)
+        #reload(cgmGEN)
         return cgmGEN.walk_heirarchy_dict_to_list(_res)
     return _res
 

@@ -23,9 +23,9 @@
 import maya.cmds as mc
 import maya.mel as mel
 from cgm.lib.classes import ObjectFactory
-reload(ObjectFactory)
+#reload(ObjectFactory)
 from cgm.lib.classes import AttrFactory
-reload(AttrFactory)
+#reload(AttrFactory)
 
 from cgm.lib.classes.ObjectFactory import *
 from cgm.lib.classes.AttrFactory import *
@@ -37,7 +37,7 @@ from cgm.lib import (lists,
                      rigging,
                      settings,
                      guiFactory)
-reload(dictionary)
+#reload(dictionary)
 
 class ControlFactory(ObjectFactory):
     """ 

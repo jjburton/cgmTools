@@ -24,7 +24,7 @@ from cgm.lib.classes.OptionVarFactory import *
 from cgm.rigger.PuppetFactory import *
 from cgm.rigger import ModuleFactory
 from cgm.rigger.lib import functions
-reload(functions)
+#reload(functions)
 
 import maya.mel as mel
 import maya.cmds as mc
@@ -36,10 +36,10 @@ from cgm.lib import (search,
                      dictionary)
 
 
-reload(puppetBoxLib)
-reload(dictionary)
-reload(guiFactory)
-reload(modules)
+#reload(puppetBoxLib)
+#reload(dictionary)
+#reload(guiFactory)
+#reload(modules)
 
 def run():
     cgmPuppetBoxWin = puppetBoxClass()

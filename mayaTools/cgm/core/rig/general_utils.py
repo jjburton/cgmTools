@@ -33,14 +33,14 @@ import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.rigging_utils as RIG
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.math_utils as MATH
-reload(DIST)
+#reload(DIST)
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.position_utils as POS
 from cgm.core.classes import NodeFactory as NODEFAC
-reload(ATTR)
+#reload(ATTR)
 @cgmGEN.Timer
 def reset_channels_fromMode(nodes=None, mode = 0,selectedChannels=None):
     """

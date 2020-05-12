@@ -49,8 +49,8 @@ import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.skin_utils as RIGSKIN
 import cgm.core.lib.position_utils as POS
 
-for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES,NODEFAC:
-    reload(m)
+#for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES,NODEFAC:
+#    reload(m)
 
 def spline(jointList = None,
            useCurve = None,
@@ -3384,7 +3384,7 @@ def get_midIK_basePos(ml_handles = [], baseAxis = 'y+', markPos = False, forceMi
     pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,dist_use*2)
     pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use*2)
     
-    reload(LOC)
+    #reload(LOC)
     if markPos:
         LOC.create(position=pos_use,name='pos1')
         LOC.create(position=pos_use2,name='pos2')

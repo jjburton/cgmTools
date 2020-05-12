@@ -41,7 +41,7 @@ import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.list_utils as LISTS
 import cgm.lib.skinning as OLDSKINNING
-reload(IK)
+#reload(IK)
 """from cgm.lib import (distance,
                      attributes,
                      curves,

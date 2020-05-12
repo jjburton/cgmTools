@@ -26,7 +26,7 @@ from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import name_utils as NAMES
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.shape_utils as SHAPE
-reload(DIST)
+#reload(DIST)
 from cgm.core import cgm_General as cgmGEN
 from cgm.lib import locators
 from cgm.lib import dictionary

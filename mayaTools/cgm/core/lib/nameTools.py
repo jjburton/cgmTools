@@ -33,9 +33,9 @@ import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
-reload(strUtils)
-reload(CORESHARE)
-reload(SEARCH)
+#reload(strUtils)
+#reload(CORESHARE)
+#reload(SEARCH)
 # From cgm ==============================================================
 from cgm.lib import (lists,
                      search,
@@ -85,7 +85,7 @@ def returnCGMOrder():
     #dict = dictionary.initializeDictionary(settingsDictionaryFile)
     #orderBuffer = dict.get('nameOrder')
     #return (orderBuffer.split(','))
-    return CORESHARE.l_cgmNameOrder
+    return [v for v in CORESHARE.l_cgmNameOrder]#...tuple to list to keep our core dat from being modified
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -192,7 +192,7 @@ def returnCombinedNameFromDict(nameDict, stripInvalid = True, removeDups=True):
                 if buffer in nameBuilder:
                     continue
             nameBuilder.append(buffer)
-        log.debug("|{0}| >>  buffer: {1}".format(_str_func,nameBuilder))
+        log.debug("|{0}| >>  buffer: {1} | list: {2}".format(_str_func,buffer,nameBuilder))
         
     _str = divider.join(nameBuilder)
     if stripInvalid: _str = strUtils.stripInvalidChars(_str)

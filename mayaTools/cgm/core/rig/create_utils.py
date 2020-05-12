@@ -30,7 +30,7 @@ from cgm.core import cgm_General as cgmGEN
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.rigging_utils as RIG
 import cgm.core.lib.distance_utils as DIST
-reload(DIST)
+#reload(DIST)
 
 
 def distanceMeasure(start = None, end = None, baseName = 'measureThis',asMeta=True):
