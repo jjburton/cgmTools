@@ -136,7 +136,7 @@ d_build_profiles = {
                },
     'unityToon':{'default':{'squashMeasure':'arcLength',
                             'squash':'simple',
-                            'scaleSetup':'on',
+                            'scaleSetup':True,
                             }},    
     'unityHigh':{'default':{'numRoll':3},
                 'finger':{'numRoll':0},

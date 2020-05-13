@@ -128,7 +128,7 @@ d_build_profiles = {
                         'numControls':4}},
     'unityToon':{'default':{'squashMeasure':'arcLength',
                             'squash':'simple',
-                            'scaleSetup':'on',
+                            'scaleSetup':True,
                             }},
     'unityHigh':{'default':{'numJoints':4,
                             'numControls':4},
@@ -2148,16 +2148,15 @@ def rig_frame(self):
                     mLocBase = mIKBaseControl.doCreateAt()
                     mLocAim = mIKBaseControl.doCreateAt()
                 
-                
                     mLocAim.doStore('cgmType','aimDriver')
-                    mLocBase = mIKBaseControl.doCreateAt()
                     mLocBase.doStore('cgmType','baseDriver')
                 
                 
                     for mObj in mLocBase,mLocAim:
                         mObj.doStore('cgmName',mIKBaseControl.mNode)                        
                         mObj.doName()
-                
+                        
+                                    
                     mLocAim.p_parent = mIKBaseControl.dynParentGroup
                 
                     mAimTarget = mIKControl
