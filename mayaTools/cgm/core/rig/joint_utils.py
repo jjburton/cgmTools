@@ -33,7 +33,7 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
-reload(DIST)
+#reload(DIST)
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import euclid as EUCLID
 from cgm.core.lib import attribute_utils as ATTR

@@ -237,7 +237,8 @@ def create_MRS_batchFile(f=None, blocks = [None], process = False,
     
     'from maya.api import OpenMaya as om2',
     'om2.MGlobal.displayInfo("Begin")',
-    
+    'import maya.cmds as mc',
+    'mc.loadPlugin("matrixNodes")',      
     'import cgm.core.mrs.lib.batch_utils as MRSBATCH']
     
     l_post = ['except:',

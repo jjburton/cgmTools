@@ -19,7 +19,7 @@ import maya.cmds as mc
 import maya.mel as mel
 import subprocess
 from cgm.lib.classes import SetFactory 
-reload(SetFactory)
+#reload(SetFactory)
 
 from cgm.core.lib.zoo.baseMelUI import *
 from cgm.lib.classes.SetFactory import *
@@ -27,8 +27,8 @@ from cgm.lib.classes.OptionVarFactory import *
 from cgm.lib.classes.ObjectFactory import *
 
 from cgm.lib import (search,guiFactory,lists)
-reload(search)
-reload(guiFactory)
+#reload(search)
+#reload(guiFactory)
 
 """
 

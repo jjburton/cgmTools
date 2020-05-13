@@ -82,8 +82,8 @@ import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
-for m in RIGSHAPES,CURVES,BUILDUTILS,BLOCKSHAPES,CORERIG,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
-    reload(m)
+#for m in RIGSHAPES,CURVES,BUILDUTILS,BLOCKSHAPES,CORERIG,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
+#    reload(m)
 import cgm.core.cgm_RigMeta as cgmRIGMETA
 #reload(CURVES)
 #reload(BUILDUTILS)
@@ -136,7 +136,7 @@ d_build_profiles = {
                },
     'unityToon':{'default':{'squashMeasure':'arcLength',
                             'squash':'simple',
-                            'scaleSetup':'on',
+                            'scaleSetup':True,
                             }},    
     'unityHigh':{'default':{'numRoll':3},
                 'finger':{'numRoll':0},
@@ -1439,14 +1439,16 @@ def form(self):
                 pass
                 #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
             elif mHandle in [md_handles['start'],md_handles['end']]:
-                _lock = []
+                _lock = ['sz']
                 if mHandle == md_handles['start']:
                     _lock.append('rotate')
                     
                 #ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
                 #ATTR.set_standardFlags( mHandle.mNode, _lock)
                 #mHandle.doConnectOut('sy',['sx','sz'])
+                
                 ATTR.set_standardFlags( mHandle.mNode, _lock)
+                ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
                 
             else:
                 ATTR.set_standardFlags( mHandle.mNode, ['sz'])
@@ -1740,7 +1742,8 @@ def form(self):
         
         pprint.pprint(ml_handles_chain)
         SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], 
-                         aimAxis="z-", mode='vector', vectorUp=_mVectorUp)        
+                         aimAxis="z-", mode='vector', vectorUp=_mVectorUp)
+        
         self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
         
         #Aim end handle ----------------------------------------------------------------------------------- 
@@ -1840,7 +1843,7 @@ def prerig(self):
                     idx_end -=1 
                     
         if self.buildEnd:
-            if self.buildLeverEnd or self.buildBall or self.buildToe:
+            if self.buildLeverEnd or self.buildBall or self.buildToe or _ikEnd in ['bank']:
                 pass
             else:
                 log.warning(cgmGEN.logString_msg(_str_func,"Adding to name count for buildEnd"))
@@ -1945,7 +1948,7 @@ def prerig(self):
         if self.buildLeverEnd:
             _count += 1
             _addedEnd = True
-        elif self.buildEnd:
+        elif self.buildEnd and _ikEnd not in ['bank']:
             _count +=1 
         
         #if not self.buildBall:
@@ -2477,7 +2480,7 @@ def skeleton_build(self, forceNew = True):
                 mJnt.radius = _radius / 2
         self.atBlockUtils('skeleton_connectToParent')
         
-        reload(JOINT)
+        #reload(JOINT)
         #PivotHelper -------------------------------------------------------------------------------------
         if ml_formHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot helper found".format(_str_func))
@@ -3071,7 +3074,7 @@ def rig_skeleton(self):
         self.d_joints['ml_moduleJoints'] = ml_joints
         str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')        
         
-        reload(BLOCKUTILS)
+        #reload(BLOCKUTILS)
         BLOCKUTILS.skeleton_pushSettings(ml_joints,self.d_orientation['str'],
                                          self.d_module['mirrorDirection'],
                                          d_rotateOrders)#d_preferredAngles)
@@ -3139,7 +3142,7 @@ def rig_skeleton(self):
                 
                 SNAP.aim(mLever.mNode, ml_fkJoints[0].mNode, 'z+','y+','vector',
                          self.mVec_up)
-                reload(JOINT)
+                #reload(JOINT)
                 JOINT.freezeOrientation(mLever.mNode)
                 mRigNull.connectChildNode(mLever,'leverFK','rigNull')
             
@@ -4446,9 +4449,9 @@ def rig_shapes(self):
                     #bb_ik = mHandleFactory.get_axisBox_size(mIKFormHandle.mNode)
                     bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
                     
-                    bb_ik = [v * 1.25 for v in bb_ik]
+                    bb_ik = [v * 1.5 for v in bb_ik]
                 
-                    _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
+                    _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)
                     SNAP.go(_ik_shape,self.ml_handleTargets[self.int_handleEndIdx].mNode)
                 
                     CORERIG.shapeParent_in_place(mIKCrv.mNode, _ik_shape, False)
@@ -5637,7 +5640,7 @@ def rig_segments(self):
                              'moduleInstance' : mModule}
                     
                     
-                    reload(IK)
+                    #reload(IK)
                     l_midSurfReturn = IK.ribbon(**d_mid)            
                     ml_influences.append(mControlMid)
                     
@@ -5646,7 +5649,7 @@ def rig_segments(self):
                     
                 #Ribbon... --------------------------------------------------------------------------------------------
                 log.debug("|{0}| >> Ribbon {1} setup...".format(_str_func,i))
-                reload(IK)
+                #reload(IK)
                 #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
                 
                 
@@ -5797,7 +5800,7 @@ def rig_segments(self):
     
     #>> Ribbon setup ========================================================================================
     log.debug("|{0}| >> Ribbon setup...".format(_str_func))
-    reload(IK)
+    #reload(IK)
     #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
     mSurf = IK.ribbon([mObj.mNode for mObj in ml_segJoints],
                       baseName = mBlock.cgmName,
@@ -6168,7 +6171,7 @@ def rig_frame(self):
                         
                 
                 #Build the IK ---------------------------------------------------------------------
-                reload(IK)
+                #reload(IK)
                 if mIKControlEnd and str_ikEnd in ['tipCombo']:
                     mMainIKControl = mIKControlEnd
                 else:
@@ -6585,7 +6588,7 @@ def rig_frame(self):
                 
                 ml_ribbonIkHandles[-1].parent = mIKControl
                 
-                reload(IK)
+                #reload(IK)
                 mSurf = IK.ribbon([mObj.mNode for mObj in ml_ikJoints],
                                   baseName = self.d_module['partName'] + '_ikRibbon',
                                   driverSetup='stable',

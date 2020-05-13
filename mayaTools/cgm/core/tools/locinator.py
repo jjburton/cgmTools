@@ -38,7 +38,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 
 import cgm.core.classes.GuiFactory as cgmUI
-reload(cgmUI)
+#reload(cgmUI)
 cgmUI.initializeTemplates()
 mUI = cgmUI.mUI
 

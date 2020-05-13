@@ -37,13 +37,13 @@ from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.rigger.lib import module_Utils as modUtils
 from cgm.core.lib import meta_Utils as metaUtils
-reload(metaUtils)
+#reload(metaUtils)
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
+#reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
                      skinning,

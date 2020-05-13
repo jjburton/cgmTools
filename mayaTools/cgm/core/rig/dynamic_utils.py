@@ -188,7 +188,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                  extendStart = None,
                  extendEnd = None,
                  upControl = True,
-                 aimUpMode = 'sequential',
+                 aimUpMode = 'joint',
                  *args,**kws):
         """ 
         
@@ -202,7 +202,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         if not objs and node is None:
             if _sel:objs = _sel
         
-        super(cgmDynFK, self).__init__(node = node,name = name,nodeType = 'transform') 
+        super(cgmDynFK, self).__init__(node = node,name = baseName,nodeType = 'transform') 
         #>>> TO USE Cached instance ---------------------------------------------------------
         if self.cached:
             return
@@ -227,11 +227,13 @@ class cgmDynFK(cgmMeta.cgmObject):
         self.extendStart = extendStart
         self.aimUpMode = aimUpMode
         self.upControl = upControl
-        
+       
         if not node:
             self.rename("{0}_dynFK".format(self.baseName))
-                
-        if objs:self.chain_create(objs, fwd, up, name)        
+            self.doStore('cgmName', self.baseName)
+            
+        if objs:
+            self.chain_create(objs, fwd, up, name=name)        
         
         self.report()
         
@@ -292,14 +294,17 @@ class cgmDynFK(cgmMeta.cgmObject):
         if idx is None:
             return log.warning("Must have an idx to remove")
         
-        mDat = self.get_dat()
+        # mDat = self.get_dat()
         
-        _d = mDat['chains'].get(idx)
-        mGrp = _d.get('mGrp')
+        # _d = mDat['chains'].get(idx)
+        # mGrp = _d.get('mGrp')
+
+        chain = self.msgList_get('chain')[idx]
         
         #mGrp = self.getMessageAsMeta("chain_{0}".format(idx))
-        if mGrp:
-            mGrp.delete()
+        if chain:
+            chain.delete()
+            ATTR.msgList_clean(self.mNode,'chain')
             return log.info("Removed idx: {0}".format(idx))
         else:
             return log.warning("No chain found at idx: {0}".format(idx))
@@ -314,10 +319,11 @@ class cgmDynFK(cgmMeta.cgmObject):
         
     def chain_create(self, objs = None,
                      fwd = None, up=None,
-                     upSetup = None,
+                     name = None,
+                     upSetup = "manual",
                      extendStart = None,
                      extendEnd = True,
-                     name = None, mNucleus=None,
+                     mNucleus=None,
                      upControl = None,
                      aimUpMode = None,
                      **kws):
@@ -327,14 +333,14 @@ class cgmDynFK(cgmMeta.cgmObject):
         if not objs:
             _sel = mc.ls(sl=1)
             if _sel:objs = _sel
-            
+        
         ml = cgmMeta.asMeta( objs, noneValid = True )
         ml_baseTargets = copy.copy(ml)
         
         if not ml:
             return log.warning("No objects passed. Unable to chain_create")
             
-        if name is None:
+        if not name:
             name = ml[-1].p_nameBase
                     
         _idx = self.get_nextIdx()
@@ -343,7 +349,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         #Make our sub group...
         mGrp = self.doCreateAt(setClass=1)
         mGrp.p_parent = self
-        mGrp.rename("chain_{0}_{1}_grp".format(_idx,name))
+        mGrp.rename("chain_{0}_grp".format(name))
         mGrp.dagLock()
         self.connectChildNode(mGrp.mNode,'chain_{0}'.format(_idx),'owner')
         
@@ -371,7 +377,7 @@ class cgmDynFK(cgmMeta.cgmObject):
             if len(ml) < 2:
                 log.debug(cgmGEN.logString_msg(_str_func, 'Single count. Adding extra handle.'))
                 mLoc = ml[0].doLoc()
-                mLoc.rename("chain_{0}_{1}_end_loc".format(_idx, name))
+                mLoc.rename("chain_{0}_end_loc".format(name))
                 _size = DIST.get_bb_size(ml[0],True,'max')
                 mLoc.p_position = ml[0].getPositionByAxisDistance(fwdAxis.p_string,_size)
                 ml.append(mLoc)
@@ -455,6 +461,9 @@ class cgmDynFK(cgmMeta.cgmObject):
         #    LOC.create(position=p,name='p_{0}'.format(i))
             
         crv = CORERIG.create_at(create='curve',l_pos= l_pos, baseName = name)
+        mInCrv = cgmMeta.asMeta(crv)
+        mInCrv.rename("{0}_inCrv".format(name))
+        mGrp.connectChildNode(mInCrv.mNode,'mInCrv')
         mc.select(cl=1)
 
         # make the dynamic setup
@@ -477,15 +486,17 @@ class cgmDynFK(cgmMeta.cgmObject):
                 log.info(cgmGEN.logString_msg(_str_func,'Using existing nucleus: {0}'.format(mNucleus.mNode)))
                 self.connectChildNode(mNucleus.mNode,'mNucleus')
         
-        mc.select(crv,add=True)
+        mc.select(mInCrv.mNode,add=True)
         mel.eval('makeCurvesDynamic 2 { "0", "0", "1", "1", "0" }')
 
         # get relevant nodes
-        follicle = mc.listRelatives(crv,parent=True)[0]
+        follicle = mc.listRelatives(mInCrv.mNode,parent=True)[0]
         mFollicle = cgmMeta.asMeta(follicle)
         mFollicle.rename("{0}_foll".format(name))
-        mFollicle.getParent(asMeta=1).p_parent = mGrp
+        parent = mFollicle.getParent(asMeta=1)
+        mFollicle.p_parent = mGrp
         mFollicleShape = mFollicle.getShapes(1)[0]
+        mc.delete(parent.mNode)
         
         _follicle = mFollicle.mNode
         mGrp.connectChildNode(mFollicle.mNode,'mFollicle','group')
@@ -505,7 +516,13 @@ class cgmDynFK(cgmMeta.cgmObject):
             _hairSystem = mHairSys.mNode
             
         outCurve = mc.listConnections('%s.outCurve' % _follicle)[0]
-        outCurveShape = mc.listRelatives(outCurve, shapes=True)[0]
+        mCrv = cgmMeta.asMeta(outCurve)
+        parent = mCrv.getParent(asMeta=1)
+
+        outCurveShape = mc.listRelatives(mCrv.mNode, shapes=True)[0]
+        mCrv.p_parent = mGrp.mNode
+        
+        mc.delete(parent.mNode)
         _nucleus = mc.listConnections( '%s.currentState' % mHairSys.mNode )[0]
         
         if not b_existing_nucleus:
@@ -543,8 +560,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                                     setClass='cgmObject')
         #else:
             #mParent.getParent(asMeta=1)
-            
-        mCrv = cgmMeta.asMeta(outCurve)
+        
         mGrp.connectChildNode(mCrv.mNode,'mOutCrv','group')
 
         #self.follicles.append(follicle)
@@ -566,7 +582,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         _upVector = None
         if upSetup == 'guess':
             log.debug(cgmGEN.logString_msg(_str_func, 'Resolving up/aim'))
-            poci_base = CURVES.create_pointOnInfoNode(crv,1)
+            poci_base = CURVES.create_pointOnInfoNode(mInCrv.mNode,1)
             mPoci_base = cgmMeta.asMeta(poci_base)
             
             _upVector = mPoci_base.normalizedNormal
@@ -575,7 +591,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         
         #Let's make an up object as the parent of the root isn't good enough
         mUp = ml[0].doCreateAt(setClass=1)
-        mUp.rename("chain_{0}_{1}_up".format(_idx,name))
+        mUp.rename("chain_{0}_up".format(name))
         mUp.p_parent = mGrp
         
         if _upVector:
@@ -605,7 +621,25 @@ class cgmDynFK(cgmMeta.cgmObject):
             mc.parentConstraint(ml[0].getParent(), mUp.mNode, mo=True)
             
         
-        
+        # create control joint chain
+        mc.select(cl=True)
+        chain = []
+        for obj in objs:
+            if len(chain) > 0:
+                mc.select(chain[-1])
+            jnt = mc.joint(name='%s_%s_jnt' % (obj.split(':')[-1], name))
+            SNAP.matchTarget_set(jnt, obj)
+            mObj = cgmMeta.asMeta(jnt)
+            mObj.doSnapTo(mObj.getMessageAsMeta('cgmMatchTarget'))
+
+            chain.append(jnt)
+
+        mc.parent(chain[0], _follicle)
+        mInCrv.p_parent = mGrp
+
+        mc.bindSkin(mInCrv.mNode, chain[0], ts=True)
+
+
         log.debug(cgmGEN.logString_msg(_str_func,'aimUpMode: {0}'.format(aimUpMode)))
         
         
@@ -688,6 +722,14 @@ class cgmDynFK(cgmMeta.cgmObject):
                                                   worldUpType = "objectrotation",
                                                   worldUpVector = upAxis.p_vector,
                                                   worldUpObject = mUpUse.mNode )                
+            elif aimUpMode == 'joint':
+                aimConstraint = mc.aimConstraint( mAim.mNode,
+                                                  mLocParent.mNode,
+                                                  aimVector=fwdAxis.p_vector,
+                                                  upVector = upAxis.p_vector,
+                                                  worldUpType = "objectrotation",
+                                                  worldUpVector = upAxis.p_vector,
+                                                  worldUpObject = chain[i] )  
             elif aimUpMode == 'curveNormal':
                 mUpLoc = mLoc.doGroup(False,False,
                                       asMeta=True,
@@ -716,7 +758,7 @@ class cgmDynFK(cgmMeta.cgmObject):
             mLocParent.p_parent = mGrp
             
             #mc.parent(loc, locParent)
-            
+        
         mCrv.rename("{0}_outCrv".format(name))
         mCrvParent = mCrv.getParent(asMeta=1)
         mCrvParent.p_parent = mGrp
@@ -726,7 +768,9 @@ class cgmDynFK(cgmMeta.cgmObject):
         mGrp.msgList_connect('mParents',ml_prts)
         mGrp.msgList_connect('mTargets',ml)
         mGrp.msgList_connect('mBaseTargets',ml_baseTargets)
-        
+        mGrp.msgList_connect('mObjJointChain',chain)
+        mGrp.doStore('cgmName', name)
+
         mNucleus.doConnectOut('startFrame',"{0}.startFrame".format(mHairSys.mNode))
         
     def report(self):
@@ -748,10 +792,11 @@ class cgmDynFK(cgmMeta.cgmObject):
         for i,mGrp in enumerate(ml_chains):
             _d = {'mGrp':mGrp,
                   'mFollicle':mGrp.getMessageAsMeta('mFollicle'),
+                  'mInCrv':self.getMessageAsMeta('mInCrv'),
                   'mOutCrv':mGrp.getMessageAsMeta('mOutCrv'),
                   }
             
-            for lnk in 'mLocs','mAims','mParents','mTargets':
+            for lnk in 'mLocs','mAims','mParents','mTargets', 'mObjJointChain':
                 _d[lnk] = mGrp.msgList_get(lnk)
                 
             _res['chains'][i] = _d
@@ -795,7 +840,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         
         
         return 
-        reload(dynFKPresets)
+        #reload(dynFKPresets)
         _d = dynFKPresets.d_chain.get(arg)
         if not _d:
             return log.warning("Profile has no data: {0}".format(arg))
@@ -819,33 +864,29 @@ class cgmDynFK(cgmMeta.cgmObject):
             except Exception,err:
                 log.warning("mHairSys | Failed to set: {0} | {1} | {2}".format(a,v,err))
         return True
-    
-    def chains_getDicts(self,idx=None):
-        _d = self.get_dat()
-        l_dicts = []
+       
+    def get_chains(self, idx=None):
+        chains = self.msgList_get('chain')
         if idx:
-            l_dicts = _d.get(_d['chains'][idx])
-        else:
-            for i,md in _d.get('chains').iteritems():
-                l_dicts.append(md)
-        
-        return l_dicts
-    
-    def targets_connect(self,idx=None):  
-        for d in self.chains_getDicts(idx):
-            for i,mObj in enumerate(d['mTargets']):
-                mc.parentConstraint([d['mLocs'][i].mNode, mObj.mNode])
+            chains = [chains[idx]]
+
+        return chains
+
+    def targets_connect(self,idx=None):
+        for chain in self.get_chains(idx):
+            for i,mObj in enumerate(chain.msgList_get('mTargets')):
+                mc.parentConstraint([chain.msgList_get('mLocs')[i].mNode, mObj.mNode])
     def targets_disconnect(self,idx=None):
-        for d in self.chains_getDicts(idx):
-            for i,mObj in enumerate(d['mTargets']):
+        for chain in self.get_chains(idx):
+            for i,mObj in enumerate(chain.msgList_get('mTargets')):
                 _buffer = mObj.getConstraintsTo()
                 if _buffer:
                     mc.delete(_buffer)
     
     def targets_select(self,idx=None):
         ml= []
-        for d in self.chains_getDicts(idx):
-            for i,mObj in enumerate(d['mTargets']):
+        for chain in self.get_chains(idx):
+            for i,mObj in enumerate(chain.msgList_get('mTargets')):
                 if 'loc' not in mObj.mNode:
                     ml.append(mObj)
         
@@ -854,7 +895,7 @@ class cgmDynFK(cgmMeta.cgmObject):
 
                 
     def delete(self):
-        pass        
+        pass
 
 
 

@@ -42,7 +42,7 @@ import cgm.core.mrs.assets as MRSASSETS
 path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-reload(MODULECONTROL)
+#reload(MODULECONTROL)
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.rigging_utils as CORERIG
 from cgm.core.lib import snap_utils as SNAP
@@ -71,7 +71,7 @@ import cgm.core.lib.string_utils as STR
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.mrs.lib.post_utils as MRSPOST
 import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
-reload(BLOCKSHAPES)
+#reload(BLOCKSHAPES)
 #for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
 #    reload(m)
     
@@ -1747,9 +1747,9 @@ def skeleton_build(self, forceNew = True):
     _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'nameList')
     _l_baseNames = ATTR.datList_get(self.mNode, 'nameList')
 
-    
-    if self.browType == 0:#Full brow
-        log.debug("|{0}| >>  Full Brow...".format(_str_func))
+    _browType = self.getEnumValueString('browType')
+    if _browType in ['full','split']:#Full brow
+        log.debug("|{0}| >>  {1} Brow...".format(_str_func,_browType))
         
 
         for side in 'left','right','center':

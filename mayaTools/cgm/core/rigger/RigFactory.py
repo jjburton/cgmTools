@@ -68,8 +68,8 @@ d_moduleTypeToBuildModule = {'leg':leg,
                              'mouthnose':mouthNose,
                              'eyelids':eyelids,
                              } 
-for module in d_moduleTypeToBuildModule.keys():
-    reload(d_moduleTypeToBuildModule[module])
+#for module in d_moduleTypeToBuildModule.keys():
+#    reload(d_moduleTypeToBuildModule[module])
 
 __l_moduleJointSingleHooks__ = cgmRigsData.__l_moduleJointSingleHooks__
 __l_moduleJointMsgListHooks__ = cgmRigsData.__l_moduleJointMsgListHooks__

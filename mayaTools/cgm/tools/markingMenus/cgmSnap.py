@@ -14,11 +14,11 @@ from cgm.tools.lib import tdToolsLib
 from cgm.tools.lib import locinatorLib
 from cgm.lib import locators
 from cgm.core.classes import DraggerContextFactory as cgmDrag
-reload(cgmDrag)
+#reload(cgmDrag)
 import cgmToolbox
-reload(cgmToolbox)
-reload(locinatorLib)
-reload(tdToolsLib)
+#reload(cgmToolbox)
+#reload(locinatorLib)
+#reload(tdToolsLib)
 
 import logging
 logging.basicConfig()

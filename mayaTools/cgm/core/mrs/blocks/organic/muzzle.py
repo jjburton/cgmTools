@@ -42,7 +42,7 @@ import cgm.core.mrs.assets as MRSASSETS
 path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-reload(MODULECONTROL)
+#reload(MODULECONTROL)
 from cgm.core.lib import curve_Utils as CURVES
 import cgm.core.lib.rigging_utils as CORERIG
 from cgm.core.lib import snap_utils as SNAP
@@ -74,8 +74,8 @@ import cgm.core.rig.skin_utils as RIGSKIN
 import cgm.core.lib.string_utils as STR
 import cgm.core.lib.surface_Utils as SURF
 
-for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN,BLOCKSHAPES:
-    reload(m)
+#for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN,BLOCKSHAPES:
+#    reload(m)
     
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta

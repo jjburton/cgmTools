@@ -40,7 +40,7 @@ from cgm.lib import lists
 from cgm.lib.classes import NameFactory 
 from cgm.lib import curves
 from cgm.lib import cgmMath
-reload(cgmMath)
+#reload(cgmMath)
 
 def connectJointScalingBlendToMasterScale(mainDriverAttribute,jointList):
     import attributes

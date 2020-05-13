@@ -737,7 +737,7 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
         if _plugUsed not in ['handleJoints'] and _direct != True:
             if mTarget.getMessage('masterGroup'):
                 log.debug("|{0}| >>  masterGroup found found. ".format(_str_func))
-                reload(NAMETOOLS)
+                #reload(NAMETOOLS)
                 mMasterGroup = mTarget.masterGroup
                 _alias = NAMETOOLS.get_combinedNameDict(mTarget.mNode,ignore=['cgmType','cgmTypeModifier'])
                 mMasterGroup.doStore('cgmAlias', _alias)
@@ -755,7 +755,7 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
 
         return mTarget
     
-reload(BLOCKSHARE)
+#reload(BLOCKSHARE)
 l_controlOrder = BLOCKSHARE._l_controlOrder
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'fk':['fkJoints','leverFK','controlsFK','controlFK'],
@@ -1479,7 +1479,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
         if not bypassModuleCheck:
             log.debug("checking blockModule")        
             mBlockModule = self.p_blockModule
-            reload(mBlockModule)
+            #reload(mBlockModule)
             _blockCall = mBlockModule.__dict__.get('switchMode')
             if _blockCall:
                 log.debug("|{0}| >> Found swich mode in block module ".format(_str_func))

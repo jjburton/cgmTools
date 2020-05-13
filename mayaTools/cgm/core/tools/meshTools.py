@@ -28,8 +28,8 @@ import cgm.core.cgmPy.validateArgs as cgmValid
 import cgm.core.cgm_General as cgmGeneral
 import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core.lib import geo_Utils as GEO
-reload(GEO)
-reload(cgmUI)
+#reload(GEO)
+#reload(cgmUI)
 mUI = cgmUI.mUI
 from cgm.core.lib.zoo import baseMelUI as zooUI
 from cgm.lib import lists
@@ -38,9 +38,9 @@ from cgm.lib import search
 from cgm.core.classes import DraggerContextFactory
 from cgm.core.lib import shapeCaster as ShapeCaster
 from cgm.core.lib import selection_Utils as selUtils
-reload(selUtils)
-reload(ShapeCaster)
-reload(DraggerContextFactory)
+#reload(selUtils)
+#reload(ShapeCaster)
+#reload(DraggerContextFactory)
 mayaVersion = cgmGeneral.__mayaVersion__
 
 #>>> Root settings =============================================================

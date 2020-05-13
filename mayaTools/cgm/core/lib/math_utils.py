@@ -439,7 +439,7 @@ def convert_aim_vectors_to_different_axis(aim, up, aimAxis="z+", upAxis="y+"):
         aim = Vector3.Create( aim )
         up = Vector3.Create( up )
 
-        reload(VALID)
+        #reload(VALID)
         aim = aim.normalized()
         up = up.normalized()
         right = up.cross(aim).normalized()
@@ -620,7 +620,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
                     _rev.reverse()
                     _res.extend(_rev)
             else:
-                for i in range(idx_mid):
+                for i in range(idx_mid+1):
                     _res.append( i * blendFactor)
                     
                 if mode == 'blendUpMid':

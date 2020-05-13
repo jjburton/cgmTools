@@ -28,7 +28,7 @@ from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import rigging_utils as RIG
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import attribute_utils as ATTR
-reload(ATTR)
+#reload(ATTR)
 import cgm.core.lib.distance_utils as DIST
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta

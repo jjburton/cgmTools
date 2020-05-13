@@ -36,17 +36,17 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 from cgm.core.classes import SnapFactory as Snap
 from cgm.core.classes import NodeFactory as NodeF
-reload(NodeF)
+#reload(NodeF)
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
-reload(mShapeCast)
-reload(mControlFactory)
+#reload(mShapeCast)
+#reload(mControlFactory)
 from cgm.core.rigger.lib import rig_Utils as rUtils
 from cgm.core.rigger.lib import joint_Utils as jUtils
 
-reload(rUtils)
+#reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -57,7 +57,7 @@ from cgm.lib import (attributes,
                      search,
                      curves,
                      )
-reload(joints)
+#reload(joints)
   
 
 #>>> Skeleton

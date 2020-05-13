@@ -3,7 +3,7 @@ import cgm.core.cgm_RigMeta as RIGMETA
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
+###reload(rUtils)
 from cgm.core.classes import NodeFactory as NodeF
 import cgm.core.lib.distance_utils as DIST
 
@@ -1505,7 +1505,7 @@ l_fingerJoints = [u'index_l_base_sknj',
                   u'pinky_r_tip_sknj',
                   u'pinky_r_end_sknj'] 
 import cgm.core.lib.constraint_utils as CONSTRAINTS
-reload(CONSTRAINTS)
+#reload(CONSTRAINTS)
 #CONSTRAINTS.copy_constraint('ring_r_base_rigj|OrientConstraint',None,'pointConstraint')
 
 def fixFingerConstraints(l_joints = l_fingerJoints):

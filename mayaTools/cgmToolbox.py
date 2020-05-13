@@ -437,13 +437,13 @@ def loadCGMPlugin( pluginName ):
 
 
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
-reload(UICHUNKS)
+#reload(UICHUNKS)
 #@cgmGen.Timer
 def uiBuild_cgmMenu( *args ):
     _str_func = 'uiBuild_cgmMenu'
     menu = maya._cgmMenu
     menu.clear()
-    reload(UICHUNKS)
+    #reload(UICHUNKS)
     log.info("|{0}| >> building...".format(_str_func))        
     
     """

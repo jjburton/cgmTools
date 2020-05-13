@@ -28,18 +28,18 @@ from maya import mel
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
-reload(VALID)
+#reload(VALID)
 from cgm.core.lib import shared_data as SHARED
-reload(SHARED)
+#reload(SHARED)
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import position_utils as POS
-reload(POS)
+#reload(POS)
 from cgm.core.lib import euclid as EUCLID
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import name_utils as NAMES
-reload(ATTR)
+#reload(ATTR)
 #!!!! No rigging_utils!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #>>> Utilities
@@ -426,6 +426,9 @@ def matchTarget_snap(obj = None, move = True, rotate = True, boundingBox = False
     
     log.debug("|{0}| >> {1} snapping to: {2}.".format(_str_func,NAMES.get_short(_obj),_target[0]))
     
+    go(obj,_target[0],move,rotate,pivot=pivot)
+    return True
+
     _dict = POS.get_info(_target[0])
     
     #cgmGEN.log_info_dict(_dict)

@@ -44,9 +44,9 @@ import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.tools.lib import tool_chunks as UICHUNKS
-reload(SNAPCALLS)
-reload(RAYS)
-reload(UICHUNKS)
+#reload(SNAPCALLS)
+#reload(RAYS)
+#reload(UICHUNKS)
 
 #>>> Root settings =============================================================
 __version__ = 'Alpha - 0.11282017'
@@ -161,7 +161,7 @@ def buildSection_advancedSnap(self,parent):
     
     #>>>Settings -------------------------------------------------------------------------------------
     _l_pivotArgs = ['rp','sp','closestPoint','boundingBox','axisBox','groundPos','castCenter','castFar','castNear','castAllFar','castAllNear']
-    _l_pivotModes = ['center'] + SHARED._l_axis_by_string
+    _l_pivotModes = ['center'] + [v for v in SHARED._l_axis_by_string]
     
     #Object Pivot ----------------------------------------------------------------------------------
     _plug = 'cgmVar_snapAdvanced_' + 'objectPivot'
@@ -722,7 +722,7 @@ def uiFunc_snapOrdered(self):
         #SNAPCALLS.snap( obj,targets, **_d)
         targets = _sel
         #targets.reverse()
-        reload(MMCONTEXT)
+        #reload(MMCONTEXT)
         MMCONTEXT.func_process(SNAPCALLS.snap,targets,'eachToNextReverse',**_d)
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)

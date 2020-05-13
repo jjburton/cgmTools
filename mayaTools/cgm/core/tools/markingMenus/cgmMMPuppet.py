@@ -31,7 +31,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as cgmRigMeta
 #from cgm.core import cgm_PuppetMeta as cgmPM
 import cgm.core.mrs.Animate as MRSANIMATE
-reload(MRSANIMATE)
+#reload(MRSANIMATE)
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGen
 from cgm.core.lib import snap_utils as SNAP
@@ -41,11 +41,11 @@ from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rigging_utils as RIGGING
 import cgm.core.rig.general_utils as RIGGEN
-reload(RIGGEN)
+#reload(RIGGEN)
 import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core.lib import list_utils as LISTS
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
-reload(TOOLCALLS)
+#reload(TOOLCALLS)
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 from cgm.core.tools import dynParentTool as DYNPARENTTOOL
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS

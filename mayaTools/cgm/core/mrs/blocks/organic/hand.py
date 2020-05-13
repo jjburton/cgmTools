@@ -59,7 +59,7 @@ import cgm.core.lib.string_utils as STR
 from cgm.core.lib import rayCaster as RAYS
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 
-reload(RAYS)
+#reload(RAYS)
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
@@ -683,7 +683,7 @@ def verify_drivers(self,forceNew=True,resetToBase=True):
         md_baseDrivers = {}
         md_driverLists = {}
         md_baseDriverLists ={}
-        reload(CURVES)
+        #reload(CURVES)
         
         mNoTransformNull = self.getMessageAsMeta('noTransDefineNull')
         mDefineNull = self.getMessageAsMeta('defineNull')
@@ -1686,7 +1686,7 @@ def verify_subBlocksBAK(self,forceNew=True):
         md_uValues = {}
         md_drivers = {}
         md_driverLists ={}
-        reload(CURVES)
+        #reload(CURVES)
         mNoTransformNull = self.getMessage('noTransDefineNull')
         
         #Fingers ------------------------------------------------------------------------------

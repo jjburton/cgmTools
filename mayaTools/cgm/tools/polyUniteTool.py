@@ -42,7 +42,7 @@ from cgm.tools.lib import  (tdToolsLib,
                             locinatorLib,
                             namingToolsLib)
 
-reload(tdToolsLib)
+#reload(tdToolsLib)
 
 
 def run():

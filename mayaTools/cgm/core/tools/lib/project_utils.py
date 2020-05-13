@@ -27,6 +27,8 @@ import maya.mel as mel
 from cgm.core import cgm_General as cgmGEN
 
 #Data ================================================================================================
+_animatable_content = ['animation','templates','rigs','textures','poses','weights','geo']
+
 d_dirFramework = {
 'game':{'content':['Character','Environment','FX','Poses','Props','Cutscene',
                           'UI','VisDev'],
@@ -35,13 +37,13 @@ d_dirFramework = {
                    #'audio':['BGM','Debug','SFX']},
                    },
 
-'character':{'content':['animation','templates','builds','textures','poses','weights','geo'],
+'character':{'content': _animatable_content,
              'export':['animation']},
 'environment':{'content':['animation','textures','geo'],
              'export':['animation']},
 'sub':{'content':['animation','environment'],
        'export':['animation','environment']},
-'prop':{'content':['animation','templates','builds','textures','poses','weights','geo'],
+'prop':{'content': _animatable_content,
         'export':['animation']},
              }
 

@@ -18,9 +18,9 @@ import maya.standalone
 
 try:
     import cgm.core.cgmPy.validateArgs as validateArgs
-    reload(validateArgs)
+    #reload(validateArgs)
     import cgm.core.lib.shared_data as SHARED
-    reload(SHARED)
+    #reload(SHARED)
     import maya.cmds as mc
     
 except ImportError:

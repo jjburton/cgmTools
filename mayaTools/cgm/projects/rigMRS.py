@@ -30,7 +30,7 @@ from cgm.core.mrs.lib import general_utils as BLOCKGEN
 
 @cgmGEN.Timer
 def createMRSRig(folderPath):
-    cgm.core._reload()
+    cgm.core._#reload()
 
     fileList = mc.getFileList(folder = folderPath)
 

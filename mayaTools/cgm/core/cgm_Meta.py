@@ -40,7 +40,7 @@ from cgm.core.lib import transform_utils as TRANS
 import cgm.core.lib.snap_utils as SNAP
 from cgm.core.lib import distance_utils as DIST
 from cgm.core.lib import name_utils as NAMES
-reload(NAMES)
+#reload(NAMES)
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import constraint_utils as CONSTRAINT
 import cgm.core.cgmPy.path_Utils as PATHS
@@ -591,7 +591,7 @@ class cgmNode(r9Meta.MetaClass):
             #cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
             
     def getNameDict(self,**kws):
-        reload(nameTools)
+        #reload(nameTools)
         return nameTools.returnObjectGeneratedNameDict(self.mNode,**kws) or {} 
     
     def doTagAndName(self,d_tags, **kws):
@@ -1228,7 +1228,7 @@ class cgmNode(r9Meta.MetaClass):
             _kwString = ','.join(_l)  
             
         try:
-            reload(module)
+            #reload(module)
             log.debug("|{0}| >> On: {1}.{2}".format(_str_func,module.__name__, _short))     
             log.debug("|{0}| >> {1}.{2}({3}{4})...".format(_str_func,_short,func,_str_args,_kwString))                                    
             _res = getattr(module,func)(*args,**kws)
@@ -3044,7 +3044,7 @@ class cgmObject(cgmNode):
     def createVectorLine(self,*a,**kws):
         return TRANS.create_vectorCurveFromObj(self.mNode, *a,**kws)
     def getPositionByAxisDistance(self,*a,**kws):
-        reload(TRANS)
+        #reload(TRANS)
         return TRANS.position_getByAxisDistance(self.mNode, *a,**kws)    
     #...matrix ------------------------------------------------------------------------------
     def getWorldMatrix(self,*a,**kws):

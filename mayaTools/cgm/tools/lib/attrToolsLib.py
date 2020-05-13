@@ -23,8 +23,8 @@ import maya.mel as mel
 from cgm.lib.classes import NameFactory
 from cgm.lib.classes import AttrFactory
 from cgm.lib.classes import ObjectFactory
-reload(AttrFactory)
-reload(ObjectFactory)
+#reload(AttrFactory)
+#reload(ObjectFactory)
 
 from cgm.lib.classes.AttrFactory import *
 from cgm.lib.classes.ObjectFactory import *
@@ -34,10 +34,10 @@ from cgm.lib import (guiFactory,
                      dictionary,
                      attributes,
                      search)
-reload(attributes)
-reload(search)
-reload(dictionary)
-reload(guiFactory)
+#reload(attributes)
+#reload(search)
+#reload(dictionary)
+#reload(guiFactory)
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

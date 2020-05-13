@@ -24,27 +24,27 @@ from Red9.core import Red9_Meta as r9Meta
 #May not use DISTANCE,CURVES
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import name_utils as coreNames
-reload(coreNames)
+#reload(coreNames)
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import search_utils as SEARCH
-reload(SEARCH)
-reload(VALID)
+#reload(SEARCH)
+#reload(VALID)
 from cgm.core.lib import snap_utils as SNAP
-reload(SNAP)
+#reload(SNAP)
 from cgm.core.cgmPy import OM_Utils as cgmOM
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import distance_utils as DIST
-reload(POS)
+#reload(POS)
 from cgm.core.lib import math_utils as MATH
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import node_utils as NODES
-reload(NODES)
-reload(ATTR)
+#reload(NODES)
+#reload(ATTR)
 #TO REFACTOR
 #from cgm.lib import attributes
 
 from cgm.core.classes import DraggerContextFactory as cgmDrag
-reload(cgmDrag)
+#reload(cgmDrag)
 
 #>>> Utilities
 #===================================================================

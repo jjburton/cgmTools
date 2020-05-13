@@ -22,7 +22,7 @@ from cgm.core.classes import GuiFactory as gui
 from cgm.core.rigger import TemplateFactory as tFactory
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.core.classes import NodeFactory as cgmNodeFactory
-reload(cgmNodeFactory)
+#reload(cgmNodeFactory)
 from cgm.core.rigger.lib import morpheus_sharedData as MORPHYDATA
 from cgm.lib import (curves,
                      deformers,
@@ -34,7 +34,7 @@ from cgm.lib import (curves,
                      rigging,
                      attributes,
                      joints)
-reload(constraints)
+#reload(constraints)
 #======================================================================
 # Processing factory
 #======================================================================
@@ -696,7 +696,7 @@ def puppet_verifyGeoDeformation(*args,**kws):
                 raise Exception,"Bring local fail | {0}".format(error)
 
             try:
-                reload(deformers)
+                #reload(deformers)
                 for str_key in self.d_puppetGeo.get('d_geoTargets'):
                     try:
                         __ml_skinJoints = False

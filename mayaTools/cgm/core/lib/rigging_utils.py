@@ -32,7 +32,7 @@ from cgm.lib import search
 from cgm.lib import rigging
 from cgm.lib import locators #....CANNOT IMPORT LOCATORS - loop
 from cgm.core.lib import attribute_utils as ATTR
-reload(ATTR)
+#reload(ATTR)
 from cgm.core.lib import name_utils as coreNames
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shared_data as SHARED
@@ -43,7 +43,7 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.math_utils as COREMATH
-reload(COREMATH)
+#reload(COREMATH)
 #NO DIST
 
 #>>> Utilities
@@ -691,7 +691,7 @@ def create_localAxisProxyBAK(obj=None):
         ATTR.set(_dup,'scale',[1,1,1])
         _size = POS.get_bb_size(_dup,True)
         import cgm.core.lib.math_utils as COREMATH
-        reload(COREMATH)
+        #reload(COREMATH)
         #_proxy = create_proxyGeo('cube',COREMATH.list_div(_scaleLossy,_size))
         _proxy = create_proxyGeo('cube',_size)
         mc.makeIdentity(_proxy, apply=True, scale=True)

@@ -62,8 +62,8 @@ import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.snapTools as SNAPTOOLS
 import cgm.core.lib.list_utils as LISTS
 
-for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
-    reload(m)
+#for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
+    #reload(m)
 _d_blockTypes = {}
 
 # Factory 
@@ -2262,7 +2262,7 @@ class ui(cgmUI.cgmGUI):
                             label = "Duplicate",
                             ann = '[{0}] Duplicate the block'.format(_short),                        
                             en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,'duplicate'))
+                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'duplicate'))
             
             mUI.MelMenuItemDiv(_popUp)
             

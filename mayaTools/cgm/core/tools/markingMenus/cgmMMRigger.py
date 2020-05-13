@@ -13,8 +13,8 @@ from cgm.core import cgm_General as cgmGen
 from cgm.core.tools.markingMenus import cgmMMTemplate as mmTemplate
 from cgm.core.lib import rigging_utils as RIGGING
 from cgm.core.lib import snap_utils as SNAP
-reload(RIGGING)
-reload(mmTemplate)
+#reload(RIGGING)
+#reload(mmTemplate)
 from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.lib import search
 from cgm.lib import locators

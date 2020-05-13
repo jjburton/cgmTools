@@ -47,18 +47,18 @@ import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
-reload(BLOCKSHAPES)
+#reload(BLOCKSHAPES)
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.rig.joint_utils as JOINTS
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-reload(MODULECONTROL)
+#reload(MODULECONTROL)
 import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
-reload(RIGSHAPES)
+#reload(RIGSHAPES)
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
@@ -432,7 +432,7 @@ def define(self):
         
             _l_order = ['aim','end','up','start']
             
-            reload(self.UTILS)
+            #reload(self.UTILS)
             _resDefine = self.UTILS.create_defineHandles(self, _l_order,
                                                          _d, _size,
                                                          rotVecControl=True,
@@ -810,7 +810,7 @@ def form(self):
             #self.msgList_connect('formHandles',[mHandle.mNode])
         
             #Proxy geo ==================================================================================
-            reload(CORERIG)
+            #reload(CORERIG)
             _proxy = CORERIG.create_proxyGeo(_proxyShape, [_size_width,_size_length,_size_height], 'y+',bakeScale=False)
             mProxy = cgmMeta.validateObjArg(_proxy[0], mType = 'cgmObject',setClass=True)
             

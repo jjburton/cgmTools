@@ -53,7 +53,7 @@ from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
+#reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
                      skinning,

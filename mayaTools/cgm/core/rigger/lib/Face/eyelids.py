@@ -43,7 +43,7 @@ import cgm.core.lib.rigging_utils as RIG
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.snap_utils as SNAP
-reload(crvUtils)
+#reload(crvUtils)
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
@@ -62,8 +62,8 @@ from cgm.lib import (attributes,
                      search,
                      curves,
                      )
-reload(joints)
-reload(lists)
+#reload(joints)
+#reload(lists)
 #>>> Skeleton
 #=========================================================================================================
 __l_jointAttrs__ = ['rigJoints']   

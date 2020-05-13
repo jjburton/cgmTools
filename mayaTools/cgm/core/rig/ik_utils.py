@@ -49,8 +49,8 @@ import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.skin_utils as RIGSKIN
 import cgm.core.lib.position_utils as POS
 
-for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES,NODEFAC:
-    reload(m)
+#for m in CURVES,RIGCREATE,RIGGEN,LISTS,RIGCONSTRAINTS,MATH,NODES,NODEFAC:
+#    reload(m)
 
 def spline(jointList = None,
            useCurve = None,
@@ -1912,6 +1912,12 @@ def ribbon(jointList = None,
                 
                 
                 if extraSquashControl:
+                    try:
+                        v_scaleFactor = l_scaleFactors[i]
+                    except Exception,err:
+                        log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
+                        v_scaleFactor = 1.0                    
+                    
                     mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                       "{0}_aimScaleResult_{1}".format(str_baseName,i),
                                                       attrType = 'float',
@@ -1926,8 +1932,8 @@ def ribbon(jointList = None,
                                                         "{0}_factor_{1}".format(str_baseName,i),
                                                         attrType = 'float',
                                                         hidden = False,
-                                                        initialValue=l_scaleFactors[i],
-                                                        defaultValue=l_scaleFactors[i],
+                                                        initialValue=v_scaleFactor,
+                                                        defaultValue=v_scaleFactor,
                                                         keyable = extraKeyable,
                                                         lock=False,
                                                         minValue = 0)
@@ -2011,7 +2017,13 @@ def ribbon(jointList = None,
                 #out scale = baseSquashScale * (outBase / outActual)
                 #mBase_aim =  md_distDat['aim']['base']['mDist'][i]
                 
-
+                
+                try:
+                    v_scaleFactor = l_scaleFactors[i]
+                except Exception,err:
+                    log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
+                    v_scaleFactor = 1.0
+                    
                 if extraSquashControl:
                     #mPlug_segScale
                     mPlug_baseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
@@ -2021,8 +2033,8 @@ def ribbon(jointList = None,
                                                         "{0}_factor_{1}".format(str_baseName,i),
                                                         attrType = 'float',
                                                         hidden = False,
-                                                        initialValue=l_scaleFactors[i],
-                                                        defaultValue=l_scaleFactors[i],
+                                                        initialValue=v_scaleFactor,#l_scaleFactors[i],
+                                                        defaultValue=v_scaleFactor,
                                                         lock=False,
                                                         minValue = 0)
                     mPlug_jointRes = cgmMeta.cgmAttr(mControlSurface.mNode,
@@ -3378,7 +3390,7 @@ def get_midIK_basePos(ml_handles = [], baseAxis = 'y+', markPos = False, forceMi
     pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,dist_use*2)
     pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use*2)
     
-    reload(LOC)
+    #reload(LOC)
     if markPos:
         LOC.create(position=pos_use,name='pos1')
         LOC.create(position=pos_use2,name='pos2')

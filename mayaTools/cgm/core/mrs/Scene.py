@@ -307,10 +307,10 @@ example:
 		##############################
 		# Main Asset Lists 
 		##############################
-		_assetsForm = mUI.MelFormLayout(_MainForm,ut='cgmUISubTemplate', numberOfDivisions=4) #mc.columnLayout(adjustableColumn=True)
+		self._assetsForm = mUI.MelFormLayout(_MainForm,ut='cgmUISubTemplate', numberOfDivisions=100) #mc.columnLayout(adjustableColumn=True)
 
 		# Category
-		_catForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
+		_catForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		self.categoryText = mUI.MelButton(_catForm,
 		                                  label=self.category,ut='cgmUITemplate',
 		                                  ann='Select the asset category')
@@ -355,7 +355,7 @@ example:
 
 
 		# Animation
-		_animForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
+		_animForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		_animBtn = mUI.MelButton(_animForm,
 		                         label='Animation',ut='cgmUITemplate',
 		                         ann='Select the asset type', en=False)
@@ -383,7 +383,7 @@ example:
 		                    (self.animationList['formLayout'], 'bottom', 0, self.animationButton)] )
 
 		# Variation
-		_variationForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
+		_variationForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		_variationBtn = mUI.MelButton(_variationForm,
 		                              label='Variation',ut='cgmUITemplate',
 		                              ann='Select the asset variation', en=False)
@@ -412,7 +412,7 @@ example:
 
 
 		# Version
-		_versionForm = mUI.MelFormLayout(_assetsForm,ut='cgmUISubTemplate')
+		_versionForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		_versionBtn = mUI.MelButton(_versionForm,
 		                            label='Version',ut='cgmUITemplate',
 		                            ann='Select the asset version', en=False)
@@ -442,28 +442,9 @@ example:
 		                    (self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
 
 
-		attachForm = []
-		attachControl = []
-		attachPosition = []
+		self._subForms = [_catForm,_animForm,_variationForm,_versionForm]
 
-		_subForms = [_catForm,_animForm,_variationForm,_versionForm]
-
-		for i,form in enumerate(_subForms):
-			if i == 0:
-				attachForm.append( (form, 'left', 5) )
-			else:
-				attachControl.append( (form, 'left', 5, _subForms[i-1]) )
-
-			attachForm.append((form, 'top', 5))
-			attachForm.append((form, 'bottom', 5))
-
-			if i == len(_subForms)-1:
-				attachForm.append( (form, 'right', 5) )
-			else:
-				attachPosition.append( (form, 'right', 5, i+1) )
-
-		_assetsForm( edit=True, attachForm = attachForm, attachControl = attachControl, attachPosition = attachPosition)
-
+		self.buildAssetForm()
 
 
 		##############################
@@ -558,15 +539,15 @@ example:
 		                    (_directoryColumn, 'right', 0), 
 		                        (_bottomColumn, 'right', 0), 
 		                        (_bottomColumn, 'left', 0),
-		                        (_assetsForm, 'left', 0),
-		                        (_assetsForm, 'right', 0),
+		                        (self._assetsForm, 'left', 0),
+		                        (self._assetsForm, 'right', 0),
 		                        (_footer, 'left', 0),
 		                        (_footer, 'right', 0),
 		                        (_footer, 'bottom', 0)], 
 		           attachControl=[
 		                       (_bottomColumn, 'bottom', 0, _footer),
-		                    (_assetsForm, 'top', 0, _directoryColumn),
-		                    (_assetsForm, 'bottom', 0, _bottomColumn)] )
+		                    (self._assetsForm, 'top', 0, _directoryColumn),
+		                    (self._assetsForm, 'bottom', 0, _bottomColumn)] )
 
 
 	def show( self ):		
@@ -576,6 +557,34 @@ example:
 	#=========================================================================
 	# Menu Building
 	#=========================================================================
+	def buildAssetForm(self):
+		attachForm = []
+		attachControl = []
+		attachPosition = []
+
+		attachedForms = []
+
+		for form in self._subForms:
+			vis = mc.formLayout(form, q=True, visible=True)
+			if vis:
+				attachedForms.append(form)
+
+		for i,form in enumerate(attachedForms):
+			if i == 0:
+				attachForm.append( (form, 'left', 5) )
+			else:
+				attachControl.append( (form, 'left', 5, attachedForms[i-1]) )
+
+			attachForm.append((form, 'top', 5))
+			attachForm.append((form, 'bottom', 5))
+
+			if i == len(attachedForms)-1:
+				attachForm.append( (form, 'right', 5) )
+			else:
+				attachPosition.append( (form, 'right', 5, (100 / len(attachedForms)) * (i+1)) )
+
+		self._assetsForm( edit=True, attachForm = attachForm, attachControl = attachControl, attachPosition = attachPosition)
+
 	def build_menus(self):
 		_str_func = 'build_menus[{0}]'.format(self.__class__.TOOLNAME)            
 		log.info("|{0}| >>...".format(_str_func))   
@@ -1376,7 +1385,7 @@ example:
 
 	def BatchExport(self, *args):
 		if self.useMayaPy:
-			reload(BATCH)
+			#reload(BATCH)
 			log.info('Maya Py!')
 
 			bakeSetName = None
@@ -1516,7 +1525,7 @@ example:
 		d_userPaths = self.project.userPaths_get()
 
 		if self.useMayaPy:
-			reload(BATCH)
+			#reload(BATCH)
 			log.info('Maya Py!')
 
 			bakeSetName = None
@@ -1760,7 +1769,7 @@ def ExportScene(mode = -1,
 
 	#exec(self.exportCommand)
 	import cgm.core.tools.bakeAndPrep as bakeAndPrep
-	reload(bakeAndPrep)
+	#reload(bakeAndPrep)
 	import cgm.core.mrs.Shots as SHOTS
 	_str_func = 'ExportScene'
 

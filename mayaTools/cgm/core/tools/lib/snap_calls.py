@@ -43,9 +43,9 @@ from cgm.core.lib import distance_utils as DIST
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.math_utils as COREMATH
-reload(RAYS)
-reload(cgmUI)
-reload(MMCONTEXT)
+#reload(RAYS)
+#reload(cgmUI)
+#reload(MMCONTEXT)
 mUI = cgmUI.mUI
 
 _2016 = False
@@ -153,7 +153,7 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast',
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 from cgm.core.classes import DraggerContextFactory as cgmDrag
-reload(cgmDrag)
+#reload(cgmDrag)
 def aimSnap_start(targets=[]):
     raySnap_start(targets, None, False, snap=False, aim=True)
     
@@ -375,7 +375,7 @@ def snap(obj = None, targets = None,
             _targets = [_obj]
         else:
             _targets = VALID.mNodeStringList(targets)
-        reload(VALID)
+        #reload(VALID)
         _pivotObj = VALID.kw_fromDict(objPivot, SHARED._d_pivotArgs, noneValid=True)
         _pivotTar = VALID.kw_fromDict(targetPivot, SHARED._d_pivotArgs, noneValid=True)
 

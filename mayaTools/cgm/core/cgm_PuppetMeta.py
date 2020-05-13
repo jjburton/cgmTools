@@ -48,8 +48,8 @@ from cgm.lib import (modules,
                      attributes,
                      search,
                      curves)
-for m in DIST,RIG:
-    reload(m)
+#for m in DIST,RIG:
+#    reload(m)
     
 cgmModuleTypes = mFactory.__l_modulesClasses__
 __l_faceModuleTypes__ = mFactory.__l_faceModules__

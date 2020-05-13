@@ -46,7 +46,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.lib.constraint_utils as CONSTRAINT
 
 mUI = cgmUI.mUI
-reload(cgmGEN)
+#reload(cgmGEN)
 """
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 import cgm.core.cgmPy.os_Utils as cgmOS
@@ -258,10 +258,10 @@ def uiColumn_context(self,parent,header=False):
 def get_sharedDatObject(**kws):
     global MRSDAT
     if MRSDAT:
-        log.info('existing global MRSDAT')
+        log.debug('existing global MRSDAT')
         return MRSDAT
     
-    log.info('new MRSDAT')
+    log.warning('new MRSDAT')
     return dat(**kws)
 
 class dat(object):

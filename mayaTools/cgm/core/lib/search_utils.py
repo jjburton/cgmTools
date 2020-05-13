@@ -27,7 +27,7 @@ import maya.mel as mel
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
-reload(VALID)
+#reload(VALID)
 from cgm.core.lib import shared_data as CORESHARE
 from cgm.core.lib import name_utils as NAME
 from cgm.core.lib import attribute_utils as ATTR

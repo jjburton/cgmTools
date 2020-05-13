@@ -70,8 +70,8 @@ import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.rig.skin_utils as CORESKIN
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
-for m in RIGSHAPES,CURVES,BUILDUTILS,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
-    reload(m)
+#for m in RIGSHAPES,CURVES,BUILDUTILS,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
+#    reload(m)
     
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -128,7 +128,7 @@ d_build_profiles = {
                         'numControls':4}},
     'unityToon':{'default':{'squashMeasure':'arcLength',
                             'squash':'simple',
-                            'scaleSetup':'on',
+                            'scaleSetup':True,
                             }},
     'unityHigh':{'default':{'numJoints':4,
                             'numControls':4},
@@ -834,6 +834,7 @@ def prerig(self):
             mHandle.scale = 1,1,1"""
             
         _l_pos = CURVES.returnSplitCurveList(mTrackCurve.mNode,self.numControls,markPoints = False)
+        
         #_l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(self.numControls-1)] + [_pos_end]
             
         #_sizeUse = self.atUtils('get_shapeOffset')
@@ -966,6 +967,12 @@ def prerig(self):
         mc.pointConstraint([ml_jointHandles[0].mNode], str_vectorRP,maintainOffset=False)
         ATTR.set_lock(str_vectorRP,'translate',True)
         
+        #Move start and end... ------------------------------------------------------------------------
+        ml_handles[0].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .05)
+        ml_handles[-1].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .95)
+        
+        self.atUtils('prerig_handlesLayout','even','cubic',2)
+        
         #Close out =======================================================================================
         mNoTransformNull.v = False
         #cgmGEN.func_snapShot(vars())
@@ -1053,7 +1060,7 @@ def skeleton_build(self, forceNew = True):
         mOrientHelper = ml_formHandles[0].orientHelper
 
         
-        reload(JOINT)
+        #reload(JOINT)
         mVecUp = self.atUtils('prerig_get_upVector')
         
         ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mVecUp)
@@ -1341,7 +1348,7 @@ def rig_dataBuffer(self):
         
         
         #DynParents =============================================================================
-        reload(self.UTILS)
+        #reload(self.UTILS)
         self.UTILS.get_dynParentTargetsDat(self)
     
         #rotateOrder =============================================================================
@@ -1388,7 +1395,7 @@ def rig_skeleton(self):
         str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')        
         str_ikSetup = ATTR.get_enumValueString(mBlock.mNode,'ikSetup')        
         
-        reload(BLOCKUTILS)
+        #reload(BLOCKUTILS)
         BLOCKUTILS.skeleton_pushSettings(ml_joints,self.d_orientation['str'],
                                          self.d_module['mirrorDirection'],
                                          d_rotateOrders)#, d_preferredAngles)
@@ -1468,7 +1475,7 @@ def rig_skeleton(self):
             
                 SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
                          self.mVec_up)
-                reload(JOINT)
+                #reload(JOINT)
                 JOINT.freezeOrientation(mMidIK.mNode)
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
             
@@ -1757,8 +1764,9 @@ def rig_controls(self):
         
         #ControlIK ========================================================================================
         mControlIK = False
+        ml_blend = mRigNull.msgList_get('blendJoints')
+
         if mRigNull.getMessage('controlIK'):
-            ml_blend = mRigNull.msgList_get('blendJoints')
             
             mControlIK = mRigNull.controlIK
             log.debug("|{0}| >> Found controlIK : {1}".format(_str_func, mControlIK))
@@ -1999,7 +2007,7 @@ def rig_segments(self):
         if mBlock.getEnumValueString('ikBase') == 'hips':
             _d['attachStartToInfluence'] = True
             
-        reload(IK)
+        #reload(IK)
         _d.update(self.d_squashStretch)
         res_ribbon = IK.ribbon(**_d)
         
@@ -2140,16 +2148,15 @@ def rig_frame(self):
                     mLocBase = mIKBaseControl.doCreateAt()
                     mLocAim = mIKBaseControl.doCreateAt()
                 
-                
                     mLocAim.doStore('cgmType','aimDriver')
-                    mLocBase = mIKBaseControl.doCreateAt()
                     mLocBase.doStore('cgmType','baseDriver')
                 
                 
                     for mObj in mLocBase,mLocAim:
                         mObj.doStore('cgmName',mIKBaseControl.mNode)                        
                         mObj.doName()
-                
+                        
+                                    
                     mLocAim.p_parent = mIKBaseControl.dynParentGroup
                 
                     mAimTarget = mIKControl
@@ -2321,7 +2328,7 @@ def rig_frame(self):
                              'connectBy':'constraint',
                              'influences':ml_ribbonIkHandles,
                              'moduleInstance' : mModule}
-                    reload(IK)
+                    #reload(IK)
                     l_midSurfReturn = IK.ribbon(**d_mid)"""
                     
                     
@@ -2394,7 +2401,7 @@ def rig_frame(self):
                 mSkinCluster.doName()    
                 
                 #Tighten the weights...
-                reload(CORESKIN)
+                #reload(CORESKIN)
                 CORESKIN.surface_tightenEnds(mSurf.mNode, ml_ribbonIkHandles[0].mNode,
                                              ml_ribbonIkHandles[-1].mNode, blendLength=5)"""
                 

@@ -33,7 +33,7 @@ from cgm.core import cgm_General as cgmGEN
 import cgm.core.cgm_Meta as cgmMeta
 from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgmUpdate
-reload(cgmUpdate)
+#reload(cgmUpdate)
 
 #>>> Root settings =============================================================
 __version__ = '1.03042019'

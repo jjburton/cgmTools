@@ -36,8 +36,8 @@ from cgm.core.cgmPy import validateArgs as VALID
 import pprint
 from cgm.lib import guiFactory
 import cgm.core.lib.locator_utils as LOC
-reload(RayCast)
-reload(Snap)
+#reload(RayCast)
+#reload(Snap)
 from cgm.lib import (cgmMath,
                      locators,
                      modules,
@@ -703,7 +703,7 @@ def createMeshSliceCurve(mesh, mi_obj,latheAxis = 'z',aimAxis = 'y+',
     if not l_rotateSettings:raise ValueError, "Should have had some l_rotateSettings by now"
     log.debug("rotateSettings: %s"%l_rotateSettings)
 
-    reload(RayCast)
+    #reload(RayCast)
     try:#>>> Pew, pew !
         #================================================================
         l_hits = []

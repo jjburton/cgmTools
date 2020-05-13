@@ -14,7 +14,7 @@ Help for learning the basics of cgmGeneral.cgmFuncCls
 #>> cgmMeta.cgmAttr
 #==============================================================================================
 from cgm.core import cgm_General as cgmGeneral
-reload(cgmGeneral)
+#reload(cgmGeneral)
 import maya.cmds as mc
 
 

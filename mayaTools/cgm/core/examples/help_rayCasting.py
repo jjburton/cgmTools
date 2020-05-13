@@ -53,7 +53,7 @@ They call on the raw cast functions but it's easier to work with stuff you can
 see when starting out
 '''
 str_castTo = str_mesh #Link our mesh as our current object
-reload(RayCast)
+#reload(RayCast)
 
 #1) Do our first cast --------------------------------------------------------------------------------
 mi_aimObj.tz = 20

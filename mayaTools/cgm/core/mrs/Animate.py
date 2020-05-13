@@ -64,10 +64,10 @@ import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
 
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
-reload(MMUTILS)
+#reload(MMUTILS)
 
 import cgm.core.mrs.PoseManager as POSEMANAGER
-reload(POSEMANAGER)
+#reload(POSEMANAGER)
 
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
@@ -1883,7 +1883,7 @@ def buildTab_mrs(self,parent):
     
     return _column
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def get_contextTimeDat(self,mirrorQuery=False,**kws):
     try:        
         _str_func='get_contextTimeDat'
@@ -2228,7 +2228,7 @@ def uiCB_contextualAction(self,**kws):
                 log.error(err)
         endCall(self,False)
         
-    @cgmGEN.Timer
+    #@cgmGEN.Timer
     def key(f,l_controls):
         for o in l_controls:#self.mDat.d_context['sControls']:
             mc.setKeyframe(o,time = f)
@@ -3968,7 +3968,7 @@ def buildFrame_puppet(self,parent):
                                                rb = b_state )    
     """
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def get_context(self, addMirrors = False,**kws):
     try:
         _str_func='get_context'
@@ -4203,7 +4203,7 @@ def get_context(self, addMirrors = False,**kws):
         return res
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def get_contextualControls(self,mirrorQuery=False,**kws):
     try:
         _str_func='get_contextualControls'
@@ -4852,7 +4852,7 @@ def uiCB_resetSliderDrop(self):
     #if report:log.info("Context: {0} | mode: {1} | done.".format(_context, _mode))
     return     
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def uiCB_resetSlider(self):
     _str_func='cgmUICB_tweenSlider'
     
@@ -4913,7 +4913,7 @@ def uiCB_resetSlider(self):
 #==============================================================================================
 #Marking menu
 #==============================================================================================
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mmUI_radial(self,parent):
     _str_func = "bUI_radial" 
     self.mDat = MRSANIMUTILS.get_sharedDatObject()#MRSANIMUTILS.MRSDAT
@@ -4946,7 +4946,7 @@ def mmUI_radial(self,parent):
                 #c = cgmGEN.Callback(mmFunc_test,self),
                 #rp = 'SW',
                 #) 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mmUI_optionMenu(self, parent):
     return
     _optionVar_val_moduleOn = self.var_PuppetMMBuildModule.value
@@ -4964,7 +4964,7 @@ def mmUI_optionMenu(self, parent):
                 c = cgmGEN.Callback(self.var_PuppetMMBuildPuppet.setValue, not _optionVar_val_puppetOn),
                 cb = _optionVar_val_puppetOn)    
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mmUI_lower(self,parent):
     """
     Create the UI
@@ -5027,7 +5027,7 @@ def mmFunc_test(self):
                                      'siblings':False})
             
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mmUI_controls(self,parent = None):
     _str_func = 'mmUI_controls'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
@@ -5061,7 +5061,7 @@ def mmUI_controls(self,parent = None):
                 )
     return
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mmUI_puppet(self,parent = None):
     _str_func = 'mmUI_part'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
@@ -5152,7 +5152,7 @@ def mmUI_puppet(self,parent = None):
     
 
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mmUI_part(self,parent = None):
     _str_func = 'mmUI_part'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
@@ -5380,7 +5380,7 @@ def mmUI_part(self,parent = None):
     return
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def mmUI_section(self,parent = None, context= 'part', mirror = False, children = False, siblings=False):
     _str_func = 'mmUI_part'
     log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)

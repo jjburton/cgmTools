@@ -34,17 +34,17 @@ from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import search_utils as SEARCH
-reload(SEARCH)
+#reload(SEARCH)
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.lib import position_utils as POS
 from cgm.core.lib import math_utils as MATHUTILS
 from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import list_utils as LIST
 import cgm.core.lib.node_utils as NODES
-reload(NODES)
+#reload(NODES)
 #import cgm.core.lib.shape_utils as SHAPE
-reload(POS)
-reload(MATHUTILS)
+#reload(POS)
+#reload(MATHUTILS)
 
 #from cgm.lib import attributes
 #>>> Utilities
@@ -1162,7 +1162,7 @@ def get_normalized_uv(mesh, uValue, vValue):
     
     try:
         try:#Validation ----------------------------------------------------------------
-            reload(VALID)
+            #reload(VALID)
             _mesh = VALID.objString(mesh,'nurbsSurface', calledFrom = _str_func)
             #log.debug("|{0}| >> mesh arg: {1} | validated: {2}".format(_str_func,mesh,_mesh))            
             

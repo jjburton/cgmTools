@@ -33,14 +33,14 @@ import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.rigging_utils as RIG
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.math_utils as MATH
-reload(DIST)
+#reload(DIST)
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.position_utils as POS
 from cgm.core.classes import NodeFactory as NODEFAC
-reload(ATTR)
+#reload(ATTR)
 @cgmGEN.Timer
 def reset_channels_fromMode(nodes=None, mode = 0,selectedChannels=None):
     """
@@ -883,4 +883,18 @@ def split_blends(driven1 = None,
         return d_dat
 
     except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,msg=vars())    
+        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        
+        
+
+def rename_deformers(nodes= [],deformerTypes='all'):
+    if not nodes:
+        nodes = mc.ls(sl=1)
+        
+    ml_nodes = cgmMeta.asMeta(nodes)
+    for mObj in ml_nodes:
+        for mDef in mObj.getDeformers(deformerTypes,True):
+            log.info("Renaming: {0}".format(mDef))
+            mc.rename(mDef.mNode, "{0}_{1}".format(mObj.p_nameBase,
+                                                   SEARCH.get_tagInfoShort(mDef.getMayaType())))
+            #mDef.doName()

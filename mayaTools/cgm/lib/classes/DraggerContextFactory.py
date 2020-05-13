@@ -35,8 +35,8 @@ from cgm.lib import (locators,
                      rigging,
                      distance,
                      guiFactory)
-reload(distance)
-reload(curves)
+#reload(distance)
+#reload(curves)
 import os
 
 

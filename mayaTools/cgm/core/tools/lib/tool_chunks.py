@@ -42,7 +42,7 @@ from cgm.core.tools import meshTools
 from cgm.core.lib import node_utils as NODES
 import cgm.core.lib.sdk_utils as SDK
 import cgm.core.tools.lib.tool_calls as TOOLCALLS
-reload(TOOLCALLS)
+#reload(TOOLCALLS)
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.projects.CGM as CGMPROJECTS
 from cgm.core.tools import attrTools as ATTRTOOLS
@@ -588,7 +588,11 @@ def uiSection_animUtils(parent):
     mc.menuItem(parent = parent,
                 l='cgmDynParentTool',
                 ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
-                c=lambda *a: TOOLCALLS.dynParentTool())   
+                c=lambda *a: TOOLCALLS.dynParentTool())
+    mc.menuItem(parent = parent,
+                l='cgmSimChain',
+                ann = "cgmSimChain - a tool for doing simulation on control chains",
+                c=lambda *a: TOOLCALLS.cgmSimChain())    
     mc.menuItem(parent = parent,
                 l='cgmSetTools',
                 ann = "Launch cgm's setTools - a tool for managing maya selection sets",
@@ -683,6 +687,12 @@ def uiSection_mrs(parent):
                 l='cgmDynParentTool',
                 ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
                 c=lambda *a: TOOLCALLS.dynParentTool())
+    
+    mc.menuItem(parent = parent,
+                l='cgmSimChain',
+                ann = "cgmSimChain - a tool for doing simulation on control chains",
+                c=lambda *a: TOOLCALLS.cgmSimChain())
+    
     mc.menuItem(parent = parent,
                 l='cgmSnapTools',
                 ann = "Launch cgmSnapTools - a tool for snapping things around in maya",
@@ -964,7 +974,7 @@ def uiSection_createFromSel(parent, selection = None):
     
     for m in ['boundingBox','axisBox','castFar','castNear','castCenter','castAllNear','castAllFar']:
 
-            l_use = copy.copy(SHARED._l_axis_by_string)
+            l_use = [v for v in SHARED._l_axis_by_string]
             if m in ['boundingBox']:
                 l_use.insert(0,'center')
             elif m in ['castCenter']:
@@ -1196,7 +1206,7 @@ def uiSection_snap(parent, selection = None ):
     for m in ['boundingBox','axisBox','castFar','castNear','castCenter']:
         mc.menuItem(parent=_pointSpecial,subMenu = True,
                     l = m)
-        l_use = copy.copy(SHARED._l_axis_by_string)
+        l_use = [v for v in SHARED._l_axis_by_string]
         if m in ['boundingBox']:
             l_use.insert(0,'center')
         elif m in ['castCenter']:

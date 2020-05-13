@@ -17,7 +17,7 @@ import re
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -209,6 +209,7 @@ class cgmHotkeyer(object):
                            _str_runTime_cmd,';'])
         
         _str_runTimeArg = ' '.join(_l_buildArg)
+        log.debug("arg: " + _str_runTimeArg)
         try:
             mel.eval(_str_runTimeArg)#...evaluate the runTime call cause maya sucks and doesn't have a python command for this
             return mc.nameCommand( _str_runTime_cmd + 'COMMAND', annotation=_str_runTime_cmd, command=_str_runTime_cmd)                        

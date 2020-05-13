@@ -43,17 +43,17 @@ from cgm.core.classes import NodeFactory as NodeF
 import cgm.core.lib.snap_utils as SNAP
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
-reload(mControlFactory)
+#reload(mControlFactory)
 from cgm.core.lib import nameTools
 
 from cgm.core.rigger.lib import rig_Utils as rUtils
 from cgm.core.rigger.lib import joint_Utils as jntUtils
-reload(rUtils)
-reload(jntUtils)
+#reload(rUtils)
+#reload(jntUtils)
 import cgm.core.rig.segment_utils as SEGMENT
 import cgm.core.lib.distance_utils as DIST
 
-reload(SEGMENT)
+#reload(SEGMENT)
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.lib import (attributes,
                      joints,
@@ -65,7 +65,7 @@ from cgm.lib import (attributes,
                      search,
                      curves,
                      )
-reload(joints)
+#reload(joints)
 #>>> Shapes
 #===================================================================
 def build_shapes(*args, **kws):

@@ -687,7 +687,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         cgmGEN.walk_dat(self.blockDat,'[{0}] blockDat'.format(self.p_nameShort))
 
     def loadBlockDat(self,*args,**kws):
-        reload(BLOCKUTILS)
+        #reload(BLOCKUTILS)
         return BLOCKUTILS.blockDat_load(self,*args,**kws)
     
         _short = self.p_nameShort        
@@ -947,10 +947,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return BLOCKUTILS.duplicate(self,uiPrompt)
         
     def puppetMesh_create(self,*args,**kws):
-        reload(BLOCKUTILS)
+        #reload(BLOCKUTILS)
         return BLOCKUTILS.puppetMesh_create(self,*args,**kws)
     def puppetMesh_delete(self,*args,**kws):
-        reload(BLOCKUTILS)
+        #reload(BLOCKUTILS)
         return BLOCKUTILS.puppetMesh_delete(self,*args,**kws)
 
     #==============================================================================================
@@ -1106,7 +1106,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         """
         #try:
         _blockModule = self.p_blockModule
-        reload(_blockModule)
+        #reload(_blockModule)
         return getattr(_blockModule,func)(self,*args,**kws)            
         #return self.stringModuleCall(_blockModule,func,*args, **kws)
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
@@ -1142,7 +1142,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         Function to call a blockModule function by string. For menus and other reasons
         """
         #try:
-        reload(BLOCKUTILS)
+        #reload(BLOCKUTILS)
         return getattr(BLOCKUTILS,func)(self,*args,**kws)
         #return self.stringModuleCall(BLOCKUTILS,func,*args, **kws)
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
@@ -2558,7 +2558,7 @@ def get_modules_dat(update = False):
                         _l_cat.append(name)
                         try:
                             module = __import__(key, globals(), locals(), ['*'], -1)
-                            reload(module) 
+                            #reload(module) 
                             _d_modules[name] = module
                             #if not is_buildable(module):
                                 #_l_unbuildable.append(name)
@@ -2680,7 +2680,7 @@ def valid_blockModule_rigBuildOrder(blockType):
     _str_func = 'get_blockModule_status'
 
     _BlockModule = get_blockModule(blockType)
-    reload(_BlockModule)
+    #reload(_BlockModule)
     try:
         _blockType = _BlockModule.__name__.split('.')[-1]
     except:
@@ -3021,7 +3021,7 @@ class rigFactory(object):
         
         #cgmGEN.log_info_dict(self.call_kws,_str_func)
         _buildModule = rigBlock.p_blockModule
-        reload(_buildModule)
+        #reload(_buildModule)
         _short = self.mBlock.p_nameShort
         if _buildModule.__dict__.get('rig_prechecks'):
             log.debug("|{0}| >> Found precheck call".format(_str_func,))
@@ -3084,7 +3084,7 @@ class rigFactory(object):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        _blockModule = reload(self.d_block['buildModule'])
+        _blockModule = self.d_block['buildModule']
         self.d_block['buildModule'] = _blockModule
         return cgmGEN.stringModuleClassCall(self, _blockModule, func, *args, **kws)
 
@@ -3092,9 +3092,9 @@ class rigFactory(object):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        try:reload(BUILDERUTILS)
-        except Exception,err:
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        #try:reload(BUILDERUTILS)
+        #except Exception,err:
+        #    cgmGEN.cgmExceptCB(Exception,err,msg=vars())
             
         return getattr(BUILDERUTILS,func)(self,*args,**kws)
         
@@ -3891,7 +3891,7 @@ class cgmRigPuppet(cgmMeta.cgmNode):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        reload(PUPPETUTILS)
+        #reload(PUPPETUTILS)
         return getattr(PUPPETUTILS,func)(self,*args,**kws)            
         #return self.stringModuleCall(PUPPETUTILS,func,*args, **kws)
 
@@ -4619,9 +4619,9 @@ class cgmRigModule(cgmMeta.cgmObject):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        try:
-            reload(MODULEUTILS)
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        #try:
+        #    reload(MODULEUTILS)
+        #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         return getattr(MODULEUTILS,func)(self,*args,**kws)            
         
         #return self.stringModuleCall(MODULEUTILS,func,*args, **kws)
@@ -4790,9 +4790,9 @@ class cgmRigModule(cgmMeta.cgmObject):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
-        try:
-            reload(self.getBlockModule())
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        #try:
+        #    reload(self.getBlockModule())
+        #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         return getattr(self._blockModule,func)(self,*args,**kws)            
         
         #return self.stringModuleCall(self._blockModule,func,*args, **kws)    
@@ -4816,7 +4816,7 @@ def get_blockProfile_options(arg):
         log.debug("|{0}| >>  {1}".format(_str_func,arg)+ '-'*80)
         
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
-        if mBlockModule:reload(mBlockModule)
+        #if mBlockModule:reload(mBlockModule)
         
         try:return mBlockModule.d_block_profiles.keys()
         except Exception,err:

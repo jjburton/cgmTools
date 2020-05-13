@@ -41,11 +41,11 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import shape_utils as SHAPE
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
-reload(ATTR)
-reload(POS)
-reload(NODES)
+#reload(ATTR)
+#reload(POS)
+#reload(NODES)
 from cgm.core.lib import math_utils as MATHUTILS
-reload(RayCast)
+#reload(RayCast)
 from cgm.lib import (locators,
                      geo,
                      curves,
@@ -56,8 +56,8 @@ from cgm.lib import (locators,
                      rigging,
                      distance,
                      guiFactory)
-reload(distance)
-reload(curves)
+#reload(distance)
+#reload(curves)
 import os
 
 #========================================================================

@@ -31,14 +31,14 @@ import random
 
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as VALID
-reload(VALID)
+#reload(VALID)
 from cgm.core.lib import selection_Utils as selUtils
 from cgm.core.cgmPy import OM_Utils as cgmOM
 from cgm.lib import guiFactory
 from cgm.lib import cgmMath
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import rayCaster as cgmRAYS
-reload(cgmRAYS)
+#reload(cgmRAYS)
 from cgm.core.lib import search_utils as SEARCH
 import re
 import cgm.core.lib.distance_utils as DIST
@@ -1153,14 +1153,17 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
             _posBase = _l_posData[_b_idx]
             for i in _l_targetsGood:
                 if _l_targets[i] != _baseObj:
+                    log.info(_l_targets[i])
                     _posDat = _l_posData[i] 
                     _multiplyDict = {}
                     if _d_softSelect:
                         log.info("{0} >> Soft selection mode".format(_str_funcName))
-                        if _mode in ['copyTo'] and _d_baseSoftSelect:
-                            _d = _d_baseSoftSelect
-                        else:
-                            _d = _d_softSelect.get(_l_longNames[i],{})
+                        if _d_baseSoftSelect:
+                            if _mode in ['copyTo']:
+                                _d = _d_baseSoftSelect
+                            else:
+                                _d = _d_softSelect.get(_l_longNames[i],{})
+                            
                         #_d = _d_softSelect.get(_l_longNames[_b_idx],{})                        
                         #log.info(_l_longNames[i])
                         log.info(_d)
@@ -1192,24 +1195,33 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
             else:
                 _str_newName = "{0}_{1}_result".format(_str_newName,_mode)                    
             _result = mc.rename(_result,_str_newName)
-
+            _result = [_result]
         else:
+            _result = [_l_targets[i] for i in _l_targetsGood]
+            try:_result.remove(_baseObj)
+            except:
+                pass
+            """
+            
             if len(_l_targetsGood)==2:
                 _result = _l_targets[ _l_targetsGood[0] ]
             else:
-                _result = _baseObj
-        guiFactory.doProgressWindow(winName=_str_funcName, 
-                                    statusMessage='Progress...', 
-                                    startingProgress=1, 
-                                    interruptableState=True)            
-        for i,pos in enumerate(_l_toApply):
-            guiFactory.doUpdateProgressWindow("Moving -- [{0}]".format(i), i,  
-                                              _len_base, reportItem=False)                
-            if _space == 'world':
-                mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, ws = True)             
-            else:
-                mc.xform("{0}.vtx[{1}]".format(_result,i), t = pos, os = True)    
-        guiFactory.doCloseProgressWindow()
+                _result = _baseObj"""
+                
+        log.info("result: {0}".format(_result))
+        for o in _result:
+            guiFactory.doProgressWindow(winName=_str_funcName, 
+                                        statusMessage='Progress...', 
+                                        startingProgress=1, 
+                                        interruptableState=True)            
+            for i,pos in enumerate(_l_toApply):
+                guiFactory.doUpdateProgressWindow("Moving -- [{0}]".format(i), i,  
+                                                  _len_base, reportItem=False)                
+                if _space == 'world':
+                    mc.xform("{0}.vtx[{1}]".format(o,i), t = pos, ws = True)             
+                else:
+                    mc.xform("{0}.vtx[{1}]".format(o,i), t = pos, os = True)    
+            guiFactory.doCloseProgressWindow()
 
     if _sel:mc.select(_sel)
     return _result
@@ -1304,7 +1316,7 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
                 _diff = []
                 for ii,p in enumerate(pos):
                     _diff.append((p-sourceValues[i][ii])) 
-                    
+                #pprint.pprint(_diff)
                 if _mode == 'difference':
                     for ii,p in enumerate(pos):
                         _nPos.append(_diff[ii] * (_multiplier))
@@ -1323,27 +1335,50 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
                     _nPos = [0, _diff[1] * _multiplier,0]
                 elif _mode == 'zDiff':
                     _nPos = [0, 0, _diff[2] * _multiplier]
-                elif _mode == 'xBlend':
-                    for ii,p in enumerate(pos):
-                        if ii == 0:
-                            _nPos.append(_diff[ii] + p * _multiplier)
-                        else:
-                            _nPos.append(p)
-                elif _mode == 'yBlend':
-                    for ii,p in enumerate(pos):
-                        if ii == 1:
-                            _nPos.append(_diff[ii] + p * _multiplier)
-                        else:
-                            _nPos.append(p)                   
-                elif _mode == 'zBlend':
-                    for ii,p in enumerate(pos):
-                        if ii == 2:
-                            _nPos.append(_diff[ii] + p * _multiplier)
-                        else:
-                            _nPos.append(p)  
+                    
+                elif _mode in ['xBlend','yBlend','zBlend']:
+                    if _mode == 'xBlend':
+                        for ii,p in enumerate(pos):
+                            if ii != 0 and _diff[ii]:
+                                _nPos.append(sourceValues[i][ii])
+                            else:
+                                _nPos.append(p)
+                    elif _mode == 'yBlend':
+                        for ii,p in enumerate(pos):
+                            if ii != 1 and _diff[ii]:
+                                _nPos.append(sourceValues[i][ii])
+                            else:
+                                _nPos.append(p)
+                    elif _mode == 'zBlend':
+                        for ii,p in enumerate(pos):
+                            if ii != 2 and _diff[ii]:
+                                _nPos.append(sourceValues[i][ii])
+                            else:
+                                _nPos.append(p)
+                                """    
+                                elif _mode == 'xBlend':
+                                    for ii,p in enumerate(pos):
+                                        if ii == 0:
+                                            _nPos.append(_diff[ii] + p * _multiplier)
+                                        else:
+                                            _nPos.append(p)
+                                elif _mode == 'yBlend':
+                                    for ii,p in enumerate(pos):
+                                        if ii == 1:
+                                            _nPos.append(_diff[ii] + p * _multiplier)
+                                        else:
+                                            _nPos.append(p)                   
+                                elif _mode == 'zBlend':
+                                    for ii,p in enumerate(pos):
+                                        if ii == 2:
+                                            _nPos.append(_diff[ii] + p * _multiplier)
+                                        else:
+                                            _nPos.append(p)  """
+                            
                 elif _mode == 'flip':
                     for ii,p in enumerate(pos):
-                        _nPos.append(p - (_diff[ii] * -1) * _multiplier)             
+                        _nPos.append(p - (_diff[ii] * -1) * _multiplier)
+                        
             else:
                 raise NotImplementedError,"{0} mode not implemented: '{1}'".format(_str_funcName,_mode)
             _result.append(_nPos)

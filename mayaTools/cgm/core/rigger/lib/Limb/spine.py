@@ -52,7 +52,7 @@ from cgm.core.rigger import ModuleControlFactory as mControlFactory
 from cgm.core.lib import nameTools
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.rigger.lib import rig_Utils as rUtils
-reload(rUtils)
+#reload(rUtils)
 from cgm.lib import (attributes,
                      joints,
                      skinning,
@@ -492,7 +492,7 @@ def build_deformation(*args, **kws):
                 i_endControl = ml_segmentHandles[-1]
                 #Create segment
                 import cgm.core.rig.segment_utils as SEGMENT
-                reload(SEGMENT)
+                #reload(SEGMENT)
                 curveSegmentReturn = SEGMENT.create([i_jnt.mNode for i_jnt in ml_segmentJoints],
                                                     addSquashStretch=True,
                                                     addTwist=True,
