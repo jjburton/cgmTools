@@ -287,17 +287,29 @@ def buildColumn_main(self,parent, asScroll = False):
     _row = mUI.MelHSingleStretchLayout(_options,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)                          
+    mUI.MelLabel(_row,l='Base Name: ')        
+
+    self.options_baseName = mUI.MelTextField(_row,
+            ann='Name',
+            text = 'DynamicChain')
+
+    _row.setStretchWidget( self.options_baseName )
+
+    mUI.MelSpacer(_row,w=_padding)
+    _row.layout()
+
+    _row = mUI.MelHSingleStretchLayout(_options,ut='cgmUISubTemplate',padding = 5)
+    mUI.MelSpacer(_row,w=_padding)                          
     mUI.MelLabel(_row,l='Name: ')        
 
     self.options_name = mUI.MelTextField(_row,
             ann='Name',
-            text = 'DynamicChain')
+            text = '')
 
     _row.setStretchWidget( self.options_name )
 
     mUI.MelSpacer(_row,w=_padding)
     _row.layout()
-
 
     mUI.MelSeparator(_options,ut='cgmUISubTemplate',h=5)
 
@@ -731,7 +743,7 @@ def uiFunc_select_nucleus(self):
 
 def uiFunc_make_dynamic_chain(self):
     if not self._mDynFK:
-        mDynFK = RIGDYN.cgmDynFK(baseName=self.options_name.getValue(),objs=self.itemList.getItems(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue())
+        mDynFK = RIGDYN.cgmDynFK(baseName=self.options_baseName.getValue(), name=self.options_name.getValue(),objs=self.itemList.getItems(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue(), startFrame=mc.playbackOptions(q=True, min=True))
         mDynFK.profile_load('base')
         uiFunc_load_dyn_chain(self, mDynFK.p_nameBase)
     else:
@@ -793,8 +805,15 @@ def uiFunc_updateTargetDisplay(self):
 
         #for o in self._l_toEnable:
             #o(e=True, en=False)
+
+        self.options_baseName(e=True, enable=True)
+
         return
     
+    self.options_baseName.setValue(self._mDynFK.cgmName)
+
+    self.options_baseName(e=True, enable=False)
+
     _short = self._mDynFK.p_nameBase
     self.uiTF_objLoad(edit=True, ann=_short)
     
