@@ -850,33 +850,29 @@ class cgmDynFK(cgmMeta.cgmObject):
             except Exception,err:
                 log.warning("mHairSys | Failed to set: {0} | {1} | {2}".format(a,v,err))
         return True
-    
-    def chains_getDicts(self,idx=None):
-        _d = self.get_dat()
-        l_dicts = []
+       
+    def get_chains(self, idx=None):
+        chains = self.msgList_get('chain')
         if idx:
-            l_dicts = _d.get(_d['chains'][idx])
-        else:
-            for i,md in _d.get('chains').iteritems():
-                l_dicts.append(md)
-        
-        return l_dicts
-    
-    def targets_connect(self,idx=None):  
-        for d in self.chains_getDicts(idx):
-            for i,mObj in enumerate(d['mTargets']):
-                mc.parentConstraint([d['mLocs'][i].mNode, mObj.mNode])
+            chains = [chains[idx]]
+
+        return chains
+
+    def targets_connect(self,idx=None):
+        for chain in self.get_chains(idx):
+            for i,mObj in enumerate(chain.msgList_get('mTargets')):
+                mc.parentConstraint([chain.msgList_get('mLocs')[i].mNode, mObj.mNode])
     def targets_disconnect(self,idx=None):
-        for d in self.chains_getDicts(idx):
-            for i,mObj in enumerate(d['mTargets']):
+        for chain in self.get_chains(idx):
+            for i,mObj in enumerate(chain.msgList_get('mTargets')):
                 _buffer = mObj.getConstraintsTo()
                 if _buffer:
                     mc.delete(_buffer)
     
     def targets_select(self,idx=None):
         ml= []
-        for d in self.chains_getDicts(idx):
-            for i,mObj in enumerate(d['mTargets']):
+        for chain in self.get_chains(idx):
+            for i,mObj in enumerate(chain.msgList_get('mTargets')):
                 if 'loc' not in mObj.mNode:
                     ml.append(mObj)
         
@@ -885,7 +881,7 @@ class cgmDynFK(cgmMeta.cgmObject):
 
                 
     def delete(self):
-        pass        
+        pass
 
 
 

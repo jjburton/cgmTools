@@ -456,9 +456,29 @@ def uiFunc_update_details(self):
 
 
     # Nucleus
-    uiFunc_make_display_line(_details, label='Nucleus:', text=dat['mNucleus'].p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,dat['mNucleus'].p_nameBase), buttonInfo="Select nucleus transform.", presetOptions=True, presetObj=dat['mNucleus'].p_nameBase)
+    uiFunc_make_display_line(_details, label='Nucleus:', text=self._mDynFK.mNucleus[0], button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,self._mDynFK.mNucleus[0]), buttonInfo="Select nucleus transform.", presetOptions=True, presetObj=self._mDynFK.mNucleus[0])
 
     uiFunc_make_display_line(_details, label='Hair System:', text=dat['mHairSysShape'].p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,dat['mHairSysShape'].p_nameBase), buttonInfo="Select hair system transform.", presetOptions=True, presetObj=dat['mHairSysShape'].p_nameBase)
+
+    _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate',padding = 5)        
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    mUI.MelLabel(_row, 
+                 l='Enabled:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.nucleusEnabledCB = mUI.MelCheckBox(_row,en=True,
+                               v = True,
+                               label = '',
+                               ann='Enable Nucleus') 
+    self.nucleusEnabledCB(edit=True, changeCommand=cgmGEN.Callback(uiFunc_set_nucleus_enabled,self))
+    
+    mUI.MelSpacer(_row,w=_padding)
+    
+    _row.layout()
+
     # Start Times
 
     _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate',padding = 5)        
@@ -480,6 +500,7 @@ def uiFunc_update_details(self):
     mUI.MelSpacer(_row,w=_padding)
     
     _row.layout()
+
 
     # TimeInput Row ----------------------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate')
@@ -537,17 +558,28 @@ def uiFunc_update_details(self):
 
     _row.layout()    
 
-    # Chains
-    for idx in dat['chains']:
-        chainDat = dat['chains'][idx]
 
+    _row = mUI.MelHLayout(_details,ut='cgmUISubTemplate',padding = _padding*2)
+    
+    cgmUI.add_Button(_row,'Connect All Targets',
+        cgmGEN.Callback(uiFunc_connect_targets, self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Connect All Targets')
+    cgmUI.add_Button(_row,'Disconnect All Targets',
+        cgmGEN.Callback(uiFunc_disconnect_targets, self),                         
+        'Disconnect All Targets') 
+
+    _row.layout()   
+
+    # Chains
+    for i,chain in enumerate(self._mDynFK.msgList_get('chain')):
         _row = mUI.MelHSingleStretchLayout(_details,ut='cgmUISubTemplate',padding = _padding)        
 
         mUI.MelSpacer(_row,w=_padding)
 
         _subChainColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
 
-        chainFrame = mUI.MelFrameLayout(_subChainColumn, label=chainDat['mGrp'].p_nameBase, collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+        chainFrame = mUI.MelFrameLayout(_subChainColumn, label=chain.p_nameBase, collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
         
         _chainColumn = mUI.MelColumnLayout(chainFrame,useTemplate = 'cgmUIHeaderTemplate') 
 
@@ -559,22 +591,41 @@ def uiFunc_update_details(self):
         mc.setParent(_chainColumn)
         cgmUI.add_LineSubBreak()
 
-        uiFunc_make_display_line(_chainColumn, label='Follicle:', text=chainDat['mFollicle'].p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chainDat['mFollicle'].p_nameBase), buttonInfo="Select follicle transform.", presetOptions=True, presetObj = chainDat['mFollicle'].p_nameBase)
-        uiFunc_make_display_line(_chainColumn, label='Group:', text=chainDat['mGrp'].p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chainDat['mGrp'].p_nameBase), buttonInfo="Select group transform.")
+        uiFunc_make_display_line(_chainColumn, label='Follicle:', text=cgmMeta.asMeta(chain.mFollicle[0]).p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chain.mFollicle[0]), buttonInfo="Select follicle transform.", presetOptions=True, presetObj = chain.mFollicle[0])
+        uiFunc_make_display_line(_chainColumn, label='Group:', text=chain.p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chain.p_nameBase), buttonInfo="Select group transform.")
 
         mc.setParent(_chainColumn)
         cgmUI.add_LineSubBreak()
 
         _row = mUI.MelHLayout(_chainColumn,ut='cgmUISubTemplate',padding = _padding*2)
         cgmUI.add_Button(_row,'Bake Joints',
-            cgmGEN.Callback(uiFunc_bake,self,'chain', chainDat['mObjJointChain']),                         
+            cgmGEN.Callback(uiFunc_bake,self,'chain', chain.msgList_get('mObjJointChain')),                         
             #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
             'Bake All Joints')
         cgmUI.add_Button(_row,'Bake Targets',
-            cgmGEN.Callback(uiFunc_bake,self,'target', chainDat['mTargets']),                         
+            cgmGEN.Callback(uiFunc_bake,self,'target', chain.msgList_get('mTargets')),                         
             'Bake All Targets') 
 
         _row.layout()    
+
+        _row = mUI.MelHLayout(_chainColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    
+        cgmUI.add_Button(_row,'Connect Targets',
+            cgmGEN.Callback(uiFunc_connect_targets, self, i),                         
+            #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+            'Connect All Targets')
+        cgmUI.add_Button(_row,'Disconnect Targets',
+            cgmGEN.Callback(uiFunc_disconnect_targets, self, i),                         
+            'Disconnect All Targets') 
+
+        _row.layout()  
+
+        _row = mUI.MelHLayout(_chainColumn,ut='cgmUISubTemplate',padding = _padding*2)
+        cgmUI.add_Button(_row,'Delete Chain',
+            cgmGEN.Callback(uiFunc_delete_chain,self, i),                         
+            #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+            'Bake All Joints')
+        _row.layout()  
 
         frameDat = [['Targets', 'mTargets'],
                     ['Locators','mLocs'],
@@ -589,7 +640,7 @@ def uiFunc_update_details(self):
 
             mUI.MelSpacer(row,w=_padding)
 
-            itemList = uiFunc_create_selection_list(row, [x.p_nameShort for x in chainDat[dat[1]]] )
+            itemList = uiFunc_create_selection_list(row, [x.p_nameShort for x in chain.msgList_get(dat[1])] )
 
             mUI.MelSpacer(row,w=_padding)
 
@@ -601,6 +652,17 @@ def uiFunc_update_details(self):
 
     mc.setParent(_details)
     cgmUI.add_LineSubBreak()
+
+def uiFunc_delete_chain(self, idx):
+    self._mDynFK.chain_deleteByIdx(idx)
+    uiFunc_update_details(self)
+
+def uiFunc_connect_targets(self, idx=None):
+    self._mDynFK.targets_connect(idx)
+
+def uiFunc_disconnect_targets(self, idx=None):
+    self._mDynFK.targets_disconnect(idx)
+
 
 # mode - 'target', 'chain'
 def uiFunc_bake(self, mode, mObjs):
@@ -639,6 +701,9 @@ def uiFunc_create_selection_list(parent, items):
 
     return itemList
 
+def uiFunc_set_nucleus_enabled(self):
+    mc.setAttr('%s.enable' % self._mDynFK.mNucleus[0], self.nucleusEnabledCB.getValue())
+
 def uiFunc_set_start_time(self,mode):
     if mode == 'beginning':
         self.startTimeIF(e=True, v=mc.playbackOptions(q=True, min=True))
@@ -671,7 +736,9 @@ def uiFunc_make_dynamic_chain(self):
         uiFunc_load_dyn_chain(self, mDynFK.p_nameBase)
     else:
         self._mDynFK.chain_create(name = self.options_name.getValue(),objs=self.itemList.getItems(),fwd=self.fwdMenu.getValue(), up=self.upMenu.getValue())
-        uiFunc_load_dyn_chain(self, mDynFK.p_nameBase)
+        uiFunc_update_details(self)
+
+    self.itemList.rebuild()
 
 def uiFunc_load_dyn_chain(self, chain):
     _str_func = 'uiFunc_load_dyn_chain'  
