@@ -8207,7 +8207,7 @@ def blockProfile_load(self, arg):
     log.debug("|{0}| >>  BlockModule: {1} | profile: {2}".format(_str_func,mBlockModule,arg))
     try:_d = mBlockModule.d_block_profiles[arg]
     except Exception,err:
-        return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
+        return log.warning("|{0}| >>  Failed to query profile: {1} | {2} | {3}".format(_str_func,err, _short, Exception))
     
     #if not _d.get('blockProfile'):
     #    _d['blockProfile'] = arg

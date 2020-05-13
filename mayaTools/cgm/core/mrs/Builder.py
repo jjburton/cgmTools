@@ -2262,7 +2262,7 @@ class ui(cgmUI.cgmGUI):
                             label = "Duplicate",
                             ann = '[{0}] Duplicate the block'.format(_short),                        
                             en=True,
-                            c=uiCallback_withUpdate(self,_mBlock,'duplicate'))
+                            c=uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'duplicate'))
             
             mUI.MelMenuItemDiv(_popUp)
             

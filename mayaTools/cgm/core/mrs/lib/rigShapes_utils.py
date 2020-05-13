@@ -440,10 +440,10 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
                 mIKCrv = ml_handleTargets[-1].doCreateAt()
                 
             if shapeArg is not None:
-                mIK_formHandle = ml_formHandles[ self.int_handleEndIdx ]
+                mIK_formHandle = ml_formHandles[ self.int_handleEndIdx] #self.int_handleEndIdx ]
                 bb_ik = POS.get_bb_size(mIK_formHandle.mNode,True,mode='max')
-                _ik_shape = CURVES.create_fromName(shapeArg, size = bb_ik)
-                ATTR.set(_ik_shape,'scale', 2.0)
+                _ik_shape = CURVES.create_fromName(shapeArg, size = bb_ik * 1.5)
+                #ATTR.set(_ik_shape,'scale', 4.0)
                 mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
                 mIKShape.doSnapTo(mIK_formHandle)          
                 
@@ -451,11 +451,12 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
                 
             else:
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, ml_fkShapes[-1].mNode, True)
+                
         elif ikEnd == 'shapeArg':
             mIK_formHandle = ml_formHandles[ self.int_handleEndIdx ]
             bb_ik = POS.get_bb_size(mIK_formHandle.mNode,True,mode='max')
-            _ik_shape = CURVES.create_fromName(shapeArg, size = bb_ik)
-            ATTR.set(_ik_shape,'scale', 1.1)
+            _ik_shape = CURVES.create_fromName(shapeArg, size = bb_ik + 1.3)
+            #ATTR.set(_ik_shape,'scale', 1.1)
     
             mIKShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
     
