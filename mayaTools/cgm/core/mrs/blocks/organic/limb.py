@@ -1439,14 +1439,16 @@ def form(self):
                 pass
                 #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
             elif mHandle in [md_handles['start'],md_handles['end']]:
-                _lock = []
+                _lock = ['sz']
                 if mHandle == md_handles['start']:
                     _lock.append('rotate')
                     
                 #ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
                 #ATTR.set_standardFlags( mHandle.mNode, _lock)
                 #mHandle.doConnectOut('sy',['sx','sz'])
+                
                 ATTR.set_standardFlags( mHandle.mNode, _lock)
+                ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
                 
             else:
                 ATTR.set_standardFlags( mHandle.mNode, ['sz'])
@@ -1740,7 +1742,8 @@ def form(self):
         
         pprint.pprint(ml_handles_chain)
         SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], 
-                         aimAxis="z-", mode='vector', vectorUp=_mVectorUp)        
+                         aimAxis="z-", mode='vector', vectorUp=_mVectorUp)
+        
         self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
         
         #Aim end handle ----------------------------------------------------------------------------------- 
