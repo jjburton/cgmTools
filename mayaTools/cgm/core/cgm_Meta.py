@@ -838,6 +838,10 @@ class cgmNode(r9Meta.MetaClass):
     def getMayaAttr(self,*a,**kws):
         return ATTR.get(self.mNode,*a,**kws)
     getAttr = getMayaAttr#...TEMP
+    
+    def setMayaAttr(self,*a,**kws):
+        return ATTR.set(self.mNode,*a,**kws)
+    
     def getMayaAttrString(self,attr=None, nameCall = 'short'):
         return "{0}.{1}".format(getattr(NAMES,nameCall)(self.mNode), attr)
     

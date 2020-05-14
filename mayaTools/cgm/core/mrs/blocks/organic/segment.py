@@ -225,7 +225,7 @@ d_block_profiles = {
                 'loftShape':'wideDown',
                 'loftSetup':'loftList',
                 'loftList':['wideDown','squircleDiamond','squircleDiamond','circle'],
-                'ikSetup':'spline',
+                'ikSetup':'ribbon',
                 'ikBase':'simple',
                 'ikEnd':'tipBase',            
                 'nameIter':'tentacle',
@@ -1132,10 +1132,10 @@ def rig_prechecks(self):
         
         #Lever ============================================================================    
         log.debug(cgmGEN._str_subLine)
-        
-        #if mBlock.scaleSetup:
-            #self.l_precheckErrors.append('scaleSetup not ready')
-            #return False        
+        str_ikSetup = mBlock.getEnumValueString('ikSetup')
+        if mBlock.scaleSetup and str_ikSetup in ['spline']:
+            self.l_precheckErrors.append('scaleSetup with spline not ready. Use ribbon if you need scale')
+            return False        
             #raise NotImplementedError,"scaleSetup not ready."
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
