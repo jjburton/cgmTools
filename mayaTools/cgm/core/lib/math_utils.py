@@ -117,6 +117,9 @@ class Vector3(EUCLID.Vector3):
 #>>> Utilities
 #===================================================================
 
+def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
+    return abs(a-b) <= max( rel_tol * max(abs(a), abs(b)), abs_tol )
+
 def get_average_pos(posList = []):
     """
     Returns the average of a list of given positions

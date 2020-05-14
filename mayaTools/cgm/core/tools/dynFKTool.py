@@ -604,10 +604,39 @@ def uiFunc_update_details(self):
         cgmUI.add_LineSubBreak()
 
         uiFunc_make_display_line(_chainColumn, label='Follicle:', text=cgmMeta.asMeta(chain.mFollicle[0]).p_nameBase, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chain.mFollicle[0]), buttonInfo="Select follicle transform.", presetOptions=True, presetObj = chain.mFollicle[0])
+        
+        mc.setParent(_chainColumn)
+        cgmUI.add_LineSubBreak()
+
         uiFunc_make_display_line(_chainColumn, label='Group:', text=chain.p_nameShort, button=True, buttonLabel = ">>", buttonCommand=cgmGEN.Callback(uiFunc_select_item,chain.p_nameBase), buttonInfo="Select group transform.")
 
         mc.setParent(_chainColumn)
         cgmUI.add_LineSubBreak()
+
+        _row = mUI.MelHSingleStretchLayout(_chainColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)                          
+        mUI.MelLabel(_row,l='Orient Up:')  
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        chainDirections = []
+        for dir in ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']:
+            if chain.fwd[0] != dir[0]:
+                chainDirections.append(dir)
+        chainDirections.append('None')
+       
+        upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
+        for dir in chainDirections:
+            upMenu.append(dir)
+
+        upMenu.setValue( chain.up )
+
+        upMenu(edit=True, changeCommand=cgmGEN.Callback(uiFunc_set_chain_up,self,i,upMenu))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
 
         _row = mUI.MelHLayout(_chainColumn,ut='cgmUISubTemplate',padding = _padding*2)
         cgmUI.add_Button(_row,'Bake Joints',
@@ -675,6 +704,14 @@ def uiFunc_connect_targets(self, idx=None):
 def uiFunc_disconnect_targets(self, idx=None):
     self._mDynFK.targets_disconnect(idx)
 
+def uiFunc_set_chain_up(self, idx, upMenu):
+    #print "Changing up on %s to %s" % ( chain.p_nameBase, upMenu.getValue() )
+    axis = upMenu.getValue()
+    if axis == 'None':
+        axis = None
+    else:
+        axis = VALID.simpleAxis(axis)
+    self._mDynFK.chain_setOrientUpByIdx(idx, axis)
 
 # mode - 'target', 'chain'
 def uiFunc_bake(self, mode, mObjs):

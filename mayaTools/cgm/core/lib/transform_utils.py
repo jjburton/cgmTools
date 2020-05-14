@@ -1373,8 +1373,33 @@ def group_me(obj = None,
 
     return mc.rename(group, "{0}_grp".format(NAME.base(obj))) 
 
+def closestAxisTowardObj_get(sourceObj, targetObj):
+    v = sourceObj.getTransformInversePoint(targetObj.p_position).normalized()
+    m = max( abs(v.x), abs(v.y), abs(v.z) )
+    
+    va = (  int(v.x / abs(v.x)) if MATH.isclose(abs(v.x), m) else 0,
+            int(v.y / abs(v.y)) if MATH.isclose(abs(v.y), m) else 0,
+            int(v.z / abs(v.z)) if MATH.isclose(abs(v.z), m) else 0 )
 
+    return VALID.simpleAxis(va)
 
+def closestAxisToObjAxis_get(sourceObj, targetObj, targetAxis):
+    targetWorldAxisVector = targetObj.getTransformDirection(targetAxis.p_vector)
+    v = sourceObj.getTransformInverseDirection(targetWorldAxisVector).normalized()
+    m = max( abs(v.x), abs(v.y), abs(v.z) )
+    
+    va = (  int(v.x / abs(v.x)) if MATH.isclose(abs(v.x), m) else 0,
+            int(v.y / abs(v.y)) if MATH.isclose(abs(v.y), m) else 0,
+            int(v.z / abs(v.z)) if MATH.isclose(abs(v.z), m) else 0 )
+
+    return VALID.simpleAxis(va)
+
+def crossAxis_get(axis):
+    returnAxis = VALID.simpleAxis('y+')
+    if axis.p_string[0] == 'y':
+        returnAxis = VALID.simpleAxis('z+')
+
+    return returnAxis
 
 def create_vectorCurveFromObj(obj = None, vector = 'z+',distance=1,asEuclid = False):
     try:_vec = transformDirection(obj,vector)

@@ -12,6 +12,8 @@ import cgm.core.cgm_Meta as cgmMeta
 from cgm.core.lib import math_utils as MATHUTILS
 import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.lib.snap_utils as SNAP
+import cgm.core.lib.transform_utils as TRANS
+import cgm.core.lib.constraint_utils as CONSTRAINTS
 
 import pprint
 import copy
@@ -187,7 +189,7 @@ class cgmDynFK(cgmMeta.cgmObject):
                  startFrame = -50,
                  extendStart = None,
                  extendEnd = None,
-                 upControl = True,
+                 upControl = False,
                  aimUpMode = 'joint',
                  *args,**kws):
         """ 
@@ -316,11 +318,31 @@ class cgmDynFK(cgmMeta.cgmObject):
             mGrp.delete()
         
         self.msgList_purge('chain')
-        
+    
+    def chain_setOrientUpByIdx(self, idx=None, axis=None):
+        if idx is None:
+            return log.warning("Must have an idx to set orient")
+
+        chain = self.msgList_get('chain')[idx]
+
+        for parent in chain.msgList_get('mParents'):
+            for constraint in CONSTRAINTS.get_constraintsFrom(parent, typeFilter='aimConstraint'):
+                constraintNode = cgmMeta.asMeta(constraint)
+                if axis is None:
+                    constraintNode.worldUpType = 4
+                else:
+                    constraintNode.worldUpType = 2
+                    constraintNode.upVector = axis.p_vector
+                    constraintNode.worldUpVector = axis.p_vector
+
+        chain.up = str(axis)
+
+        return str(axis)
+
     def chain_create(self, objs = None,
                      fwd = None, up=None,
                      name = None,
-                     upSetup = "manual",
+                     upSetup = "guess",
                      extendStart = None,
                      extendEnd = True,
                      mNucleus=None,
@@ -367,8 +389,14 @@ class cgmDynFK(cgmMeta.cgmObject):
         upControl = upControl or self.upControl
         aimUpMode = aimUpMode or self.aimUpMode
         
-        fwdAxis = simpleAxis(fwd)
-        upAxis = simpleAxis(up)
+        #fwdAxis = simpleAxis(fwd)
+        #upAxis = simpleAxis(up)
+
+        fwdAxis = TRANS.closestAxisTowardObj_get(ml[0], ml[1])
+        upAxis = TRANS.crossAxis_get(fwdAxis)
+
+        mGrp.doStore('fwd', fwdAxis.p_string)
+        mGrp.doStore('up', upAxis.p_string)
 
         #Curve positions...
         l_pos = []
@@ -624,11 +652,11 @@ class cgmDynFK(cgmMeta.cgmObject):
         # create control joint chain
         mc.select(cl=True)
         chain = []
-        for obj in objs:
+        for obj in ml:
             if len(chain) > 0:
                 mc.select(chain[-1])
-            jnt = mc.joint(name='%s_%s_jnt' % (obj.split(':')[-1], name))
-            SNAP.matchTarget_set(jnt, obj)
+            jnt = mc.joint(name='%s_%s_jnt' % (name, obj.p_nameBase))
+            SNAP.matchTarget_set(jnt, obj.mNode)
             mObj = cgmMeta.asMeta(jnt)
             mObj.doSnapTo(mObj.getMessageAsMeta('cgmMatchTarget'))
 
@@ -880,6 +908,7 @@ class cgmDynFK(cgmMeta.cgmObject):
         for chain in self.get_chains(idx):
             for i,mObj in enumerate(chain.msgList_get('mTargets')):
                 _buffer = mObj.getConstraintsTo()
+
                 if _buffer:
                     mc.delete(_buffer)
     
