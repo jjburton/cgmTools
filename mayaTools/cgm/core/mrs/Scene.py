@@ -192,9 +192,9 @@ example:
 		self.useMayaPy = bool(self.useMayaPyStore.getValue())
 
 		if self.showBakedOption:
-			self.showBakedOption(e=True, v = self.showBaked)
+			self.showBakedOption(e=True, checkBox = self.showBaked)
 		if self.removeNamespaceOption:
-			self.removeNamespaceOption(e=True, v = self.removeNamespace)
+			self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
 
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
