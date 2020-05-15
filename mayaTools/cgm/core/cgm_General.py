@@ -992,6 +992,33 @@ class Callback(object):
         finally:del self
             
 CB = Callback
+
+class CallbackPlus(object):
+    '''
+    Same as Callback but additional args and kwargs can be added
+    '''
+    def __init__( self, func, *a, **kw ):
+        self._func = func
+        self._args = a
+        self._kwargs = kw
+    def __call__( self, *args, **kwargs ):
+        try:
+            self._args = args + self._args
+            self._kwargs.update(kwargs)
+            return self._func( *self._args, **self._kwargs )
+        except Exception,err:
+            try:log.info("Func: {0}".format(self._func.__name__))
+            except:log.info("Func: {0}".format(self._func))
+            if self._args:
+                log.info("args: {0}".format(self._args))
+            if self._kwargs:
+                log.info("kws: {0}".format(self._kwargs))
+            for a in err.args:
+                log.info(a)
+                
+            cgmException(Exception,err)
+        finally:del self
+
 def stringModuleClassCall(self, module = None,  func = '', *args,**kws):
     """
     Function to call from a given module a function by string name with args and kws. 
