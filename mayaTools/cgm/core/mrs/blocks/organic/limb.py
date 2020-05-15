@@ -1915,9 +1915,12 @@ def prerig(self):
         ml_prerigTrackers = [] 
         
         ml_formHandlesCurveTargets = copy.copy(ml_formHandles)
+        
+        _addedLever = False
         if self.buildLeverBase:
             ml_formHandlesCurveTargets.pop(0)
-            ml_prerigTrackers.append(ml_formHandles[0])#...add our lever 
+            ml_prerigTrackers.append(ml_formHandles[0])#...add our lever
+            _addedLever = True
             
         #Track curve ============================================================================
         log.debug(cgmGEN.logString_sub(_str_func,'TrackCrv'))
@@ -1948,8 +1951,20 @@ def prerig(self):
         if self.buildLeverEnd:
             _count += 1
             _addedEnd = True
+            log.info(cgmGEN.logString_msg(_str_func,'Count | leverEnd add'))            
+            
         elif self.buildEnd and _ikEnd not in ['bank']:
-            _count +=1 
+            log.info(cgmGEN.logString_msg(_str_func,'Count | end add'))            
+            _count +=1
+            
+            
+        if _addedLever:
+            log.info(cgmGEN.logString_msg(_str_func,'Count | addedLever'))
+            _count -=1
+            
+        if _count < self.numControls:
+            log.info(cgmGEN.logString_msg(_str_func,'Count | count less than numControls. Clamping'))            
+            _count = MATH.Clamp(_count,self.numControls)
         
         #if not self.buildBall:
             #if self.buildEnd:
@@ -1957,6 +1972,9 @@ def prerig(self):
                 #_count +=1 
             
         log.info(cgmGEN.logString_sub(_str_func,'handle Count: {0}'.format(_count)))
+        log.info(cgmGEN.logString_sub(_str_func,'name Count: {0}'.format(int_namesToGet)))
+        #HERE JOSH, you need to take one off the count fore the build lever call above
+        
         pprint.pprint(ml_formHandlesCurveTargets)
         if len(ml_formHandlesCurveTargets)>=_count:
             log.info(cgmGEN.logString_msg(_str_func,'Can use formHandles as targets...'))
@@ -2259,7 +2277,9 @@ def skeleton_build(self, forceNew = True):
             _baseCount +=1
             
         if self.numControls > 1:
-            if not self.atUtils('datList_validate',datList='rollCount',count=_baseCount,defaultAttr='numRoll',forceEdit=0):
+            if not self.atUtils('datList_validate',datList='rollCount',
+                                count=_baseCount,
+                                defaultAttr='numRoll',forceEdit=0):
                 return False                
         
         mPrerigNull = self.prerigNull

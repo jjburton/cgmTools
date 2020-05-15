@@ -2289,7 +2289,15 @@ class ui(cgmUI.cgmGUI):
                             c =cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                'stepUI',
                                                **{'updateUI':0,'mode':'stepBuild'}),
-                            label = "Step Build")             
+                            label = "Step Build")
+            
+            mUI.MelMenuItemDiv(_popUp)
+            mUI.MelMenuItem(_popUp,
+                            label = 'Reload Module',
+                            ann = 'Reload block module',
+                            c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                'getBlockModule',
+                                                **{'reloadMod':1}))
             
 
             return

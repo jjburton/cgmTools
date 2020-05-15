@@ -3602,7 +3602,32 @@ def siblings_pushSubShapers(self,matchType=True,matchProfile=True):
             for a,v in l[i].iteritems():
                 mHandle.setMayaAttr(a,v)
         
-                 
+def siblings_pushPrerigHandles(self,matchType=True,matchProfile=True):
+    _str_func = 'siblings_pushPrerigHandles'
+    
+    ml_siblings = siblings_get(self, matchType,matchProfile)
+    if not ml_siblings:
+        return 
+    
+    ml_source = self.msgList_get('prerigHandles',asMeta = True)
+    if not ml_source:
+        return log.warning("|{0}| >> Block settings...".format(_str_func))
+    
+    l = []
+    for mHandle in ml_source:
+        d = {}
+        for a in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+            d[a]= mHandle.getMayaAttr(a)
+        l.append(d)
+    
+    pprint.pprint(l)
+    
+    for mSib in ml_siblings:
+        log.info(cgmGEN.logString_msg(_str_func,mSib))
+        ml_shapers = mSib.msgList_get('prerigHandles',asMeta = True)
+        for i,mHandle in enumerate(ml_shapers):
+            for a,v in l[i].iteritems():
+                mHandle.setMayaAttr(a,v)
     
     
 
@@ -6170,6 +6195,14 @@ _d_attrStateVisOff = {0:[],
                         'ribbonConnectBy',
                         'spaceSwitch_fk']}
 
+l_aHidden = (u'mSystemRoot',
+              u'baseSizeX',
+              u'baseSizeY',
+              u'baseSizeZ',
+              u'attributeAliasList',
+              u'cgmColorLock')
+l_aKeyable = ()
+
 def attrMask_getBaseMask(self):
     _str_func = ' attrMask_getBaseMask'
     log.debug(cgmGEN.logString_start(_str_func)) 
@@ -6203,8 +6236,8 @@ def attrMask_set(self,mode=None,clear=False):
 
     _short = self.mNode
     _baseDat = self.baseDat or {}
-    l_hidden = _baseDat.get('aHidden',[])
-    l_keyable =_baseDat.get('aKeyable',[])
+    l_hidden = l_aHidden#_baseDat.get('aHidden',[])
+    l_keyable = l_aKeyable#_baseDat.get('aKeyable',[])
     
     if not l_hidden and not l_keyable:
         return log.warning(cgmGEN.logString_msg(_str_func,"[{0}] Necessary baseDat not found. This block needs to be rebuilt to enable".format(_short)))
@@ -6231,7 +6264,7 @@ def attrMask_set(self,mode=None,clear=False):
         _state = 1
         l_attrs = get_stateChannelBoxAttrs(self,mode)
         
-        l_baseHidden = self.baseDat['aHidden']
+        l_baseHidden = l_aHidden#self.baseDat['aHidden']
     
         for a in self.getAttrs(ud=True):
             if a not in l_attrs:
@@ -6313,7 +6346,7 @@ def get_stateChannelBoxAttrs(self,mode = None,report=False):
                 
         #Make sure no core stuff sneaked through
         _baseDat = self.baseDat or {}
-        l_hidden = _baseDat.get('aHidden',[])
+        l_hidden = l_aHidden#_baseDat.get('aHidden',[])
         for a in l_hidden:
             try:l_attrs.remove(a)
             except:pass
