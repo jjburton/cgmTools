@@ -888,7 +888,7 @@ def dotproduct(v1, v2):
     # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
     v1 = VALID.euclidVector3Arg(v1)
     v2 = VALID.euclidVector3Arg(v2)
-    return max(min(sum((a*b) for a, b in zip(v1, v2)), 1.0), -1.0)
+    #return max(min(sum((a*b) for a, b in zip(v1, v2)), 1.0), -1.0)
     return sum((a*b) for a, b in zip(v1, v2))
 
 def length(v):

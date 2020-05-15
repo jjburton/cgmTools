@@ -281,8 +281,8 @@ class Vector2:
 
     def dot(self, other):
         assert isinstance(other, Vector2)
-        return max(min(self.x * other.x + \
-               self.y * other.y, 1.0), -1.0)
+        return self.x * other.x + \
+               self.y * other.y
 
     def cross(self):
         return Vector2(self.y, -self.x)
@@ -537,9 +537,9 @@ class Vector3:
 
     def dot(self, other):
         assert isinstance(other, Vector3)
-        return max(min(self.x * other.x + \
+        return self.x * other.x + \
                self.y * other.y + \
-               self.z * other.z, 1.0), -1.0)
+               self.z * other.z
     
     def add(self, other):
         assert isinstance(other,Vector3)

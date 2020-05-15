@@ -153,6 +153,39 @@ class ContextualPick(object):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Subclasses
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+class ClickAction(ContextualPick):   
+    def __init__(self, offset=.1, onPress=None):
+        self.offset = offset
+        self.onPress = onPress
+
+        ContextualPick.__init__(self, space='screen')
+
+    def press(self):
+        """
+        Press action. Clears buffers.
+        """            
+        ContextualPick.press(self)
+        self.updatePos()
+
+        if not self.onPress is None:
+            self.onPress({'anchorPoint':self.anchorPoint, 'pos':self.clickPos,'vector':self.clickVector})
+
+        self.dropTool()
+        mc.refresh()
+    
+    def updatePos(self):
+        """
+        Get updated position data via shooting rays
+        """
+
+        _str_funcName = 'ScreenToWorldPosition.updatePos'
+        
+        buffer =  screenToWorld(int(self.x),int(self.y))
+
+        self.clickPos = MATHUTILS.get_space_value( buffer[0],'mayaSpace' )
+        self.clickVector = buffer[1]
+        
+
 _clickMesh_modes = ['surface','intersections','midPoint']
 def clickMesh_func(*a,**kws):
     return clickMesh(*a,**kws).finalize()
