@@ -3536,7 +3536,89 @@ def blockParent_set(self, parent = False, attachPoint = None):
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 
+def siblings_get(self,matchType = False, matchProfile = False, excludeSelf = True, matchName=False):
+    _str_func = 'siblings_get'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
 
+    d = {}
+    if matchType:
+        d['blockType'] = self.blockType
+    if matchProfile:
+        d['blockProfile'] = self.blockProfile
+    if matchName:
+        d['cgmName'] = self.cgmName
+
+
+    mBlockParent  = self.getMessage('blockParent',asMeta=True)
+    log.debug("|{0}| >> mBlockParent: {1}".format(_str_func,mBlockParent))
+    if not mBlockParent:
+        return False
+    
+    ml_match = []
+    ml_children = mBlockParent[0].getBlockChildren()
+    
+    for mChild in ml_children:
+        log.debug("|{0}| >> mChild: {1}".format(_str_func,mChild))        
+        _match = True
+        for a,v in d.iteritems():
+            if not str(mChild.getMayaAttr(a)) == str(v):
+                _match = False
+                continue
+        if not mChild.blockParent == mBlockParent[0]:
+            _match = False
+            continue
+        if _match:ml_match.append(mChild)
+    
+    if excludeSelf:
+        ml_match.remove(self)
+    
+    pprint.pprint(ml_match)
+    return ml_match
+
+def siblings_pushSubShapers(self,matchType=True,matchProfile=True):
+    _str_func = 'siblings_pushSubShapers'
+    
+    ml_siblings = siblings_get(self, matchType,matchProfile)
+    if not ml_siblings:
+        return 
+    
+    ml_source = form_getSubShapers(self)
+    if not ml_source:
+        return log.warning("|{0}| >> Block settings...".format(_str_func))
+    
+    l = []
+    for mHandle in ml_source:
+        d = {}
+        for a in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+            d[a]= mHandle.getMayaAttr(a)
+        l.append(d)
+    
+    pprint.pprint(l)
+    
+    for mSib in ml_siblings:
+        log.info(cgmGEN.logString_msg(_str_func,mSib))
+        ml_shapers = form_getSubShapers(mSib)
+        for i,mHandle in enumerate(ml_shapers):
+            for a,v in l[i].iteritems():
+                mHandle.setMayaAttr(a,v)
+        
+                 
+    
+    
+
+def form_getSubShapers(self):
+    ml_formHandles = self.msgList_get('formHandles')
+    ml = []
+    for mHandle in ml_formHandles:
+        mLoft = mHandle.getMessageAsMeta('loftCurve')
+        if mLoft:
+            ml.append(mLoft)
+        ml_sub = mHandle.msgList_get('subShapers')
+        if ml_sub:
+            ml.extend(ml_sub)
+    return ml
+    
+    
 #=============================================================================================================
 #>> Mirror/Duplicate
 #=============================================================================================================
