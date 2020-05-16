@@ -776,7 +776,7 @@ def loadLocalPython():
     mel.eval('python("import cgm.core.cgm_Meta as cgmMeta;import Red9.core.Red9_Meta as r9Meta;import maya.cmds as mc;import pprint;")')
     
 def reloadCore():
-    mel.eval('python("import cgm.core;reload(cgm.core);cgm.core._reload();")')
+    mel.eval('python("import cgm.core;cgm.core._reload();")')
 
 def load_MorpheusMaker( *a ):
     try:

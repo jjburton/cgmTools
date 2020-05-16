@@ -51,7 +51,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 _l_core_order = ['cgm_General',
-                 'lib.zoo.baseMelUI',
                  'cgm_Meta',
                  'cgm_Deformers',
                  'cgm_PuppetMeta',
@@ -68,6 +67,7 @@ _l_core_order = ['cgm_General',
                  'rigger.ModuleShapeCaster',
                  'rigger.ModuleControlFactory',
                  'classes.DraggerContextFactory',
+                 'lib.zoo.baseMelUI',
                  'lib.euclid',
                  'classes.SnapFactory',
                  'lib.rayCaster',
