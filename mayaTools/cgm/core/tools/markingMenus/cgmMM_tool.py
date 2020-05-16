@@ -154,8 +154,12 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                 log.info("{0} button >> error {1}".format(self._str_MM, err))     
     
     def button_CallBack(self, func, *a, **kws ):
-        MMUTILS.kill_mmTool()
+        print func
+        if a:print a
+        if kws:print kws
         mmCallback(func,*a,**kws)
+        MMUTILS.kill_mmTool()
+        
 
     def toggleVarAndReset(self, optionVar):
         try:
@@ -205,6 +209,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         if self._len_sel >2:
             self._b_sel_few = True
             
+        self.mmCallback = mmCallback
         
         log.debug("|{0}| >> build_menu".format(self._str_MM))                
         
@@ -2118,7 +2123,8 @@ class mmCallback(object):
             for a in err.args:
                 log.info(a)
             #raise Exception,err
-        finally:print 'got here...'
-
+        finally:
+            log.debug('mmCallback closed')
+            del self
 
 	

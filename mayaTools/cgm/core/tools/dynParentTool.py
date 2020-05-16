@@ -40,6 +40,7 @@ import cgm.core.lib.string_utils as CORESTRING
 from cgm.core.tools import attrTools as ATTRTOOLS
 from cgm.core.rigger.lib import spacePivot_utils as SPACEPIVOT
 from cgm.core.cgmPy import path_Utils as CGMPATH
+import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 #>>> Root settings =============================================================
 __version__ = '0.905312017'
@@ -1083,7 +1084,7 @@ d_DynParentGroupModeAttrs = {0:['space'],
         return _dynChild.orientTo, _dynChild.follow
     
 @cgmGEN.Timer
-def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}):
+def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}, Callback = cgmGEN.Callback):
     _str_func='uiMenu_changeSpace'
     log.debug(cgmGEN.logString_start(_str_func))
     __int_maxObjects = 10
@@ -1214,7 +1215,7 @@ def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}):
                 tmpMenu = mc.menuItem( p=parent, l="Multi Change %s"%atr, subMenu=True)                    
                 for i,o in enumerate(d_sharedAttrsDat.get(atr)):
                     mc.menuItem(p=tmpMenu,l = "%s"%o,
-                                c = cgmGEN.Callback(func_process,self.md_spaceSwitchDat,atr,o, d_timeContext))
+                                c = Callback(func_process,self.md_spaceSwitchDat,atr,o, d_timeContext))
                                 #c = cgmGEN.Callback(func_multiChangeDynParent,self.md_spaceSwitchDat,atr,o))
                 
     # Individual ----------------------------------------------------------------------------
@@ -1255,7 +1256,7 @@ def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}):
                             #if i == v:b_enable = False
                             #else:b_enable = True
                             mc.menuItem(p=tmpMenu,l = o,en = True,
-                                        c = cgmGEN.Callback(func_process,self.md_spaceSwitchDat,a,i, d_timeContext))
+                                        c = Callback(func_process,self.md_spaceSwitchDat,a,i, d_timeContext))
                                         #c = cgmUI.Callback(mDynParent.doSwitchSpace,a,i))
             else:
                 log.debug("|{0}| >> lacks dynParent: {1}".format(_str_func, _short))                
@@ -1389,7 +1390,7 @@ def func_multiChangeDynParent(md_spaceSwitchDat,attr,option):
 
 
 
-def uiMenu_changeSpaceOverTime(self, parent, showNoSel = False):
+def uiMenu_changeSpaceOverTime(self, parent, showNoSel = False,Callback=cgmGEN.Callback):
     _str_func = 'uiMenu_changeSpaceOverTime'
     
     __int_maxObjects = 10
@@ -1499,7 +1500,7 @@ def uiMenu_changeSpaceOverTime(self, parent, showNoSel = False):
                 tmpMenu = mc.menuItem( p=parent, l="multi Change %s"%atr, subMenu=True)                    
                 for i,o in enumerate(d_sharedAttrsDat.get(atr)):
                     mc.menuItem(p=tmpMenu,l = "%s"%o,
-                                c = cgmGEN.Callback(func_multiChangeDynParent,self.md_spaceSwitchDat,atr,o))
+                                c = Callback(func_multiChangeDynParent,self.md_spaceSwitchDat,atr,o))
             
     # Individual ----------------------------------------------------------------------------
     #log.debug("%s"%[k.getShortName() for k in self.md_spaceSwitchDat.keys()])
@@ -1528,7 +1529,7 @@ def uiMenu_changeSpaceOverTime(self, parent, showNoSel = False):
                             if i == v:b_enable = False
                             else:b_enable = True
                             mc.menuItem(p=tmpMenu,l = "%s"%o,en = b_enable,
-                                        c = cgmUI.Callback(mDynParent.doSwitchSpace,a,i))
+                                        c = Callback(mDynParent.doSwitchSpace,a,i))
             else:
                 log.debug("|{0}| >> lacks dynParent: {1}".format(_str_func, _short))                
                 
