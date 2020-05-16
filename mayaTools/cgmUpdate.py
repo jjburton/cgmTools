@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 This is housed outside our core stuff to be able to access and update it.
 ================================================================
 """
-__version__ = '0.1.01312018'
+__version__ = '1.0.05162020'
 
 from urllib2 import Request, urlopen, URLError
 import urllib2
@@ -614,12 +614,9 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     try:
         mel.eval('rehash')
         mel.eval('cgmToolbox')
-        import cgm
-        cgm.core._reload()
     except Exception,err:
         return log.error("Failed to load cgm | {0}".format(err))
-    #import cgm
-    #cgm.core._reload()
+
 
 
 def gitHub(branch = 'master'):
