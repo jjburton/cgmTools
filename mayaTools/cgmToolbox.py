@@ -200,7 +200,7 @@ def setupCGMToolBox():
     setupCGMPlugins()
     #setupDagProcMenu()
     #setupCGMMenu()
-    uiMainMenu_add()
+    uiMainMenu_rebuild()
 
 
 def setupCGMMenu():
