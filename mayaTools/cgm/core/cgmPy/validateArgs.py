@@ -1011,7 +1011,27 @@ d_vectorToString = {
 class simpleAxis(object):
     """ 
     """
+    def __new__(cls,*args,**kws):
+        log.debug('simpleAxis | new...')
+        simpleAxis.cached = None
+        
+        if args:
+            check = args[0]
+            if issubclass(type(check),simpleAxis):
+                log.debug('simpleAxis | isClass')
+                simpleAxis.cached = args[0]
+                return args[0]
+            #else:
+                #return False
+        
+        return super(cls.__class__, cls).__new__(simpleAxis,*args,**kws)
+        
     def __init__(self,arg,calledFrom = None):
+        if simpleAxis.cached:
+            log.debug('simpleAxis | cache')
+            return 
+        
+        log.debug('simpleAxis | __init__')
         _str_funcRoot = 'simpleAxis'
         if calledFrom: _str_func = "{0}.{1}({2})".format(calledFrom,_str_funcRoot,arg)    
         else:_str_func = "{0}({1})".format(_str_funcRoot,arg) 
@@ -1021,7 +1041,7 @@ class simpleAxis(object):
         self.__v_axis = None
         
         str_arg = arg
-        
+
         if isListArg(arg, types=int):
             #str_arg = '['+','.join([str(v) for v in arg]) + ']'
             str_arg = str(list(arg))
