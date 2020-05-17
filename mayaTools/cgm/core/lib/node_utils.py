@@ -370,7 +370,7 @@ def renderer_clean(check='Mayatomr',clean=False):
                         mc.delete(n)
             except:pass
             
-        if check in mc.unknownPlugin(q=1,list=1):
+        if check in mc.unknownPlugin(q=1,list=1) or []:
             log.debug("|{0}| >> Found: {1}".format(_str_func,check))
             if clean:
                 log.debug("|{0}| >> Removing: {1}".format(_str_func,check))
