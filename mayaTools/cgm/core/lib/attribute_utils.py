@@ -2982,7 +2982,7 @@ def datList_connect(node = None, attr = None, data = None, mode = None, dataAttr
         
         for i,_data in enumerate(_l_dat):
             str_attr = "{0}_{1}".format(attr,i)
-            store_info(node, str_attr, _data, mode)
+            store_info(node, str_attr, _data, mode,lock=False)
             _plug =  d_driven.get(i)
             if _plug:
                 for p in _plug:
