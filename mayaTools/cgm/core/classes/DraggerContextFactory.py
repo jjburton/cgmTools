@@ -106,6 +106,7 @@ class ContextualPick(object):
                            initialize = self.initialPress,
                            pressCommand = self.press,
                            releaseCommand = self.release,
+                           holdCommand = self.hold,
                            finalize = self.finalize,
                            *a,**kws )
 
@@ -132,6 +133,8 @@ class ContextualPick(object):
 
     def release(self):pass
 
+    def hold(self):pass
+
     def drag(self):
         self.dragPoint = mc.draggerContext(self.name, query=True, dragPoint=True)
         self.button = mc.draggerContext( self.name, query=True, button=True)
@@ -154,25 +157,57 @@ class ContextualPick(object):
 # Subclasses
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 class ClickAction(ContextualPick):   
-    def __init__(self, offset=.1, onPress=None):
-        self.offset = offset
+    def __init__(self, onPress=None, onRelease=None, dropOnPress=False, dropOnRelease=True):
         self.onPress = onPress
+        self.onRelease = onRelease
+        self.dropOnPress = dropOnPress
+        self.dropOnRelease = dropOnRelease
 
         ContextualPick.__init__(self, space='screen')
 
     def press(self):
         """
         Press action. Clears buffers.
-        """            
+        """         
+        _str_funcName = 'ClickAction.press'
+
         ContextualPick.press(self)
         self.updatePos()
 
-        if not self.onPress is None:
-            self.onPress({'anchorPoint':self.anchorPoint, 'pos':self.clickPos,'vector':self.clickVector})
+        if self.dropOnPress:
+            self.dropTool()
 
-        self.dropTool()
-        mc.refresh()
-    
+        try:
+            if not self.onPress is None:
+                self.onPress(self.constructDict())
+        except Exception,err:
+            log.error("|{0}| >> Failed to run onPress callback | err:{1}".format(_str_funcName,err))                
+
+    def hold(self):
+        log.info("Holding")
+        
+    def release(self):
+        _str_funcName = 'ClickAction.release'
+
+        ContextualPick.release(self)
+        self.updatePos()
+
+        if self.dropOnRelease:
+            self.dropTool()
+
+        try:
+            if not self.onRelease is None:
+                self.onRelease({'anchorPoint':self.anchorPoint, 'pos':self.clickPos,'vector':self.clickVector})
+        except Exception,err:
+            log.error("|{0}| >> Failed to run onPress callback | err:{1}".format(_str_funcName,err))                
+
+    def constructDict(self):
+        return {'anchorPoint':self.anchorPoint, 
+                'pos':self.clickPos,
+                'vector':self.clickVector, 
+                'x':self.x, 
+                'y':self.y }
+
     def updatePos(self):
         """
         Get updated position data via shooting rays

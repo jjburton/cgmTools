@@ -2441,7 +2441,7 @@ def uiCB_contextualAction(self,**kws):
     _autoKey = mc.autoKeyframe(q=True,state=True)
     #if _autoKey:mc.autoKeyframe(state=False)
     _l_cBuffer = []
-    mc.refresh(su=1)
+    #mc.refresh(su=1)
     
     if _mode == 'pushKey':
         log.debug("|{0}| >> Push Key buffer".format(_str_func))
