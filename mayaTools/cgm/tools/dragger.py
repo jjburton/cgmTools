@@ -21,10 +21,12 @@ import maya.mel as mel
 
 class Dragger(object):
     def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = 7.0, objectScale=100, velocityScalar=1, velocityDamp=6, debug=False):
-        self.obj = obj
+        self.obj = None
 
         if obj is None:
             self.obj = cgmMeta.asMeta( mc.ls(sl=True)[0] )
+        else:
+            self.obj = cgmMeta.asMeta(obj)
 
         self.aimFwd = VALID.simpleAxis(aimFwd)
         self.aimUp = VALID.simpleAxis(aimUp)
@@ -48,6 +50,8 @@ class Dragger(object):
     def bake(self, startTime=None, endTime=None):
         startTime = int(mc.playbackOptions(q=True, min=True))
         endTime = int(mc.playbackOptions(q=True, max=True))
+
+        self.setAim(aimFwd = self.aimFwd, aimUp = self.aimUp)
 
         fps = mel.eval('currentTimeUnitToFPS')
         
@@ -94,6 +98,8 @@ class Dragger(object):
             self.objectScale = objectScale
         
         self.dir = self.obj.getTransformDirection(self.aimFwd.p_vector)*self.objectScale
+        self.aimTargetPos = self.obj.p_position + self.dir
+
 
 
             

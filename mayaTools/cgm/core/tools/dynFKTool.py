@@ -1,12 +1,12 @@
 """
 ------------------------------------------
-baseTool: cgm.core.tools
-Author: Josh Burton
-email: jjburton@cgmonks.com
+dynFKTool : cgm.core.tools
+Author: David Bokser
+email: dbokser@cgmonks.com
 
 Website : http://www.cgmonks.com
 ------------------------------------------
-Example ui to start from
+cgmSimChain tool
 ================================================================
 """
 # From Python =============================================================
