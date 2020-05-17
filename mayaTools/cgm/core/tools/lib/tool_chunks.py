@@ -77,7 +77,7 @@ if cgmGEN.__mayaVersion__ >=2016:
 def uiSection_git(parent):
     _str_func = 'uiSection_git'  
     
-    l_branches = 'stable','master','MRS','MRSDEV','MRSWORKSHOP','MRSWORKSHOPDEV'
+    l_branches = 'master','MRSDEV','MRSWORKSHOP'
     
     _git = mc.menuItem(parent = parent,subMenu=True,
                        l='Pull',
@@ -86,7 +86,7 @@ def uiSection_git(parent):
         mc.menuItem(parent = _git,
                     l=branch,
                     ann = "Grab branch: {0}".format(branch),
-                    c= cgmGEN.Callback(CGMUPDATE.here,branch))
+                    c= cgmGEN.Callback(CGMUPDATE.here,branch,run=0))
         
     _dat = mc.menuItem(parent = parent,subMenu=True,
                            l='Report',
