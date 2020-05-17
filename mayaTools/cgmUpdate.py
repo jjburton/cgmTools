@@ -582,7 +582,7 @@ def get_branch_names():
     finally:
         print '...'
 
-def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
+def here(branch = _defaultBranch, idx = 0, cleanFirst = True, run = True):
     """
     """
     _str_func = 'here'
@@ -611,11 +611,12 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True):
     
     unzip(_zip,True,cleanFirst, targetPath=_path)
     
-    try:
-        mel.eval('rehash')
-        mel.eval('cgmToolbox')
-    except Exception,err:
-        return log.error("Failed to load cgm | {0}".format(err))
+    if run:
+        try:
+            mel.eval('rehash')
+            mel.eval('cgmToolbox')
+        except Exception,err:
+            return log.error("Failed to load cgm | {0}".format(err))
 
 
 

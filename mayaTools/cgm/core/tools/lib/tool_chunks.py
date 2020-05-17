@@ -86,7 +86,7 @@ def uiSection_git(parent):
         mc.menuItem(parent = _git,
                     l=branch,
                     ann = "Grab branch: {0}".format(branch),
-                    c= cgmGEN.Callback(CGMUPDATE.here,branch))
+                    c= cgmGEN.Callback(CGMUPDATE.here,branch,run=0))
         
     _dat = mc.menuItem(parent = parent,subMenu=True,
                            l='Report',
