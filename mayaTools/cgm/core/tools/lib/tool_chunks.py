@@ -816,7 +816,14 @@ def uiSection_dev(parent):
     mc.menuItem(parent = parent,
                 l='Load Morpheus Maker',
                 ann = "Attempt to load the Morpheus Maker - ALPHA",
-                c=lambda *a: load_MorpheusMaker())    
+                c=lambda *a: load_MorpheusMaker())
+    
+    _wipTools = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
+                             l='WIP Tools:')
+    mc.menuItem(parent = _wipTools,
+                l='animDraw',
+                ann = "Draw animation. If you can....",
+                c=lambda *a: TOOLCALLS.animDraw())    
     
     
     
