@@ -174,6 +174,125 @@ def buildFrames(self,parent):
             mUI.MelSpacer(_row,w=5)
             _row.layout()            
 
+class pathList_project(cgmMeta.pathList):
+    def __init__(self, optionVar = 'testPath'):
+        #self.l_paths = []
+        #self.mOptionVar = cgmOptionVar(optionVar,'string')
+        super(pathList_project, self).__init__(optionVar)
+        
+    def ui(self):
+        return ui_pathList_project(self)
+        
+class ui_pathList_project(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'cgmPathListProjectUI'    
+    WINDOW_TITLE = 'Edit Project Path List - {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 200,275
+    
+    def __init__(self,mPathList = None, *a,**kws):
+        self.mPathList = mPathList
+
+        super(ui_pathList_project, self).__init__(*a,**kws)
+        """
+    def insert_init(self,*args,**kws):
+        _str_func = 'post_win.insert_init'
+        #kws = self.kws
+        #args = self.args
+        if kws:log.debug("kws: %s"%str(kws))
+        if args:log.debug("args: %s"%str(args))
+        #log.debug(self.__call__(q=True, title=True))
+        
+        self.__version__ = __version__
+        self.__toolName__ = 'Builder'		
+        self.WINDOW_TITLE = ui_stepBuild.WINDOW_TITLE
+        self.DEFAULT_SIZE = ui_stepBuild.DEFAULT_SIZE
+        self.str_lastStep = 'None'
+        self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
+                                                    defaultValue = 'unityMed')"""
+        
+    def build_menus(self):
+        pass
+    
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+                
+        _inside = mUI.MelColumn(parent)
+                
+        cgmUI.add_Header('Remove')
+        
+        self.mColumn = mUI.MelColumn(_inside)
+        mc.setParent(_inside)
+        cgmUI.add_SectionBreak()                
+        cgmUI.add_LineBreak()
+        
+        
+        cgmUI.add_Header('Utils')
+        
+        cgmUI.add_Button(_inside, "Report",
+                         cgmGEN.Callback(self.mPathList.log_self),
+                         "Report PathList")
+        cgmUI.add_SectionBreak()        
+        cgmUI.add_SectionBreak()        
+
+        cgmUI.add_Button(_inside, "Clear",
+                         cgmGEN.Callback(self.mPathList.clear),
+                         "Clear PathList")        
+        cgmUI.add_SectionBreak()        
+        
+
+        self.rebuildList()
+        
+        return
+    
+    def rebuildList(self):
+        self.mColumn.clear()
+        self.mPathList.verify()
+        
+        for i,p in enumerate(self.mPathList.l_paths):
+            proj = data(filepath=p)
+            name = proj.d_project['name']
+            
+            cgmUI.add_Button(self.mColumn, name,
+                             cgmGEN.Callback(self.removePath,p),
+                             "Remove: {0} | {1} | {2}".format(i,name,p))        
+            
+    def removePath(self,p):
+        self.mPathList.remove(p)
+        self.rebuildList()
+
+
+def buildMenu_project(self,key, toProject=False):
+    mMenu = self.__dict__[key]
+    mMenu.clear()
+    
+    self.mPathList.verify()
+    
+    project_names = []
+    for i,p in enumerate(self.mPathList.l_paths):
+        proj = data(filepath=p)
+        name = proj.d_project['name']
+        project_names.append(name)
+        mUI.MelMenuItem(mMenu,
+                        label = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
+                        ann = "Set the project to: {0} | {1}".format(i,p),
+                        c=cgmGEN.Callback(self.uiProject_load,p))
+        
+    mUI.MelMenuItemDiv(mMenu)
+    #mUI.MelMenuItem(mMenu,
+    #                label = "Clear Recent",
+    #                ann="Clear the recent projects",
+    #                c=cgmGEN.Callback(self.mPathList.clear))
+    mUI.MelMenuItem(mMenu,
+                    label = "Edit Path List",
+                    ann="Open Edit UI",
+                    c=cgmGEN.Callback(self.mPathList.ui))    
+
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = 'cgmProjectManager'    
@@ -212,7 +331,7 @@ class ui(cgmUI.cgmGUI):
         self.var_pathProject = cgmMeta.cgmOptionVar('cgmVar_projectPath',defaultValue = '')
         self.var_pathLastProject = cgmMeta.cgmOptionVar('cgmVar_projectLastPath',defaultValue = '')
         
-        self.mPathList = cgmMeta.pathList('cgmProjectPaths')
+        self.mPathList = pathList_project('cgmProjectPaths')
         
         self.d_tf = {}
         self.d_uiTypes = {}
@@ -616,6 +735,9 @@ class ui(cgmUI.cgmGUI):
 
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_Project = mUI.MelMenu(l='Projects',
+                                          pmc = cgmGEN.Callback(buildMenu_project,self,'uiMenu_Project'))
+        
         self.uiMenu_utils = mUI.MelMenu(l='Utils', pmc = cgmGEN.Callback(self.buildMenu_utils),tearOff=True)
         
         self.uiMenu_help = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
@@ -680,30 +802,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_utils, l="Query",
                          c = lambda *a:self.fncMayaSett_query())        
         
-        
-        
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         
         #Recent -------------------------------------------------------------------
-        self.mPathList.verify()
-        _recent = mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Recent",subMenu=True)
         
-        project_names = []
-        for i,p in enumerate(self.mPathList.l_paths):
-            proj = data(filepath=p)
-            name = proj.d_project['name']
-            project_names.append(name)
-            mUI.MelMenuItem(_recent,
-                            label = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
-                            ann = "Set the project to: {0} | {1}".format(i,p),
-                            c=cgmGEN.Callback(self.uiProject_load,p))
-            
-        mUI.MelMenuItemDiv(_recent)
-        mUI.MelMenuItem(_recent,
-                        label = "Clear Recent",
-                        ann="Clear the recent projects",
-                        c=cgmGEN.Callback(self.mPathList.clear))                
         
         
         #>>> Reset Options		                     

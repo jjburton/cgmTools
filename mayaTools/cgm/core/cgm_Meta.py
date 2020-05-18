@@ -7693,6 +7693,11 @@ class pathList(object):
     def clear(self):
         self.mOptionVar.clear()
         self.l_paths = []
+        
+    def ui(self):
+        pass
+        
+        
     
 #=========================================================================      
 # R9 Stuff - We force the update on the Red9 internal registry  
