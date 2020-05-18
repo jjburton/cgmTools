@@ -240,8 +240,9 @@ class ui(cgmUI.cgmGUI):
             self.d_tf['general']['name'].setValue(_name)
             
             #self.mDat.write()
-            self.uiProject_save()
+            self.uiProject_save(duplicateMode=True)
             #self.uiProject_load(revert=True)
+            self.uiProject_fill()
             return
         return log.error("Project Creation cancelled")
                 
@@ -295,6 +296,14 @@ class ui(cgmUI.cgmGUI):
                     
         self.path_projectConfig = None
         
+        for k,tf in self.d_tf['pathsProject'].iteritems():
+            tf.setValue('',executeChangeCB=False)
+            
+        for k, tf in self.d_tf['paths'].iteritems():
+            tf.setValue('',executeChangeCB=False)
+        
+        
+        
         #Set pose path
         
         #Update file dir
@@ -338,7 +347,6 @@ class ui(cgmUI.cgmGUI):
                 tf(edit=True,visible=True)
             for k,tf in self.d_labels['pathsProject'].iteritems():
                 tf(edit=True,visible=False)
-                
             for k,tf in self.d_buttons['pathsProject'].iteritems():
                 tf(edit=True,
                    visible =True)
@@ -401,6 +409,9 @@ class ui(cgmUI.cgmGUI):
                     else:
                         if v is not None:
                             self.d_tf[dType][k].setValue(v,executeChangeCB=False)
+                        else:
+                            self.d_tf[dType][k].setValue('',executeChangeCB=False)
+                            
                             
                 except Exception,err:
                     log.error("Missing data field or failure: dtype:{0} | {1}".format(dType,k))
@@ -477,7 +488,6 @@ class ui(cgmUI.cgmGUI):
         self.mDat.read(path)
         self.uiProject_fill()
         
-
         #Set maya project path
         log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
         self.uiProject_pushPaths()
@@ -488,7 +498,6 @@ class ui(cgmUI.cgmGUI):
         self.mPathList.append(self.mDat.str_filepath)
         
         #self.mPathList.log_self()        
-        
         
         #Set pose path
 
@@ -512,7 +521,7 @@ class ui(cgmUI.cgmGUI):
             
         self.uiImage_Project.setImage(_imagePath)        
         
-    def uiProject_save(self, path = None, updateFile = True):
+    def uiProject_save(self, path = None, updateFile = True, duplicateMode = False):
         _str_func = 'uiProject_save'
         log.debug("|{0}| >>...".format(_str_func))
         
@@ -549,15 +558,23 @@ class ui(cgmUI.cgmGUI):
                 else:
                     self.mDat.__dict__[d][k] = ui.getValue()            
                     
-        ###Local paths
-        _d_local = {}
-        for k,v in self.mDat.__dict__['d_paths'].iteritems():
-            if v != self.mDat.__dict__['d_pathsProject'][k]:
-                _d_local[k] = v
+        if not duplicateMode:
+            ###Local paths
+            _d_local = {}
+            for k,v in self.mDat.__dict__['d_paths'].iteritems():
+                if v != self.mDat.__dict__['d_pathsProject'][k]:
+                    _d_local[k] = v
+                
+            _user = getpass.getuser()
+            self.mDat.d_pathsUser[_user] = _d_local
+            log.debug(cgmGEN.logString_sub(_str_func,"Local Dat user: {0}".format(k,_user)))
+        else:
+            log.debug(cgmGEN.logString_sub(_str_func,"Duplicate mode..."))
+            for d in self.mDat.d_paths,self.mDat.d_pathsProject:
+                for k,d2 in d.iteritems():
+                    d[k] = ''
+            self.mDat.d_pathsUser = {}
             
-        _user = getpass.getuser()
-        self.mDat.d_pathsUser[_user] = _d_local
-        log.debug(cgmGEN.logString_sub(_str_func,"Local Dat user: {0}".format(k,_user)))
             
         
         """
@@ -568,7 +585,7 @@ class ui(cgmUI.cgmGUI):
             self.mDat.d_paths[k] = ui.getValue()
             """
         #self.mDat.log_self()
-        self.mDat.write( path)
+        self.mDat.write( path,False)
         return log.warning("Saved complete!")
         
     def uiProject_saveAs(self):
@@ -576,6 +593,19 @@ class ui(cgmUI.cgmGUI):
         log.debug("|{0}| >>...".format(_str_func))
         
         self.uiProject_save(None,False)
+        self.uiProject_load(self.mDat.str_filepath)   
+        
+    def uiProject_duplicate(self):
+        _str_func = 'uiProject_duplicate'
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        
+        self.uiProject_save(None,False,duplicateMode=True)
+        self.uiProject_clear()
+        self.uiProject_load(self.mDat.str_filepath)
+
+            
+        #self.reset()
         
     def uiProject_revert(self):
         _str_func = 'uiProject_revert'
@@ -687,6 +717,8 @@ class ui(cgmUI.cgmGUI):
                          c = lambda *a:mc.evalDeferred(self.uiProject_save,lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save As",
                          c = lambda *a:mc.evalDeferred(self.uiProject_saveAs,lp=True))
+        #mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Duplicate",
+        #                c = lambda *a:mc.evalDeferred(self.uiProject_duplicate,lp=True))
         
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Utils' )
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
@@ -1207,7 +1239,7 @@ class ui(cgmUI.cgmGUI):
         if not PATHS.Path(_value).exists():
             mField(edit=True,bgc = _colorBad)
             
-            raise ValueError,"uiCC_checkPath | Invalid path: {0}".format(_value)
+            return log.error("uiCC_checkPath | Invalid path: {0}".format(_value))
         else:
             mField(edit=True,bgc = _colorGood)
             
@@ -1727,6 +1759,10 @@ class data(object):
             filepath = self.str_filepath
             
         filepath = self.validateFilepath(filepath)
+        if not filepath:
+            log.warning('Invalid path: {0}'.format(filepath))
+            
+            return False
         log.warning('Write to: {0}'.format(filepath))
             
         ConfigObj = configobj.ConfigObj(indent_type='\t')
@@ -1745,8 +1781,8 @@ class data(object):
         ConfigObj.filename = filepath
         ConfigObj.write()
         
-        if update:
-            self.str_filepath = filepath
+        #if update:
+        self.str_filepath = filepath
         log.warning('Complete')
         return True
         
