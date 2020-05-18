@@ -169,13 +169,13 @@ class LiveRecord(object):
             elif self.plane == 'planeZ':
                 self.planeNormal = MATHUTILS.Vector3.forward()
                 self.keyableAttrs = ['tx', 'ty']
-            elif self.plane == 'x':
+            elif self.plane == 'axisX':
                 self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
                 self.keyableAttrs = ['tx']
-            elif self.plane == 'y':
+            elif self.plane == 'axisY':
                 self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
                 self.keyableAttrs = ['ty']
-            elif self.plane == 'z':
+            elif self.plane == 'axisZ':
                 self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
                 self.keyableAttrs = ['tz']
             elif self.plane == 'custom':

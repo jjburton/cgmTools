@@ -39,7 +39,7 @@ from cgm.tools import dragger as DRAGGER
 
 #>>> Root settings =============================================================
 __version__ = '0.1.05172020'
-__toolname__ ='Anim Draw UI'
+__toolname__ ='cgmAnimDraw'
 
 _padding = 5
 
@@ -64,13 +64,24 @@ class ui(cgmUI.cgmGUI):
         log.info(self.__call__(q=True, title=True))
 
         self.__version__ = __version__
-        self.__toolName__ = self.__class__.WINDOW_NAME	
+        self.__toolName__ = self.__class__.WINDOW_NAME  
 
         #self.l_allowedDockAreas = []
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
 
         self._liveRecordTool = None
+        self._mTransformTarget = False
+        self._mPlaneObject = False
+
+        self._optionDict = {
+            'mode' : 'position',
+            'plane' : 'screen',
+            'aimFwd' : 'z+',
+            'aimUp' : 'y+',
+            'loopTime' : False,
+            'debug' : False
+        }
 
  
     def build_menus(self):
@@ -78,7 +89,7 @@ class ui(cgmUI.cgmGUI):
 
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
-        #>>> Reset Options		                     
+        #>>> Reset Options                           
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 
@@ -150,12 +161,14 @@ def buildColumn_main(self,parent, asScroll = False):
 
     _optionFrame = mUI.MelFrameLayout(_subColumn, label='Options', collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
     
-    _optionColumn = mUI.MelColumnLayout(_optionFrame,useTemplate = 'cgmUIHeaderTemplate') 
+    self._optionColumn = mUI.MelColumnLayout(_optionFrame,useTemplate = 'cgmUIHeaderTemplate') 
+
+    uiFunc_build_options_column(self)
 
     _row.setStretchWidget(_subColumn)
 
     mUI.MelSpacer(_row,w=_padding)
-    
+
     #mUI.MelSpacer(_row,w=_padding)
     _row.layout()
 
@@ -167,39 +180,155 @@ def buildColumn_main(self,parent, asScroll = False):
     self.liveRecordBtn = cgmUI.add_Button(_row,'Start Live Record',
         cgmGEN.Callback(uiFunc_toggleContext,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Start Live Record')
+        'Start Live Record',h=50)
 
     _row.layout()    
 
     uiFunc_load_selected(self)
+
+
     return _inside
 
+def uiFunc_build_options_column(self):
+    mc.setParent(self._optionColumn)
+    cgmUI.add_LineSubBreak()
+
+    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)                      
+    mUI.MelLabel(_row,l='Mode:')
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    uiRC = mUI.MelRadioCollection()
+
+    _on = self._optionDict['mode']
+
+    for i,item in enumerate(['position','aim']):
+        if item == _on:
+            _rb = True
+        else:_rb = False
+
+        uiRC.createButton(_row,label=item,sl=_rb,
+                          onCommand = cgmGEN.Callback(uiFunc_setModeOption,self,'mode', item))
+
+        mUI.MelSpacer(_row,w=_padding)       
+
+    _row.layout()  
+
+    mc.setParent(self._optionColumn)
+    cgmUI.add_LineSubBreak()    
+
+    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)                          
+    mUI.MelLabel(_row,l='Plane:')  
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    planeOptions = ['screen', 'planeX', 'planeY', 'planeZ', 'axisX', 'axisY', 'axisZ', 'custom']
+   
+    self.planeMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate')
+    for option in planeOptions:
+        self.planeMenu.append(option)
+
+    self.planeMenu.setValue( 'screen' )
+
+    self.planeMenu(edit=True, changeCommand=cgmGEN.Callback(uiFunc_set_plane,self))
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+
+    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
+    self._row_planeObject = _row
+
+    mUI.MelSpacer(_row,w=_padding)                          
+    mUI.MelLabel(_row,l='Plane Object:')  
+
+    self.uiTF_planeObject = mUI.MelLabel(_row,ut='cgmUIInstructionsTemplate',l='',en=False)
+
+    _row.setStretchWidget( self.uiTF_planeObject )
+
+    cgmUI.add_Button(_row,'<<',
+                     cgmGEN.Callback(uiFunc_load_planeObject,self),
+                     "Load first selected object.")  
+
+    cgmUI.add_Button(_row,'Create',
+                     cgmGEN.Callback(uiFunc_create_planeObject,self),
+                     "Load first selected object.") 
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+
+    self._row_planeObject(edit=True, vis=False)
+
+    mc.setParent(self._optionColumn)
+    cgmUI.add_LineSubBreak()   
+
+def uiFunc_setModeOption(self, option, val):
+    self._optionDict[option] = val
+
+def uiFunc_set_plane(self):
+    uiFunc_setModeOption(self, 'plane', self.planeMenu.getValue())
+    if self.planeMenu.getValue() == 'custom':
+        self._row_planeObject(edit=True, vis=True)
+    else:
+        self._row_planeObject(edit=True, vis=False)      
+
+def uiFunc_create_planeObject(self):
+    mc.polyPlane(name='customDrawPlane', sx=2, sy=2)
+    uiFunc_load_planeObject(self)
+
+def uiFunc_load_planeObject(self):
+    _str_func = 'uiFunc_load_planeObject'  
+    self._mPlaneObject = False
+
+    _sel = mc.ls(sl=True,type='transform')
+
+    #Get our raw data
+    if _sel:
+        mNode = cgmMeta.validateObjArg(_sel[0])
+        _short = mNode.p_nameBase            
+        log.debug("|{0}| >> Target: {1}".format(_str_func, _short))
+        self._mPlaneObject = mNode
+
+        uiFunc_updateObjectDisplay(self.uiTF_planeObject, self._mPlaneObject)
+    else:
+        log.warning("|{0}| >> Nothing selected.".format(_str_func))            
+        uiFunc_clear_loaded(self.uiTF_planeObject)
+
 def uiFunc_toggleContext(self):
-	if self._liveRecordTool:
-		self._liveRecordTool.quit()
-		self._liveRecordTool = None
-		self.liveRecordBtn(e=True, label='Start Recording Context', bgc=[.35,.35,.35])
-	else:
-		mc.select(self._mTransformTarget.mNode)
-		self._liveRecordTool = liveRecord.LiveRecord(plane='screen', mode='position', loopTime=False, onStart=cgmGEN.Callback(uiFunc_recordingStarted,self), onComplete=cgmGEN.Callback(uiFunc_recordingCompleted,self))
-		self._liveRecordTool.activate()
-		self.liveRecordBtn(e=True, label='Stop Recording Context', bgc=[.35,1,.35])
+    _str_func = 'liveRecordTool.uiFunc_toggleContext'
+
+    if not self._mTransformTarget:
+        log.error("|{0}| >> No target transform found.".format(_str_func))
+        return
+
+    if self._liveRecordTool:
+        self._liveRecordTool.quit()
+        self._liveRecordTool = None
+        self.liveRecordBtn(e=True, label='Start Recording Context', bgc=[.35,.35,.35])
+    else:
+        mc.select(self._mTransformTarget.mNode)
+        self._liveRecordTool = liveRecord.LiveRecord(plane='screen', mode='position', loopTime=False, onStart=cgmGEN.Callback(uiFunc_recordingStarted,self), onComplete=cgmGEN.Callback(uiFunc_recordingCompleted,self))
+        self._liveRecordTool.activate()
+        self.liveRecordBtn(e=True, label='Stop Recording Context', bgc=[.35,1,.35])
 
 def uiFunc_recordingStarted(self):
-	_str_func = 'liveRecordTool.uiFunc_recordingStarted'
+    _str_func = 'liveRecordTool.uiFunc_recordingStarted'
 
-	log.debug("|{0}| >> Starting Recording in UI".format(_str_func))
+    log.debug("|{0}| >> Starting Recording in UI".format(_str_func))
 
-	self.liveRecordBtn(e=True, label='Recording in Process', bgc=[1,.35,.35])
+    self.liveRecordBtn(e=True, label='Recording in Process', bgc=[1,.35,.35])
 
 def uiFunc_recordingCompleted(self):
-	_str_func = 'liveRecordTool.uiFunc_recordingCompleted'
-	log.debug("|{0}| >> Starting Recording in UI".format(_str_func))
-	self.liveRecordBtn(e=True, label='Stop Recording Context', bgc=[.35,1,.35])
+    _str_func = 'liveRecordTool.uiFunc_recordingCompleted'
+    log.debug("|{0}| >> Starting Recording in UI".format(_str_func))
+    self.liveRecordBtn(e=True, label='Stop Recording Context', bgc=[.35,1,.35])
 
 def uiFunc_load_selected(self, bypassAttrCheck = False):
     _str_func = 'uiFunc_load_selected'  
-    #self._ml_ = []
     self._mTransformTarget = False
 
     _sel = mc.ls(sl=True,type='transform')
@@ -211,48 +340,34 @@ def uiFunc_load_selected(self, bypassAttrCheck = False):
         log.debug("|{0}| >> Target: {1}".format(_str_func, _short))
         self._mTransformTarget = mNode
 
-        uiFunc_updateTargetDisplay(self)
+        uiFunc_updateObjectDisplay(self.uiTF_objLoad, self._mTransformTarget)
     else:
         log.warning("|{0}| >> Nothing selected.".format(_str_func))            
-        uiFunc_clear_loaded(self)
+        uiFunc_clear_loaded(self.uiTF_objLoad)
 
-    #uiFunc_updateFields(self)
-    #self.uiReport_do()
-    #self.uiFunc_updateScrollAttrList()
-
-def uiFunc_clear_loaded(self):
+def uiFunc_clear_loaded(uiElement):
     _str_func = 'uiFunc_clear_loaded'  
-    self._mTransformTarget = False
-    #self._mGroup = False
-    self.uiTF_objLoad(edit=True, l='',en=False)      
-    #self.uiField_report(edit=True, l='...')
-    #self.uiReport_objects()
-    #self.uiScrollList_parents.clear()
-    
-    #for o in self._l_toEnable:
-        #o(e=True, en=False)  
+    uiElement(edit=True, l='',en=False)      
      
-def uiFunc_updateTargetDisplay(self):
-    _str_func = 'uiFunc_updateTargetDisplay'  
-    #self.uiScrollList_parents.clear()
+def uiFunc_updateObjectDisplay(uiElement, mObj):
+    _str_func = 'uiFunc_updateObjectDisplay'  
 
-    if not self._mTransformTarget:
+    if not object:
         log.info("|{0}| >> No target.".format(_str_func))                        
         #No obj
-        self.uiTF_objLoad(edit=True, l='',en=False)
-        self._mGroup = False
+        #self.uiTF_objLoad(edit=True, l='',en=False)
+        uiElement(edit=True, l='',en=False)
 
-        #for o in self._l_toEnable:
-            #o(e=True, en=False)
         return
     
-    _short = self._mTransformTarget.p_nameBase
-    self.uiTF_objLoad(edit=True, ann=_short)
+    #_short = self._mTransformTarget.p_nameBase
+    _short = mObj.p_nameBase
+    uiElement(edit=True, ann=_short)
     
     if len(_short)>20:
         _short = _short[:20]+"..."
-    self.uiTF_objLoad(edit=True, l=_short)   
+    uiElement(edit=True, l=_short)   
     
-    self.uiTF_objLoad(edit=True, en=True)
+    uiElement(edit=True, en=True)
     
     return
