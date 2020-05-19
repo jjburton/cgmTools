@@ -72,16 +72,21 @@ class ui(cgmUI.cgmGUI):
 
         self._liveRecordTool = None
         self._mTransformTarget = False
-        self._mPlaneObject = False
 
         self._optionDict = {
             'mode' : 'position',
             'plane' : 'screen',
+            'planeObject' : None,
             'aimFwd' : 'z+',
             'aimUp' : 'y+',
             'loopTime' : False,
-            'debug' : False
+            'debug' : False,
+            'postBlendFrames' : 6
         }
+
+        self._positionPlane = self._optionDict['plane']
+        self._aimPlane = self._optionDict['plane']
+
 
  
     def build_menus(self):
@@ -142,9 +147,6 @@ def buildColumn_main(self,parent, asScroll = False):
 
     self.uiTF_objLoad = mUI.MelLabel(_row_objLoad,ut='cgmUIInstructionsTemplate',l='',en=True)
 
-    cgmUI.add_Button(_row_objLoad,'<<',
-                     cgmGEN.Callback(uiFunc_load_selected,self),
-                     "Load first selected object.")  
     _row_objLoad.setStretchWidget(self.uiTF_objLoad)
     mUI.MelSpacer(_row_objLoad,w=_padding)
 
@@ -177,15 +179,12 @@ def buildColumn_main(self,parent, asScroll = False):
 
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = _padding*2)
     
-    self.liveRecordBtn = cgmUI.add_Button(_row,'Start Live Record',
+    self.liveRecordBtn = cgmUI.add_Button(_row,'Start Recording Context',
         cgmGEN.Callback(uiFunc_toggleContext,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
         'Start Live Record',h=50)
 
     _row.layout()    
-
-    uiFunc_load_selected(self)
-
 
     return _inside
 
@@ -218,6 +217,41 @@ def uiFunc_build_options_column(self):
     mc.setParent(self._optionColumn)
     cgmUI.add_LineSubBreak()    
 
+    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5, vis=False)
+    self._row_aimDirection = _row
+
+    mUI.MelSpacer(_row,w=_padding)                          
+    mUI.MelLabel(_row,l='Aim:')  
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+
+    mUI.MelLabel(_row,l='Fwd:') 
+
+    self.fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setAim,self))
+    for dir in directions:
+        self.fwdMenu.append(dir)
+    
+    self.fwdMenu.setValue(self._optionDict['aimFwd'])
+
+    mUI.MelSpacer(_row,w=_padding)
+    
+    mUI.MelLabel(_row,l='Up:')
+
+    self.upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setAim,self))
+    for dir in directions:
+        self.upMenu.append(dir)
+
+    self.upMenu.setValue(self._optionDict['aimUp'])
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+
+    mc.setParent(self._optionColumn)
+    cgmUI.add_LineSubBreak()    
+
     _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)                          
@@ -231,9 +265,13 @@ def uiFunc_build_options_column(self):
     for option in planeOptions:
         self.planeMenu.append(option)
 
-    self.planeMenu.setValue( 'screen' )
+    self.planeMenu.setValue( self._optionDict['plane'] )
 
     self.planeMenu(edit=True, changeCommand=cgmGEN.Callback(uiFunc_set_plane,self))
+
+    cgmUI.add_Button(_row,'Visualize',
+                     cgmGEN.Callback(uiFunc_visualize_plane,self),
+                     "Create a plane in the scene that matches your selection.") 
 
     mUI.MelSpacer(_row,w=_padding)
 
@@ -242,8 +280,8 @@ def uiFunc_build_options_column(self):
     _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
     self._row_planeObject = _row
 
-    mUI.MelSpacer(_row,w=_padding)                          
-    mUI.MelLabel(_row,l='Plane Object:')  
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Plane Object:')
 
     self.uiTF_planeObject = mUI.MelLabel(_row,ut='cgmUIInstructionsTemplate',l='',en=False)
 
@@ -266,15 +304,71 @@ def uiFunc_build_options_column(self):
     mc.setParent(self._optionColumn)
     cgmUI.add_LineSubBreak()   
 
+def uiFunc_visualize_plane(self):
+    pass
+
+def uiFunc_setAim(self):
+    aimFwd = self.fwdMenu.getValue()
+    aimUp = self.upMenu.getValue()
+    self._optionDict['aimFwd'] = aimFwd
+    self._optionDict['aimUp'] = aimUp
+    if aimFwd[0] == aimUp[0]:
+        log.error('Fwd and Up axis should be different or you may get unexpected results')
+        self.fwdMenu(edit=True, bgc=[1,.35,.35])
+        self.upMenu(edit=True, bgc=[1,.35,.35])
+    else:
+        self.fwdMenu(edit=True, bgc=[.35,.35,.35])
+        self.upMenu(edit=True, bgc=[.35,.35,.35])
+
+    uiFunc_update_args_live(self)
+
 def uiFunc_setModeOption(self, option, val):
     self._optionDict[option] = val
 
+    if option == 'mode':
+        if val == 'aim':
+            self._row_aimDirection(edit=True, vis=True)
+            self.planeMenu.clear()
+            for option in ['screen', 'custom']:
+                self.planeMenu.append(option)
+
+            self.planeMenu.setValue( self._aimPlane )
+            uiFunc_set_plane(self)
+        else:
+            self._row_aimDirection(edit=True, vis=False)
+            self.planeMenu.clear()
+            for option in ['screen', 'planeX', 'planeY', 'planeZ', 'axisX', 'axisY', 'axisZ', 'custom']:
+                self.planeMenu.append(option)
+
+            self.planeMenu.setValue( self._positionPlane )
+            uiFunc_set_plane(self)
+
+    uiFunc_update_args_live(self)
+
+def uiFunc_update_args_live(self):
+    if self._liveRecordTool:
+        self._liveRecordTool.mode = self._optionDict['mode']
+        self._liveRecordTool.plane = self._optionDict['plane']
+        self._liveRecordTool.planeObject = self._optionDict['planeObject']
+        self._liveRecordTool.aimFwd = self._optionDict['aimFwd']
+        self._liveRecordTool.aimUp = self._optionDict['aimUp']
+        self._liveRecordTool.postBlendFrames = self._optionDict['postBlendFrames']
+        self._liveRecordTool.loopTime = self._optionDict['loopTime']
+        self._liveRecordTool.debug = self._optionDict['debug']
+
 def uiFunc_set_plane(self):
-    uiFunc_setModeOption(self, 'plane', self.planeMenu.getValue())
+    self._optionDict['plane'] = self.planeMenu.getValue()
+    if self._optionDict['mode'] == 'position':
+        self._positionPlane = self._optionDict['plane']
+    elif self._optionDict['mode'] == 'aim':
+        self._aimPlane = self._optionDict['plane']
+
     if self.planeMenu.getValue() == 'custom':
         self._row_planeObject(edit=True, vis=True)
     else:
-        self._row_planeObject(edit=True, vis=False)      
+        self._row_planeObject(edit=True, vis=False)   
+
+    uiFunc_update_args_live(self)   
 
 def uiFunc_create_planeObject(self):
     mc.polyPlane(name='customDrawPlane', sx=2, sy=2)
@@ -282,7 +376,7 @@ def uiFunc_create_planeObject(self):
 
 def uiFunc_load_planeObject(self):
     _str_func = 'uiFunc_load_planeObject'  
-    self._mPlaneObject = False
+    self._optionDict['planeObject']  = None
 
     _sel = mc.ls(sl=True,type='transform')
 
@@ -291,30 +385,37 @@ def uiFunc_load_planeObject(self):
         mNode = cgmMeta.validateObjArg(_sel[0])
         _short = mNode.p_nameBase            
         log.debug("|{0}| >> Target: {1}".format(_str_func, _short))
-        self._mPlaneObject = mNode
+        self._optionDict['planeObject']  = mNode
 
-        uiFunc_updateObjectDisplay(self.uiTF_planeObject, self._mPlaneObject)
+        uiFunc_updateObjectDisplay(self.uiTF_planeObject, self._optionDict['planeObject'] )
     else:
         log.warning("|{0}| >> Nothing selected.".format(_str_func))            
         uiFunc_clear_loaded(self.uiTF_planeObject)
 
+    uiFunc_update_args_live(self)   
+
 def uiFunc_toggleContext(self):
     _str_func = 'liveRecordTool.uiFunc_toggleContext'
 
-    if not self._mTransformTarget:
-        log.error("|{0}| >> No target transform found.".format(_str_func))
-        return
-
     if self._liveRecordTool:
         self._liveRecordTool.quit()
-        self._liveRecordTool = None
-        self.liveRecordBtn(e=True, label='Start Recording Context', bgc=[.35,.35,.35])
+        uiFunc_exit_draw_context(self)
     else:
-        mc.select(self._mTransformTarget.mNode)
-        self._liveRecordTool = liveRecord.LiveRecord(plane='screen', mode='position', loopTime=False, onStart=cgmGEN.Callback(uiFunc_recordingStarted,self), onComplete=cgmGEN.Callback(uiFunc_recordingCompleted,self))
+        uiFunc_load_selected(self)
+        if not self._mTransformTarget:
+            log.error("No object selected. Can't start draw context")
+            return
+
+        self._liveRecordTool = liveRecord.LiveRecord(plane=self._optionDict['plane'], mode=self._optionDict['mode'], planeObject = self._optionDict['planeObject'], aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], postBlendFrames=self._optionDict['postBlendFrames'], loopTime=self._optionDict['loopTime'], debug=self._optionDict['debug'], onStart=cgmGEN.Callback(uiFunc_recordingStarted,self), onComplete=cgmGEN.Callback(uiFunc_recordingCompleted,self), onExit=cgmGEN.Callback(uiFunc_exit_draw_context,self))
         self._liveRecordTool.activate()
         self.liveRecordBtn(e=True, label='Stop Recording Context', bgc=[.35,1,.35])
 
+def uiFunc_exit_draw_context(self):
+    self._mTransformTarget = None
+    uiFunc_clear_loaded(self.uiTF_objLoad)
+    self._liveRecordTool = None
+    self.liveRecordBtn(e=True, label='Start Recording Context', bgc=[.35,.35,.35])
+    
 def uiFunc_recordingStarted(self):
     _str_func = 'liveRecordTool.uiFunc_recordingStarted'
 

@@ -157,11 +157,12 @@ class ContextualPick(object):
 # Subclasses
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 class ClickAction(ContextualPick):   
-    def __init__(self, onPress=None, onRelease=None, dropOnPress=False, dropOnRelease=True):
+    def __init__(self, onPress=None, onRelease=None, onFinalize=None, dropOnPress=False, dropOnRelease=True):
         self.onPress = onPress
         self.onRelease = onRelease
         self.dropOnPress = dropOnPress
         self.dropOnRelease = dropOnRelease
+        self.onFinalize = onFinalize
 
         ContextualPick.__init__(self, space='screen')
 
@@ -213,12 +214,22 @@ class ClickAction(ContextualPick):
         Get updated position data via shooting rays
         """
 
-        _str_funcName = 'ScreenToWorldPosition.updatePos'
+        _str_funcName = 'ClickAction.updatePos'
         
         buffer =  screenToWorld(int(self.x),int(self.y))
 
         self.clickPos = MATHUTILS.get_space_value( buffer[0],'mayaSpace' )
         self.clickVector = buffer[1]
+
+    def finalize(self):
+        _str_funcName = 'ClickAction.finalize'
+
+        try:
+            if not self.onFinalize is None:
+                self.onFinalize()
+        except Exception,err:
+            log.error("|{0}| >> Failed to run onFinalize callback | err:{1}".format(_str_funcName,err))                
+
         
 
 _clickMesh_modes = ['surface','intersections','midPoint']

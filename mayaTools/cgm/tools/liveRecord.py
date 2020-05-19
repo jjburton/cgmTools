@@ -39,7 +39,7 @@ log.setLevel(logging.INFO)
 
 
 class LiveRecord(object):
-    def __init__(self, plane='screen', mode='position', planeObject = None, aimFwd = 'z+', aimUp = 'y+', onStart=None, onUpdate=None, onComplete=None, postBlendFrames=6, loopTime=False, debug=False):
+    def __init__(self, plane='screen', mode='position', planeObject = None, aimFwd = 'z+', aimUp = 'y+', onStart=None, onUpdate=None, onComplete=None, onExit=None, postBlendFrames=6, loopTime=False, debug=False):
         _str_func = 'LiveRecord._init_'
 
         try:
@@ -52,6 +52,7 @@ class LiveRecord(object):
         self.onStart = onStart
         self.onUpdate = onUpdate
         self.onComplete = onComplete
+        self.onExit = onExit
 
         self.plane = plane
         self.isPressed = False
@@ -69,7 +70,7 @@ class LiveRecord(object):
     def activate(self):
         _str_func = 'LiveRecord.activate'
 
-        self.clickAction = cgmDrag.ClickAction(onPress=self.onPress, onRelease=self.onRelease, dropOnPress=False, dropOnRelease=False)
+        self.clickAction = cgmDrag.ClickAction(onPress=self.onPress, onRelease=self.onRelease, onFinalize=self.onFinalize, dropOnPress=False, dropOnRelease=False)
         mc.draggerContext(self.clickAction.name, edit=True, cursor='hand')
 
     def record(self):
@@ -158,6 +159,7 @@ class LiveRecord(object):
         if self.debug:
             self._debugLoc = cgmMeta.asMeta(LOC.create(name='Debug_Loc'))
 
+        self._velocity = MATHUTILS.Vector3.zero()
 
         if self.mode == 'position':
             if self.plane == 'planeX':
@@ -191,13 +193,17 @@ class LiveRecord(object):
                 self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
                 self.keyableAttrs = ['tx', 'ty', 'tz']
         elif self.mode == 'aim':
-            if self.planeObject:
+            if self.plane == 'custom' and self.planeObject:
                 self.planeObject = cgmMeta.asMeta(self.planeObject)
-                self.planeNormal = VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
+                self.planeNormal = MATHUTILS.Vector3.up() #VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
                 self.keyableAttrs = ['rx', 'ry', 'rz']
             else:
-                log.error("|{0}| >> Custom plane not found, aim mode needs a custom plane".format(_str_func))
-                return
+                self.planeObject = self.obj
+                axis = 'xyz'
+                axis = axis.replace(self.aimFwd.p_string[0], '')
+                axis = axis.replace(self.aimUp.p_string[0], '')
+                self.planeNormal = VALID.euclidVector3Arg(VALID.simpleAxis(axis+'+').p_vector)
+                #log.error("|{0}| >> Custom plane not found, aim mode needs a custom plane".format(_str_func))
 
         self._objOffset = MATHUTILS.Vector3.zero()
         if self.plane != 'custom':
@@ -243,6 +249,10 @@ class LiveRecord(object):
         mc.select(self.obj.mNode)
 
         self.isPressed = False
+
+    def onFinalize(self):
+        if self.onExit:
+            self.onExit()
 
     def postBlend(self):
         _str_func = 'LiveRecord.postBlend'
@@ -290,9 +300,10 @@ class LiveRecord(object):
 
         camPos = VALID.euclidVector3Arg(self.cam.p_position)
 
-        if self.plane == 'custom' and self.planeObject:
+        planeNormal = self.planeNormal
+        if (self.plane == 'custom' or self.mode == 'aim') and self.planeObject:
             self.planePoint = VALID.euclidVector3Arg(self.planeObject.p_position)
-            self.planeNormal = VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
+            planeNormal = VALID.euclidVector3Arg(self.planeObject.getTransformDirection(self.planeNormal))
         else:
             self.planePoint = VALID.euclidVector3Arg(self.obj.p_position)       
         
@@ -307,7 +318,6 @@ class LiveRecord(object):
     def moveObjOnPlane(self,vector):
         _str_func = 'LiveRecord.moveObjOnPlane'
 
-        
         projectedPosition = self.projectOntoPlane(vector)
         wantedPos = projectedPosition + self._objOffset
         currentPos = VALID.euclidVector3Arg(self.obj.p_position)
