@@ -1053,13 +1053,14 @@ class ui(cgmUI.cgmGUI):
         
         
         #Attempting to autoload our last
+        """
         mPath = PATHS.Path(self.var_project.value )
         if mPath.exists():
             try:
                 self.uiProject_load(mPath)        
             except Exception,err:
                 log.error("Failed to load last: {0} | {1}".format(mPath, err))
-                cgmGEN.cgmException(Exception,err)    
+                cgmGEN.cgmException(Exception,err)    """
 
                 
     def bUI_main(self,parent):
