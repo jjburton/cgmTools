@@ -33,7 +33,7 @@ import getpass
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -102,10 +102,37 @@ def uiAsset_add(self):
         _name = mc.promptDialog(query=True, text=True)
         self.mDat.assetType_add(_name)
         uiAsset_rebuildOptionMenu(self)
-        
         self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
         #mUI.MelOptionMenu
+        
+def uiAsset_addSub(self):
+    _str_func = 'uiAsset_addSub'
+    log.debug("|{0}| >>...".format(_str_func))
+
+    promptstring = 'Add Sub Asset'
+    
+    _value = self.uiAssetTypeOptions.getSelectedIdx()
+        
+    try:_dat = self.mDat.assetDat[_value]
+    except Exception,err:
+        log.error("|{0}| >> Failed to query idx for asset type | {2}".format(_str_func,err))
+        return False
+    
+    result = mc.promptDialog(
+            title=promptstring,
+            message='Enter Name for new sub asset for {0}'.format(_dat.get('n')),
+            button=['OK', 'Cancel'],
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel')
+    
+    if result == 'OK':
+        _name = mc.promptDialog(query=True, text=True)
+        self.mDat.assetTypeSub_add(_dat.get('n'),_name)
+        uiAsset_rebuildOptionMenu(self)
+        #self.uiAssetTypeOptions.selectByValue(_name)
+        uiAsset_rebuildSub(self)
         
 def uiAsset_remove(self):
     _str_func = 'uiAsset_remove'
@@ -123,20 +150,88 @@ def uiAsset_rebuildOptionMenu(self):
     self.uiAssetTypeOptions.clear()
     
     for i,d in enumerate(self.mDat.assetDat):
-        self.uiAssetTypeOptions.append(d.get('name'))#d.get('name'))    
+        self.uiAssetTypeOptions.append(d.get('n'))#d.get('name'))    
         
 def uiAsset_rebuildSub(self):
     _value = self.uiAssetTypeOptions.getSelectedIdx()
     
     self.uiAsset_content.clear()
-    self.uiAsset_export.clear()
+    #self.uiAsset_export.clear()
     
     try:d = self.mDat.assetDat[_value]
     except:
         return False
+    _name = d.get('n')
     
-    for o in d.get('content',{}):
-        mUI.MelLabel(self.uiAsset_content, label=o.get('name'))
+    def changeName(field,assetIndex,index):
+        self.mDat.assetDat[_value]['content'][index]['n'] = field.getValue()
+        log.info( self.mDat.assetDat[_value]['content'][index]['n'] )
+    
+    def setVariant(field,assetIndex,index):
+        _v = field.getValue()
+        if _v:
+            self.mDat.assetDat[_value]['content'][index]['hasVariant'] = _v
+        else:
+            if self.mDat.assetDat[_value]['content'][index].has_key('hasVariant'):
+                self.mDat.assetDat[_value]['content'][index].pop('hasVariant')
+        log.info( self.mDat.assetDat[_value]['content'][index].get('hasVariant') ) 
+        
+    def removeSub(assetIndex,index):
+        self.mDat.assetDat[_value]['content'].pop(index) 
+        
+        uiAsset_rebuildSub(self)
+        
+    #Label Row ------------------------------
+    _row = mUI.MelHSingleStretchLayout(self.uiAsset_content,ut='cgmUISubTemplate')
+    mUI.MelSpacer(_row,w=5)
+    _label = mUI.MelLabel(_row, label = 'Subtype')
+    _row.setStretchWidget(_label)
+    mUI.MelLabel(_row, label = 'hasVariant')
+    
+    mUI.MelSpacer(_row,w=25)                          
+    
+    _row.layout()
+    
+    
+    for i,d2 in enumerate(d.get('content',[])):
+        log.info(d2)
+        
+        _row = mUI.MelHSingleStretchLayout(self.uiAsset_content,ut='cgmUISubTemplate')
+        mUI.MelSpacer(_row,w=5)                          
+        
+        mUI.MelLabel(_row,label = i)
+        _cname = d2.get('n')
+        _tf = mUI.MelTextField(_row,text = _cname)
+        _tf(edit=True,
+            cc = cgmGEN.Callback( changeName,_tf,_value,i) )        
+        
+        
+        _row.setStretchWidget(_tf)
+ 
+        
+        #mUI.MelLabel(self.uiAsset_content, label=d.get('n'))
+        mUI.MelSpacer(_row,w=10)                          
+        
+        _cb = mUI.MelCheckBox(_row,w=25)
+        _cb(edit=True,
+            onCommand = cgmGEN.Callback( setVariant,_cb,_value,i),
+            offCommand = cgmGEN.Callback( setVariant,_cb,_value,i))
+        _cb.setValue( d2.get('hasVariant',False))
+                
+        mUI.MelButton(_row,
+                      width = 20,
+                      label='x',ut='cgmUITemplate',
+                      c = cgmGEN.Callback( removeSub,_value,i),
+                      #c = lambda *a: uiAsset_remove(self),
+                       #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
+                       ann='Force the scroll list to update')                       
+ 
+        mUI.MelSpacer(_row,w=5)                          
+        
+        _row.layout()
+        
+        mUI.MelSpacer(self.uiAsset_content,h=5)
+        
             
     #for o in d.get('export',[]):
         #mUI.MelLabel(self.uiAsset_export, label=o)
@@ -151,8 +246,8 @@ def buildFrame_assetTypes(self,parent):
                                 collapsable=True,
                                 enable=True,
                                 useTemplate = 'cgmUIHeaderTemplate',
-                                expandCommand = lambda:mVar_frame.setValue(0),
-                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                expandCommand = lambda *a:mVar_frame.setValue(0),
+                                collapseCommand = lambda *a:mVar_frame.setValue(1)
                                 )	
     
     self.uiFrame_dirContent = _frame
@@ -161,14 +256,7 @@ def buildFrame_assetTypes(self,parent):
     #Utils -------------------------------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mUI.MelSpacer(_row,w=5)                          
-    mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst('type')))    
-    
-    self.uiAssetTypeOptions = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-    self.uiAssetTypeOptions(edit=True, cc=lambda *a: uiAsset_rebuildSub(self))
-    _row.setStretchWidget(self.uiAssetTypeOptions)
-    
-    #for t in _type:
-    #    _d[_name].append(t)
+    mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst('type')))
     
     mUI.MelButton(_row,
                   label='Add',ut='cgmUITemplate',
@@ -179,9 +267,21 @@ def buildFrame_assetTypes(self,parent):
                   label='Remove',ut='cgmUITemplate',
                   c = lambda *a: uiAsset_remove(self),
                    #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
-                   ann='Force the scroll list to update')
+                   ann='Force the scroll list to update')    
+    
+    
+    
+    self.uiAssetTypeOptions = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate', h=25)
+    self.uiAssetTypeOptions(edit=True, cc=lambda *a: uiAsset_rebuildSub(self))
+    _row.setStretchWidget(self.uiAssetTypeOptions)
+    
+    #for t in _type:
+    #    _d[_name].append(t)
+    
+    
     mUI.MelButton(_row,
                   label='+',ut='cgmUITemplate',
+                  c = lambda *a: uiAsset_addSub(self),
                   #c = lambda *a: uiAsset_remove(self),
                    #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                    ann='Add a sub type')    
@@ -189,15 +289,19 @@ def buildFrame_assetTypes(self,parent):
     mUI.MelSpacer(_row,w=5)
     _row.layout()
     
+    #mUI.MelSpacer(_inside,h=5)
     mc.setParent(_inside)
-    cgmUI.add_Header('Content')
+    
+    #cgmUI.add_LineSubBreak()
+    #cgmUI.add_Header('Content')
     self.uiAsset_content = mUI.MelColumn(_inside,useTemplate = 'cgmUISubTemplate')
-    mc.setParent(_inside)
-    cgmUI.add_SectionBreak()
+    #mc.setParent(_inside)
+    #cgmUI.add_SectionBreak()
     
-    cgmUI.add_Header('Export')
-    self.uiAsset_export = mUI.MelColumn(_inside,useTemplate = 'cgmUISubTemplate')
+    #cgmUI.add_Header('Export')
+    #self.uiAsset_export = mUI.MelColumn(_inside,useTemplate = 'cgmUISubTemplate')
     
+    mUI.MelSpacer(_inside,h=5)
     
     return
     
@@ -1191,14 +1295,14 @@ class ui(cgmUI.cgmGUI):
         
         
         #Attempting to autoload our last
-        """
+        
         mPath = PATHS.Path(self.var_project.value )
         if mPath.exists():
             try:
                 self.uiProject_load(mPath)        
             except Exception,err:
                 log.error("Failed to load last: {0} | {1}".format(mPath, err))
-                cgmGEN.cgmException(Exception,err)    """
+                cgmGEN.cgmException(Exception,err)    
 
                 
     def bUI_main(self,parent):
@@ -2094,22 +2198,56 @@ class data(object):
         
     def assetType_get(self,arg = None,idx=False):
         for i,d in enumerate(self.assetDat):
-            if d.get('name') == arg:
+            if d.get('n') == arg:
                 if idx:
                     return i
                 return d
-        
         return False
+    
+    def assetTypeSub_get(self,assetType,arg,idx=False):
+        _d_asset = self.assetType_get(assetType)
+        _idx_asset = self.assetType_get(assetType,True)
+        
+        if not _d_asset:
+            return log.error("Invalid assetType: {0}".format(assetType))
+        
+        for i,d in enumerate(_d_asset.get('content',[])):
+            if d.get('n') == arg:
+                if idx:
+                    return i
+                return d
+        return False        
+    
     
     def assetType_report(self):
         for i,d in enumerate(self.assetDat):
-            _name = d.get('name','NONAME')
+            _name = d.get('n','NONAME')
             _content = d.get('content',[])
             print cgmGEN.logString_sub('', "{0} | {1} ".format(i,_name))
             for ii,d2 in enumerate(_content):
-                print cgmGEN.logString_msg('   ', "{0}".format (d2.get('name')))
+                print cgmGEN.logString_msg('   ', "{0}".format (d2.get('n')))
             #print "{0} | {1} | {2}".format(i,_name,_content)
 
+    def assetTypeSub_add(self,assetType = None, arg=None,reset=False):
+        _str_func = 'data.assetTypeSub_add'
+        
+        _idx = self.assetType_get(assetType,True)
+        if _idx is False:
+            log.error(cgmGEN.logString_msg(_str_func, "No assetType: {0}".format(assetType)))
+            self.assetType_add(assetType)
+            _idx = self.assetType_get(assetType,True)
+            
+        _idx = self.assetTypeSub_get(assetType,arg,True)
+        if _idx is False:
+            log.info(cgmGEN.logString_msg(_str_func, "Creating: {0} under {1}".format(arg,assetType)))
+            
+            self.assetDat[_idx]['content'].append({'n':arg})
+        
+        
+        
+        
+        
+        
     def assetType_add(self,arg=None,reset=False):
         _str_func = 'data.assetType_add'
         _idx = None
@@ -2125,7 +2263,7 @@ class data(object):
         if reset or not _found:
             log.debug(cgmGEN.logString_msg(_str_func, "Data reset {0} ".format(arg)))
             #idx = self.assetDat.index
-            for k in ['name']:
+            for k in ['n']:
                 _d[k] = arg        
                 
             #_d['dir'] = PU.asset_getBaseList(arg,'dir')
@@ -2143,7 +2281,7 @@ class data(object):
             
             log.debug(cgmGEN.logString_msg(_str_func, "Adding {0} | {1}".format(arg,k)))
             for a in l_buffer:
-                l_set.append({'name':a})
+                l_set.append({'n':a})
             
             _d[k] = l_set
             #_d[k] = l_buffer
@@ -2510,7 +2648,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                             ann = "Log dat: {0}".format(_path),
                             c= lambda *a:pprint.pprint(dat),
                             label = 'Log Dat')
-            
+            """
             if self.mDat:
                 mUI.MelMenuItemDiv(_popUp,label = 'Add Asset Dirs')
                 d_toDo = {'char':'character',
@@ -2526,7 +2664,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                                                        self.str_structureMode,
                                                        '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))),
                                     #c= lambda *a:self.uiPath_addAsset(_path,'content','{0}Content'.format(t)),
-                                    label = _t)
+                                    label = _t)"""
 
         except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
