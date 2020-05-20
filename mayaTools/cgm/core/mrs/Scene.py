@@ -621,7 +621,12 @@ example:
 			proj = Project.data(filepath=p)
 			name = proj.d_project['name']
 			project_names.append(name)
-			en = os.path.exists(proj.userPaths_get()['content'])
+			en = False
+			_path = proj.userPaths_get().get('content') or False
+			if _path and os.path.exists(_path):
+				en=True
+			else:
+				log.warning("'{0}' Missing content path".format(name))
 			mUI.MelMenuItem( self.uiMenu_FileMenu, en=en, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
 			                 c = partial(self.LoadProject,p))
 
@@ -1113,6 +1118,14 @@ example:
 			log.warning("Failed to set bgc: {0} | {1}".format(_bgColor,err))
 
 		d_userPaths = self.project.userPaths_get()
+		
+		if not d_userPaths.get('content'):
+			log.error("No Content path found")
+			return False
+		if not d_userPaths.get('export'):
+			log.error("No Export path found")
+			return False
+			
 
 		if os.path.exists(d_userPaths['content']):
 			self.optionVarProjectStore.setValue( path )
@@ -1141,6 +1154,7 @@ example:
 
 		else:
 			mel.eval('error "Project path does not exist"')
+		return True
 
 	def RenameAsset(self, *args):
 		result = mc.promptDialog(
@@ -1340,8 +1354,8 @@ example:
 			                            dismissString='No')
 
 			if result == 'Yes':
-				self.LoadProject(infoDict['project'])
-				self.LoadOptions()
+				if self.LoadProject(infoDict['project']):
+					self.LoadOptions()
 
 	def SendLatestRigToProject():
 		pass

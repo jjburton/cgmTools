@@ -11,6 +11,7 @@ log.setLevel(logging.INFO)
 
 import cgm.core.cgm_General as cgmGEN
 import webbrowser
+import maya.mel as mel
 
 def red9( *a ):
     import Red9
@@ -122,6 +123,17 @@ def cgmSimChain():
         from cgm.core.tools import dynFKTool
         reload(dynFKTool)
         dynFKTool.ui()
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+def animDraw():
+    try:
+        import cgm.tools.liveRecordTool as LR
+        reload(LR)
+        import cgm.tools.liveRecord as liveRecord
+        reload(liveRecord)
+        mel.eval('python "animDraw = cgm.tools.liveRecordTool.ui();"')
+        
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
 

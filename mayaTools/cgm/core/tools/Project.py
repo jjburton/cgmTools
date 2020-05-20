@@ -310,6 +310,125 @@ def buildFrames(self,parent):
             mUI.MelSpacer(_row,w=5)
             _row.layout()            
 
+class pathList_project(cgmMeta.pathList):
+    def __init__(self, optionVar = 'testPath'):
+        #self.l_paths = []
+        #self.mOptionVar = cgmOptionVar(optionVar,'string')
+        super(pathList_project, self).__init__(optionVar)
+        
+    def ui(self):
+        return ui_pathList_project(self)
+        
+class ui_pathList_project(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'cgmPathListProjectUI'    
+    WINDOW_TITLE = 'Edit Project Path List - {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 200,275
+    
+    def __init__(self,mPathList = None, *a,**kws):
+        self.mPathList = mPathList
+
+        super(ui_pathList_project, self).__init__(*a,**kws)
+        """
+    def insert_init(self,*args,**kws):
+        _str_func = 'post_win.insert_init'
+        #kws = self.kws
+        #args = self.args
+        if kws:log.debug("kws: %s"%str(kws))
+        if args:log.debug("args: %s"%str(args))
+        #log.debug(self.__call__(q=True, title=True))
+        
+        self.__version__ = __version__
+        self.__toolName__ = 'Builder'		
+        self.WINDOW_TITLE = ui_stepBuild.WINDOW_TITLE
+        self.DEFAULT_SIZE = ui_stepBuild.DEFAULT_SIZE
+        self.str_lastStep = 'None'
+        self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
+                                                    defaultValue = 'unityMed')"""
+        
+    def build_menus(self):
+        pass
+    
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+                
+        _inside = mUI.MelColumn(parent)
+                
+        cgmUI.add_Header('Remove')
+        
+        self.mColumn = mUI.MelColumn(_inside)
+        mc.setParent(_inside)
+        cgmUI.add_SectionBreak()                
+        cgmUI.add_LineBreak()
+        
+        
+        cgmUI.add_Header('Utils')
+        
+        cgmUI.add_Button(_inside, "Report",
+                         cgmGEN.Callback(self.mPathList.log_self),
+                         "Report PathList")
+        cgmUI.add_SectionBreak()        
+        cgmUI.add_SectionBreak()        
+
+        cgmUI.add_Button(_inside, "Clear",
+                         cgmGEN.Callback(self.mPathList.clear),
+                         "Clear PathList")        
+        cgmUI.add_SectionBreak()        
+        
+
+        self.rebuildList()
+        
+        return
+    
+    def rebuildList(self):
+        self.mColumn.clear()
+        self.mPathList.verify()
+        
+        for i,p in enumerate(self.mPathList.l_paths):
+            proj = data(filepath=p)
+            name = proj.d_project['name']
+            
+            cgmUI.add_Button(self.mColumn, name,
+                             cgmGEN.Callback(self.removePath,p),
+                             "Remove: {0} | {1} | {2}".format(i,name,p))        
+            
+    def removePath(self,p):
+        self.mPathList.remove(p)
+        self.rebuildList()
+
+
+def buildMenu_project(self,key, toProject=False):
+    mMenu = self.__dict__[key]
+    mMenu.clear()
+    
+    self.mPathList.verify()
+    
+    project_names = []
+    for i,p in enumerate(self.mPathList.l_paths):
+        proj = data(filepath=p)
+        name = proj.d_project['name']
+        project_names.append(name)
+        mUI.MelMenuItem(mMenu,
+                        label = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
+                        ann = "Set the project to: {0} | {1}".format(i,p),
+                        c=cgmGEN.Callback(self.uiProject_load,p))
+        
+    mUI.MelMenuItemDiv(mMenu)
+    #mUI.MelMenuItem(mMenu,
+    #                label = "Clear Recent",
+    #                ann="Clear the recent projects",
+    #                c=cgmGEN.Callback(self.mPathList.clear))
+    mUI.MelMenuItem(mMenu,
+                    label = "Edit Path List",
+                    ann="Open Edit UI",
+                    c=cgmGEN.Callback(self.mPathList.ui))    
+
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = 'cgmProjectManager'    
@@ -348,7 +467,7 @@ class ui(cgmUI.cgmGUI):
         self.var_pathProject = cgmMeta.cgmOptionVar('cgmVar_projectPath',defaultValue = '')
         self.var_pathLastProject = cgmMeta.cgmOptionVar('cgmVar_projectLastPath',defaultValue = '')
         
-        self.mPathList = cgmMeta.pathList('cgmProjectPaths')
+        self.mPathList = pathList_project('cgmProjectPaths')
         
         self.d_tf = {}
         self.d_uiTypes = {}
@@ -376,8 +495,9 @@ class ui(cgmUI.cgmGUI):
             self.d_tf['general']['name'].setValue(_name)
             
             #self.mDat.write()
-            self.uiProject_save()
+            self.uiProject_save(duplicateMode=True)
             #self.uiProject_load(revert=True)
+            self.uiProject_fill()
             return
         return log.error("Project Creation cancelled")
                 
@@ -431,6 +551,14 @@ class ui(cgmUI.cgmGUI):
                     
         self.path_projectConfig = None
         
+        for k,tf in self.d_tf['pathsProject'].iteritems():
+            tf.setValue('',executeChangeCB=False)
+            
+        for k, tf in self.d_tf['paths'].iteritems():
+            tf.setValue('',executeChangeCB=False)
+        
+        
+        
         #Set pose path
         
         #Update file dir
@@ -474,7 +602,6 @@ class ui(cgmUI.cgmGUI):
                 tf(edit=True,visible=True)
             for k,tf in self.d_labels['pathsProject'].iteritems():
                 tf(edit=True,visible=False)
-                
             for k,tf in self.d_buttons['pathsProject'].iteritems():
                 tf(edit=True,
                    visible =True)
@@ -537,6 +664,9 @@ class ui(cgmUI.cgmGUI):
                     else:
                         if v is not None:
                             self.d_tf[dType][k].setValue(v,executeChangeCB=False)
+                        else:
+                            self.d_tf[dType][k].setValue('',executeChangeCB=False)
+                            
                             
                 except Exception,err:
                     log.error("Missing data field or failure: dtype:{0} | {1}".format(dType,k))
@@ -613,7 +743,6 @@ class ui(cgmUI.cgmGUI):
         self.mDat.read(path)
         self.uiProject_fill()
         
-
         #Set maya project path
         log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
         self.uiProject_pushPaths()
@@ -624,7 +753,6 @@ class ui(cgmUI.cgmGUI):
         self.mPathList.append(self.mDat.str_filepath)
         
         #self.mPathList.log_self()        
-        
         
         #Set pose path
 
@@ -657,7 +785,7 @@ class ui(cgmUI.cgmGUI):
             
         self.uiImage_Project.setImage(_imagePath)        
         
-    def uiProject_save(self, path = None, updateFile = True):
+    def uiProject_save(self, path = None, updateFile = True, duplicateMode = False):
         _str_func = 'uiProject_save'
         log.debug("|{0}| >>...".format(_str_func))
         
@@ -694,15 +822,23 @@ class ui(cgmUI.cgmGUI):
                 else:
                     self.mDat.__dict__[d][k] = ui.getValue()            
                     
-        ###Local paths
-        _d_local = {}
-        for k,v in self.mDat.__dict__['d_paths'].iteritems():
-            if v != self.mDat.__dict__['d_pathsProject'][k]:
-                _d_local[k] = v
+        if not duplicateMode:
+            ###Local paths
+            _d_local = {}
+            for k,v in self.mDat.__dict__['d_paths'].iteritems():
+                if v != self.mDat.__dict__['d_pathsProject'][k]:
+                    _d_local[k] = v
+                
+            _user = getpass.getuser()
+            self.mDat.d_pathsUser[_user] = _d_local
+            log.debug(cgmGEN.logString_sub(_str_func,"Local Dat user: {0}".format(k,_user)))
+        else:
+            log.debug(cgmGEN.logString_sub(_str_func,"Duplicate mode..."))
+            for d in self.mDat.d_paths,self.mDat.d_pathsProject:
+                for k,d2 in d.iteritems():
+                    d[k] = ''
+            self.mDat.d_pathsUser = {}
             
-        _user = getpass.getuser()
-        self.mDat.d_pathsUser[_user] = _d_local
-        log.debug(cgmGEN.logString_sub(_str_func,"Local Dat user: {0}".format(k,_user)))
             
         
         """
@@ -713,7 +849,7 @@ class ui(cgmUI.cgmGUI):
             self.mDat.d_paths[k] = ui.getValue()
             """
         #self.mDat.log_self()
-        self.mDat.write( path)
+        self.mDat.write( path,False)
         return log.warning("Saved complete!")
         
     def uiProject_saveAs(self):
@@ -721,6 +857,19 @@ class ui(cgmUI.cgmGUI):
         log.debug("|{0}| >>...".format(_str_func))
         
         self.uiProject_save(None,False)
+        self.uiProject_load(self.mDat.str_filepath)   
+        
+    def uiProject_duplicate(self):
+        _str_func = 'uiProject_duplicate'
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        
+        self.uiProject_save(None,False,duplicateMode=True)
+        self.uiProject_clear()
+        self.uiProject_load(self.mDat.str_filepath)
+
+            
+        #self.reset()
         
     def uiProject_revert(self):
         _str_func = 'uiProject_revert'
@@ -731,6 +880,9 @@ class ui(cgmUI.cgmGUI):
 
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_Project = mUI.MelMenu(l='Projects',
+                                          pmc = cgmGEN.Callback(buildMenu_project,self,'uiMenu_Project'))
+        
         self.uiMenu_utils = mUI.MelMenu(l='Utils', pmc = cgmGEN.Callback(self.buildMenu_utils),tearOff=True)
         
         self.uiMenu_help = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
@@ -795,30 +947,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_utils, l="Query",
                          c = lambda *a:self.fncMayaSett_query())        
         
-        
-        
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         
         #Recent -------------------------------------------------------------------
-        self.mPathList.verify()
-        _recent = mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Recent",subMenu=True)
         
-        project_names = []
-        for i,p in enumerate(self.mPathList.l_paths):
-            proj = data(filepath=p)
-            name = proj.d_project['name']
-            project_names.append(name)
-            mUI.MelMenuItem(_recent,
-                            label = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
-                            ann = "Set the project to: {0} | {1}".format(i,p),
-                            c=cgmGEN.Callback(self.uiProject_load,p))
-            
-        mUI.MelMenuItemDiv(_recent)
-        mUI.MelMenuItem(_recent,
-                        label = "Clear Recent",
-                        ann="Clear the recent projects",
-                        c=cgmGEN.Callback(self.mPathList.clear))                
         
         
         #>>> Reset Options		                     
@@ -832,6 +965,8 @@ class ui(cgmUI.cgmGUI):
                          c = lambda *a:mc.evalDeferred(self.uiProject_save,lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save As",
                          c = lambda *a:mc.evalDeferred(self.uiProject_saveAs,lp=True))
+        #mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Duplicate",
+        #                c = lambda *a:mc.evalDeferred(self.uiProject_duplicate,lp=True))
         
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Utils' )
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
@@ -1355,7 +1490,7 @@ class ui(cgmUI.cgmGUI):
         if not PATHS.Path(_value).exists():
             mField(edit=True,bgc = _colorBad)
             
-            raise ValueError,"uiCC_checkPath | Invalid path: {0}".format(_value)
+            return log.error("uiCC_checkPath | Invalid path: {0}".format(_value))
         else:
             mField(edit=True,bgc = _colorGood)
             
@@ -1881,6 +2016,10 @@ class data(object):
             filepath = self.str_filepath
             
         filepath = self.validateFilepath(filepath)
+        if not filepath:
+            log.warning('Invalid path: {0}'.format(filepath))
+            
+            return False
         log.warning('Write to: {0}'.format(filepath))
             
         ConfigObj = configobj.ConfigObj(indent_type='\t')
@@ -1901,8 +2040,8 @@ class data(object):
         ConfigObj.filename = filepath
         ConfigObj.write()
         
-        if update:
-            self.str_filepath = filepath
+        #if update:
+        self.str_filepath = filepath
         log.warning('Complete')
         return True
         
