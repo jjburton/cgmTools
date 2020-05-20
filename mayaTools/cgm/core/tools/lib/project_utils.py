@@ -48,8 +48,8 @@ d_dirFramework = {
 'prop':{'content': _animatable_content,
         'export':['animation'],
         'dir':'props'},
-'sequence':{'content':['shots'],
-            'export':['shots'],
+'sequence':{'content':['shot'],
+            'export':['shot'],
             'dir':'sequences'},
 'ui':{'content':[],
       'dir':'UI'},
@@ -98,8 +98,9 @@ def dirCreateList_get(projectType,dirSet=None,key = None):
         d = d_dirFramework.get(k,{})
         if not d:
             log.warning("No data on {0}".format(k))
-        if d.has_key(dirSet):
-            l_set.append(d.get('dir',k))
+        #if d.has_key(dirSet):
+            #l_set.append(d.get('dir',k))
+        l_set.append(k)
     return l_set
 
 def asset_getBaseList(arg=None,key=None):

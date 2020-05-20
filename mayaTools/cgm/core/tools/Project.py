@@ -127,16 +127,19 @@ def uiAsset_rebuildOptionMenu(self):
         
 def uiAsset_rebuildSub(self):
     _value = self.uiAssetTypeOptions.getSelectedIdx()
-    d = self.mDat.assetDat[_value]
     
     self.uiAsset_content.clear()
     self.uiAsset_export.clear()
-
-    for o in d.get('content',[]):
-        mUI.MelLabel(self.uiAsset_content, label=o)
+    
+    try:d = self.mDat.assetDat[_value]
+    except:
+        return False
+    
+    for o in d.get('content',{}):
+        mUI.MelLabel(self.uiAsset_content, label=o.get('name'))
             
-    for o in d.get('export',[]):
-        mUI.MelLabel(self.uiAsset_export, label=o)
+    #for o in d.get('export',[]):
+        #mUI.MelLabel(self.uiAsset_export, label=o)
     
 def buildFrame_assetTypes(self,parent):
     try:self.var_projectAssetTypesFrameCollapse
@@ -1958,6 +1961,15 @@ class data(object):
                 return d
         
         return False
+    
+    def assetType_report(self):
+        for i,d in enumerate(self.assetDat):
+            _name = d.get('name','NONAME')
+            _content = d.get('content',[])
+            print cgmGEN.logString_sub('', "{0} | {1} ".format(i,_name))
+            for ii,d2 in enumerate(_content):
+                print cgmGEN.logString_msg('   ', "{0}".format (d2.get('name')))
+            #print "{0} | {1} | {2}".format(i,_name,_content)
 
     def assetType_add(self,arg=None,reset=False):
         _str_func = 'data.assetType_add'
@@ -1974,12 +1986,14 @@ class data(object):
         if reset or not _found:
             log.debug(cgmGEN.logString_msg(_str_func, "Data reset {0} ".format(arg)))
             #idx = self.assetDat.index
-            for k in 'name','pathName':
+            for k in ['name']:
                 _d[k] = arg        
                 
-            _d['dir'] = PU.asset_getBaseList(arg,'dir')
+            #_d['dir'] = PU.asset_getBaseList(arg,'dir')
         
-        for k in 'content','export':
+        for k in ['content']:
+            l_set = []
+            
             if _d.get(k) and not reset:
                 log.info(cgmGEN.logString_msg(_str_func, "Data exists {0} | {1}".format(arg,k)))
                 continue
@@ -1989,7 +2003,11 @@ class data(object):
                 log.warning(cgmGEN.logString_msg(_str_func, "No data on {0} | {1}".format(arg,k)))
             
             log.debug(cgmGEN.logString_msg(_str_func, "Adding {0} | {1}".format(arg,k)))
-            _d[k] = l_buffer
+            for a in l_buffer:
+                l_set.append({'name':a})
+            
+            _d[k] = l_set
+            #_d[k] = l_buffer
             
             
             
