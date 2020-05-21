@@ -44,7 +44,7 @@ __toolname__ ='cgmAnimDraw'
 _padding = 5
 
 _planeOptionsPosition = ['screen', 'planeX', 'planeY', 'planeZ', 'axisX', 'axisY', 'axisZ', 'custom', 'object']
-_planeOptionsAim = ['screen', 'custom', 'object']
+_planeOptionsAim = ['screen', 'planeX', 'planeY', 'planeZ', 'custom', 'object']
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -159,6 +159,8 @@ def buildColumn_main(self,parent, asScroll = False):
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()
 
+    # Options Frame
+    #
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = _padding)        
 
     mUI.MelSpacer(_row,w=_padding)
@@ -175,12 +177,15 @@ def buildColumn_main(self,parent, asScroll = False):
 
     mUI.MelSpacer(_row,w=_padding)
 
-    #mUI.MelSpacer(_row,w=_padding)
     _row.layout()
+    #
+    # End Options Frame
 
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()
 
+    # Recording Button
+    #
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = _padding*2)
     
     self.liveRecordBtn = cgmUI.add_Button(_row,'Start Recording Context',
@@ -189,6 +194,46 @@ def buildColumn_main(self,parent, asScroll = False):
         'Start Live Record',h=50)
 
     _row.layout()    
+    #
+    # End Recording Button
+
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+
+    # Instructions Label
+    #
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = _padding*2)
+    self._infoLayout = _row
+
+    self._infoLayout(edit=True, vis=False)
+
+    mUI.MelLabel(_row,ut='cgmUIInstructionsTemplate',l='Left Drag: Draw  -  Ctrl Left Drag: Reposition  -  Right Click: Cache Data',en=True)
+
+    _row.layout()
+    #
+    # End Instructions
+
+    # Post Process Frame
+    #
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = _padding)        
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _subColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+
+    _postProcessFrame = mUI.MelFrameLayout(_subColumn, label='Post Process Animation', collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+    
+    self._postProcessColumn = mUI.MelColumnLayout(_postProcessFrame,useTemplate = 'cgmUIHeaderTemplate') 
+
+    uiFunc_build_post_process_column(self)
+
+    _row.setStretchWidget(_subColumn)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Post Process Frame
 
     return _inside
 
@@ -196,6 +241,8 @@ def uiFunc_build_options_column(self):
     mc.setParent(self._optionColumn)
     cgmUI.add_LineSubBreak()
 
+    # Mode
+    #
     _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)                      
@@ -217,10 +264,14 @@ def uiFunc_build_options_column(self):
         mUI.MelSpacer(_row,w=_padding)       
 
     _row.layout()  
+    #
+    # End Mode
 
     mc.setParent(self._optionColumn)
     cgmUI.add_LineSubBreak()    
 
+    # Aim
+    #
     _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5, vis=False)
     self._row_aimDirection = _row
 
@@ -252,10 +303,14 @@ def uiFunc_build_options_column(self):
     mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()
+    #
+    # End Aim
 
     mc.setParent(self._optionColumn)
     cgmUI.add_LineSubBreak()    
 
+    # Plane
+    #
     _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)                          
@@ -271,14 +326,14 @@ def uiFunc_build_options_column(self):
 
     self.planeMenu(edit=True, changeCommand=cgmGEN.Callback(uiFunc_set_plane,self))
 
-    cgmUI.add_Button(_row,'Visualize',
-                     cgmGEN.Callback(uiFunc_visualize_plane,self),
-                     "Create a plane in the scene that matches your selection.") 
-
     mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()
+    #
+    # End Plane
 
+    # Plane Object
+    #
     _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
     self._row_planeObject = _row
 
@@ -302,41 +357,11 @@ def uiFunc_build_options_column(self):
     _row.layout()
 
     self._row_planeObject(edit=True, vis=False)
-
-
-    # Post Blend Frames
-    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Post Blend Frames:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiIF_postBlendFrames = mUI.MelIntField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict['postBlendFrames'], cc=cgmGEN.Callback(uiFunc_set_post_blend_frames,self))
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-
-    # Loop Time
-    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Loop Time:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiCB_loopTime = mUI.MelCheckBox(_row,en=True,
-                               v = self._optionDict['loopTime'],
-                               label = '',
-                               ann='Should time loop to start after reaching the end',
-                               cc=cgmGEN.Callback(uiFunc_set_loop_time,self))
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
+    #
+    # End Plane Object
 
     # Record Mode
+    #
     _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)                          
@@ -355,9 +380,268 @@ def uiFunc_build_options_column(self):
     mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()
+    #
+    # End Record Mode
+
+    # Loop Time
+    #
+    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Loop Time:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiCB_loopTime = mUI.MelCheckBox(_row,en=True,
+                               v = self._optionDict['loopTime'],
+                               label = '',
+                               ann='Should time loop to start after reaching the end',
+                               cc=cgmGEN.Callback(uiFunc_set_loop_time,self))
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Loop Time
+
+    # Post Blend Frames
+    #
+    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Post Blend Frames:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiIF_postBlendFrames = mUI.MelIntField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict['postBlendFrames'], cc=cgmGEN.Callback(uiFunc_set_post_blend_frames,self))
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Post Blend Frames
+
+    # Debug
+    #
+    _row = mUI.MelHSingleStretchLayout(self._optionColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Debug:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiCB_debug = mUI.MelCheckBox(_row,en=True,
+                               v = self._optionDict['loopTime'],
+                               label = '',
+                               ann='Various debug junk might stick around after recording',
+                               cc=cgmGEN.Callback(uiFunc_set_debug,self))
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Debug
 
     mc.setParent(self._optionColumn)
     cgmUI.add_LineSubBreak()   
+
+def uiFunc_build_post_process_column(self):
+    parentColumn = self._postProcessColumn
+    
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()
+
+    # Post Process Action
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    self._post_row_aimDirection = _row
+
+    mUI.MelSpacer(_row,w=_padding)                          
+    mUI.MelLabel(_row,l='Action:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    actions = ['Dragger', 'Trajectory Aim']
+
+    self.post_actionMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAction,self))
+    for dir in actions:
+        self.post_actionMenu.append(dir)
+    
+    self.post_actionMenu.setValue(actions[0])
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Post Process Action
+
+    # Post Process Options Frame
+    #
+    self._postProcessOptionsColumn = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+    #
+    # Post Process Options Frame
+
+    uiFunc_setPostAction(self)
+
+def uiFunc_setPostAction(self):
+    postAction = self.post_actionMenu.getValue()
+
+    if postAction == 'Dragger':
+        uiFunc_build_post_dragger_column(self)
+    elif postAction == 'Trajectory Aim':
+        uiFunc_build_post_dragger_column(self)
+
+def uiFunc_build_post_dragger_column(self):
+    parentColumn = self._postProcessOptionsColumn
+
+    parentColumn.clear()
+
+    # Aim
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    self._post_row_aimDirection = _row
+
+    mUI.MelSpacer(_row,w=_padding)                          
+    mUI.MelLabel(_row,l='Aim:')  
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+
+    mUI.MelLabel(_row,l='Fwd:') 
+
+    self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
+    for dir in directions:
+        self.post_fwdMenu.append(dir)
+    
+    self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
+
+    mUI.MelSpacer(_row,w=_padding)
+    
+    mUI.MelLabel(_row,l='Up:')
+
+    self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
+    for dir in directions:
+        self.post_upMenu.append(dir)
+
+    self.post_upMenu.setValue(self._optionDict['aimUp'])
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Aim
+
+    #self.uiFF_post_velocity_damp.getValue()
+    #self.uiCB_post_debug.getValue()
+    
+    # Post Damp
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Damp:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=3.0)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Damp
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
+    # Post Object Scale
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Object Scale:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=10.0)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Object Scale
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
+    # Post Velocity Scalar
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Velocity:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    
+    mUI.MelLabel(_row,l='Scalar:')
+    self.uiFF_post_velocity_scalar = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=0)
+
+    mUI.MelLabel(_row,l='Damp:')
+    self.uiFF_post_velocity_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=8.0)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Velocity Damp
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
+    # Loop Time
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Debug:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
+                               v = False,
+                               label = '',
+                               ann='Debug locators will not be deleted so you could see what happened')
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Loop Time
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
+    # Bake Dragger Button
+    #
+    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    
+    cgmUI.add_Button(_row,'Bake Dragger',
+        cgmGEN.Callback(uiFunc_bake_dragger,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Bake Dragger',h=30)
+
+    _row.layout()   
+    #
+    # End Bake Dragger Button
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
+def uiFunc_bake_dragger(self):
+    draggerInstance = DRAGGER.Dragger(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), velocityScalar=self.uiFF_post_velocity_scalar.getValue(), velocityDamp=self.uiFF_post_velocity_damp.getValue(), debug=self.uiCB_post_debug.getValue())
+    draggerInstance.bake()
 
 def uiFunc_set_post_blend_frames(self):
     self._optionDict['postBlendFrames'] = self.uiIF_postBlendFrames.getValue()
@@ -371,8 +655,9 @@ def uiFunc_set_record_mode(self):
     self._optionDict['recordMode'] = self.recordMenu.getValue()
     uiFunc_update_args_live(self)
 
-def uiFunc_visualize_plane(self):
-    pass
+def uiFunc_set_debug(self):
+    self._optionDict['debug'] = self.uiCB_debug.getValue()
+    uiFunc_update_args_live(self)    
 
 def uiFunc_setAim(self):
     aimFwd = self.fwdMenu.getValue()
@@ -388,6 +673,18 @@ def uiFunc_setAim(self):
         self.upMenu(edit=True, bgc=[.35,.35,.35])
 
     uiFunc_update_args_live(self)
+
+def uiFunc_setPostAim(self):
+    aimFwd = self.post_fwdMenu.getValue()
+    aimUp = self.post_upMenu.getValue()
+
+    if aimFwd[0] == aimUp[0]:
+        log.error('Fwd and Up axis should be different or you may get unexpected results')
+        self.post_fwdMenu(edit=True, bgc=[1,.35,.35])
+        self.post_upMenu(edit=True, bgc=[1,.35,.35])
+    else:
+        self.post_fwdMenu(edit=True, bgc=[.35,.35,.35])
+        self.post_upMenu(edit=True, bgc=[.35,.35,.35])
 
 def uiFunc_setModeOption(self, option, val):
     self._optionDict[option] = val
@@ -474,16 +771,18 @@ def uiFunc_toggleContext(self):
             log.error("No object selected. Can't start draw context")
             return
 
-        self._liveRecordTool = liveRecord.LiveRecord(plane=self._optionDict['plane'], mode=self._optionDict['mode'], planeObject = self._optionDict['planeObject'], aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], postBlendFrames=self._optionDict['postBlendFrames'], loopTime=self._optionDict['loopTime'], debug=self._optionDict['debug'], recordMode = self._optionDict['recordMode'], onStart=cgmGEN.Callback(uiFunc_recordingStarted,self), onComplete=cgmGEN.Callback(uiFunc_recordingCompleted,self), onExit=cgmGEN.Callback(uiFunc_exit_draw_context,self))
+        self._liveRecordTool = liveRecord.LiveRecord(plane=self._optionDict['plane'], mode=self._optionDict['mode'], planeObject = self._optionDict['planeObject'], aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], postBlendFrames=self._optionDict['postBlendFrames'], loopTime=self._optionDict['loopTime'], debug=self._optionDict['debug'], recordMode = self._optionDict['recordMode'], onStart=cgmGEN.Callback(uiFunc_recordingStarted,self), onComplete=cgmGEN.Callback(uiFunc_recordingCompleted,self), onReposition=cgmGEN.Callback(uiFunc_recordingCompleted,self),onExit=cgmGEN.Callback(uiFunc_exit_draw_context,self))
         self._liveRecordTool.activate()
         self.liveRecordBtn(e=True, label='Stop Recording Context', bgc=[.35,1,.35])
+        self._infoLayout(edit=True, vis=True)
 
 def uiFunc_exit_draw_context(self):
     self._mTransformTarget = None
     uiFunc_clear_loaded(self.uiTF_objLoad)
     self._liveRecordTool = None
     self.liveRecordBtn(e=True, label='Start Recording Context', bgc=[.35,.35,.35])
-    
+    self._infoLayout(edit=True, vis=False)
+
 def uiFunc_recordingStarted(self):
     _str_func = 'liveRecordTool.uiFunc_recordingStarted'
 
