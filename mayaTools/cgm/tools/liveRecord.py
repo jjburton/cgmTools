@@ -39,7 +39,7 @@ log.setLevel(logging.INFO)
 
 
 class LiveRecord(object):
-    def __init__(self, plane='screen', mode='position', planeObject = None, aimFwd = 'z+', aimUp = 'y+', onStart=None, onUpdate=None, onComplete=None, onExit=None, postBlendFrames=6, loopTime=False, debug=False):
+    def __init__(self, plane='screen', mode='position', planeObject = None, recordMode='combine', aimFwd = 'z+', aimUp = 'y+', onStart=None, onUpdate=None, onComplete=None, onExit=None, postBlendFrames=6, loopTime=False, debug=False):
         _str_func = 'LiveRecord._init_'
 
         try:
@@ -64,6 +64,9 @@ class LiveRecord(object):
         self.aimFwd = VALID.simpleAxis(aimFwd)
         self.aimUp = VALID.simpleAxis(aimUp)
         self.debug = debug
+        self.recordMode = recordMode
+
+        self._currentPlaneObject = self.planeObject
 
         self._debugLoc = None
         self._bakedLoc = None
@@ -125,16 +128,19 @@ class LiveRecord(object):
 
     def bakeLoc(self):
         self._bakedLoc = cgmMeta.asMeta(LOC.create())
-        SNAP.matchTarget_set(self._bakedLoc.mNode, self.obj.mNode)
+        SNAP.matchTarget_set(self._bakedLoc.mNode, self._currentPlaneObject.mNode)
 
         ct = mc.currentTime(q=True)
+        
+        SNAP.matchTarget_snap(self._bakedLoc.mNode)
 
-        mc.refresh(su=True)
-        for i in range(int(ct), int(mc.playbackOptions(q=True, max=True))+1):
-            mc.currentTime(i)
-            SNAP.matchTarget_snap(self._bakedLoc.mNode)
-            mc.setKeyframe(self._bakedLoc.mNode, at=['translate', 'rotate'])
-        mc.refresh(su=False)
+        if self.recordMode == 'combine':
+            mc.refresh(su=True)
+            for i in range(int(ct), int(mc.playbackOptions(q=True, max=True))+1):
+                mc.currentTime(i)
+                SNAP.matchTarget_snap(self._bakedLoc.mNode)
+                mc.setKeyframe(self._bakedLoc.mNode, at=['translate', 'rotate'])
+            mc.refresh(su=False)
 
         mc.currentTime(ct)
 
@@ -146,6 +152,8 @@ class LiveRecord(object):
 
     def onPress(self, clickDict):
         _str_func = 'LiveRecord.onPress'
+
+        self.obj = cgmMeta.asMeta(self.obj)
 
         self.isRecording = False
         self.isPressed = True
@@ -175,68 +183,43 @@ class LiveRecord(object):
 
         self._velocity = MATHUTILS.Vector3.zero()
 
-        if self.mode == 'position':
-            if self.plane == 'planeX':
-                self.planeNormal = MATHUTILS.Vector3.right()
-                self.keyableAttrs = ['ty', 'tz']
-            elif self.plane == 'planeY':
-                self.planeNormal = MATHUTILS.Vector3.up()
-                self.keyableAttrs = ['tx', 'tz']
-            elif self.plane == 'planeZ':
-                self.planeNormal = MATHUTILS.Vector3.forward()
-                self.keyableAttrs = ['tx', 'ty']
-            elif self.plane == 'axisX':
-                self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
-                self.keyableAttrs = ['tx']
-            elif self.plane == 'axisY':
-                self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
-                self.keyableAttrs = ['ty']
-            elif self.plane == 'axisZ':
-                self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
-                self.keyableAttrs = ['tz']
-            elif self.plane == 'custom':
-                if self.planeObject:
-                    self.planeObject = cgmMeta.asMeta(self.planeObject)
-                    self.planeNormal = VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
-                    self.keyableAttrs = ['tx', 'ty', 'tz']
-                else:
-                    log.warning("|{0}| >> Custom plane not found, using screen as default".format(_str_func))
-                    self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
-                    self.keyableAttrs = ['tx', 'ty', 'tz']
-            elif self.plane == 'object':
-                self.planeObject = self.obj
-                self.planeNormal = VALID.euclidVector3Arg(self.aimUp.p_vector)
-            else:
-                self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
-                self.keyableAttrs = ['tx', 'ty', 'tz']
-        elif self.mode == 'aim':
-            if self.plane == 'custom' and self.planeObject:
-                self.planeObject = cgmMeta.asMeta(self.planeObject)
-                self.planeNormal = MATHUTILS.Vector3.up() #VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
-                self.keyableAttrs = ['rx', 'ry', 'rz']
-            elif self.plane == 'object':
-                self.planeObject = self.obj
-                self.planeNormal = VALID.euclidVector3Arg(self.aimUp.p_vector)
-            else:
-                self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
-                self.keyableAttrs = ['tx', 'ty', 'tz']
+        #if self.mode == 'position':
+        self.constructPlaneInfo()
+
+        if self.clickAction.modifier != 'ctrl':
+            self.bakeLoc()
+            if self._bakedLoc:
+                self._currentPlaneObject = self._bakedLoc
+
+        # elif self.mode == 'aim':
+        #     if self.plane == 'custom' and self.planeObject:
+        #         self.planeObject = cgmMeta.asMeta(self.planeObject)
+        #         self.planeNormal = MATHUTILS.Vector3.up() #VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
+        #         self.keyableAttrs = ['rx', 'ry', 'rz']
+        #     elif self.plane == 'object':
+        #         self.planeObject = self.obj
+        #         self.planeNormal = VALID.euclidVector3Arg(self.aimUp.p_vector)
+        #     else:
+        #         self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
+        #         self.keyableAttrs = ['tx', 'ty', 'tz']
+
+        if self.mode == 'aim':
+            self.keyableAttrs = ['rx', 'ry', 'rz']
 
         self._objOffset = MATHUTILS.Vector3.zero()
         if self.plane != 'custom':
             self._objOffset = VALID.euclidVector3Arg(self.obj.p_position) - self.projectOntoPlane(clickDict['vector'])
         
-
         if self.clickAction.modifier == 'ctrl':
             mc.cutKey(self.obj.mNode, at=self.keyableAttrs, time=(mc.currentTime(q=True),), clear=True)
             self._hasSavedKeys = False
         else:
-            self.bakeLoc()
             self._hasSavedKeys = mc.cutKey(self.obj.mNode, at=self.keyableAttrs, time=(mc.currentTime(q=True),mc.findKeyframe(self.obj.mNode, which='last')+1))
             if self._hasSavedKeys:
                 self._animStoreLoc = LOC.create()
                 mc.pasteKey(self._animStoreLoc, at=self.keyableAttrs, o='replaceCompletely')
-                if self._bakedLoc and self.planeObject == self.obj:
-                    self.planeObject = self._bakedLoc
+                # if self._bakedLoc and self.planeObject == self.obj:
+                #     self.planeObject = self._bakedLoc
 
         self.record()
 
@@ -319,6 +302,44 @@ class LiveRecord(object):
         except Exception,err:
             log.error("|{0}| >> onUpdate function failed: | err: {1}".format(_str_func, err))
 
+    def constructPlaneInfo(self):
+        self._currentPlaneObject = cgmMeta.asMeta(self.planeObject) if self.planeObject and self.plane == 'custom' else cgmMeta.asMeta(self.obj)
+
+        if self.plane == 'planeX':
+            self.planeNormal = MATHUTILS.Vector3.right()
+            self.keyableAttrs = ['ty', 'tz']
+        elif self.plane == 'planeY':
+            self.planeNormal = MATHUTILS.Vector3.up()
+            self.keyableAttrs = ['tx', 'tz']
+        elif self.plane == 'planeZ':
+            self.planeNormal = MATHUTILS.Vector3.forward()
+            self.keyableAttrs = ['tx', 'ty']
+        elif self.plane == 'axisX':
+            self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
+            self.keyableAttrs = ['tx']
+        elif self.plane == 'axisY':
+            self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
+            self.keyableAttrs = ['ty']
+        elif self.plane == 'axisZ':
+            self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
+            self.keyableAttrs = ['tz']
+        elif self.plane == 'custom':
+            if self.planeObject:
+                self.planeNormal = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(MATHUTILS.Vector3.up()))
+                self.keyableAttrs = ['tx', 'ty', 'tz']
+            else:
+                log.error("|{0}| >> Custom plane not found. Please input and try again".format(_str_func))
+                return
+        elif self.plane == 'object':
+            # Since we're using the object and are going to be removing keys
+            # we need to bake the existing animation to a locator and use that
+            # as the relevant plane
+            #self._currentPlaneObject = self._bakedLoc if self._bakedLoc else self.obj
+            self.planeNormal = VALID.euclidVector3Arg(self.aimUp.p_vector)
+            self.keyableAttrs = ['tx', 'ty', 'tz']
+        else:
+            self.planeNormal = VALID.euclidVector3Arg(self.cam.getTransformDirection(MATHUTILS.Vector3.forward()))
+            self.keyableAttrs = ['tx', 'ty', 'tz']
 
     def projectOntoPlane(self, vector):
         _str_func = 'LiveRecord.projectOntoPlane'
@@ -326,12 +347,13 @@ class LiveRecord(object):
         camPos = VALID.euclidVector3Arg(self.cam.p_position)
 
         planeNormal = self.planeNormal
-        if (self.plane == 'custom' or self.mode == 'aim') and self.planeObject:
-            self.planePoint = VALID.euclidVector3Arg(self.planeObject.p_position)
-            planeNormal = VALID.euclidVector3Arg(self.planeObject.getTransformDirection(self.planeNormal))
+        if self.plane in ['custom', 'object']:
+            planeNormal = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(self.planeNormal))
         else:
             self.planePoint = VALID.euclidVector3Arg(self.obj.p_position)       
         
+        self.planePoint = VALID.euclidVector3Arg(self._currentPlaneObject.p_position)
+
         rayPoint = VALID.euclidVector3Arg(self.cam.p_position)
         rayDirection = VALID.euclidVector3Arg(vector)
 
@@ -363,12 +385,16 @@ class LiveRecord(object):
         _str_func = 'LiveRecord.aimObjToPlane'
 
         wantedPos = self.projectOntoPlane(vector)
-        vectorUp = None
-        if self._bakedLoc:
-            vectorUp = VALID.euclidVector3Arg(self.planeObject.getTransformDirection(self.aimUp.p_vector))
+        #vectorUp = None
+        vectorUp = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(self.aimUp.p_vector))
         SNAP.aim_atPoint(obj=self.obj, mode='matrix', position=wantedPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=vectorUp)
         mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
 
         if self._debugLoc:
             self._debugLoc.p_position = wantedPos
             mc.setKeyframe(self._debugLoc.mNode, at='translate')
+
+    def makePlaneCurve(size = 10.0):
+        p = [(-size, 0, size), (size, 0, size), (size, 0, -size), (-size, 0, -size), (-size, 0, size), (0, 0, size), (0, 0, -size), (-size, 0, -size), (-size, 0, 0), (size, 0, 0)]
+        k = range(10)
+        return cgmMeta.asMeta( mc.curve(name='planeCrv', d=1, p=p, k=k) )
