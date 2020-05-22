@@ -58,7 +58,8 @@ from cgm.core.lib import name_utils as NAMES
 from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.cgmPy.validateArgs as VALID 
 
-
+import cgm.images as cgmImages
+mImagesPath = CGMPATH.Path(cgmImages.__path__[0])
 #>>>======================================================================
 import logging
 logging.basicConfig()
@@ -232,7 +233,60 @@ if cgmGEN.__mayaVersion__ > 2016:
     _b_reload = False
 else:
     _b_reload = True
+    
+l_thanksIntervals = [10, 25, 50, 100, 500, 1000]
+
+def uiWindow_thanks():
+    window = mc.window( title="Thanks!", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True)
+    column = mUI.MelColumnLayout( window , ut = 'cgmUISubTemplate')
+    
+    _imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
+    imageRow = mUI.MelHRowLayout(column,bgc=[0,0,0])
+    
+    #mUI.MelSpacer(imageRow,w=10)
+    uiImage_ProjectRow = imageRow
+    uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
+    uiImage_Project.setImage(_imageFailPath)    
         
+    msg = "Thanks for using our tools! \n You've opened them [{}] times  \n since maya last lost its prefs. \n ... \n  Knock on wood. \n ... \n Here's a link to the docs if you've forgotten. \n Please consider supporting us :) ".format(cgmMeta.cgmOptionVar('cgmVar_loadCount').value)
+    
+    mUI.MelLabel(column, label=msg, ut = 'cgmUISubTemplate', h =125)
+    mUI.MelSpacer(column, h=10 )
+    
+    mc.button(parent = column,
+              ut = 'cgmUITemplate',
+              l='Basic Docs',
+              ann = "Basic cgmDocs",
+              c=lambda *a: webbrowser.open("http://docs.cgmonks.com/index.html"))    
+    mc.button(parent = column,
+              ut = 'cgmUITemplate',
+              l='MRS Docs',
+              ann = "MRS Docs",
+              c=lambda *a: webbrowser.open("http://mrsdocs.cgmonastery.com/"))    
+    mc.button(parent = column,
+              ut = 'cgmUITemplate',
+              l='Support our Work',
+              ann = "Support our work",
+              c=lambda *a: webbrowser.open("https://www.patreon.com/mrsmakers"))
+    
+    
+    
+    """
+    add_Button(column,'Basic Docs', 'import webbrowser;webbrowser.open(" http://docs.cgmonks.com/index.html")')
+    add_Button(column,'MRS Docs', 'import webbrowser;webbrowser.open(" http://docs.cgmonks.com/index.html")')
+    add_Button(column,'Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://docs.cgmonks.com/index.html")')
+    add_Button(column,'Close', lambda *a: mc.deleteUI("{0}".format(window)))
+    mc.setParent( '..' )"""
+    
+    _row_cgm = add_cgmFooter(column)            
+    
+    mc.showWindow( window )    
+    
+
+    
+
+
+
 class cgmGUI(mUI.BaseMelWindow):
     """
     Base CG Monks core gui
@@ -319,6 +373,11 @@ class cgmGUI(mUI.BaseMelWindow):
             self.show()
 
             self.post_init(self,*a,**kw)
+            
+            self.var_uiLoadCount = cgmMeta.cgmOptionVar('cgmVar_loadCount', defaultValue = 1)
+            self.var_uiLoadCount.value += 1
+            if self.var_uiLoadCount.value in l_thanksIntervals:
+                uiWindow_thanks()
 
         except Exception,err:cgmGEN.cgmException(Exception,err)
         finally:
@@ -357,6 +416,7 @@ class cgmGUI(mUI.BaseMelWindow):
         self.create_guiOptionVar('Dock',defaultValue = 0)
         self.create_guiOptionVar('DockSide',defaultValue = 0)	
         self.create_cgmDebugOptionVar(defaultValue = 0)
+        
 
     def create_guiOptionVar(self,varName,*args,**kws):
         fullName = "cgmVar_%s%s"%(self.__class__.TOOLNAME,varName)
@@ -425,7 +485,10 @@ class cgmGUI(mUI.BaseMelWindow):
         mUI.MelMenuItemDiv( self.uiMenu_HelpMenu )
         
         mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Log Self",
-                         c=lambda *a: log_selfReport(self) )   
+                         c=lambda *a: log_selfReport(self) )
+        
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Thanks",
+                         c=lambda *a: uiWindow_thanks() )        
 
         # Update Mode
         iMenu_loggerMaster = mUI.MelMenuItem( self.uiMenu_HelpMenu, l='Logger Level', subMenu=True)
