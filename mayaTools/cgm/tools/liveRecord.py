@@ -134,7 +134,7 @@ class LiveRecord(object):
                         self._bakedLoc.p_position = self._prevDataDict[currentFrame]['p']
                         SNAP.aim_atPoint(obj=self._bakedLoc.mNode, mode='matrix', position=self._prevDataDict[currentFrame]['p'] + self._prevDataDict[currentFrame]['f'], aimAxis='z+', upAxis='y+', vectorUp=self._prevDataDict[currentFrame]['u'] )
                     else:
-                        self._bakedLoc.p_position = self.obj.p_position
+                        self._bakedLoc.p_position = self._currentPlaneObject.p_position
 
         if self.clickAction.modifier != 'ctrl':
             mc.currentTime(currentFrame-1)
@@ -295,8 +295,6 @@ class LiveRecord(object):
                 self.postBlend()
 
                 if self._bakedLoc:
-                    if self.planeObject == self._bakedLoc:
-                        self.planeObject = self.obj
                     if not self.debug:
                         mc.delete(self._bakedLoc.mNode)
                     self._bakedLoc = None
@@ -309,6 +307,8 @@ class LiveRecord(object):
                     self.onReposition()
 
             self._useCache = False
+
+        self._currentPlaneObject = None
 
         mc.select(self.obj.mNode)
 
@@ -330,21 +330,22 @@ class LiveRecord(object):
         startPosition = VALID.euclidVector3Arg(self.obj.p_position)
         
         currentFrame = mc.currentTime(q=True)
-        for i in range(self.postBlendFrames+1):
-            easeVal = EASE.easeInOutQuad( i / (self.postBlendFrames*1.0) )
-            self._velocity = MATHUTILS.Vector3.Lerp(self._velocity, MATHUTILS.Vector3.zero(), easeVal )
-            startPosition = startPosition + self._velocity
-            self.obj.p_position = MATHUTILS.Vector3.Lerp(startPosition, VALID.euclidVector3Arg(self.obj.p_position), easeVal)
-            mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
+        if self.postBlendFrames > 0:
+            for i in range(self.postBlendFrames+1):
+                easeVal = EASE.easeInOutQuad( i / (self.postBlendFrames*1.0) )
+                self._velocity = MATHUTILS.Vector3.Lerp(self._velocity, MATHUTILS.Vector3.zero(), easeVal )
+                startPosition = startPosition + self._velocity
+                self.obj.p_position = MATHUTILS.Vector3.Lerp(startPosition, VALID.euclidVector3Arg(self.obj.p_position), easeVal)
+                mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
 
-            try:
-                if self.onUpdate != None:
-                    self.onUpdate(self.fixedDeltaTime)
-            except Exception,err:
-                log.error("|{0}| >> onUpdate function failed: | err: {1}".format(_str_func, err))
+                try:
+                    if self.onUpdate != None:
+                        self.onUpdate(self.fixedDeltaTime)
+                except Exception,err:
+                    log.error("|{0}| >> onUpdate function failed: | err: {1}".format(_str_func, err))
 
-            currentFrame = currentFrame + 1
-            mc.currentTime(currentFrame)
+                currentFrame = currentFrame + 1
+                mc.currentTime(currentFrame)
 
     def update(self, deltaTime = .04):
         _str_func = 'LiveRecord.update'
@@ -364,7 +365,9 @@ class LiveRecord(object):
             log.error("|{0}| >> onUpdate function failed: | err: {1}".format(_str_func, err))
 
     def constructPlaneInfo(self):
-        self._currentPlaneObject = cgmMeta.asMeta(self.planeObject) if self.planeObject and self.plane == 'custom' else cgmMeta.asMeta(self.obj)
+        self._currentPlaneObject = cgmMeta.asMeta(self.planeObject) if (self.planeObject and self.plane == 'custom') else cgmMeta.asMeta(self.obj)
+        
+        self._offsetUpVector = self.aimUp.p_vector
 
         if self.plane == 'planeX':
             self.planeNormal = MATHUTILS.Vector3.right()
@@ -386,7 +389,8 @@ class LiveRecord(object):
             self.keyableAttrs = ['tz']
         elif self.plane == 'custom':
             if self.planeObject:
-                self.planeNormal = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(MATHUTILS.Vector3.up()))
+                self.planeNormal = MATHUTILS.Vector3.up()#VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
+                self._offsetUpVector = self.planeObject.getTransformInverseDirection( self.obj.getTransformDirection(self.aimUp.p_vector) )
                 self.keyableAttrs = ['tx', 'ty', 'tz']
             else:
                 log.error("|{0}| >> Custom plane not found. Please input and try again".format(_str_func))
@@ -451,7 +455,7 @@ class LiveRecord(object):
 
         wantedPos = self.projectOntoPlane(vector)
         #vectorUp = None
-        vectorUp = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(self.aimUp.p_vector))
+        vectorUp = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(self._offsetUpVector))
         SNAP.aim_atPoint(obj=self.obj, mode='matrix', position=wantedPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=vectorUp)
         mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
 
