@@ -257,13 +257,15 @@ def uiBuilderMenu(self,parent = None):
     mc.menuItem(ann = '[{0}] Snap selected objects to the surface'.format(_short),
                 c = cgmGEN.Callback(uiFunc_snapSelectedToEye,self),
                 label = "Snap Selected")
-    
+    mc.menuItem(ann = '[{0}] Aim prerig Handles down the chain'.format(_short),
+                c = cgmGEN.Callback(uiFunc_aimPreHandles,self),
+                label = "Aim Pre Handles")    
     mc.menuItem(en=True,divider = True,
                 label = "Utilities")
     _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
                        label = "State Picker")
     
-    self.atUtils('uiStatePickerMenu',parent)
+    #self.atUtils('uiStatePickerMenu',parent)
     
     #self.UTILS.uiBuilderMenu(self,parent)
     
@@ -293,6 +295,62 @@ def uiFunc_snapSelectedToEye(self,ml=None):
         try:mObj.p_position = DIST.get_closest_point(mObj.mNode, mBBShape.mNode)[0]
         except Exception,err:
             log.warning("Failed to snap: {0} | {1}".format(mObj.mNode,err))
+            
+
+def uiFunc_aimPreHandles(self,upr=1,lwr=1):
+    _str_func = 'uiFunc_aimPreHandles'    
+    
+    _lidBuild = 'full'
+
+
+    if _lidBuild == "full":
+        _d_Lid = {'cgmName':'lid'}
+        for d in 'upr','lwr':
+            ml = self.prerigNull.msgList_get('{0}Drivers'.format(d))
+            for i,mObj in enumerate(ml):
+                if mObj == ml[-1]:
+                    _target = ml[-2]
+                    _axisAim = 'x-'
+                else:
+                    _target = ml[i+1]
+                    _axisAim = 'x+'
+            
+                SNAP.aim_atPoint(mObj.mNode,
+                                 _target.p_position,
+                                 _axisAim, 'y+', 'vector',
+                                 self.getAxisVector('y+'))
+                
+                #SNAP.go(mObj.shapeHelper.mNode, mObj.mNode,False)
+                mObj.shapeHelper.p_orient = mObj.p_orient
+                
+                #SNAP.aim_atPoint(mObj.shapeHelper.mNode,
+                #                _target.p_position,
+                #                _axisAim, 'y+', 'vector',
+                #                self.getAxisVector('y+'))
+            
+            
+            
+            
+            """
+            log.debug("|{0}| >>  lid {1}...".format(_str_func,d)+ '-'*20)
+            d_dir = copy.copy(_d_Lid)
+            d_dir['cgmPosition'] = d
+            
+            for side in ['inner','center','outer']:
+                d_dir['cgmDirection'] = _side
+                key = d+'Lid'+side.capitalize()        
+                mHandles = mPrerigNull.msgList_get('{0}JointHelpers'.format(key))
+                ml = []
+                for mHandle in mHandles:
+                    mJnt = create_jointFromHandle(mHandle,mRoot)
+                    ml.append(mJnt)
+                    mShape = mHandle.shapeHelper
+                    mShape.connectChildNode(mJnt,'targetJoint')
+                    
+    
+                mPrerigNull.msgList_connect('{0}Joints'.format(key),ml)
+                ml_joints.extend(ml)            """
+
     
 #=============================================================================================================
 #>> Define
@@ -1888,7 +1946,7 @@ def prerig(self):
                 d_curveCreation = {}
                 for section,sectionDat in md_handleCrvDrivers.iteritems():
                     d_curveCreation[section+'Driven'] = {'ml_handles': sectionDat,
-                                                         'rebuild':0}
+                                                         'rebuild':1}
                         
                 md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
                 md_resCurves.update(md_res['md_curves'])
@@ -1911,6 +1969,7 @@ def prerig(self):
                     #                         l_pos=[mObj.p_position for mObj in md_handleCrvDrivers[tag]])
                     
                     _count = self.getMayaAttr('numLid'+tag.capitalize()+'Joints')
+                    
                     
                     l_driverPos =  CURVES.getUSplitList(mDriverCrv.mNode,_count + 2,rebuild=0)
                     l_drivenPos = CURVES.getUSplitList(mDrivenCrv.mNode,_count + 2,rebuild=0)
@@ -2179,6 +2238,9 @@ def prerig(self):
                         
         # Connect -------------------------------------------------
         self.msgList_connect('prerigHandles', ml_handles)
+        mStateNull.msgList_connect('uprDrivers', md_crvDrivers['upr'] )
+        mStateNull.msgList_connect('lwrDrivers', md_crvDrivers['lwr'] )
+        
 
         
         #Close out ===============================================================================================

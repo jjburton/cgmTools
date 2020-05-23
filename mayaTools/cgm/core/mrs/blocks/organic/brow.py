@@ -1058,6 +1058,7 @@ def prerig(self):
                     md_mirrorDat['center'].extend(md_anchorsLists[section]['center'])
                     ml_handlesAll.extend(md_anchorsLists[section]['center'])
                     
+                    mStateNull.msgList_connect('brow{0}Anchors'.format(STR.capFirst(side)),md_anchorsLists[section]['center'])
                 else:
                     md_anchorsLists[section][side] =  [md_anchors[section][side]['start'],
                                               md_anchors[section][side]['mid'],
@@ -1065,6 +1066,8 @@ def prerig(self):
                     
                     md_mirrorDat[side].extend(md_anchorsLists[section][side])
                     ml_handlesAll.extend(md_anchorsLists[section][side])
+                    
+                    mStateNull.msgList_connect('brow{0}Anchors'.format(STR.capFirst(side)),md_anchorsLists[section][side])
 
 
         
@@ -1077,14 +1080,13 @@ def prerig(self):
                     pass
                 else:
                     d_curveCreation[section+STR.capFirst(side)+'Driver'] = {'ml_handles': dat,
-                                             'rebuild':0}
+                                             'rebuild':1}
                 
         md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
         md_resCurves = md_res['md_curves']
         ml_resCurves = md_res['ml_curves']
         
         
-
         #Handles ====================================================================================
         log.debug(cgmGEN.logString_sub('Handles'))
         md_prerigDags = {}
@@ -2769,12 +2771,121 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     for mObj in ml_proxyJoints + ml_rigJoints:
         _sl.append(mObj.mNode)
     mc.select(_sl)"""
+# ======================================================================================================
+# UI 
+# -------------------------------------------------------------------------------------------------------
+
+def uiBuilderMenu(self,parent = None):
+    #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
+    _short = self.p_nameShort
+    
+    mc.menuItem(en=False,divider=True,
+                label = "Brow")
+    
+    #mc.menuItem(ann = '[{0}] Snap state handles to surface'.format(_short),
+    #            c = cgmGEN.Callback(uiFunc_snapStateHandles,self),
+    #            label = "Snap state handles")
+    
+    mc.menuItem(ann = '[{0}] Snap state handles objects to the selected'.format(_short),
+                c = cgmGEN.Callback(uiFunc_snapStateHandles,self),
+                label = "Snap State Handles")
+    
+    mc.menuItem(ann = '[{0}] Aim pre handles'.format(_short),
+                c = cgmGEN.Callback(uiFunc_aimPreHandles,self),
+                label = "Aim Pre Handles")
+    
+    
+    mc.menuItem(en=True,divider = True,
+                label = "Utilities")
+    
+    _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
+                       label = "State Picker")
+    
+    self.atUtils('uiStatePickerMenu',parent)
+    
+    #self.UTILS.uiBuilderMenu(self,parent)
+    
+    return
+
+_handleKey = {'define':'defineSubHandles',
+              'form':'formHandles',
+              'prerig':'prerigHandles'}
 
 
 
+def uiFunc_snapStateHandles(self,ml=None):
+    if not ml:
+        ml = cgmMeta.asMeta(mc.ls(sl=1))
+    
+    if not ml:
+        log.warning("Nothing Selected")
+        return False
+    
+    _state = self.p_blockState    
+    ml_handles = self.msgList_get(_handleKey.get(_state))
+    
+    for mObj in ml_handles:
+        try:mObj.p_position = DIST.get_closest_point(mObj.mNode, ml[0].mNode)[0]
+        except Exception,err:
+            log.warning("Failed to snap: {0} | {1}".format(mObj.mNode,err))
 
 
+def uiFunc_aimPreHandles(self,upr=1,lwr=1):
+    _str_func = 'uiFunc_aimPreHandles'    
+    
+    for side in 'Left','Right':
+        ml_anchors = self.prerigNull.msgList_get('brow{0}Anchors'.format(side))        
+        ml_pre = self.prerigNull.msgList_get('brow{0}PrerigHandles'.format(side))
+        ml_joint = self.prerigNull.msgList_get('brow{0}JointHelpers'.format(side))
+        
+        for ml in ml_anchors,ml_pre,ml_joint:
+            for i,mObj in enumerate(ml):
+                if side == 'Left':
+                    if mObj == ml[-1]:
+                        _target = ml[-2]
+                        _axisAim = 'x-'
+                    else:
+                        _target = ml[i+1]
+                        _axisAim = 'x+'
+                else:
+                    if mObj == ml[-1]:
+                        _target = ml[-2]
+                        _axisAim = 'x+'
+                    else:
+                        _target = ml[i+1]
+                        _axisAim = 'x-'
+            
+                SNAP.aim_atPoint(mObj.mNode,
+                                 _target.p_position,
+                                 _axisAim, 'y+', 'vector',
+                                 self.getAxisVector('y+'))
+                
+                #SNAP.go(mObj.shapeHelper.mNode, mObj.mNode,False)
+                try:mObj.shapeHelper.p_orient = mObj.p_orient                
+                except:
+                    pass
 
+
+    """
+    if _lidBuild == "full":
+        _d_Lid = {'cgmName':'lid'}
+        for d in 'upr','lwr':
+            ml = self.prerigNull.msgList_get('{0}Drivers'.format(d))
+            for i,mObj in enumerate(ml):
+                if mObj == ml[-1]:
+                    _target = ml[-2]
+                    _axisAim = 'x-'
+                else:
+                    _target = ml[i+1]
+                    _axisAim = 'x+'
+            
+                SNAP.aim_atPoint(mObj.mNode,
+                                 _target.p_position,
+                                 _axisAim, 'y+', 'vector',
+                                 self.getAxisVector('y+'))
+                
+                #SNAP.go(mObj.shapeHelper.mNode, mObj.mNode,False)
+                mObj.shapeHelper.p_orient = mObj.p_orient"""
 
 
 

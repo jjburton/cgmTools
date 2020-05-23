@@ -253,7 +253,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
             mc.delete(_constraint + [_loc])"""
         elif mode in ['local','world','vector','object']:
             _loc = mc.spaceLocator(name='test')[0]
-            _loc_snap = POS.create_loc(_obj)
+            _loc_snap = POS.create_loc(_obj,False)
             
             mc.move (position[0],position[1],position[2], _loc, ws=True)  
             mAxis_aim = VALID.simpleAxis(aimAxis)
@@ -296,8 +296,8 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
     except Exception,err:
         try:mc.delete(_loc)
         except:pass
-        log.error( "aim_atPoint | obj: {0} | err: {1}".format(obj,err) )
-        #cgmGEN.cgmExceptCB(Exception,err)
+        #log.error( "aim_atPoint | obj: {0} | err: {1}".format(obj,err) )
+        cgmGEN.cgmExceptCB(Exception,err)
     
 
 def aim_atMidPoint(obj = None, targets = None, aimAxis = "z+", upAxis = "y+",mode='local',vectorUp = None):
