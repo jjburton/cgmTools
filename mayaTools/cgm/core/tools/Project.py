@@ -690,9 +690,9 @@ class ui(cgmUI.cgmGUI):
         
     def uiProject_clear(self,path=None,revert=False):
         _str_func = 'uiProject_clear'
-        log.debug("|{0}| >>...".format(_str_func))
+        log.info("|{0}| >>...".format(_str_func))
         self.uiLabel_file(edit=True, label = '')
-        
+
         for dType in ui._l_sections:
             log.debug(cgmGEN.logString_sub(_str_func,dType))
             
@@ -714,13 +714,11 @@ class ui(cgmUI.cgmGUI):
         for k, tf in self.d_tf['paths'].iteritems():
             tf.setValue('',executeChangeCB=False)
         
-        
-        
         #Set pose path
         
         #Update file dir
-        self.uiScrollList_dirContent.clear()
-        self.uiScrollList_dirExport.clear()
+        self.uiScrollList_dirContent.rebuild(reset=1)
+        self.uiScrollList_dirExport.rebuild(reset=1)
         
         #Project image
         log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
@@ -795,7 +793,7 @@ class ui(cgmUI.cgmGUI):
             
       
         
-    def uiProject_fill(self):
+    def uiProject_fill(self,fillDir = True):
         _str_func = 'uiProject_fill'
         log.debug("|{0}| >>...".format(_str_func))
         
@@ -884,6 +882,10 @@ class ui(cgmUI.cgmGUI):
         self.uiScrollList_dirContent.rebuild( self.mDat.d_paths.get('content'))
         self.uiScrollList_dirExport.rebuild(self.mDat.d_paths.get('export'))
         
+        self.uiScrollList_dirContent.mDat = self.mDat
+        self.uiScrollList_dirExport.mDat = self.mDat
+        
+            
         self.uiProject_lock()
         
         if l_errs:
@@ -895,10 +897,12 @@ class ui(cgmUI.cgmGUI):
         
         if path == None and revert is True:
             path = self.path_projectConfig or self.mDat.str_filepath
-            
-        #if revert is not True:
+        
+        #if self.mDat.str_filepath != path:
         self.mDat.read(path)
-        self.uiProject_fill()
+        
+        self.uiProject_clear()
+        self.uiProject_fill(fillDir = 1)
         
         #Set maya project path
         log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
@@ -1036,13 +1040,13 @@ class ui(cgmUI.cgmGUI):
     
 
     def build_menus(self):
-        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmo=1, pmc = cgmGEN.Callback(self.buildMenu_first))
         self.uiMenu_Project = mUI.MelMenu(l='Projects',
                                           pmc = cgmGEN.Callback(buildMenu_project,self,'uiMenu_Project'))
         
-        self.uiMenu_utils = mUI.MelMenu(l='Utils', pmc = cgmGEN.Callback(self.buildMenu_utils),tearOff=True)
+        self.uiMenu_utils = mUI.MelMenu(l='Utils', pmo=1, pmc = cgmGEN.Callback(self.buildMenu_utils),tearOff=True)
         
-        self.uiMenu_help = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
+        self.uiMenu_help = mUI.MelMenu(l='Help',pmo=1, pmc = cgmGEN.Callback(self.buildMenu_help))
         
     def buildMenu_utils(self):
         self.uiMenu_utils.clear()
@@ -2786,13 +2790,8 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                 return self.cmd_select(*self.selArgs,**self.selkws)
         return False
     
-    def rebuild( self, path = None ):
+    def rebuild( self, path = None ,reset = False):
         _str_func = 'rebuild'
-        
-        if path == None:
-            path = self.path
-        else:
-            self.path = path
 
         log.debug(cgmGEN.logString_start(_str_func))
         
@@ -2806,6 +2805,17 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self._l_uiKeys = []
         self._d_strToKey = {}
         #...
+        
+        if reset:
+            self.path = None
+            path = None
+            self.update_display()
+            return
+        
+        if not path and self.path:
+            path = self.path
+        else:
+            self.path = path        
         
         mPath = PATHS.Path(path)
         if not mPath.exists():
@@ -2861,11 +2871,14 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self.b_selCommandOn = True
 
     def clear( self ):
-        log.debug(cgmGEN.logString_start('clear'))                
+        log.debug(cgmGEN.logString_start('clear')) 
         self( e=True, ra=True )
+        
         self._l_str_loaded = []
         self._l_uiStr_loaded = []
         self._ml_loaded = []
+        #self.path = None
+        
         
     def clearSelection( self,):
         self( e=True, deselectAll=True )
