@@ -330,7 +330,7 @@ def get_by_dist(source = None, targets = None, mode = 'close', resMode = 'point'
             else:
                 _d_targetTypes[_type].append(_t)
             log.debug("|{0}| >> obj: {1} | type: {2}".format(_str_func,t,_type))"""
-        #cgmGen.log_info_dict(_d_targetTypes,'Targets to type') 
+        #cgmGEN.log_info_dict(_d_targetTypes,'Targets to type') 
         
         for t in _l_targets:
             res = get_closest_point(_sourcePos, t)
@@ -807,7 +807,7 @@ def create_distanceMeasure(start = None, end = None, baseName = 'measure'):
     
 
         return _res
-    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def create_closest_point_node(source = None, targetSurface = None, singleReturn = False):
     """
@@ -924,7 +924,7 @@ def create_closest_point_node(source = None, targetSurface = None, singleReturn 
                 mc.delete(n, _locs[i])
         
         return _locs[_idx], _nodes[_idx], _shapes[_idx], _types[_idx]
-    except Exception,err:cgmGen.cgmExceptCB(Exception,err)
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
     
