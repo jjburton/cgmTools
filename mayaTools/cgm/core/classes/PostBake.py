@@ -16,6 +16,11 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import locator_utils as LOC
 from cgm.core import cgm_General as cgmGeneral
 
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
 import maya.cmds as mc
 import maya.mel as mel
 
@@ -52,6 +57,12 @@ class PostBake(object):
         self.startTime = int(mc.playbackOptions(q=True, min=True)) if startTime is None else startTime
         self.endTime = int(mc.playbackOptions(q=True, max=True)) if endTime is None else endTime
 
+        previousStart = mc.playbackOptions(q=True, min=True)
+        previousEnd = mc.playbackOptions(q=True, max=True)
+        previousCurrent = mc.currentTime(q=True)
+
+        log.info('Baking from {0} to {1}'.format(self.startTime, self.endTime))
+
         mc.currentTime(self.startTime)
 
         self.preBake()
@@ -79,6 +90,10 @@ class PostBake(object):
         #self.previousPos = self.startPosition
         #self.velocity = MATH.Vector3.zero()
 
+        mc.playbackOptions(e=True, min=previousStart)
+        mc.playbackOptions(e=True, max=previousEnd)
+        mc.currentTime(previousCurrent)
+
         mc.select(self.obj.mNode)
 
     def preBake(self):
@@ -100,9 +115,9 @@ class PostBake(object):
     @cgmGeneral.Timer
     def bakeTempLocator(self, startTime = None, endTime = None):
         if startTime is None:
-            startTime = mc.playbackOptions(q=True, min=True)
+            startTime = self.startTime
         if endTime is None:
-            endTime = mc.playbackOptions(q=True, max=True)
+            endTime = self.endTime
         
         ct = mc.currentTime(q=True)
 
@@ -112,7 +127,7 @@ class PostBake(object):
         SNAP.matchTarget_snap(self._bakedLoc.mNode)
 
         mc.refresh(su=True)
-        for i in range(int(ct), int(mc.playbackOptions(q=True, max=True))+1):
+        for i in range(startTime, endTime+1):
             mc.currentTime(i)
             SNAP.matchTarget_snap(self._bakedLoc.mNode)
             mc.setKeyframe(self._bakedLoc.mNode, at=['translate', 'rotate'])

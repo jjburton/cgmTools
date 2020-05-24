@@ -34,6 +34,12 @@ class KeyframeToMotionCurve(PostBake.PostBake):
         self.motionPath.uValue = d_closest['parameter']
         mc.setKeyframe(self.motionPath.mNode, at='uValue', v=d_closest['parameter'])
 
+    def bake(self):
+        startTime = int(mc.findKeyframe(self.obj.mNode, which='first'))
+        endTime = int(mc.findKeyframe(self.obj.mNode, which='last'))
+
+        PostBake.PostBake.bake(self, startTime, endTime)
+
     def preBake(self):
         self.bakeTempLocator()
 
@@ -65,7 +71,7 @@ class KeyframeToMotionCurve(PostBake.PostBake):
                         d=3,
                         tol=3.28084e-06)
 
-        mc.cutKey(self.obj.mNode, at=['translate'], time=(mc.findKeyframe(self.obj.mNode, which='first'),mc.findKeyframe(self.obj.mNode, which='last') ) )
+        mc.cutKey(self.obj.mNode, at=['tx', 'ty', 'tz'], clear=True)
 
         self.motionPath = cgmMeta.asMeta(mc.pathAnimation(self.obj.mNode, self.motionCurve.mNode, fractionMode=False ,follow =False ,startTimeU=self.startTime, endTimeU=self.endTime))
 
@@ -74,3 +80,5 @@ class KeyframeToMotionCurve(PostBake.PostBake):
         if self._bakedLoc and not self.debug:
             mc.delete(self._bakedLoc.mNode)
             self._bakedLoc = None
+
+        mc.cutKey(self.obj.mNode, at=['tx', 'ty', 'tz'], clear=True)

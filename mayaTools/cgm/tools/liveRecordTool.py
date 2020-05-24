@@ -37,6 +37,7 @@ from cgm.lib import lists
 from cgm.tools import liveRecord
 from cgm.tools import dragger as DRAGGER
 from cgm.tools import trajectoryAim as TRAJECTORYAIM
+from cgm.tools import keyframeToMotionCurve as K2MC
 
 #>>> Root settings =============================================================
 __version__ = '0.1.05172020'
@@ -462,7 +463,7 @@ def uiFunc_build_post_process_column(self):
 
     _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    actions = ['Dragger', 'Trajectory Aim']
+    actions = ['Dragger', 'Trajectory Aim', 'Keys to Motion Curve']
 
     self.post_actionMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAction,self))
     for dir in actions:
@@ -491,6 +492,8 @@ def uiFunc_setPostAction(self):
         uiFunc_build_post_dragger_column(self)
     elif postAction == 'Trajectory Aim':
         uiFunc_build_post_trajectory_aim_column(self)
+    elif postAction == 'Keys to Motion Curve':
+        uiFunc_build_post_keyframe_to_motion_curve_column(self)
 
 def uiFunc_build_post_dragger_column(self):
     parentColumn = self._postProcessOptionsColumn
@@ -722,6 +725,59 @@ def uiFunc_build_post_trajectory_aim_column(self):
     mc.setParent(parentColumn)
     cgmUI.add_LineSubBreak()  
 
+def uiFunc_build_post_keyframe_to_motion_curve_column(self):
+    parentColumn = self._postProcessOptionsColumn
+
+    parentColumn.clear()
+
+    # Debug
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    mUI.MelLabel(_row,l='Additional Options:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    mUI.MelLabel(_row,l='Debug:')
+
+    self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
+                               v = False,
+                               label = '',
+                               ann='Debug locators will not be deleted so you could see what happened')
+
+
+    mUI.MelLabel(_row,l='Show Bake:')
+
+    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                               v = False,
+                               label = '',
+                               ann='Show the bake process')
+
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Debug
+
+    # Bake Trajectory Aim Button
+    #
+    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    
+    cgmUI.add_Button(_row,'Bake Keyframes to Motion Curve',
+        cgmGEN.Callback(uiFunc_bake_keyframe_to_motion_curve,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Bake Keyframes to Motion Curve',h=30)
+
+    _row.layout()   
+    #
+    # End Bake Dragger Button
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
 def uiFunc_bake_dragger(self):
     for obj in mc.ls(sl=True):
         mc.select(obj)
@@ -732,6 +788,12 @@ def uiFunc_bake_trajectory_aim(self):
     for obj in mc.ls(sl=True):
         mc.select(obj)
         postInstance = TRAJECTORYAIM.TrajectoryAim(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), showBake=self.uiCB_post_show_bake.getValue())
+        postInstance.bake()
+
+def uiFunc_bake_keyframe_to_motion_curve(self):
+    for obj in mc.ls(sl=True):
+        mc.select(obj)
+        postInstance = K2MC.KeyframeToMotionCurve(debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
         postInstance.bake()
 
 def uiFunc_set_post_blend_frames(self):
