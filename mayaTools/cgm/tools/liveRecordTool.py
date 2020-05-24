@@ -76,7 +76,7 @@ class ui(cgmUI.cgmGUI):
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
 
         self._liveRecordTool = None
-        self._mTransformTarget = False
+        self._mTransformTargets = []
 
         self._optionDict = {
             'mode' : 'position',
@@ -905,7 +905,7 @@ def uiFunc_load_planeObject(self):
         log.debug("|{0}| >> Target: {1}".format(_str_func, _short))
         self._optionDict['planeObject']  = mNode
 
-        uiFunc_updateObjectDisplay(self.uiTF_planeObject, self._optionDict['planeObject'] )
+        uiFunc_updateObjectDisplay(self.uiTF_planeObject, [self._optionDict['planeObject']] )
     else:
         log.warning("|{0}| >> Nothing selected.".format(_str_func))            
         uiFunc_clear_loaded(self.uiTF_planeObject)
@@ -920,7 +920,7 @@ def uiFunc_toggleContext(self):
         uiFunc_exit_draw_context(self)
     else:
         uiFunc_load_selected(self)
-        if not self._mTransformTarget:
+        if not self._mTransformTargets:
             log.error("No object selected. Can't start draw context")
             return
 
@@ -930,7 +930,7 @@ def uiFunc_toggleContext(self):
         self._infoLayout(edit=True, vis=True)
 
 def uiFunc_exit_draw_context(self):
-    self._mTransformTarget = None
+    self._mTransformTargets = None
     uiFunc_clear_loaded(self.uiTF_objLoad)
     self._liveRecordTool = None
     self.liveRecordBtn(e=True, label='Start Recording Context', bgc=[.35,.35,.35])
@@ -945,23 +945,23 @@ def uiFunc_recordingStarted(self):
 
 def uiFunc_recordingCompleted(self):
     _str_func = 'liveRecordTool.uiFunc_recordingCompleted'
-    log.debug("|{0}| >> Starting Recording in UI".format(_str_func))
+    log.debug("|{0}| >> Ending Recording in UI".format(_str_func))
     self.liveRecordBtn(e=True, label='Stop Recording Context', bgc=[.35,1,.35])
 
 def uiFunc_load_selected(self, bypassAttrCheck = False):
     _str_func = 'uiFunc_load_selected'  
-    self._mTransformTarget = False
+    self._mTransformTargets = False
 
     _sel = mc.ls(sl=True,type='transform')
 
     #Get our raw data
     if _sel:
-        mNode = cgmMeta.validateObjArg(_sel[0])
-        _short = mNode.p_nameBase            
+        mNodes = cgmMeta.validateObjListArg(_sel)
+        _short = ', '.join([mNode.p_nameBase for mNode in mNodes])
         log.debug("|{0}| >> Target: {1}".format(_str_func, _short))
-        self._mTransformTarget = mNode
+        self._mTransformTargets = mNodes
 
-        uiFunc_updateObjectDisplay(self.uiTF_objLoad, self._mTransformTarget)
+        uiFunc_updateObjectDisplay(self.uiTF_objLoad, self._mTransformTargets)
     else:
         log.warning("|{0}| >> Nothing selected.".format(_str_func))            
         uiFunc_clear_loaded(self.uiTF_objLoad)
@@ -970,10 +970,10 @@ def uiFunc_clear_loaded(uiElement):
     _str_func = 'uiFunc_clear_loaded'  
     uiElement(edit=True, l='',en=False)      
      
-def uiFunc_updateObjectDisplay(uiElement, mObj):
+def uiFunc_updateObjectDisplay(uiElement, mObjs):
     _str_func = 'uiFunc_updateObjectDisplay'  
 
-    if not object:
+    if not mObjs:
         log.info("|{0}| >> No target.".format(_str_func))                        
         #No obj
         #self.uiTF_objLoad(edit=True, l='',en=False)
@@ -981,8 +981,8 @@ def uiFunc_updateObjectDisplay(uiElement, mObj):
 
         return
     
-    #_short = self._mTransformTarget.p_nameBase
-    _short = mObj.p_nameBase
+    #_short = self._mTransformTargets.p_nameBase
+    _short = ', '.join([mNode.p_nameBase for mNode in mObjs])
     uiElement(edit=True, ann=_short)
     
     if len(_short)>20:

@@ -183,6 +183,7 @@ class ClickAction(ContextualPick):
                 self.onPress(self.constructDict())
         except Exception,err:
             log.error("|{0}| >> Failed to run onPress callback | err:{1}".format(_str_funcName,err))                
+            cgmGen.cgmException(Exception,err)
 
     def hold(self):
         log.info("Holding")
@@ -230,6 +231,7 @@ class ClickAction(ContextualPick):
                 self.onFinalize()
         except Exception,err:
             log.error("|{0}| >> Failed to run onFinalize callback | err:{1}".format(_str_funcName,err))                
+            cgmGen.cgmException(Exception,err)
 
         
 

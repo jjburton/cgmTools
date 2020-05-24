@@ -39,15 +39,14 @@ log.setLevel(logging.INFO)
 #========================================================================
 
 class RecordableObj(object):
-    obj = None
-    _bakedLoc = None
-    _animStoreLoc = None
-    hasSavedKeys = False
-    _prevDataDict = {}
-    dataDict = {}
-
     def __init__(self, obj = None):
         self.obj = cgmMeta.asMeta(obj)
+        self.dataDict = {}
+
+        self._bakedLoc = None
+        self._animStoreLoc = None
+        self.hasSavedKeys = False
+        self._prevDataDict = {}
 
     @cgmGeneral.Timer
     def bakeLoc(self, obj = None):
@@ -104,6 +103,8 @@ class RecordableObj(object):
         self._animStoreLoc = None
 
     def restoreKeys(self, attrs, startTime = None):
+        _str_func = 'RecordableObj.restoreKeys'
+
         if self.hasSavedKeys:
             if startTime is None:
                 startTime = mc.currentTime(q=True)+1
@@ -132,7 +133,7 @@ class LiveRecord(object):
         try:
             self.recordableObjs = [RecordableObj(x) for x in mc.ls(sl=True)]
         except:
-            log.error("|{0}| >> No object selected".format(_str_func))
+            log.error("|{0}| >> No objects selected".format(_str_func))
             return
 
         # Callbacks
@@ -247,11 +248,13 @@ class LiveRecord(object):
             if not self._useCache:
                 self.cacheData()
 
-            self._objOffset = MATHUTILS.Vector3.zero()
             if self.plane != 'custom':
                 projectedPlanePos = self.projectOntoPlane(clickDict['vector'])
                 for recordable in self.recordableObjs:
                     recordable.dataDict['objOffset'] = VALID.euclidVector3Arg(recordable.obj.p_position) - projectedPlanePos
+            else:
+                for recordable in self.recordableObjs:
+                    recordable.dataDict['objOffset'] = MATHUTILS.Vector3.zero()
 
             if self.debug:
                 self._debugLoc = cgmMeta.asMeta(LOC.create(name='Debug_Loc'))
@@ -290,13 +293,15 @@ class LiveRecord(object):
         self.constructPlaneInfo()
 
         if self.clickAction.modifier != 'ctrl':
-            if self.recordableObjs[0]._bakedLoc:
-                mc.delete(self.recordableObjs[0]._bakedLoc.mNode)
-                self.recordableObjs[0]._bakedLoc = None
-            for recordable in self.recordableObjs:
+            for i, recordable in enumerate(self.recordableObjs):
+                recordable.clearBakedLoc()
                 recordable.bakeLoc()
                 if self.recordMode == 'combine':
-                    self.recordable.storeTransformData(self._currentPlaneObject)
+                    if i == 0:
+                        recordable.storeTransformData(self._currentPlaneObject)
+                    else:
+                        recordable.storeTransformData()
+
             if self.recordableObjs[0]._bakedLoc:
                 self._currentPlaneObject = self.recordableObjs[0]._bakedLoc
 
@@ -329,7 +334,8 @@ class LiveRecord(object):
                 self.postBlend()
 
                 if not self.debug:
-                    self.recordableObjs[0].clearBakedLoc()
+                    for recordable in self.recordableObjs:
+                        recordable.clearBakedLoc()
 
                 if self.onComplete != None:
                     self.onComplete()
@@ -423,17 +429,13 @@ class LiveRecord(object):
             self.keyableAttrs = ['tz']
         elif self.plane == 'custom':
             if self.planeObject:
-                self.planeNormal = MATHUTILS.Vector3.up()#VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
+                self.planeNormal = MATHUTILS.Vector3.up()
                 self._offsetUpVector = self.planeObject.getTransformInverseDirection( self.recordableObjs[0].obj.getTransformDirection(self.aimUp.p_vector) )
                 self.keyableAttrs = ['tx', 'ty', 'tz']
             else:
                 log.error("|{0}| >> Custom plane not found. Please input and try again".format(_str_func))
                 return
         elif self.plane == 'object':
-            # Since we're using the object and are going to be removing keys
-            # we need to bake the existing animation to a locator and use that
-            # as the relevant plane
-            #self._currentPlaneObject = self.recordableObjs[0]._bakedLoc if self.recordableObjs[0]._bakedLoc else self.obj
             self.planeNormal = VALID.euclidVector3Arg(self.aimUp.p_vector)
             self.keyableAttrs = ['tx', 'ty', 'tz']
         else:
@@ -448,9 +450,8 @@ class LiveRecord(object):
         planeNormal = self.planeNormal
         if self.plane in ['custom', 'object']:
             planeNormal = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(self.planeNormal))
-        else:
-            self.planePoint = VALID.euclidVector3Arg(self.recordableObjs[0].obj.p_position)       
-        
+
+        log.info('Current plane object : {0}'.format(self._currentPlaneObject.mNode))
         self.planePoint = VALID.euclidVector3Arg(self._currentPlaneObject.p_position)
 
         rayPoint = VALID.euclidVector3Arg(self.cam.p_position)
@@ -479,6 +480,7 @@ class LiveRecord(object):
             if 'tz' not in self.keyableAttrs:
                 wantedPos.z = currentPos.z
             recordable.obj.p_position = wantedPos
+            #log.info('{0} wantedPos : {1}, projectedPos : {2}, objOffset : {3}'.format(recordable.obj.mNode, wantedPos, projectedPosition, recordable.dataDict['objOffset']))
 
         mc.setKeyframe([x.obj.mNode for x in self.recordableObjs], at=self.keyableAttrs)
 
