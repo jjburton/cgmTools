@@ -112,9 +112,12 @@ def ik_bankRollShapes(self):
                    'closedCurve':False}
         _max = None
         if self.mBall:
-            _max = RAYS.get_dist_from_cast_axis(self.mBall.mNode,
-                                                self.d_orientation['str'][2],
-                                                shapes=str_meshShape)
+            try:
+                _max = RAYS.get_dist_from_cast_axis(self.mBall.mNode,
+                                                    self.d_orientation['str'][2],
+                                                    shapes=str_meshShape)
+            except:
+                _max = 1
             _d_cast['maxDistance'] = _max
             
             crvBall = SHAPECASTER.createMeshSliceCurve(
