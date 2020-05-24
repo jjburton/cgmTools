@@ -38,13 +38,99 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #========================================================================
 
+class RecordableObj(object):
+    obj = None
+    _bakedLoc = None
+    _animStoreLoc = None
+    hasSavedKeys = False
+    _prevDataDict = {}
+    dataDict = {}
+
+    def __init__(self, obj = None):
+        self.obj = cgmMeta.asMeta(obj)
+
+    @cgmGeneral.Timer
+    def bakeLoc(self, obj = None):
+        if obj is None:
+            obj = self.obj
+
+        self._bakedLoc = cgmMeta.asMeta(LOC.create(name='{0}_bakeLoc'.format(self.obj.mNode)))
+        SNAP.matchTarget_set(self._bakedLoc.mNode, obj.mNode)
+
+        ct = mc.currentTime(q=True)
+        
+        SNAP.matchTarget_snap(self._bakedLoc.mNode)
+
+        mc.currentTime(ct)
+
+    def clearBakedLoc(self):
+        if self._bakedLoc:
+            mc.delete(self._bakedLoc.mNode)
+            self._bakedLoc = None
+
+    @cgmGeneral.Timer
+    def storeTransformData(self, obj = None):
+        if obj is None:
+            obj = self.obj
+
+        ct = mc.currentTime(q=True)
+        
+        self._prevDataDict = {}
+
+        mc.refresh(su=True)
+        for i in range(int(ct), int(mc.playbackOptions(q=True, max=True))+1):
+            mc.currentTime(i)
+            self._prevDataDict[i] = {'p':obj.p_position, 'f':obj.getTransformDirection(EUCLID.Vector3(0,0,1)), 'u':obj.getTransformDirection(EUCLID.Vector3(0,1,0))}
+        mc.refresh(su=False)
+
+        mc.currentTime(ct)
+
+    def saveKeys(self, attrs, replaceStored = True, removeOld = True):
+        if self.hasSavedKeys and replaceStored:
+            mc.delete(self._animStoreLoc)
+
+        func = mc.copyKey
+        if removeOld:
+            func = mc.cutKey
+        self.hasSavedKeys = func(self.obj.mNode, at=attrs, time=(mc.currentTime(q=True),mc.findKeyframe(self.obj.mNode, which='last')+1))
+        if self.hasSavedKeys:
+            self._animStoreLoc = LOC.create(name='animStoreLoc')
+            mc.pasteKey(self._animStoreLoc, at=attrs, o='replaceCompletely')
+
+    def clearSaved(self):
+        if self._animStoreLoc:
+            mc.delete(self._animStoreLoc)
+        self.hasSavedKeys = False
+        self._animStoreLoc = None
+
+    def restoreKeys(self, attrs, startTime = None):
+        if self.hasSavedKeys:
+            if startTime is None:
+                startTime = mc.currentTime(q=True)+1
+            hasKey = mc.cutKey(self._animStoreLoc, at=attrs, time=(startTime,mc.findKeyframe(self._animStoreLoc, which='last')+1))
+            if hasKey:
+                mc.pasteKey(self.obj.mNode, at=attrs, o='replace')
+            else:
+                log.warning("|{0}| >> {1} >> No keys found on storage locator. None pasted".format(_str_func, self.obj.mNode))
+            self.clearSaved()
+
+    def restoreBakedLocFromData(self, frame=None):
+        if frame is None:
+            frame = int(mc.currentTime(q=True))
+        
+        if self._bakedLoc and frame in self._prevDataDict:
+            self._bakedLoc.p_position = self._prevDataDict[frame]['p']
+            SNAP.aim_atPoint(obj=self._bakedLoc.mNode, mode='matrix', position=self._prevDataDict[frame]['p'] + self._prevDataDict[frame]['f'], aimAxis='z+', upAxis='y+', vectorUp=self._prevDataDict[frame]['u'] )
+            return True
+        
+        return False
 
 class LiveRecord(object):
     def __init__(self, plane='screen', mode='position', planeObject = None, recordMode='combine', aimFwd = 'z+', aimUp = 'y+', onStart=None, onUpdate=None, onComplete=None, onReposition=None, onExit=None, postBlendFrames=6, loopTime=False, debug=False):
         _str_func = 'LiveRecord._init_'
 
         try:
-            self.obj = cgmMeta.asMeta(mc.ls(sl=True)[0])
+            self.recordableObjs = [RecordableObj(x) for x in mc.ls(sl=True)]
         except:
             log.error("|{0}| >> No object selected".format(_str_func))
             return
@@ -72,8 +158,6 @@ class LiveRecord(object):
 
         self._debugPlane = None
         self._debugLoc = None
-        self._bakedLoc = None
-        self._animStoreLoc = None
         self._prevDataDict = {}
         self._useCache = False
 
@@ -101,18 +185,16 @@ class LiveRecord(object):
 
         currentFrame = mc.currentTime(q=True)
 
-        if self._bakedLoc and currentFrame in self._prevDataDict:
-            self._bakedLoc.p_position = self._prevDataDict[currentFrame]['p']
-            SNAP.aim_atPoint(obj=self._bakedLoc.mNode, mode='matrix', position=self._prevDataDict[currentFrame]['p'] + self._prevDataDict[currentFrame]['f'], aimAxis='z+', upAxis='y+', vectorUp=self._prevDataDict[currentFrame]['u'] )
+        self.recordableObjs[0].restoreBakedLocFromData(currentFrame)
 
         while MOUSE.getMouseDown(1) and currentFrame < mc.playbackOptions(q=True, max=True):
             deltaTime = time.time() - prevTime
             waitTime = self.fixedDeltaTime - deltaTime
             time.sleep( max(waitTime, 0.0) )
             prevTime = time.time()
-            startPos = VALID.euclidVector3Arg(self.obj.p_position)
+            startPos = VALID.euclidVector3Arg(self.recordableObjs[0].obj.p_position)
             self.update(self.fixedDeltaTime)
-            self._velocity = VALID.euclidVector3Arg(self.obj.p_position) - startPos
+            self._velocity = VALID.euclidVector3Arg(self.recordableObjs[0].obj.p_position) - startPos
             if self.clickAction.modifier == 'ctrl':
                 mc.refresh()
             else:
@@ -120,21 +202,13 @@ class LiveRecord(object):
                 if self.loopTime:
                     currentFrame = int(currentFrame % mc.playbackOptions(q=True, max=True))
                     if currentFrame == int(mc.playbackOptions(q=True, min=True)):
-                        if self._hasSavedKeys:
-                            mc.delete(self._animStoreLoc)
-                        self._hasSavedKeys = mc.cutKey(self.obj.mNode, at=self.keyableAttrs, time=(mc.currentTime(q=True),mc.findKeyframe(self.obj.mNode, which='last')+1))
-                        if self._hasSavedKeys:
-                            self._animStoreLoc = LOC.create(name='animStoreLoc')
-                            mc.pasteKey(self._animStoreLoc, at=self.keyableAttrs, o='replaceCompletely')
+                        self.recordableObjs[0].saveKeys(self.keyableAttrs, replace=True)
 
                 mc.currentTime(currentFrame)
 
-                if self._bakedLoc:
-                    if currentFrame in self._prevDataDict and self.recordMode == 'combine':
-                        self._bakedLoc.p_position = self._prevDataDict[currentFrame]['p']
-                        SNAP.aim_atPoint(obj=self._bakedLoc.mNode, mode='matrix', position=self._prevDataDict[currentFrame]['p'] + self._prevDataDict[currentFrame]['f'], aimAxis='z+', upAxis='y+', vectorUp=self._prevDataDict[currentFrame]['u'] )
-                    else:
-                        self._bakedLoc.p_position = self._currentPlaneObject.p_position
+                if self.recordableObjs[0]._bakedLoc:
+                    if not self.recordableObjs[0].restoreBakedLocFromData(currentFrame):
+                        self.recordableObjs[0]._bakedLoc.p_position = self._currentPlaneObject.p_position
 
         if self.clickAction.modifier != 'ctrl':
             mc.currentTime(currentFrame-1)
@@ -142,44 +216,6 @@ class LiveRecord(object):
         print "Duration: %f" % (time.time() - startTime)
         
         mc.refresh()        
-
-    @cgmGeneral.Timer
-    def bakeLoc(self):
-        self._bakedLoc = cgmMeta.asMeta(LOC.create(name='bakeLoc'))
-        SNAP.matchTarget_set(self._bakedLoc.mNode, self._currentPlaneObject.mNode)
-
-        ct = mc.currentTime(q=True)
-        
-        SNAP.matchTarget_snap(self._bakedLoc.mNode)
-
-        # mc.refresh(su=True)
-        # for i in range(int(ct), int(mc.playbackOptions(q=True, max=True))+1):
-        #     mc.currentTime(i)
-        #     SNAP.matchTarget_snap(self._bakedLoc.mNode)
-        #     mc.setKeyframe(self._bakedLoc.mNode, at=['translate', 'rotate'])
-        # mc.refresh(su=False)
-
-        mc.currentTime(ct)
-
-    @cgmGeneral.Timer
-    def storeTransformData(self):
-        #self._bakedLoc = cgmMeta.asMeta(LOC.create(name='bakeLoc'))
-        #SNAP.matchTarget_set(self._bakedLoc.mNode, self._currentPlaneObject.mNode)
-
-        ct = mc.currentTime(q=True)
-        
-        #SNAP.matchTarget_snap(self._bakedLoc.mNode)
-        self._prevDataDict = {}
-
-        #if self.recordMode == 'combine':
-        if self.recordMode == 'combine':
-            mc.refresh(su=True)
-            for i in range(int(ct), int(mc.playbackOptions(q=True, max=True))+1):
-                mc.currentTime(i)
-                self._prevDataDict[i] = {'p':self._currentPlaneObject.p_position, 'f':self._currentPlaneObject.getTransformDirection(EUCLID.Vector3(0,0,1)), 'u':self._currentPlaneObject.getTransformDirection(EUCLID.Vector3(0,1,0))}
-            mc.refresh(su=False)
-
-        mc.currentTime(ct)
 
     def quit(self):
         _str_func = 'LiveRecord.quit'
@@ -213,7 +249,9 @@ class LiveRecord(object):
 
             self._objOffset = MATHUTILS.Vector3.zero()
             if self.plane != 'custom':
-                self._objOffset = VALID.euclidVector3Arg(self.obj.p_position) - self.projectOntoPlane(clickDict['vector'])
+                projectedPlanePos = self.projectOntoPlane(clickDict['vector'])
+                for recordable in self.recordableObjs:
+                    recordable.dataDict['objOffset'] = VALID.euclidVector3Arg(recordable.obj.p_position) - projectedPlanePos
 
             if self.debug:
                 self._debugLoc = cgmMeta.asMeta(LOC.create(name='Debug_Loc'))
@@ -221,7 +259,9 @@ class LiveRecord(object):
             self._debugPlane = makePlaneCurve()
             
             if self.clickAction.modifier != 'ctrl':
-                mc.cutKey(self.obj.mNode, at=self.keyableAttrs, time=(mc.currentTime(q=True),mc.findKeyframe(self.obj.mNode, which='last')+1))
+                ct = mc.currentTime(q=True)
+                for recordable in self.recordableObjs:
+                    mc.cutKey(recordable.obj.mNode, at=self.keyableAttrs, time=(ct,mc.findKeyframe(recordable.obj.mNode, which='last')+1))
             
             self.record()
         else:
@@ -230,7 +270,7 @@ class LiveRecord(object):
     @cgmGeneral.Timer
     def validateData(self):
         # Validate data in case it was manually changed
-        self.obj = cgmMeta.asMeta(self.obj)
+        #self.obj = cgmMeta.asMeta(self.obj)
 
         self.aimFwd = VALID.simpleAxis(self.aimFwd)
         self.aimUp = VALID.simpleAxis(self.aimUp)
@@ -239,7 +279,7 @@ class LiveRecord(object):
     def cacheData(self):
         self.cam = cgmMeta.asMeta(CAM.getCurrentCamera())
 
-        self.planePoint = VALID.euclidVector3Arg(self.obj.p_position)
+        self.planePoint = VALID.euclidVector3Arg(self.recordableObjs[0].obj.p_position)
         self.planeNormal = None
         self.keyableAttrs = []
 
@@ -250,27 +290,26 @@ class LiveRecord(object):
         self.constructPlaneInfo()
 
         if self.clickAction.modifier != 'ctrl':
-            if self._bakedLoc:
-                mc.delete(self._bakedLoc.mNode)
-                self._bakedLoc = None
-            self.bakeLoc()
-            self.storeTransformData()
-            if self._bakedLoc:
-                self._currentPlaneObject = self._bakedLoc
+            if self.recordableObjs[0]._bakedLoc:
+                mc.delete(self.recordableObjs[0]._bakedLoc.mNode)
+                self.recordableObjs[0]._bakedLoc = None
+            for recordable in self.recordableObjs:
+                recordable.bakeLoc()
+                if self.recordMode == 'combine':
+                    self.recordable.storeTransformData(self._currentPlaneObject)
+            if self.recordableObjs[0]._bakedLoc:
+                self._currentPlaneObject = self.recordableObjs[0]._bakedLoc
 
         if self.mode == 'aim':
             self.keyableAttrs = ['rx', 'ry', 'rz']
 
         if self.clickAction.modifier == 'ctrl':
-            mc.cutKey(self.obj.mNode, at=self.keyableAttrs, time=(mc.currentTime(q=True),), clear=True)
-            self._hasSavedKeys = False
+            for recordable in self.recordableObjs:
+                mc.cutKey(recordable.obj.mNode, at=self.keyableAttrs, time=(mc.currentTime(q=True),), clear=True)
+                recordable.clearSaved()
         else:
-            self._hasSavedKeys = mc.copyKey(self.obj.mNode, at=self.keyableAttrs, time=(mc.currentTime(q=True),mc.findKeyframe(self.obj.mNode, which='last')+1))
-            if self._hasSavedKeys:
-                self._animStoreLoc = LOC.create(name='animStoreLoc')
-                mc.pasteKey(self._animStoreLoc, at=self.keyableAttrs, o='replaceCompletely')
-                # if self._bakedLoc and self.planeObject == self.obj:
-                #     self.planeObject = self._bakedLoc
+            for recordable in self.recordableObjs:
+                recordable.saveKeys(self.keyableAttrs, removeOld = False)
 
         self._useCache = True
 
@@ -284,20 +323,13 @@ class LiveRecord(object):
 
                 self.endTime = mc.currentTime(q=True)
 
-                if self._hasSavedKeys:
-                    hasKey = mc.cutKey(self._animStoreLoc, at=self.keyableAttrs, time=(mc.currentTime(q=True)+1,mc.findKeyframe(self._animStoreLoc, which='last')+1))
-                    if hasKey:
-                        mc.pasteKey(self.obj.mNode, at=self.keyableAttrs, o='replace')
-                    else:
-                        log.warning("|{0}| >> No keys found on storage locator. None pasted".format(_str_func))
-                    mc.delete(self._animStoreLoc)
+                for recordable in self.recordableObjs:
+                    recordable.restoreKeys(attrs=self.keyableAttrs)
 
                 self.postBlend()
 
-                if self._bakedLoc:
-                    if not self.debug:
-                        mc.delete(self._bakedLoc.mNode)
-                    self._bakedLoc = None
+                if not self.debug:
+                    self.recordableObjs[0].clearBakedLoc()
 
                 if self.onComplete != None:
                     self.onComplete()
@@ -310,7 +342,7 @@ class LiveRecord(object):
 
         self._currentPlaneObject = None
 
-        mc.select(self.obj.mNode)
+        mc.select([x.obj.mNode for x in self.recordableObjs])
 
         if self._debugPlane:
             if not self.debug:
@@ -327,16 +359,18 @@ class LiveRecord(object):
         _str_func = 'LiveRecord.postBlend'
 
         log.warning("Starting Post Blend")
-        startPosition = VALID.euclidVector3Arg(self.obj.p_position)
-        
+        for recordable in self.recordableObjs:
+            recordable.dataDict['startPosition'] = VALID.euclidVector3Arg(recordable.obj.p_position)
+            
         currentFrame = mc.currentTime(q=True)
         if self.postBlendFrames > 0:
             for i in range(self.postBlendFrames+1):
                 easeVal = EASE.easeInOutQuad( i / (self.postBlendFrames*1.0) )
                 self._velocity = MATHUTILS.Vector3.Lerp(self._velocity, MATHUTILS.Vector3.zero(), easeVal )
-                startPosition = startPosition + self._velocity
-                self.obj.p_position = MATHUTILS.Vector3.Lerp(startPosition, VALID.euclidVector3Arg(self.obj.p_position), easeVal)
-                mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
+                for recordable in self.recordableObjs:
+                    recordable.dataDict['startPosition'] = recordable.dataDict['startPosition'] + self._velocity
+                    recordable.obj.p_position = MATHUTILS.Vector3.Lerp(recordable.dataDict['startPosition'], VALID.euclidVector3Arg(recordable.obj.p_position), easeVal)
+                    mc.setKeyframe(recordable.obj.mNode, at=self.keyableAttrs)
 
                 try:
                     if self.onUpdate != None:
@@ -365,7 +399,7 @@ class LiveRecord(object):
             log.error("|{0}| >> onUpdate function failed: | err: {1}".format(_str_func, err))
 
     def constructPlaneInfo(self):
-        self._currentPlaneObject = cgmMeta.asMeta(self.planeObject) if (self.planeObject and self.plane == 'custom') else cgmMeta.asMeta(self.obj)
+        self._currentPlaneObject = cgmMeta.asMeta(self.planeObject) if (self.planeObject and self.plane == 'custom') else cgmMeta.asMeta(self.recordableObjs[0].obj)
         
         self._offsetUpVector = self.aimUp.p_vector
 
@@ -390,7 +424,7 @@ class LiveRecord(object):
         elif self.plane == 'custom':
             if self.planeObject:
                 self.planeNormal = MATHUTILS.Vector3.up()#VALID.euclidVector3Arg(self.planeObject.getTransformDirection(MATHUTILS.Vector3.up()))
-                self._offsetUpVector = self.planeObject.getTransformInverseDirection( self.obj.getTransformDirection(self.aimUp.p_vector) )
+                self._offsetUpVector = self.planeObject.getTransformInverseDirection( self.recordableObjs[0].obj.getTransformDirection(self.aimUp.p_vector) )
                 self.keyableAttrs = ['tx', 'ty', 'tz']
             else:
                 log.error("|{0}| >> Custom plane not found. Please input and try again".format(_str_func))
@@ -399,7 +433,7 @@ class LiveRecord(object):
             # Since we're using the object and are going to be removing keys
             # we need to bake the existing animation to a locator and use that
             # as the relevant plane
-            #self._currentPlaneObject = self._bakedLoc if self._bakedLoc else self.obj
+            #self._currentPlaneObject = self.recordableObjs[0]._bakedLoc if self.recordableObjs[0]._bakedLoc else self.obj
             self.planeNormal = VALID.euclidVector3Arg(self.aimUp.p_vector)
             self.keyableAttrs = ['tx', 'ty', 'tz']
         else:
@@ -415,7 +449,7 @@ class LiveRecord(object):
         if self.plane in ['custom', 'object']:
             planeNormal = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(self.planeNormal))
         else:
-            self.planePoint = VALID.euclidVector3Arg(self.obj.p_position)       
+            self.planePoint = VALID.euclidVector3Arg(self.recordableObjs[0].obj.p_position)       
         
         self.planePoint = VALID.euclidVector3Arg(self._currentPlaneObject.p_position)
 
@@ -435,29 +469,34 @@ class LiveRecord(object):
         _str_func = 'LiveRecord.moveObjOnPlane'
 
         projectedPosition = self.projectOntoPlane(vector)
-        wantedPos = projectedPosition + self._objOffset
-        currentPos = VALID.euclidVector3Arg(self.obj.p_position)
-        if 'tx' not in self.keyableAttrs:
-            wantedPos.x = currentPos.x
-        if 'ty' not in self.keyableAttrs:
-            wantedPos.y = currentPos.y
-        if 'tz' not in self.keyableAttrs:
-            wantedPos.z = currentPos.z
-        self.obj.p_position = wantedPos
+        for recordable in self.recordableObjs:
+            wantedPos = projectedPosition + recordable.dataDict['objOffset']
+            currentPos = VALID.euclidVector3Arg(recordable.obj.p_position)
+            if 'tx' not in self.keyableAttrs:
+                wantedPos.x = currentPos.x
+            if 'ty' not in self.keyableAttrs:
+                wantedPos.y = currentPos.y
+            if 'tz' not in self.keyableAttrs:
+                wantedPos.z = currentPos.z
+            recordable.obj.p_position = wantedPos
+
+        mc.setKeyframe([x.obj.mNode for x in self.recordableObjs], at=self.keyableAttrs)
 
         if self._debugLoc:
             self._debugLoc.p_position = projectedPosition
             mc.setKeyframe(self._debugLoc.mNode, at='translate')
-        mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
 
     def aimObjToPlane(self, vector):
         _str_func = 'LiveRecord.aimObjToPlane'
 
         wantedPos = self.projectOntoPlane(vector)
-        #vectorUp = None
+
         vectorUp = VALID.euclidVector3Arg(self._currentPlaneObject.getTransformDirection(self._offsetUpVector))
-        SNAP.aim_atPoint(obj=self.obj, mode='matrix', position=wantedPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=vectorUp)
-        mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
+        
+        for recordable in self.recordableObjs:
+            SNAP.aim_atPoint(obj=recordable.obj, mode='matrix', position=wantedPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=vectorUp)
+        
+        mc.setKeyframe([x.obj.mNode for x in self.recordableObjs], at=self.keyableAttrs)
 
         if self._debugLoc:
             self._debugLoc.p_position = wantedPos

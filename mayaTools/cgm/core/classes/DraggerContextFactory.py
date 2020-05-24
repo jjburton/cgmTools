@@ -201,6 +201,7 @@ class ClickAction(ContextualPick):
                 self.onRelease({'anchorPoint':self.anchorPoint, 'pos':self.clickPos,'vector':self.clickVector})
         except Exception,err:
             log.error("|{0}| >> Failed to run onPress callback | err:{1}".format(_str_funcName,err))                
+            cgmGen.cgmException(Exception,err)
 
     def constructDict(self):
         return {'anchorPoint':self.anchorPoint, 
