@@ -7146,6 +7146,26 @@ def uiFunc_getDefineScaleSpace(self):
             
     self.atUtils('get_handleScaleSpace',ml_handles)
     
+_handleKey = {'define':'defineSubHandles',
+              'form':'formHandles',
+              'prerig':'prerigHandles'}
+
+def uiFunc_snapStateHandles(self,ml=None):
+    if not ml:
+        ml = cgmMeta.asMeta(mc.ls(sl=1))
+    
+    if not ml:
+        log.warning("Nothing Selected")
+        return False
+    
+    _state = self.p_blockState    
+    ml_handles = self.msgList_get(_handleKey.get(_state))
+    
+    for mObj in ml_handles:
+        try:mObj.p_position = DIST.get_closest_point(mObj.mNode, ml[0].mNode)[0]
+        except Exception,err:
+            log.warning("Failed to snap: {0} | {1}".format(mObj.mNode,err))
+    
 def uiBuilderMenu(self,parent = None):
     #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
     _short = self.p_nameShort
@@ -7157,6 +7177,9 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(uiFunc_getDefineScaleSpace,self),
                 label = "Get Define Scale Space Dat")
     
+    mc.menuItem(ann = '[{0}] Snap state handles'.format(_short),
+                c = cgmGEN.Callback(uiFunc_snapStateHandles,self),
+                label = "Snap the state handles to selected")
     """
     mc.menuItem(en=True,divider = True,
                 label = "Utilities")
