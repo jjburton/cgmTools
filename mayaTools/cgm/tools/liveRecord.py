@@ -302,7 +302,7 @@ class LiveRecord(object):
                     else:
                         recordable.storeTransformData()
 
-            if self.recordableObjs[0]._bakedLoc:
+            if self.recordableObjs[0]._bakedLoc and self.plane != 'custom':
                 self._currentPlaneObject = self.recordableObjs[0]._bakedLoc
 
         if self.mode == 'aim':
