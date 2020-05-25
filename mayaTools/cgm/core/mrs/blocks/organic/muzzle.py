@@ -4292,7 +4292,7 @@ def prerig(self):
             for section,sectionDat in md_anchorsLists.iteritems():
                 #for side,dat in sectionDat.iteritems():
                 d_curveCreation[section+'Driver'] = {'ml_handles': sectionDat,
-                                                     'rebuild':0}
+                                                     'rebuild':1}
                     
             
             #...anchor | aim ----------------------------------------------------------------------------
@@ -4477,7 +4477,7 @@ def prerig(self):
             log.debug(cgmGEN.logString_msg('driven curves'))
             for section,sectionDat in md_handleCrvDrivers.iteritems():
                 d_curveCreation[section+'Driven'] = {'ml_handles': sectionDat,
-                                                     'rebuild':0}
+                                                     'rebuild':1}
                     
             md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
             md_resCurves = md_res['md_curves']
