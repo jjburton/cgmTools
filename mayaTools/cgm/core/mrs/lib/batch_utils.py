@@ -47,9 +47,7 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.1.10212019'
 
 
-
-
-    #MRSBATCH.process_blocks_rig('D:/Dropbox/cgmMRS/maya/batch/master_template_v01.mb')
+#MRSBATCH.process_blocks_rig('D:/Dropbox/cgmMRS/maya/batch/master_template_v01.mb')
 
 
 

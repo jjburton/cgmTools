@@ -766,6 +766,12 @@ def define(self):
             
         for tag,mHandle in md_handles.iteritems():
             #print DIST.get_closest_point(mHandle.mNode, mBBShape.mNode,True)
+            mHandle.doConnectIn('scaleX',"{0}.jointRadius".format( _short))
+            mHandle.doConnectIn('scaleY',"{0}.jointRadius".format( _short))
+            mHandle.doConnectIn('scaleZ',"{0}.jointRadius".format( _short))
+            
+            ATTR.set_lock(mHandle.mNode,'scale',True)
+            
             if 'End' not in tag:
                 #Lid Depth Vis....
                 _depthHelp = CURVES.create_fromName('cylinder', size = [_size_depthHelper,_size_depthHelper,1])
