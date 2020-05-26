@@ -889,7 +889,7 @@ def uiFunc_set_plane(self):
     uiFunc_update_args_live(self)   
 
 def uiFunc_create_planeObject(self):
-    mc.polyPlane(name='customDrawPlane', sx=2, sy=2)
+    liveRecord.makePlaneCurve()
     uiFunc_load_planeObject(self)
 
 def uiFunc_load_planeObject(self):
