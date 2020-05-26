@@ -36,16 +36,84 @@ d_dirFramework = {
          'export':['Character','Environment','FX','Props','UI','Cutscene'],
                    #'audio':['BGM','Debug','SFX']},
                    },
-
 'character':{'content': _animatable_content,
-             'export':['animation']},
+             'export':['animation'],
+             'dir':'characters'},
 'environment':{'content':['animation','textures','geo'],
-             'export':['animation']},
+             'export':['animation'],
+             'dir':'environments'},
 'sub':{'content':['animation','environment'],
-       'export':['animation','environment']},
+       'export':['animation','environment'],
+       'dir':'sub'},
 'prop':{'content': _animatable_content,
-        'export':['animation']},
-             }
+        'export':['animation'],
+        'dir':'props'},
+'sequence':{'content':['shot'],
+            'export':['shot'],
+            'dir':'sequences'},
+'ui':{'content':[],
+      'dir':'UI'},
+'fx':{'content':[],
+      'dir':'FX'},
+'visdev':{'content':[],
+          'dir':'VisDev'},
+'default':{'content':[]},
+'audio':{'content':['BGM','Debug','SFX','UI'],
+            'export':['BGM','Debug','SFX']},
+'cutscene':{'content':['animation'],
+            'export':['animation'],
+            'dir':'cutscenes'},
+'proxy':{'content':['animation','templates','rigs','poses','geo'],
+         'dir':'proxies'}}
+
+
+d_projType ={'game':['character','environment','fx','visdev','ui','prop','poses','cutscene'],
+             'film':['character','environment','fx','visdev','prop','poses','sequence']}
+
+def dirCreateList_get2(projectType,dirSet=None,key = None):
+    try:
+        _dType = d_dirFramework.get(projectType,{})
+        pprint.pprint(_dType)
+        _dDir = _dType.get(dirSet)
+        
+        if key == None:
+            return _dDir
+        if issubclass(type(_dDir),list):
+            return _dDir
+        return _dDir.get(key,[])
+    except Exception,err:
+        log.error(err)
+        
+
+def dirCreateList_get(projectType,dirSet=None,key = None):
+    l_assets = d_projType.get(projectType,False)
+    if not l_assets:
+        raise ValueError,"Invalid projectType: {0}".format(projectType)
+    
+    if not dirSet:
+        return l_assets
+
+    l_set = []
+    for k in l_assets:
+        d = d_dirFramework.get(k,{})
+        if not d:
+            log.warning("No data on {0}".format(k))
+        #if d.has_key(dirSet):
+            #l_set.append(d.get('dir',k))
+        l_set.append(k)
+    return l_set
+
+def asset_getBaseList(arg=None,key=None):
+    _dAsset = d_dirFramework.get(arg,{})
+    
+    if key == None:
+        return _dAsset
+    if issubclass(type(_dAsset),list):
+        return _dAsset
+    return _dAsset.get(key,[])    
+    
+
+
 
 
 _dataConfigToStored = {'general':'d_project',
@@ -56,6 +124,7 @@ _dataConfigToStored = {'general':'d_project',
                        'pathsProject':'d_pathsProject',
                        'anim':'d_animSettings',
                        'structure':'d_structure',
+                       #'assetDat':'assetDat',
                        'world':'d_world'}
 
 l_projectPathModes = ['art','content','root']
@@ -107,6 +176,8 @@ _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
 _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},
                     {'n':'farClip','t':'float','dv':100000}]
 
+_structureSettings = []
+"""
 _structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','Environment']},
                       {'n':'charContent','t':'text','dv':d_dirFramework['character']['content']},
                       {'n':'charExport','t':'text','dv':d_dirFramework['character']['export']},
@@ -116,6 +187,7 @@ _structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','En
                       {'n':'subExport','t':'text','dv':d_dirFramework['sub']['export']},                      
                       {'n':'envContent','t':'text','dv':d_dirFramework['environment']['content']},
                       {'n':'envExport','t':'text','dv':d_dirFramework['environment']['content']}]
+                      """
 
 _exportOptionSettings = [{'n':'removeNameSpace','t':'bool','dv':False}]
 
@@ -131,19 +203,8 @@ d_defaults = {'general':{'type':'unity',
                          'projectPathMode':'art'}}
 
 
-def dirCreateList_get(projectType,dirSet,key = None):
-    try:
-        _dType = d_dirFramework.get(projectType,{})
-        pprint.pprint(_dType)
-        _dDir = _dType.get(dirSet)
-        
-        if key == None:
-            return _dDir
-        if issubclass(type(_dDir),list):
-            return _dDir
-        return _dDir.get(key,[])
-    except Exception,err:
-        log.error(err)
+
+
         
         
 

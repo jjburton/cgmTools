@@ -6196,9 +6196,9 @@ _d_attrStateVisOff = {0:[],
                         'spaceSwitch_fk']}
 
 l_aHidden = (u'mSystemRoot',
-              u'baseSizeX',
-              u'baseSizeY',
-              u'baseSizeZ',
+              #u'baseSizeX',
+              #u'baseSizeY',
+              #u'baseSizeZ',
               u'attributeAliasList',
               u'cgmColorLock')
 l_aKeyable = ()
@@ -11172,7 +11172,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
             if not _d:
                 _d_alt = RAYS.cast(str_meshShape,j,aimAlternate)
                 if not _d_alt:
-                    log.debug("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
+                    log.warning("|{0}| >> Using failsafe value for: {1}".format(_str_func,j))
                     _v = l_failSafes[i]
                 else:
                     _d = _d_alt

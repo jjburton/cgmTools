@@ -3359,7 +3359,8 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Reverify Scene Blocks",
                          c=lambda *a: BLOCKGEN.verify_sceneBlocks() )        
         
-        
+        mUI.MelMenuItem( self.uiMenu_help, l="Thanks!",
+                         c=lambda *a: cgmUI.uiWindow_thanks() )
         
         
         mc.menuItem(parent=self.uiMenu_help,
