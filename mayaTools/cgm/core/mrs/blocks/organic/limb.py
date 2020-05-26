@@ -2706,13 +2706,17 @@ def rig_dataBuffer(self):
         len_joints = len(ml_joints)
         len_prerigHandles = len(ml_prerigHandles)
         
-        if mBlock.numControls <= 2 and len_joints <=2:
+        if len_prerigHandles > len_joints:
+            self.b_ikNeedEnd = True
+            
+        elif mBlock.numControls <= 2 and len_joints <=2:
             self.b_singleChain = True
             if len_joints ==1:
                 self.b_ikNeedEnd = True
     
             
         log.debug("|{0}| >> Single chain | self.b_singleChain: {1} ".format(_str_func,self.b_singleChain))
+        log.debug("|{0}| >> IK Need End | self.b_ikNeedEnd: {1} ".format(_str_func,self.b_ikNeedEnd))
         
         #FollowParent ============================================================================
         self.b_followParentBank = False
@@ -2995,6 +2999,7 @@ def rig_dataBuffer(self):
             self.ml_handleTargetsCulled = copy.copy(ml_handleJoints)
         else:
             self.ml_handleTargetsCulled = ml_handleJoints[:self.int_handleEndIdx+1]
+            
         self.mIKEndSkinJnt = ml_handleJoints[self.int_handleEndIdx]
         
         log.debug("|{0}| >> self.ml_handleTargetsCulled: {1} | {2}".format(_str_func,
@@ -3248,6 +3253,8 @@ def rig_skeleton(self):
                                  relativeOrient=False,
                                  worldUpAxis= self.mVec_up)
                 mRigNull.msgList_connect('ikJoints',ml_ikJoints)
+                
+                self.ml_handleTargetsCulled.append(mEndIK)
             
             BLOCKUTILS.skeleton_pushSettings(ml_ikJoints,self.d_orientation['str'],
                                              self.d_module['mirrorDirection'],
