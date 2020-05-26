@@ -2706,7 +2706,7 @@ def rig_dataBuffer(self):
         len_joints = len(ml_joints)
         len_prerigHandles = len(ml_prerigHandles)
         
-        if len_prerigHandles > len_joints:
+        if len_prerigHandles > len_joints and len_joints<3:
             self.b_ikNeedEnd = True
             
         elif mBlock.numControls <= 2 and len_joints <=2:
