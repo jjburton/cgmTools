@@ -23,7 +23,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 def echoLogger():
     log.info('info')
@@ -1835,6 +1835,7 @@ def prerig(self):
         #Names... -----------------------------------------------------------------
         int_namesToGet = self.numControls
         idx_end = -1
+        
         for a in ['buildLeverBase','buildBall','buildLeverEnd','buildToe']:
             if self.getMayaAttr(a):
                 log.warning(cgmGEN.logString_msg(_str_func,"Adding to name count for: {0}".format(a)))
@@ -1904,6 +1905,7 @@ def prerig(self):
         _pos_start = mStartHandle.p_position
         _pos_end = mEndHandle.p_position 
         _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
+        _count = copy.copy(int_namesToGet)
         
         _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
         _mVectorUp =  self.atUtils('prerig_get_upVector')
@@ -1921,6 +1923,7 @@ def prerig(self):
             ml_formHandlesCurveTargets.pop(0)
             ml_prerigTrackers.append(ml_formHandles[0])#...add our lever
             _addedLever = True
+            _count-=1
             
         #Track curve ============================================================================
         log.debug(cgmGEN.logString_sub(_str_func,'TrackCrv'))
@@ -1946,25 +1949,25 @@ def prerig(self):
         #Count =========================================================
         
         #CURVES.getUSplitList
-        _count = self.numControls
         _addedEnd = False
         if self.buildLeverEnd:
-            _count += 1
+            #_count += 1
             _addedEnd = True
             log.info(cgmGEN.logString_msg(_str_func,'Count | leverEnd add'))            
             
-        elif self.buildEnd and _ikEnd not in ['bank']:
-            log.info(cgmGEN.logString_msg(_str_func,'Count | end add'))            
-            _count +=1
+        #elif self.buildEnd and _ikEnd not in ['bank']:
+        #    log.info(cgmGEN.logString_msg(_str_func,'Count | end add'))            
+        #    _count +=1
             
             
-        if _addedLever:
-            log.info(cgmGEN.logString_msg(_str_func,'Count | addedLever'))
-            _count -=1
+        #if _addedLever:
+            #log.info(cgmGEN.logString_msg(_str_func,'Count | addedLever'))
+            #_count -=1
             
+        _count = len(ml_formHandlesCurveTargets)
         if _count < self.numControls:
             log.info(cgmGEN.logString_msg(_str_func,'Count | count less than numControls. Clamping'))            
-            _count = MATH.Clamp(_count,self.numControls)
+            _count = MATH.Clamp(_count, self.numControls)
         
         #if not self.buildBall:
             #if self.buildEnd:
@@ -2011,13 +2014,14 @@ def prerig(self):
                 #ml_formHandles.append(mHelp)
                 ml_prerigTrackers.append(mHelp)
                 ml_noParent.append(mHelp)
+                
             if self.buildToe and mFootHelper and not self.buildLeverEnd:
                 log.info(cgmGEN.logString_sub(_str_func,'add toe...'))                                
                 mHelp = mFootHelper.pivotFront            
                 #ml_formHandles.append(mHelp)
                 ml_prerigTrackers.append(mHelp)
                 ml_noParent.append(mHelp)
-            
+
         #Finger Tip ============================================================================
         if _ikSetup != 'none' and _ikEnd == 'catInTheHat':#bankTip
             log.debug("|{0}| >> bankTip setup...".format(_str_func))
@@ -2706,7 +2710,7 @@ def rig_dataBuffer(self):
         len_joints = len(ml_joints)
         len_prerigHandles = len(ml_prerigHandles)
         
-        if len_prerigHandles > len_joints:
+        if len_prerigHandles > len_joints and len_joints<3:
             self.b_ikNeedEnd = True
             
         elif mBlock.numControls <= 2 and len_joints <=2:

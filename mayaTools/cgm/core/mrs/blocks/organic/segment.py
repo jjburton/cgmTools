@@ -1480,6 +1480,7 @@ def rig_skeleton(self):
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
             
         
+            
         if mBlock.numJoints > mBlock.numControls or self.b_squashSetup:# or str_ikSetup == 'ribbon':
             log.debug("|{0}| >> Handles...".format(_str_func))            
             ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
@@ -1504,7 +1505,7 @@ def rig_skeleton(self):
             if ml_blendJoints:
                 ml_rigParents = ml_blendJoints
             for i,mJnt in enumerate(ml_rigJoints):
-                mJnt.parent = ml_blendJoints[i]
+                mJnt.parent = ml_rigParents[i]
                 
             if str_ikBase == 'hips':
                 log.debug("|{0}| >> Simple setup. Need single handle.".format(_str_func))
@@ -1620,24 +1621,27 @@ def rig_shapes(self):
                                           offset = _offset,
                                           mode = 'frameHandle')
     
-        #IK Shapes=====================================================================
-        #IK End ---------------------------------------------------------------------------------
-        d_ikEnd = {}
+        
         if mBlock.ikSetup:
-            if str_ikSetup == 'spline':
-                #use_ikEnd = 'shapeArg'
-                d_ikEnd = {'shapeArg':'locatorForm'}
-            else:
-                use_ikEnd = str_ikEnd
-                
-            RIGSHAPES.ik_end(self,str_ikEnd,ml_handleTargets,ml_rigJoints,ml_fkShapes,ml_ikJoints,ml_fkJoints,**d_ikEnd)
-    
-    
-        if mBlock.ikBase:
-            RIGSHAPES.ik_base(self,None,ml_fkJoints,ml_fkShapes)
             
-        if str_ikSetup == 'rp':
-            RIGSHAPES.ik_rp(self,None,ml_ikJoints)            
+            #IK Shapes=====================================================================
+            #IK End ---------------------------------------------------------------------------------
+            d_ikEnd = {}
+            if mBlock.ikSetup:
+                if str_ikSetup == 'spline':
+                    #use_ikEnd = 'shapeArg'
+                    d_ikEnd = {'shapeArg':'locatorForm'}
+                else:
+                    use_ikEnd = str_ikEnd
+                    
+                RIGSHAPES.ik_end(self,str_ikEnd,ml_handleTargets,ml_rigJoints,ml_fkShapes,ml_ikJoints,ml_fkJoints,**d_ikEnd)
+        
+        
+            if mBlock.ikBase:
+                RIGSHAPES.ik_base(self,None,ml_fkJoints,ml_fkShapes)
+                
+            if str_ikSetup == 'rp':
+                RIGSHAPES.ik_rp(self,None,ml_ikJoints)            
             
         #FK...=======================================================================
         log.debug("|{0}| >> FK...".format(_str_func))

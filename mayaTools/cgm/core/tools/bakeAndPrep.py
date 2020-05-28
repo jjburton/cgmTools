@@ -120,7 +120,8 @@ def Bake(assets, bakeSetName = 'bakeSet',
 
 def Prep(removeNamespace = False, 
          deleteSetName = "deleteSet",
-         exportSetName = "exportSet"):
+         exportSetName = "exportSet",
+         zeroRoot = False):
     
     _str_func = 'Prep'
     
@@ -197,8 +198,13 @@ def Prep(removeNamespace = False,
     if exportSetObjs:
         for exportObj in exportSetObjs:
             log.debug("{0} || exportObj: {1}".format(_str_func,exportObj))
-            
             mc.delete(mc.listRelatives(exportObj, ad=True, type='constraint', fullPath = 1))
+
+            if zeroRoot and mc.objExists('{0}.cgmTypeModifier'.format(exportObj)):
+                if mc.getAttr('{0}.cgmTypeModifier'.format(exportObj)) == 'rootMotion':
+                    mc.cutKey(exportObj, at=['translate', 'rotate'], clear=True)
+                    mc.setAttr('{0}.translate'.format(exportObj), 0, 0, 0, type='float3')
+                    mc.setAttr('{0}.rotate'.format(exportObj), 0, 0, 0, type='float3')
 
     if removeNamespace and len(exportSetObjs) > 0:
         for obj in mc.listRelatives(exportSetObjs, ad=True, fullPath = 1) + exportSetObjs:

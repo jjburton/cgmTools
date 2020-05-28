@@ -47,9 +47,7 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.1.10212019'
 
 
-
-
-    #MRSBATCH.process_blocks_rig('D:/Dropbox/cgmMRS/maya/batch/master_template_v01.mb')
+#MRSBATCH.process_blocks_rig('D:/Dropbox/cgmMRS/maya/batch/master_template_v01.mb')
 
 
 
@@ -436,5 +434,6 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = False):
 
     #cgmGEN.logString_msg(_str_func,'File Save...')
     newFile = mc.file(rename = _newPath)
-    mc.file(save = 1)        
+    mc.file(save = 1)
+    log.info(newFile)
       

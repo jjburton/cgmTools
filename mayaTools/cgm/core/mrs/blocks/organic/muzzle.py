@@ -22,7 +22,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -4292,7 +4292,7 @@ def prerig(self):
             for section,sectionDat in md_anchorsLists.iteritems():
                 #for side,dat in sectionDat.iteritems():
                 d_curveCreation[section+'Driver'] = {'ml_handles': sectionDat,
-                                                     'rebuild':0}
+                                                     'rebuild':1}
                     
             
             #...anchor | aim ----------------------------------------------------------------------------
@@ -4477,7 +4477,7 @@ def prerig(self):
             log.debug(cgmGEN.logString_msg('driven curves'))
             for section,sectionDat in md_handleCrvDrivers.iteritems():
                 d_curveCreation[section+'Driven'] = {'ml_handles': sectionDat,
-                                                     'rebuild':0}
+                                                     'rebuild':1}
                     
             md_res = self.UTILS.create_defineCurve(self, d_curveCreation, {}, mNoTransformNull,'preCurve')
             md_resCurves = md_res['md_curves']
@@ -7146,6 +7146,26 @@ def uiFunc_getDefineScaleSpace(self):
             
     self.atUtils('get_handleScaleSpace',ml_handles)
     
+_handleKey = {'define':'defineSubHandles',
+              'form':'formHandles',
+              'prerig':'prerigHandles'}
+
+def uiFunc_snapStateHandles(self,ml=None):
+    if not ml:
+        ml = cgmMeta.asMeta(mc.ls(sl=1))
+    
+    if not ml:
+        log.warning("Nothing Selected")
+        return False
+    
+    _state = self.p_blockState    
+    ml_handles = self.msgList_get(_handleKey.get(_state))
+    
+    for mObj in ml_handles:
+        try:mObj.p_position = DIST.get_closest_point(mObj.mNode, ml[0].mNode)[0]
+        except Exception,err:
+            log.warning("Failed to snap: {0} | {1}".format(mObj.mNode,err))
+    
 def uiBuilderMenu(self,parent = None):
     #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
     _short = self.p_nameShort
@@ -7157,6 +7177,9 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(uiFunc_getDefineScaleSpace,self),
                 label = "Get Define Scale Space Dat")
     
+    mc.menuItem(ann = '[{0}] Snap state handles'.format(_short),
+                c = cgmGEN.Callback(uiFunc_snapStateHandles,self),
+                label = "Snap the state handles to selected")
     """
     mc.menuItem(en=True,divider = True,
                 label = "Utilities")

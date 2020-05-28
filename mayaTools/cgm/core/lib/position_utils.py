@@ -627,11 +627,14 @@ def get_positionPlug(obj):
             _res = "{0}.{1}".format(obj,d_plugTypes.get(attr))
     return _res
 
-def create_loc(obj):
+def create_loc(obj,name=True):
     _str_func = 'create_loc'
     infoDict = get_info(obj)
     
-    _loc = mc.spaceLocator(name="{0}_loc".format(NAMES.get_base(obj)))[0]
+    if name:
+        _loc = mc.spaceLocator(name="{0}_loc".format(NAMES.get_base(obj)))[0]
+    else:
+        _loc = mc.spaceLocator()[0]
     pos =infoDict['position']
     mc.move (pos[0],pos[1],pos[2], _loc, ws=True)
     mc.xform(_loc, roo=infoDict['rotateOrder'],p=True)

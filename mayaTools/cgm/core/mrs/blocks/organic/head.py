@@ -1505,7 +1505,7 @@ def rig_prechecks(self):
             self.l_precheckErrors.append("Neck control count must be equal or less than neck joint count")
             
         if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
-            self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
+            self.l_precheckWarnings.append('pointDist squashMeasure mode not recommended')
             
         if mBlock.neckIK not in [0,3]:
             self.l_precheckErrors.append("Haven't setup neck mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'neckIK')))

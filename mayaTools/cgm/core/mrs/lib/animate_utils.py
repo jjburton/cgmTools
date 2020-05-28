@@ -154,6 +154,9 @@ def get_contextDict(prefix=False):
         except Exception,err:
             log.warning("Failed to query context: {0} | {1}".format(_name,err))
     
+    if prefix:
+        _res['contextPrefix'] = prefix
+        
     pprint.pprint(_res)
     return _res
             
@@ -483,7 +486,7 @@ class dat(object):
                                                                       len(d_timeContext['partControls'])))
             log.info(cgmGEN.logString_sub(None,'Sources'))
             for mObj,l in d_timeContext['partControls'].iteritems():
-                log.info("[{0}] || controls: {1}".format(mObj.p_nameBase,len(l)))        
+                log.info("[{0}] || controls: {1}".format(mObj,len(l)))        
             log.info(cgmGEN.logString_sub(None,'Keys'))
             for k in _keys:
                 log.info("{0} : {1}".format(k,d_timeContext[k]))
@@ -608,6 +611,8 @@ class dat(object):
         b_mirror = kws.get('contextMirror',d_globalContext['contextMirror'])
         b_core = kws.get('contextCore',d_globalContext['contextCore'])
         
+        
+        pprint.pprint(d_globalContext)
         #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
         #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
 
@@ -1358,7 +1363,7 @@ class dat(object):
             self.d_timeContext['partControls'] = {}
             log.debug(cgmGEN.logString_sub(_str_func,'Get controls'))
             
-            d_globalContext = get_contextDict()
+            d_globalContext = get_contextDict(kws.get('contextPrefix',False))
             
             _context = kws.get('contextMode',d_globalContext['contextMode'])
             _contextTime = kws.get('contextTime',d_globalContext['contextTime']) 
@@ -1423,6 +1428,21 @@ class dat(object):
                         addSourceControls(self,mPuppet,_l)
                 
                 if _context == 'part':
+                    for mPart in self.d_context['mModules']:
+                        log.debug("|{0}| >> part... {1}".format(_str_func,mPart))
+                        d_mModule = self.module_get(mPart)
+                        ml_add = d_mModule['mControls']
+                        if b_core:
+                            ml_core =  d_mModule.get('mCore')
+                            if ml_core:
+                                ml_add = ml_core
+                        
+                        _l = [mObj.mNode for mObj in ml_add]
+                        #_l = [mObj.mNode for mObj in self.dat[mPart]['mControls']]
+                        ls.extend(_l)
+                        addSourceControls(self,mPart,_l)
+                    
+                    
                     if mirrorQuery:
                         for mPart in self.d_context['mModules']:
                             mMirror = self.dat[mPart]['mMirror']
@@ -1443,19 +1463,6 @@ class dat(object):
                                 ls.extend(_l)
                                 addSourceControls(self,mPart,_l)"""
      
-                    else:
-                        for mPart in self.d_context['mModules']:
-                            d_mModule = self.module_get(mPart)
-                            ml_add = d_mModule['mControls']
-                            if b_core:
-                                ml_core =  d_mModule.get('mCore')
-                                if ml_core:
-                                    ml_add = ml_core
-                            
-                            _l = [mObj.mNode for mObj in ml_add]
-                            #_l = [mObj.mNode for mObj in self.dat[mPart]['mControls']]
-                            ls.extend(_l)
-                            addSourceControls(self,mPart,_l)
                             
                 elif _context in ['puppet','scene']:
                     """
