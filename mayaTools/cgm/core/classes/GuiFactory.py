@@ -236,8 +236,16 @@ else:
     
 l_thanksIntervals = [10, 25, 50, 100, 500, 1000]
 
-def uiWindow_thanks():
-    window = mc.window( title="Thanks!", iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True)
+def uiWindow_thanks(achieve = True):
+    if achieve:
+        _title = 'Thanks!'
+        
+        msg = "Achievement Unlocked! \n You've opened a cgm tool [{0}] times  \n since maya last lost its prefs. \n ... \n  Knock on wood. \n ... \n Here's a link to the docs if you've forgotten. \n Please consider supporting us :) \n Build: {1}".format(cgmMeta.cgmOptionVar('cgmVar_loadCount').value, cgmGEN.__RELEASE)
+    else:
+        _title = 'CGM'
+        msg = "You've opened a cgm tool [{0}] times  \n since maya last lost its prefs. \n ... \n Build: {1}".format(cgmMeta.cgmOptionVar('cgmVar_loadCount').value, cgmGEN.__RELEASE)
+    
+    window = mc.window( title=_title, iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True)
     column = mUI.MelColumnLayout( window , ut = 'cgmUISubTemplate')
     
     _imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
@@ -248,7 +256,7 @@ def uiWindow_thanks():
     uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
     uiImage_Project.setImage(_imageFailPath)    
         
-    msg = "Thanks for using our tools! \n You've opened them [{}] times  \n since maya last lost its prefs. \n ... \n  Knock on wood. \n ... \n Here's a link to the docs if you've forgotten. \n Please consider supporting us :) ".format(cgmMeta.cgmOptionVar('cgmVar_loadCount').value)
+       
     
     mUI.MelLabel(column, label=msg, ut = 'cgmUISubTemplate', h =125)
     mUI.MelSpacer(column, h=10 )

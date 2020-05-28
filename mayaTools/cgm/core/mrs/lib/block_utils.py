@@ -8375,21 +8375,21 @@ def buildProfile_load(self, arg):
     log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
     #reload(mBlockModule)
     
-    _d = BLOCKSHARE.d_build_profiles.get(arg,{})
-    
-    
+    _d = copy.copy(BLOCKSHARE.d_build_profiles.get(arg,{}))
+    #pprint.pprint(BLOCKSHARE.d_build_profiles)
+    _d_block = {}
     try:_d_block = mBlockModule.d_build_profiles[arg]
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
     
-    
+    """
     _blockProfile = 'default'
     if self.hasAttr('blockProfile'):
         _blockProfile = self.blockProfile
         if _d_block.get(_blockProfile):
             _d_block = _d_block.get(_blockProfile)
         else:
-            _d_block = _d_block.get('default')
+            _d_block = _d_block.get('default')"""
     
     #cgmGEN.func_snapShot(vars())
 
