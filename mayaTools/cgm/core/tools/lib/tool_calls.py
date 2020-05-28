@@ -134,7 +134,7 @@ def animDraw():
         reload(ADT)
         import cgm.tools.animDraw as animDraw
         reload(animDraw)
-        mel.eval('python "animDrawInstance = ADT.ui();"')
+        mel.eval('python "import cgm.tools.animDrawTool as ADT;animDrawInstance = ADT.ui();"')
         
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
