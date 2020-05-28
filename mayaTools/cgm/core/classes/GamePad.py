@@ -2,36 +2,42 @@ import threading
 import ctypes 
 import time 
 import cgm.core.lib.inputs as inputs
+import os
+import maya.cmds as mc
+
 
 class GamePad(threading.Thread): 
-    left_stick_x = 0.0
-    left_stick_y = 0.0
-    right_stick_x = 0.0
-    right_stick_y = 0.0
-
-    left_trigger = 0.0
-    right_trigger = 0.0
-
-    left_bumper = 0
-    right_bumper = 0
-
-    button_select = 0
-    button_start = 0
-
-    thumbpad_x = 0
-    thumbpad_y = 0
-
-    button_y = 0
-    button_x = 0
-    button_a = 0
-    button_b = 0
-
-    _on_press_subscribers = []
-    _on_release_subscribers = []
-
-    def __init__(self, name): 
+    def __init__(self, name = "GamePad"): 
         threading.Thread.__init__(self) 
-        self.name = name
+        self.controller_model = None
+        #self.name = name
+
+        self.left_stick_x = 0.0
+        self.left_stick_y = 0.0
+        self.right_stick_x = 0.0
+        self.right_stick_y = 0.0
+
+        self.left_trigger = 0.0
+        self.right_trigger = 0.0
+
+        self.left_bumper = 0
+        self.right_bumper = 0
+
+        self.button_select = 0
+        self.button_start = 0
+
+        self.thumbpad_x = 0
+        self.thumbpad_y = 0
+
+        self.button_y = 0
+        self.button_x = 0
+        self.button_a = 0
+        self.button_b = 0
+
+        self._on_press_subscribers = []
+        self._on_release_subscribers = []
+
+        self._parentCamera = None
               
     def run(self): 
         # target function of the thread class 
@@ -44,68 +50,70 @@ class GamePad(threading.Thread):
                     #print(event.ev_type, event.code, event.state)
                     if event.code == 'ABS_Y':
                         self.left_stick_y = event.state / 32767.0
-                    elif event.code == 'ABS_X':
+                    if event.code == 'ABS_X':
                         self.left_stick_x = event.state / 32767.0
-                    elif event.code == 'ABS_RX':
+                    if event.code == 'ABS_RX':
                         self.right_stick_x = event.state / 32767.0
-                    elif event.code == 'ABS_RY':
+                    if event.code == 'ABS_RY':
                         self.right_stick_y = event.state / 32767.0
-                    elif event.code == 'ABS_RZ':
+                    if event.code == 'ABS_RZ':
                         self.right_trigger = event.state / 256.0
-                    elif event.code == 'ABS_Z':
+                    if event.code == 'ABS_Z':
                         self.left_trigger = event.state / 256.0
-                    elif event.code == 'BTN_TL':
+                    if event.code == 'BTN_TL':
                         self.left_bumper = event.state
                         if self.left_bumper:
                             self._on_press('LBumper')
                         else:
                             self._on_release('LBumper')
-                    elif event.code == 'BTN_TR':
+                    if event.code == 'BTN_TR':
                         self.right_bumper = event.state
                         if self.right_bumper:
                             self._on_press('RBumper')
                         else:
                             self._on_release('RBumper')
-                    elif event.code == 'ABS_HAT0X':
+                    if event.code == 'ABS_HAT0X':
                         self.thumbpad_x = event.state
-                    elif event.code == 'ABS_HAT0Y':
+                    if event.code == 'ABS_HAT0Y':
                         self.thumbpad_y = event.state
-                    elif event.code == 'BTN_START':
+                    if event.code == 'BTN_START':
                         self.button_start = event.state
                         if self.button_start:
                             self._on_press('Start')
                         else:
                             self._on_release('Start')
-                    elif event.code == 'BTN_SELECT':
+                    if event.code == 'BTN_SELECT':
                         self.button_select = event.state
                         if self.button_select:
                             self._on_press('Select')
                         else:
                             self._on_release('Select')
-                    elif event.code == 'BTN_WEST':
+                    if event.code == 'BTN_WEST':
                         self.button_x = event.state
                         if self.button_x:
                             self._on_press('X')
                         else:
                             self._on_release('X')
-                    elif event.code == 'BTN_NORTH':
+                    if event.code == 'BTN_NORTH':
                         self.button_y = event.state
                         if self.button_y:
                             self._on_press('Y')
                         else:
                             self._on_release('Y')
-                    elif event.code == 'BTN_SOUTH':
+                    if event.code == 'BTN_SOUTH':
                         self.button_a = event.state
                         if self.button_a:
                             self._on_press('A')
                         else:
                             self._on_release('A')
-                    elif event.code == 'BTN_EAST':
+                    if event.code == 'BTN_EAST':
                         self.button_b = event.state
                         if self.button_b:
                             self._on_press('B')
                         else:
                             self._on_release('B')
+
+                self.update_controller_model()
 
         finally: 
             print('ended') 
@@ -139,7 +147,57 @@ class GamePad(threading.Thread):
             if thread is self: 
                 return id
 
+    def update_controller_model(self):
+        if not self.controller_model:
+            return
+
+        base = self.controller_model + '|PositionNode'
+
+        # Right Stick
+        mc.setAttr('{0}|RStick_Inner|RStick_Inner_On.v'.format(base), (abs(self.right_stick_y) + abs(self.right_stick_x)) > .1  )
+        mc.setAttr('{0}|RStick_Inner.ty'.format(base), self.right_stick_y)
+        mc.setAttr('{0}|RStick_Inner.tx'.format(base), self.right_stick_x)
+
+        # Left Stick
+        mc.setAttr('{0}|LStick_Inner|LStick_Inner_On.v'.format(base), (abs(self.left_stick_y) + abs(self.left_stick_x)) > .1  )
+        mc.setAttr('{0}|LStick_Inner.ty'.format(base), self.left_stick_y)
+        mc.setAttr('{0}|LStick_Inner.tx'.format(base), self.left_stick_x)
+
+        # Bumpers/Triggers
+        mc.setAttr('{0}|BumperOutline|LTrigger_On.v'.format(base), self.left_trigger > .1  )
+        mc.setAttr('{0}|BumperOutline|LBumper_On.v'.format(base), self.left_bumper > .1  )
+        
+        mc.setAttr('{0}|BumperOutline|RTrigger_On.v'.format(base), self.right_trigger > .1  )
+        mc.setAttr('{0}|BumperOutline|RBumper_On.v'.format(base), self.right_bumper > .1  )
+
+        # Buttons
+        mc.setAttr('{0}|AButton|AButton_On.v'.format(base), self.button_a > .1  )
+        mc.setAttr('{0}|BButton|BButton_On.v'.format(base), self.button_b > .1  )
+        mc.setAttr('{0}|XButton|XButton_On.v'.format(base), self.button_x > .1  )
+        mc.setAttr('{0}|YButton|YButton_On.v'.format(base), self.button_y > .1  )
+
+        mc.setAttr('{0}|Start|Start_On.v'.format(base), self.button_start > .1  )
+        mc.setAttr('{0}|Select|Select_On.v'.format(base), self.button_select > .1  )
+
+        # ThumbPad
+        mc.setAttr('{0}|ThumbPad_Down|ThumbPad_Down_On.v'.format(base), self.thumbpad_y > .1  )
+        mc.setAttr('{0}|ThumbPad_Up|ThumbPad_Up_On.v'.format(base), self.thumbpad_y < -.1  )
+        mc.setAttr('{0}|ThumbPad_Left|ThumbPad_Left_On.v'.format(base), self.thumbpad_x < -.1  )
+        mc.setAttr('{0}|ThumbPad_Right|ThumbPad_Right_On.v'.format(base), self.thumbpad_x > .1  )
+
+        # currentCam = CAM.getCurrentCamera()
+        # if self._parentCamera != currentCam:
+        #     self._parentCamera = currentCam
+        #     mc.delete(mc.listRelatives(self.controller_model, type='Constraint'))
+        #     mc.parentConstraint(currentCam, self.controller_model, mo=False)
+
+    def import_controller_model(self):
+        controller_file = os.path.join( '/'.join(__file__.split('core')[:-1]), 'assets', 'cgmController.mb' )
+        mc.file( controller_file, i=True, type="mayaBinary", ignoreVersion=True)
+        self.controller_model = mc.ls('*.cgmController')[0].split('.')[0]
+    
     def start_listening(self):
+        self.import_controller_model()
         self.start()
 
     def stop_listening(self): 
@@ -149,6 +207,11 @@ class GamePad(threading.Thread):
         if res > 1: 
             ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0) 
             print('Exception raise failure') 
+
+        if mc.objExists(self.controller_model):
+            mc.delete(self.controller_model)
+            self.controller_model = None
+            self._parentCamera = None
 
     def on_press_subscribe(self, func):
         self._on_press_subscribers.append(func)

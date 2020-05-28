@@ -13,7 +13,6 @@ from cgm.core.classes import DraggerContextFactory as cgmDrag
 from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import math_utils as MATHUTILS
 from cgm.core import cgm_General as cgmGEN
-from cgm.core.lib import camera_utils as CAM
 from cgm.core.lib import mouse_utils as MOUSE
 from cgm.core.lib import euclid as EUCLID
 from cgm.core.cgmPy import validateArgs as VALID
@@ -121,7 +120,7 @@ class LiveRecord(object):
             self.completeRecording()
 
         self.isPressed = False
-        
+
     def onFinalize(self):
         if self.onExit:
             self.onExit()
