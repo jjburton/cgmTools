@@ -434,5 +434,6 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = False):
 
     #cgmGEN.logString_msg(_str_func,'File Save...')
     newFile = mc.file(rename = _newPath)
-    mc.file(save = 1)        
+    mc.file(save = 1)
+    log.info(newFile)
       
