@@ -78,6 +78,7 @@ example:
 		self.useMayaPyStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
+		self.zeroRootStore				 = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue=0)
 
 		## sizes
 		self.__itemHeight                = 35
@@ -112,11 +113,13 @@ example:
 
 		self.showBakedOption             = None
 		self.removeNamespaceOption       = None
-		self.useMayaPyOption = None
+		self.useMayaPyOption             = None
+		self.zeroRootOption              = None
 
 		self.showBaked                   = False
 		self.removeNamespace             = False
 		self.useMayaPy                   = self.useMayaPyStore.getValue()
+		self.zeroRoot                    = False
 
 		self.fileListMenuItems           = []
 		self.batchExportItems            = []
@@ -190,11 +193,14 @@ example:
 		self.categoryIndex = int(self.categoryStore.getValue())
 		self.removeNamespace = bool(self.removeNamespaceStore.getValue())
 		self.useMayaPy = bool(self.useMayaPyStore.getValue())
+		self.zeroRoot = bool(self.zeroRootStore.getValue())
 
-		if self.showBakedOption:
-			self.showBakedOption(e=True, checkBox = self.showBaked)
-		if self.removeNamespaceOption:
-			self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
+		# if self.showBakedOption:
+		# 	self.showBakedOption(e=True, checkBox = self.showBaked)
+		# if self.removeNamespaceOption:
+		# 	self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
+		# if self.zeroRootOption:
+		# 	self.zeroRootOption(e=True, checkBox = self.zeroRoot)
 
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
@@ -206,10 +212,12 @@ example:
 		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
 		self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
 		self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
+		self.zeroRoot = self.zeroRootOption(q=True, checkBox=True) if self.zeroRootOption else False
 
 		self.showBakedStore.setValue(self.showBaked)
 		self.removeNamespaceStore.setValue(self.removeNamespace)
 		self.useMayaPyStore.setValue(self.useMayaPy)
+		self.zeroRootStore.setValue(self.zeroRoot)
 
 		# self.optionVarExportDirStore.setValue( self.exportDirectory )
 		self.categoryStore.setValue( self.categoryIndex )
@@ -312,8 +320,8 @@ example:
 		# Category
 		_catForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		self.categoryText = mUI.MelButton(_catForm,
-		                                  label=self.category,ut='cgmUITemplate',
-		                                  ann='Select the asset category')
+										  label=self.category,ut='cgmUITemplate',
+										  ann='Select the asset category')
 
 		self.categoryMenu = mUI.MelPopupMenu(self.categoryText, button=1 )
 		for i,category in enumerate(self.categoryList):
@@ -340,25 +348,25 @@ example:
 		self.assetButton = mUI.MelButton(_catForm, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
 
 		_catForm( edit=True, 
-		          attachForm=[
-		              (self.categoryText, 'top', 0), 
-		                      (self.categoryText, 'left', 0), 
-		                    (self.categoryText, 'right', 0), 
-		                        (self.assetList['formLayout'], 'left', 0),
-		                        (self.assetList['formLayout'], 'right', 0),
-		                        (self.assetButton, 'bottom', 0), 
-		                        (self.assetButton, 'right', 0), 
-		                        (self.assetButton, 'left', 0)], 
-		          attachControl=[
-		                      (self.assetList['formLayout'], 'top', 0, self.categoryText),
-		                    (self.assetList['formLayout'], 'bottom', 0, self.assetButton)] )
+				  attachForm=[
+					  (self.categoryText, 'top', 0), 
+							  (self.categoryText, 'left', 0), 
+							(self.categoryText, 'right', 0), 
+								(self.assetList['formLayout'], 'left', 0),
+								(self.assetList['formLayout'], 'right', 0),
+								(self.assetButton, 'bottom', 0), 
+								(self.assetButton, 'right', 0), 
+								(self.assetButton, 'left', 0)], 
+				  attachControl=[
+							  (self.assetList['formLayout'], 'top', 0, self.categoryText),
+							(self.assetList['formLayout'], 'bottom', 0, self.assetButton)] )
 
 
 		# Animation
 		_animForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		_animBtn = mUI.MelButton(_animForm,
-		                         label='Animation',ut='cgmUITemplate',
-		                         ann='Select the asset type', en=False)
+								 label='Animation',ut='cgmUITemplate',
+								 ann='Select the asset type', en=False)
 
 		self.animationList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
 
@@ -369,24 +377,24 @@ example:
 		self.animationButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateAnimation)
 
 		_animForm( edit=True, 
-		           attachForm=[
-		               (_animBtn, 'top', 0), 
-		                       (_animBtn, 'left', 0), 
-		                    (_animBtn, 'right', 0), 
-		                        (self.animationList['formLayout'], 'left', 0),
-		                        (self.animationList['formLayout'], 'right', 0),
-		                        (self.animationButton, 'bottom', 0), 
-		                        (self.animationButton, 'right', 0), 
-		                        (self.animationButton, 'left', 0)], 
-		           attachControl=[
-		                       (self.animationList['formLayout'], 'top', 0, _animBtn),
-		                    (self.animationList['formLayout'], 'bottom', 0, self.animationButton)] )
+				   attachForm=[
+					   (_animBtn, 'top', 0), 
+							   (_animBtn, 'left', 0), 
+							(_animBtn, 'right', 0), 
+								(self.animationList['formLayout'], 'left', 0),
+								(self.animationList['formLayout'], 'right', 0),
+								(self.animationButton, 'bottom', 0), 
+								(self.animationButton, 'right', 0), 
+								(self.animationButton, 'left', 0)], 
+				   attachControl=[
+							   (self.animationList['formLayout'], 'top', 0, _animBtn),
+							(self.animationList['formLayout'], 'bottom', 0, self.animationButton)] )
 
 		# Variation
 		_variationForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		_variationBtn = mUI.MelButton(_variationForm,
-		                              label='Variation',ut='cgmUITemplate',
-		                              ann='Select the asset variation', en=False)
+									  label='Variation',ut='cgmUITemplate',
+									  ann='Select the asset variation', en=False)
 
 		self.variationList = self.build_searchable_list(_variationForm, sc=self.LoadVersionList)
 
@@ -397,25 +405,25 @@ example:
 		self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
 
 		_variationForm( edit=True, 
-		                attachForm=[
-		                    (_variationBtn, 'top', 0), 
-		                            (_variationBtn, 'left', 0), 
-		                    (_variationBtn, 'right', 0), 
-		                        (self.variationList['formLayout'], 'left', 0),
-		                        (self.variationList['formLayout'], 'right', 0),
-		                        (self.variationButton, 'bottom', 0), 
-		                        (self.variationButton, 'right', 0), 
-		                        (self.variationButton, 'left', 0)], 
-		                attachControl=[
-		                            (self.variationList['formLayout'], 'top', 0, _variationBtn),
-		                    (self.variationList['formLayout'], 'bottom', 0, self.variationButton)] )
+						attachForm=[
+							(_variationBtn, 'top', 0), 
+									(_variationBtn, 'left', 0), 
+							(_variationBtn, 'right', 0), 
+								(self.variationList['formLayout'], 'left', 0),
+								(self.variationList['formLayout'], 'right', 0),
+								(self.variationButton, 'bottom', 0), 
+								(self.variationButton, 'right', 0), 
+								(self.variationButton, 'left', 0)], 
+						attachControl=[
+									(self.variationList['formLayout'], 'top', 0, _variationBtn),
+							(self.variationList['formLayout'], 'bottom', 0, self.variationButton)] )
 
 
 		# Version
 		_versionForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		_versionBtn = mUI.MelButton(_versionForm,
-		                            label='Version',ut='cgmUITemplate',
-		                            ann='Select the asset version', en=False)
+									label='Version',ut='cgmUITemplate',
+									ann='Select the asset version', en=False)
 
 		self.versionList = self.build_searchable_list(_versionForm, sc=self.StoreCurrentSelection)
 
@@ -428,18 +436,18 @@ example:
 		self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
 		_versionForm( edit=True, 
-		              attachForm=[
-		                  (_versionBtn, 'top', 0), 
-		                          (_versionBtn, 'left', 0), 
-		                    (_versionBtn, 'right', 0), 
-		                        (self.versionList['formLayout'], 'left', 0),
-		                        (self.versionList['formLayout'], 'right', 0),
-		                        (self.versionButton, 'bottom', 0), 
-		                        (self.versionButton, 'right', 0), 
-		                        (self.versionButton, 'left', 0)], 
-		              attachControl=[
-		                          (self.versionList['formLayout'], 'top', 0, _versionBtn),
-		                    (self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
+					  attachForm=[
+						  (_versionBtn, 'top', 0), 
+								  (_versionBtn, 'left', 0), 
+							(_versionBtn, 'right', 0), 
+								(self.versionList['formLayout'], 'left', 0),
+								(self.versionList['formLayout'], 'right', 0),
+								(self.versionButton, 'bottom', 0), 
+								(self.versionButton, 'right', 0), 
+								(self.versionButton, 'left', 0)], 
+					  attachControl=[
+								  (self.versionList['formLayout'], 'top', 0, _versionBtn),
+							(self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
 
 
 		self._subForms = [_catForm,_animForm,_variationForm,_versionForm]
@@ -516,15 +524,15 @@ example:
 		self.updateCB = mUI.MelCheckBox(_c2, label="Update and Save Increment", v=False)
 
 		_rcl( edit=True, 
-		      attachForm=[
-		          (self.queueTSL, 'top', 0), 
-		                  (self.queueTSL, 'left', 0), 
-		                    (self.queueTSL, 'bottom', 0), 
-		                        (_col, 'bottom', 0), 
-		                        (_col, 'top', 0), 
-		                        (_col, 'right', 0)], 
-		      attachControl=[
-		                  (self.queueTSL, 'right', 0, _col)] )
+			  attachForm=[
+				  (self.queueTSL, 'top', 0), 
+						  (self.queueTSL, 'left', 0), 
+							(self.queueTSL, 'bottom', 0), 
+								(_col, 'bottom', 0), 
+								(_col, 'top', 0), 
+								(_col, 'right', 0)], 
+			  attachControl=[
+						  (self.queueTSL, 'right', 0, _col)] )
 
 		##############################
 		# Layout form
@@ -533,21 +541,21 @@ example:
 		_footer = cgmUI.add_cgmFooter(_MainForm)            
 
 		_MainForm( edit=True, 
-		           attachForm=[
-		               (_directoryColumn, 'top', 0), 
-		                       (_directoryColumn, 'left', 0), 
-		                    (_directoryColumn, 'right', 0), 
-		                        (_bottomColumn, 'right', 0), 
-		                        (_bottomColumn, 'left', 0),
-		                        (self._assetsForm, 'left', 0),
-		                        (self._assetsForm, 'right', 0),
-		                        (_footer, 'left', 0),
-		                        (_footer, 'right', 0),
-		                        (_footer, 'bottom', 0)], 
-		           attachControl=[
-		                       (_bottomColumn, 'bottom', 0, _footer),
-		                    (self._assetsForm, 'top', 0, _directoryColumn),
-		                    (self._assetsForm, 'bottom', 0, _bottomColumn)] )
+				   attachForm=[
+					   (_directoryColumn, 'top', 0), 
+							   (_directoryColumn, 'left', 0), 
+							(_directoryColumn, 'right', 0), 
+								(_bottomColumn, 'right', 0), 
+								(_bottomColumn, 'left', 0),
+								(self._assetsForm, 'left', 0),
+								(self._assetsForm, 'right', 0),
+								(_footer, 'left', 0),
+								(_footer, 'right', 0),
+								(_footer, 'bottom', 0)], 
+				   attachControl=[
+							   (_bottomColumn, 'bottom', 0, _footer),
+							(self._assetsForm, 'top', 0, _directoryColumn),
+							(self._assetsForm, 'bottom', 0, _bottomColumn)] )
 
 
 	def show( self ):		
@@ -601,14 +609,14 @@ example:
 
 
 		mUI.MelMenuItem( _log, l="Dat",
-		                 c=lambda *a: self.project.log_self())
+						 c=lambda *a: self.project.log_self())
 
 		mc.menuItem(parent=self.uiMenu_HelpMenu,
-		            l = 'Get Help',
-		            c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
-		                    rp = 'N')    
+					l = 'Get Help',
+					c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
+							rp = 'N')    
 		mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Log Self",
-		                 c=lambda *a: cgmUI.log_selfReport(self) )
+						 c=lambda *a: cgmUI.log_selfReport(self) )
 
 	def buildMenu_file( self, *args):
 		self.uiMenu_FileMenu.clear()
@@ -628,42 +636,46 @@ example:
 			else:
 				log.warning("'{0}' Missing content path".format(name))
 			mUI.MelMenuItem( self.uiMenu_FileMenu, en=en, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
-			                 c = partial(self.LoadProject,p))
+							 c = partial(self.LoadProject,p))
 
 		mUI.MelMenuItemDiv( self.uiMenu_FileMenu )
 
 		mUI.MelMenuItem( self.uiMenu_FileMenu, l="MRSProject",
-		                 c = lambda *a:mc.evalDeferred(Project.ui,lp=True))                         
+						 c = lambda *a:mc.evalDeferred(Project.ui,lp=True))                         
 
 	def buildMenu_options( self, *args):
 		self.uiMenu_OptionsMenu.clear()
 		#>>> Reset Options		
 
 		self.showBakedOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show baked versions",
-		                                        checkBox=self.showBaked,
-		                                        c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+												checkBox=self.showBaked,
+												c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 		self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
-		                                              checkBox=self.removeNamespace,
-		                                              c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+													  checkBox=self.removeNamespace,
+													  c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 		self.useMayaPyOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use MayaPy",
-		                                         checkBox=self.useMayaPy,
-		                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+												 checkBox=self.useMayaPy,
+												 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+		
+		self.zeroRootOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero Root On Export",
+												 checkBox=self.zeroRoot,
+												 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 
 	def buildMenu_tools( self, *args):
 		self.uiMenu_ToolsMenu.clear()
 		#>>> Reset Options		
 
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Tag As Current Asset",
-		                 c = lambda *a:mc.evalDeferred(self.TagAsset,lp=True))
+						 c = lambda *a:mc.evalDeferred(self.TagAsset,lp=True))
 
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Set Export Sets",
-		                 c = lambda *a:mc.evalDeferred(self.SetExportSets,lp=True))
+						 c = lambda *a:mc.evalDeferred(self.SetExportSets,lp=True))
 
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Update Selected Rigs",
-		                 c = lambda *a:mc.evalDeferred(self.UpdateToLatestRig,lp=True))
+						 c = lambda *a:mc.evalDeferred(self.UpdateToLatestRig,lp=True))
 
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Remap Unlinked Textures",
-		                 c = lambda *a:mc.evalDeferred(self.RemapTextures,lp=True))
+						 c = lambda *a:mc.evalDeferred(self.RemapTextures,lp=True))
 
 	def RemapTextures(self, *args):
 		import cgm.tools.findTextures as findTextures
@@ -972,12 +984,12 @@ example:
 
 	def CreateAsset(self, *args):
 		result = mc.promptDialog(
-		    title='New Asset',
-		    message='Asset Name:',
-		            button=['OK', 'Cancel'],
-		                        defaultButton='OK',
-		                        cancelButton='Cancel',
-		                        dismissString='Cancel')
+			title='New Asset',
+			message='Asset Name:',
+					button=['OK', 'Cancel'],
+								defaultButton='OK',
+								cancelButton='Cancel',
+								dismissString='Cancel')
 
 		if result == 'OK':
 			charName = mc.promptDialog(query=True, text=True)
@@ -992,12 +1004,12 @@ example:
 
 	def CreateAnimation(self, *args):
 		result = mc.promptDialog(
-		    title='New Animation',
-		    message='Animation Name:',
-		            button=['OK', 'Cancel'],
-		                        defaultButton='OK',
-		                        cancelButton='Cancel',
-		                        dismissString='Cancel')
+			title='New Animation',
+			message='Animation Name:',
+					button=['OK', 'Cancel'],
+								defaultButton='OK',
+								cancelButton='Cancel',
+								dismissString='Cancel')
 
 		if result == 'OK':
 			animName = mc.promptDialog(query=True, text=True)
@@ -1025,12 +1037,12 @@ example:
 			self.LoadVersionList()
 
 			createPrompt = mc.confirmDialog(
-			    title='Create?',
-			    message='Create starting file?',
-			                button=['Yes', 'No'],
-			                    defaultButton='No',
-			                    cancelButton='No',
-			                    dismissString='No')
+				title='Create?',
+				message='Create starting file?',
+							button=['Yes', 'No'],
+								defaultButton='No',
+								cancelButton='No',
+								dismissString='No')
 
 			if createPrompt == "Yes":
 				self.OpenRig()
@@ -1158,12 +1170,12 @@ example:
 
 	def RenameAsset(self, *args):
 		result = mc.promptDialog(
-		    title='Rename Object',
-		    message='Enter Name:',
-		            button=['OK', 'Cancel'],
-		                        defaultButton='OK',
-		                        cancelButton='Cancel',
-		                        dismissString='Cancel')
+			title='Rename Object',
+			message='Enter Name:',
+					button=['OK', 'Cancel'],
+								defaultButton='OK',
+								cancelButton='Cancel',
+								dismissString='Cancel')
 
 		if result == 'OK':
 			newName = mc.promptDialog(query=True, text=True)
@@ -1270,11 +1282,11 @@ example:
 
 			for i,rig in enumerate(assetList.versions):
 				item = mUI.MelMenuItem( self.openRigMB, l=rig,
-				                        c = partial(self.OpenRig,directoryList[i]))
+										c = partial(self.OpenRig,directoryList[i]))
 				self.assetRigMenuItemList.append(item)
 
 				item = mUI.MelMenuItem( self.referenceRigMB, l=rig,
-				                        c = partial(self.ReferenceRig,directoryList[i]))
+										c = partial(self.ReferenceRig,directoryList[i]))
 				self.assetReferenceRigMenuItemList.append(item)
 
 
@@ -1298,7 +1310,7 @@ example:
 				continue
 
 			item = mUI.MelMenuItem( self.sendToProjectMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
-			                        c = partial(self.SendVersionFileToProject,{'filename':asset,'project':p}))
+									c = partial(self.SendVersionFileToProject,{'filename':asset,'project':p}))
 			self.sendToProjectMenuItemList.append(item)
 
 	def SendVersionFileToProject(self, infoDict, *args):
@@ -1308,12 +1320,12 @@ example:
 
 		if os.path.exists(newFilename):
 			result = mc.confirmDialog(
-			    title='Destination file exists!',
-			    message='The destination file already exists. Would you like to overwrite it?',
-			                button=['Yes', 'Cancel'],
-			                            defaultButton='Yes',
-			                            cancelButton='Cancel',
-			                            dismissString='Cancel')
+				title='Destination file exists!',
+				message='The destination file already exists. Would you like to overwrite it?',
+							button=['Yes', 'Cancel'],
+										defaultButton='Yes',
+										cancelButton='Cancel',
+										dismissString='Cancel')
 
 			if result != 'Yes':
 				return False
@@ -1327,12 +1339,12 @@ example:
 			result = 'Cancel'
 			if not self.alwaysSendReferenceFiles.getValue():
 				result = mc.confirmDialog(
-				    title='Send Missing References?',
-				    message='Copy missing references as well?',
-				                    button=['Yes', 'Yes and Stop Asking', 'Cancel'],
-				                                defaultButton='Yes',
-				                                cancelButton='No',
-				                                dismissString='No')
+					title='Send Missing References?',
+					message='Copy missing references as well?',
+									button=['Yes', 'Yes and Stop Asking', 'Cancel'],
+												defaultButton='Yes',
+												cancelButton='No',
+												dismissString='No')
 
 			if result == 'Yes and Stop Asking':
 				self.alwaysSendReferenceFiles.setValue(1)
@@ -1346,12 +1358,12 @@ example:
 						copyfile(refFile, newRefFilename)
 
 			result = mc.confirmDialog(
-			    title='Change Project?',
-			    message='Change to the new project?',
-			                button=['Yes', 'No'],
-			                            defaultButton='Yes',
-			                            cancelButton='No',
-			                            dismissString='No')
+				title='Change Project?',
+				message='Change to the new project?',
+							button=['Yes', 'No'],
+										defaultButton='Yes',
+										cancelButton='No',
+										dismissString='No')
 
 			if result == 'Yes':
 				if self.LoadProject(infoDict['project']):
@@ -1415,9 +1427,9 @@ example:
 
 			l_dat = []
 			d_base = {'removeNamespace' : self.removeNamespace,
-			          'bakeSetName':bakeSetName,
-			          'exportSetName':exportSetName,
-			          'deleteSetName':deleteSetName}
+					  'bakeSetName':bakeSetName,
+					  'exportSetName':exportSetName,
+					  'deleteSetName':deleteSetName}
 
 			for animDict in self.batchExportItems:
 				# self.assetList['scrollList'].selectByValue( animDict["asset"] )
@@ -1565,8 +1577,9 @@ example:
 			'bakeSetName':bakeSetName,
 			'exportSetName':exportSetName,
 			'deleteSetName':deleteSetName,
-            'animationName':self.selectedAnimation,
-            'workspace':d_userPaths['content']
+			'animationName':self.selectedAnimation,
+			'workspace':d_userPaths['content'],
+			'zeroRoot':self.zeroRoot
 			}
 
 			#pprint.pprint(d)
@@ -1576,15 +1589,16 @@ example:
 
 
 		ExportScene(mode = args[0],
-		            exportObjs = None,
-		            exportName = self.exportFileName,
-		            exportAssetPath = exportAssetPath,
-		            categoryExportPath = categoryExportPath,
-		            exportAnimPath = exportAnimPath,
-		            removeNamespace = self.removeNamespace,
-                    animationName = self.selectedAnimation,
-                    workspace=d_userPaths['content']
-		            )        
+					exportObjs = None,
+					exportName = self.exportFileName,
+					exportAssetPath = exportAssetPath,
+					categoryExportPath = categoryExportPath,
+					exportAnimPath = exportAnimPath,
+					removeNamespace = self.removeNamespace,
+					animationName = self.selectedAnimation,
+					workspace=d_userPaths['content'],
+					zeroRoot = self.zeroRoot
+					)        
 
 		return True
 
@@ -1609,10 +1623,7 @@ def BatchExport(dataList = []):
 		_d['mode'] = int(fileDat.get('mode'))
 		_d['exportObjs'] = fileDat.get('objs')
 		_removeNamespace =  fileDat.get('removeNamespace')
-		if _removeNamespace == "False":
-			_d['removeNamespace'] = False
-		else:
-			_d['removeNamespace'] = True
+		_d['removeNamespace'] = False if _removeNamespace == "False" else True
 
 		_d['deleteSetName'] = fileDat.get('deleteSetName')
 		_d['exportSetName'] = fileDat.get('exportSetName')
@@ -1620,6 +1631,7 @@ def BatchExport(dataList = []):
 		_d['animationName'] = fileDat.get('animationName')
 		_d['workspace'] = fileDat.get('workspace')
 		_d['updateAndIncrement'] = fileDat.get('updateAndIncrement')
+		_d['zeroRoot'] = fileDat.get('zeroRoot')
 
 		log.info(mFile)
 		pprint.pprint(_d)
@@ -1671,9 +1683,9 @@ def BatchExport(dataList = []):
 
 	log.info("Good Path: {0}".format(_path))
 	"""
-    if 'template' in _path:
-        _newPath = _path.replace('template','build')
-    else:"""
+	if 'template' in _path:
+		_newPath = _path.replace('template','build')
+	else:"""
 	_name = mFile.name()
 	_d = mFile.up().asFriendly()
 	log.debug(cgmGEN.logString_msg(_str_func,_name))
@@ -1692,8 +1704,8 @@ def BatchExport(dataList = []):
 			#cgmGEN.logString_sub(_str_func,'No blocks arg')
 
 			ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
-			                                 nTypes=['transform','network'],
-			                                 mAttrs='blockType=master')
+											 nTypes=['transform','network'],
+											 mAttrs='blockType=master')
 
 			for mMaster in ml_masters:
 				#cgmGEN.logString_sub(_str_func,mMaster)
@@ -1716,9 +1728,9 @@ def BatchExport(dataList = []):
 				log.info("Begin Rig Prep cleanup...")
 				'''
 
-                Begin Rig Prep process
+				Begin Rig Prep process
 
-                '''
+				'''
 				mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
 
 				if postProcesses:
@@ -1764,19 +1776,20 @@ def BatchExport(dataList = []):
 #   - just the asset name
 
 def ExportScene(mode = -1,
-                exportObjs = None,
-                exportName = None,
-                categoryExportPath = None,
-                exportAssetPath = None,
-                exportAnimPath = None,
-                removeNamespace = False,
-                bakeSetName = None,
-                exportSetName = None,
-                deleteSetName = None,
-                animationName = None,
-                workspace = None,
-                updateAndIncrement = False
-                ):
+				exportObjs = None,
+				exportName = None,
+				categoryExportPath = None,
+				exportAssetPath = None,
+				exportAnimPath = None,
+				removeNamespace = False,
+				bakeSetName = None,
+				exportSetName = None,
+				deleteSetName = None,
+				animationName = None,
+				workspace = None,
+				updateAndIncrement = False,
+				zeroRoot = False
+				):
 
 	if workspace:
 		mc.workspace( workspace, openWorkspace=True )
@@ -1841,12 +1854,12 @@ def ExportScene(mode = -1,
 
 	if len(exportObjs) > 1 and mode != 2:
 		result = mc.confirmDialog(
-		    title='Multiple Object Selected',
-		    message='Will export in cutscene mode, is this what you intended? If not, hit Cancel, select one object and try again.',
-		            button=['Yes', 'Cancel'],
-		            defaultButton='Yes',
-		            cancelButton='Cancel',
-		            dismissString='Cancel')
+			title='Multiple Object Selected',
+			message='Will export in cutscene mode, is this what you intended? If not, hit Cancel, select one object and try again.',
+					button=['Yes', 'Cancel'],
+					defaultButton='Yes',
+					cancelButton='Cancel',
+					dismissString='Cancel')
 
 		if result != 'Yes':
 			return False
@@ -1949,7 +1962,7 @@ def ExportScene(mode = -1,
 		if( exportAsRig ):
 			exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
-		bakeAndPrep.Prep(removeNamespace, deleteSetName,exportSetName)
+		bakeAndPrep.Prep(removeNamespace, deleteSetName,exportSetName, zeroRoot)
 
 		exportTransforms = mc.ls(sl=True)
 
