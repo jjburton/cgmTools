@@ -36,10 +36,10 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 
 from cgm.core.classes import GamePad
-from cgm.core.lib import camera_utils as CAM
+from cgm.core.tools import controllerPuppet as controllerPuppet
 
 #>>> Root settings =============================================================
-__version__ = '0.05272027'
+__version__ = '0.1.5292020'
 __toolname__ ='controllerPuppetTool'
 
 
@@ -72,8 +72,15 @@ class ui(cgmUI.cgmGUI):
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
 
-        self.gamePad = None
+        self.controllerPuppet = None
         self._parentCamera = None
+
+        self.connectionDict = { 'RStickHorizontal':{},
+                                'RStickVertical':{},
+                                'LStickHorizontal':{},
+                                'LStickVertical':{},
+                                'RTrigger':{},
+                                'LTrigger':{} }
  
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
@@ -126,6 +133,36 @@ def buildColumn_main(self,parent, asScroll = False):
     
     #>>>Objects Load Row ---------------------------------------------------------------------------------------
     
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+
+    controllerConnections = [ ['Left Stick Horizontal', 'LStickHorizontal'], ['Left Stick Vertical', 'LStickVertical'], ['Right Stick Horizontal', 'RStickHorizontal'], ['Right Stick Vertical', 'RStickVertical'], ['Left Trigger', 'LTrigger'], ['Right Trigger', 'RTrigger'] ]
+
+    for con in controllerConnections:
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = _padding)        
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _subColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+
+        _conFrame = mUI.MelFrameLayout(_subColumn, label=con[0], collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+        
+        _conColumn = mUI.MelColumnLayout(_conFrame,useTemplate = 'cgmUIHeaderTemplate') 
+
+        uiFunc_build_controller_connection_column(self, _conColumn, con[1])
+
+        _row.setStretchWidget(_subColumn)
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+
+        mc.setParent(_inside)
+        cgmUI.add_LineSubBreak()
+
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+
     # Start GamePad Button
     #
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = _padding*2)
@@ -141,33 +178,88 @@ def buildColumn_main(self,parent, asScroll = False):
 
     return _inside
 
+def uiFunc_build_controller_connection_column(self, parent, connection):
+    mc.setParent(parent)
+    cgmUI.add_LineSubBreak()
+
+    # Connection Column
+    #
+    connectionColumn = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    #
+    # End Connection Column
+
+    _row = mUI.MelHLayout(parent,ut='cgmUISubTemplate',padding = 0)
+    
+    btn = cgmUI.add_Button(_row,'Add Connection',
+        cgmGEN.Callback(add_connection,self, connectionColumn, connection),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Start Gamepad Button',h=25)
+
+    _row.layout()
+
+def add_connection(self, parent, connection):
+    for obj in mc.ls(sl=True):
+        for attr in mc.channelBox('mainChannelBox', q=True, sma=True ):
+            connectionString = '{0}.{1}'.format(obj, attr)
+            self.connectionDict[connection][connectionString] = {'min':0, 'max':1, 'damp':10}
+
+            # Add Connection
+            #
+            _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+            mUI.MelSpacer(_row,w=_padding)
+            mUI.MelLabel(_row,l='Target:')
+
+            conLabel = mUI.MelLabel(_row,ut='cgmUIInstructionsTemplate',l=connectionString,en=False)
+
+            _row.setStretchWidget( conLabel )
+
+            mUI.MelLabel(_row,l='Min:')
+            ff_min = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=self.connectionDict[connection][connectionString]['min'])
+
+            mUI.MelLabel(_row,l='Max:')
+            ff_max = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=self.connectionDict[connection][connectionString]['max'])
+
+            mUI.MelLabel(_row,l='Damp:')
+            ff_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=self.connectionDict[connection][connectionString]['damp'])
+
+
+            ff_min(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, connectionString, ff_min, ff_max, ff_damp))
+            ff_max(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, connectionString, ff_min, ff_max, ff_damp))
+            ff_damp(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, connectionString, ff_min, ff_max, ff_damp))
+
+
+            cgmUI.add_Button(_row,'X',
+                             cgmGEN.Callback(uiFunc_remove_connection,self,_row, obj, attr),
+                             "Remove connection.")  
+
+            mUI.MelSpacer(_row,w=_padding)
+
+            _row.layout()
+            #
+            # End Add Connection
+
+def uiFunc_change_connection(self, connection, connectionString, minUI, maxUI, dampUI):
+    self.connectionDict[connection][connectionString]['min'] = minUI.getValue()
+    self.connectionDict[connection][connectionString]['max'] = maxUI.getValue()
+    self.connectionDict[connection][connectionString]['damp'] = dampUI.getValue()
+
+def uiFunc_remove_connection(self,row, obj, attr):
+    mc.deleteUI(row)
+
 def toggle_controller(self):
-    if self.gamePad != None:
-        stop_controller(self)
+    if self.controllerPuppet != None:
         self.animDrawBtn(edit=True, label="Start Controller", bgc=[.35,.35,.35])
+        stop_controller(self)
     else:
-        start_controller(self)
         self.animDrawBtn(edit=True, label="Stop Controller", bgc=[.35,1,.35])
+        mc.refresh()
+        start_controller(self)
 
 def start_controller(self):
-    self.gamePad = GamePad.GamePad()
-    self.gamePad.start_listening()
-
-    attachControllerToCurrentCam(self)
+    self.controllerPuppet = controllerPuppet.ControllerPuppet(self.connectionDict)
 
 def stop_controller(self):
-    if self.gamePad:
-        self.gamePad.stop_listening()
-        self.gamePad = None
-        self._parentCamera = None
+    if self.controllerPuppet:
+        self.controllerPuppet.stop()
 
-def attachControllerToCurrentCam(self):
-    currentCam = CAM.getCurrentCamera()
-    if self._parentCamera != currentCam:
-        self._parentCamera = currentCam
-        mc.delete(mc.listRelatives(self.gamePad.controller_model, type='constraint'))
-        mc.parentConstraint(currentCam, self.gamePad.controller_model, mo=False)
-
-
-
- 
