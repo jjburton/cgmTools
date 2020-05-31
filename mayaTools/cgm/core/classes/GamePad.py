@@ -7,9 +7,11 @@ import maya.cmds as mc
 
 
 class GamePad(threading.Thread): 
-    def __init__(self, name = "GamePad"): 
+    def __init__(self, name = "GamePad", updateVisual = True): 
         threading.Thread.__init__(self) 
         self.controller_model = None
+        self.updateVisual = updateVisual
+
         #self.name = name
 
         self.left_stick_x = 0.0
@@ -113,10 +115,11 @@ class GamePad(threading.Thread):
                         else:
                             self._on_release('B')
 
-                self.update_controller_model()
+                if self.updateVisual:
+                    self.update_controller_model()
 
         finally: 
-            print('ended') 
+            print('\nended\n') 
     
     def get_state_dict(self):
         return {

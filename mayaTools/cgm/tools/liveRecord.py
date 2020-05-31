@@ -54,6 +54,9 @@ class LiveRecord(object):
 
         self._recordButtons = [1]
 
+        fps = mel.eval('currentTimeUnitToFPS')
+        self.fixedDeltaTime = 1.0/fps
+
     def activate(self):
         _str_func = 'LiveRecord.activate'
 

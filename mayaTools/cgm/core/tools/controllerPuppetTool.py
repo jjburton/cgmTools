@@ -38,6 +38,8 @@ from cgm.lib import lists
 from cgm.core.classes import GamePad
 from cgm.core.tools import controllerPuppet as controllerPuppet
 
+import json
+
 #>>> Root settings =============================================================
 __version__ = '0.1.5292020'
 __toolname__ ='controllerPuppetTool'
@@ -75,6 +77,9 @@ class ui(cgmUI.cgmGUI):
         self.controllerPuppet = None
         self._parentCamera = None
 
+        self.recentOptionStore = cgmMeta.cgmOptionVar("cgmVar_controllerPuppet_recent", varType = "string", defaultValue=json.dumps([]) )
+        self.recentMappings = json.loads( self.recentOptionStore.getValue() )
+
         self.connectionDict = { 'RStickHorizontal':{},
                                 'RStickVertical':{},
                                 'LStickHorizontal':{},
@@ -91,6 +96,18 @@ class ui(cgmUI.cgmGUI):
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save Mappings",
+                         c = cgmGEN.Callback(uiFunc_save,self) )
+
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Load Mappings",
+                         c = cgmGEN.Callback(uiFunc_load,self) )
+
+        recent = mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Recent",subMenu=True )
+
+        for mapping in self.recentMappings:
+            mUI.MelMenuItem( recent, l=mapping,
+                             c = cgmGEN.Callback(uiFunc_load,self,mapping) )
+
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
 
@@ -103,36 +120,74 @@ class ui(cgmUI.cgmGUI):
     
         #_MainForm = mUI.MelFormLayout(parent,ut='cgmUISubTemplate')
         _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
-        _column = buildColumn_main(self,_MainForm,True)
+        self.mainColumn = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUISubTemplate') 
 
+        buildColumn_main(self)
     
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
         _MainForm(edit = True,
-                  af = [(_column,"top",0),
-                        (_column,"left",0),
-                        (_column,"right",0),                        
+                  af = [(self.mainColumn,"top",0),
+                        (self.mainColumn,"left",0),
+                        (self.mainColumn,"right",0),                        
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),                        
                         (_row_cgm,"bottom",0),
     
                         ],
-                  ac = [(_column,"bottom",2,_row_cgm),
+                  ac = [(self.mainColumn,"bottom",2,_row_cgm),
                         ],
                   attachNone = [(_row_cgm,"top")])          
         
 
-def buildColumn_main(self,parent, asScroll = False):
+def uiFunc_save(self):
+    log.info("Saving")
+    basicFilter = "*.cfg"
+    filename = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=0)
+    if not filename:
+        return
+    filename = filename[0]
+    f = open(filename, 'w')
+    f.write( json.dumps(self.connectionDict) )
+    f.close()
+
+    if not filename in self.recentMappings:
+        self.recentMappings.append(filename)
+        self.recentOptionStore.setValue( json.dumps(self.recentMappings) )
+
+def uiFunc_load(self, filename = None):
+    log.info("Loading")
+    basicFilter = "*.cfg"
+
+    if filename is None:
+        filename = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=1)
+        if not filename:
+            return
+        filename = filename[0]
+        if not filename in self.recentMappings:
+            self.recentMappings.append(filename)
+            self.recentOptionStore.setValue( json.dumps(self.recentMappings) )
+
+    f = open(filename, 'r')
+    self.connectionDict = json.loads(f.read())
+
+    buildColumn_main(self)
+
+
+def buildColumn_main(self):
     """
     Trying to put all this in here so it's insertable in other uis
     
     """   
-    if asScroll:
-        _inside = mUI.MelScrollLayout(parent,useTemplate = 'cgmUISubTemplate') 
-    else:
-        _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    self.mainColumn.clear()
+
+    # if asScroll:
+    #     _inside = mUI.MelScrollLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    # else:
+    #     _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
     
     #>>>Objects Load Row ---------------------------------------------------------------------------------------
-    
+    _inside = self.mainColumn
+
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()
 
@@ -168,7 +223,7 @@ def buildColumn_main(self,parent, asScroll = False):
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = _padding*2)
     
     self.animDrawBtn = cgmUI.add_Button(_row,'Start GamePad',
-        cgmGEN.Callback(toggle_controller,self),                         
+        cgmGEN.Callback(start_controller,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
         'Start Gamepad Button',h=50)
 
@@ -184,7 +239,10 @@ def uiFunc_build_controller_connection_column(self, parent, connection):
 
     # Connection Column
     #
-    connectionColumn = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
+    connectionColumn = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate')
+
+    for label in self.connectionDict[connection]:
+        add_connection_row(self, connectionColumn, connection, label, self.connectionDict[connection][label])
     #
     # End Connection Column
 
@@ -193,9 +251,44 @@ def uiFunc_build_controller_connection_column(self, parent, connection):
     btn = cgmUI.add_Button(_row,'Add Connection',
         cgmGEN.Callback(add_connection,self, connectionColumn, connection),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Start Gamepad Button',h=25)
+        'Add Connection Button',h=25)
 
     _row.layout()
+
+def add_connection_row(self, parent, connection, label, connectionInfo):
+    # Add Connection
+    #
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Target:')
+
+    conLabel = mUI.MelLabel(_row,ut='cgmUIInstructionsTemplate',l=label,en=False)
+
+    _row.setStretchWidget( conLabel )
+
+    mUI.MelLabel(_row,l='Min:')
+    ff_min = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=connectionInfo['min'])
+
+    mUI.MelLabel(_row,l='Max:')
+    ff_max = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=connectionInfo['max'])
+
+    mUI.MelLabel(_row,l='Damp:')
+    ff_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=connectionInfo['damp'])
+
+    ff_min(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, label, ff_min, ff_max, ff_damp))
+    ff_max(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, label, ff_min, ff_max, ff_damp))
+    ff_damp(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, label, ff_min, ff_max, ff_damp))
+
+    cgmUI.add_Button(_row,'X',
+                     cgmGEN.Callback(uiFunc_remove_connection,self,_row, connection, label),
+                     "Remove connection.")  
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Add Connection
 
 def add_connection(self, parent, connection):
     for obj in mc.ls(sl=True):
@@ -203,63 +296,28 @@ def add_connection(self, parent, connection):
             connectionString = '{0}.{1}'.format(obj, attr)
             self.connectionDict[connection][connectionString] = {'min':0, 'max':1, 'damp':10}
 
-            # Add Connection
-            #
-            _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
-
-            mUI.MelSpacer(_row,w=_padding)
-            mUI.MelLabel(_row,l='Target:')
-
-            conLabel = mUI.MelLabel(_row,ut='cgmUIInstructionsTemplate',l=connectionString,en=False)
-
-            _row.setStretchWidget( conLabel )
-
-            mUI.MelLabel(_row,l='Min:')
-            ff_min = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=self.connectionDict[connection][connectionString]['min'])
-
-            mUI.MelLabel(_row,l='Max:')
-            ff_max = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=self.connectionDict[connection][connectionString]['max'])
-
-            mUI.MelLabel(_row,l='Damp:')
-            ff_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, precision = 2, v=self.connectionDict[connection][connectionString]['damp'])
-
-
-            ff_min(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, connectionString, ff_min, ff_max, ff_damp))
-            ff_max(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, connectionString, ff_min, ff_max, ff_damp))
-            ff_damp(edit=True, cc=cgmGEN.Callback(uiFunc_change_connection,self,connection, connectionString, ff_min, ff_max, ff_damp))
-
-
-            cgmUI.add_Button(_row,'X',
-                             cgmGEN.Callback(uiFunc_remove_connection,self,_row, obj, attr),
-                             "Remove connection.")  
-
-            mUI.MelSpacer(_row,w=_padding)
-
-            _row.layout()
-            #
-            # End Add Connection
+            add_connection_row(self, parent, connection, connectionString, self.connectionDict[connection][connectionString])
 
 def uiFunc_change_connection(self, connection, connectionString, minUI, maxUI, dampUI):
     self.connectionDict[connection][connectionString]['min'] = minUI.getValue()
     self.connectionDict[connection][connectionString]['max'] = maxUI.getValue()
     self.connectionDict[connection][connectionString]['damp'] = dampUI.getValue()
 
-def uiFunc_remove_connection(self,row, obj, attr):
+def uiFunc_remove_connection(self,row,connection,label):
+    if label in self.connectionDict[connection]:
+        del self.connectionDict[connection][label]
     mc.deleteUI(row)
 
-def toggle_controller(self):
-    if self.controllerPuppet != None:
-        self.animDrawBtn(edit=True, label="Start Controller", bgc=[.35,.35,.35])
-        stop_controller(self)
-    else:
-        self.animDrawBtn(edit=True, label="Stop Controller", bgc=[.35,1,.35])
-        mc.refresh()
-        start_controller(self)
-
 def start_controller(self):
-    self.controllerPuppet = controllerPuppet.ControllerPuppet(self.connectionDict)
+    self.animDrawBtn(edit=True, en=False)
+    self.animDrawBtn(edit=True, label="Stop Controller", bgc=[.35,1,.35])
+    mc.refresh()
+    self.controllerPuppet = controllerPuppet.ControllerPuppet(self.connectionDict, onEnded=cgmGEN.Callback(stop_controller,self))
+    self.controllerPuppet.start()
 
 def stop_controller(self):
-    if self.controllerPuppet:
-        self.controllerPuppet.stop()
+    self.controllerPuppet = None
+    self.animDrawBtn(edit=True, en=True)
+
+    self.animDrawBtn(edit=True, label="Start Controller", bgc=[.35,.35,.35])
 
