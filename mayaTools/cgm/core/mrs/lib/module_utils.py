@@ -758,7 +758,7 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
 #reload(BLOCKSHARE)
 l_controlOrder = BLOCKSHARE._l_controlOrder
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
-                  'fk':['fkJoints','leverFK','controlsFK','controlFK'],
+                  'fk':['leverFK','fkJoints','controlsFK','controlFK'],
                   'ikEnd':['controlIK'],
                   'ik':['controlIK','controlIKEnd','controlBallRotation',
                         'controlIKBase','controlsFK','controlFollowParentBank',
@@ -1237,11 +1237,27 @@ def mirror_reportSetup(self):
                                                  mObj.p_nameShort,
                                                  mObj.mirrorAxis))            
     
-def get_mirrorDat(self):
+def get_controllerDat(self,rewire = True,report = False):
+    _d = {}
+    mModule = self.getBlockModule()
+    reload(mModule)
+    if mModule.__dict__.get('controller_getDat'):
+        _d = mModule.controller_getDat(self)
+    
+    else:
+        md = get_mirrorDat(self,False)
+        _d = md['md_controls']
+    
+    if report:
+        pprint.pprint(_d)
+
+    return _d
+
+def get_mirrorDat(self,rewire = True):
     _str_module = self.p_nameShort
     _d = {}
     _d['str_name'] = _str_module
-    md,ml = controls_getDat(self,rewire=True)#...used to ignore=['spacePivots'] don't remember why
+    md,ml = controls_getDat(self,rewire=rewire)#...used to ignore=['spacePivots'] don't remember why
     _d['md_controls'] = md
     _d['ml_controls'] = ml
     _d['mMirror'] = mirror_get(self)
@@ -1249,7 +1265,6 @@ def get_mirrorDat(self):
     
     #if _d['str_side'] not in d_runningSideIdxes.keys():
         #d_runningSideIdxes[_d['str_side']] = [startIdx]    
-    
     return _d
 
 def mirror_verifySetup(self, d_Indices = {},

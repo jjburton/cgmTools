@@ -3835,6 +3835,98 @@ class cgmObjectOLD(cgmNode):
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
 #=========================================================================  
+class cgmController(cgmNode): 
+    def __init__(self,node = None, name = 'null',**kws):
+        """ 
+        Class for control specific functions
+
+        Keyword arguments:
+        obj(string)     
+        autoCreate(bool) - whether to create a transforum if need be
+        """
+        
+        try:
+            if node is None:
+                raise ValueError,"need an existing controller"
+            super(cgmController, self).__init__(node = node, name = name)
+            
+        except StandardError,error:
+            raise StandardError, "cgmController.__init__ fail! | %s"%error
+
+        #>>> TO USE Cached instance ---------------------------------------------------------
+        if self.cached:return
+        
+    def index_get(self,arg=None):
+        if arg:
+            return mc.controller(self.mNode,edit=True, idx=arg)
+        return mc.controller(self.mNode,q=True, idx=1)
+    
+    def parent_set(self,mParentController, idx = None, msgConnect=False):
+        
+        mParentController.cycleWalkSibling = 1
+        #try:self.doConnectIn('prepopulate',"{0}.prepopulate".format(mParentController.mNode))
+        #except:
+        #    pass
+        
+        if idx is None:
+            idx = ATTR.get_nextCompoundIndex(mParentController.mNode,'children') or 0
+        
+        if msgConnect:
+            self.doConnectOut('msg',"{0}.children[{1}]".format(mParentController.mNode,idx))
+        else:
+            self.doConnectOut('parent',"{0}.children[{1}]".format(mParentController.mNode,idx))
+        
+    def purge(self):
+        _connect = ATTR.get_driver(self.mNode, 'prepopulate')
+        if _connect:
+            ATTR.break_connection(self.mNode,'prepopulate')
+            
+        _connect = ATTR.get_driven(self.mNode,'parent')
+        if _connect:
+            ATTR.break_connection(self.mNode,'parent')
+            
+    
+    
+    
+    """
+    def parent_get(self,arg=None):
+        return mc.controller(self.mNode,q=True, parent=1)
+    
+    def parent_set(self,arg=None):
+        if arg:
+            return mc.controller(self.mNode,edit=True, parent=arg)
+        return mc.controller(self.mNode,edit=True, unparent=1)
+    
+    def pickWalk(self,direction=None, arg=None):
+        if not direction:
+            raise ValueError,'direction required'
+        d_dir = {'up':'pwu',
+                 'down':'pwd',
+                 'left':'pwl',
+                 'right':'pwr'}
+        _arg = arg or 1
+        _kws = {d_dir.get(direction):_arg}
+        
+        if arg:
+            return mc.controller(self.mNode,edit=True,**_kws )
+        return mc.controller(self.mNode,q=True,**_kws)"""
+    
+   
+        
+        
+def controller_get(self,verify=False):
+    if cgmGEN.__mayaVersion__ < 2018:
+        log.warning('Controllers not supported before maya 2018')
+        return True
+    mController = self.getMessageAsMeta('mController')
+    if not mController:
+        mc.controller(self.mNode)
+        mController = validateObjArg(mc.controller(self.mNode,q=True)[0],mType='cgmController')
+        self.connectParentNode(mController,'mController','source')
+    if verify:
+        mController.doStore('mClass','cgmController')
+    return mController
+    
 class cgmControl(cgmObject): 
     def __init__(self,node = None, name = 'null',**kws):
         """ 
@@ -3871,18 +3963,8 @@ class cgmControl(cgmObject):
             log.error("%s._hasSwitch>> _hasSwitch fail | %s"%(self.getShortName(),error))
             return False	
         
-    def controller_get(self):
-        if cgmGEN.__mayaVersion__ < 2018:
-            log.warning('Controllers not supported before maya 2018')
-            return True
-        
-        mController = self.getMessageAsMeta('mController')
-        if not mController:
-            mc.controller(self.mNode)
-            mController = asMeta(mc.controller(self.mNode,q=True)[0])
-            self.connectParentNode(mController,'mController','source')
-        return mController
-    
+    def controller_get(self,verify=False):
+        return controller_get(self,verify)
 
     #>>> Lock stuff
     #========================================================================    

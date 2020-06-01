@@ -1575,3 +1575,479 @@ def uiMenu_picker(self,parent = None):
                 mc.menuItem(**d)
             
     return
+
+#=============================================================================================================
+#>> Mirror
+#=============================================================================================================
+@cgmGEN.Timer
+def controller_verify(self,progressBar = None,progressEnd=True):
+    """
+    Verify the mirror setup of the puppet modules
+    """
+    _str_func = ' controller_verify'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        log.debug("|{0}| >> can't process referenced asset | {1}".format(_str_func,self))        
+        return 
+    
+    
+    controller_purge(self,progressBar,False)
+    
+    controls_get(self,True,rewire=False)#Wire pass
+    
+    md_data = {}
+    md_cgmTags = {}
+    ml_processed = []
+    ml_controlOrphans = []
+    md_controls = {}
+    
+    ml_modules = modules_getHeirarchal(self,True)
+    int_lenModules = len(ml_modules)
+    
+    if progressBar:
+        cgmUI.progressBar_start(progressBar)
+    else:
+        progressBar = cgmUI.doStartMayaProgressBar()
+        
+    def validate_controls(ml):
+        for i,mObj in enumerate(ml):
+            log.debug("|{0}| >> First pass: {1}".format(_str_func,mObj))
+            if not issubclass(type(mObj), cgmMeta.cgmControl):
+                log.debug("|{0}| >> Reclassing: {1}".format(_str_func,mObj))
+                mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
+                ml[i] = mObj#...push back
+            md_cgmTags[mObj] = mObj.getCGMNameTags(['cgmName'])
+            md_controls[mObj] = mObj.controller_get()
+            ml_controlOrphans.append(mObj)
+        
+    def process_set(ml,d1=None,d2=None):
+        md_sideControls = {'Centre':[],
+                           'Left':[],
+                           'Right':[]}
+        d_Indices = {}
+        
+        for k,v in d_runningSideIdxes.iteritems():
+            d_Indices[k] = v
+            
+        if d_Indices['Right'] != d_Indices['Left']:
+            if d_Indices['Left'] > d_Indices['Right']:
+                d_Indices['Right'] = d_Indices['Left']
+            else:
+                d_Indices['Left'] = d_Indices['Right']
+            log.info("|{0}| >> Rebasing start side idx: {1}".format(_str_func,d_Indices['Left']))
+                
+        validate_controls(ml)
+        
+        #First process our sides ....
+        for mObj in ml:
+            _side = mObj.getEnumValueString('mirrorSide')
+            md_sideControls[_side].append(mObj)
+            
+        if d1 and d2:
+            for key in BLOCKSHARE._l_controlOrder:
+                self_keyControls = d1['md_controls'].get(key,[])
+                mirr_keyControls = d2['md_controls'].get(key,[])
+                
+                len_self = len(self_keyControls)
+                len_mirr = len(mirr_keyControls)
+                
+                log.debug(cgmGEN.logString_sub("|{0}| >> Key: {1} | self: {2} | mirror: {3}".format(_str_func,key,len_self,len_mirr)))
+                
+                ml_primeControls = self_keyControls #...longer list of controls
+                ml_secondControls = mirr_keyControls
+                
+                if len_mirr>len_self:
+                    ml_primeControls = mirr_keyControls 
+                    ml_secondControls = self_keyControls
+                
+                ml_cull = copy.copy(ml_secondControls)
+                ml_cull_prime = copy.copy(ml_primeControls)
+                
+                for i,mObj in enumerate(ml_primeControls):
+                    if progressBar:
+                        cgmUI.progressBar_set(progressBar,
+                                              minValue = 0,
+                                              maxValue=len(ml_primeControls),
+                                              progress=i, vis=True)
+                        
+                    _side = mObj.getEnumValueString('mirrorSide')                
+                    _v = d_Indices[_side]+1
+                    tags_prime = md_cgmTags[mObj]
+                    
+                    mObj.mirrorIndex = _v
+                    log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                    if  md_indicesToControls[_side].get(_v):
+                        log.error('already stored start value')
+                        return False
+                    
+                    md_indicesToControls[_side][_v] = mObj
+                    ml_controlOrphans.remove(mObj)
+                    ml_cull_prime.remove(mObj)
+                    
+                    
+                    mMirror = mObj.getMessageAsMeta('mirrorControl')
+                    if mMirror:
+                        log.debug("|{0}| >> Mirror found: {1}".format(_str_func,mMirror))
+                        mMirror.mirrorIndex = _v
+                        
+                        _sideMirror = mMirror.getEnumValueString('mirrorSide')                
+                        
+                        d_Indices[_sideMirror] = _v#...push it back                
+                        ml_cull.remove(mMirror)
+                        md_indicesToControls[_sideMirror][_v] = mMirror
+                        ml_controlOrphans.remove(mMirror)                        
+                        
+                    else:
+                        for mCandidate in ml_cull:
+                            #First try a simple name match
+                            #l_candSplit = mCandidate.p_nameBase.split('_')
+                            _match = True
+                            tags_second = md_cgmTags[mCandidate]
+                            for a,v in tags_second.iteritems():
+                                if tags_prime[a] != v:
+                                    _match = False
+                                    break
+                                
+                            if _match:
+                                log.debug("|{0}| >> Match found: {1} | {2}".format(_str_func,mObj.p_nameShort,mCandidate.p_nameShort))
+                                
+                                mObj.doStore('mirrorControl',mCandidate)
+                                mCandidate.doStore('mirrorControl',mObj)                        
+                                
+                                mCandidate.mirrorIndex = _v
+                                
+                                _sideMirror = mCandidate.getEnumValueString('mirrorSide')                
+                                d_Indices[_sideMirror] = _v#...push it back                
+                                ml_cull.remove(mCandidate)
+                                md_indicesToControls[_sideMirror][_v] = mCandidate
+                                ml_controlOrphans.remove(mCandidate)
+                            
+                    d_Indices[_side] = _v
+                    
+                for mObj in ml_cull_prime + ml_cull:
+                    log.debug("|{0}| >> Setting index of unmatched: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                    _side = mObj.getEnumValueString('mirrorSide')                
+                    _v = d_Indices[_side]+1
+                    tags_prime = md_cgmTags[mObj]
+                    
+                    mObj.mirrorIndex = _v
+                    md_indicesToControls[_side][_v] = mObj            
+                    
+                    d_Indices[_side] = _v
+                    ml_controlOrphans.remove(mObj)
+                    
+            for s in 'Left','Right':
+                d_runningSideIdxes[s] = d_Indices[s]+1
+                    
+            return
+        else:
+            ml_right = md_sideControls.get('Right',[])
+            ml_left = md_sideControls.get('Left',[])
+            ml_done = []
+            if ml_right and ml_left:
+                for i,mObj in enumerate(ml_right + ml_left):
+                    if progressBar:
+                        cgmUI.progressBar_set(progressBar,
+                                              minValue = 0,
+                                              maxValue=len(ml_right+ml_left),
+                                              progress=i, vis=True)                    
+                    if mObj in ml_done:
+                        continue
+                    
+                    _side = mObj.getEnumValueString('mirrorSide')
+                    _v = d_Indices[_side]+1                    
+                    
+                    while md_indicesToControls[_side].get(_v):
+                        _v +=1
+                        
+                    log.info("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+                    
+                    if  md_indicesToControls[_side].get(_v):
+                        log.error('already stored start value')
+                        return False
+                    
+                    md_indicesToControls[_side][_v] = mObj
+                    ml_done.append(mObj)
+                    ml_controlOrphans.remove(mObj)
+                    d_Indices[_side] = _v
+                    ATTR.set(mObj.mNode,'mirrorIndex',_v)
+                    
+                    mMirror = mObj.getMessageAsMeta('mirrorControl')
+                    if mMirror:
+                        log.info("|{0}| >> Mirror found: {1}".format(_str_func,mMirror))
+            
+                        _sideMirror = mMirror.getEnumValueString('mirrorSide')                
+                        d_Indices[_sideMirror] = _v#...push it back                
+                        md_indicesToControls[_sideMirror][_v] = mMirror
+                        ml_done.append(mMirror)
+                        ml_controlOrphans.remove(mMirror)
+                        ATTR.set(mMirror.mNode,'mirrorIndex',_v)
+
+            
+            
+        #Centers
+        #pprint.pprint(md_sideControls)
+        #pprint.pprint(md_cgmTags)
+        
+        _v = None
+        int_len = len(md_sideControls['Centre'])
+        for i,mObj in enumerate(md_sideControls['Centre']):
+            if progressBar:
+                cgmUI.progressBar_set(progressBar,
+                                      minValue = 0,
+                                      maxValue=int_len,
+                                      progress=i, vis=True)
+                
+            _side = mObj.getEnumValueString('mirrorSide')
+            _v = d_runningSideIdxes[_side]
+            log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
+            ATTR.set(mObj.mNode,'mirrorIndex',_v)
+            d_Indices[_side] = _v
+            md_indicesToControls[_side][_v] = mObj
+            
+            d_runningSideIdxes[_side]+=1
+            ml_controlOrphans.remove(mObj)
+            
+            
+
+    
+    #Self controls =====================================================
+    #ml_self = controls_get(self)
+    #process_set(ml_self)
+    
+    #mPuppetController = self.controller_get()
+    
+    #>> Process ======================================================================================
+    md_moduleController = {}
+    md_moduleInt = {}
+    for i,mModule in enumerate(ml_modules):
+        md_moduleController[mModule] = mModule.atUtils('get_controllerDat')
+        md_moduleInt[i] = md_moduleController[mModule]
+        #mModule.atUtils('get_mirrorDat',False)
+        
+        """
+        for mObj in md_moduleMirrorDat[i]['ml_controls']:
+            mController = mObj.getMessageAsMeta('mController')
+            if mController:
+                mController.purge()"""
+
+    
+    #pprint.pprint(md_moduleInt)
+    #if progressBar and progressEnd:
+    #    cgmUI.progressBar_end(progressBar)
+        
+    
+    #pprint.pprint(md_moduleMirrorDat)
+    md_tags = {}
+    def get_tag(mObj):
+        mTag = md_tags.get(mObj)
+        if mTag:
+            return mTag
+        
+        mTag = cgmMeta.controller_get(mObj,True)
+        mTag.cycleWalkSibling = 1
+        mTag.prepopulate = 1
+        mTag.parentprepopulate = 1
+        md_tags[mObj] = mTag
+        return mTag
+        
+        
+    ml_all = []
+    md_failsafe = {}
+    
+    for i,mModule in enumerate(ml_modules):
+        _str_module = mModule.p_nameShort
+        log.info(cgmGEN.logString_sub(_str_func,"mModule: {0}".format(_str_module)))
+        
+        if mModule in ml_processed:
+            log.debug("|{0}| >> Already processed: {1}".format(_str_func,mModule))
+            continue
+        
+        log.debug("|{0}| >> Processing: {1}".format(_str_func,mModule))
+        
+        if progressBar:
+            _str = '{0}'.format(mModule.mNode)
+            log.debug(cgmGEN.logString_sub(_str_func,_str))
+            cgmUI.progressBar_set(progressBar,
+                                  minValue = 0,
+                                  maxValue=int_lenModules+1,
+                                  status = _str,
+                                  progress=i, vis=True)
+        
+        
+        md_controls = md_moduleController[mModule]
+        
+        mSettings = md_controls.get('settings') or False
+        mSettingsController = False
+        if mSettings:
+            mSettings = mSettings[0]
+            mSettingsController = get_tag(mSettings)
+
+        mModParent = mModule.moduleParent
+        ml_modSiblings = mModule.atUtils('siblings_get') or []
+        ml_modChildren = mModule.moduleChildren or []
+        md_tmp = {}
+        
+        mBlock = mModule.getMessageAsMeta('rigBlock')
+        _idx_attach = 0
+        if mBlock:
+            _str_attachPoint = mBlock.getEnumValueString('attachPoint')
+            if _str_attachPoint == 'start':
+                _idx_attach = 0
+            elif _str_attachPoint == 'end':
+                _idx_attach = -1
+            elif _str_attachPoint == 'index':
+                _idx_attach = mBlock.attachIndex
+        
+        
+        for tag in ['root','settings','fk','ik','segmentHandles','direct','face']:
+            log.debug(cgmGEN.logString_msg(_str_func,"tag: {0}".format(tag)))
+            #First validate...
+            _l_tag = md_controls.get(tag,[])
+            ml = []
+            md_tmp[tag] = ml
+            
+            
+            
+            for ii,mObj in enumerate(_l_tag):
+                mController =  get_tag(mObj)
+                ml.append(mController)
+                ml_children = []
+                
+                if mController in ml_all:
+                    continue
+                
+                if tag not in ['root']:
+                    if md_tmp.get('root'):
+                        md_failsafe[mController] = md_tmp['root'][0]
+                        
+                ml_all.append(mController)
+                
+                if not ii:#If our first obj, set to parent of module Parent
+                    if mModParent:
+                        _buffer = md_moduleController[mModParent].get(tag)
+                        if _buffer:
+                            mParentController = get_tag(_buffer[_idx_attach])
+                            mController.parent_set(mParentController)
+                        else:
+                            _buffer = md_moduleController[mModParent].get('root')
+                            if _buffer:
+                                mParentController = get_tag(_buffer[0])
+                                mController.parent_set(mParentController)                            
+                    else:
+                        if md_tmp.get('root'):
+                            _buffer = md_tmp.get('root')
+                            if _buffer:
+                                mParentController = get_tag(_buffer[0])
+                                mController.parent_set(mParentController)                             
+                            
+
+                if mObj == _l_tag[-1]:
+                    #....Last
+                    for modChild in ml_modChildren:
+                        _buffer = md_moduleController[modChild].get(tag)
+                        if _buffer:
+                            ml_children.append(_buffer[0])
+                    pass
+                else:
+                    mChild =_l_tag[ii+1]
+                    ml_children = [mChild]
+                    
+                    mMirror = mChild.getMessageAsMeta('mirrorControl')
+                    if mMirror:
+                        ml_children.append(mMirror)
+                    """
+                    for modChild in ml_modSiblings:
+                        _buffer = md_moduleController[modChild][tag]
+                        if _buffer:
+                            try:ml_children.append(_buffer[ii])
+                            except:pass"""
+                                
+
+                        
+                
+                _msg = False
+                for iii,mChild in enumerate(ml_children):
+                    if iii:
+                        _msg =True
+                    mChildController = get_tag(mChild)
+                    mChildController.parent_set(mController,msgConnect=_msg)
+
+            
+            if ml:
+                md_failsafe[ml[-1]] = ml[0]
+        
+    """
+    for mController in ml_all:
+        #print mController
+        if not mController.children:
+            if md_failsafe.get(mController):
+                log.info("|{0}| >>  Failsafe | {1} | parent: {2}".format(_str_func,
+                                                                         mController.mNode,
+                                                                         md_failsafe.get(mController).mNode))
+                
+                md_failsafe.get(mController).parent_set( mController, msgConnect=True)
+    """
+
+    if ml_controlOrphans:
+        log.error(cgmGEN.logString_sub(_str_func,"Orphans!"))
+        pprint.pprint(ml_controlOrphans)
+
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
+        
+    return
+
+@cgmGEN.Timer
+def controller_purge(self,progressBar = None,progressEnd=True):
+    """
+    Verify the mirror setup of the puppet modules
+    """
+    _str_func = ' controller_purge'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    if self.isReferenced():
+        log.debug("|{0}| >> can't process referenced asset | {1}".format(_str_func,self))        
+        return 
+    
+    
+    ml_modules = modules_getHeirarchal(self,True)
+    int_lenModules = len(ml_modules)
+    
+    if progressBar:
+        cgmUI.progressBar_start(progressBar)
+    else:
+        progressBar = cgmUI.doStartMayaProgressBar()
+        
+
+    #Self controls =====================================================
+    #ml_self = controls_get(self)
+    #process_set(ml_self)
+    
+    #mPuppetController = self.controller_get()
+    
+    #>> Process ======================================================================================
+    
+    for i,mModule in enumerate(ml_modules):
+        if progressBar:
+            _str = '{0}'.format(mModule.mNode)
+            log.info(cgmGEN.logString_sub(_str_func,_str))
+            cgmUI.progressBar_set(progressBar,
+                                  minValue = 0,
+                                  maxValue=int_lenModules+1,
+                                  status = _str,
+                                  progress=i, vis=True)
+            
+        md = mModule.atUtils('get_mirrorDat',False)
+
+        for mObj in md['ml_controls']:
+            l_delete = mObj.getMessage('mController')
+            if l_delete:
+                mc.delete(l_delete)
+
+
+    if progressBar and progressEnd:
+        cgmUI.progressBar_end(progressBar)
+        
+    return

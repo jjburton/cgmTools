@@ -8829,6 +8829,69 @@ def get_handleIndices(self):
         return idx_start,idx_end
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
+def controller_getDat(self):
+    _str_func = 'controller_getDat'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    mRigNull = self.rigNull
+    
+    def checkList(l):
+        ml = []
+        for o in l:
+            if mRigNull.getMessage(o):
+                log.debug("|{0}| >>  Message found: {1} ".format(_str_func,o))                
+                mObj = mRigNull.getMessage(o,asMeta=True)[0]
+                if mObj not in ml:ml.append(mObj)
+            elif mRigNull.msgList_exists(o):
+                log.debug("|{0}| >>  msgList found: {1} ".format(_str_func,o))                
+                _msgList = mRigNull.msgList_get(o)
+                for mObj in _msgList:
+                    if mObj not in ml:ml.append(mObj)
+        return ml
+    
+    md = {}
+
+    #Root...
+    md['root'] =  checkList(['cog','rigRoot','limbRoot'])
+
+    md['settings'] =  checkList(['mSettings','settings'])
+    
+    #Direct...
+    md['direct'] = mRigNull.msgList_get('rigJoints')
+    
+    md['pivots'] = checkList(['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder])
+    
+    #FK...
+    md['fk'] = checkList(['leverFK','fkJoints','controlsFK','controlFK'])
+    
+    md['noHide'] = md['root'] + md['settings']
+    
+    #IK...
+    md['ik'] = checkList(['leverFK',
+                          'controlIKBase',
+                          'controlIKMid',
+                          'controlIKEnd','controlIK',
+                          'controlBallRotation','leverIK',
+                          'controlIKBallHinge','controlIKBall','controlIKToe',
+                          ])
+    #seg...
+    ml_handles = mRigNull.msgList_get('handleJoints')
+    ml_mid = mRigNull.msgList_get('controlSegMidIK')
+    
+    if ml_handles:
+        ml_use = []
+        for i,mObj in enumerate(ml_handles):
+            ml_use.append(mObj)
+            
+            if ml_mid:
+                try:ml_use.append(ml_mid[i])
+                except:
+                    pass
+
+                
+        md['segmentHandles'] = ml_use
+        
+        
+    return md
 
 
 

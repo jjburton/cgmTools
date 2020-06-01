@@ -3949,7 +3949,9 @@ class cgmRigPuppet(cgmMeta.cgmNode):
             except:pass
         except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
-
+    def controller_get(self,verify=False):
+        return cgmMeta.controller_get(self,verify)
+    
     def verify_masterNull(self,**kws):
         try:
             _str_func = 'cgmRigPuppet.verify_masterNull'
@@ -4769,6 +4771,9 @@ class cgmRigModule(cgmMeta.cgmObject):
             return True
         except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
+    def controller_get(self,verify=False):
+        return cgmMeta.controller_get(self,verify)
+    
     def get_allModuleChildren(self,*args,**kws):
         return MODULEUTILS.moduleChildren_get(self,*args,**kws)
         #return self.atUtils('moduleChildren_get',*args,**kws)

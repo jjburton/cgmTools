@@ -839,6 +839,14 @@ class ui(cgmUI.cgmGUI):
                                 ann = "Gather world and puppet space drivers ",
                                 c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'collect_worldSpaceObjects'),
                                 )
+        mUI.MelMenuItem(_subCalls, l="Controllers | Verify",
+                                ann = "Build controller setup",
+                                c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'controller_verify'),
+                                )        
+        mUI.MelMenuItem(_subCalls, l="Controllers | Purge",
+                                ann = "Purge Controller setup",
+                                c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'controller_purge'),
+                                )        
         """
         mUI.MelMenuItem(_menu, l="Armature Verify",
                         ann = "Verify puppet armature ",

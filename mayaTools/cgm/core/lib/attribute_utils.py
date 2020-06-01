@@ -1989,8 +1989,8 @@ def is_userDefined(*a):
     return False
 
 def get_nextCompoundIndex(*a):
-    if get_type(*a) != 'TdataCompound':
-        raise ValueError,"must be compound attr"
+    #if get_type(*a) != 'TdataCompound':
+        #raise ValueError,"must be compound attr"
     _d = validate_arg(*a)
 
     l_indices = [int(v) for v in get_compoundIndices(_d)]
@@ -2012,11 +2012,11 @@ def clear_TdataCompound(*a):
     
         
 def get_compoundIndices(*a):
-    if get_type(*a) != 'TdataCompound':
-        raise ValueError,"must be compound attr"
+    #if get_type(*a) != 'TdataCompound':
+    #    raise ValueError,"must be compound attr"
     _d = validate_arg(*a) 
     
-    return mc.getAttr(_d['combined'],multiIndices =1)
+    return mc.getAttr(_d['combined'],multiIndices =1) or []
     
 def get_range(*a):
     """   
