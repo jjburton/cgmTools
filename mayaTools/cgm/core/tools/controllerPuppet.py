@@ -17,12 +17,54 @@ log.setLevel(logging.DEBUG)
 
 import maya.cmds as mc
 import maya.mel as mel
-import time
 
 from cgm.core.classes import GamePad
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.camera_utils as CAM
 from cgm.core import cgm_General as cgmGen
+
+import time
+import threading 
+import ctypes
+import copy
+import pprint
+
+class RecordingThread(threading.Thread): 
+    def __init__(self, gamePad, startFrame = 0, deltaTime = .04): 
+        threading.Thread.__init__(self)
+        self.dataDict = {}
+        self.gamePad = gamePad
+        self.deltaTime = deltaTime
+
+        self.currentFrame = startFrame
+              
+    def run(self): 
+  
+        # target function of the thread class 
+        try: 
+            while True:
+                self.dataDict[self.currentFrame] = self.gamePad.get_state_dict()
+                time.sleep(self.deltaTime)
+                self.currentFrame = self.currentFrame + 1
+        finally: 
+            print('stopped recording')
+           
+    def get_id(self): 
+  
+        # returns id of the respective thread 
+        if hasattr(self, '_thread_id'): 
+            return self._thread_id 
+        for id, thread in threading._active.items(): 
+            if thread is self: 
+                return id
+   
+    def raise_exception(self): 
+        thread_id = self.get_id() 
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 
+              ctypes.py_object(SystemExit)) 
+        if res > 1: 
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0) 
+            print('Exception raise failure')
 
 class ControllerPuppet(object):
     def __init__(self, connectionDict, onEnded = None, onActivate = None, onDeactivate = None):
@@ -57,7 +99,13 @@ class ControllerPuppet(object):
         self._startFrame = mc.currentTime(q=True)
         self._startTime = time.time()
 
+        self._updatePuppet = True
+
         self._recordingPressed = False
+        self._startPressed = False
+
+        self._recordingThread = None
+        self._recordedData = {}
 
     def onPress(self, btn):
         _str_func = 'ControllerPuppet.onPress'
@@ -65,12 +113,10 @@ class ControllerPuppet(object):
         #log.info('{0} >> Button pressed: {1}'.format(_str_func, btn))
 
         if btn == 'Start':
-            if not self._isActive:
-                self.start()
+            self._startPressed = True
         elif btn == 'A':
             #log.info('{0} >> Pressed A'.format(_str_func))
             self._recordingPressed = True
-        #mc.refresh()
 
     def start(self):
         _str_func = 'ControllerPuppet.start'
@@ -82,18 +128,26 @@ class ControllerPuppet(object):
                 for func in self.onActivate:
                     func()
 
-            while self._isActive and self.gamePad:
+            while self._isActive and self.gamePad:              
                 time.sleep(self.fixedDeltaTime)
+
+                self.gamePad.update_controller_model()
                 
-                self.updatePuppet(setKey=self._isRecording)
+                if self._updatePuppet:
+                    self.updatePuppet(setKey=self._isRecording)
 
                 if self._recordingPressed:
                     self._recordingPressed = False
 
                     if not self._isRecording:
-                       self._startFrame = int(mc.currentTime(q=True))
-                       self._startTime = time.time()
-                       log.info('{0} >> Setting start values for recording'.format(_str_func))
+                        self._startFrame = int(mc.currentTime(q=True))
+                        self._startTime = time.time()
+                        self._recordingThread = RecordingThread( self.gamePad, startFrame = self._startFrame, deltaTime = self.fixedDeltaTime ) 
+                        self._recordingThread.start() 
+                        log.info('{0} >> Setting start values for recording'.format(_str_func))
+                    else:
+                        self.stopRecordingThread()
+
                     self._isRecording = not self._isRecording
 
                 if self._isRecording:
@@ -102,20 +156,33 @@ class ControllerPuppet(object):
                     if wantedFrame != int(mc.currentTime(q=True)):
                         #log.info('{0} >> Changing frame : {1}'.format(_str_func, wantedFrame))
                         mc.currentTime( wantedFrame )
+
                     if wantedFrame >= mc.playbackOptions(q=True, max=True):
                         self._isRecording = False
+                        self.stopRecordingThread()
                         #self._isActive = False
 
-                if self.gamePad:
-                    self.gamePad.update_controller_model()
+                if self._startPressed:
+                    self._startPressed = False
+                    self._updatePuppet = not self._updatePuppet
 
-                mc.refresh()
-                if self.gamePad.button_start:
-                    self._isActive = False
-                    break
+                if self.gamePad.right_bumper:
+                    nextFrame = int(mc.currentTime(q=True)+1)
+                    if nextFrame > mc.playbackOptions(q=True, max=True):
+                        nextFrame = mc.playbackOptions(q=True, min=True)
+
+                    mc.currentTime( nextFrame )
+
+                if self.gamePad.left_bumper:
+                    nextFrame = int(mc.currentTime(q=True)-1)
+                    if nextFrame < mc.playbackOptions(q=True, min=True):
+                        nextFrame = mc.playbackOptions(q=True, max=True)
+                    mc.currentTime( nextFrame )
 
                 if self.gamePad.button_select:
                     self.stop()
+                
+                mc.refresh()
 
             log.info('{0} >> Deactivating'.format(_str_func))
             if len(self.onDeactivate) > 0:
@@ -127,6 +194,12 @@ class ControllerPuppet(object):
             self.stop()
         finally:
             log.info("|{0}| >> Ending start".format(_str_func))
+
+    def stopRecordingThread(self):
+        if self._recordingThread != None:
+            self._recordedData = copy.copy(self._recordingThread.dataDict)
+            self._recordingThread.raise_exception()
+            pprint.pprint(self._recordedData)
 
     def updatePuppet(self, setKey=False):
         _str_func = 'ControllerPuppet.updatePuppet'
