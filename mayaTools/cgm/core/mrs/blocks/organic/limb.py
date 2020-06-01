@@ -1834,21 +1834,26 @@ def prerig(self):
         
         #Names... -----------------------------------------------------------------
         int_namesToGet = self.numControls
+        _count = self.numControls
+        
         idx_end = -1
         
-        for a in ['buildLeverBase','buildBall','buildLeverEnd','buildToe']:
+        for a in ['buildLeverBase','buildBall','buildLeverEnd','buildToe','buildEnd']:
             if self.getMayaAttr(a):
                 log.warning(cgmGEN.logString_msg(_str_func,"Adding to name count for: {0}".format(a)))
                 int_namesToGet+=1
                 if a in ['buildBall','buildToe']:
                     idx_end -=1 
+                else:
+                    _count +=1 
                     
+        """
         if self.buildEnd:
             if self.buildLeverEnd or self.buildBall or self.buildToe or _ikEnd in ['bank']:
                 pass
             else:
                 log.warning(cgmGEN.logString_msg(_str_func,"Adding to name count for buildEnd"))
-                int_namesToGet +=1
+                int_namesToGet +=1"""
                 
 
         _res = self.atUtils('nameList_validate',int_namesToGet)
@@ -1905,7 +1910,6 @@ def prerig(self):
         _pos_start = mStartHandle.p_position
         _pos_end = mEndHandle.p_position 
         _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
-        _count = copy.copy(int_namesToGet)
         
         _mVectorAim = MATH.get_vector_of_two_points(_pos_start, _pos_end,asEuclid=True)
         _mVectorUp =  self.atUtils('prerig_get_upVector')
@@ -1964,10 +1968,11 @@ def prerig(self):
             #log.info(cgmGEN.logString_msg(_str_func,'Count | addedLever'))
             #_count -=1
             
-        _count = len(ml_formHandlesCurveTargets)
+        #_count = len(ml_formHandlesCurveTargets)
         if _count < self.numControls:
             log.info(cgmGEN.logString_msg(_str_func,'Count | count less than numControls. Clamping'))            
             _count = MATH.Clamp(_count, self.numControls)
+        
         
         #if not self.buildBall:
             #if self.buildEnd:
@@ -1977,8 +1982,9 @@ def prerig(self):
         log.info(cgmGEN.logString_sub(_str_func,'handle Count: {0}'.format(_count)))
         log.info(cgmGEN.logString_sub(_str_func,'name Count: {0}'.format(int_namesToGet)))
         #HERE JOSH, you need to take one off the count fore the build lever call above
+        mPrerigNull.doStore('handleCount',_count)
+        #pprint.pprint(ml_formHandlesCurveTargets)
         
-        pprint.pprint(ml_formHandlesCurveTargets)
         if len(ml_formHandlesCurveTargets)>=_count:
             log.info(cgmGEN.logString_msg(_str_func,'Can use formHandles as targets...'))
             _l_pos = [mObj.p_position for mObj in ml_formHandlesCurveTargets[:_count]]
@@ -2048,8 +2054,8 @@ def prerig(self):
             except:l_posUse.append(item)
             
         log.info(cgmGEN.logString_msg(_str_func,'prerigTrackers: '))
-        pprint.pprint(ml_prerigTrackers)
-        pprint.pprint(l_posUse)
+        #pprint.pprint(ml_prerigTrackers)
+        #pprint.pprint(l_posUse)
         
          
         #Sub handles... ------------------------------------------------------------------------------------
@@ -2276,9 +2282,9 @@ def skeleton_build(self, forceNew = True):
         ml_joints = []
         
         #Get our roll section count
-        _baseCount = self.numControls - 1
-        if self.buildLeverEnd == 2:
-            _baseCount +=1
+        _baseCount = self.prerigNull.handleCount - 1 #self.numControls - 1
+        #if self.buildLeverEnd == 2:
+            #_baseCount +=1
             
         if self.numControls > 1:
             if not self.atUtils('datList_validate',datList='rollCount',
@@ -8823,6 +8829,69 @@ def get_handleIndices(self):
         return idx_start,idx_end
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
+def controller_getDat(self):
+    _str_func = 'controller_getDat'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    mRigNull = self.rigNull
+    
+    def checkList(l):
+        ml = []
+        for o in l:
+            if mRigNull.getMessage(o):
+                log.debug("|{0}| >>  Message found: {1} ".format(_str_func,o))                
+                mObj = mRigNull.getMessage(o,asMeta=True)[0]
+                if mObj not in ml:ml.append(mObj)
+            elif mRigNull.msgList_exists(o):
+                log.debug("|{0}| >>  msgList found: {1} ".format(_str_func,o))                
+                _msgList = mRigNull.msgList_get(o)
+                for mObj in _msgList:
+                    if mObj not in ml:ml.append(mObj)
+        return ml
+    
+    md = {}
+
+    #Root...
+    md['root'] =  checkList(['cog','rigRoot','limbRoot'])
+
+    md['settings'] =  checkList(['mSettings','settings'])
+    
+    #Direct...
+    md['direct'] = mRigNull.msgList_get('rigJoints')
+    
+    md['pivots'] = checkList(['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder])
+    
+    #FK...
+    md['fk'] = checkList(['leverFK','fkJoints','controlsFK','controlFK'])
+    
+    md['noHide'] = md['root'] + md['settings']
+    
+    #IK...
+    md['ik'] = checkList(['leverFK',
+                          'controlIKBase',
+                          'controlIKMid',
+                          'controlIKEnd','controlIK',
+                          'controlBallRotation','leverIK',
+                          'controlIKBallHinge','controlIKBall','controlIKToe',
+                          ])
+    #seg...
+    ml_handles = mRigNull.msgList_get('handleJoints')
+    ml_mid = mRigNull.msgList_get('controlSegMidIK')
+    
+    if ml_handles:
+        ml_use = []
+        for i,mObj in enumerate(ml_handles):
+            ml_use.append(mObj)
+            
+            if ml_mid:
+                try:ml_use.append(ml_mid[i])
+                except:
+                    pass
+
+                
+        md['segmentHandles'] = ml_use
+        
+        
+    return md
 
 
 

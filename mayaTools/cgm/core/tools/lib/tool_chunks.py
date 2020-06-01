@@ -113,6 +113,11 @@ def uiSection_help(parent):
                 ann = "Get Tool Updates",
                 c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))"""
     mc.menuItem(parent = parent,
+                l='About CGM',
+                ann = "About CGM",
+                c=lambda *a: cgmUI.uiWindow_thanks(False))  
+    
+    mc.menuItem(parent = parent,
                 l='Support our Work',
                 ann = "Support our work",
                 c=lambda *a: webbrowser.open("https://www.patreon.com/mrsmakers"))  

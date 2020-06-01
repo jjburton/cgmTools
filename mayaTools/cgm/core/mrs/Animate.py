@@ -135,7 +135,7 @@ class ui(cgmUI.cgmGUI):
         self._l_contextKeys = _l_contextKeys
         self.mmCallback = cgmGEN.Callback
         MRSANIMUTILS.uiSetup_context(self,self.__class__.TOOLNAME)
-        
+        self.mmCallback = cgmGEN.Callback
 
         """
         try:self.var_poseMatchMethod
