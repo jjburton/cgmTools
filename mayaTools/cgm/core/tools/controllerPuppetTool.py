@@ -80,7 +80,8 @@ class ui(cgmUI.cgmGUI):
         self.recentOptionStore = cgmMeta.cgmOptionVar("cgmVar_controllerPuppet_recent", varType = "string", defaultValue=json.dumps([]) )
         self.recentMappings = json.loads( self.recentOptionStore.getValue() )
 
-        self.connectionDict = { 'RStickHorizontal':{},
+        self.connectionDict = { 'name':'Default',
+                                'RStickHorizontal':{},
                                 'RStickVertical':{},
                                 'LStickHorizontal':{},
                                 'LStickVertical':{},
@@ -120,24 +121,83 @@ class ui(cgmUI.cgmGUI):
     
         #_MainForm = mUI.MelFormLayout(parent,ut='cgmUISubTemplate')
         _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
-        self.mainColumn = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUISubTemplate') 
+        _mainScroll = mUI.MelScrollLayout(_MainForm,useTemplate = 'cgmUIHeaderTemplate') 
 
-        buildColumn_main(self)
-    
+        _mappingFrame = mUI.MelFrameLayout(_mainScroll, label='Create Mapping', collapsable=True, collapse=False,useTemplate = 'cgmUIHeaderTemplate')
+        
+        self.mappingColumn = mUI.MelColumnLayout(_mappingFrame,useTemplate = 'cgmUISubTemplate') 
+
+        buildColumn_create_mapping(self)
+
+        _loadMappingFrame = mUI.MelFrameLayout(_mainScroll, label='Load Mappings', collapsable=True, collapse=False,useTemplate = 'cgmUIHeaderTemplate')
+        
+        self.loadMappingColumn = mUI.MelColumnLayout(_loadMappingFrame,useTemplate = 'cgmUISubTemplate') 
+
+        _row = mUI.MelHSingleStretchLayout(self.loadMappingColumn,ut='cgmUISubTemplate',padding = _padding, height=75+_padding)
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _colorColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate', height=75 )
+        self.mappingList = cgmUI.cgmScrollList(_colorColumn, numberOfRows = 4, height=75)
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.setStretchWidget(_colorColumn)
+
+        _row.layout()
+
+        mc.setParent(self.loadMappingColumn)
+        cgmUI.add_LineSubBreak()
+
+        _row = mUI.MelHLayout(self.loadMappingColumn,ut='cgmUISubTemplate',padding = _padding*2)
+        cgmUI.add_Button(_row,'Load From File',
+            cgmGEN.Callback(uiFunc_add_mapping,self),
+            #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+            'Load a mapping from file',h=30)
+        cgmUI.add_Button(_row,'Remove Mapping',
+            cgmGEN.Callback(uiFunc_remove_mapping,self),
+            'Remove selected mapping',h=30) 
+
+        _row.layout() 
+
+        mc.setParent(self.loadMappingColumn)
+        cgmUI.add_LineSubBreak()
+
+        # Start GamePad Button
+        #
+        #_row = mUI.MelHLayout(_mainScroll,ut='cgmUISubTemplate',padding = _padding*2)
+        
+        self.animDrawBtn = cgmUI.add_Button(_mainScroll,'Start GamePad',
+            cgmGEN.Callback(start_controller,self),                         
+            #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+            'Start Gamepad Button',h=50)
+
+        #_row.layout()    
+        #
+        # End Recording Button
+
         _row_cgm = cgmUI.add_cgmFooter(_MainForm)            
         _MainForm(edit = True,
-                  af = [(self.mainColumn,"top",0),
-                        (self.mainColumn,"left",0),
-                        (self.mainColumn,"right",0),                        
+                  af = [(_mainScroll,"top",0),
+                        (_mainScroll,"left",0),
+                        (_mainScroll,"right",0),                        
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),                        
                         (_row_cgm,"bottom",0),
     
                         ],
-                  ac = [(self.mainColumn,"bottom",2,_row_cgm),
+                  ac = [(_mainScroll,"bottom",2,_row_cgm),
                         ],
                   attachNone = [(_row_cgm,"top")])          
-        
+
+def uiFunc_add_mapping_to_list(self):
+    pass
+
+def uiFunc_add_mapping(self):
+    pass
+
+def uiFunc_remove_mapping(self):
+    pass
 
 def uiFunc_save(self):
     log.info("Saving")
@@ -170,15 +230,15 @@ def uiFunc_load(self, filename = None):
     f = open(filename, 'r')
     self.connectionDict = json.loads(f.read())
 
-    buildColumn_main(self)
+    buildColumn_create_mapping(self)
 
 
-def buildColumn_main(self):
+def buildColumn_create_mapping(self):
     """
     Trying to put all this in here so it's insertable in other uis
     
     """   
-    self.mainColumn.clear()
+    self.mappingColumn.clear()
 
     # if asScroll:
     #     _inside = mUI.MelScrollLayout(parent,useTemplate = 'cgmUISubTemplate') 
@@ -186,15 +246,32 @@ def buildColumn_main(self):
     #     _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
     
     #>>>Objects Load Row ---------------------------------------------------------------------------------------
-    _inside = self.mainColumn
+    _inside = self.mappingColumn
 
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()
 
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = _padding)        
+    
+    mUI.MelSpacer(_row,w=_padding)
+
+    mUI.MelLabel(_row,l='Name:')
+
+    self.nameTF = mUI.MelTextField(_row, text=self.connectionDict['name'], editable = True, bgc=[0,0,0])
+
+    _row.setStretchWidget(self.nameTF)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    
     controllerConnections = [ ['Left Stick Horizontal', 'LStickHorizontal'], ['Left Stick Vertical', 'LStickVertical'], ['Right Stick Horizontal', 'RStickHorizontal'], ['Right Stick Vertical', 'RStickVertical'], ['Left Trigger', 'LTrigger'], ['Right Trigger', 'RTrigger'] ]
 
     for con in controllerConnections:
-        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = _padding)        
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = _padding)
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -215,21 +292,21 @@ def buildColumn_main(self):
         mc.setParent(_inside)
         cgmUI.add_LineSubBreak()
 
-    mc.setParent(_inside)
-    cgmUI.add_LineSubBreak()
-
     # Start GamePad Button
     #
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = _padding*2)
     
-    self.animDrawBtn = cgmUI.add_Button(_row,'Start GamePad',
-        cgmGEN.Callback(start_controller,self),                         
+    cgmUI.add_Button(_row,'Add Mapping',
+        cgmGEN.Callback(uiFunc_add_mapping_to_list,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Start Gamepad Button',h=50)
+        'Add Mapping Button',h=30)
 
-    _row.layout()    
+    _row.layout()
     #
     # End Recording Button
+
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
 
     return _inside
 
