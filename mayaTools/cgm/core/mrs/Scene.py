@@ -914,7 +914,8 @@ example:
 			return
 
 		mc.file(self.versionFile, o=True, f=True, ignoreVersion=True)
-
+		mel.eval('addRecentFile("{0}", "{1}")'.format( self.versionFile.replace('\\', '/'), os.path.splitext(self.versionFile)[-1][1:]))
+	
 	def SetAnimationDirectory(self, *args):
 		basicFilter = "*"
 		x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
