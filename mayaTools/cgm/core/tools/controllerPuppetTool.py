@@ -87,6 +87,8 @@ class ui(cgmUI.cgmGUI):
                                 'LStickVertical':{},
                                 'RTrigger':{},
                                 'LTrigger':{} }
+
+        self.mappingList = []
  
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
@@ -138,7 +140,7 @@ class ui(cgmUI.cgmGUI):
         mUI.MelSpacer(_row,w=_padding)
 
         _colorColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate', height=75 )
-        self.mappingList = cgmUI.cgmScrollList(_colorColumn, numberOfRows = 4, height=75)
+        self.mappingListTSL = cgmUI.cgmScrollList(_colorColumn, numberOfRows = 4, height=75)
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -151,7 +153,7 @@ class ui(cgmUI.cgmGUI):
 
         _row = mUI.MelHLayout(self.loadMappingColumn,ut='cgmUISubTemplate',padding = _padding*2)
         cgmUI.add_Button(_row,'Load From File',
-            cgmGEN.Callback(uiFunc_add_mapping,self),
+            cgmGEN.Callback(uiFunc_load,self),
             #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
             'Load a mapping from file',h=30)
         cgmUI.add_Button(_row,'Remove Mapping',
@@ -191,13 +193,16 @@ class ui(cgmUI.cgmGUI):
                   attachNone = [(_row_cgm,"top")])          
 
 def uiFunc_add_mapping_to_list(self):
-    pass
+    self.mappingList.append( copy.copy(self.connectionDict) )
+    uiFunc_update_mapping_list(self)
 
-def uiFunc_add_mapping(self):
-    pass
+def uiFunc_update_mapping_list(self):
+    self.mappingListTSL.clear()
+    self.mappingListTSL.setItems( [x['name'] for x in self.mappingList] )
 
 def uiFunc_remove_mapping(self):
-    pass
+    self.mappingList.pop(self.mappingListTSL.getSelectedIdx())
+    uiFunc_update_mapping_list(self)
 
 def uiFunc_save(self):
     log.info("Saving")
@@ -207,7 +212,7 @@ def uiFunc_save(self):
         return
     filename = filename[0]
     f = open(filename, 'w')
-    f.write( json.dumps(self.connectionDict) )
+    f.write( json.dumps(self.mappingList) )
     f.close()
 
     if not filename in self.recentMappings:
@@ -228,10 +233,9 @@ def uiFunc_load(self, filename = None):
             self.recentOptionStore.setValue( json.dumps(self.recentMappings) )
 
     f = open(filename, 'r')
-    self.connectionDict = json.loads(f.read())
+    self.mappingList = json.loads(f.read())
 
-    buildColumn_create_mapping(self)
-
+    uiFunc_update_mapping_list(self)
 
 def buildColumn_create_mapping(self):
     """
@@ -257,7 +261,7 @@ def buildColumn_create_mapping(self):
 
     mUI.MelLabel(_row,l='Name:')
 
-    self.nameTF = mUI.MelTextField(_row, text=self.connectionDict['name'], editable = True, bgc=[0,0,0])
+    self.nameTF = mUI.MelTextField(_row, text=self.connectionDict['name'], editable = True, bgc=[0,0,0], cc=cgmGEN.Callback(uiFunc_update_connectionDict_name,self))
 
     _row.setStretchWidget(self.nameTF)
 
@@ -292,18 +296,21 @@ def buildColumn_create_mapping(self):
         mc.setParent(_inside)
         cgmUI.add_LineSubBreak()
 
-    # Start GamePad Button
+    # Add/Clear Mapping Buttons
     #
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = _padding*2)
     
     cgmUI.add_Button(_row,'Add Mapping',
         cgmGEN.Callback(uiFunc_add_mapping_to_list,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Add Mapping Button',h=30)
+
+    cgmUI.add_Button(_row,'Clear Mapping',
+        cgmGEN.Callback(uiFunc_clear_connection_dict,self),                         
         'Add Mapping Button',h=30)
 
     _row.layout()
     #
-    # End Recording Button
+    # End Add/Clear Mapping Buttons
 
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()
@@ -323,14 +330,21 @@ def uiFunc_build_controller_connection_column(self, parent, connection):
     #
     # End Connection Column
 
-    _row = mUI.MelHLayout(parent,ut='cgmUISubTemplate',padding = 0)
+    _row = mUI.MelHLayout(parent,ut='cgmUISubTemplate',padding = _padding)
     
     btn = cgmUI.add_Button(_row,'Add Connection',
         cgmGEN.Callback(add_connection,self, connectionColumn, connection),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
         'Add Connection Button',h=25)
 
+    btn = cgmUI.add_Button(_row,'Clear All',
+        cgmGEN.Callback(uiFunc_clear_connections,self, connectionColumn, connection),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Clear Connections Button',h=25)
     _row.layout()
+
+    mc.setParent(parent)
+    cgmUI.add_LineSubBreak()
 
 def add_connection_row(self, parent, connection, label, connectionInfo):
     # Add Connection
@@ -367,13 +381,31 @@ def add_connection_row(self, parent, connection, label, connectionInfo):
     #
     # End Add Connection
 
+def uiFunc_clear_connections(self, parent, connection):
+    parent.clear()
+    self.connectionDict[connection] = {}
+
+def uiFunc_clear_connection_dict(self):
+    self.connectionDict = { 'name':'Default',
+                            'RStickHorizontal':{},
+                            'RStickVertical':{},
+                            'LStickHorizontal':{},
+                            'LStickVertical':{},
+                            'RTrigger':{},
+                            'LTrigger':{} }
+
+    buildColumn_create_mapping(self)
+
 def add_connection(self, parent, connection):
     for obj in mc.ls(sl=True):
         for attr in mc.channelBox('mainChannelBox', q=True, sma=True ):
             connectionString = '{0}.{1}'.format(obj, attr)
-            self.connectionDict[connection][connectionString] = {'min':0, 'max':1, 'damp':10}
+            self.connectionDict[connection][connectionString] = {'min':-1, 'max':1, 'damp':10}
 
             add_connection_row(self, parent, connection, connectionString, self.connectionDict[connection][connectionString])
+
+def uiFunc_update_connectionDict_name(self):
+    self.connectionDict['name'] = self.nameTF.getValue()
 
 def uiFunc_change_connection(self, connection, connectionString, minUI, maxUI, dampUI):
     self.connectionDict[connection][connectionString]['min'] = minUI.getValue()
@@ -389,7 +421,7 @@ def start_controller(self):
     self.animDrawBtn(edit=True, en=False)
     self.animDrawBtn(edit=True, label="Stop Controller", bgc=[.35,1,.35])
     mc.refresh()
-    self.controllerPuppet = controllerPuppet.ControllerPuppet(self.connectionDict, onEnded=cgmGEN.Callback(stop_controller,self))
+    self.controllerPuppet = controllerPuppet.ControllerPuppet(self.mappingList, onEnded=cgmGEN.Callback(stop_controller,self))
     self.controllerPuppet.start()
 
 def stop_controller(self):

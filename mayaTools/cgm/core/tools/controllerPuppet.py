@@ -67,7 +67,7 @@ class RecordingThread(threading.Thread):
             print('Exception raise failure')
 
 class ControllerPuppet(object):
-    def __init__(self, connectionDict, onEnded = None, onActivate = None, onDeactivate = None):
+    def __init__(self, mappingList, onEnded = None, onActivate = None, onDeactivate = None):
         self.gamePad = GamePad.GamePad(updateVisual=False)
         self.gamePad.start_listening()
 
@@ -76,7 +76,14 @@ class ControllerPuppet(object):
         self._isActive = False
         self._isRecording = False
 
-        self.connectionDict = connectionDict
+        self.mappingList = mappingList
+        self.currentMapIdx = 0
+        self.connectionDict = self.mappingList[self.currentMapIdx]
+
+        self.playbackMultiplierList = [.1, .25, .5, .75, 1.0, 1.5, 2.0]
+        self.playbackMultIdx = 4
+        self.playbackMultiplier = self.playbackMultiplierList[self.playbackMultIdx]
+
         self._parentCamera = None
 
         self.attachControllerToCurrentCam()
@@ -106,6 +113,11 @@ class ControllerPuppet(object):
 
         self._recordingThread = None
         self._recordedData = {}
+
+        self._upPushed = False
+        self._downPushed = False
+        self._leftPushed = False
+        self._rightPushed = False
 
     def onPress(self, btn):
         _str_func = 'ControllerPuppet.onPress'
@@ -178,6 +190,32 @@ class ControllerPuppet(object):
                     if nextFrame < mc.playbackOptions(q=True, min=True):
                         nextFrame = mc.playbackOptions(q=True, max=True)
                     mc.currentTime( nextFrame )
+
+                # Process Mapping Change
+                if self.gamePad.thumbpad_y > 0.5 and not self._upPushed:
+                    self.currentMapIdx = (self.currentMapIdx + 1) % len(self.mappingList)
+                    self.connectionDict = self.mappingList[self.currentMapIdx]
+                    log.info('Current Mapping : {0}'.format(self.connectionDict['name']))
+                self._upPushed = self.gamePad.thumbpad_y > 0.5
+
+                if self.gamePad.thumbpad_y < -0.5 and not self._downPushed:
+                    self.currentMapIdx = (self.currentMapIdx - 1) if self.currentMapIdx > 0 else (len(self.mappingList)-1)
+                    self.connectionDict = self.mappingList[self.currentMapIdx]
+                    log.info('Current Mapping : {0}'.format(self.connectionDict['name']))
+                self._downPushed = self.gamePad.thumbpad_y < -0.5
+
+                # Process Speed Change
+                if self.gamePad.thumbpad_x > 0.5 and not self._rightPushed:
+                    self.playbackMultIdx = (self.playbackMultIdx + 1) % len(self.playbackMultiplierList)
+                    self.playbackMultiplier = self.playbackMultiplierList[self.playbackMultIdx]
+                    log.info('Playback multiplier : {0}'.format(self.playbackMultiplier))
+                self._rightPushed = self.gamePad.thumbpad_x > 0.5
+
+                if self.gamePad.thumbpad_x < -0.5 and not self._leftPushed:
+                    self.playbackMultIdx = (self.playbackMultIdx - 1) if self.playbackMultIdx > 0 else (len(self.playbackMultiplierList)-1)
+                    self.playbackMultiplier = self.playbackMultiplierList[self.playbackMultIdx]
+                    log.info('Playback multiplier : {0}'.format(self.playbackMultiplier))
+                self._leftPushed = self.gamePad.thumbpad_x < -0.5
 
                 if self.gamePad.button_select:
                     self.stop()
