@@ -78,7 +78,16 @@ class ControllerPuppet(object):
 
         self.mappingList = mappingList
         self.currentMapIdx = 0
-        self.connectionDict = self.mappingList[self.currentMapIdx]
+        self.connectionDict = { 'name':'Default',
+                                'RStickHorizontal':{},
+                                'RStickVertical':{},
+                                'LStickHorizontal':{},
+                                'LStickVertical':{},
+                                'RTrigger':{},
+                                'LTrigger':{} }
+        if len(self.mappingList) > 0:
+            self.connectionDict = self.mappingList[self.currentMapIdx]
+
 
         self.playbackMultiplierList = [.1, .25, .5, .75, 1.0, 1.5, 2.0]
         self.playbackMultIdx = 4
@@ -157,8 +166,10 @@ class ControllerPuppet(object):
                         self._recordingThread = RecordingThread( self.gamePad, startFrame = self._startFrame, deltaTime = self.fixedDeltaTime ) 
                         self._recordingThread.start() 
                         log.info('{0} >> Setting start values for recording'.format(_str_func))
+                        self.displayMessage('Starting Recording')
                     else:
                         self.stopRecordingThread()
+                        self.displayMessage('Stopping Recording')
 
                     self._isRecording = not self._isRecording
 
@@ -172,11 +183,13 @@ class ControllerPuppet(object):
                     if wantedFrame >= mc.playbackOptions(q=True, max=True):
                         self._isRecording = False
                         self.stopRecordingThread()
+                        self.displayMessage('Stopping Recording')
                         #self._isActive = False
 
                 if self._startPressed:
                     self._startPressed = False
                     self._updatePuppet = not self._updatePuppet
+                    self.displayMessage('Updating Puppet : {0}'.format(self._updatePuppet))
 
                 if self.gamePad.right_bumper:
                     nextFrame = int(mc.currentTime(q=True)+1)
@@ -192,16 +205,18 @@ class ControllerPuppet(object):
                     mc.currentTime( nextFrame )
 
                 # Process Mapping Change
-                if self.gamePad.thumbpad_y > 0.5 and not self._upPushed:
+                if self.gamePad.thumbpad_y > 0.5 and not self._upPushed and len(self.mappingList) > 0:
                     self.currentMapIdx = (self.currentMapIdx + 1) % len(self.mappingList)
                     self.connectionDict = self.mappingList[self.currentMapIdx]
                     log.info('Current Mapping : {0}'.format(self.connectionDict['name']))
+                    self.displayMessage('Current Mapping : {0}'.format(self.connectionDict['name']))
                 self._upPushed = self.gamePad.thumbpad_y > 0.5
 
-                if self.gamePad.thumbpad_y < -0.5 and not self._downPushed:
+                if self.gamePad.thumbpad_y < -0.5 and not self._downPushed and len(self.mappingList) > 0:
                     self.currentMapIdx = (self.currentMapIdx - 1) if self.currentMapIdx > 0 else (len(self.mappingList)-1)
                     self.connectionDict = self.mappingList[self.currentMapIdx]
                     log.info('Current Mapping : {0}'.format(self.connectionDict['name']))
+                    self.displayMessage('Current Mapping : {0}'.format(self.connectionDict['name']))
                 self._downPushed = self.gamePad.thumbpad_y < -0.5
 
                 # Process Speed Change
@@ -209,12 +224,14 @@ class ControllerPuppet(object):
                     self.playbackMultIdx = (self.playbackMultIdx + 1) % len(self.playbackMultiplierList)
                     self.playbackMultiplier = self.playbackMultiplierList[self.playbackMultIdx]
                     log.info('Playback multiplier : {0}'.format(self.playbackMultiplier))
+                    self.displayMessage('Playback multiplier : {0}'.format(self.playbackMultiplier))
                 self._rightPushed = self.gamePad.thumbpad_x > 0.5
 
                 if self.gamePad.thumbpad_x < -0.5 and not self._leftPushed:
                     self.playbackMultIdx = (self.playbackMultIdx - 1) if self.playbackMultIdx > 0 else (len(self.playbackMultiplierList)-1)
                     self.playbackMultiplier = self.playbackMultiplierList[self.playbackMultIdx]
                     log.info('Playback multiplier : {0}'.format(self.playbackMultiplier))
+                    self.displayMessage('Playback multiplier : {0}'.format(self.playbackMultiplier))
                 self._leftPushed = self.gamePad.thumbpad_x < -0.5
 
                 if self.gamePad.button_select:
@@ -275,6 +292,15 @@ class ControllerPuppet(object):
         if len(self.onEnded) > 0:
             for func in self.onEnded:
                 func()
+
+    def displayMessage(self, msg):
+        if self.gamePad:
+            mc.select(self.gamePad.controller_model + "|PositionNode")
+            mc.headsUpMessage( msg, verticalOffset=-250, selection=True, t=2 )
+            mc.select(cl=True)
+
+    def getMapping(self):
+        return self.connectionDict['name']
 
     def attachControllerToCurrentCam(self):
         currentCam = CAM.getCurrentCamera()
