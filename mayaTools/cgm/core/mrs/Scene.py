@@ -914,7 +914,8 @@ example:
 			return
 
 		mc.file(self.versionFile, o=True, f=True, ignoreVersion=True)
-		mel.eval('addRecentFile("{0}", "{1}")'.format( self.versionFile.replace('\\', '/'), os.path.splitext(self.versionFile)[-1][1:]))
+		fileType = 'mayaBinary' if os.path.splitext(self.versionFile)[-1][1:].lower() == 'mb' else 'mayaAscii'
+		mel.eval('addRecentFile("{0}", "{1}")'.format( self.versionFile.replace('\\', '/'), fileType))
 	
 	def SetAnimationDirectory(self, *args):
 		basicFilter = "*"
@@ -1046,7 +1047,7 @@ example:
 								dismissString='No')
 
 			if createPrompt == "Yes":
-				self.OpenRig()
+				mc.file(f=True, new=True)
 				self.SaveVersion()
 
 	def CreateVariation(self, *args):
@@ -1377,6 +1378,8 @@ example:
 		rigPath = filename #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 		if os.path.exists(rigPath):
 			mc.file(rigPath, o=True, f=True, ignoreVersion=True)
+			return True
+		return False
 
 	def ReferenceRig(self, filename, *args):
 		rigPath = filename #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
