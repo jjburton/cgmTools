@@ -15,6 +15,9 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import locator_utils as LOC
 from cgm.core import cgm_General as cgmGeneral
+from cgm.core.lib import attribute_utils as ATTR
+
+import cgm.core.classes.GuiFactory as cgmUI
 
 import logging
 logging.basicConfig()
@@ -54,6 +57,10 @@ class PostBake(object):
         self.endTime = int(mc.playbackOptions(q=True, max=True))
 
     def bake(self, startTime=None, endTime=None):
+        _str_func = 'PostBake.bake'
+
+        self._cancelBake = False
+
         self.startTime = int(mc.playbackOptions(q=True, min=True)) if startTime is None else startTime
         self.endTime = int(mc.playbackOptions(q=True, max=True)) if endTime is None else endTime
 
@@ -75,7 +82,20 @@ class PostBake(object):
 
         self.velocity = MATH.Vector3.zero()
 
+        ak = mc.autoKeyframe(q=True, state=True)
+        mc.autoKeyframe(state=False)
         mc.refresh(su=not self.showBake)
+
+        _len = self.endTime - self.startTime
+        _progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
+
+        completed = True
+
+        if self._cancelBake:
+            mc.refresh(su=False)
+            mc.autoKeyframe(state=ak)
+            return
+
         for i in range(self.startTime, self.endTime+1):
             mc.currentTime(i)
 
@@ -84,9 +104,20 @@ class PostBake(object):
             self.velocity = MATH.Vector3.Lerp(self.velocity, VALID.euclidVector3Arg(self.obj.p_position) - self.previousPosition, min(fixedDeltaTime * self.velocityDamp, 1.0))
             self.previousPosition = VALID.euclidVector3Arg(self.obj.p_position)
 
-        mc.refresh(su=False)
+            if _progressBar:
+                if mc.progressBar(_progressBar, query=True, isCancelled=True ):
+                    log.warning('Bake cancelled!')
+                    completed = False
+                    break
+                
+                mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1}".format(_str_func,i)), step=1, maxValue = _len)                    
 
-        self.finishBake()
+
+        mc.refresh(su=False)
+        mc.autoKeyframe(state=ak)
+
+        if completed:
+            self.finishBake()
         #self.previousPos = self.startPosition
         #self.velocity = MATH.Vector3.zero()
 
@@ -94,10 +125,17 @@ class PostBake(object):
         mc.playbackOptions(e=True, max=previousEnd)
         mc.currentTime(previousCurrent)
 
+        cgmUI.doEndMayaProgressBar(_progressBar)
+
         mc.select(self.obj.mNode)
+
+        return completed
 
     def preBake(self):
         pass
+
+    def cancelBake(self):
+        self._cancelBake = True
 
     def update(self, deltaTime = .04):
         pass
@@ -112,8 +150,9 @@ class PostBake(object):
         if aimUp:
             self.aimUp = VALID.simpleAxis(aimUp)
 
-    @cgmGeneral.Timer
     def bakeTempLocator(self, startTime = None, endTime = None):
+        _str_func = 'PostBake.bakeTempLocator'
+
         if startTime is None:
             startTime = self.startTime
         if endTime is None:
@@ -122,15 +161,41 @@ class PostBake(object):
         ct = mc.currentTime(q=True)
 
         self._bakedLoc = cgmMeta.asMeta(LOC.create(name='bakeLoc'))
-        SNAP.matchTarget_set(self._bakedLoc.mNode, self.obj.mNode)
-      
-        SNAP.matchTarget_snap(self._bakedLoc.mNode)
+        self._bakedLoc.rotateOrder = self.obj.rotateOrder
 
+        SNAP.matchTarget_set(self._bakedLoc.mNode, self.obj.mNode)
+
+        _len = endTime - startTime
+        _progressBar = cgmUI.doStartMayaProgressBar(_len,"Processing...")
+
+        _obj = VALID.objString(self._bakedLoc.mNode, noneValid=False)
+        _target = VALID.objString(self.obj.mNode, noneValid=False)#ATTR.get_message(_obj, 'cgmMatchTarget','cgmMatchDat',0)
+
+        ak = mc.autoKeyframe(q=True, state=True)
+        mc.autoKeyframe(state=False)
         mc.refresh(su=True)
+
+        completed = True
+
         for i in range(startTime, endTime+1):
             mc.currentTime(i)
-            SNAP.matchTarget_snap(self._bakedLoc.mNode)
-            mc.setKeyframe(self._bakedLoc.mNode, at=['translate', 'rotate'])
+            SNAP.go(_obj,_target,True,True,pivot='rp')
+            mc.setKeyframe(_obj, at=['translate', 'rotate'])
+
+            if _progressBar:
+                if mc.progressBar(_progressBar, query=True, isCancelled=True ):
+                    log.warning('Bake cancelled!')
+                    completed = False
+                    break
+                
+                mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1}".format(_str_func,i)), step=1, maxValue = _len)                    
+        
         mc.refresh(su=False)
+        mc.autoKeyframe(state=ak)
+
+        cgmUI.doEndMayaProgressBar(_progressBar)
 
         mc.currentTime(ct)
+
+        return completed
+

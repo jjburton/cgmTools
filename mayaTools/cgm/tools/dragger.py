@@ -14,6 +14,7 @@ from cgm.core.lib import math_utils as MATH
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.classes import PostBake as PostBake
+from cgm.core.lib import locator_utils as LOC
 import maya.cmds as mc
 import maya.mel as mel
 
@@ -52,16 +53,17 @@ class Dragger(PostBake.PostBake):
 
         self.lastFwd = MATH.Vector3.Lerp( self.lastFwd, self._bakedLoc.getTransformDirection(self.aimFwd.p_vector), min(deltaTime * self.damp, 1.0) ).normalized()
         
-        SNAP.aim_atPoint(obj=self.obj.mNode, mode='vector', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
+        SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
 
         if self.debug:
             if not self._debugLoc:
                 self._debugLoc = cgmMeta.asMeta(LOC.create(name='debug_loc'))
             self._debugLoc.p_position = self.aimTargetPos
             mc.setKeyframe(self._debugLoc.mNode, at='translate')
-
+    
     def preBake(self):
-        self.bakeTempLocator()
+        if not self.bakeTempLocator():
+            self.cancelBake()
 
         self.lastFwd = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector)
         self.lastUp = self._bakedLoc.getTransformDirection(self.aimUp.p_vector)
