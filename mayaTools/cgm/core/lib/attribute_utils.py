@@ -3353,8 +3353,8 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
                       attribute of the fromAttr name on the toObject if it doesn't exist
         convertToMatch(bool) -- whether to automatically convert attribute if they need to be. Default True                  
         values(bool) -- copy values. default True
-        inputConnections(bool) -- default False
-        outGoingConnections(bool) -- default False
+        inConnection(bool) -- default False
+        outConnections(bool) -- default False
         keepSourceConnections(bool)-- keeps connections on source. default True
         copySettings(bool) -- copy the attribute state of the fromAttr (keyable,lock,hidden). default True
         driven(string) -- 'source','target' - whether to connect source>target or target>source
@@ -3450,8 +3450,12 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
                 try:connect(_d_targetAttr['combined'],c)
                 except Exception,err:
                     log.error("|{0}| >> Failed to connect {1} >--> {2} | err: {3}".format(_str_func,_d_targetAttr['combined'],c,err))        
-        
-        
+    
+    if not keepSourceConnections:
+        cons = mc.listConnections(_combined, s=True, d=False, p=True)
+        for c in cons if cons else []:
+            mc.disconnectAttr( c, _combined)
+    
     if copySettings:
         if _d_sourceFlags.get('enum'):
             mc.addAttr (_d_targetAttr['combined'], e = True, at=  'enum', en = _d_sourceFlags['enum'])

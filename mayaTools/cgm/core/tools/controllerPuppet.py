@@ -21,7 +21,9 @@ import maya.mel as mel
 from cgm.core.classes import GamePad
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.camera_utils as CAM
+import cgm.core.lib.attribute_utils as ATTR
 from cgm.core import cgm_General as cgmGen
+from cgm.core.lib import locator_utils as LOC
 
 import time
 import threading 
@@ -260,6 +262,15 @@ class ControllerPuppet(object):
         if self._isRecording:
             return
 
+        self._keyHolderDict = {}
+
+        for k in self._keyList:
+            objName, attr = k.split('.')
+            if not objName in self._keyHolderDict:
+                self._keyHolderDict[objName] = LOC.create(name='keyHolder_{0}'.format(objName))
+
+            ATTR.copy_to( objName, attr, self._keyHolderDict[objName], inConnection=True, keepSourceConnections=False)
+
         self._startFrame = int(mc.currentTime(q=True))
         self._startTime = time.time()
         self._recordingThread = RecordingThread( self.gamePad, startFrame = self._startFrame, deltaTime = self.fixedDeltaTime / self.playbackMultiplier ) 
@@ -277,12 +288,27 @@ class ControllerPuppet(object):
         if not self._isRecording:
             return
 
+        self._endFrame = int(mc.currentTime(q=True))
+
         if self._recordingThread != None:
             self._recordedData = copy.copy(self._recordingThread.dataDict)
             self._recordingThread.raise_exception()
             self.keyFromData(self._recordedData)        
 
-        #if self._hasSavedKeys:
+        for k in self._keyList:
+            objName, attr = k.split('.')
+            first = mc.findKeyframe( '{0}.{1}'.format( self._keyHolderDict[objName], attr ), which='first' )
+            if first < self._startFrame: 
+                if mc.cutKey('{0}.{1}'.format( self._keyHolderDict[objName],attr ), t=(first, self._startFrame) ):
+                    mc.pasteKey( objName, o='replace' )
+            
+            last = mc.findKeyframe( '{0}.{1}'.format( self._keyHolderDict[objName], attr ), which='last' )
+            if last > self._endFrame: 
+                if mc.cutKey('{0}.{1}'.format( self._keyHolderDict[objName],attr), t=(self._endFrame, last) ):
+                    mc.pasteKey( objName, o='replace' )
+
+        mc.delete( [self._keyHolderDict[x] for x in self._keyHolderDict.keys() ] )
+        self._keyHolderDict = {}
 
         self.displayMessage('Stopping Recording')
 

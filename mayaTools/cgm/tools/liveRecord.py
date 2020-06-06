@@ -10,19 +10,7 @@ Website : http://www.cgmonks.com
 """
 
 from cgm.core.classes import DraggerContextFactory as cgmDrag
-from cgm.core.lib import locator_utils as LOC
-from cgm.core.lib import math_utils as MATHUTILS
-from cgm.core import cgm_General as cgmGEN
 from cgm.core.lib import mouse_utils as MOUSE
-from cgm.core.lib import euclid as EUCLID
-from cgm.core.cgmPy import validateArgs as VALID
-import cgm.core.lib.distance_utils as DIST
-from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_General as cgmGEN
-from cgm.core.classes import DraggerContextFactory as cgmDrag
-from cgm.core.lib import ease_utils as EASE
-from cgm.core.lib import snap_utils as SNAP
-from cgm.core import cgm_General as cgmGeneral
 
 import time
 import maya.mel as mel

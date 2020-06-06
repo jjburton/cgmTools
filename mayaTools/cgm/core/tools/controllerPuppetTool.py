@@ -11,10 +11,7 @@ UI for controller puppet
 """
 # From Python =============================================================
 import copy
-import re
-import time
 import pprint
-import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -23,19 +20,11 @@ log.setLevel(logging.DEBUG)
 import maya.cmds as mc
 
 import cgm.core.classes.GuiFactory as cgmUI
-from cgm.core import cgm_RigMeta as cgmRigMeta
 mUI = cgmUI.mUI
 
-from cgm.core.lib import shared_data as SHARED
-from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
-import cgm.core.lib.transform_utils as TRANS
-from cgm.core.cgmPy import path_Utils as CGMPATH
-import cgm.core.lib.math_utils as MATH
-from cgm.lib import lists
 
-from cgm.core.classes import GamePad
 from cgm.core.tools import controllerPuppet as controllerPuppet
 
 import json
