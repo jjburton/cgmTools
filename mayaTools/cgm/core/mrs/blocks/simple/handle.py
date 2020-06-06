@@ -463,6 +463,12 @@ def define(self):
         _dat['baseSize'] = self.baseSize
         self.baseDat = _dat
         
+        
+        for tag,mHandle in md_handles.iteritems():
+            if cgmGEN.__mayaVersion__ >= 2018:
+                mController = cgmMeta.controller_get(mHandle)
+                mController.visibilityMode = 2        
+        
         #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
         #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))        
@@ -548,326 +554,329 @@ def formDelete(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def form(self):
-    try:
-        _str_func = 'form'        
-        _short = self.mNode
-        _shape = self.getEnumValueString('basicShape')
-        
-        mFormNull = BLOCKUTILS.formNull_verify(self)
-        
-        if self.blockProfile in ['snapPoint']:
-            return True
-
-        mHandleFactory = self.asHandleFactory(self)
-        _shapeDirection = self.getEnumValueString('shapeDirection')
-        _proxyShape = self.getEnumValueString('proxyShape')
-        _side = self.UTILS.get_side(self)
-
-        #If we have a loftList setup, we need to validate those attributes
-        _int_shapers = self.numShapers
-        for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
-        
-        
-        _loftSetup = self.getEnumValueString('loftSetup')
- 
-        if _loftSetup == 'loftList':
-            log.debug("loftList | attr validation"+ '-'*60)            
-            l_loftList = ATTR.datList_get(_short,'loftList',enum=True)
-            if len(l_loftList) > _int_shapers:
-                log.debug("loftList | cleaning")
-                _d_attrs = ATTR.get_sequentialAttrDict(_short, 'loftList')
-                for i in range(len(l_loftList) - _int_shapers):
-                    ATTR.delete(_short,_d_attrs[i+_int_shapers] )
-
-            v = self.loftShape
-            _enum_loftShape = BLOCKSHARE._d_attrsTo_make['loftShape']
-            for i in range(_int_shapers):
-                str_attr = "loftList_{0}".format(i)
-                if not ATTR.has_attr(_short,str_attr):
-                    self.addAttr(str_attr, v, attrType = 'enum',
-                                 enumName= _enum_loftShape,
-                                 keyable = False)
-                else:
-                    strValue = ATTR.get_enumValueString(_short,str_attr)
-                    self.addAttr(str_attr,initialValue = v, attrType = 'enum', enumName= _enum_loftShape, keyable = False)
-                    if strValue:
-                        ATTR.set(_short,str_attr,strValue)
-
-        #Create temple Null  ==================================================================================
-        
-        
-        mGeoGroup = self.doCreateAt(setClass='cgmObject')
-        mGeoGroup.rename("proxyGeo")
-        mGeoGroup.parent = mFormNull
-        #mGeoProxies.parent = mFormNull
+    _str_func = 'form'        
+    _short = self.mNode
+    _shape = self.getEnumValueString('basicShape')
     
-        #_bb = DIST.get_bb_size(self.mNode,True)
+    mFormNull = BLOCKUTILS.formNull_verify(self)
     
-        mGeoGroup.connectParentNode(self, 'rigBlock','proxyGeoGroup') 
-        
+    if self.blockProfile in ['snapPoint']:
+        return True
 
-        #BaseDat ==================================================================================
-        mDefineEndObj = self.defineEndHelper
-        mDefineUpObj = self.defineUpHelper        
-        self.defineLoftMesh.v = 0
-        mRootUpHelper = self.defineUpHelper    
+    mHandleFactory = self.asHandleFactory(self)
+    _shapeDirection = self.getEnumValueString('shapeDirection')
+    _proxyShape = self.getEnumValueString('proxyShape')
+    _side = self.UTILS.get_side(self)
+
+    #If we have a loftList setup, we need to validate those attributes
+    _int_shapers = self.numShapers
+    for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
+    
+    
+    _loftSetup = self.getEnumValueString('loftSetup')
+
+    if _loftSetup == 'loftList':
+        log.debug("loftList | attr validation"+ '-'*60)            
+        l_loftList = ATTR.datList_get(_short,'loftList',enum=True)
+        if len(l_loftList) > _int_shapers:
+            log.debug("loftList | cleaning")
+            _d_attrs = ATTR.get_sequentialAttrDict(_short, 'loftList')
+            for i in range(len(l_loftList) - _int_shapers):
+                ATTR.delete(_short,_d_attrs[i+_int_shapers] )
+
+        v = self.loftShape
+        _enum_loftShape = BLOCKSHARE._d_attrsTo_make['loftShape']
+        for i in range(_int_shapers):
+            str_attr = "loftList_{0}".format(i)
+            if not ATTR.has_attr(_short,str_attr):
+                self.addAttr(str_attr, v, attrType = 'enum',
+                             enumName= _enum_loftShape,
+                             keyable = False)
+            else:
+                strValue = ATTR.get_enumValueString(_short,str_attr)
+                self.addAttr(str_attr,initialValue = v, attrType = 'enum', enumName= _enum_loftShape, keyable = False)
+                if strValue:
+                    ATTR.set(_short,str_attr,strValue)
+
+    #Create temple Null  ==================================================================================
+    
+    
+    mGeoGroup = self.doCreateAt(setClass='cgmObject')
+    mGeoGroup.rename("proxyGeo")
+    mGeoGroup.parent = mFormNull
+    #mGeoProxies.parent = mFormNull
+
+    #_bb = DIST.get_bb_size(self.mNode,True)
+
+    mGeoGroup.connectParentNode(self, 'rigBlock','proxyGeoGroup') 
+    
+
+    #BaseDat ==================================================================================
+    mDefineEndObj = self.defineEndHelper
+    mDefineUpObj = self.defineUpHelper        
+    self.defineLoftMesh.v = 0
+    mRootUpHelper = self.defineUpHelper    
+    #_mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
+    _mVectorAim = MATH.get_vector_of_two_points(self.p_position, mDefineEndObj.p_position,True)
+    _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
+
+    mDefineStartObj = self.defineStartHelper
+    _l_basePos = [self.p_position]
+    
+    md_vectorHandles = {}
+    md_defineHandles = {}
+    #Form our vectors
+    for k in ['end','rp','up','aim','start']:
+        mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
+        if mHandle:
+            log.debug("define vector: {0} | {1}".format(k,mHandle))            
+            mHandle.template=True
+            md_vectorHandles[k] = mHandle
+            
+        mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))    
+        if mHandle:
+            log.debug("define handle: {0} | {1}".format(k,mHandle))                        
+            md_defineHandles[k] = mHandle
+            mHandle.v=False
+            if k in ['end']:
+                mHandle.template = True        
+            #if k in ['up']:
+                #mHandle.v=False
+
+    mDefineLoftMesh = self.defineLoftMesh
+    _v_range = DIST.get_distance_between_points(self.p_position,
+                                                mDefineEndObj.p_position)
+    #_bb_axisBox = SNAPCALLS.get_axisBox_size(mDefineLoftMesh.mNode, _v_range, mark=False)
+    _size_width = mDefineEndObj.width#...x width
+    _size_height = mDefineEndObj.height#
+    log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,
+                                                                                     mDefineLoftMesh.p_nameShort,
+                                                                                     _v_range))
+    _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
+    _size_length = mDefineEndObj.length#DIST.get_distance_between_points(self.p_position, _end)
+    _size_handle = _size_width * 1.25
+    self.baseSize = [_size_width,_size_height,_size_length]
+    log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))        
+    
+    
+    _size = self.baseSize
+    _proxyShape = self.getEnumValueString('proxyShape')
+    if _proxyShape == 'shapers':
+        log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
+        
+        log.debug("vectorAim: {0}".format(_mVectorAim))
+
+        pos_self = self.p_position
+        pos_aim = DIST.get_pos_by_vec_dist(pos_self, _mVectorAim, 5)        
+        mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'form')
+        
+        _shaperAim = self.getEnumValueString('shaperAim')
+        
+        #Get base dat =======================================================================            
+        self.defineLoftMesh.template = True
+    
+        log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)
+        mRootUpHelper = self.vectorUpHelper    
         #_mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
         _mVectorAim = MATH.get_vector_of_two_points(self.p_position, mDefineEndObj.p_position,True)
-        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
-
-        mDefineStartObj = self.defineStartHelper
-        _l_basePos = [self.p_position]
         
-        md_vectorHandles = {}
-        md_defineHandles = {}
-        #Form our vectors
-        for k in ['end','rp','up','aim','start']:
-            mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
-            if mHandle:
-                log.debug("define vector: {0} | {1}".format(k,mHandle))            
-                mHandle.template=True
-                md_vectorHandles[k] = mHandle
-                
-            mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))    
-            if mHandle:
-                log.debug("define handle: {0} | {1}".format(k,mHandle))                        
-                md_defineHandles[k] = mHandle
-                mHandle.v=False
-                if k in ['end']:
-                    mHandle.template = True        
-                #if k in ['up']:
-                    #mHandle.v=False
+        _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
+        mDefineEndObj = self.defineEndHelper
+        mDefineUpObj = self.defineUpHelper
     
-        mDefineLoftMesh = self.defineLoftMesh
         _v_range = DIST.get_distance_between_points(self.p_position,
                                                     mDefineEndObj.p_position)
         #_bb_axisBox = SNAPCALLS.get_axisBox_size(mDefineLoftMesh.mNode, _v_range, mark=False)
-        _size_width = mDefineEndObj.width#...x width
-        _size_height = mDefineEndObj.height#
         log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,
                                                                                          mDefineLoftMesh.p_nameShort,
                                                                                          _v_range))
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
-        _size_length = mDefineEndObj.length#DIST.get_distance_between_points(self.p_position, _end)
         _size_handle = _size_width * 1.25
-        self.baseSize = [_size_width,_size_height,_size_length]
-        log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))        
-        
-        
-        _size = self.baseSize
-        _proxyShape = self.getEnumValueString('proxyShape')
-        if _proxyShape == 'shapers':
-            log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
-            
-            log.debug("vectorAim: {0}".format(_mVectorAim))
+        _size_loft = MATH.get_greatest(_size_width,_size_height)
     
-            pos_self = self.p_position
-            pos_aim = DIST.get_pos_by_vec_dist(pos_self, _mVectorAim, 5)        
-            mNoTransformNull = BLOCKUTILS.noTransformNull_verify(self,'form')
-            
-            _shaperAim = self.getEnumValueString('shaperAim')
-            
-            #Get base dat =======================================================================            
-            self.defineLoftMesh.template = True
+        #self.baseSize = [_size_width,_size_height,_size_length]
+        _l_basePos.append(_end)
+        log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
+    
+    
+        #Get base dat =============================================================================        
+        _b_lever = False
+        md_handles = {}
+        ml_handles = []
+        md_loftHandles = {}
+        ml_loftHandles = []
+    
+        _loftShapeBase = self.getEnumValueString('loftShape')
+        _loftShape = 'loft' + _loftShapeBase[0].capitalize() + ''.join(_loftShapeBase[1:])
+        _loftSetup = self.getEnumValueString('loftSetup')
+    
+        cgmGEN.func_snapShot(vars())
+    
+    
+        #if _loftSetup == 'default':
+        md_handles,ml_handles,ml_shapers,ml_handles_chain = self.UTILS.form_segment(
+        self,
+        aShapers = 'numShapers',aSubShapers = 'numSubShapers',
+        loftShape=_loftShape,l_basePos = _l_basePos, baseSize=_size_handle,
+        orientHelperPlug='orientHelper',formAim =  self.getEnumValueString('shapersAim'),
+        sizeWidth = _size_width, sizeLoft=_size_loft,side = _side,
+        mFormNull = mFormNull,mNoTransformNull = mNoTransformNull,
+        mDefineEndObj=mDefineEndObj)
         
-            log.debug("|{0}| >> neck Base dat...".format(_str_func)+ '-'*40)
-            mRootUpHelper = self.vectorUpHelper    
-            #_mVectorAim = MATH.get_obj_vector(self.vectorEndHelper.mNode,asEuclid=True)
-            _mVectorAim = MATH.get_vector_of_two_points(self.p_position, mDefineEndObj.p_position,True)
-            
-            _mVectorUp = MATH.get_obj_vector(mRootUpHelper.mNode,'y+',asEuclid=True)    
-            mDefineEndObj = self.defineEndHelper
-            mDefineUpObj = self.defineUpHelper
+        mOrientHelper = self.getMessageAsMeta('orientHelper')
+        mUpTrans = md_defineHandles['up'].doCreateAt(setClass = True)
+        mUpTrans.p_parent = mOrientHelper.mNode
         
-            _v_range = DIST.get_distance_between_points(self.p_position,
-                                                        mDefineEndObj.p_position)
-            #_bb_axisBox = SNAPCALLS.get_axisBox_size(mDefineLoftMesh.mNode, _v_range, mark=False)
-            log.debug("|{0}| >> Generating more pos dat | bbHelper: {1} | range: {2}".format(_str_func,
-                                                                                             mDefineLoftMesh.p_nameShort,
-                                                                                             _v_range))
-            _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
-            _size_handle = _size_width * 1.25
-            _size_loft = MATH.get_greatest(_size_width,_size_height)
+        for mHandle in ml_handles:
+            if cgmGEN.__mayaVersion__ >= 2018:
+                mController = cgmMeta.controller_get(mHandle)
+                mController.visibilityMode = 2                    
         
-            #self.baseSize = [_size_width,_size_height,_size_length]
-            _l_basePos.append(_end)
-            log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
-        
-        
-            #Get base dat =============================================================================        
-            _b_lever = False
-            md_handles = {}
-            ml_handles = []
-            md_loftHandles = {}
-            ml_loftHandles = []
-        
-            _loftShapeBase = self.getEnumValueString('loftShape')
-            _loftShape = 'loft' + _loftShapeBase[0].capitalize() + ''.join(_loftShapeBase[1:])
-            _loftSetup = self.getEnumValueString('loftSetup')
-        
-            cgmGEN.func_snapShot(vars())
-        
-        
-            #if _loftSetup == 'default':
-            md_handles,ml_handles,ml_shapers,ml_handles_chain = self.UTILS.form_segment(
-            self,
-            aShapers = 'numShapers',aSubShapers = 'numSubShapers',
-            loftShape=_loftShape,l_basePos = _l_basePos, baseSize=_size_handle,
-            orientHelperPlug='orientHelper',formAim =  self.getEnumValueString('shapersAim'),
-            sizeWidth = _size_width, sizeLoft=_size_loft,side = _side,
-            mFormNull = mFormNull,mNoTransformNull = mNoTransformNull,
-            mDefineEndObj=mDefineEndObj)
-            
-            mOrientHelper = self.getMessageAsMeta('orientHelper')
-            mUpTrans = md_defineHandles['up'].doCreateAt(setClass = True)
-            mUpTrans.p_parent = mOrientHelper.mNode                  
-            
-            #>>> Connections ================================================================================
-            self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
-        
-            #>>Loft Mesh ==================================================================================
-            if self.numShapers:
-                targets = [mObj.loftCurve.mNode for mObj in ml_shapers]
-                self.msgList_connect('shaperHandles',[mObj.mNode for mObj in ml_shapers])
-            else:
-                targets = [mObj.loftCurve.mNode for mObj in ml_handles_chain]
-        
-        
-        
-            mMesh = self.atUtils('create_prerigLoftMesh',
-                                 targets,
-                                 mFormNull,
-                                 'numShapers',                     
-                                 'loftSplit',
-                                 polyType='bezier',
-                                 baseName = self.cgmName )
-            mMesh.connectParentNode(self.mNode,'handle','proxyHelper')
-            self.msgList_connect('proxyMeshGeo',[mMesh])
-            mHandleFactory.color(mMesh.mNode,_side,'sub',transparent=True)
-        
-            mNoTransformNull.v = False
-            
-            
-            SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], aimAxis="z-", mode='vector', vectorUp=_mVectorUp)
-       
-            SNAP.aim_atPoint(md_handles['start'].mNode, position=_l_basePos[-1], aimAxis="z+", mode='vector', vectorUp=_mVectorUp)
-        
-            #Constrain the define end to the end of the template handles
-            #mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
-            #mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
-            
-            self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
-            
-            #mc.pointConstraint(mUpTrans.mNode,
-            #                   md_defineHandles['up'].mNode,
-            #                   maintainOffset = True)                    
-            
+        #>>> Connections ================================================================================
+        self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
+    
+        #>>Loft Mesh ==================================================================================
+        if self.numShapers:
+            targets = [mObj.loftCurve.mNode for mObj in ml_shapers]
+            self.msgList_connect('shaperHandles',[mObj.mNode for mObj in ml_shapers])
         else:
-            #Base shape ========================================================================================
-            log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
-            _l_basePos.append(_end)
-            
-            if _shape in ['cube']:
-                _shapeDirection = 'z+'
-            elif _shape in ['semiSphere']:
-                _shapeDirection = 'y+'
-            
-            if _shape in ['circle','square']:
-                _size = [v for v in self.baseSize[:-1]] + [None]
-                _shapeDirection = 'y+'
-            elif _shape in ['pyramid','semiSphere','sphere']:
-                _size =  [_size_width,_size_height,_size_length]
-            else:
-                _size =  [_size_width,_size_length,_size_height]
+            targets = [mObj.loftCurve.mNode for mObj in ml_handles_chain]
+    
+    
+    
+        mMesh = self.atUtils('create_prerigLoftMesh',
+                             targets,
+                             mFormNull,
+                             'numShapers',                     
+                             'loftSplit',
+                             polyType='bezier',
+                             baseName = self.cgmName )
+        mMesh.connectParentNode(self.mNode,'handle','proxyHelper')
+        self.msgList_connect('proxyMeshGeo',[mMesh])
+        mHandleFactory.color(mMesh.mNode,_side,'sub',transparent=True)
+    
+        mNoTransformNull.v = False
         
-            _crv = CURVES.create_controlCurve(self.mNode, shape=_shape,
-                                              direction = _shapeDirection,
-                                              bakeScale=False,
-                                              sizeMode = 'fixed', size =_size)
         
-            mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-            mHandle.p_parent = mFormNull
-            _pos_mid = DIST.get_average_position(_l_basePos)
-            if _shape in ['pyramid','semiSphere','circle','square']:
-                mHandle.p_position = _l_basePos[0]
-            else:
-                mHandle.p_position = _pos_mid
+        SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], aimAxis="z-", mode='vector', vectorUp=_mVectorUp)
+   
+        SNAP.aim_atPoint(md_handles['start'].mNode, position=_l_basePos[-1], aimAxis="z+", mode='vector', vectorUp=_mVectorUp)
+    
+        #Constrain the define end to the end of the template handles
+        #mc.pointConstraint(md_handles['start'].mNode,mDefineEndObj.mNode,maintainOffset=False)
+        #mc.scaleConstraint([md_handles['end'].mNode,md_handles['start'].mNode],mDefineEndObj.mNode,maintainOffset=True)            
+        
+        self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
+        
+        #mc.pointConstraint(mUpTrans.mNode,
+        #                   md_defineHandles['up'].mNode,
+        #                   maintainOffset = True)                    
+        
+    else:
+        #Base shape ========================================================================================
+        log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
+        _l_basePos.append(_end)
+        
+        if _shape in ['cube']:
+            _shapeDirection = 'z+'
+        elif _shape in ['semiSphere']:
+            _shapeDirection = 'y+'
+        
+        if _shape in ['circle','square']:
+            _size = [v for v in self.baseSize[:-1]] + [None]
+            _shapeDirection = 'y+'
+        elif _shape in ['pyramid','semiSphere','sphere']:
+            _size =  [_size_width,_size_height,_size_length]
+        else:
+            _size =  [_size_width,_size_length,_size_height]
+    
+        _crv = CURVES.create_controlCurve(self.mNode, shape=_shape,
+                                          direction = _shapeDirection,
+                                          bakeScale=False,
+                                          sizeMode = 'fixed', size =_size)
+    
+        mHandle = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
+        mHandle.p_parent = mFormNull
+        _pos_mid = DIST.get_average_position(_l_basePos)
+        if _shape in ['pyramid','semiSphere','circle','square']:
+            mHandle.p_position = _l_basePos[0]
+        else:
+            mHandle.p_position = _pos_mid
+            
+        #if _shape in ['circle']:
+        #    SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1], "z+",'y-','vector', _mVectorUp)
+        #else:
+        SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1],"y",'z-','vector', vectorUp=_mVectorUp)
+    
+        mHandle.doStore('cgmNameModifier','main')
+        mHandle.doStore('cgmType','handle')
+        mHandleFactory.copyBlockNameTags(mHandle)
+    
+    
+        CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = False) 
+    
+        mHandleFactory.setHandle(mHandle)
+    
+        #self.msgList_connect('formHandles',[mHandle.mNode])
+    
+        #Proxy geo ==================================================================================
+        #reload(CORERIG)
+        _proxy = CORERIG.create_proxyGeo(_proxyShape, [_size_width,_size_length,_size_height], 'y+',bakeScale=False)
+        mProxy = cgmMeta.validateObjArg(_proxy[0], mType = 'cgmObject',setClass=True)
+        
+        mProxy.doSnapTo(mHandle.mNode)
+        if _shape in ['pyramid','semiSphere','circle','square']:
+            mProxy.p_position = _pos_mid
+        #mProxy.p_position = _pos_mid
+        #NAP.aim_atPoint(mHandle.mNode, _l_basePos[-1], "y",'z-','vector', _mVectorUp)
+        
+        #SNAPCALLS.snap(mProxy.mNode,mHandle.mNode, objPivot='boundingBox',objMode='y-',targetPivot='boundingBox',targetMode='y-')
+    
+        if mHandle.hasAttr('cgmName'):
+            ATTR.copy_to(mHandle.mNode,'cgmName',mProxy.mNode,driven='target')        
+        mProxy.doStore('cgmType','proxyHelper')
+        self.msgList_connect('proxyMeshGeo',[mProxy])
+        
+        mProxy.doName()    
+    
+        mProxy.p_parent = mGeoGroup
+    
+    
+        #CORERIG.colorControl(mProxy.mNode,_side,'sub',transparent=True)
+        mHandleFactory.color(mProxy.mNode,_side,'sub',transparent=True)
+    
+        mProxy.connectParentNode(mHandle.mNode,'handle','proxyHelper')        
+        mProxy.connectParentNode(self.mNode,'proxyHelper')        
+        mProxy.connectParentNode(self.mNode,'handle','proxyHelper')        
+        
+        self.msgList_connect('formHandles',[mHandle.mNode,mProxy.mNode])
+    
+        attr = 'proxy'
+        self.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
+        NODEFACTORY.argsToNodes("%s.%sVis = if %s.%s > 0"%(_short,attr,_short,attr)).doBuild()
+        NODEFACTORY.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(_short,attr,_short,attr)).doBuild()
                 
-            #if _shape in ['circle']:
-            #    SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1], "z+",'y-','vector', _mVectorUp)
-            #else:
-            SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1],"y",'z-','vector', vectorUp=_mVectorUp)
+                
+        _baseDat = self.baseDat
+        try:_baseDat['aHidden']
+        except:_baseDat['aHidden']=[]
         
-            mHandle.doStore('cgmNameModifier','main')
-            mHandle.doStore('cgmType','handle')
-            mHandleFactory.copyBlockNameTags(mHandle)
+        for a in 'Vis','Lock':
+            ATTR.set_hidden(_short,"{0}{1}".format(attr,a),True)
+            ATTR.set_lock(_short,"{0}{1}".format(attr,a),True)
+            _baseDat['aHidden'].append("{0}{1}".format(attr,a))
+        self.baseDat = _baseDat
+        #mProxy.resetAttrs()
         
+        mGeoGroup.overrideEnabled = 1
+        ATTR.connect("{0}.proxyVis".format(_short),"{0}.visibility".format(mGeoGroup.mNode) )
+        ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(mGeoGroup.mNode) )        
+        for mShape in mProxy.getShapes(asMeta=1):
+            str_shape = mShape.mNode
+            mShape.overrideEnabled = 0
+            ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
+            ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) )
         
-            CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = False) 
-        
-            mHandleFactory.setHandle(mHandle)
-        
-            #self.msgList_connect('formHandles',[mHandle.mNode])
-        
-            #Proxy geo ==================================================================================
-            #reload(CORERIG)
-            _proxy = CORERIG.create_proxyGeo(_proxyShape, [_size_width,_size_length,_size_height], 'y+',bakeScale=False)
-            mProxy = cgmMeta.validateObjArg(_proxy[0], mType = 'cgmObject',setClass=True)
-            
-            mProxy.doSnapTo(mHandle.mNode)
-            if _shape in ['pyramid','semiSphere','circle','square']:
-                mProxy.p_position = _pos_mid
-            #mProxy.p_position = _pos_mid
-            #NAP.aim_atPoint(mHandle.mNode, _l_basePos[-1], "y",'z-','vector', _mVectorUp)
-            
-            #SNAPCALLS.snap(mProxy.mNode,mHandle.mNode, objPivot='boundingBox',objMode='y-',targetPivot='boundingBox',targetMode='y-')
-        
-            if mHandle.hasAttr('cgmName'):
-                ATTR.copy_to(mHandle.mNode,'cgmName',mProxy.mNode,driven='target')        
-            mProxy.doStore('cgmType','proxyHelper')
-            self.msgList_connect('proxyMeshGeo',[mProxy])
-            
-            mProxy.doName()    
-        
-            mProxy.p_parent = mGeoGroup
-        
-        
-            #CORERIG.colorControl(mProxy.mNode,_side,'sub',transparent=True)
-            mHandleFactory.color(mProxy.mNode,_side,'sub',transparent=True)
-        
-            mProxy.connectParentNode(mHandle.mNode,'handle','proxyHelper')        
-            mProxy.connectParentNode(self.mNode,'proxyHelper')        
-            mProxy.connectParentNode(self.mNode,'handle','proxyHelper')        
-            
-            self.msgList_connect('formHandles',[mHandle.mNode,mProxy.mNode])
-        
-            attr = 'proxy'
-            self.addAttr(attr,enumName = 'off:lock:on', defaultValue = 1, attrType = 'enum',keyable = False,hidden = False)
-            NODEFACTORY.argsToNodes("%s.%sVis = if %s.%s > 0"%(_short,attr,_short,attr)).doBuild()
-            NODEFACTORY.argsToNodes("%s.%sLock = if %s.%s == 2:0 else 2"%(_short,attr,_short,attr)).doBuild()
-                    
-                    
-            _baseDat = self.baseDat
-            try:_baseDat['aHidden']
-            except:_baseDat['aHidden']=[]
-            
-            for a in 'Vis','Lock':
-                ATTR.set_hidden(_short,"{0}{1}".format(attr,a),True)
-                ATTR.set_lock(_short,"{0}{1}".format(attr,a),True)
-                _baseDat['aHidden'].append("{0}{1}".format(attr,a))
-            self.baseDat = _baseDat
-            #mProxy.resetAttrs()
-            
-            mGeoGroup.overrideEnabled = 1
-            ATTR.connect("{0}.proxyVis".format(_short),"{0}.visibility".format(mGeoGroup.mNode) )
-            ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(mGeoGroup.mNode) )        
-            for mShape in mProxy.getShapes(asMeta=1):
-                str_shape = mShape.mNode
-                mShape.overrideEnabled = 0
-                ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayTypes".format(str_shape) )
-                ATTR.connect("{0}.proxyLock".format(_short),"{0}.overrideDisplayType".format(str_shape) )
-            
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
         
 #def is_form(self):
 #    if self.getMessage('formNull'):
