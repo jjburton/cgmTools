@@ -172,7 +172,41 @@ def uiAsset_editName(self):
         uiAsset_rebuildSub(self)
         
         self.uiAssetTypeOptions.selectByValue(_name)
+
+def uiAsset_duplicate(self):
+    _str_func = 'uiAsset_duplicate'
+    log.debug("|{0}| >>...".format(_str_func))
     
+    _value = self.uiAssetTypeOptions.getSelectedIdx()
+    _current = copy.copy(self.mDat.assetDat[_value])
+    _currentName = _current['n']
+    promptstring = 'Change Asset Name'
+    
+    result = mc.promptDialog(
+            title=promptstring,
+            message='Enter new name for duplicate asset: {0}'.format(_currentName),
+            button=['OK', 'Cancel'],
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel')
+    
+    if result == 'OK':
+        _name = str(mc.promptDialog(query=True, text=True))
+        
+        
+        if _name == _currentName:
+            raise ValueError,"Same name given as exists. Pick a new name"
+    
+        _current['n'] = _name
+        
+        self.mDat.assetDat.append(_current)
+        
+        uiAsset_rebuildOptionMenu(self)
+        uiAsset_rebuildSub(self)
+        
+        self.uiAssetTypeOptions.selectByValue(_name)
+
+
 def uiAsset_rebuildOptionMenu(self):
     self.uiAssetTypeOptions.clear()
     for i,d in enumerate(self.mDat.assetDat):
@@ -290,7 +324,11 @@ def buildFrame_assetTypes(self,parent):
                   c = lambda *a: uiAsset_add(self),
                    #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                    ann='Force the scroll list to update')
-
+    mUI.MelButton(_row,
+                  label='Dup',ut='cgmUITemplate',
+                  c = lambda *a: uiAsset_duplicate(self),
+                   #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
+                   ann='Duplicate the current asset')
 
     mUI.MelSpacer(_row,w=15)                          
     
@@ -928,11 +966,16 @@ class ui(cgmUI.cgmGUI):
     def uiAssetTypes_refill(self):
         pass
     
-    def reload_headerImage(self):
+    def reload_headerImage(self, path = None):
         _str_func = 'reload_headerImage'
         log.debug("|{0}| >>...".format(_str_func))
         
-        _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
+        if path:
+            _path = PATHS.Path(path)
+            
+        else:
+            _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
+            
         if _path.exists():
             log.warning('Image path: {0}'.format(_path))
             _imagePath = _path
@@ -1743,7 +1786,7 @@ class ui(cgmUI.cgmGUI):
             #self.optionVarExportDirStore.setValue( self.exportDirectory )    
             
             if key in ['image']:
-                self.reload_headerImage()
+                self.reload_headerImage(x[0])
             elif key == 'content':
                 self.uiScrollList_dirContent.clear()
                 #self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue())
@@ -2310,11 +2353,14 @@ class data(object):
             self.assetType_add(assetType)
             _idx = self.assetType_get(assetType,True)
             
-        _idx = self.assetTypeSub_get(assetType,arg,True)
-        if _idx is False:
+        _idx_sub = self.assetTypeSub_get(assetType,arg,True)
+        log.debug(cgmGEN.logString_msg(_str_func,_idx_sub))
+
+        if _idx_sub is False:
             log.info(cgmGEN.logString_msg(_str_func, "Creating: {0} under {1}".format(arg,assetType)))
-            
             self.assetDat[_idx]['content'].append({'n':arg})
+            return True
+        return True
         
         
         
