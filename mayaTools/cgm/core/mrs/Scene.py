@@ -68,6 +68,9 @@ example:
 		self.categoryList                = ["Character", "Environment", "Props"]
 		self.categoryIndex               = 0
 
+		self.subTypes                    = ['animation']
+		self.subTypeIndex                = 0
+
 		self.optionVarProjectStore       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
 		self.optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
 		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
@@ -77,6 +80,7 @@ example:
 		self.removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
 		self.useMayaPyStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
+		self.subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
 		self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
 
 		## sizes
@@ -85,7 +89,7 @@ example:
 
 		# UI elements
 		self.assetList                   = None #pyui.SearchableList()
-		self.animationList               = None #pyui.SearchableList()
+		self.subTypeSearchList               = None #pyui.SearchableList()
 		self.variationList               = None #pyui.SearchableList()
 		self.versionList                 = None #pyui.SearchableList()
 		self.queueTSL                    = None #pyui.UIList()
@@ -94,13 +98,15 @@ example:
 		self.uiMenu_FileMenu             = None
 		self.uiMenu_ToolsMenu            = None
 		self.uiMenu_OptionsMenu          = None
-		self.categoryText                = None
+		self.categoryBtn                 = None
+		self.subTypeBtn                  = None
 		self.openInExplorerMB            = None
 		self.openRigMB                   = None
 		self.referenceRigMB              = None
 		self.exportQueueFrame            = None
 		self.categoryMenu                = None
 		self.categoryMenuItemList        = []
+		self.subTypeMenuItemList         = []
 		self.sendToProjectMenuItemList   = []
 		self.assetRigMenuItemList        = []
 		self.assetReferenceRigMenuItemList  = []
@@ -152,14 +158,14 @@ example:
 	@property
 	def assetDirectory(self):
 		return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
-
+	
 	@property
 	def selectedAnimation(self):
-		return self.animationList['scrollList'].getSelectedItem()	
+		return self.subTypeSearchList['scrollList'].getSelectedItem()	
 
 	@property
 	def animationDirectory(self):
-		return os.path.normpath(os.path.join( self.assetDirectory, 'animation', self.animationList['scrollList'].getSelectedItem() )) if self.animationList['scrollList'].getSelectedItem() else None
+		return os.path.normpath(os.path.join( self.assetDirectory, self.subType, self.subTypeSearchList['scrollList'].getSelectedItem() )) if self.subTypeSearchList['scrollList'].getSelectedItem() else None
 
 	@property
 	def selectedVariation(self):
@@ -179,15 +185,20 @@ example:
 
 	@property
 	def exportFileName(self):
-		return '%s_%s_%s.fbx' % (self.assetList['scrollList'].getSelectedItem(), self.animationList['scrollList'].getSelectedItem(), self.variationList['scrollList'].getSelectedItem())
+		return '%s_%s_%s.fbx' % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem(), self.variationList['scrollList'].getSelectedItem())
 
 	@property
 	def category(self):
 		return self.categoryList[self.categoryIndex] if len(self.categoryList) > self.categoryIndex else self.categoryList[0]
 
+	@property
+	def subType(self):
+		return self.subTypes[min(self.subTypeIndex, len(self.subTypes)-1)]
+	
 	def LoadOptions(self, *args):
 		self.showBaked     = bool(self.showBakedStore.getValue())
 		self.categoryIndex = int(self.categoryStore.getValue())
+		self.subTypeIndex  = int(self.subTypeStore.getValue())
 		self.removeNamespace = bool(self.removeNamespaceStore.getValue())
 		self.useMayaPy = bool(self.useMayaPyStore.getValue())
 
@@ -196,6 +207,7 @@ example:
 		if self.removeNamespaceOption:
 			self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
 
+		self.SetSubType(self.subTypeIndex)
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
 		
@@ -213,6 +225,7 @@ example:
 
 		# self.optionVarExportDirStore.setValue( self.exportDirectory )
 		self.categoryStore.setValue( self.categoryIndex )
+		self.subTypeStore.setValue( self.subTypeStore )
 		#mc.optionVar( stringValue = [self.exportCommandStore, self.exportCommand] )
 
 	def TagAsset(self, *args):
@@ -273,7 +286,7 @@ example:
 		self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
 		self.uiImage_Project.setImage(_imageFailPath)
 		#mUI.MelSpacer(imageRow,w=10)	
-		imageRow.layout()    
+		imageRow.layout()
 
 		cgmUI.add_LineSubBreak()
 
@@ -311,17 +324,17 @@ example:
 
 		# Category
 		_catForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
-		self.categoryText = mUI.MelButton(_catForm,
+		self.categoryBtn = mUI.MelButton(_catForm,
 		                                  label=self.category,ut='cgmUITemplate',
 		                                  ann='Select the asset category')
 
-		self.categoryMenu = mUI.MelPopupMenu(self.categoryText, button=1 )
+		self.categoryMenu = mUI.MelPopupMenu(self.categoryBtn, button=1 )
 		for i,category in enumerate(self.categoryList):
 			self.categoryMenuItemList.append( mUI.MelMenuItem(self.categoryMenu, label=category, c=partial(self.SetCategory,i)) )
 			if i == self.categoryIndex:
 				self.categoryMenuItemList[i]( e=True, enable=False)
 
-		self.assetList = self.build_searchable_list(_catForm, sc=self.LoadAnimationList)
+		self.assetList = self.build_searchable_list(_catForm, sc=self.LoadSubTypeList)
 
 		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
 		self.renameAssetMB = mUI.MelMenuItem(pum, label="Rename Asset", command=self.RenameAsset )
@@ -341,46 +354,53 @@ example:
 
 		_catForm( edit=True, 
 		          attachForm=[
-		              (self.categoryText, 'top', 0), 
-		                      (self.categoryText, 'left', 0), 
-		                    (self.categoryText, 'right', 0), 
+		              (self.categoryBtn, 'top', 0), 
+		                      (self.categoryBtn, 'left', 0), 
+		                    (self.categoryBtn, 'right', 0), 
 		                        (self.assetList['formLayout'], 'left', 0),
 		                        (self.assetList['formLayout'], 'right', 0),
 		                        (self.assetButton, 'bottom', 0), 
 		                        (self.assetButton, 'right', 0), 
 		                        (self.assetButton, 'left', 0)], 
 		          attachControl=[
-		                      (self.assetList['formLayout'], 'top', 0, self.categoryText),
+		                      (self.assetList['formLayout'], 'top', 0, self.categoryBtn),
 		                    (self.assetList['formLayout'], 'bottom', 0, self.assetButton)] )
 
 
-		# Animation
+		# SubTypes
 		_animForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
-		_animBtn = mUI.MelButton(_animForm,
-		                         label='Animation',ut='cgmUITemplate',
-		                         ann='Select the asset type', en=False)
+		self.subTypeBtn = mUI.MelButton(_animForm,
+		                         label=self.subType,ut='cgmUITemplate',
+		                         ann='Select the sub type', en=True)
 
-		self.animationList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
+		self.subTypeMenu = mUI.MelPopupMenu(self.subTypeBtn, button=1 )
+		for i,subType in enumerate(self.subTypes):
+			self.subTypeMenuItemList.append( mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
+			if i == self.subTypeIndex:
+				self.subTypeMenuItemList[i]( e=True, enable=False)
 
-		pum = mUI.MelPopupMenu(self.animationList['scrollList'])
-		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAnimationDirectory )
+
+		self.subTypeSearchList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
+
+		pum = mUI.MelPopupMenu(self.subTypeSearchList['scrollList'])
+		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenSubTypeDirectory )
 		mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
 
-		self.animationButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateAnimation)
+		self.subTypeButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateAnimation)
 
 		_animForm( edit=True, 
 		           attachForm=[
-		               (_animBtn, 'top', 0), 
-		                       (_animBtn, 'left', 0), 
-		                    (_animBtn, 'right', 0), 
-		                        (self.animationList['formLayout'], 'left', 0),
-		                        (self.animationList['formLayout'], 'right', 0),
-		                        (self.animationButton, 'bottom', 0), 
-		                        (self.animationButton, 'right', 0), 
-		                        (self.animationButton, 'left', 0)], 
+		               (self.subTypeBtn, 'top', 0), 
+		                       (self.subTypeBtn, 'left', 0), 
+		                    (self.subTypeBtn, 'right', 0), 
+		                        (self.subTypeSearchList['formLayout'], 'left', 0),
+		                        (self.subTypeSearchList['formLayout'], 'right', 0),
+		                        (self.subTypeButton, 'bottom', 0), 
+		                        (self.subTypeButton, 'right', 0), 
+		                        (self.subTypeButton, 'left', 0)], 
 		           attachControl=[
-		                       (self.animationList['formLayout'], 'top', 0, _animBtn),
-		                    (self.animationList['formLayout'], 'bottom', 0, self.animationButton)] )
+		                       (self.subTypeSearchList['formLayout'], 'top', 0, self.subTypeBtn),
+		                    (self.subTypeSearchList['formLayout'], 'bottom', 0, self.subTypeButton)] )
 
 		# Variation
 		_variationForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
@@ -679,6 +699,20 @@ example:
 			if i == self.categoryIndex:
 				self.categoryMenuItemList[i]( e=True, enable=False)
 
+	def buildMenu_subTypes(self, *args):
+		#self.subTypeMenu.clear()
+		for item in self.subTypeMenuItemList:
+			mc.deleteUI(item)
+
+		self.subTypeMenuItemList = []
+
+		mc.setParent(self.subTypeMenu, menu=True)
+
+		for i,subType in enumerate(self.subTypes):
+			self.subTypeMenuItemList.append( mc.menuItem(label=subType, c=partial(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
+			if i == self.subTypeIndex:
+				mc.menuItem(self.subTypeMenuItemList[i], e=True, enable=False)
+
 
 	#####
 	## Searchable Lists
@@ -739,7 +773,7 @@ example:
 	def SetCategory(self, index, *args):
 		self.categoryIndex = index
 
-		mc.button( self.categoryText, e=True, label=self.category )
+		mc.button( self.categoryBtn, e=True, label=self.category )
 		for i,category in enumerate(self.categoryMenuItemList):
 			if i == self.categoryIndex:
 				self.categoryMenuItemList[i]( e=True, enable=False)
@@ -747,26 +781,24 @@ example:
 				self.categoryMenuItemList[i]( e=True, enable=True)
 
 		self.LoadCategoryList(self.directory)
-
+	
 		self.categoryStore.setValue(self.categoryIndex)
-		#self.SaveOptions()
+
+		# Set SubType
+		try:
+			self.subTypes = [x['n'] for x in self.project.assetType_get(self.category)['content']]
+		except:
+			self.subTypes = ['animation']
+
+		if self.subTypeBtn(q=True, label=True) in self.subTypes:
+			self.subTypeIndex = self.subTypes.index(self.subTypeBtn(q=True, label=True))
+		else:
+			self.subTypeIndex = min(self.subTypeIndex, len(self.subTypes)-1)
+		self.SetSubType(self.subTypeIndex)
 
 	def LoadCategoryList(self, directory="", *args):
-		# p = self.GetPreviousDirectories()
-		# if len(p) >= 10:
-		# 	for i in range(len(p) - 9):
-		# 		self.optionVarDirStore.removeIndex(0)
-
-		# if directory not in p:
-		# 	self.optionVarDirStore.append(directory)
-
 		if directory:		
 			self.directory = directory
-
-		#self.buildMenu_file()
-
-		# populate animation info list
-		#fileExtensions = ['mb', 'ma']
 
 		charList = []
 
@@ -786,8 +818,8 @@ example:
 
 		self.UpdateAssetList(charList)
 
-		self.animationList['items'] = []
-		self.animationList['scrollList'].clear()
+		self.subTypeSearchList['items'] = []
+		self.subTypeSearchList['scrollList'].clear()
 
 		self.variationList['items'] = []
 		self.variationList['scrollList'].clear()
@@ -797,11 +829,25 @@ example:
 
 		self.StoreCurrentSelection()
 
-	def LoadAnimationList(self, *args):
+	def SetSubType(self, index, *args):
+		self.subTypeIndex = index
+
+		self.subTypeBtn( e=True, label=self.subType )
+
+		self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()))
+
+		self.buildMenu_subTypes()
+
+		self.LoadSubTypeList()
+
+		self.subTypeStore.setValue(self.subTypeIndex)
+
+
+	def LoadSubTypeList(self, *args):
 		animList = []
 
 		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem():
-			charDir = os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem(), 'animation' ))
+			charDir = os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem(), self.subType ))
 
 			if os.path.exists(charDir):
 				for d in os.listdir(charDir):
@@ -814,8 +860,8 @@ example:
 					if os.path.isdir(animDir):
 						animList.append(d)
 
-		self.animationList['items'] = animList
-		self.animationList['scrollList'].setItems(animList)
+		self.subTypeSearchList['items'] = animList
+		self.subTypeSearchList['scrollList'].setItems(animList)
 
 		self.variationList['items'] = []
 		self.variationList['scrollList'].clear()
@@ -833,7 +879,7 @@ example:
 		self.variationList['items'] = []
 		self.variationList['scrollList'].clear()
 
-		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList['scrollList'].getSelectedItem():
+		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
 			animationDir = self.animationDirectory
 
 			if os.path.exists(animationDir):
@@ -863,7 +909,7 @@ example:
 		self.StoreCurrentSelection()
 
 	def LoadVersionList(self, *args):
-		if not self.assetList['scrollList'].getSelectedItem() or not self.animationList['scrollList'].getSelectedItem():
+		if not self.assetList['scrollList'].getSelectedItem() or not self.subTypeSearchList['scrollList'].getSelectedItem():
 			return
 
 		versionList = []
@@ -872,7 +918,7 @@ example:
 		# populate animation info list
 		fileExtensions = ['mb', 'ma']
 
-		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.animationList['scrollList'].getSelectedItem() and self.variationList['scrollList'].getSelectedItem():
+		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem() and self.variationList['scrollList'].getSelectedItem():
 			animDir = self.variationDirectory
 
 			if os.path.exists(animDir):
@@ -894,7 +940,7 @@ example:
 		if not self.assetList['scrollList'].getSelectedItem():
 			print "No asset selected"
 			return
-		if not self.animationList['scrollList'].getSelectedItem():
+		if not self.subTypeSearchList['scrollList'].getSelectedItem():
 			print "No animation selected"
 			return
 		if not self.versionList['scrollList'].getSelectedItem():
@@ -931,8 +977,8 @@ example:
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastAssetStore)
 
-		if self.animationList['scrollList'].getSelectedItem():
-			self.optionVarLastAnimStore.setValue(self.animationList['scrollList'].getSelectedItem())
+		if self.subTypeSearchList['scrollList'].getSelectedItem():
+			self.optionVarLastAnimStore.setValue(self.subTypeSearchList['scrollList'].getSelectedItem())
 		#else:
 		#	mc.optionVar(rm=self.optionVarLastAnimStore)
 
@@ -950,10 +996,10 @@ example:
 		if self.optionVarLastAssetStore.getValue():
 			self.assetList['scrollList'].selectByValue( self.optionVarLastAssetStore.getValue() )
 
-		self.LoadAnimationList()
+		self.LoadSubTypeList()
 
 		if self.optionVarLastAnimStore.getValue():
-			self.animationList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
+			self.subTypeSearchList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
 
 		self.LoadVariationList()
 
@@ -984,7 +1030,8 @@ example:
 			charPath = os.path.normpath(os.path.join(self.categoryDirectory, charName))
 			if not os.path.exists(charPath):
 				os.mkdir(charPath)
-				os.mkdir(os.path.normpath(os.path.join(charPath, 'animation')))
+				for subType in self.subTypes:
+					os.mkdir(os.path.normpath(os.path.join(charPath, subType)))
 
 			self.LoadCategoryList(self.directory)
 
@@ -1001,7 +1048,7 @@ example:
 
 		if result == 'OK':
 			animName = mc.promptDialog(query=True, text=True)
-			animationDir = os.path.normpath(os.path.join(self.assetDirectory, 'animation'))
+			animationDir = os.path.normpath(os.path.join(self.assetDirectory, self.subType))
 			if not os.path.exists(animationDir):
 				os.mkdir(animationDir)
 
@@ -1013,10 +1060,10 @@ example:
 			if not os.path.exists(variationPath):
 				os.mkdir(variationPath)
 
-			self.LoadAnimationList()
+			self.LoadSubTypeList()
 
-			self.animationList['scrollList'].selectByValue( animName)
-			#self.LoadAnimationList()
+			self.subTypeSearchList['scrollList'].selectByValue( animName)
+			#self.LoadSubTypeList()
 			self.LoadVariationList()
 			#self.LoadVariationList()
 
@@ -1054,8 +1101,8 @@ example:
 	def SaveVersion(self, *args):
 		animationFiles = self.versionList['items']
 
-		animationName = self.animationList['scrollList'].getSelectedItem()
-		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList['scrollList'].getSelectedItem())
+		animationName = self.subTypeSearchList['scrollList'].getSelectedItem()
+		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
 
 		if len(animationFiles) == 0:
 			wantedName = "%s_%02d.mb" % (wantedName, 1)
@@ -1067,7 +1114,7 @@ example:
 			baseFile = os.path.split(currentFile)[-1]
 			baseName, ext = baseFile.split('.')
 
-			wantedBasename = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.animationList['scrollList'].getSelectedItem())
+			wantedBasename = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
 			if not wantedBasename in baseName:
 				baseName = "%s_%02d" % (wantedBasename, 1)
 
@@ -1137,8 +1184,12 @@ example:
 			self.exportDirectoryTF.setValue( self.exportDirectory )
 			# self.optionVarExportDirStore.setValue( self.exportDirectory )
 
-			self.categoryList = self.project.d_structure['assetTypes']
+			self.categoryList = self.project.d_structure['assetTypes'] if 'assetTypes' in self.project.d_structure else self.project.assetTypes_get()
 
+			try:
+				self.subTypes = [x['n'] for x in self.project.assetType_get(self.category)['content']]
+			except:
+				self.subTypes = ['animation']
 
 			if os.path.exists(d_userPaths['image']):
 				self.uiImage_Project.setImage(d_userPaths['image'])
@@ -1147,6 +1198,8 @@ example:
 				self.uiImage_Project.setImage(_imageFailPath)
 
 			self.buildMenu_category()
+
+			#self.buildMenu_subTypes()
 
 			mc.workspace( d_userPaths['content'], openWorkspace=True )
 
@@ -1172,12 +1225,12 @@ example:
 			originalAssetName = self.selectedAsset
 
 			# rename animations
-			for animation in os.listdir(os.path.join(self.assetDirectory, 'animation')):
-				for variation in os.listdir(os.path.join(self.assetDirectory, 'animation', animation)):
-					for version in os.listdir(os.path.join(self.assetDirectory, 'animation', animation, variation)):
+			for animation in os.listdir(os.path.join(self.assetDirectory, self.subType)):
+				for variation in os.listdir(os.path.join(self.assetDirectory, self.subType, animation)):
+					for version in os.listdir(os.path.join(self.assetDirectory, self.subType, animation, variation)):
 						if originalAssetName in version:
-							originalPath = os.path.join(self.assetDirectory, 'animation', animation, variation, version)
-							newPath = os.path.join(self.assetDirectory, 'animation', animation, variation, version.replace(originalAssetName, newName))
+							originalPath = os.path.join(self.assetDirectory, self.subType, animation, variation, version)
+							newPath = os.path.join(self.assetDirectory, self.subType, animation, variation, version.replace(originalAssetName, newName))
 							os.rename(originalPath, newPath)
 
 			# rename rigs
@@ -1194,10 +1247,10 @@ example:
 			self.LoadCategoryList(self.directory)
 			self.assetList['scrollList'].selectByValue( newName )
 
-			self.LoadAnimationList()
+			self.LoadSubTypeList()
 
 			if self.optionVarLastAnimStore.getValue():
-				self.animationList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
+				self.subTypeSearchList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
 
 			self.LoadVariationList()
 
@@ -1223,8 +1276,11 @@ example:
 			log.warning("Opening: {0}".format(_res[0]))
 			mc.file(_res[0], o=True, f=True, pr=True)
 
-	def OpenAnimationDirectory(self, *args):
-		self.OpenDirectory( os.path.normpath(os.path.join(self.assetDirectory, 'animation') ))
+	def OpenSubTypeDirectory(self, *args):
+		if self.assetDirectory:
+			self.OpenDirectory( os.path.normpath(os.path.join(self.assetDirectory, self.subType) ))
+		else:
+			log.warning("Asset path doesn't exist")
 
 	def OpenVariationDirectory(self, *args):
 		self.OpenDirectory(self.animationDirectory)
@@ -1236,7 +1292,7 @@ example:
 		if not self.assetList['scrollList'].getSelectedItem():
 			print "No asset selected"
 			return
-		if not self.animationList['scrollList'].getSelectedItem():
+		if not self.subTypeSearchList['scrollList'].getSelectedItem():
 			print "No animation selected"
 			return
 		if not self.versionList['scrollList'].getSelectedItem():
@@ -1373,15 +1429,15 @@ example:
 
 	def AddLastToExportQueue(self, *args):
 		if self.variationList != None:
-			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
+			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.subTypeSearchList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
 
 		self.RefreshQueueList()
 
 	def AddToExportQueue(self, *args):
 		if self.versionList['scrollList'].getSelectedItem() != None:
-			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getSelectedItem()} )
+			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.subTypeSearchList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getSelectedItem()} )
 		elif self.variationList != None:
-			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.animationList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
+			self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.subTypeSearchList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
 
 		self.RefreshQueueList()
 
@@ -1421,8 +1477,8 @@ example:
 
 			for animDict in self.batchExportItems:
 				# self.assetList['scrollList'].selectByValue( animDict["asset"] )
-				# self.LoadAnimationList()
-				# self.animationList['scrollList'].selectByValue( animDict["animation"])
+				# self.LoadSubTypeList()
+				# self.subTypeSearchList['scrollList'].selectByValue( animDict["animation"])
 				# self.LoadVariationList()
 				# self.variationList['scrollList'].selectByValue( animDict["variation"])
 				# self.LoadVersionList()
@@ -1446,13 +1502,13 @@ example:
 				# 	objs = [masterNode]
 				categoryDirectory = os.path.normpath(os.path.join( self.directory, animDict["category"] ))
 				assetDirectory = os.path.normpath(os.path.join( categoryDirectory, animDict["asset"] ))
-				animationDirectory = os.path.normpath(os.path.join( assetDirectory, 'animation', animDict["animation"] ))
+				animationDirectory = os.path.normpath(os.path.join( assetDirectory, self.subType, animDict["animation"] ))
 				variationDirectory = os.path.normpath(os.path.join( animationDirectory, animDict["variation"] ))
 				versionFile = os.path.normpath(os.path.join( variationDirectory, animDict["version"] ))
 				
 				categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, animDict["category"]))
 				exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, animDict["asset"]))
-				exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, 'animation'))                
+				exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))                
 
 				exportFileName = '%s_%s_%s.fbx' % (animDict["asset"], animDict["animation"], animDict["variation"])
 
@@ -1485,8 +1541,8 @@ example:
 
 		for animDict in self.batchExportItems:
 			self.assetList['scrollList'].selectByValue( animDict["asset"] )
-			self.LoadAnimationList()
-			self.animationList['scrollList'].selectByValue( animDict["animation"])
+			self.LoadSubTypeList()
+			self.subTypeSearchList['scrollList'].selectByValue( animDict["animation"])
 			self.LoadVariationList()
 			self.variationList['scrollList'].selectByValue( animDict["variation"])
 			self.LoadVersionList()
@@ -1534,7 +1590,7 @@ example:
 	def RunExportCommand(self, *args):
 		categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, self.category))
 		exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList['scrollList'].getSelectedItem()))
-		exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, 'animation'))
+		exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))
 
 		d_userPaths = self.project.userPaths_get()
 
@@ -1872,7 +1928,7 @@ def ExportScene(mode = -1,
 
 	if not os.path.exists(exportAssetPath):
 		os.mkdir(exportAssetPath)
-	exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, 'animation'))
+	exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))
 
 	if not os.path.exists(exportAnimPath):
 		log.info("making export anim path...")
