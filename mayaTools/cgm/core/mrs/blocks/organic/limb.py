@@ -1641,6 +1641,7 @@ def form(self):
         #>>> Connections ====================================================================================
         self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
         
+
         
 
         #>>Loft Mesh =========================================================================================
@@ -1768,6 +1769,23 @@ def form(self):
             md_handles['lever'].scaleZ = md_handles['start'].scaleY
                 
         self.blockState = 'form'#...buffer
+        
+        
+        ml_done = []
+        for mHandle in ml_handles + ml_shapers:
+            if mHandle in ml_done:
+                continue
+            if not mHandle:
+                continue
+            if cgmGEN.__mayaVersion__ >= 2018:
+                mLoft = mHandle.getMessageAsMeta('loftCurve')
+                if mLoft:
+                    mLoft = cgmMeta.controller_get(mLoft)
+                    mLoft.visibilityMode = 2
+                    ml_done.append(mLoft)
+                mController = cgmMeta.controller_get(mHandle)
+                mController.visibilityMode = 2                            
+                ml_done.append(mController)        
     
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

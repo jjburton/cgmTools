@@ -7177,6 +7177,22 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                                              worldUpObject = mBaseOrientCurve.mNode,
                                              worldUpType = 'objectrotation', worldUpVector = [0,1,0])"""        
         
+        
+        ml_done = []
+        for mHandle in ml_handles + ml_shapers:
+            if mHandle in ml_done:
+                continue
+            if not mHandle:
+                continue
+            if cgmGEN.__mayaVersion__ >= 2018:
+                mLoft = mHandle.getMessageAsMeta('loftCurve')
+                if mLoft:
+                    mLoft = cgmMeta.controller_get(mLoft)
+                    mLoft.visibilityMode = 2
+                    ml_done.append(mLoft)
+                mController = cgmMeta.controller_get(mHandle)
+                mController.visibilityMode = 2                            
+                ml_done.append(mController)
         return md_handles,ml_handles,ml_shapers,ml_handles_chain
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
