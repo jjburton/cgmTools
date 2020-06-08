@@ -329,10 +329,10 @@ example:
 		                                  ann='Select the asset category')
 
 		self.categoryMenu = mUI.MelPopupMenu(self.categoryBtn, button=1 )
-		for i,category in enumerate(self.categoryList):
-			self.categoryMenuItemList.append( mUI.MelMenuItem(self.categoryMenu, label=category, c=partial(self.SetCategory,i)) )
-			if i == self.categoryIndex:
-				self.categoryMenuItemList[i]( e=True, enable=False)
+		# for i,category in enumerate(self.categoryList):
+		# 	self.categoryMenuItemList.append( mUI.MelMenuItem(self.categoryMenu, label=category, c=partial(self.SetCategory,i)) )
+		# 	if i == self.categoryIndex:
+		# 		self.categoryMenuItemList[i]( e=True, enable=False)
 
 		self.assetList = self.build_searchable_list(_catForm, sc=self.LoadSubTypeList)
 
@@ -374,10 +374,10 @@ example:
 		                         ann='Select the sub type', en=True)
 
 		self.subTypeMenu = mUI.MelPopupMenu(self.subTypeBtn, button=1 )
-		for i,subType in enumerate(self.subTypes):
-			self.subTypeMenuItemList.append( mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
-			if i == self.subTypeIndex:
-				self.subTypeMenuItemList[i]( e=True, enable=False)
+		# for i,subType in enumerate(self.subTypes):
+		# 	self.subTypeMenuItemList.append( mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
+		# 	if i == self.subTypeIndex:
+		# 		self.subTypeMenuItemList[i]( e=True, enable=False)
 
 
 		self.subTypeSearchList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
@@ -700,19 +700,18 @@ example:
 				self.categoryMenuItemList[i]( e=True, enable=False)
 
 	def buildMenu_subTypes(self, *args):
-		#self.subTypeMenu.clear()
-		for item in self.subTypeMenuItemList:
-			mc.deleteUI(item)
+		self.subTypeMenu.clear()
+		# for item in self.subTypeMenuItemList:
+		# 	if mc.menuItem(item, q=True, exists=True):
+		# 		mc.deleteUI(item)
 
-		self.subTypeMenuItemList = []
-
+		#self.subTypeMenuItemList = []
+		
 		mc.setParent(self.subTypeMenu, menu=True)
-
+		
 		for i,subType in enumerate(self.subTypes):
-			self.subTypeMenuItemList.append( mc.menuItem(label=subType, c=partial(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
-			if i == self.subTypeIndex:
-				mc.menuItem(self.subTypeMenuItemList[i], e=True, enable=False)
-
+			mc.menuItem(label=subType, enable = i != self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i))
+			#self.subTypeMenuItemList.append( mc.menuItem(label=subType, enable = i != self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
 
 	#####
 	## Searchable Lists
@@ -832,15 +831,15 @@ example:
 	def SetSubType(self, index, *args):
 		self.subTypeIndex = index
 
-		self.subTypeBtn( e=True, label=self.subType )
+		# self.subTypeBtn( e=True, label=self.subType )
 
-		self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()))
+		# self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()))
 
 		self.buildMenu_subTypes()
 
-		self.LoadSubTypeList()
+		# self.LoadSubTypeList()
 
-		self.subTypeStore.setValue(self.subTypeIndex)
+		# self.subTypeStore.setValue(self.subTypeIndex)
 
 
 	def LoadSubTypeList(self, *args):
