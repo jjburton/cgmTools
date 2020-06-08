@@ -369,10 +369,10 @@ example:
 
 		# SubTypes
 		_animForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
-		self.subTypeBtn = mUI.MelButton(_animForm,
+		self.subTypeBtn = mUI.MelButton( _animForm,
 		                         label=self.subType,ut='cgmUITemplate',
-		                         ann='Select the sub type', en=True)
-
+		                         ann='Select the sub type', en=True, c=self.buildMenu_subTypes )
+		
 		self.subTypeMenu = mUI.MelPopupMenu(self.subTypeBtn, button=1 )
 		# for i,subType in enumerate(self.subTypes):
 		# 	self.subTypeMenuItemList.append( mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
@@ -706,9 +706,9 @@ example:
 		# 		mc.deleteUI(item)
 
 		#self.subTypeMenuItemList = []
-		
+
 		mc.setParent(self.subTypeMenu, menu=True)
-		
+
 		for i,subType in enumerate(self.subTypes):
 			mc.menuItem(label=subType, enable = i != self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i))
 			#self.subTypeMenuItemList.append( mc.menuItem(label=subType, enable = i != self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
@@ -831,15 +831,13 @@ example:
 	def SetSubType(self, index, *args):
 		self.subTypeIndex = index
 
-		# self.subTypeBtn( e=True, label=self.subType )
+		self.subTypeBtn( e=True, label=self.subType )
 
-		# self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()))
+		self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()))
 
-		self.buildMenu_subTypes()
+		self.LoadSubTypeList()
 
-		# self.LoadSubTypeList()
-
-		# self.subTypeStore.setValue(self.subTypeIndex)
+		self.subTypeStore.setValue(self.subTypeIndex)
 
 
 	def LoadSubTypeList(self, *args):
@@ -1615,6 +1613,7 @@ example:
 			'exportName':self.exportFileName,
 			'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
 			'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
+			'subType' : self.subType,
 			'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
 			'removeNamespace' : self.removeNamespace,
 			'bakeSetName':bakeSetName,
@@ -1634,6 +1633,7 @@ example:
 		            exportObjs = None,
 		            exportName = self.exportFileName,
 		            exportAssetPath = exportAssetPath,
+		            subType = self.subType,
 		            categoryExportPath = categoryExportPath,
 		            exportAnimPath = exportAnimPath,
 		            removeNamespace = self.removeNamespace,
@@ -1659,6 +1659,7 @@ def BatchExport(dataList = []):
 		_d['categoryExportPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('categoryExportPath'))
 		_d['exportAnimPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAnimPath'))
 		_d['exportAssetPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAssetPath'))
+		_d['subType'] = fileDat.get('subType')
 		_d['exportName'] = fileDat.get('exportName')
 		mFile = PATHS.Path(fileDat.get('file'))
 		_d['mode'] = int(fileDat.get('mode'))
@@ -1822,6 +1823,7 @@ def ExportScene(mode = -1,
                 exportObjs = None,
                 exportName = None,
                 categoryExportPath = None,
+                subType = None,
                 exportAssetPath = None,
                 exportAnimPath = None,
                 removeNamespace = False,
@@ -1927,7 +1929,7 @@ def ExportScene(mode = -1,
 
 	if not os.path.exists(exportAssetPath):
 		os.mkdir(exportAssetPath)
-	exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))
+	exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
 
 	if not os.path.exists(exportAnimPath):
 		log.info("making export anim path...")
