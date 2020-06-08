@@ -19,7 +19,7 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__version__ = "1.05.18.2020"
+__version__ = "1.06.07.2020"
 __MAYALOCAL = 'CGMPROJECT'
 
 
@@ -33,7 +33,7 @@ import getpass
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -118,7 +118,7 @@ def uiAsset_addSub(self):
     except Exception,err:
         log.error("|{0}| >> Failed to query idx for asset type | {2}".format(_str_func,err))
         return False
-    
+    pprint.pprint(_dat)
     result = mc.promptDialog(
             title=promptstring,
             message='Enter Name for new sub asset for {0}'.format(_dat.get('n')),
@@ -1007,6 +1007,8 @@ class ui(cgmUI.cgmGUI):
             """
         #self.mDat.log_self()
         self.mDat.write( path,False)
+        self.mPathList.append(self.mDat.str_filepath)
+        
         return log.warning("Saved complete!")
         
     def uiProject_saveAs(self):
@@ -2280,6 +2282,13 @@ class data(object):
                 print cgmGEN.logString_msg('   ', "{0}".format (d2.get('n')))
             #print "{0} | {1} | {2}".format(i,_name,_content)
             
+    def assetTypes_get(self):
+        _res = []
+        for i,d in enumerate(self.assetDat):
+            _name = d.get('n','NONAME')
+            _res.append(_name)
+        return _res
+            
     def assetType_getTypeDict(self):
         _d = {}
         for i,d in enumerate(self.assetDat):
@@ -2295,6 +2304,7 @@ class data(object):
         _str_func = 'data.assetTypeSub_add'
         
         _idx = self.assetType_get(assetType,True)
+        log.debug(cgmGEN.logString_msg(_str_func,_idx))
         if _idx is False:
             log.error(cgmGEN.logString_msg(_str_func, "No assetType: {0}".format(assetType)))
             self.assetType_add(assetType)
