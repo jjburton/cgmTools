@@ -236,6 +236,15 @@ def uiAsset_rebuildSub(self):
                 self.mDat.assetDat[_value]['content'][index].pop('hasVariant')
         log.info( self.mDat.assetDat[_value]['content'][index].get('hasVariant') ) 
         
+    def setSubAsset(field,assetIndex,index):
+        _v = field.getValue()
+        if _v:
+            self.mDat.assetDat[_value]['content'][index]['hasSub'] = _v
+        else:
+            self.mDat.assetDat[_value]['content'][index]['hasSub'] = False
+                
+        log.info( self.mDat.assetDat[_value]['content'][index].get('hasSub') )        
+        
     def removeSub(assetIndex,index):
         self.mDat.assetDat[_value]['content'].pop(index) 
         
@@ -258,14 +267,28 @@ def uiAsset_rebuildSub(self):
  
         
         #mUI.MelLabel(self.uiAsset_content, label=d.get('n'))
-        mUI.MelSpacer(_row,w=10)                          
+        mUI.MelSpacer(_row,w=10)       
+        
+        
+        if not d2.has_key('hasSub'):
+            d2['hasSub'] = True
+            
+        _cb_sub = mUI.MelCheckBox(_row,w=25)
+        _cb_sub(edit=True,
+                onCommand = cgmGEN.Callback( setSubAsset,_cb_sub,_value,i),
+                offCommand = cgmGEN.Callback( setSubAsset,_cb_sub,_value,i))
+        _cb_sub.setValue( d2.get('hasSub',False))
+                
         
         _cb = mUI.MelCheckBox(_row,w=25)
         _cb(edit=True,
             onCommand = cgmGEN.Callback( setVariant,_cb,_value,i),
             offCommand = cgmGEN.Callback( setVariant,_cb,_value,i))
         _cb.setValue( d2.get('hasVariant',False))
-                
+        
+        
+        
+
         mUI.MelButton(_row,
                       width = 20,
                       label='x',ut='cgmUITemplate',
@@ -374,8 +397,11 @@ def buildFrame_assetTypes(self,parent):
                    ann='Add a sub type')            
     _label = mUI.MelLabel(_row, label = 'Subtype',)
     _row.setStretchWidget(_label)
+    
+    mUI.MelLabel(_row, label = 'Sub')
+    mUI.MelSpacer(_row,w=2)                          
 
-    mUI.MelLabel(_row, label = 'hasVariant')
+    mUI.MelLabel(_row, label = 'Variant')
     
     mUI.MelSpacer(_row,w=25)                          
     
