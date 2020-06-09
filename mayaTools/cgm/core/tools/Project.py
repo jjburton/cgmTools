@@ -130,7 +130,7 @@ def uiAsset_addSub(self):
     if result == 'OK':
         _name = mc.promptDialog(query=True, text=True)
         self.mDat.assetTypeSub_add(_dat.get('n'),_name)
-        uiAsset_rebuildOptionMenu(self)
+        #uiAsset_rebuildOptionMenu(self)
         #self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
         
@@ -178,7 +178,7 @@ def uiAsset_duplicate(self):
     log.debug("|{0}| >>...".format(_str_func))
     
     _value = self.uiAssetTypeOptions.getSelectedIdx()
-    _current = copy.copy(self.mDat.assetDat[_value])
+    _current = copy.deepcopy(self.mDat.assetDat[_value])
     _currentName = _current['n']
     promptstring = 'Change Asset Name'
     
