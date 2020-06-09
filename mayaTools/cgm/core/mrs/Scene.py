@@ -164,7 +164,7 @@ example:
 		return self.subTypeSearchList['scrollList'].getSelectedItem()	
 
 	@property
-	def animationDirectory(self):
+	def subTypeDirectory(self):
 		return os.path.normpath(os.path.join( self.assetDirectory, self.subType, self.subTypeSearchList['scrollList'].getSelectedItem() )) if self.subTypeSearchList['scrollList'].getSelectedItem() else None
 
 	@property
@@ -173,7 +173,7 @@ example:
 
 	@property
 	def variationDirectory(self):
-		return os.path.normpath(os.path.join( self.animationDirectory, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
+		return os.path.normpath(os.path.join( self.subTypeDirectory, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
 
 	@property
 	def selectedVersion(self):
@@ -194,6 +194,20 @@ example:
 	@property
 	def subType(self):
 		return self.subTypes[min(self.subTypeIndex, len(self.subTypes)-1)]
+	
+	@property
+	def hasSub(self):
+		try:
+			return self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasSub', False)
+		except:
+			return True
+	
+	@property
+	def hasVariant(self):
+		try:
+			return self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasVariant', False)
+		except:
+			return False
 	
 	def LoadOptions(self, *args):
 		self.showBaked     = bool(self.showBakedStore.getValue())
@@ -387,7 +401,7 @@ example:
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenSubTypeDirectory )
 		mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
 
-		self.subTypeButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateAnimation)
+		self.subTypeButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateSubAsset)
 
 		_animForm( edit=True, 
 		           attachForm=[
@@ -706,13 +720,13 @@ example:
 		# 	if mc.menuItem(item, q=True, exists=True):
 		# 		mc.deleteUI(item)
 
-		#self.subTypeMenuItemList = []
+		self.subTypeMenuItemList = []
 
 		mc.setParent(self.subTypeMenu, menu=True)
 
 		for i,subType in enumerate(self.subTypes):
-			mc.menuItem(label=subType, enable = i != self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i))
-			#self.subTypeMenuItemList.append( mc.menuItem(label=subType, enable = i != self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
+			# mc.menuItem(label=subType, c=cgmGEN.Callback(self.SetSubType,i))
+			self.subTypeMenuItemList.append( mc.menuItem(label=subType, enable=i!=self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
 
 	#####
 	## Searchable Lists
@@ -835,14 +849,27 @@ example:
 
 		self.subTypeBtn( e=True, label=self.subType )
 
-		self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()))
+		if self.hasSub:
+			self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()), command=self.CreateSubAsset)
+		else:
+			self.subTypeButton(edit=True, label="Save New Version", command=self.SaveVersion)
 
 		self.LoadSubTypeList()
 
 		self.subTypeStore.setValue(self.subTypeIndex)
 
+		for i,item in enumerate(self.subTypeMenuItemList):
+			mc.menuItem(item, e=True, enable= i != self.subTypeIndex)
+
+		mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
+		mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
+		self.buildAssetForm()
 
 	def LoadSubTypeList(self, *args):
+		if not self.hasSub:
+			self.LoadVersionList()
+			return
+
 		animList = []
 
 		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem():
@@ -871,6 +898,10 @@ example:
 		self.StoreCurrentSelection()
 
 	def LoadVariationList(self, *args):
+		if not self.hasVariant:
+			self.LoadVersionList()
+			return
+
 		variationList = []
 
 		selectedVariation = self.variationList['scrollList'].getSelectedItem()
@@ -879,7 +910,7 @@ example:
 		self.variationList['scrollList'].clear()
 
 		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
-			animationDir = self.animationDirectory
+			animationDir = self.subTypeDirectory
 
 			if os.path.exists(animationDir):
 				for d in os.listdir(animationDir):
@@ -908,8 +939,13 @@ example:
 		self.StoreCurrentSelection()
 
 	def LoadVersionList(self, *args):
-		if not self.assetList['scrollList'].getSelectedItem() or not self.subTypeSearchList['scrollList'].getSelectedItem():
-			return
+		searchDir = os.path.join(self.assetDirectory if self.assetDirectory else self.categoryDirectory, self.subType if self.subType else "")
+		searchList = self.subTypeSearchList
+		if self.hasSub:
+			searchDir = self.subTypeDirectory
+			searchList = self.versionList
+		if self.hasVariant and self.hasSub:
+			searchDir = self.variationDirectory
 
 		versionList = []
 		anims = []
@@ -917,21 +953,21 @@ example:
 		# populate animation info list
 		fileExtensions = ['mb', 'ma']
 
-		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem() and self.variationList['scrollList'].getSelectedItem():
-			animDir = self.variationDirectory
+		if os.path.exists(searchDir):
+			# animDir = (self.variationDirectory if self.hasVariant else self.subTypeDirectory) if self.hasSub else self.categoryDirectory
 
-			if os.path.exists(animDir):
-				for d in os.listdir(animDir):
-					if d[0] == '_' or d[0] == '.':
-						continue
+			# if os.path.exists(animDir):
+			for d in os.listdir(searchDir):
+				if d[0] == '_' or d[0] == '.':
+					continue
 
-					for ext in fileExtensions:
-						if os.path.splitext(d)[-1].lower() == ".%s" % ext :
-							if not "_baked" in d or self.showBaked:
-								anims.append(d)
+				for ext in fileExtensions:
+					if os.path.splitext(d)[-1].lower() == ".%s" % ext :
+						if not "_baked" in d or self.showBaked:
+							anims.append(d)
 
-		self.versionList['items'] = anims
-		self.versionList['scrollList'].setItems(anims)
+		searchList['items'] = anims
+		searchList['scrollList'].setItems(anims)
 
 		self.StoreCurrentSelection()
 
@@ -1036,7 +1072,7 @@ example:
 
 			self.assetList['scrollList'].selectByValue(charName)
 
-	def CreateAnimation(self, *args):
+	def CreateSubAsset(self, *args):
 		result = mc.promptDialog(
 		    title='New Animation',
 		    message='Animation Name:',
@@ -1047,7 +1083,7 @@ example:
 
 		if result == 'OK':
 			animName = mc.promptDialog(query=True, text=True)
-			animationDir = os.path.normpath(os.path.join(self.assetDirectory, self.subType))
+			animationDir = os.path.normpath(os.path.join(self.assetDirectory, self.subType)) if self.hasSub else os.path.normpath(self.assetDirectory)
 			if not os.path.exists(animationDir):
 				os.mkdir(animationDir)
 
@@ -1055,7 +1091,7 @@ example:
 			if not os.path.exists(animPath):
 				os.mkdir(animPath)
 
-			variationPath = os.path.normpath(os.path.join(animPath, '01'))
+			variationPath = os.path.normpath(os.path.join(animPath, '01')) if self.hasVariant else os.path.normpath(animPath)
 			if not os.path.exists(variationPath):
 				os.mkdir(variationPath)
 
@@ -1066,9 +1102,10 @@ example:
 			self.LoadVariationList()
 			#self.LoadVariationList()
 
-			self.variationList['scrollList'].selectByValue( '01')
-			#self.LoadVersionList()
-			self.LoadVersionList()
+			if self.hasVariant:
+				self.variationList['scrollList'].selectByValue( '01')
+				#self.LoadVersionList()
+				self.LoadVersionList()
 
 			createPrompt = mc.confirmDialog(
 			    title='Create?',
@@ -1079,18 +1116,23 @@ example:
 			                    dismissString='No')
 
 			if createPrompt == "Yes":
-				self.OpenRig()
+				#self.OpenRig()
 				self.SaveVersion()
 
 	def CreateVariation(self, *args):
 		lastVariation = 0
-		for x in os.listdir(self.animationDirectory):
-			if int(x) > lastVariation:
-				lastVariation = int(x)
+		for x in os.listdir(self.subTypeDirectory):
+			if os.path.isfile(x):
+				continue
+			try:
+				if int(x) > lastVariation:
+					lastVariation = int(x)
+			except:
+				continue
 
 		newVariation = lastVariation + 1
 
-		os.mkdir(os.path.normpath(os.path.join(self.animationDirectory, '%02d' % newVariation)))
+		os.mkdir(os.path.normpath(os.path.join(self.subTypeDirectory, '%02d' % newVariation)))
 
 		self.LoadVariationList()
 		self.variationList['scrollList'].selectByValue('%02d' % newVariation)
@@ -1098,12 +1140,12 @@ example:
 		self.LoadVersionList()
 
 	def SaveVersion(self, *args):
-		animationFiles = self.versionList['items']
+		existingFiles = self.versionList['items'] if self.hasSub else self.subTypeSearchList['items']
 
-		animationName = self.subTypeSearchList['scrollList'].getSelectedItem()
-		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
+		#animationName = self.subTypeSearchList['scrollList'].getSelectedItem()
+		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem() if self.hasSub else self.subType)
 
-		if len(animationFiles) == 0:
+		if len(existingFiles) == 0:
 			wantedName = "%s_%02d.mb" % (wantedName, 1)
 		else:
 			currentFile = mc.file(q=True, loc=True)
@@ -1113,7 +1155,7 @@ example:
 			baseFile = os.path.split(currentFile)[-1]
 			baseName, ext = baseFile.split('.')
 
-			wantedBasename = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
+			wantedBasename = wantedName #"%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
 			if not wantedBasename in baseName:
 				baseName = "%s_%02d" % (wantedBasename, 1)
 
@@ -1122,7 +1164,7 @@ example:
 
 			versionFiles = []
 			versions = []
-			for item in self.versionList['items']:
+			for item in existingFiles:
 				matchString = "^(%s_)[0-9]+\.m." % noVersionName
 				pattern = re.compile(matchString)
 				if pattern.match(item):
@@ -1138,7 +1180,13 @@ example:
 
 			wantedName = "%s_%02d.%s" % (noVersionName, newVersion, ext)
 
-		saveFile = os.path.normpath(os.path.join(self.variationDirectory, wantedName) )
+		saveLocation = os.path.join(self.assetDirectory, self.subType)
+		if self.hasSub:
+			saveLocation = self.subTypeDirectory
+		if self.hasSub and self.hasVariant:
+			saveLocation = self.variationDirectory
+
+		saveFile = os.path.normpath(os.path.join(saveLocation, wantedName) ) 
 		print "Saving file: %s" % saveFile
 		mc.file( rename=saveFile )
 		mc.file( save=True )
@@ -1282,7 +1330,7 @@ example:
 			log.warning("Asset path doesn't exist")
 
 	def OpenVariationDirectory(self, *args):
-		self.OpenDirectory(self.animationDirectory)
+		self.OpenDirectory(self.subTypeDirectory)
 
 	def OpenVersionDirectory(self, *args):
 		self.OpenDirectory(self.variationDirectory)
@@ -1501,8 +1549,8 @@ example:
 				# 	objs = [masterNode]
 				categoryDirectory = os.path.normpath(os.path.join( self.directory, animDict["category"] ))
 				assetDirectory = os.path.normpath(os.path.join( categoryDirectory, animDict["asset"] ))
-				animationDirectory = os.path.normpath(os.path.join( assetDirectory, self.subType, animDict["animation"] ))
-				variationDirectory = os.path.normpath(os.path.join( animationDirectory, animDict["variation"] ))
+				subTypeDirectory = os.path.normpath(os.path.join( assetDirectory, self.subType, animDict["animation"] ))
+				variationDirectory = os.path.normpath(os.path.join( subTypeDirectory, animDict["variation"] ))
 				versionFile = os.path.normpath(os.path.join( variationDirectory, animDict["version"] ))
 				
 				categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, animDict["category"]))
