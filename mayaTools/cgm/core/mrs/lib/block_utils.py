@@ -3602,6 +3602,33 @@ def siblings_pushSubShapers(self,matchType=True,matchProfile=True):
         for i,mHandle in enumerate(ml_shapers):
             for a,v in l[i].iteritems():
                 mHandle.setMayaAttr(a,v)
+                
+def siblings_pushFormHandles(self,matchType=True,matchProfile=True):
+    _str_func = 'siblings_pushFormHandles'
+    
+    ml_siblings = siblings_get(self, matchType,matchProfile)
+    if not ml_siblings:
+        return 
+    
+    ml_source = self.msgList_get('formHandles')
+    if not ml_source:
+        return log.warning("|{0}| >> No form handles...".format(_str_func))
+    
+    l = []
+    for mHandle in ml_source:
+        d = {}
+        for a in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
+            d[a]= mHandle.getMayaAttr(a)
+        l.append(d)
+    
+    pprint.pprint(l)
+    
+    for mSib in ml_siblings:
+        log.info(cgmGEN.logString_msg(_str_func,mSib))
+        ml_shapers = mSib.msgList_get('formHandles')
+        for i,mHandle in enumerate(ml_shapers):
+            for a,v in l[i].iteritems():
+                mHandle.setMayaAttr(a,v)
         
 def siblings_pushPrerigHandles(self,matchType=True,matchProfile=True):
     _str_func = 'siblings_pushPrerigHandles'

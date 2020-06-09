@@ -79,7 +79,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.05162020'
+__version__ = '1.06082020'
 _sidePadding = 25
 
 def check_cgm():
@@ -963,6 +963,18 @@ class ui(cgmUI.cgmGUI):
                                            'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                                   'atUtils','blockParent_set',
                                                                   **{'parent':False})},},
+               'Siblings':{'Form | Push Sub shapers':{'ann':'Push Sub shaper values to siblings',
+                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                         'atUtils','siblings_pushSubShapers',
+                                                         **{})},
+                           'Form | Push Handles':{'ann':'Push form shaper values to siblings',
+                                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                      'atUtils','siblings_pushFormHandles',
+                                                                      **{})},                           
+                         'Prerig | Push Handles':{'ann':'Push prerig handle values to siblings',
+                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                         'atUtils','siblings_pushPrerigHandles',
+                                                         **{})}},               
                'Form':{'Snap to RP':{'ann':'Snap handles to rp plane',
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                  'atUtils', 'handles_snapToRotatePlane','form',True,
