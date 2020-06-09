@@ -1966,7 +1966,7 @@ def ExportScene(mode = -1,
 		if( exportAsRig ):
 			exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
-		bakeAndPrep.Prep(removeNamespace, deleteSetName,exportSetName, zeroRoot)
+		bakeAndPrep.Prep(removeNamespace, deleteSetName,exportSetName, zeroRoot = zeroRoot)
 
 		exportTransforms = mc.ls(sl=True)
 
