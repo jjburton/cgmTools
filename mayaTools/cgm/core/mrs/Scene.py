@@ -208,6 +208,7 @@ example:
 			self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
 
 		self.SetSubType(self.subTypeIndex)
+		self.buildMenu_subTypes()
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
 		
@@ -371,7 +372,7 @@ example:
 		_animForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
 		self.subTypeBtn = mUI.MelButton( _animForm,
 		                         label=self.subType,ut='cgmUITemplate',
-		                         ann='Select the sub type', en=True, c=self.buildMenu_subTypes )
+		                         ann='Select the sub type', en=True )
 		
 		self.subTypeMenu = mUI.MelPopupMenu(self.subTypeBtn, button=1 )
 		# for i,subType in enumerate(self.subTypes):
@@ -794,6 +795,7 @@ example:
 		else:
 			self.subTypeIndex = min(self.subTypeIndex, len(self.subTypes)-1)
 		self.SetSubType(self.subTypeIndex)
+		self.buildMenu_subTypes()
 
 	def LoadCategoryList(self, directory="", *args):
 		if directory:		
