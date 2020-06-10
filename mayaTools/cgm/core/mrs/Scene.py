@@ -118,7 +118,7 @@ example:
 
 		self.showBakedOption             = None
 		self.removeNamespaceOption       = None
-		self.useMayaPyOption = None
+		self.useMayaPyOption             = None
 
 		self.showBaked                   = False
 		self.removeNamespace             = False
@@ -198,16 +198,18 @@ example:
 	@property
 	def hasSub(self):
 		try:
-			return self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasSub', False)
+			r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasSub', False)
+			return r
 		except:
 			return True
 	
 	@property
 	def hasVariant(self):
 		try:
-			return self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasVariant', False)
+			r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasVariant', False)
+			return r
 		except:
-			return False
+			return True
 	
 	def LoadOptions(self, *args):
 		self.showBaked     = bool(self.showBakedStore.getValue())
@@ -229,7 +231,7 @@ example:
 		self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
 
 	def SaveOptions(self, *args):
-		print "Saving options"
+		log.info( "Saving options" )
 		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
 		self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
 		self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
@@ -268,19 +270,19 @@ example:
 	def SetDeleteSet(self, *args):
 		sel = mc.ls(sl=True)
 		deleteSet = sel[0].split(':')[-1]
-		print "Setting delete set to: %s" % deleteSet 
+		log.info( "Setting delete set to: %s" % deleteSet )
 		cgmMeta.cgmOptionVar('cgm_delete_set', varType="string").setValue(deleteSet)
 
 	def SetBakeSet(self, *args):
 		sel = mc.ls(sl=True)
 		bakeSet = sel[0].split(':')[-1]
-		print "Setting bake set to: %s" % bakeSet 
+		log.info( "Setting bake set to: %s" % bakeSet )
 		cgmMeta.cgmOptionVar('cgm_bake_set', varType="string").setValue(bakeSet)
 
 	def SetExportSet(self, *args):
 		sel = mc.ls(sl=True)
 		exportSet = sel[0].split(':')[-1]
-		print "Setting geo set to: %s" % exportSet 
+		log.info( "Setting geo set to: %s" % exportSet )
 		cgmMeta.cgmOptionVar('cgm_export_set', varType="string").setValue(exportSet)
 
 	def build_layoutWrapper(self,parent):
@@ -834,13 +836,13 @@ example:
 		self.UpdateAssetList(charList)
 
 		self.subTypeSearchList['items'] = []
-		self.subTypeSearchList['scrollList'].clear()
+		self.subTypeSearchList['scrollList'].rebuild()
 
 		self.variationList['items'] = []
-		self.variationList['scrollList'].clear()
+		self.variationList['scrollList'].rebuild()
 
 		self.versionList['items'] = []
-		self.versionList['scrollList'].clear()
+		self.versionList['scrollList'].rebuild()
 
 		self.StoreCurrentSelection()
 
@@ -887,13 +889,14 @@ example:
 						animList.append(d)
 
 		self.subTypeSearchList['items'] = animList
+		self.subTypeSearchList['scrollList'].rebuild()
 		self.subTypeSearchList['scrollList'].setItems(animList)
 
 		self.variationList['items'] = []
-		self.variationList['scrollList'].clear()
+		self.variationList['scrollList'].rebuild()
 
 		self.versionList['items'] = []
-		self.versionList['scrollList'].clear()
+		self.versionList['scrollList'].rebuild()
 
 		self.StoreCurrentSelection()
 
@@ -907,7 +910,7 @@ example:
 		selectedVariation = self.variationList['scrollList'].getSelectedItem()
 
 		self.variationList['items'] = []
-		self.variationList['scrollList'].clear()
+		self.variationList['scrollList'].rebuild()
 
 		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
 			animationDir = self.subTypeDirectory
@@ -926,10 +929,10 @@ example:
 		self.variationList['items'] = variationList
 		self.variationList['scrollList'].setItems(variationList)
 
-		self.variationList['scrollList'].selectByValue(selectedVariation)
+		self.variationList['scrollList'].selectByValue(selectedVariation) # if selectedVariation else variationList[0]
 
 		self.versionList['items'] = []
-		self.versionList['scrollList'].clear()
+		self.versionList['scrollList'].rebuild()
 
 		self.LoadVersionList()
 
@@ -939,6 +942,8 @@ example:
 		self.StoreCurrentSelection()
 
 	def LoadVersionList(self, *args):
+		_str_func = 'Scene.LoadVersionList'
+				
 		searchDir = os.path.join(self.assetDirectory if self.assetDirectory else self.categoryDirectory, self.subType if self.subType else "")
 		searchList = self.subTypeSearchList
 		if self.hasSub:
@@ -947,13 +952,17 @@ example:
 		if self.hasVariant and self.hasSub:
 			searchDir = self.variationDirectory
 
+		if not searchDir:
+			return
+		
 		versionList = []
 		anims = []
 
 		# populate animation info list
 		fileExtensions = ['mb', 'ma']
 
-		if os.path.exists(searchDir):
+		#log.info('{0} >> searchDir: {1}'.format(_str_func, searchDir))
+		if (os.path.exists(searchDir) if searchDir != None else False):
 			# animDir = (self.variationDirectory if self.hasVariant else self.subTypeDirectory) if self.hasSub else self.categoryDirectory
 
 			# if os.path.exists(animDir):
@@ -967,13 +976,14 @@ example:
 							anims.append(d)
 
 		searchList['items'] = anims
+		searchList['scrollList'].rebuild()
 		searchList['scrollList'].setItems(anims)
 
 		self.StoreCurrentSelection()
 
 	def LoadAnimation(self, *args):
 		if not self.assetList['scrollList'].getSelectedItem():
-			print "No asset selected"
+			log.warning( "No asset selected" )
 			return
 		if not self.subTypeSearchList['scrollList'].getSelectedItem():
 			print "No animation selected"
@@ -1614,7 +1624,7 @@ example:
 
 
 	def RefreshQueueList(self, *args):
-		self.queueTSL.clear()
+		self.queueTSL.rebuild()
 		for item in self.batchExportItems:
 			self.queueTSL.append( "%s - %s - %s - %s - %s" % (item["category"], item["asset"],item["animation"],item["variation"],item["version"]))
 
