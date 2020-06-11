@@ -137,12 +137,18 @@ d_build_profiles = {
     'unityToon':{'default':{'squashMeasure':'arcLength',
                             'squash':'simple',
                             'scaleSetup':True,
-                            }},    
+                            },
+                 'finger':{'numRoll':0},
+                 'thumb':{'numRoll':0},
+                 },    
     'unityHigh':{'default':{'numRoll':3},
                 'finger':{'numRoll':0},
                 'thumb':{'numRoll':0},
                            },
-    'feature':{'default':{'numRoll':3,}}}
+    'feature':{'default':{'numRoll':3,},
+               'finger':{'numRoll':0},
+               'thumb':{'numRoll':0},
+               }}
 
 d_block_profiles = {
 'default':{},
@@ -1040,7 +1046,7 @@ def form(self):
         ml_handles = []
         md_loftHandles = {}
         ml_loftHandles = []
-        
+        ml_shapers = []
 
         log.debug("|{0}| >> loft setup...".format(_str_func))
         

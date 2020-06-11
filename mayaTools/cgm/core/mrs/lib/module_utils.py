@@ -1101,11 +1101,20 @@ def mirror_get(self,recheck=False):
     _str_func = 'mirror_get'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
+    
     if not recheck:
         mMirror = self.getMessage('moduleMirror',asMeta=True)
         if mMirror:
             log.debug("|{0}| >>  Stored moduleMirror found: {1}".format(_str_func,mMirror))
             return mMirror[0]
+    
+    mRigBlock = self.getMessageAsMeta('rigBlock')
+    if mRigBlock:
+        try:
+            return mRigBlock.blockMirror.moduleTarget
+        except:
+            pass
+    
         
     l_direction = ['left','right']
     _cgmDirection = self.getMayaAttr('cgmDirection')

@@ -200,6 +200,7 @@ d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
                  'axisUp':":".join(CORESHARE._l_axis_by_string),
                  'rotPivotPlace':'handle:jointHelper:cog',
                  'loftSetup':'default:loftList',
+                 'parentToDriver':'bool',
                  'proxyShape':'cube:sphere:cylinder:cone:torus:shapers',
                  'targetJoint':'messageSimple',
                  'shapersAim':'toEnd:chain',
@@ -1615,6 +1616,12 @@ def rig_frame(self):
         mDirectDriver = mHandle
         mAimDriver = mHandle
         mRootParent = self.mDeformNull
+        
+        if mBlock.parentToDriver:
+            #This was causing issues with toe setup , need to resolve...
+            log.debug("|{0}| >> Parent to driver".format(_str_func))
+            #raise ValueError,"This was causing issues with toe setup , need to resolve..."
+            self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode        
         
         #Pivot Setup ========================================================================================
         if mBlock.getMessage('pivotHelper'):
