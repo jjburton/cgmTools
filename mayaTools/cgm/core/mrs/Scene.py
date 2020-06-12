@@ -32,7 +32,7 @@ log.setLevel(logging.INFO)
 
 
 #>>> Root settings =============================================================
-__version__ = "1.04.07.2020"
+__version__ = "1.1.2020.06.12"
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]
@@ -321,16 +321,36 @@ example:
 		imageRow = mUI.MelHRowLayout(_headerColumn,bgc=self.v_bgc)
 
 		#mUI.MelSpacer(imageRow,w=10)
-		self.uiImage_ProjectRow =imageRow
+		self.uiImage_ProjectRow = imageRow
 		self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
 		self.uiImage_Project.setImage(_imageFailPath)
 		#mUI.MelSpacer(imageRow,w=10)	
 		imageRow.layout()
 		
-		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True))
+		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True),bgc=(1.0, .445, .08))
 
-		self._detailsColumn = mUI.MelColumnLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
+		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
+		
+		mUI.MelLabel(self._detailsColumn,l='Details', h=15, ut = 'cgmUIHeaderTemplate')
+		
+		mc.setParent(self._detailsColumn)
+		cgmUI.add_LineSubBreak()		
+		
+		#self.uiImage_Thumb = mUI.MelImage( self._detailsColumn, w=20, h=150 )
+		#self.uiImage_Thumb.setImage( _imageFailPath )
+		
+		mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=150, label="Make Thumbnail")
+		
+		mc.setParent(self._detailsColumn)
+		cgmUI.add_LineSubBreak()
+		
+		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+			
+		mUI.MelLabel(_row,l='Directory', w=50)
+		_row.setStretchWidget(mUI.MelTextField(_row, text='test', editable = False, bgc=(.8,.8,.8)))	
 
+		_row.layout()	
+		
 		_MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
 		##############################
@@ -338,9 +358,9 @@ example:
 		##############################
 		
 	
-		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate') #mc.columnLayout(adjustableColumn=True)
+		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate')
 		
-		self._uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
+		self._uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn)
 
 		mUI.MelLabel(self._uiRow_dir,l='Directory', w=100)
 		self.directoryTF = mUI.MelTextField(self._uiRow_dir, editable = False, bgc=(.8,.8,.8))
@@ -351,7 +371,8 @@ example:
 		self._uiRow_dir.setStretchWidget(self.directoryTF)
 		self._uiRow_dir.layout()
 
-		self._uiRow_export = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
+		self._uiRow_export = mUI.MelHSingleStretchLayout(_directoryColumn)
+		
 		mUI.MelLabel(self._uiRow_export,l='Export Dir', w=100)
 		self.exportDirectoryTF = mUI.MelTextField(self._uiRow_export, editable = False, bgc=(.8,.8,.8))
 		self.exportDirectoryTF.setValue( self.exportDirectory )
@@ -362,8 +383,8 @@ example:
 
 		self._uiRow_export.layout()
 
-		self._uiRow_export(e=True, vis=False)
-		self._uiRow_dir(e=True, vis=False)
+		self._uiRow_export(e=True, vis=self.showDirectories)
+		self._uiRow_dir(e=True, vis=self.showDirectories)
 
 		##############################
 		# Main Asset Lists 
@@ -628,10 +649,10 @@ example:
 					 attachControl=[(_MainForm, 'top', 0, _headerColumn),
 									(_MainForm, 'bottom', 0, _footer),
 									(_MainForm, 'right', 0, self._detailsToggleBtn),
-									(self._detailsColumn, 'top', 4, _headerColumn),
+									(self._detailsColumn, 'top', 0, _headerColumn),
 									(self._detailsColumn, 'bottom', 1, _footer),
 									(self._detailsToggleBtn, 'right', 0, self._detailsColumn),
-									(self._detailsToggleBtn, 'top', 4, _headerColumn),
+									(self._detailsToggleBtn, 'top', 1, _headerColumn),
 									(self._detailsToggleBtn, 'bottom', 1, _footer)])
 	def show( self ):		
 		self.setVisibility( True )
@@ -655,15 +676,15 @@ example:
 
 		for i,form in enumerate(attachedForms):
 			if i == 0:
-				attachForm.append( (form, 'left', 5) )
+				attachForm.append( (form, 'left', 1) )
 			else:
 				attachControl.append( (form, 'left', 5, attachedForms[i-1]) )
 
-			attachForm.append((form, 'top', 5))
+			attachForm.append((form, 'top', 0))
 			attachForm.append((form, 'bottom', 5))
 
 			if i == len(attachedForms)-1:
-				attachForm.append( (form, 'right', 5) )
+				attachForm.append( (form, 'right', 1) )
 			else:
 				attachPosition.append( (form, 'right', 5, (100 / len(attachedForms)) * (i+1)) )
 
