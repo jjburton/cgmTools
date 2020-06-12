@@ -82,6 +82,8 @@ example:
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		self.subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
 		self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
+		self.showDirectoriesStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
+		self.displayDetailsStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
 
 		## sizes
 		self.__itemHeight                = 35
@@ -119,9 +121,13 @@ example:
 		self.showBakedOption             = None
 		self.removeNamespaceOption       = None
 		self.useMayaPyOption             = None
+		self.showDirectoriesOption       = None
+		
+		self.showDirectories             = self.showDirectoriesStore.getValue()
+		self.displayDetails              = self.displayDetailsStore.getValue()
 
-		self.showBaked                   = False
-		self.removeNamespace             = False
+		self.showBaked                   = self.showBakedStore.getValue()
+		self.removeNamespace             = self.removeNamespaceStore.getValue()
 		self.useMayaPy                   = self.useMayaPyStore.getValue()
 
 		self.fileListMenuItems           = []
@@ -229,6 +235,8 @@ example:
 		self.subTypeIndex  = int(self.subTypeStore.getValue())
 		self.removeNamespace = bool(self.removeNamespaceStore.getValue())
 		self.useMayaPy = bool(self.useMayaPyStore.getValue())
+		self.showDirectories = bool(self.showDirectoriesStore.getValue())
+		self.displayDetails = bool(self.displayDetailsStore.getValue())
 
 		if self.showBakedOption:
 			self.showBakedOption(e=True, checkBox = self.showBaked)
@@ -239,7 +247,9 @@ example:
 		self.buildMenu_subTypes()
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
-		
+		self.uiFunc_showDirectories(self.showDirectories)
+		self.uiFunc_displayDetails(self.displayDetails)
+			
 		self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
 
 	def SaveOptions(self, *args):
@@ -247,15 +257,19 @@ example:
 		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
 		self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
 		self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
+		self.showDirectories = self.showDirectoriesOption( q=True, checkBox=True ) if self.showDirectoriesOption else False
 
 		self.showBakedStore.setValue(self.showBaked)
 		self.removeNamespaceStore.setValue(self.removeNamespace)
 		self.useMayaPyStore.setValue(self.useMayaPy)
-
+		self.showDirectoriesStore.setValue(self.showDirectories)
+		self.displayDetailsStore.setValue(self.displayDetails)
+		
 		# self.optionVarExportDirStore.setValue( self.exportDirectory )
 		self.categoryStore.setValue( self.categoryIndex )
 		self.subTypeStore.setValue( self.subTypeStore )
-		#mc.optionVar( stringValue = [self.exportCommandStore, self.exportCommand] )
+		self.uiFunc_showDirectories( self.showDirectories )
+		self.uiFunc_displayDetails( self.displayDetails )
 
 	def TagAsset(self, *args):
 		pass
@@ -299,16 +313,12 @@ example:
 
 	def build_layoutWrapper(self,parent):
 
-		_MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
+		_ParentForm = mUI.MelFormLayout(self,ut='cgmUISubTemplate')
 
-		##############################
-		# Top Column Layout 
-		##############################
-
-		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate') #mc.columnLayout(adjustableColumn=True)
+		_headerColumn = mUI.MelColumnLayout(_ParentForm,useTemplate = 'cgmUISubTemplate')
 
 		_imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
-		imageRow = mUI.MelHRowLayout(_directoryColumn,bgc=self.v_bgc)
+		imageRow = mUI.MelHRowLayout(_headerColumn,bgc=self.v_bgc)
 
 		#mUI.MelSpacer(imageRow,w=10)
 		self.uiImage_ProjectRow =imageRow
@@ -316,35 +326,44 @@ example:
 		self.uiImage_Project.setImage(_imageFailPath)
 		#mUI.MelSpacer(imageRow,w=10)	
 		imageRow.layout()
+		
+		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True))
 
-		cgmUI.add_LineSubBreak()
+		self._detailsColumn = mUI.MelColumnLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
 
-		_uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
+		_MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
-		mUI.MelLabel(_uiRow_dir,l='Directory', w=100)
-		self.directoryTF = mUI.MelTextField(_uiRow_dir, editable = False, bgc=(.8,.8,.8))
+		##############################
+		# Top Column Layout 
+		##############################
+		
+	
+		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate') #mc.columnLayout(adjustableColumn=True)
+		
+		self._uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
+
+		mUI.MelLabel(self._uiRow_dir,l='Directory', w=100)
+		self.directoryTF = mUI.MelTextField(self._uiRow_dir, editable = False, bgc=(.8,.8,.8))
 		self.directoryTF.setValue( self.directory )
 
-		mUI.MelSpacer(_uiRow_dir,w=5)
+		mUI.MelSpacer(self._uiRow_dir,w=5)
 
-		_uiRow_dir.setStretchWidget(self.directoryTF)
-		_uiRow_dir.layout()
+		self._uiRow_dir.setStretchWidget(self.directoryTF)
+		self._uiRow_dir.layout()
 
-		_uiRow_export = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
-		mUI.MelLabel(_uiRow_export,l='Export Dir', w=100)
-		self.exportDirectoryTF = mUI.MelTextField(_uiRow_export, editable = False, bgc=(.8,.8,.8))
+		self._uiRow_export = mUI.MelHSingleStretchLayout(_directoryColumn, height = 27)
+		mUI.MelLabel(self._uiRow_export,l='Export Dir', w=100)
+		self.exportDirectoryTF = mUI.MelTextField(self._uiRow_export, editable = False, bgc=(.8,.8,.8))
 		self.exportDirectoryTF.setValue( self.exportDirectory )
 
-		mUI.MelSpacer(_uiRow_export,w=5)                      
+		mUI.MelSpacer(self._uiRow_export,w=5)                      
 
-		_uiRow_export.setStretchWidget(self.exportDirectoryTF)
+		self._uiRow_export.setStretchWidget(self.exportDirectoryTF)
 
-		_uiRow_export.layout()
+		self._uiRow_export.layout()
 
-		mc.setParent(_MainForm)
-
-		_uiRow_export(e=True, vis=False)
-		_uiRow_dir(e=True, vis=False)
+		self._uiRow_export(e=True, vis=False)
+		self._uiRow_dir(e=True, vis=False)
 
 		##############################
 		# Main Asset Lists 
@@ -506,7 +525,7 @@ example:
 
 		_row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
 
-		mUI.MelSpacer(_row,w=5)
+		#mUI.MelSpacer(_row,w=0)
 		self.exportButton = mUI.MelButton(_row, label="Export", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,1), h=self.__itemHeight)
 		mc.popupMenu()
 		mc.menuItem( l="Bake Without Export", c=partial(self.RunExportCommand,0))
@@ -521,23 +540,23 @@ example:
 
 		_row.setStretchWidget(self.exportButton)
 
-		mUI.MelSpacer(_row,w=5)
+		#mUI.MelSpacer(_row,w=0)
 
 		_row.layout()
 
 		mc.setParent(_bottomColumn)
 		cgmUI.add_LineSubBreak()
 
-		_row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
-
-		mUI.MelSpacer(_row,w=5)
+		#_row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
+		_row = mUI.MelColumnLayout(_bottomColumn,useTemplate = 'cgmUISubTemplate') 
+		#mUI.MelSpacer(_row,w=5)
 		
 		self.loadBtn = mUI.MelButton(_row, ut = 'cgmUITemplate', label="Load File", c=self.LoadFile, h=self.__itemHeight)
-		_row.setStretchWidget( self.loadBtn )
+		#_row.setStretchWidget( self.loadBtn )
 
-		mUI.MelSpacer(_row,w=5)
+		#mUI.MelSpacer(_row,w=5)
 
-		_row.layout()
+		#_row.layout()
 
 		mc.setParent(_bottomColumn)
 		cgmUI.add_LineSubBreak()
@@ -580,28 +599,43 @@ example:
 		# Layout form
 		##############################
 
-		_footer = cgmUI.add_cgmFooter(_MainForm)            
+		_footer = cgmUI.add_cgmFooter(_ParentForm)            
 
 		_MainForm( edit=True, 
 		           attachForm=[
-		               (_directoryColumn, 'top', 0), 
-		                       (_directoryColumn, 'left', 0), 
-		                    (_directoryColumn, 'right', 0), 
+		                        (_directoryColumn, 'top', 0), 
+		                        (_directoryColumn, 'left', 0), 
+		                        (_directoryColumn, 'right', 0), 
 		                        (_bottomColumn, 'right', 0), 
 		                        (_bottomColumn, 'left', 0),
+								(_bottomColumn, 'bottom', 0),
 		                        (self._assetsForm, 'left', 0),
-		                        (self._assetsForm, 'right', 0),
-		                        (_footer, 'left', 0),
-		                        (_footer, 'right', 0),
-		                        (_footer, 'bottom', 0)], 
+		                        (self._assetsForm, 'right', 0)], 
 		           attachControl=[
-		                       (_bottomColumn, 'bottom', 0, _footer),
-		                    (self._assetsForm, 'top', 0, _directoryColumn),
-		                    (self._assetsForm, 'bottom', 0, _bottomColumn)] )
+		                        (self._assetsForm, 'top', 0, _directoryColumn),
+		                        (self._assetsForm, 'bottom', 0, _bottomColumn)] )
 
-
+		_ParentForm( edit=True,
+					 attachForm=[						 
+		                        (_headerColumn, 'left', 0),
+		                        (_headerColumn, 'right', 0),
+		                        (_headerColumn, 'top', 0),
+								(self._detailsColumn, 'right', 0),
+								(_MainForm, 'left', 0),
+						        (_footer, 'left', 0),
+		                        (_footer, 'right', 0),
+		                        (_footer, 'bottom', 0)],
+					 attachControl=[(_MainForm, 'top', 0, _headerColumn),
+									(_MainForm, 'bottom', 0, _footer),
+									(_MainForm, 'right', 0, self._detailsToggleBtn),
+									(self._detailsColumn, 'top', 4, _headerColumn),
+									(self._detailsColumn, 'bottom', 1, _footer),
+									(self._detailsToggleBtn, 'right', 0, self._detailsColumn),
+									(self._detailsToggleBtn, 'top', 4, _headerColumn),
+									(self._detailsToggleBtn, 'bottom', 1, _footer)])
 	def show( self ):		
 		self.setVisibility( True )
+		self.buildMenu_options()
 
 
 	#=========================================================================
@@ -698,7 +732,23 @@ example:
 		self.useMayaPyOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use MayaPy",
 		                                         checkBox=self.useMayaPy,
 		                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+		self.showDirectoriesOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
+		                                         checkBox=self.showDirectories,
+		                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 
+	
+	def uiFunc_showDirectories(self, val):
+		self._uiRow_dir(e=True, vis=val)
+		self._uiRow_export(e=True, vis=val)
+	
+	def uiFunc_toggleDisplayInfo(self):
+		self.displayDetails = not self.displayDetails
+		self.SaveOptions()
+	
+	def uiFunc_displayDetails(self, val):
+		self._detailsColumn(e=True, vis=val)
+		self._detailsToggleBtn(e=True, label='>' if val else '<')
+		
 	def buildMenu_tools( self, *args):
 		self.uiMenu_ToolsMenu.clear()
 		#>>> Reset Options		
