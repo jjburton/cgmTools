@@ -1,32 +1,23 @@
 import maya.cmds as mc
 import os
+import cgm.core.lib.hud_utils as HUD
 
-def dbMakeThumbnail():
-
-	filePath = mc.menuItem(dbPoseFilenameMI, q=True label=True )
-	poseFileName[] = mc.textScrollList(poseFileListTSL, q=True si=True )
-	thumbnailPath = os.path.join(filePath, poseFileName[0])
-	selectedPoses[] = mc.textScrollList(poseListTSL, q=True si=True )
-	thumbnail = ""
-	if(selectedPoses[0] != "") :
-		thumbnail = thumbnailPath + selectedPoses[0] + ".jpg"
-	else:
-		error "No pose selected"
-
-	os.mkDir( thumbnailPath )
-
+def MakeThumbnail(filePath, dimensions=(256, 256)):
 	now = mc.currentTime( q=True )
+	
+	defaultImageFormat = mc.getAttr("defaultRenderGlobals.imageFormat")
 	mc.setAttr( "defaultRenderGlobals.imageFormat", 8)
 
 	# turn off all HUDS
-	source xltHUDdisplays.mel
-	showSettings[] = getHUDAttributes(1)
-	hudSettings[] = getHUDAttributes(2)
-	hideHUDAttributes
+	showSettings = HUD.getHUDAttributes('show')
+	hudSettings = HUD.getHUDAttributes('hud')
+	HUD.hideHUDAttributes()
 
-	playblast  format=True image cf=True thumbnail st=True now et=True now forceOverwrite=True  fp=True 0 clearCache=True 1 viewer=True 1 showOrnaments=True 1 percent=True 100 widthHeight=True 180 125
+	playblastImage = mc.playblast( fmt='image', cf=filePath, st=now, et=now, forceOverwrite=True, fp=False, clearCache=True, viewer=True, showOrnaments=True, percent=100, widthHeight=dimensions)
 
 	# turn HUDS back on
-	restoreHUDAttributes(showSettings, hudSettings) 
-
-	image e=True image=True thumbnail thumbNailImage
+	HUD.restoreHUDAttributes(showSettings, hudSettings) 
+	
+	mc.setAttr( "defaultRenderGlobals.imageFormat", defaultImageFormat)
+	
+	return playblastImage

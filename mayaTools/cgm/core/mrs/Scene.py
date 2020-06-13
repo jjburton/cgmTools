@@ -15,6 +15,8 @@ from cgm.core.tools import Project as Project
 from cgm.core.mrs.lib import batch_utils as BATCH
 from cgm.core import cgm_General as cgmGEN
 
+import Red9.core.Red9_General as r9General
+
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
@@ -339,7 +341,7 @@ example:
 		#self.uiImage_Thumb = mUI.MelImage( self._detailsColumn, w=20, h=150 )
 		#self.uiImage_Thumb.setImage( _imageFailPath )
 		
-		mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=150, label="Make Thumbnail")
+		mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=150, label="Make Thumbnail", c= lambda *a:mc.evalDeferred(self.makeThumbnail,lp=True))
 		
 		mc.setParent(self._detailsColumn)
 		cgmUI.add_LineSubBreak()
@@ -757,6 +759,9 @@ example:
 		                                         checkBox=self.showDirectories,
 		                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 
+	
+	def makeThumbnail(self, *args):
+		r9General.thumbNailScreen('D:/thumb2.bmp', 256, 256)		
 	
 	def uiFunc_showDirectories(self, val):
 		self._uiRow_dir(e=True, vis=val)

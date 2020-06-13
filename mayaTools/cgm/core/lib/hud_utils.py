@@ -3,7 +3,7 @@ import cgm.core.lib.camera_utils as CAM
 
 def getHUDAttributes(mode):
 	cameraShape = mc.listRelatives(CAM.getCurrentCamera(), shapes=True)[0]
-	panelName = mc.getPanel( withFocus=True )
+	panelName = CAM.getCurrentPanel()
 	huds = mc.headsUpDisplay( lh=True )
 	hudSettings = {}
 	showSettings = {}
@@ -35,8 +35,8 @@ def getHUDAttributes(mode):
 	showSettings['ha'] = mc.modelEditor( panelName, q=True, ha=True )
 	showSettings['pv'] = mc.modelEditor( panelName, q=True, pv=True )
 	showSettings['tx'] = mc.modelEditor( panelName, q=True, tx=True )
-	showSettings['str'] = mc.modelEditor( panelName, q=True, str=True )
-	showSettings['alo'] = mc.modelEditor( panelName, q=True, alo=True )
+	showSettings['strokes'] = mc.modelEditor( panelName, q=True, strokes=True )
+	#showSettings['alo'] = mc.modelEditor( panelName, q=True, alo=True )
 
 
 	showSettings['displayFilmGate'] = mc.getAttr("{0}.displayFilmGate".format(cameraShape) )
@@ -51,15 +51,15 @@ def getHUDAttributes(mode):
 	for hud in huds:	
 		hudSettings[hud] = mc.headsUpDisplay( hud, q=True, vis=True )
 	
-	if mode == 1:
+	if mode == 'show':
 		return showSettings;
-	else:
+	elif mode == 'hud':
 		return hudSettings;
 
 
 def hideHUDAttributes():
 	cameraShape = mc.listRelatives(CAM.getCurrentCamera(), shapes=True)[0]
-	panelName = mc.getPanel( withFocus=True)
+	panelName = CAM.getCurrentPanel()
 	huds = mc.headsUpDisplay( lh=True)
 
 	#turn off the camera gates
@@ -99,20 +99,19 @@ def hideHUDAttributes():
 					ha = 0,
 					pv = 0,
 					tx = 0,
-					str = 0,
-					alo = 0 )
+					strokes = 0 )
 
 	for hud in huds:	
 		mc.headsUpDisplay( hud, edit=True, vis=False )
 
 def restoreHUDAttributes(showSettings, hudSettings):
 	cameraShape = mc.listRelatives(CAM.getCurrentCamera(), shapes=True)[0]
-	panelName = mc.getPanel( withFocus=True )
+	panelName = CAM.getCurrentPanel()
 	huds = mc.headsUpDisplay( lh=True)
 
 	#restore HUD values
 	for i, hud in enumerate(huds):
-		mc.headsUpDisplay( hud, edit=True, vis=hudSettings[i])
+		mc.headsUpDisplay( hud, edit=True, vis=hudSettings[hud])
 
 	#restore viewport settings
 	mc.modelEditor( panelName, edit=True,
@@ -142,8 +141,8 @@ def restoreHUDAttributes(showSettings, hudSettings):
 			ha = showSettings['ha'],
 			pv = showSettings['pv'],
 			tx = showSettings['tx'],
-			str = showSettings['str'],
-			alo = showSettings['alo'])
+			strokes = showSettings['strokes'])
+			#alo = showSettings['alo']
 
 	#restore camera gates
 	mc.setAttr("{0}.displayFilmGate".format(cameraShape), showSettings['displayFilmGate'])
