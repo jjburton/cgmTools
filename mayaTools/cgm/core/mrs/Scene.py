@@ -4,6 +4,8 @@ import pprint
 from functools import partial
 import os
 import time
+from datetime import datetime
+
 from shutil import copyfile
 #import fnmatch
 import cgm.lib.pyui as pyui
@@ -117,6 +119,7 @@ example:
 		self.sendToProjectMenu           = None
 
 		self.project                     = None
+		self.assetMetaData               = {}
 
 		self.exportCommand               = ""
 
@@ -197,11 +200,11 @@ example:
 	def versionFile(self):
 		if self.hasSub:
 			if self.hasVariant:
-				return os.path.normpath(os.path.join( self.variationDirectory, self.versionList['scrollList'].getSelectedItem() ))
+				return os.path.normpath(os.path.join( self.variationDirectory, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None
 			else:
-				return os.path.normpath(os.path.join( self.subTypeDirectory, self.versionList['scrollList'].getSelectedItem() ))
+				return os.path.normpath(os.path.join( self.subTypeDirectory, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None
 		else:
-			return os.path.normpath(os.path.join( self.subTypeDirectory, self.subTypeSearchList['scrollList'].getSelectedItem() ))
+			return os.path.normpath(os.path.join( self.subTypeDirectory, self.subTypeSearchList['scrollList'].getSelectedItem() )) if self.subTypeSearchList['scrollList'].getSelectedItem() else None
 
 	@property
 	def exportFileName(self):
@@ -332,27 +335,7 @@ example:
 		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True),bgc=(1.0, .445, .08))
 
 		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
-		
-		mUI.MelLabel(self._detailsColumn,l='Details', h=15, ut = 'cgmUIHeaderTemplate')
-		
-		mc.setParent(self._detailsColumn)
-		cgmUI.add_LineSubBreak()		
-		
-		#self.uiImage_Thumb = mUI.MelImage( self._detailsColumn, w=20, h=150 )
-		#self.uiImage_Thumb.setImage( _imageFailPath )
-		
-		mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=150, label="Make Thumbnail", c= lambda *a:mc.evalDeferred(self.makeThumbnail,lp=True))
-		
-		mc.setParent(self._detailsColumn)
-		cgmUI.add_LineSubBreak()
-		
-		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
 			
-		mUI.MelLabel(_row,l='Directory', w=50)
-		_row.setStretchWidget(mUI.MelTextField(_row, text='test', editable = False, bgc=(.8,.8,.8)))	
-
-		_row.layout()	
-		
 		_MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
 		##############################
@@ -659,6 +642,7 @@ example:
 	def show( self ):		
 		self.setVisibility( True )
 		self.buildMenu_options()
+		self.buildDetailsColumn()
 
 
 	#=========================================================================
@@ -758,10 +742,170 @@ example:
 		self.showDirectoriesOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
 		                                         checkBox=self.showDirectories,
 		                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+		
+	def buildDetailsColumn(self):
+		if not self._detailsColumn(q=True, vis=True):
+			return
+		
+		self._detailsColumn.clear()
+		
+		mc.setParent(self._detailsColumn)
+		
+		mUI.MelLabel(self._detailsColumn,l='Details', h=15, ut = 'cgmUIHeaderTemplate')
+		
+		mc.setParent(self._detailsColumn)
+		cgmUI.add_LineSubBreak()		
+		
+		self.uiImage_Thumb = mUI.MelImage( self._detailsColumn, w=140, h=150 )
+		self.uiImage_Thumb(e=True, vis=False)
+		
+		pum = mUI.MelPopupMenu(self.uiImage_Thumb)
+		mUI.MelMenuItem(pum, label="Remake Thumbnail", command=lambda *a:mc.evalDeferred(self.makeThumbnail,lp=True) )		
 
+		self.uiButton_MakeThumb = mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=150, label="Make Thumbnail", c= lambda *a:mc.evalDeferred(self.makeThumbnail,lp=True))
+
+		mc.setParent(self._detailsColumn)
+		cgmUI.add_LineSubBreak()
+		
+		mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=15, label="Refresh MetaData", c= lambda *a:mc.evalDeferred(self.getMetaDataFromCurrent,lp=True))
+		
+		mc.setParent(self._detailsColumn)
+		cgmUI.add_LineSubBreak()	
+		
+		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+			
+		mUI.MelLabel(_row,l='Asset', w=50)
+		_row.setStretchWidget(mUI.MelTextField(_row, text='base', editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelSpacer(_row,w=5)
+
+		_row.layout()
+
+		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+			
+		mUI.MelLabel(_row,l='Type', w=50)
+		_row.setStretchWidget(mUI.MelTextField(_row, text='character', editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelSpacer(_row,w=5)
+
+		_row.layout()
+
+		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+			
+		mUI.MelLabel(_row,l='Saved', w=50)
+		_row.setStretchWidget(mUI.MelTextField(_row, text='6/13/2020 5:23PM', editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelSpacer(_row,w=5)
+
+		_row.layout()	
+
+		mUI.MelLabel(self._detailsColumn,l='Notes', w=50)
+		
+		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+		mUI.MelSpacer(_row,w=5)	
+		
+		noteField = mUI.MelScrollField(_row, h=150, wordWrap=True, editable=True, bgc=(.8,.8,.8))
+		noteField(e=True, changeCommand=cgmGEN.Callback( self.saveMetaNote,noteField ) )
+		_row.setStretchWidget(noteField)
+		mUI.MelSpacer(_row,w=5)
+		_row.layout()
+
+	def makeThumbnail(self):
+		if self.versionFile:
+			path, filename = os.path.split(self.versionFile)
+			basefile = os.path.splitext(filename)[0]
+			
+			metaDir = os.path.join(path, 'meta')
+			if not os.path.exists(metaDir):
+				os.mkdir( os.path.join(path, 'meta') )
+			
+			thumbFile = os.path.join(path, 'meta', '{0}.bmp'.format(basefile))
+			r9General.thumbNailScreen(thumbFile, 256, 256)		
+			self.uiButton_MakeThumb(e=True, vis=False)
+			self.uiImage_Thumb.setImage(thumbFile)
+			self.uiImage_Thumb(e=True, vis=True)
 	
-	def makeThumbnail(self, *args):
-		r9General.thumbNailScreen('D:/thumb2.bmp', 256, 256)		
+	def getThumbnail(self):
+		thumbFile = None
+		
+		if self.versionFile:
+			path, filename = os.path.split(self.versionFile)
+			basefile = os.path.splitext(filename)[0]
+			thumbFile = os.path.join(path, 'meta', '{0}.bmp'.format(basefile))
+			if not os.path.exists(thumbFile):
+				thumbFile = None
+		
+		return thumbFile
+
+	def getMetaDataFromCurrent(self):
+		from cgm.core.mrs.Shots import AnimList
+		import getpass
+		
+		#if os.path.normpath(self.versionFile) != os.path.normpath(mc.file(q=True, loc=True)):
+			#mc.confirmDialog(title="No. Just no.", message="The open file doesn't match the selected file. I refuse to refresh this metaData with the wrong file. It just wouldn't feel right.", button=["Cancel", "Sorry"])
+			#return
+		
+		data = {}
+		data['asset'] = self.assetList['scrollList'].getSelectedItem()
+		data['type'] = self.category
+		data['user'] = getpass.getuser()
+
+		data['saved'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+		data['notes'] = ""
+		
+		data['references'] = []
+		
+		data['startTime'] = mc.playbackOptions(q=True, min=True)
+		data['endTime'] = mc.playbackOptions(q=True, max=True)
+		
+		l = AnimList()
+		data['shots'] = l.SortedList(1)
+		
+		return data
+
+	def getMetaDataFromFile(self):
+		metaFile = None
+		
+		data = {}
+		
+		if self.versionFile:
+			path, filename = os.path.split(self.versionFile)
+			basefile = os.path.splitext(filename)[0]
+			metaFile = os.path.join(path, 'meta', '{0}.dat'.format(basefile))
+			if not os.path.exists(metaFile):
+				metaFile = None
+			else:
+				f = open(metaFile, 'r')
+				data = json.loads(f.read())
+		
+		return data
+
+	def refreshMetaData(self):
+		if os.path.normpath(self.versionFile) != os.path.normpath(mc.file(q=True, loc=True)):
+			mc.confirmDialog(title="No. Just no.", message="The open file doesn't match the selected file. I refuse to refresh this metaData with the wrong file. It just wouldn't feel right.", button=["Cancel", "Sorry"])
+			return
+		
+		notes = self.assetMetaData.get('notes', "")
+		self.assetMetaData = getMetaDataFromCurrent(self)
+		self.assetMetaData['notes'] = notes
+		self.buildDetailsColumn()
+		
+		self.saveMetaData()
+	
+	def saveMetaNote(self, field):
+		self.assetMetaData['notes'] = field.getValue()
+		self.saveMetaData()
+		
+	def saveMetaData(self):
+		if self.versionFile:
+			path, filename = os.path.split(self.versionFile)
+			basefile = os.path.splitext(filename)[0]
+			
+			metaDir = os.path.join(path, 'meta')
+			if not os.path.exists(metaDir):
+				os.mkdir( os.path.join(path, 'meta') )
+			
+			metaFile = os.path.join(path, 'meta', '{0}.dat'.format(basefile))
+			f = open(metaFile, 'w')
+			f.write( json.dumps(self.assetMetaData) )
+			f.close()
 	
 	def uiFunc_showDirectories(self, val):
 		self._uiRow_dir(e=True, vis=val)
@@ -774,6 +918,9 @@ example:
 	def uiFunc_displayDetails(self, val):
 		self._detailsColumn(e=True, vis=val)
 		self._detailsToggleBtn(e=True, label='>' if val else '<')
+		
+		if val:
+			self.buildDetailsColumn()
 		
 	def buildMenu_tools( self, *args):
 		self.uiMenu_ToolsMenu.clear()
@@ -869,7 +1016,7 @@ example:
 		searchableList['selectCommand']
 
 	def clear_search_filter(self, searchableList, *args):
-		print "Clearing search filter for %s with search term %s" % (searchableList['scrollList'], searchableList['searchField'].getValue())
+		log.info( "Clearing search filter for %s with search term %s" % (searchableList['scrollList'], searchableList['searchField'].getValue()) )
 		searchableList['searchField'].setValue("")
 		selected = searchableList['scrollList'].getSelectedItem()
 		searchableList['scrollList'].setItems(searchableList['items'])
@@ -1294,11 +1441,13 @@ example:
 			saveLocation = self.variationDirectory
 
 		saveFile = os.path.normpath(os.path.join(saveLocation, wantedName) ) 
-		print "Saving file: %s" % saveFile
+		log.info( "Saving file: %s" % saveFile )
 		mc.file( rename=saveFile )
 		mc.file( save=True )
 
 		self.LoadVersionList()
+		
+		self.refreshMetaData()
 
 	def OpenDirectory(self, path):
 		os.startfile(path)
@@ -1374,7 +1523,7 @@ example:
 
 		if result == 'OK':
 			newName = mc.promptDialog(query=True, text=True)
-			print 'Renaming %s to %s' % (self.selectedAsset, newName)
+			log.info( 'Renaming %s to %s' % (self.selectedAsset, newName) )
 
 			originalAssetName = self.selectedAsset
 
@@ -1444,13 +1593,13 @@ example:
 
 	def ReferenceFile(self, *args):
 		if not self.assetList['scrollList'].getSelectedItem():
-			print "No asset selected"
+			log.info( "No asset selected" )
 			return
 		if not self.subTypeSearchList['scrollList'].getSelectedItem():
-			print "No animation selected"
+			log.info( "No animation selected" )
 			return
 		if not self.versionList['scrollList'].getSelectedItem():
-			print "No version selected"
+			log.info( "No version selected" )
 			return
 
 		filePath = self.versionFile
