@@ -5,6 +5,7 @@ from functools import partial
 import os
 import time
 from datetime import datetime
+import json
 
 from shutil import copyfile
 #import fnmatch
@@ -491,7 +492,7 @@ example:
 		                            label='Version',ut='cgmUITemplate',
 		                            ann='Select the asset version', en=False)
 
-		self.versionList = self.build_searchable_list(_versionForm, sc=self.StoreCurrentSelection)
+		self.versionList = self.build_searchable_list(_versionForm, sc=self.uiFunc_selectVersionList)
 
 		pum = mUI.MelPopupMenu(self.versionList['scrollList'], pmc=self.UpdateVersionTSLPopup)
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
@@ -742,7 +743,12 @@ example:
 		self.showDirectoriesOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
 		                                         checkBox=self.showDirectories,
 		                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
-		
+	
+	def uiFunc_selectVersionList(self):
+		self.assetMetaData = self.getMetaDataFromFile()
+		self.buildDetailsColumn()
+		self.StoreCurrentSelection()
+	
 	def buildDetailsColumn(self):
 		if not self._detailsColumn(q=True, vis=True):
 			return
@@ -756,56 +762,105 @@ example:
 		mc.setParent(self._detailsColumn)
 		cgmUI.add_LineSubBreak()		
 		
-		self.uiImage_Thumb = mUI.MelImage( self._detailsColumn, w=140, h=150 )
-		self.uiImage_Thumb(e=True, vis=False)
+		thumb = self.getThumbnail()
 		
-		pum = mUI.MelPopupMenu(self.uiImage_Thumb)
-		mUI.MelMenuItem(pum, label="Remake Thumbnail", command=lambda *a:mc.evalDeferred(self.makeThumbnail,lp=True) )		
+		self.uiImage_Thumb = mUI.MelImage( self._detailsColumn, w=130, h=150 )
+		self.uiImage_Thumb(e=True, vis=(thumb != None))
 
-		self.uiButton_MakeThumb = mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=150, label="Make Thumbnail", c= lambda *a:mc.evalDeferred(self.makeThumbnail,lp=True))
+		if thumb:
+			self.uiImage_Thumb.setImage(thumb)
+			
+		pum = mUI.MelPopupMenu(self.uiImage_Thumb)
+		mUI.MelMenuItem(pum, label="Remake Thumbnail", command=cgmGEN.Callback(self.makeThumbnail) )		
+
+		self.uiButton_MakeThumb = mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=150, label="Make Thumbnail", c=cgmGEN.Callback(self.makeThumbnail), vis=(thumb == None))
 
 		mc.setParent(self._detailsColumn)
 		cgmUI.add_LineSubBreak()
 		
-		mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=15, label="Refresh MetaData", c= lambda *a:mc.evalDeferred(self.getMetaDataFromCurrent,lp=True))
+		mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=15, label="Refresh MetaData", c=cgmGEN.Callback(self.refreshMetaData) )
 		
 		mc.setParent(self._detailsColumn)
 		cgmUI.add_LineSubBreak()	
 		
 		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
 			
-		mUI.MelLabel(_row,l='Asset', w=50)
-		_row.setStretchWidget(mUI.MelTextField(_row, text='base', editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelLabel(_row,l='Asset', w=70)
+		_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('asset', ""), editable = False, bgc=(.8,.8,.8)))	
 		mUI.MelSpacer(_row,w=5)
 
 		_row.layout()
 
 		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
 			
-		mUI.MelLabel(_row,l='Type', w=50)
-		_row.setStretchWidget(mUI.MelTextField(_row, text='character', editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelLabel(_row,l='Type', w=70)
+		_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('type', ""), editable = False, bgc=(.8,.8,.8)))	
 		mUI.MelSpacer(_row,w=5)
 
 		_row.layout()
 
 		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
 			
-		mUI.MelLabel(_row,l='Saved', w=50)
-		_row.setStretchWidget(mUI.MelTextField(_row, text='6/13/2020 5:23PM', editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelLabel(_row,l='SubType', w=70)
+		_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('subType', ""), editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelSpacer(_row,w=5)
+
+		_row.layout()
+
+		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+			
+		mUI.MelLabel(_row,l='SubAsset', w=70)
+		_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('subTypeAsset', ""), editable = False, bgc=(.8,.8,.8)))	
 		mUI.MelSpacer(_row,w=5)
 
 		_row.layout()	
 
-		mUI.MelLabel(self._detailsColumn,l='Notes', w=50)
+		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+			
+		mUI.MelLabel(_row,l='Variation', w=70)
+		_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('variation', ""), editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelSpacer(_row,w=5)
+
+		_row.layout()	
+
+		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+			
+		mUI.MelLabel(_row,l='User', w=70)
+		_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('user', ""), editable = False, bgc=(.8,.8,.8)))	
+		mUI.MelSpacer(_row,w=5)
+
+		_row.layout()	
+
+		mUI.MelLabel(self._detailsColumn,l='Notes', w=70)
 		
 		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
-		mUI.MelSpacer(_row,w=5)	
-		
-		noteField = mUI.MelScrollField(_row, h=150, wordWrap=True, editable=True, bgc=(.8,.8,.8))
+		mUI.MelSpacer(_row,w=5)		
+		noteField = mUI.MelScrollField(_row, h=150, text=self.assetMetaData.get('notes', ""), wordWrap=True, editable=True, bgc=(.8,.8,.8))
 		noteField(e=True, changeCommand=cgmGEN.Callback( self.saveMetaNote,noteField ) )
 		_row.setStretchWidget(noteField)
 		mUI.MelSpacer(_row,w=5)
 		_row.layout()
+		
+		mUI.MelLabel(self._detailsColumn,l='References', w=50)
+		
+		for ref in self.assetMetaData.get('references', []):
+			_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+			mUI.MelSpacer(_row,w=5)		
+			_row.setStretchWidget(mUI.MelTextField(_row, text=ref, editable = False, bgc=(.8,.8,.8)))
+			mUI.MelSpacer(_row,w=5)
+			_row.layout()			
+
+		mUI.MelLabel(self._detailsColumn,l='Shots', w=50)
+		
+		for shot in self.assetMetaData.get('shots', []):
+			_row = mUI.MelHRowLayout(self._detailsColumn, w=150)
+			mUI.MelSpacer(_row,w=5)
+			mUI.MelTextField(_row, text=shot[0], editable = False, bgc=(.8,.8,.8), w = 80)
+			mUI.MelTextField(_row, text=shot[1][0], editable = False, bgc=(.8,.8,.8), w=40)
+			mUI.MelTextField(_row, text=shot[1][1], editable = False, bgc=(.8,.8,.8), w=40)
+			mUI.MelTextField(_row, text=shot[1][2], editable = False, bgc=(.8,.8,.8), w=40)
+			mUI.MelSpacer(_row,w=5)
+			_row.layout()
 
 	def makeThumbnail(self):
 		if self.versionFile:
@@ -845,12 +900,15 @@ example:
 		data = {}
 		data['asset'] = self.assetList['scrollList'].getSelectedItem()
 		data['type'] = self.category
+		data['subType'] = self.subType
+		data['subTypeAsset'] = self.subTypeSearchList['scrollList'].getSelectedItem() if self.hasSub else ""
+		data['variation'] = self.variationList['scrollList'].getSelectedItem() if self.hasVariant else ""
 		data['user'] = getpass.getuser()
 
 		data['saved'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
 		data['notes'] = ""
 		
-		data['references'] = []
+		data['references'] = [os.path.normpath(x).replace(os.path.normpath(self.directory), "") for x in mc.file(q=True, r=True)]
 		
 		data['startTime'] = mc.playbackOptions(q=True, min=True)
 		data['endTime'] = mc.playbackOptions(q=True, max=True)
@@ -883,10 +941,10 @@ example:
 			return
 		
 		notes = self.assetMetaData.get('notes', "")
-		self.assetMetaData = getMetaDataFromCurrent(self)
+		self.assetMetaData = self.getMetaDataFromCurrent()
 		self.assetMetaData['notes'] = notes
-		self.buildDetailsColumn()
 		
+		self.buildDetailsColumn()
 		self.saveMetaData()
 	
 	def saveMetaNote(self, field):
@@ -906,6 +964,8 @@ example:
 			f = open(metaFile, 'w')
 			f.write( json.dumps(self.assetMetaData) )
 			f.close()
+			
+			log.info('wrote file: {0}'.format(metaFile))
 	
 	def uiFunc_showDirectories(self, val):
 		self._uiRow_dir(e=True, vis=val)
@@ -1138,7 +1198,7 @@ example:
 
 	def LoadVariationList(self, *args):
 		if not self.hasSub:
-			self.StoreCurrentSelection()
+			self.uiFunc_selectVersionList()
 			return
 		if not self.hasVariant:
 			self.LoadVersionList()
