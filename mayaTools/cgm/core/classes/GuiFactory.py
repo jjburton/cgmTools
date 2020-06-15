@@ -1927,6 +1927,7 @@ class cgmScrollList(mUI.BaseMelWidget):
         log.debug(cgmGEN.logString_start('clear'))                
         self( e=True, ra=True )
         self._l_str_loaded = []
+        self._items = []
         # self._ml_loaded = []
         
     def clearSelection( self,):
