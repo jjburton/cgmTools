@@ -335,7 +335,7 @@ example:
 		
 		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True),bgc=(1.0, .445, .08))
 
-		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
+		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=272)
 			
 		_MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
@@ -701,7 +701,8 @@ example:
 		                    rp = 'N')    
 		mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Log Self",
 		                 c=lambda *a: cgmUI.log_selfReport(self) )
-
+	
+	#@cgmGEN.Timer
 	def buildMenu_file( self, *args):
 		self.uiMenu_FileMenu.clear()
 		#>>> Reset Options			
