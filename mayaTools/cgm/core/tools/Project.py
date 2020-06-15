@@ -19,7 +19,7 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__version__ = "1.06.07.2020"
+__version__ = "1.06.15.2020"
 __MAYALOCAL = 'CGMPROJECT'
 
 
@@ -137,10 +137,10 @@ def uiAsset_addSub(self):
 def uiAsset_remove(self):
     _str_func = 'uiAsset_remove'
     log.debug("|{0}| >>...".format(_str_func))
-    
-    _value = self.uiAssetTypeOptions.getValue()
+    #mUI.MelOptionMenu
+    _value = self.uiAssetTypeOptions.getSelectedIdx()
     print _value
-    self.mDat.assetType_remove(_value)
+    self.mDat.assetType_remove(idx=_value)
     uiAsset_rebuildOptionMenu(self)
     uiAsset_rebuildSub(self)
     
@@ -2433,8 +2433,12 @@ class data(object):
             
             
             
-    def assetType_remove(self,arg=None):
+    def assetType_remove(self,arg=None,idx= None):
         _str_func = 'data.assetType_remove'
+        if idx is not None:
+            self.assetDat.pop(idx)
+            return True
+            
         _idx = self.assetType_get(arg,idx=True)
         
         if _idx != False:
