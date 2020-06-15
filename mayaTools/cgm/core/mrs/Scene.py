@@ -2060,7 +2060,7 @@ def BatchExport(dataList = []):
 			log.error("Invalid file: {0}".format(_path))
 			continue
 
-		mc.file(_path, open = 1, f = 1)
+		mc.file(_path, open = 1, f = 1, iv = 1)
 
 		# if not _d['exportObjs']:
 		# 	log.info(cgmGEN.logString_sub(_str_func,"Trying to find masters..."))
