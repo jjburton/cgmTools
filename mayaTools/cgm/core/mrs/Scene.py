@@ -1555,7 +1555,7 @@ example:
 			self.exportDirectoryTF.setValue( self.exportDirectory )
 			# self.optionVarExportDirStore.setValue( self.exportDirectory )
 
-			self.categoryList = self.project.d_structure['assetTypes'] if 'assetTypes' in self.project.d_structure else self.project.assetTypes_get()
+			self.categoryList = self.project.assetTypes_get() if self.project.assetTypes_get() else self.project.d_structure.get('assetTypes', [])
 
 			try:
 				self.subTypes = [x['n'] for x in self.project.assetType_get(self.category)['content']]
