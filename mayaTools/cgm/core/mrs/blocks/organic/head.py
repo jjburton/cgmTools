@@ -1505,7 +1505,7 @@ def rig_prechecks(self):
             self.l_precheckErrors.append("Neck control count must be equal or less than neck joint count")
             
         if mBlock.getEnumValueString('squashMeasure') == 'pointDist':
-            self.l_precheckErrors.append('pointDist squashMeasure mode not recommended')
+            self.l_precheckWarnings.append('pointDist squashMeasure mode not recommended')
             
         if mBlock.neckIK not in [0,3]:
             self.l_precheckErrors.append("Haven't setup neck mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'neckIK')))
@@ -4281,7 +4281,57 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
             
         mRigNull.msgList_connect('proxyMesh', ml_neckProxy + ml_headStuff)
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
+
+def controller_getDat(self):
+    _str_func = 'controller_getDat'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    mRigNull = self.rigNull
+    
+    def checkList(l):
+        ml = []
+        for o in l:
+            if mRigNull.getMessage(o):
+                log.debug("|{0}| >>  Message found: {1} ".format(_str_func,o))                
+                mObj = mRigNull.getMessage(o,asMeta=True)[0]
+                if mObj not in ml:ml.append(mObj)
+            elif mRigNull.msgList_exists(o):
+                log.debug("|{0}| >>  msgList found: {1} ".format(_str_func,o))                
+                _msgList = mRigNull.msgList_get(o)
+                for mObj in _msgList:
+                    if mObj not in ml:ml.append(mObj)
+        return ml
+    
+    md = {}
+
+    #Root...
+    md['root'] =  checkList(['cog','rigRoot','limbRoot'])
+
+    md['settings'] =  checkList(['mSettings','settings'])
+    
+    #Direct...
+    md['direct'] = mRigNull.msgList_get('rigJoints')
+    
+    md['pivots'] = checkList(['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder])
+    
+    #FK...
+    md['fk'] = checkList(['leverFK','fkJoints','controlsFK','controlFK'])
+    
+    md['noHide'] = md['root'] + md['settings']
+    
+    #IK...
+    md['ik'] = checkList(['leverFK',
+                          'controlIKBase',
+                          'controlIKMid','controlSegMidIK',
+                          'controlBallRotation','leverIK',
+                          'controlIKBall','controlIKBallHinge','controlIKToe',
+                          'controlIKEnd','controlIK'])
+    #seg...
+    md['segmentHandles'] = mRigNull.msgList_get('handleJoints')
+        
+        
+    return md
 
 
 

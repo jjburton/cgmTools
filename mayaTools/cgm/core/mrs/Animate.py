@@ -105,7 +105,7 @@ class ui(cgmUI.cgmGUI):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 300,500
-    TOOLNAME = '{0}.cgmUI'.format(__toolname__)
+    TOOLNAME = '{0}UI'.format(__toolname__)
     
     is_dragging_tween = False
 
@@ -133,9 +133,9 @@ class ui(cgmUI.cgmGUI):
         self._l_contexts = _l_contexts
         self._l_contextTime = _l_contextTime
         self._l_contextKeys = _l_contextKeys
-        
+        self.mmCallback = cgmGEN.Callback
         MRSANIMUTILS.uiSetup_context(self,self.__class__.TOOLNAME)
-        
+        self.mmCallback = cgmGEN.Callback
 
         """
         try:self.var_poseMatchMethod
@@ -2134,7 +2134,7 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
 
 _l_timeFunctions = ['reset','report',
                     'resetFK','resetIK','resetIKEnd','resetSeg','resetDirect',
-                    'FKon','IKon','FKsnap','IKsnap','IKsnapAll',
+                    'FKon','IKon','FKsnap','IKsnap','IKsnapAll','mirrorPush','mirrorPull','mirrorFlip',
                    'aimToFK','aimOn','aimOff','aimToIK','aimSnap',
                    'aimSnap','aimToIK','aimToFK']
 
@@ -2165,11 +2165,12 @@ def uiCB_contextualAction(self,**kws):
     #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
     #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
     
-    try:contextArg = self.__class__.TOOLNAME
+    try:contextArg = self.__class__.TOOLNAME 
     except:contextArg = False
         
+    log.debug(cgmGEN.logString_msg(_str_func,"contextArg: {0}".format(contextArg)))
     d_contextSettings = MRSANIMUTILS.get_contextDict(contextArg)
-    
+    d_contextSettings['contextPrefix'] = contextArg
 
     _mode = kws.pop('mode',False)
     
@@ -2206,6 +2207,7 @@ def uiCB_contextualAction(self,**kws):
     
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
     
+    log.debug("contextualAction pre...")
     pprint.pprint(d_contextSettings)
     
     _ml_controls = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
@@ -2409,7 +2411,13 @@ def uiCB_contextualAction(self,**kws):
             self.mDat.key()
             return endCall(self)    
     
-    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**d_contextSettings)#get_contextTimeDat(self,_mirrorQuery,**kws)
+    
+    log.debug(cgmGEN.logString_sub(_str_func,'contextualAction | time query | mirrorQuery: {0}'.format(_mirrorQuery)))
+    _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**d_contextSettings)
+    log.debug("contextualAction time...")
+    pprint.pprint(d_contextSettings)
+    pprint.pprint(_res)
+    #get_contextTimeDat(self,_mirrorQuery,**kws)
     try:
         if not _res[0]:
             return log.error(_res[1])
@@ -2418,7 +2426,10 @@ def uiCB_contextualAction(self,**kws):
             return log.error("Nothing found in time context: {0} ".format(_contextTime))
     
     if _mode == 'report':
+        log.debug(cgmGEN.logString_sub(_str_func,'reportTime'))
+        
         self.mDat.report_timeDat()
+        log.debug("contextualAction | report time...")
         return endCall(self,True)
         
     #Frame Processing ============================================================================

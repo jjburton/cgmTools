@@ -70,6 +70,8 @@ import cgm.core.cgm_RigMeta as cgmRIGMETA
 import cgm.core.rig.skin_utils as CORESKIN
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+
 #for m in RIGSHAPES,CURVES,BUILDUTILS,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
 #    reload(m)
     
@@ -1480,6 +1482,7 @@ def rig_skeleton(self):
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
             
         
+            
         if mBlock.numJoints > mBlock.numControls or self.b_squashSetup:# or str_ikSetup == 'ribbon':
             log.debug("|{0}| >> Handles...".format(_str_func))            
             ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
@@ -1504,7 +1507,7 @@ def rig_skeleton(self):
             if ml_blendJoints:
                 ml_rigParents = ml_blendJoints
             for i,mJnt in enumerate(ml_rigJoints):
-                mJnt.parent = ml_blendJoints[i]
+                mJnt.parent = ml_rigParents[i]
                 
             if str_ikBase == 'hips':
                 log.debug("|{0}| >> Simple setup. Need single handle.".format(_str_func))
@@ -1620,24 +1623,27 @@ def rig_shapes(self):
                                           offset = _offset,
                                           mode = 'frameHandle')
     
-        #IK Shapes=====================================================================
-        #IK End ---------------------------------------------------------------------------------
-        d_ikEnd = {}
+        
         if mBlock.ikSetup:
-            if str_ikSetup == 'spline':
-                #use_ikEnd = 'shapeArg'
-                d_ikEnd = {'shapeArg':'locatorForm'}
-            else:
-                use_ikEnd = str_ikEnd
-                
-            RIGSHAPES.ik_end(self,str_ikEnd,ml_handleTargets,ml_rigJoints,ml_fkShapes,ml_ikJoints,ml_fkJoints,**d_ikEnd)
-    
-    
-        if mBlock.ikBase:
-            RIGSHAPES.ik_base(self,None,ml_fkJoints,ml_fkShapes)
             
-        if str_ikSetup == 'rp':
-            RIGSHAPES.ik_rp(self,None,ml_ikJoints)            
+            #IK Shapes=====================================================================
+            #IK End ---------------------------------------------------------------------------------
+            d_ikEnd = {}
+            if mBlock.ikSetup:
+                if str_ikSetup == 'spline':
+                    #use_ikEnd = 'shapeArg'
+                    d_ikEnd = {'shapeArg':'locatorForm'}
+                else:
+                    use_ikEnd = str_ikEnd
+                    
+                RIGSHAPES.ik_end(self,str_ikEnd,ml_handleTargets,ml_rigJoints,ml_fkShapes,ml_ikJoints,ml_fkJoints,**d_ikEnd)
+        
+        
+            if mBlock.ikBase:
+                RIGSHAPES.ik_base(self,None,ml_fkJoints,ml_fkShapes)
+                
+            if str_ikSetup == 'rp':
+                RIGSHAPES.ik_rp(self,None,ml_ikJoints)            
             
         #FK...=======================================================================
         log.debug("|{0}| >> FK...".format(_str_func))
@@ -3038,7 +3044,54 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
     
+def controller_getDat(self):
+    _str_func = 'controller_getDat'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    mRigNull = self.rigNull
     
+    def checkList(l):
+        ml = []
+        for o in l:
+            if mRigNull.getMessage(o):
+                log.debug("|{0}| >>  Message found: {1} ".format(_str_func,o))                
+                mObj = mRigNull.getMessage(o,asMeta=True)[0]
+                if mObj not in ml:ml.append(mObj)
+            elif mRigNull.msgList_exists(o):
+                log.debug("|{0}| >>  msgList found: {1} ".format(_str_func,o))                
+                _msgList = mRigNull.msgList_get(o)
+                for mObj in _msgList:
+                    if mObj not in ml:ml.append(mObj)
+        return ml
+    
+    md = {}
+
+    #Root...
+    md['root'] =  checkList(['cog','rigRoot','limbRoot'])
+
+    md['settings'] =  checkList(['mSettings','settings'])
+    
+    #Direct...
+    md['direct'] = mRigNull.msgList_get('rigJoints')
+    
+    md['pivots'] = checkList(['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder])
+    
+    #FK...
+    md['fk'] = checkList(['leverFK','fkJoints','controlsFK','controlFK'])
+    
+    md['noHide'] = md['root'] + md['settings']
+    
+    #IK...
+    md['ik'] = checkList(['leverFK',
+                          'controlIKBase',
+                          'controlIKMid','controlSegMidIK',
+                          'controlBallRotation','leverIK',
+                          'controlIKBall','controlIKBallHinge','controlIKToe',
+                          'controlIKEnd','controlIK'])
+    #seg...
+    md['segmentHandles'] = mRigNull.msgList_get('handleJoints')
+        
+        
+    return md
     
     
     

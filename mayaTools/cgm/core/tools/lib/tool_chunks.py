@@ -112,6 +112,15 @@ def uiSection_help(parent):
                 l='cgmUpdateTool',
                 ann = "Get Tool Updates",
                 c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))"""
+    mc.menuItem(parent = parent,
+                l='About CGM',
+                ann = "About CGM",
+                c=lambda *a: cgmUI.uiWindow_thanks(False))  
+    
+    mc.menuItem(parent = parent,
+                l='Support our Work',
+                ann = "Support our work",
+                c=lambda *a: webbrowser.open("https://www.patreon.com/mrsmakers"))  
     
     mc.menuItem(parent = parent,
                 l='CGM Docs',
@@ -124,7 +133,7 @@ def uiSection_help(parent):
                 c=lambda *a: webbrowser.open("https://github.com/jjburton/cgmTools/issues/new"))    
     mc.menuItem(parent = parent,
                 l='Get Builds',
-                ann = "Get the latest builds of cgmTools from bitBucket",
+                ann = "Get the latest builds of cgmTools from gitHub",
                 c=lambda *a: webbrowser.open("https://github.com/jjburton/cgmTools")) 
     _vids = mc.menuItem(parent = parent,subMenu = True,
                         l='Videos')
@@ -1379,7 +1388,6 @@ def uiSection_rayCast(parent, selection = None):
                     c = cgmGEN.Callback(SNAPCALLS.rayCast_create,selection,m,True),
                     ann = "Create {0} by drag rayCasting".format(m))            
 
-    
 
 def uiFunc_createOneOfEach():
     var_createSizeValue = cgmMeta.cgmOptionVar('cgmVar_createSizeValue', defaultValue=1.0)        
