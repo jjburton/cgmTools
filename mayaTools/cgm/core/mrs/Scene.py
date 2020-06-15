@@ -209,7 +209,14 @@ example:
 
 	@property
 	def exportFileName(self):
-		return '%s_%s_%s.fbx' % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem(), self.variationList['scrollList'].getSelectedItem())
+		if self.hasSub:
+			if self.hasVariant:
+				return '{0}_{1}_{2}.fbx'.format(self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem(), self.variationList['scrollList'].getSelectedItem())
+			else:
+				return '{0}_{1}.fbx'.format(self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
+		else:
+			return '{0}_{1}.fbx'.format(self.assetList['scrollList'].getSelectedItem(), self.subType)
+		
 
 	@property
 	def category(self):
