@@ -107,9 +107,6 @@ example:
 		self.uiMenu_OptionsMenu          = None
 		self.categoryBtn                 = None
 		self.subTypeBtn                  = None
-		self.openInExplorerMB            = None
-		self.openRigMB                   = None
-		self.referenceRigMB              = None
 		self.exportQueueFrame            = None
 		self.categoryMenu                = None
 		self.categoryMenuItemList        = []
@@ -224,7 +221,7 @@ example:
 
 	@property
 	def subType(self):
-		return self.subTypes[min(self.subTypeIndex, len(self.subTypes)-1)]
+		return self.subTypes[min(self.subTypeIndex, len(self.subTypes)-1)] if self.subTypes else None
 	
 	@property
 	def hasSub(self):
@@ -239,6 +236,16 @@ example:
 		try:
 			r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasVariant', False)
 			return r
+		except:
+			return True
+	
+	def HasSub(self, category, subType):
+		try:
+			hasSub = True
+			for sub in self.project.assetType_get(category)['content']:
+				if sub['n'] == subType:
+					hasSub = sub.get('hasSub', True)
+			return hasSub
 		except:
 			return True
 	
@@ -260,7 +267,7 @@ example:
 		self.buildMenu_subTypes()
 		self.SetCategory(self.categoryIndex)
 		self.LoadPreviousSelection()
-		self.uiFunc_showDirectories(self.showDirectories)
+		self.uiFunc_showDirectories(self.showDirectories)	
 		self.uiFunc_displayDetails(self.displayDetails)
 			
 		self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
@@ -398,19 +405,7 @@ example:
 
 		self.assetList = self.build_searchable_list(_catForm, sc=self.LoadSubTypeList)
 
-		pum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
-		self.renameAssetMB = mUI.MelMenuItem(pum, label="Rename Asset", command=self.RenameAsset )
-
-
-		self.openInExplorerMB = mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenAssetDirectory )
-		self.openMayaFileHereMB = mUI.MelMenuItem(pum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.categoryDirectory, self.selectedAsset) ))
-
-
-		self.openRigMB = mUI.MelMenuItem(pum, label="Open Rig", subMenu=True )
-		self.referenceRigMB = mUI.MelMenuItem(pum, label="Reference Rig", subMenu=True )
-		self.refreshAssetListMB = mUI.MelMenuItem(pum, label="Refresh", command=self.LoadCategoryList )
-
-
+		self.assetTSLpum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
 
 		self.assetButton = mUI.MelButton(_catForm, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
 
@@ -447,7 +442,8 @@ example:
 		pum = mUI.MelPopupMenu(self.subTypeSearchList['scrollList'])
 		mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenSubTypeDirectory )
 		mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
-
+		self._referenceSubTypePUM = mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile, en=False )
+		
 		self.subTypeButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateSubAsset)
 
 		_animForm( edit=True, 
@@ -759,8 +755,9 @@ example:
 	
 	def buildDetailsColumn(self):
 		if not self._detailsColumn(q=True, vis=True):
+			log.info("details column isn't visible")
 			return
-		
+			
 		self._detailsColumn.clear()
 		
 		mc.setParent(self._detailsColumn)
@@ -927,6 +924,8 @@ example:
 		return data
 
 	def getMetaDataFromFile(self):
+		_func_str = 'Scene.getMetaDataFromFile'
+		
 		metaFile = None
 		
 		data = {}
@@ -936,11 +935,13 @@ example:
 			basefile = os.path.splitext(filename)[0]
 			metaFile = os.path.join(path, 'meta', '{0}.dat'.format(basefile))
 			if not os.path.exists(metaFile):
+				log.info("{0} | No meta file found".format(_func_str))
 				metaFile = None
 			else:
 				f = open(metaFile, 'r')
 				data = json.loads(f.read())
-		
+		else:
+			log.info("{0} | No version file found".format(_func_str))
 		return data
 
 	def refreshMetaData(self):
@@ -1005,6 +1006,11 @@ example:
 
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Remap Unlinked Textures",
 		                 c = lambda *a:mc.evalDeferred(self.RemapTextures,lp=True))
+
+		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Verify Asset Dirs",
+		                 c = cgmGEN.Callback(self.VerifyAssetDirs) )
+
+
 
 	def RemapTextures(self, *args):
 		import cgm.tools.findTextures as findTextures
@@ -1174,8 +1180,11 @@ example:
 	def LoadSubTypeList(self, *args):
 		if not self.hasSub:
 			self.LoadVersionList()
+			self._referenceSubTypePUM(e=True, en=True)
 			return
-
+		
+		self._referenceSubTypePUM(e=True, en=False)
+		
 		animList = []
 
 		if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem():
@@ -1352,8 +1361,12 @@ example:
 
 		if self.optionVarLastAnimStore.getValue():
 			self.subTypeSearchList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
-
+		
 		self.LoadVariationList()
+		
+		if not self.hasSub:
+			self.assetMetaData = self.getMetaDataFromFile()		
+			return
 
 		if self.optionVarLastVariationStore.getValue():
 			self.variationList['scrollList'].selectByValue( self.optionVarLastVariationStore.getValue() )
@@ -1363,6 +1376,7 @@ example:
 		if self.optionVarLastVersionStore.getValue():
 			self.versionList['scrollList'].selectByValue( self.optionVarLastVersionStore.getValue() )
 
+		self.assetMetaData = self.getMetaDataFromFile()	
 
 	def ClearPreviousDirectories(self, *args):		
 		self.optionVarDirStore.clear()
@@ -1461,7 +1475,8 @@ example:
 			log.error("No asset selected")
 			return
 		
-		existingFiles = self.versionList['items'] if self.hasSub else self.subTypeSearchList['items']
+		versionList = self.versionList if self.hasSub else self.subTypeSearchList
+		existingFiles = versionList['items']
 
 		#animationName = self.subTypeSearchList['scrollList'].getSelectedItem()
 		wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem() if self.hasSub else self.subType)
@@ -1512,7 +1527,9 @@ example:
 		log.info( "Saving file: %s" % saveFile )
 		mc.file( rename=saveFile )
 		mc.file( save=True )
-
+		
+		
+		
 		self.LoadVersionList()
 		
 		self.refreshMetaData()
@@ -1523,7 +1540,7 @@ example:
 	def LoadProject(self, path, *args):
 		if not os.path.exists(path):
 			mel.eval('warning "No Project Set"')
-
+		
 		self.project = Project.data(filepath=path)
 		_bgColor = self.v_bgc
 		try:
@@ -1557,10 +1574,7 @@ example:
 
 			self.categoryList = self.project.assetTypes_get() if self.project.assetTypes_get() else self.project.d_structure.get('assetTypes', [])
 
-			try:
-				self.subTypes = [x['n'] for x in self.project.assetType_get(self.category)['content']]
-			except:
-				self.subTypes = ['animation']
+			self.subTypes = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
 
 			if os.path.exists(d_userPaths['image']):
 				self.uiImage_Project.setImage(d_userPaths['image'])
@@ -1574,8 +1588,9 @@ example:
 
 			mc.workspace( d_userPaths['content'], openWorkspace=True )
 
-			self.LoadOptions()
+			self.assetMetaData = {}
 
+			self.LoadOptions()
 		else:
 			mel.eval('error "Project path does not exist"')
 		return True
@@ -1660,21 +1675,30 @@ example:
 		self.OpenDirectory(self.variationDirectory)
 
 	def ReferenceFile(self, *args):
-		if not self.assetList['scrollList'].getSelectedItem():
-			log.info( "No asset selected" )
-			return
-		if not self.subTypeSearchList['scrollList'].getSelectedItem():
-			log.info( "No animation selected" )
-			return
-		if not self.versionList['scrollList'].getSelectedItem():
-			log.info( "No version selected" )
-			return
+		#if not self.assetList['scrollList'].getSelectedItem():
+			#log.info( "No asset selected" )
+			#return
+		#if not self.subTypeSearchList['scrollList'].getSelectedItem():
+			#log.info( "No animation selected" )
+			#return
+		#if not self.versionList['scrollList'].getSelectedItem():
+			#log.info( "No version selected" )
+			#return
 
 		filePath = self.versionFile
-		mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem())
+		if os.path.exists(self.versionFile):
+			mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
+		else:
+			log.info( "Version file doesn't exist" )
 
 	def UpdateAssetTSLPopup(self, *args):
-
+		self.assetTSLpum.clear()
+		self.renameAssetMB = mUI.MelMenuItem(self.assetTSLpum, label="Rename Asset", command=self.RenameAsset )
+		self.openInExplorerMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Explorer", command=self.OpenAssetDirectory )
+		self.openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.categoryDirectory, self.selectedAsset) ))
+		#self.openRigMB = mUI.MelMenuItem(self.assetTSLpum, label="Open Rig", subMenu=True )
+		#self.referenceRigMB = mUI.MelMenuItem(self.assetTSLpum, label="Reference Rig", subMenu=True )
+		
 		for item in self.assetRigMenuItemList:
 			mc.deleteUI(item, menuItem=True)
 		for item in self.assetReferenceRigMenuItemList:
@@ -1683,27 +1707,40 @@ example:
 		self.assetRigMenuItemList = []
 		self.assetReferenceRigMenuItemList = []
 
-		if self.assetDirectory:
-			assetList = ASSET.AssetDirectory(self.assetDirectory)
-			directoryList = assetList.GetFullPaths()
+		openMB = mUI.MelMenuItem(self.assetTSLpum, label="Open", subMenu=True )
+		referenceMB = mUI.MelMenuItem(self.assetTSLpum, label="Reference", subMenu=True )
 
+		for subType in self.subTypes:
+			if self.HasSub(self.category, subType):
+				continue
+			
+			assetList = ASSET.AssetDirectory(os.path.join(self.assetDirectory, subType), self.selectedAsset, subType)
+			directoryList = assetList.GetFullPaths()
+			
+			if len(assetList.versions) == 0:
+				continue
+			
+			openRigMB = mUI.MelMenuItem(openMB, label=subType, subMenu=True )
+			referenceRigMB = mUI.MelMenuItem(referenceMB, label=subType, subMenu=True )
+								
 			#rigPath = #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
-			if len(assetList.versions) > 0:
-				mc.menuItem( self.openRigMB, e=True, enable=True )
-				mc.menuItem( self.referenceRigMB, e=True, enable=True )
-			else:
-				mc.menuItem( self.openRigMB, e=True, enable=False )
-				mc.menuItem( self.referenceRigMB, e=True, enable=False )
+			#if len(assetList.versions) > 0:
+				#mc.menuItem( openRigMB, e=True, enable=True )
+				#mc.menuItem( referenceRigMB, e=True, enable=True )
+			#else:
+				#mc.menuItem( openRigMB, e=True, enable=False )
+				#mc.menuItem( referenceRigMB, e=True, enable=False )
 
 			for i,rig in enumerate(assetList.versions):
-				item = mUI.MelMenuItem( self.openRigMB, l=rig,
+				item = mUI.MelMenuItem( openRigMB, l=rig,
 				                        c = partial(self.OpenRig,directoryList[i]))
 				self.assetRigMenuItemList.append(item)
 
-				item = mUI.MelMenuItem( self.referenceRigMB, l=rig,
+				item = mUI.MelMenuItem( referenceRigMB, l=rig,
 				                        c = partial(self.ReferenceRig,directoryList[i]))
 				self.assetReferenceRigMenuItemList.append(item)
 
+		self.refreshAssetListMB = mUI.MelMenuItem(self.assetTSLpum, label="Refresh", command=self.LoadCategoryList )
 
 	def UpdateVersionTSLPopup(self, *args):	
 		for item in self.sendToProjectMenuItemList:
@@ -1797,6 +1834,21 @@ example:
 		if os.path.exists(rigPath):
 			assetName = os.path.basename(os.path.dirname(rigPath))
 			mc.file(rigPath, r=True, ignoreVersion=True, gl=True, mergeNamespacesOnClash=False, namespace=assetName)
+	
+	def VerifyAssetDirs(self):
+		_str_func = 'Scene.VerifyAssetDirs'
+		assetName = self.selectedAsset
+		assetPath = os.path.normpath(os.path.join(self.categoryDirectory, assetName))
+		#subTypes = [x['n'] for x in self.project.assetType_get(category).get('content', [{'n':'animation'}])]
+		
+		if not os.path.exists(assetPath):
+			os.mkdir(charPath)
+			log.info('{0}>> Path not found. Appending: {1}'.format(_str_func, assetPath))		
+		for subType in self.subTypes:
+			subPath = os.path.normpath(os.path.join(assetPath, subType))
+			if not os.path.exists(subPath):
+				os.mkdir(subPath)
+				log.info('{0}>> Path not found. Appending: {1}'.format(_str_func, subPath))
 
 	def AddLastToExportQueue(self, *args):
 		if self.variationList != None:

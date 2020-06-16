@@ -72,16 +72,17 @@ example:
 class AssetDirectory(object):
     name = ""
 
-    def __init__(self, dir):
+    def __init__(self, dir,assetName = None, assetType = 'rig'):
         self.directory = dir
-        self.name = os.path.basename(dir)
+        self.name = assetName if assetName else os.path.basename(dir)
+        self.assetType = assetType
 
 
     @property
     def versions(self):
       versions = []
       for f in os.listdir(self.directory):
-          result = re.search('%s_rig_.*[0-9]+\.m[b|a]' % self.name, f)
+          result = re.search('%s_%s_.*[0-9]+\.m[b|a]' % (self.name, self.assetType), f)
           if result:
               versions.append(f)
 
