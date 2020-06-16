@@ -19,7 +19,7 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__version__ = "1.05.18.2020"
+__version__ = "1.06.15.2020"
 __MAYALOCAL = 'CGMPROJECT'
 
 
@@ -118,7 +118,7 @@ def uiAsset_addSub(self):
     except Exception,err:
         log.error("|{0}| >> Failed to query idx for asset type | {2}".format(_str_func,err))
         return False
-    
+    pprint.pprint(_dat)
     result = mc.promptDialog(
             title=promptstring,
             message='Enter Name for new sub asset for {0}'.format(_dat.get('n')),
@@ -130,17 +130,17 @@ def uiAsset_addSub(self):
     if result == 'OK':
         _name = mc.promptDialog(query=True, text=True)
         self.mDat.assetTypeSub_add(_dat.get('n'),_name)
-        uiAsset_rebuildOptionMenu(self)
+        #uiAsset_rebuildOptionMenu(self)
         #self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
         
 def uiAsset_remove(self):
     _str_func = 'uiAsset_remove'
     log.debug("|{0}| >>...".format(_str_func))
-    
-    _value = self.uiAssetTypeOptions.getValue()
+    #mUI.MelOptionMenu
+    _value = self.uiAssetTypeOptions.getSelectedIdx()
     print _value
-    self.mDat.assetType_remove(_value)
+    self.mDat.assetType_remove(idx=_value)
     uiAsset_rebuildOptionMenu(self)
     uiAsset_rebuildSub(self)
     
@@ -172,7 +172,41 @@ def uiAsset_editName(self):
         uiAsset_rebuildSub(self)
         
         self.uiAssetTypeOptions.selectByValue(_name)
+
+def uiAsset_duplicate(self):
+    _str_func = 'uiAsset_duplicate'
+    log.debug("|{0}| >>...".format(_str_func))
     
+    _value = self.uiAssetTypeOptions.getSelectedIdx()
+    _current = copy.deepcopy(self.mDat.assetDat[_value])
+    _currentName = _current['n']
+    promptstring = 'Change Asset Name'
+    
+    result = mc.promptDialog(
+            title=promptstring,
+            message='Enter new name for duplicate asset: {0}'.format(_currentName),
+            button=['OK', 'Cancel'],
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel')
+    
+    if result == 'OK':
+        _name = str(mc.promptDialog(query=True, text=True))
+        
+        
+        if _name == _currentName:
+            raise ValueError,"Same name given as exists. Pick a new name"
+    
+        _current['n'] = _name
+        
+        self.mDat.assetDat.append(_current)
+        
+        uiAsset_rebuildOptionMenu(self)
+        uiAsset_rebuildSub(self)
+        
+        self.uiAssetTypeOptions.selectByValue(_name)
+
+
 def uiAsset_rebuildOptionMenu(self):
     self.uiAssetTypeOptions.clear()
     for i,d in enumerate(self.mDat.assetDat):
@@ -202,6 +236,15 @@ def uiAsset_rebuildSub(self):
                 self.mDat.assetDat[_value]['content'][index].pop('hasVariant')
         log.info( self.mDat.assetDat[_value]['content'][index].get('hasVariant') ) 
         
+    def setSubAsset(field,assetIndex,index):
+        _v = field.getValue()
+        if _v:
+            self.mDat.assetDat[_value]['content'][index]['hasSub'] = _v
+        else:
+            self.mDat.assetDat[_value]['content'][index]['hasSub'] = False
+                
+        log.info( self.mDat.assetDat[_value]['content'][index].get('hasSub') )        
+        
     def removeSub(assetIndex,index):
         self.mDat.assetDat[_value]['content'].pop(index) 
         
@@ -224,14 +267,28 @@ def uiAsset_rebuildSub(self):
  
         
         #mUI.MelLabel(self.uiAsset_content, label=d.get('n'))
-        mUI.MelSpacer(_row,w=10)                          
+        mUI.MelSpacer(_row,w=10)       
+        
+        
+        if not d2.has_key('hasSub'):
+            d2['hasSub'] = True
+            
+        _cb_sub = mUI.MelCheckBox(_row,w=25)
+        _cb_sub(edit=True,
+                onCommand = cgmGEN.Callback( setSubAsset,_cb_sub,_value,i),
+                offCommand = cgmGEN.Callback( setSubAsset,_cb_sub,_value,i))
+        _cb_sub.setValue( d2.get('hasSub',False))
+                
         
         _cb = mUI.MelCheckBox(_row,w=25)
         _cb(edit=True,
             onCommand = cgmGEN.Callback( setVariant,_cb,_value,i),
             offCommand = cgmGEN.Callback( setVariant,_cb,_value,i))
         _cb.setValue( d2.get('hasVariant',False))
-                
+        
+        
+        
+
         mUI.MelButton(_row,
                       width = 20,
                       label='x',ut='cgmUITemplate',
@@ -290,7 +347,11 @@ def buildFrame_assetTypes(self,parent):
                   c = lambda *a: uiAsset_add(self),
                    #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                    ann='Force the scroll list to update')
-
+    mUI.MelButton(_row,
+                  label='Dup',ut='cgmUITemplate',
+                  c = lambda *a: uiAsset_duplicate(self),
+                   #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
+                   ann='Duplicate the current asset')
 
     mUI.MelSpacer(_row,w=15)                          
     
@@ -336,8 +397,11 @@ def buildFrame_assetTypes(self,parent):
                    ann='Add a sub type')            
     _label = mUI.MelLabel(_row, label = 'Subtype',)
     _row.setStretchWidget(_label)
+    
+    mUI.MelLabel(_row, label = 'Sub')
+    mUI.MelSpacer(_row,w=2)                          
 
-    mUI.MelLabel(_row, label = 'hasVariant')
+    mUI.MelLabel(_row, label = 'Variant')
     
     mUI.MelSpacer(_row,w=25)                          
     
@@ -932,11 +996,16 @@ class ui(cgmUI.cgmGUI):
     def uiAssetTypes_refill(self):
         pass
     
-    def reload_headerImage(self):
+    def reload_headerImage(self, path = None):
         _str_func = 'reload_headerImage'
         log.debug("|{0}| >>...".format(_str_func))
         
-        _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
+        if path:
+            _path = PATHS.Path(path)
+            
+        else:
+            _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
+            
         if _path.exists():
             log.warning('Image path: {0}'.format(_path))
             _imagePath = _path
@@ -1011,6 +1080,8 @@ class ui(cgmUI.cgmGUI):
             """
         #self.mDat.log_self()
         self.mDat.write( path,False)
+        self.mPathList.append(self.mDat.str_filepath)
+        
         return log.warning("Saved complete!")
         
     def uiProject_saveAs(self):
@@ -1745,7 +1816,7 @@ class ui(cgmUI.cgmGUI):
             #self.optionVarExportDirStore.setValue( self.exportDirectory )    
             
             if key in ['image']:
-                self.reload_headerImage()
+                self.reload_headerImage(x[0])
             elif key == 'content':
                 self.uiScrollList_dirContent.clear()
                 #self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue())
@@ -2284,6 +2355,13 @@ class data(object):
                 print cgmGEN.logString_msg('   ', "{0}".format (d2.get('n')))
             #print "{0} | {1} | {2}".format(i,_name,_content)
             
+    def assetTypes_get(self):
+        _res = []
+        for i,d in enumerate(self.assetDat):
+            _name = d.get('n','NONAME')
+            _res.append(_name)
+        return _res
+            
     def assetType_getTypeDict(self):
         _d = {}
         for i,d in enumerate(self.assetDat):
@@ -2299,16 +2377,20 @@ class data(object):
         _str_func = 'data.assetTypeSub_add'
         
         _idx = self.assetType_get(assetType,True)
+        log.debug(cgmGEN.logString_msg(_str_func,_idx))
         if _idx is False:
             log.error(cgmGEN.logString_msg(_str_func, "No assetType: {0}".format(assetType)))
             self.assetType_add(assetType)
             _idx = self.assetType_get(assetType,True)
             
-        _idx = self.assetTypeSub_get(assetType,arg,True)
-        if _idx is False:
+        _idx_sub = self.assetTypeSub_get(assetType,arg,True)
+        log.debug(cgmGEN.logString_msg(_str_func,_idx_sub))
+
+        if _idx_sub is False:
             log.info(cgmGEN.logString_msg(_str_func, "Creating: {0} under {1}".format(arg,assetType)))
-            
             self.assetDat[_idx]['content'].append({'n':arg})
+            return True
+        return True
         
         
         
@@ -2355,8 +2437,12 @@ class data(object):
             
             
             
-    def assetType_remove(self,arg=None):
+    def assetType_remove(self,arg=None,idx= None):
         _str_func = 'data.assetType_remove'
+        if idx is not None:
+            self.assetDat.pop(idx)
+            return True
+            
         _idx = self.assetType_get(arg,idx=True)
         
         if _idx != False:

@@ -202,6 +202,7 @@ def Prep(removeNamespace = False,
 
             if zeroRoot and mc.objExists('{0}.cgmTypeModifier'.format(exportObj)):
                 if mc.getAttr('{0}.cgmTypeModifier'.format(exportObj)) == 'rootMotion':
+                    log.debug("{0} || Zeroing root: {1}".format(_str_func,exportObj))
                     mc.cutKey(exportObj, at=['translate', 'rotate'], clear=True)
                     mc.setAttr('{0}.translate'.format(exportObj), 0, 0, 0, type='float3')
                     mc.setAttr('{0}.rotate'.format(exportObj), 0, 0, 0, type='float3')

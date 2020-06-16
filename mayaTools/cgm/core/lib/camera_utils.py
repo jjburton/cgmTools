@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 """
 import maya.cmds as mc
 
-def getCurrentCamera():   
+def getCurrentPanel():
     panel = mc.getPanel(withFocus=True)
     
     if mc.getPanel(typeOf=panel) != 'modelPanel':
@@ -19,4 +19,9 @@ def getCurrentCamera():
                 panel = p
                 break
         
-    return mc.modelEditor(panel, query=True, camera=True) if mc.getPanel(typeOf=panel) == 'modelPanel' else None
+    return panel if mc.getPanel(typeOf=panel) == 'modelPanel' else None
+
+def getCurrentCamera():   
+    panel = getCurrentPanel()
+        
+    return mc.modelEditor(panel, query=True, camera=True) if panel else None
