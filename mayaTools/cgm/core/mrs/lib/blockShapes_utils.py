@@ -1004,6 +1004,7 @@ class handleFactory(object):
             self_upVector = mHandle.getAxisVector(upAxis)
             _sizeArrow = (MATH.average(_absize)) * .25
             mCurve = cgmMeta.validateObjArg(self._mTransform.doCreateAt(),'cgmObject',setClass=True)
+            
             #helper ======================================================================================
             d_shapeDirections = _d_shapeDirection['directions']
             
@@ -1051,7 +1052,10 @@ class handleFactory(object):
             self.color(mCurve.mNode,_side,'sub')
             
             #Transform ---------------------------------------------------------------------------
-            mTrans = cgmMeta.validateObjArg( CURVES.create_text('COG',MATH.average(_sizeByBB)),'cgmObject',setClass=True)
+            #CURVES.create_text('COG',MATH.average(_sizeByBB))
+            mTrans = cgmMeta.validateObjArg( CURVES.create_fromName('axis3d',
+                                                                    MATH.average(_sizeByBB)) ,
+                                             'cgmObject',setClass=True)
             SNAP.go(mTrans.mNode, mCurve.mNode)
             self.color(mTrans.mNode,_side,'main')
             
@@ -1068,6 +1072,7 @@ class handleFactory(object):
             mTrans.connectParentNode(mBlock.mNode,'rigBlock',_plug)            
             mCurve.connectParentNode(mTrans.mNode,'handle','shapeHelper')
             
+            self.addJointLabel(mTrans,'cog')
             
             if mBlock.hasAttr('addCog'):
                 mBlock.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))

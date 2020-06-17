@@ -229,7 +229,7 @@ d_block_profiles = {
                 'loftList':['wideDown','squircleDiamond','squircleDiamond','circle'],
                 'ikSetup':'ribbon',
                 'ikBase':'simple',
-                'ikEnd':'tipBase',            
+                'ikEnd':'tipEnd',            
                 'nameIter':'tentacle',
                 'numControls':6,
                 'numJoints':9,
@@ -260,7 +260,7 @@ d_block_profiles = {
              'cgmName':'spine',
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
-             
+             'numControls':4,
              'squash':'none',
              'squashExtraControl':True,
              'squashMeasure':'arcLength',
@@ -287,7 +287,7 @@ d_block_profiles = {
              'cgmName':'spine',
              'nameIter':'spine',
              'nameList':['pelvis','chest'],
-             
+             'numControls':4,
              'squash':'none',
              'squashExtraControl':True,
              'squashMeasure':'arcLength',
@@ -954,6 +954,7 @@ def prerig(self):
             ATTR.set(t,'v',0)
         
         #...cog -----------------------------------------------------------------------------
+        mCog = False
         if self.addCog:
             mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull
 
