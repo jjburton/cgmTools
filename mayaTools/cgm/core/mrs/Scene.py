@@ -1693,11 +1693,10 @@ example:
 
 	def UpdateAssetTSLPopup(self, *args):
 		self.assetTSLpum.clear()
-		self.renameAssetMB = mUI.MelMenuItem(self.assetTSLpum, label="Rename Asset", command=self.RenameAsset )
-		self.openInExplorerMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Explorer", command=self.OpenAssetDirectory )
-		self.openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.categoryDirectory, self.selectedAsset) ))
-		#self.openRigMB = mUI.MelMenuItem(self.assetTSLpum, label="Open Rig", subMenu=True )
-		#self.referenceRigMB = mUI.MelMenuItem(self.assetTSLpum, label="Reference Rig", subMenu=True )
+		
+		renameAssetMB = mUI.MelMenuItem(self.assetTSLpum, label="Rename Asset", command=self.RenameAsset )
+		openInExplorerMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Explorer", command=self.OpenAssetDirectory )
+		openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.categoryDirectory, self.selectedAsset) ))
 		
 		for item in self.assetRigMenuItemList:
 			mc.deleteUI(item, menuItem=True)
@@ -1709,12 +1708,18 @@ example:
 
 		openMB = mUI.MelMenuItem(self.assetTSLpum, label="Open", subMenu=True )
 		referenceMB = mUI.MelMenuItem(self.assetTSLpum, label="Reference", subMenu=True )
-
+		
+		hasItems = False
+		
 		for subType in self.subTypes:
 			if self.HasSub(self.category, subType):
 				continue
 			
-			assetList = ASSET.AssetDirectory(os.path.join(self.assetDirectory, subType), self.selectedAsset, subType)
+			subDir = os.path.join(self.assetDirectory, subType)
+			if not os.path.exists(subDir):
+				continue
+			
+			assetList = ASSET.AssetDirectory(subDir, self.selectedAsset, subType)
 			directoryList = assetList.GetFullPaths()
 			
 			if len(assetList.versions) == 0:
@@ -1733,12 +1738,19 @@ example:
 
 			for i,rig in enumerate(assetList.versions):
 				item = mUI.MelMenuItem( openRigMB, l=rig,
-				                        c = partial(self.OpenRig,directoryList[i]))
+				                        c = cgmGEN.Callback(self.OpenRig,directoryList[i]))
 				self.assetRigMenuItemList.append(item)
 
 				item = mUI.MelMenuItem( referenceRigMB, l=rig,
-				                        c = partial(self.ReferenceRig,directoryList[i]))
+				                        c = cgmGEN.Callback(self.ReferenceRig,directoryList[i], self.selectedAsset))
 				self.assetReferenceRigMenuItemList.append(item)
+				
+				hasItems = True
+		
+		if not hasItems:
+			openMB(e=True, en=False)
+			referenceMB(e=True, en=False)
+						
 
 		self.refreshAssetListMB = mUI.MelMenuItem(self.assetTSLpum, label="Refresh", command=self.LoadCategoryList )
 
@@ -1829,10 +1841,13 @@ example:
 		if os.path.exists(rigPath):
 			mc.file(rigPath, o=True, f=True, ignoreVersion=True)
 
-	def ReferenceRig(self, filename, *args):
+	def ReferenceRig(self, filename, assetName, *args):
+		_str_func = 'Scene.ReferenceRig'
 		rigPath = filename #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
+
+		log.info( '{0} | Referencing file : {1}'.format(_str_func, rigPath) )
+
 		if os.path.exists(rigPath):
-			assetName = os.path.basename(os.path.dirname(rigPath))
 			mc.file(rigPath, r=True, ignoreVersion=True, gl=True, mergeNamespacesOnClash=False, namespace=assetName)
 	
 	def VerifyAssetDirs(self):
