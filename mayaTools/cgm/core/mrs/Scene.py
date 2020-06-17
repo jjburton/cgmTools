@@ -811,22 +811,24 @@ example:
 		mUI.MelSpacer(_row,w=5)
 
 		_row.layout()
-
-		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
-			
-		mUI.MelLabel(_row,l='SubAsset', w=70)
-		_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('subTypeAsset', ""), editable = False, bgc=(.8,.8,.8)))	
-		mUI.MelSpacer(_row,w=5)
-
-		_row.layout()	
-
-		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
-			
-		mUI.MelLabel(_row,l='Variation', w=70)
-		_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('variation', ""), editable = False, bgc=(.8,.8,.8)))	
-		mUI.MelSpacer(_row,w=5)
-
-		_row.layout()	
+		
+		if self.assetMetaData.get('subTypeAsset', None):
+			_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+				
+			mUI.MelLabel(_row,l='SubAsset', w=70)
+			_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('subTypeAsset', ""), editable = False, bgc=(.8,.8,.8)))	
+			mUI.MelSpacer(_row,w=5)
+	
+			_row.layout()	
+		
+		if self.assetMetaData.get('variation', None):
+			_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+				
+			mUI.MelLabel(_row,l='Variation', w=70)
+			_row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('variation', ""), editable = False, bgc=(.8,.8,.8)))	
+			mUI.MelSpacer(_row,w=5)
+	
+			_row.layout()	
 
 		_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
 			
@@ -846,26 +848,28 @@ example:
 		mUI.MelSpacer(_row,w=5)
 		_row.layout()
 		
-		mUI.MelLabel(self._detailsColumn,l='References', w=50)
-		
-		for ref in self.assetMetaData.get('references', []):
-			_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
-			mUI.MelSpacer(_row,w=5)		
-			_row.setStretchWidget(mUI.MelTextField(_row, text=ref, editable = False, bgc=(.8,.8,.8)))
-			mUI.MelSpacer(_row,w=5)
-			_row.layout()			
+		if self.assetMetaData.get('references', None):
+			mUI.MelLabel(self._detailsColumn,l='References', w=50)
+			
+			for ref in self.assetMetaData.get('references', []):
+				_row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+				mUI.MelSpacer(_row,w=5)		
+				_row.setStretchWidget(mUI.MelTextField(_row, text=ref, editable = False, bgc=(.8,.8,.8)))
+				mUI.MelSpacer(_row,w=5)
+				_row.layout()			
 
-		mUI.MelLabel(self._detailsColumn,l='Shots', w=50)
-		
-		for shot in self.assetMetaData.get('shots', []):
-			_row = mUI.MelHRowLayout(self._detailsColumn, w=150)
-			mUI.MelSpacer(_row,w=5)
-			mUI.MelTextField(_row, text=shot[0], editable = False, bgc=(.8,.8,.8), w = 80)
-			mUI.MelTextField(_row, text=shot[1][0], editable = False, bgc=(.8,.8,.8), w=40)
-			mUI.MelTextField(_row, text=shot[1][1], editable = False, bgc=(.8,.8,.8), w=40)
-			mUI.MelTextField(_row, text=shot[1][2], editable = False, bgc=(.8,.8,.8), w=40)
-			mUI.MelSpacer(_row,w=5)
-			_row.layout()
+		if self.assetMetaData.get('shots', None):
+			mUI.MelLabel(self._detailsColumn,l='Shots', w=50)
+			
+			for shot in self.assetMetaData.get('shots', []):
+				_row = mUI.MelHRowLayout(self._detailsColumn, w=150)
+				mUI.MelSpacer(_row,w=5)
+				mUI.MelTextField(_row, text=shot[0], editable = False, bgc=(.8,.8,.8), w = 80)
+				mUI.MelTextField(_row, text=shot[1][0], editable = False, bgc=(.8,.8,.8), w=40)
+				mUI.MelTextField(_row, text=shot[1][1], editable = False, bgc=(.8,.8,.8), w=40)
+				mUI.MelTextField(_row, text=shot[1][2], editable = False, bgc=(.8,.8,.8), w=40)
+				mUI.MelSpacer(_row,w=5)
+				_row.layout()
 
 	def makeThumbnail(self):
 		if self.versionFile:
@@ -1527,10 +1531,11 @@ example:
 		log.info( "Saving file: %s" % saveFile )
 		mc.file( rename=saveFile )
 		mc.file( save=True )
-		
-		
-		
+			
 		self.LoadVersionList()
+		
+		versionList['scrollList'].selectByValue( wantedName )
+		self.StoreCurrentSelection()
 		
 		self.refreshMetaData()
 
