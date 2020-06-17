@@ -2704,13 +2704,13 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             else:
                 log.warning("Dir already exists: {0}".format(mDir))
                 
-    def uiPath_addAsset(self, path = None, dType = 'content', aType = 'character'):
+    def uiPath_addAsset(self, path = None, dType = 'content', aType = None):
         '''
         Insert a new SubFolder to the path, makes the dir and sets
         '''
         cgmGEN.func_snapShot(vars())
         if self.mDat:
-            if self.mDat.asset_addDir(path,dType,aType):
+            if self.mDat.asset_addDir(path,dType=dType,aType=aType):
                 self.rebuild()
         else:
             log.warning("cgmProjectDirList.uiPath_addAsset | No mDat connected")
@@ -2818,9 +2818,10 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                     #print '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))
                     mUI.MelMenuItem(_popUp,
                                     ann = "Add {0} asset to path: {1}".format(_t,_path),
-                                    c= cgmGEN.Callback(self.uiPath_addAsset,_path,
-                                                       self.str_structureMode,
-                                                       '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))),
+                                    c= cgmGEN.Callback(self.uiPath_addAsset,
+                                                       _path,
+                                                       t,
+                                                       t),
                                     #c= lambda *a:self.uiPath_addAsset(_path,'content','{0}Content'.format(t)),
                                     label = _t)
 
