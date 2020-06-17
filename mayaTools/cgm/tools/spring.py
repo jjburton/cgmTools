@@ -19,7 +19,7 @@ import maya.cmds as mc
 import maya.mel as mel
 
 class Spring(PostBake.PostBake):
-    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, debug=False, showBake=False):
+    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, collider = None, debug=False, showBake=False):
         PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
 
         self.aimFwd = VALID.simpleAxis(aimFwd)
@@ -36,6 +36,8 @@ class Spring(PostBake.PostBake):
         self.debug = debug
         self._debugLoc = None
         self._wantedPosLoc = None
+        
+        self.collider = cgmMeta.asMeta(collider) if collider else None
         
         self.damp = damp
         self.objectScale = objectScale
@@ -58,8 +60,8 @@ class Spring(PostBake.PostBake):
 
         #self.aimTargetPos = (MATH.Vector3.Lerp(self.aimTargetPos, wantedTargetPos, deltaTime*self.damp) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
         
-        self.force = self.force + ((1.0 - (min((self.aimTargetPos - wantedTargetPos).magnitude(), self.maxDistance) / self.maxDistance)) * (self.aimTargetPos - wantedTargetPos).normalized() * self.pushForce)
-        self.force = self.force + ((self.startPosition - self.aimTargetPos) * self.springForce)
+        #self.force = self.force + ((1.0 - (min((self.aimTargetPos - self.collider.position).magnitude(), self.maxDistance) / self.maxDistance)) * (self.aimTargetPos - self.collider.position).normalized() * self.pushForce)
+        self.force = self.force + ((wantedTargetPos - self.aimTargetPos) * self.springForce)
         self.force = self.force * (1.0 - self.damp)
     
         self.aimTargetPos = self.aimTargetPos + (self.force * deltaTime)

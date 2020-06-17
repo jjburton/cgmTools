@@ -671,6 +671,26 @@ def uiFunc_build_post_spring_column(self):
     #
     # End Aim
 
+    # Spring
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Spring:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Spring
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
     # Post Damp
     #
     _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
@@ -922,7 +942,7 @@ def uiFunc_bake_dragger(self):
 def uiFunc_bake_spring(self):
     for obj in mc.ls(sl=True):
         mc.select(obj)
-        postInstance = SPRING.Spring(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
+        postInstance = SPRING.Spring(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), springForce=self.uiFF_post_spring.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
         postInstance.bake()
 
 def uiFunc_bake_trajectory_aim(self):
