@@ -28,14 +28,14 @@ import maya.cmds as mc
 import maya.mel as mel
 
 class PostBake(object):
-    velocity = MATH.Vector3.zero()
-    previousPosition = MATH.Vector3.zero()
-    startPosition = MATH.Vector3.zero()
-
     def __init__(self, obj = None, velocityDamp = 30.0, showBake=False):
         self.obj = None
         self.velocityDamp = velocityDamp
         self.showBake = showBake
+
+        self.velocity = MATH.Vector3.zero()
+        self.previousPosition = MATH.Vector3.zero()
+        self.startPosition = MATH.Vector3.zero()
 
         if obj is None:
             self.obj = cgmMeta.asMeta( mc.ls(sl=True)[0] )
@@ -98,8 +98,11 @@ class PostBake(object):
 
         for i in range(self.startTime, self.endTime+1):
             mc.currentTime(i)
-
-            self.update(fixedDeltaTime)
+            
+            try:
+                self.update(fixedDeltaTime)
+            except:
+                pass
             mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
             self.velocity = MATH.Vector3.Lerp(self.velocity, VALID.euclidVector3Arg(self.obj.p_position) - self.previousPosition, min(fixedDeltaTime * self.velocityDamp, 1.0))
             self.previousPosition = VALID.euclidVector3Arg(self.obj.p_position)
