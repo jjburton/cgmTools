@@ -407,7 +407,7 @@ def define(self):
             _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
                                        'x-':{'end':[-1,0,0],'up':[0,1,0]},
                                        'y+':{'end':[0,1,0],'up':[0,0,-1]},
-                                       'y-':{'end':[0,1,0],'up':[0,0,-1]},
+                                       'y-':{'end':[0,-1,0],'up':[0,0,-1]},
                                        'z+':{'end':[0,0,1],'up':[0,1,0]},
                                        'z-':{'end':[0,0,-1],'up':[0,1,0]}}
             _shapeDirection = self.getEnumValueString('shapeDirection')

@@ -351,7 +351,7 @@ example:
 		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True))
 		
 
-		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=272)
+		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=294)
 			
 		_MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
@@ -1589,10 +1589,11 @@ example:
 
 			self.subTypes = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
 
-			if os.path.exists(d_userPaths['image']):
+			if d_userPaths.get('image') and os.path.exists(d_userPaths.get('image')):
 				self.uiImage_Project.setImage(d_userPaths['image'])
 			else:
-				_imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
+				_imageFailPath = os.path.join(mImagesPath.asFriendly(),
+				                              'cgm_project_{0}.png'.format(self.project.d_project.get('type','unity')))
 				self.uiImage_Project.setImage(_imageFailPath)
 
 			self.buildMenu_category()
