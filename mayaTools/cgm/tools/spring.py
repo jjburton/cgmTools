@@ -18,8 +18,15 @@ from cgm.core.lib import locator_utils as LOC
 import maya.cmds as mc
 import maya.mel as mel
 
+#>>>======================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#=========================================================================
+
 class Spring(PostBake.PostBake):
-    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, collider = None, debug=False, showBake=False):
+    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, angularDamp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, angularSpringForce = 5.0, collider = None, debug=False, showBake=False):
         PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
 
         self.aimFwd = VALID.simpleAxis(aimFwd)
@@ -27,56 +34,64 @@ class Spring(PostBake.PostBake):
 
         self.pushForce = pushForce
         self.springForce = springForce
-    
+        self.angularSpringForce = angularSpringForce
+        
         self.maxDistance = maxDistance;
     
-        self.force = MATH.Vector3.zero()
+        self.positionForce = MATH.Vector3.zero()
+        self.angularForce = MATH.Vector3.zero()
+        
         self.spring = spring
 
         self.debug = debug
         self._debugLoc = None
         self._wantedPosLoc = None
+        self._wantedUpLoc = None
         
         self.collider = cgmMeta.asMeta(collider) if collider else None
         
         self.damp = damp
+        self.angularDamp = angularDamp
         self.objectScale = objectScale
 
         self.dir = self.obj.getTransformDirection(self.aimFwd.p_vector)*self.objectScale
         self.aimTargetPos = self.obj.p_position + self.dir
-
+        self.upTargetPos = self.obj.getTransformDirection(self.aimUp.p_vector)*self.objectScale
+        
         self.keyableAttrs = ['rx', 'ry', 'rz']
 
-        self.lastFwd = MATH.Vector3.forward()
-        self.lastUp = MATH.Vector3.up()
+        #self.lastFwd = MATH.Vector3.forward()
+        #self.lastUp = MATH.Vector3.up()
 
     def update(self, deltaTime=.04):
-
-        self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector)*self.objectScale
-
-        wantedTargetPos = ((VALID.euclidVector3Arg(self.obj.p_position) + self.dir) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
+        #log.info("Updating")
         
-        self.lastUp = MATH.Vector3.Lerp( self.lastUp, self._bakedLoc.getTransformDirection(self.aimUp.p_vector), min(deltaTime * self.damp, 1.0) ).normalized()
+        self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale
 
-        #self.aimTargetPos = (MATH.Vector3.Lerp(self.aimTargetPos, wantedTargetPos, deltaTime*self.damp) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
+        wantedTargetPos = ((VALID.euclidVector3Arg(self.obj.p_position) + self.dir) - self.obj.p_position).normalized() * self.objectScale + self.obj.p_position
+        wantedUp = self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale
         
-        #self.force = self.force + ((1.0 - (min((self.aimTargetPos - self.collider.position).magnitude(), self.maxDistance) / self.maxDistance)) * (self.aimTargetPos - self.collider.position).normalized() * self.pushForce)
-        self.force = self.force + ((wantedTargetPos - self.aimTargetPos) * self.springForce)
-        self.force = self.force * (1.0 - self.damp)
-    
-        self.aimTargetPos = self.aimTargetPos + (self.force * deltaTime)
+        self.positionForce = self.positionForce + ((wantedTargetPos - self.aimTargetPos) * self.springForce)
+        self.positionForce = self.positionForce * (1.0 - self.damp)
         
-        self.upTargetPos = (MATH.Vector3.Lerp(self.aimTargetPos, wantedTargetPos, deltaTime*self.damp) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
-
-        self.lastFwd = MATH.Vector3.Lerp( self.lastFwd, self._bakedLoc.getTransformDirection(self.aimFwd.p_vector), min(deltaTime * self.damp, 1.0) ).normalized()
+        self.angularForce = self.angularForce + ((wantedUp - self.upTargetPos) * self.angularSpringForce)
+        self.angularForce = self.angularForce * (1.0 - self.angularDamp)       
         
-        SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
+        self.aimTargetPos = self.aimTargetPos + (self.positionForce * deltaTime)
+        self.upTargetPos = self.upTargetPos + (self.angularForce * deltaTime)
+                
+        SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.upTargetPos.normalized() )
 
         if self.debug:
             if not self._debugLoc:
                 self._debugLoc = cgmMeta.asMeta(LOC.create(name='debug_loc'))
             self._debugLoc.p_position = self.aimTargetPos
             mc.setKeyframe(self._debugLoc.mNode, at='translate')
+
+            if not self._wantedUpLoc:
+                self._wantedUpLoc = cgmMeta.asMeta(LOC.create(name='wanted_up_loc'))
+            self._wantedUpLoc.p_position = self.obj.p_position + self.upTargetPos
+            mc.setKeyframe(self._wantedUpLoc.mNode, at='translate')
 
             if not self._wantedPosLoc:
                 self._wantedPosLoc = cgmMeta.asMeta(LOC.create(name='wanted_pos_loc'))
@@ -86,12 +101,15 @@ class Spring(PostBake.PostBake):
     def preBake(self):
         if not self.bakeTempLocator():
             self.cancelBake()
-
-        self.lastFwd = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector)
-        self.lastUp = self._bakedLoc.getTransformDirection(self.aimUp.p_vector)
         
+        self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale
+        self.aimTargetPos = self.obj.p_position + self.dir
         
-
+        self.upTargetPos = self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale
+        
+        self.positionForce = MATH.Vector3.zero()
+        self.angularForce = MATH.Vector3.zero()
+        
     def finishBake(self):
         self.aimTargetPos = self.startPosition + self.dir
 
@@ -105,8 +123,8 @@ class Spring(PostBake.PostBake):
         if objectScale:
             self.objectScale = objectScale
         
-        self.dir = self.obj.getTransformDirection(self.aimFwd.p_vector)*self.objectScale
-        self.aimTargetPos = self.obj.p_position + self.dir
+        #self.dir = self.obj.getTransformDirection(self.aimFwd.p_vector)*self.objectScale
+        #self.aimTargetPos = self.obj.p_position + self.dir
 
 
 

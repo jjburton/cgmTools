@@ -16,6 +16,7 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import locator_utils as LOC
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.lib import attribute_utils as ATTR
+from cgm.core import cgm_General as cgmGEN
 
 import cgm.core.classes.GuiFactory as cgmUI
 
@@ -101,8 +102,13 @@ class PostBake(object):
             
             try:
                 self.update(fixedDeltaTime)
-            except:
-                pass
+            except Exception,err:
+                mc.refresh(su=False)
+                mc.autoKeyframe(state=ak)
+                log.warning('Error on update | {0}'.format(err))   
+                cgmGEN.cgmException(Exception,err)
+                return
+
             mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
             self.velocity = MATH.Vector3.Lerp(self.velocity, VALID.euclidVector3Arg(self.obj.p_position) - self.previousPosition, min(fixedDeltaTime * self.velocityDamp, 1.0))
             self.previousPosition = VALID.euclidVector3Arg(self.obj.p_position)
