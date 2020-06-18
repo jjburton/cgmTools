@@ -27,7 +27,7 @@ import maya.mel as mel
 from cgm.core import cgm_General as cgmGEN
 
 #Data ================================================================================================
-_animatable_content = ['animation','templates','rigs','textures','poses','weights','geo']
+_animatable_content = ['animation','template','rig','textures','poses','weights','geo']
 
 d_dirFramework = {
 'game':{'content':['Character','Environment','FX','Poses','Props','Cutscene',
@@ -63,7 +63,7 @@ d_dirFramework = {
 'cutscene':{'content':['animation'],
             'export':['animation'],
             'dir':'cutscenes'},
-'proxy':{'content':['animation','templates','rigs','poses','geo'],
+'proxy':{'content':['animation','template','rig','poses','geo'],
          'dir':'proxies'}}
 
 
@@ -128,8 +128,9 @@ _dataConfigToStored = {'general':'d_project',
                        'world':'d_world'}
 
 l_projectPathModes = ['art','content','root']
-l_projectDat = ['name','type','nameStyle','lock']
+l_projectDat = ['name','type','nameStyle','mayaVersion','lock']
 l_nameConventions = ['none','lower','capital','upper','camelCase','capFirst']
+l_mayaVersions = ['2016','2017','2018','2019','2020','2021']
 l_userMode = ['general','master']
 l_projectTypes = ['unity','unreal','commercial']
 l_projectPaths = ['root','content','export','image']
@@ -148,9 +149,8 @@ _fpsStrings = ['2fps', '3fps', '4fps', '5fps', '6fps', '8fps', '10fps', '12fps',
 #Settings/Options ... ---------------------------------------------------------------------------
 _projSettings = [{'n':'name','t':'text','dv':'Name me'},
                  {'n':'type','t':l_projectTypes,'dv':'unity'},
-                 {'n':'type','t':l_projectTypes,'dv':'unity'},
                  {'n':'lock','t':'bool','dv':'false'},
-                 
+                 {'n':'mayaVersion','t':l_mayaVersions,'dv':'2018'},
                  #{'n':'projectPathMode','t':l_projectPathModes,'dv':'art'},
                  {'n':'nameStyle','t':l_nameConventions,'dv':'none'},
                  ]

@@ -863,7 +863,7 @@ class ui(cgmUI.cgmGUI):
         
         l_errs = []
         
-        for dType in ['general','anim','pathsProject','structure','colors']:
+        for dType in ['general','anim','pathsProject','colors']:
             log.debug(cgmGEN.logString_sub(_str_func,dType))
             
             for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
@@ -882,7 +882,10 @@ class ui(cgmUI.cgmGUI):
                         
                     else:
                         if v is not None:
-                            self.d_tf[dType][k].setValue(v,executeChangeCB=False)
+                            if k in ['lock','mayaVersion']:
+                                self.d_tf[dType][k].setValue(str(v),executeChangeCB=False)
+                            else:
+                                self.d_tf[dType][k].setValue(v,executeChangeCB=False)
                         else:
                             self.d_tf[dType][k].setValue('',executeChangeCB=False)
                             
@@ -1586,10 +1589,16 @@ class ui(cgmUI.cgmGUI):
                     _d[key].append(t)
         
                 #_d[key].selectByIdx(self.setMode,False)                
-            elif key =='nameStyle':
+            elif key == 'nameStyle':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in PU.l_nameConventions:
-                    _d[key].append(t)                
+                    _d[key].append(t)
+                    
+            elif key == 'mayaVersion':
+                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                for t in PU.l_mayaVersions:
+                    _d[key].append(t)
+                    
             elif key == 'projectPathMode':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 

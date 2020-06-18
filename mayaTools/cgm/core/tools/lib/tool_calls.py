@@ -141,7 +141,10 @@ def cgmProject():
     try:
         import cgm.core.tools.Project as PROJECT
         reload(PROJECT)
-        x = PROJECT.ui()
+        reload(PROJECT.PU)
+        #x = PROJECT.ui()
+        mel.eval('python "import cgm;uiProject = cgm.core.tools.Project.ui();"')
+        
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
     #except Exception,err:
