@@ -202,9 +202,10 @@ def uiAsset_duplicate(self):
         self.mDat.assetDat.append(_current)
         
         uiAsset_rebuildOptionMenu(self)
+        self.uiAssetTypeOptions.selectByValue(_name)
+        
         uiAsset_rebuildSub(self)
         
-        self.uiAssetTypeOptions.selectByValue(_name)
 
 
 def uiAsset_rebuildOptionMenu(self):
