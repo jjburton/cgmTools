@@ -6187,11 +6187,11 @@ _d_attrStateMasks = {0:[],
                      3:['hasJoint','side','position','attachPoint'],
                      4:[]}
 
-_d_attrStateVisOn = {0:['blockState','scaleSetup',
+_d_attrStateVisOn = {0:['blockState','scaleSetup','numControls',
                         #'proxyShape','shapeDirection','numShapers',
                         #'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
                         ],
-                     1:['attachPoint','attachIndex','numRoll','numControls',
+                     1:['attachPoint','attachIndex','numRoll',
                         'addAim','addCog','addPivot','addScalePivot','axisAim','axisUp',],
                      2:['ikEnd','ikSetup','ikOrientToWorld','ikBase',
                         'mainRotAxis','hasEndJoint',
@@ -8427,14 +8427,14 @@ def buildProfile_load(self, arg):
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
     
-    """
+    
     _blockProfile = 'default'
     if self.hasAttr('blockProfile'):
         _blockProfile = self.blockProfile
         if _d_block.get(_blockProfile):
             _d_block = _d_block.get(_blockProfile)
         else:
-            _d_block = _d_block.get('default')"""
+            _d_block = _d_block.get('default')
     
     #cgmGEN.func_snapShot(vars())
 
@@ -10234,7 +10234,7 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
     #pprint.pprint(vars())
     
     f_dist = DIST.get_distance_between_points(mStart.p_position,mEnd.p_position)
-    f_cast = f_dist * 1.0
+    f_cast = f_dist * 4.0
     
      
     #Meat ==================================================

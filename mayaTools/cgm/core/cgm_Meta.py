@@ -3925,6 +3925,7 @@ def controller_get(self,verify=False):
         self.connectParentNode(mController,'mController','source')
     if verify:
         mController.doStore('mClass','cgmController')
+        return cgmController(mController.mNode)
     return mController
     
 class cgmControl(cgmObject): 

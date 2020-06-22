@@ -303,13 +303,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
                             log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
                 
                 #Profiles --------------------------------------------------------------------------
-                _kw_blockProfile = kws.get('blockProfile')
-                if _kw_blockProfile:
-                    self.UTILS.blockProfile_load(self, kws.get('blockProfile',_kw_blockProfile))
                 
                 _kw_buildProfile = kws.get('buildProfile')
                 if _kw_buildProfile:
                     self.UTILS.buildProfile_load(self, _kw_buildProfile)
+                    
+                _kw_blockProfile = kws.get('blockProfile')
+                if _kw_blockProfile:
+                    self.UTILS.blockProfile_load(self, kws.get('blockProfile',_kw_blockProfile))                
                 
                 #>>>Auto flags...
                 if not _blockModule:

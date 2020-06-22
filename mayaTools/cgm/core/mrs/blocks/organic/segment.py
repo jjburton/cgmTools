@@ -129,7 +129,7 @@ d_build_profiles = {
                'earUp':{'numJoints':4,
                         'numControls':4}},
     'unityToon':{'default':{'squashMeasure':'arcLength',
-                            'squash':'simple',
+                            'squash':'both',
                             'scaleSetup':True,
                             }},
     'unityHigh':{'default':{'numJoints':4,
@@ -308,6 +308,7 @@ l_attrsStandard = ['side',
                    'baseUp',
                    'baseAim',
                    'addCog',
+                   'addPivot',
                    #'hasRootJoint',
                    'nameList',
                    'attachPoint',
@@ -957,6 +958,29 @@ def prerig(self):
         mCog = False
         if self.addCog:
             mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+').p_parent = mPrerigNull
+            
+        #...pivot -----------------------------------------------------------------------------
+        if self.addPivot:
+            _size_pivot = _size
+            if ml_formHandles:
+                _size_pivot = DIST.get_bb_size(ml_formHandles[0].mNode,True,True)
+
+                    
+            mPivot = BLOCKSHAPES.pivotHelper(self,self,baseShape = 'square', baseSize=_size_pivot,loft=False, mParent = mPrerigNull)
+            mPivot.p_parent = mPrerigNull
+            mDriverGroup = ml_formHandles[0].doCreateAt(setClass=True)
+            mDriverGroup.rename("Pivot_driver_grp")
+            mDriverGroup.p_parent = mPrerigNull
+            mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+            mGroup.p_parent = mDriverGroup
+            mc.scaleConstraint([ml_formHandles[0].mNode],mDriverGroup.mNode, maintainOffset = True)
+ 
+            #mHandleFactory.addPivotSetupHelper()
+            self.connectChildNode(mPivot,'pivotHelper')
+
+            #if _shape in ['pyramid','semiSphere','circle','square']:
+            #    mPivot.p_position = self.p_position
+            #elif b_shapers:mPivot.p_position = pos_shaperBase        
 
         #Settings =======================================================================================
         mSettings = BLOCKSHAPES.settings(self,mPrerigNull = mPrerigNull)
@@ -975,6 +999,9 @@ def prerig(self):
         ml_handles[-1].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .95)
         
         self.atUtils('prerig_handlesLayout','even','cubic',2)
+        
+        
+        
         
         #Close out =======================================================================================
         mNoTransformNull.v = False

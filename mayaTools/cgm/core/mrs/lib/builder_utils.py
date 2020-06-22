@@ -137,9 +137,9 @@ def eyeLook_verify(self):
                                                       direction = 'z+',
                                                       size = _sizeAvg ,
                                                       absoluteSize=False),'cgmObject',setClass=True)
-        mCrv.doSnapTo(mBlock.mNode)
+        mCrv.doSnapTo(mBlock.mNode,rotation=False)
         pos = mBlock.getPositionByAxisDistance('z+',
-                                               _sizeAvg * 4)
+                                               _sizeAvg * 8)
         
         mCrv.p_position = 0,pos[1],pos[2]
         

@@ -23,7 +23,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 def echoLogger():
     log.info('info')
@@ -408,7 +408,7 @@ d_block_profiles = {
     'rigSetup':'default',
     'nameList':['clav','shoulder','elbow','wrist'],
 
-    'buildEnd':'dag',
+    'buildEnd':'joint',
     'ikRollSetup':'control',
     'addBall':'none',
     'addToe':'none',
@@ -1047,7 +1047,9 @@ def form(self):
         md_loftHandles = {}
         ml_loftHandles = []
         ml_shapers = []
-
+        ml_midHandles = []
+        ml_midLoftHandles = []
+        
         log.debug("|{0}| >> loft setup...".format(_str_func))
         
         for i,n in enumerate(['start','end']):
@@ -1204,8 +1206,7 @@ def form(self):
             #Sub handles... -----------------------------------------------------------------------------------
             log.debug("|{0}| >> Mid Handle creation...".format(_str_func))
             ml_aimGroups = []
-            ml_midHandles = []
-            ml_midLoftHandles = []
+
             for i,p in enumerate(_l_posMid[1:-1]):
                 log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
                 crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
@@ -1778,20 +1779,43 @@ def form(self):
         
         
         ml_done = []
-        for mHandle in ml_handles + ml_shapers:
-            if mHandle in ml_done:
-                continue
-            if not mHandle:
-                continue
-            if cgmGEN.__mayaVersion__ >= 2018:
+        md_controllers = {}
+        
+        if cgmGEN.__mayaVersion__ >= 2018:
+            print '2018...'
+            mMainController = cgmMeta.controller_get(self)
+            
+            for mHandle in ml_handles + ml_shapers + ml_midHandles:
+                if mHandle in ml_done:
+                    continue
+                if not mHandle:
+                    continue
                 mLoft = mHandle.getMessageAsMeta('loftCurve')
                 if mLoft:
-                    mLoft = cgmMeta.controller_get(mLoft)
-                    mLoft.visibilityMode = 2
-                    ml_done.append(mLoft)
-                mController = cgmMeta.controller_get(mHandle)
+                    mController = cgmMeta.controller_get(mLoft)
+                    mController.visibilityMode = 2
+                    ml_done.append(mController)
+                    md_controllers[mLoft] = mController
+                    
+                mController = cgmMeta.controller_get(mHandle,True)
                 mController.visibilityMode = 2                            
-                ml_done.append(mController)        
+                ml_done.append(mHandle)
+                md_controllers[mHandle] = mController
+                
+        
+            for mSet in ml_handles, ml_shapers,ml_loftHandles:
+                for i,mHandle in enumerate(mSet):
+                    if mHandle not in ml_done:
+                        continue
+                    
+                    print mHandle
+                    mController =  md_controllers[mHandle]
+                    if not i:
+                        mController.parent_set(mMainController,msgConnect=True)
+                    else:
+                        mController.parent_set(md_controllers[mSet[i-1]],msgConnect=False)
+                        
+                    
     
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -3209,6 +3233,8 @@ def rig_skeleton(self):
         
         
         #...lever -------------------------------------------------------------------------------------------------
+        ml_parentJoints = ml_fkJointsToUse
+        
         if self.b_lever:
             log.debug("|{0}| >> Lever...".format(_str_func)+'-'*40)          
             if self.b_leverJoint:
