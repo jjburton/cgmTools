@@ -322,8 +322,9 @@ def buildFrame_assetTypes(self,parent):
                                 collapseCommand = lambda *a:mVar_frame.setValue(1)
                                 )	
     
-    self.uiFrame_dirContent = _frame
+    self.uiFrame_AssetTypes = _frame
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
+    
     
     #Utils -------------------------------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
@@ -815,7 +816,10 @@ class ui(cgmUI.cgmGUI):
             for k,tf in self.d_buttons['pathsProject'].iteritems():
                 tf(edit=True,
                    visible =False)
-            
+                
+            #self.uiFrame_AssetTypes(edit=True, collapse = True)
+            #self.uiFrame_AssetTypes(edit=True, collapse = True, collapsable =False)
+            self.uiFrame_AssetTypes(edit=True, vis = False)    
         
         else:
             for k,tf in self.d_tf['pathsProject'].iteritems():
@@ -825,6 +829,9 @@ class ui(cgmUI.cgmGUI):
             for k,tf in self.d_buttons['pathsProject'].iteritems():
                 tf(edit=True,
                    visible =True)
+            
+            self.uiFrame_AssetTypes(edit=True, vis = True)    
+            #self.uiFrame_AssetTypes(edit=True, collapse = False, collapsable=True)            
                 
         #Locking fields...
         log.debug(cgmGEN.logString_sub(_str_func,'Locking fields...'))
