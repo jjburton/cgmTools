@@ -1829,7 +1829,11 @@ example:
 
 			if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
 				for refFile in mc.file(query=True, reference=True):
+					if not os.path.exists(refFile):
+						continue
+					
 					newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+					
 					if not os.path.exists(newRefFilename):
 						if not os.path.exists(os.path.dirname(newRefFilename)):
 							os.makedirs(os.path.dirname(newRefFilename))
