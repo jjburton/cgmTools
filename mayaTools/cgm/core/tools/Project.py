@@ -202,9 +202,10 @@ def uiAsset_duplicate(self):
         self.mDat.assetDat.append(_current)
         
         uiAsset_rebuildOptionMenu(self)
+        self.uiAssetTypeOptions.selectByValue(_name)
+        
         uiAsset_rebuildSub(self)
         
-        self.uiAssetTypeOptions.selectByValue(_name)
 
 
 def uiAsset_rebuildOptionMenu(self):
@@ -321,8 +322,9 @@ def buildFrame_assetTypes(self,parent):
                                 collapseCommand = lambda *a:mVar_frame.setValue(1)
                                 )	
     
-    self.uiFrame_dirContent = _frame
+    self.uiFrame_AssetTypes = _frame
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')
+    
     
     #Utils -------------------------------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
@@ -814,7 +816,10 @@ class ui(cgmUI.cgmGUI):
             for k,tf in self.d_buttons['pathsProject'].iteritems():
                 tf(edit=True,
                    visible =False)
-            
+                
+            #self.uiFrame_AssetTypes(edit=True, collapse = True)
+            #self.uiFrame_AssetTypes(edit=True, collapse = True, collapsable =False)
+            self.uiFrame_AssetTypes(edit=True, vis = False)    
         
         else:
             for k,tf in self.d_tf['pathsProject'].iteritems():
@@ -824,6 +829,9 @@ class ui(cgmUI.cgmGUI):
             for k,tf in self.d_buttons['pathsProject'].iteritems():
                 tf(edit=True,
                    visible =True)
+            
+            self.uiFrame_AssetTypes(edit=True, vis = True)    
+            #self.uiFrame_AssetTypes(edit=True, collapse = False, collapsable=True)            
                 
         #Locking fields...
         log.debug(cgmGEN.logString_sub(_str_func,'Locking fields...'))
@@ -863,7 +871,7 @@ class ui(cgmUI.cgmGUI):
         
         l_errs = []
         
-        for dType in ['general','anim','pathsProject','structure','colors']:
+        for dType in ['general','anim','pathsProject','colors']:
             log.debug(cgmGEN.logString_sub(_str_func,dType))
             
             for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
@@ -882,7 +890,10 @@ class ui(cgmUI.cgmGUI):
                         
                     else:
                         if v is not None:
-                            self.d_tf[dType][k].setValue(v,executeChangeCB=False)
+                            if k in ['lock','mayaVersion']:
+                                self.d_tf[dType][k].setValue(str(v),executeChangeCB=False)
+                            else:
+                                self.d_tf[dType][k].setValue(v,executeChangeCB=False)
                         else:
                             self.d_tf[dType][k].setValue('',executeChangeCB=False)
                             
@@ -1586,10 +1597,16 @@ class ui(cgmUI.cgmGUI):
                     _d[key].append(t)
         
                 #_d[key].selectByIdx(self.setMode,False)                
-            elif key =='nameStyle':
+            elif key == 'nameStyle':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in PU.l_nameConventions:
-                    _d[key].append(t)                
+                    _d[key].append(t)
+                    
+            elif key == 'mayaVersion':
+                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                for t in PU.l_mayaVersions:
+                    _d[key].append(t)
+                    
             elif key == 'projectPathMode':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 

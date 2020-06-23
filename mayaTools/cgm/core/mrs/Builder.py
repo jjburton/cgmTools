@@ -54,6 +54,9 @@ from cgm.core.cgmPy import path_Utils as PATH
 from cgm.core.mrs import RigBlocks as RIGBLOCKS
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
+from cgm.core.mrs.lib import block_utils as BLOCKUTILS
+from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
+
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.toolbox as TOOLBOX
@@ -286,10 +289,19 @@ class ui_stepBuild(cgmUI.cgmGUI):
         self.mRigFac = mRigFac
         mModule = mRigFac.d_block['buildModule']
         
+        
+        def reloadStuff():
+            reload(mModule)
+            reload(BUILDERUTILS)
+            reload(BLOCKGEN)
+            reload(BLOCKSHARE)
+            reload(BLOCKUTILS)
+            reload(RIGFRAME)
+        
         #SingleChecks======================================================================
         mRow_buttons = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 2)
         CGMUI.add_Button(mRow_buttons, "Reload",
-                         cgmGEN.Callback(reload,mModule),
+                         cgmGEN.Callback(reloadStuff),
                          "Reload blockModule")
         CGMUI.add_Button(mRow_buttons, "Log Self",
                          cgmGEN.Callback( mRigFac.log_self),

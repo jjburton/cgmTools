@@ -10,7 +10,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 ================================================================
 """
 __MAYALOCAL = 'cgmGEN'
-__RELEASE = 'Build-a-long merge | 06.16.2020'
+__RELEASE = 'MRS,Scene merge | 06.22.2020'
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -948,6 +948,7 @@ def get_mayaEnviornmentDict():
     return _d
 
 __mayaVersion__ = int( mel.eval( 'getApplicationVersionAsFloat' ) )
+__mayaApiVersion__ = int( mel.eval( 'about -apiVersion' ) )
 
 def report_enviornment():
     print(_str_headerDiv + " Enviornment Info " + _str_headerDiv + _str_subLine)	

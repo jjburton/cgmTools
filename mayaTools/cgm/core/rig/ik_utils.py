@@ -1352,7 +1352,8 @@ def ribbon(jointList = None,
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
             NODEFAC.argsToNodes(arg).doBuild()
             
-            
+    
+    mPlug_masterScale = None
     if b_squashStretch and masterScalePlug is not None:
         log.debug("|{0}| >> Checking masterScalePlug: {1}".format(_str_func, masterScalePlug))        
         if masterScalePlug == 'create':
@@ -1394,9 +1395,19 @@ def ribbon(jointList = None,
                 if not d_attr:
                     raise ValueError,"Ineligible masterScalePlug: {0}".format(masterScalePlug)
                 mPlug_masterScale  = d_attr['mPlug']
-            
+                
         if not mPlug_masterScale:
-            raise ValueError,"Should have a masterScale plug by now"
+            raise ValueError,"Should have a masterScale plug by now"        
+    elif masterScalePlug is not None:
+        if issubclass(type(masterScalePlug),cgmMeta.cgmAttr):
+            mPlug_masterScale = masterScalePlug
+        else:
+            d_attr = cgmMeta.validateAttrArg(masterScalePlug)
+            if not d_attr:
+                raise ValueError,"Ineligible masterScalePlug: {0}".format(masterScalePlug)
+            mPlug_masterScale  = d_attr['mPlug']        
+            
+
     
         
     #b_attachToInfluences = False
@@ -1696,7 +1707,24 @@ def ribbon(jointList = None,
         
         else:#if last...
             pass"""
+    def createDist(mJnt, typeModifier = None):
+        mShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
+        mObject = mShape.getTransform(asMeta=True) 
+        mObject.doStore('cgmName',mJnt)
+        if typeModifier:
+            mObject.addAttr('cgmTypeModifier',typeModifier,lock=True)                
+        mObject.addAttr('cgmType','measureNode',lock=True)
+        mObject.doName(nameShapes = True)
+        mObject.parent = mGroup.mNode#parent it
+        mObject.overrideEnabled = 1
+        mObject.overrideVisibility = 1
         
+        if mModule:#Connect hides if we have a module instance:
+            ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mObject.mNode))
+            ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideDisplayType".format(mObject.mNode))
+        
+        return mObject,mShape
+
     if b_squashStretch:
         log.debug("|{0}| >> SquashStretch...".format(_str_func)+cgmGEN._str_subLine)
         
@@ -1743,7 +1771,7 @@ def ribbon(jointList = None,
         if ml_folliclesStable:
             log.debug("|{0}| >> Found out follicles via stable...".format(_str_func))                
             ml_outFollicles = ml_folliclesStable
-        else:
+        elif driverSetup:
             raise ValueError,"Must create out follicles"
         
         #Up follicles =================================================================================
@@ -1773,23 +1801,7 @@ def ribbon(jointList = None,
                 ATTR.connect('{0}.parameterV'.format(ml_follicleShapes[i].mNode),
                              '{0}.parameterV'.format(mUpFollicleShape.mNode))
             
-        def createDist(mJnt, typeModifier = None):
-            mShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
-            mObject = mShape.getTransform(asMeta=True) 
-            mObject.doStore('cgmName',mJnt)
-            if typeModifier:
-                mObject.addAttr('cgmTypeModifier',typeModifier,lock=True)                
-            mObject.addAttr('cgmType','measureNode',lock=True)
-            mObject.doName(nameShapes = True)
-            mObject.parent = mGroup.mNode#parent it
-            mObject.overrideEnabled = 1
-            mObject.overrideVisibility = 1
-            
-            if mModule:#Connect hides if we have a module instance:
-                ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mObject.mNode))
-                ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideDisplayType".format(mObject.mNode))
-            
-            return mObject,mShape
+
             
         if squashStretch != 'simple':
             for i,mJnt in enumerate(ml_joints):#Base measure ===================================================
@@ -2316,7 +2328,7 @@ def ribbon(jointList = None,
             mode_tighten = None
             #blendLength = int(int_lenInfluences/2)
             max_influences = MATH.Clamp( blendLength, 2, 4)
-            blendLength = MATH.Clamp( int(int_lenInfluences/2), 2, 6)
+            blendLength = MATH.Clamp( int(int_lenInfluences/1.5), 2, 6)
         
         if int_lenInfluences == int_lenJoints:
             _hardLength = 3
@@ -2332,7 +2344,7 @@ def ribbon(jointList = None,
                                                                   mArcLenCurve.mNode,
                                                                   tsb=True,
                                                                   maximumInfluences = max_influences,
-                                                                  normalizeWeights = 1,dropoffRate=5.0),
+                                                                  normalizeWeights = 1,dropoffRate=1.0),
                                                   'cgmNode',
                                                   setClass=True)
         
@@ -2364,8 +2376,8 @@ def ribbon(jointList = None,
             if tightenWeights:
                 RIGSKIN.surface_tightenEnds(mSurf.mNode,
                                             hardLength = _hardLength,
-                                            blendLength=blendLength,
-                                            mode=mode_tighten)
+                                            blendLength = blendLength,
+                                            mode = mode_tighten)
         
     
     if mModule:#if we have a module, connect vis

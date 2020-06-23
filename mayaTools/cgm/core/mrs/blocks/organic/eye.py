@@ -1273,6 +1273,7 @@ def prerig(self):
         mHandleFactory.setHandle(self)
         
         ml_handles = []
+        md_crvDrivers = {}
         
         #Get base dat =============================================================================    
         _mVectorAim = MATH.get_obj_vector(self.mNode,asEuclid=True)
@@ -1309,6 +1310,8 @@ def prerig(self):
         crv = CURVES.create_fromName('sphere', size = _size_base)
         mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
         mHandleFactory.color(mHandleRoot.mNode)
+        
+        mHandleRoot.doSnapTo(self)
 
         #_shortHandle = mHandleRoot.mNode
     
@@ -1333,7 +1336,7 @@ def prerig(self):
     
         mShape.tz = DIST.get_distance_between_points(self.p_position,mIrisPos.p_position) - (_size_base)
         mShape.rz = 90
-        
+                
         
         _crvLinear = CORERIG.create_at(create='curveLinear',
                                        l_pos=[self.p_position,mShape.p_position])
@@ -1349,7 +1352,7 @@ def prerig(self):
         mOrientHelper.doStore('cgmName','eyeOrient')
         mOrientHelper.doStore('cgmType','formHandle')
         mOrientHelper.doName()
-    
+        
         self.connectChildNode(mOrientHelper.mNode,'eyeOrientHelper','module')
         mHandleFactory.color(mOrientHelper.mNode,controlType='sub')
         
@@ -2244,8 +2247,9 @@ def prerig(self):
                         
         # Connect -------------------------------------------------
         self.msgList_connect('prerigHandles', ml_handles)
-        mStateNull.msgList_connect('uprDrivers', md_crvDrivers['upr'] )
-        mStateNull.msgList_connect('lwrDrivers', md_crvDrivers['lwr'] )
+        if md_crvDrivers:
+            mStateNull.msgList_connect('uprDrivers', md_crvDrivers['upr'] )
+            mStateNull.msgList_connect('lwrDrivers', md_crvDrivers['lwr'] )
         
 
         

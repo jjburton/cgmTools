@@ -17,6 +17,7 @@ from cgm.core.lib import asset_utils as ASSET
 from cgm.core.tools import Project as Project
 from cgm.core.mrs.lib import batch_utils as BATCH
 from cgm.core import cgm_General as cgmGEN
+from cgm.core.lib import math_utils as MATH
 
 import Red9.core.Red9_General as r9General
 
@@ -347,9 +348,10 @@ example:
 		#mUI.MelSpacer(imageRow,w=10)	
 		imageRow.layout()
 		
-		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True),bgc=(1.0, .445, .08))
+		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True))
+		
 
-		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=272)
+		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=294)
 			
 		_MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
@@ -1557,6 +1559,12 @@ example:
 		except Exception,err:
 			log.warning("Failed to set bgc: {0} | {1}".format(_bgColor,err))
 
+		try:
+			self._detailsToggleBtn(edit=True, bgc=[MATH.Clamp(1.8 * v,None,1.0) for v in _bgColor])
+		except:
+			self._detailsToggleBtn(edit=True, bgc=(1.0, .445, .08))
+			
+			
 		d_userPaths = self.project.userPaths_get()
 		
 		if not d_userPaths.get('content'):
@@ -1581,10 +1589,11 @@ example:
 
 			self.subTypes = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
 
-			if os.path.exists(d_userPaths['image']):
+			if d_userPaths.get('image') and os.path.exists(d_userPaths.get('image')):
 				self.uiImage_Project.setImage(d_userPaths['image'])
 			else:
-				_imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
+				_imageFailPath = os.path.join(mImagesPath.asFriendly(),
+				                              'cgm_project_{0}.png'.format(self.project.d_project.get('type','unity')))
 				self.uiImage_Project.setImage(_imageFailPath)
 
 			self.buildMenu_category()
@@ -1820,7 +1829,11 @@ example:
 
 			if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
 				for refFile in mc.file(query=True, reference=True):
+					if not os.path.exists(refFile):
+						continue
+					
 					newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+					
 					if not os.path.exists(newRefFilename):
 						if not os.path.exists(os.path.dirname(newRefFilename)):
 							os.makedirs(os.path.dirname(newRefFilename))
