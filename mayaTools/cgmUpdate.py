@@ -614,6 +614,8 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True, run = True):
     if run:
         try:
             mel.eval('rehash')
+            import cgm
+            cgm.core._reload()
             mel.eval('cgmToolbox')
         except Exception,err:
             return log.error("Failed to load cgm | {0}".format(err))
