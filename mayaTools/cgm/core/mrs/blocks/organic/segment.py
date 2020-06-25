@@ -2104,10 +2104,13 @@ def rig_frame(self):
             ml_handleParents = ml_fkJoints
             if ml_blendJoints:
                 log.debug("|{0}| >> Handles parent: blend".format(_str_func))
-                ml_handleParents = ml_blendJoints            
+                ml_handleParents = ml_blendJoints
+            
             RIGFRAME.segment_handles(self,ml_handleJoints,ml_handleParents,
                                      mIKBaseControl,mRoot,str_ikBase)
            
+            
+       
         #>> Build IK ======================================================================================
         if mBlock.ikSetup:
             _ikSetup = mBlock.getEnumValueString('ikSetup')
@@ -2229,11 +2232,9 @@ def rig_frame(self):
                     d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
                     d_blendReturn['d_result1']['mi_plug'].p_hidden = True
                     d_blendReturn['d_result2']['mi_plug'].p_hidden = True                                            
-                    ATTR.set_default(mIKBaseControl.mNode, 'aim', .5)
+                    #ATTR.set_default(mIKBaseControl.mNode, 'aim', .5)
                     #mIKBaseControl.extendIK = 0.0
                     mIKBaseControl.p_parent = mBaseOrientGroup                    
-                
-                    
                     
                     
             else:#Spin Group
@@ -2592,6 +2593,8 @@ def rig_cleanUp(self):
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug(self)
         
+         
+    
         mRigNull = self.mRigNull
         mSettings = mRigNull.settings
         mRoot = mRigNull.rigRoot
@@ -2682,6 +2685,7 @@ def rig_cleanUp(self):
             mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
         mDynGroup.dynFollow.p_parent = self.mDeformNull"""
+        
         
         #...ik controls ==================================================================================
         log.debug("|{0}| >>  IK Handles ... ".format(_str_func))                
@@ -2865,6 +2869,7 @@ def rig_cleanUp(self):
             #pprint.pprint(ml_targetDynParents)                
             log.debug(cgmGEN._str_subLine)    
         
+        
         #Settings =================================================================================
         log.debug("|{0}| >> Settings...".format(_str_func))
         mSettings.visRoot = 0
@@ -2887,6 +2892,7 @@ def rig_cleanUp(self):
                 _v = 1.0
             ATTR.set_default(mSettings.mNode, 'FKIK', _v)
             mSettings.FKIK = _v
+        
         
         #Lock and hide =================================================================================
         ml_blendJoints = mRigNull.msgList_get('blendJoints',asMeta=True)

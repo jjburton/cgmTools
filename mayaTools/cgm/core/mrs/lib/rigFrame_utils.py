@@ -777,7 +777,19 @@ def segment_handles(self, ml_handles = None, ml_handleParents = None, mIKBaseCon
                             s_targetForward = ml_handleParents[-1].mNode
                         else:
                             s_targetForward = ml_handles[i+1].getMessage('masterGroup')[0]
-                        s_rootTarget = mRoot.mNode
+                            
+                        #s_rootTarget = ml_handleParents[0].mNode#mRoot.mNode
+                        mRootDriver = mHandle.doCreateAt()
+                        mRootDriver.parent = mMasterGroup                        
+                        mRootDriver.doStore('cgmTypeModifier','root')
+                        mRootDriver.doStore('cgmType','driver')
+                        mRootDriver.doName()
+                        
+                        mc.orientConstraint([mRoot.mNode], mRootDriver.mNode, maintainOffset = True)
+                        
+                        s_rootTarget = mRootDriver.mNode
+                        
+                        
                         b_first = True
     
                     elif mHandle == ml_handles[-1]:
