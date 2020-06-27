@@ -347,9 +347,6 @@ example:
 		self.uiImage_Project.setImage(_imageFailPath)
 		#mUI.MelSpacer(imageRow,w=10)	
 		imageRow.layout()
-		
-		self._detailsToggleBtn = mUI.MelButton(_ParentForm, ut = 'cgmUITemplate', label="<", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True))
-		
 
 		self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=294)
 			
@@ -358,7 +355,8 @@ example:
 		##############################
 		# Top Column Layout 
 		##############################
-		
+	
+		self._detailsToggleBtn = mUI.MelButton(_MainForm, ut = 'cgmUITemplate', label="<", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True))	
 	
 		_directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate')
 		
@@ -617,15 +615,19 @@ example:
 		           attachForm=[
 		                        (_directoryColumn, 'top', 0), 
 		                        (_directoryColumn, 'left', 0), 
-		                        (_directoryColumn, 'right', 0), 
-		                        (_bottomColumn, 'right', 0), 
 		                        (_bottomColumn, 'left', 0),
 								(_bottomColumn, 'bottom', 0),
 		                        (self._assetsForm, 'left', 0),
-		                        (self._assetsForm, 'right', 0)], 
+		                        
+								(self._detailsToggleBtn, 'right', 0),
+								(self._detailsToggleBtn, 'top', 0),
+								(self._detailsToggleBtn, 'bottom', 0)], 
 		           attachControl=[
 		                        (self._assetsForm, 'top', 0, _directoryColumn),
-		                        (self._assetsForm, 'bottom', 0, _bottomColumn)] )
+		                        (self._assetsForm, 'bottom', 0, _bottomColumn),
+								(self._assetsForm, 'right', 0, self._detailsToggleBtn),
+								(_bottomColumn, 'right', 0, self._detailsToggleBtn),
+								(_directoryColumn, 'right', 0, self._detailsToggleBtn)])
 
 		_ParentForm( edit=True,
 					 attachForm=[						 
@@ -639,12 +641,9 @@ example:
 		                        (_footer, 'bottom', 0)],
 					 attachControl=[(_MainForm, 'top', 0, _headerColumn),
 									(_MainForm, 'bottom', 0, _footer),
-									(_MainForm, 'right', 0, self._detailsToggleBtn),
+									(_MainForm, 'right', 0, self._detailsColumn),
 									(self._detailsColumn, 'top', 0, _headerColumn),
-									(self._detailsColumn, 'bottom', 1, _footer),
-									(self._detailsToggleBtn, 'right', 0, self._detailsColumn),
-									(self._detailsToggleBtn, 'top', 1, _headerColumn),
-									(self._detailsToggleBtn, 'bottom', 1, _footer)])
+									(self._detailsColumn, 'bottom', 1, _footer)])
 	def show( self ):		
 		self.setVisibility( True )
 		self.buildMenu_options()
