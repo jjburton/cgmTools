@@ -137,6 +137,7 @@ l_attrsStandard = ['side',
                    'position',
                    'baseAim',
                    'attachPoint',
+                   'attachIndex',                   
                    'nameList',
                    'loftDegree',
                    'loftSplit',
@@ -150,6 +151,7 @@ l_attrsStandard = ['side',
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:split:side',
+                 'buildCenter':'none:dag:joint',
                  'formForeheadNum':'int',
                  'formBrowNum':'int',
                  #'paramStart':'float',
@@ -163,7 +165,6 @@ d_attrsToMake = {'browType':'full:split:side',
                  'numHandlesBrow':'int',
                  'numBrowJoints':'int',
                  'profileOptions':'string',
-                 'controlBrowCenter':'bool',
                  'numBrowControl':'int',
                  'controlTemple':'bool',
                  
@@ -183,12 +184,12 @@ d_defaultSettings = {'version':__version__,
                      'visLabels':True,
                      'formForeheadNum':1,
                      'formBrowNum':1,
-                     'controlBrowCenter':True,
                      'numBrowControl':3,
                      'numBrowJoints':3,
                      'jointDepth':-.01,
                      'jointRadius':1.0,
                      'controlOffset':1,
+                     'buildCenter':2,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -1758,6 +1759,8 @@ def skeleton_build(self, forceNew = True):
             _cap = side.capitalize()
             ml_new = []            
             if side == 'center':
+                if not self.buildCenter:
+                    continue
                 ml_base = mPrerigNull.msgList_get('brow{0}JointHelpers'.format(_cap))
                 for mObj in ml_base:
                     mJnt = mObj.doCreateAt('joint')
@@ -1864,7 +1867,11 @@ def rig_dataBuffer(self):
         self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k) or False
         
     #Logic checks ========================================================================
-
+    l_handleKeys = (['center','left','right'])
+    if not mBlock.buildCenter:
+        l_handleKeys.remove('center')
+    
+    self.l_handleKeys = l_handleKeys
     
     #Offset ============================================================================ 
     self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
@@ -1974,7 +1981,10 @@ def rig_skeleton(self):
     md_rigJoints = {'brow':{}}
     md_segJoints = {'brow':{}}
     md_directShapes = {'brow':{}}
-    for k in ['center','left','right']:
+    
+
+    
+    for k in self.l_handleKeys:
         log.debug("|{0}| >> {1}...".format(_str_func,k))        
         ml_skin = self.mPrerigNull.msgList_get('brow{0}Joints'.format(k.capitalize()))
         ml_directShapes = self.mPrerigNull.msgList_get('brow{0}JointShapes'.format(k.capitalize()))            
@@ -2012,11 +2022,10 @@ def rig_skeleton(self):
     md_handleShapes = {'brow':{}}
     
     #if self.str_browType == 'full':
-    l_handleKeys = ['center','left','right']
     #    else:
     #    l_handleKeys = ['left','right']
     
-    for k in l_handleKeys:
+    for k in self.l_handleKeys:
         log.debug("|{0}| >> {1}...".format(_str_func,k))        
         ml_helpers = self.mPrerigNull.msgList_get('brow{0}PrerigHandles'.format(k.capitalize()))
         ml_handleShapes = self.mPrerigNull.msgList_get('brow{0}PrerigShapes'.format(k.capitalize()))
@@ -2300,14 +2309,21 @@ def rig_frame(self):
     md_seg = self.md_segJoints
     md_brow = md_seg['brow']
     ml_right = copy.copy(md_brow['right'])
-    ml_center = md_brow['center']
+    if mBlock.buildCenter:
+        ml_center = md_brow['center']
+    else:
+        ml_center = False
+        
     ml_left = md_brow['left']
 
     md_handles = self.md_handles
     md_brow = md_handles['brow']
     ml_rightHandles = copy.copy(md_brow['right'])
-    ml_leftHandles = md_brow['left']    
-    ml_centerHandles = md_brow['center']
+    ml_leftHandles = md_brow['left']
+    
+    ml_centerHandles = False
+    if mBlock.buildCenter:
+        ml_centerHandles = md_brow['center']
     
     if self.str_browType == 'split':
         d_sides = {'left':{'ribbonJoints':ml_left,
@@ -2338,25 +2354,28 @@ def rig_frame(self):
             res_ribbon = IK.ribbon(**d_ik)
             
             
-            
-            
-            
-            mc.pointConstraint([md_brow['left'][0].mNode, md_brow['right'][0].mNode],
-                               ml_centerHandles[0].masterGroup.mNode,
-                               skip = 'z',
-                               maintainOffset=True)
-            mc.parentConstraint([ml_centerHandles[0].mNode],
-                               ml_center[0].mNode,
-                               maintainOffset=True)            
+            if ml_center:
+                mc.pointConstraint([md_brow['left'][0].mNode, md_brow['right'][0].mNode],
+                                   ml_centerHandles[0].masterGroup.mNode,
+                                   skip = 'z',
+                                   maintainOffset=True)
+                
+                mc.parentConstraint([ml_centerHandles[0].mNode],
+                                   ml_center[0].mNode,
+                                   maintainOffset=True)            
         
     else:
         ml_right.reverse()
         ml_rightHandles.reverse()    
         
-        ml_ribbonJoints = ml_right + ml_center + ml_left
-        
-
-        ml_skinDrivers = ml_rightHandles + ml_centerHandles + ml_leftHandles
+        if ml_center:
+            ml_ribbonJoints = ml_right + ml_center + ml_left
+            ml_skinDrivers = ml_rightHandles + ml_centerHandles + ml_leftHandles
+            
+        else:
+            ml_ribbonJoints = ml_right + ml_left
+            ml_skinDrivers = ml_rightHandles + ml_leftHandles
+            
         
         d_ik = {'jointList':[mObj.mNode for mObj in ml_ribbonJoints],
                 'baseName' : self.d_module['partName'] + '_ikRibbon',
@@ -2380,12 +2399,13 @@ def rig_frame(self):
     #Setup some constraints============================================================================
     if self.str_browType == 'full':
         md_brow['center'][0].masterGroup.p_parent = mBrowMain
-    
-        mc.pointConstraint([md_brow['left'][0].mNode, md_brow['right'][0].mNode],
-                           md_brow['center'][0].masterGroup.mNode,
-                           skip = 'z',
-                           maintainOffset=True)
         
+        if ml_center:
+            mc.pointConstraint([md_brow['left'][0].mNode, md_brow['right'][0].mNode],
+                               md_brow['center'][0].masterGroup.mNode,
+                               skip = 'z',
+                               maintainOffset=True)
+            
         
     for side in ['left','right']:
         ml = md_brow[side]

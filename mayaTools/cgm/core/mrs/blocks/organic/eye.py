@@ -149,6 +149,7 @@ l_attrsStandard = ['side',
                    'position',
                    'baseAim',
                    'attachPoint',
+                   'attachIndex',
                    'nameList',
                    'numSpacePivots',
                    'loftDegree',
@@ -2350,6 +2351,21 @@ def skeleton_build(self, forceNew = True):
 
     #if len(ml_joints) > 1:
     #    ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5
+    
+    #Pupil ======================================================================================
+    str_pupilBuild = mBlock.getEnumValueString('pupilBuild')
+    log.debug("|{0}| >> pupil: {1}.".format(_str_func,str_pupilBuild))
+    
+    if str_pupilBuild == 'joint':
+        _d_hl = copy.copy(_d_base)
+        _d_hl['cgmNameModifier'] = 'pupil'        
+        
+        mPupilJoint = mEyeJoint.doDuplicate()
+        name(mPupilJoint,_d_hl)
+        
+        mPupilJoint.p_parent = mRoot
+        mPrerigNull.connectChildNode(mPupilJoint.mNode,'eyePupilJoint')        
+        ml_joints.append(mPupilJoint)       
         
     #>> Highlight ===============================================================================
     if self.highlightSetup:
@@ -2365,6 +2381,8 @@ def skeleton_build(self, forceNew = True):
         mHighlightJoint.p_parent = mRoot
         mPrerigNull.connectChildNode(mHighlightJoint.mNode,'eyeHighlightJoint')        
         ml_joints.append(mHighlightJoint)
+        
+ 
         
     if self.lidBuild:#=====================================================
         _lidBuild = self.getEnumValueString('lidBuild')
@@ -2643,6 +2661,10 @@ def rig_skeleton(self):
                                                      cgmType = False,
                                                      singleMode = True)[0]    
     mEyeFK.p_parent = mEyeRigJoint.p_parent
+    
+
+        
+        
     
     
     #IK setup ----------------------------------------------------------------------------------

@@ -159,6 +159,7 @@ l_attrsStandard = ['side',
                    'position',
                    'baseAim',
                    'attachPoint',
+                   'attachIndex',                   
                    'nameList',
                    'loftDegree',
                    'loftSplit',
@@ -2548,7 +2549,24 @@ def form(self):
                                                 'rebuild':1}
 
             else:
-                raise ValueError,"Finish this"
+                l_nose_underTags = ['nostrilRight',
+                                    'nostrilBaseRight',
+                                    'noseBaseRight',
+                                    'noseBase',
+                                    'noseBaseLeft',
+                                    'nostrilBaseLeft',
+                                    'nostrilLeft']                
+                l_endKeys = copy.copy(l_nose_underTags)
+                d_tmp = {'right':[],'left':[]}
+
+                d_curveCreation['overEnd'] = {'keys':l_endKeys,
+                                              'rebuild':1}
+                
+                l_overStart = ['cornerPeakRight'] + d_curveCreation['upr_Peak']['keys'] + ['cornerPeakLeft']
+                d_curveCreation['overStart'] = {'keys':l_overStart,
+                                                'rebuild':1}
+                pass
+                #raise ValueError,"Finish this"
 
 
             #Loft/baseCurves ----------------------------------------------------------------------------------
