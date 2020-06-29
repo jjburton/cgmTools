@@ -502,7 +502,7 @@ d_block_profiles = {
           'settingsPlace':'start',
           'ikSetup':'rp',
           'ikEnd':'tipBase',
-          'numControls':3,
+          'numControls':4,
           'numShapers':4,          
           'numRoll':0,
           'ikRPAim':'default',              

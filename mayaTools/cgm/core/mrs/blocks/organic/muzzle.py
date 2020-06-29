@@ -165,6 +165,8 @@ l_attrsStandard = ['side',
                    'loftSplit',
                    'scaleSetup',
                    'visLabels',
+                   'buildSDK',                   
+                   
                    'controlOffset',
                    'conDirectOffset',
                    'moduleTarget',]
