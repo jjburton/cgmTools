@@ -149,7 +149,9 @@ l_attrsStandard = ['side',
                    'position',
                    'baseAim',
                    'attachPoint',
+                   'attachIndex',
                    'nameList',
+                   'buildSDK',
                    'numSpacePivots',
                    'loftDegree',
                    'loftSplit',
@@ -2350,6 +2352,24 @@ def skeleton_build(self, forceNew = True):
 
     #if len(ml_joints) > 1:
     #    ml_joints[0].getParent(asMeta=1).radius = ml_joints[-1].radius * 5
+    
+    #Pupil ======================================================================================
+    str_pupilBuild = self.getEnumValueString('pupilBuild')
+    log.debug("|{0}| >> pupil: {1}.".format(_str_func,str_pupilBuild))
+    
+    if str_pupilBuild == 'joint':
+        _d_hl = copy.copy(_d_base)
+        _d_hl['cgmNameModifier'] = 'pupil'        
+        
+        mPupilJoint = mEyeJoint.doDuplicate()
+        name(mPupilJoint,_d_hl)
+        
+        mPupilJoint.p_parent = mRoot
+        
+        mPupilJoint.p_position = self.pupilHelper.p_position
+        
+        mPrerigNull.connectChildNode(mPupilJoint.mNode,'pupilJoint')        
+        ml_joints.append(mPupilJoint)       
         
     #>> Highlight ===============================================================================
     if self.highlightSetup:
@@ -2365,6 +2385,8 @@ def skeleton_build(self, forceNew = True):
         mHighlightJoint.p_parent = mRoot
         mPrerigNull.connectChildNode(mHighlightJoint.mNode,'eyeHighlightJoint')        
         ml_joints.append(mHighlightJoint)
+        
+ 
         
     if self.lidBuild:#=====================================================
         _lidBuild = self.getEnumValueString('lidBuild')
@@ -2456,9 +2478,9 @@ def rig_prechecks(self):
     
     mBlock = self.mBlock
     
-    str_lidSetup = mBlock.getEnumValueString('lidBuild')
-    if str_lidSetup not in ['clam','full']:
-        self.l_precheckErrors.append("Lid setup not completed: {0}".format(str_lidSetup))
+    str_lidBuild = mBlock.getEnumValueString('lidBuild')
+    if str_lidBuild not in ['clam','full']:
+        self.l_precheckErrors.append("Lid setup not completed: {0}".format(str_lidBuild))
     
     
 
@@ -2483,17 +2505,25 @@ def rig_dataBuffer(self):
     
     self.b_scaleSetup = mBlock.scaleSetup
     
-    self.str_lidSetup = False
+    
+    
+    
+    """
+    self.str_lidBuild = False
     if mBlock.lidBuild:
-        self.str_lidSetup  = mBlock.getEnumValueString('lidBuild')
+        self.str_lidBuild  = mBlock.getEnumValueString('lidBuild')
         
     self.str_highlightSetup = False
     if mBlock.highlightSetup:
-        self.str_highlightSetup = mBlock.getEnumValueString('highlightSetup')
+        self.str_highlightSetup = mBlock.getEnumValueString('highlightSetup')"""
+    
+    for k in ['lidBuild','highlightSetup','irisBuild','pupilBuild','ikSetup','buildSDK']:
+        self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)    
+        self.__dict__['v_{0}'.format(k)] = mBlock.getMayaAttr(k)
         
     #Logic checks ========================================================================
     self.b_needEyeOrb = False
-    if not mBlock.buildEyeOrb and self.str_lidSetup:
+    if not mBlock.buildEyeOrb and self.str_lidBuild:
         self.b_needEyeOrb = True
     
     #Offset ============================================================================    
@@ -2644,6 +2674,21 @@ def rig_skeleton(self):
                                                      singleMode = True)[0]    
     mEyeFK.p_parent = mEyeRigJoint.p_parent
     
+
+    #Pupil  =====================================================================
+    if self.str_pupilBuild == 'joint':
+        log.debug("|{0}| >> Eye...".format(_str_func)+'-'*40)
+        
+        mPupilJoint = mPrerigNull.getMessageAsMeta('pupilJoint')
+        mPupilRigJoint = mPupilJoint.getMessageAsMeta('rigJoint')
+        log.debug(mPupilJoint)
+        log.debug(mPupilRigJoint)
+
+        mRigNull.connectChildNode(mPupilRigJoint,'directPupil')
+        
+        self.mPupilJoint = mPupilJoint
+        self.mPupilRigJoint = mPupilRigJoint
+    
     
     #IK setup ----------------------------------------------------------------------------------
     if mBlock.ikSetup:
@@ -2677,7 +2722,7 @@ def rig_skeleton(self):
     
 
         
-    if self.str_lidSetup == 'clam':
+    if self.str_lidBuild == 'clam':
         mHighlight = mBlock.prerigNull.getMessageAsMeta('eyeHighlightJoint')
         if mHighlight:
             #doSingleJoint('eyeHighlight')
@@ -2983,6 +3028,15 @@ def rig_shapes(self):
                 #s.overrideEnabled = 1
                 #s.overrideDisplayType = 2
                 
+        if self.str_pupilBuild in ['joint'] :
+            log.debug("|{0}| >> Pupil ...".format(_str_func))
+            mPupilRigJoint = self.mPupilRigJoint
+            mShape = mBlock.pupilHelper.doDuplicate(po=False)
+            mShape.tz = mShape.tz + self.v_offset
+            
+            CORERIG.shapeParent_in_place(mPupilRigJoint.mNode, mShape.mNode,False)
+            mRigNull.connectChildNode(mPupilRigJoint,'controlPupil','rigNull')#Connect                        
+        
         
         mHighlight = mPrerigNull.getMessageAsMeta('eyeHighlightJoint')
         if mHighlight:#==============================================================================
@@ -3004,9 +3058,9 @@ def rig_shapes(self):
             mRigNull.connectChildNode(mHighlightDirectJoint,'controlHighlight','rigNull')#Connect            
             
                 
-        if self.str_lidSetup:#Lid setup =======================================================================
-            log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidSetup))
-            if self.str_lidSetup == 'clam':
+        if self.str_lidBuild:#Lid setup =======================================================================
+            log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidBuild))
+            if self.str_lidBuild == 'clam':
                 for k in 'upr','lwr':
                     log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
                     _key = '{0}LidHandle'.format(k)
@@ -3093,6 +3147,10 @@ def rig_controls(self):
         mBlendJoint = mRigNull.getMessageAsMeta('blendEye')
         mDirect = mRigNull.getMessageAsMeta('directEye')
         
+        b_sdk=False
+        if self.str_buildSDK in ['dag']:
+            b_sdk = True
+        
         # Drivers ==========================================================================================    
         if mBlock.ikSetup:
             mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
@@ -3122,6 +3180,7 @@ def rig_controls(self):
         log.debug("|{0}| >> Found fk : {1}".format(_str_func, mControlFK))
         
         _d = MODULECONTROL.register(mControlFK,
+                                    addSDKGroup=b_sdk,                                    
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
                                     makeAimable = True)
@@ -3190,8 +3249,8 @@ def rig_controls(self):
         log.debug(cgmGEN._str_subLine)        
 
         
-        if self.str_lidSetup:#Lid setup =======================================================================
-            log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidSetup))
+        if self.str_lidBuild:#Lid setup =======================================================================
+            log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidBuild))
             
             cgmMeta.cgmAttr(mSettings.mNode,
                             'blink',attrType='float',
@@ -3202,7 +3261,7 @@ def rig_controls(self):
                             minValue=0,maxValue=1,
                             lock=False,keyable=True)            
             
-            if self.str_lidSetup == 'clam':
+            if self.str_lidBuild == 'clam':
                 ml_handles = []
                 for k in 'upr','lwr':
                     log.debug("|{0}| >> lid | {1}...".format(_str_func,k))
@@ -3211,6 +3270,7 @@ def rig_controls(self):
                     mRig = self.d_lidData[k]['mRig']
                     
                     MODULECONTROL.register(mHandle,
+                                           addSDKGroup=b_sdk,                                           
                                            mirrorSide= self.d_module['mirrorDirection'],
                                            mirrorAxis="translateX,rotateY,rotateZ")
                     
@@ -3245,6 +3305,7 @@ def rig_controls(self):
                         for i,mHandle in enumerate(ml):
                             log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                             _d = MODULECONTROL.register(mHandle,
+                                                        addSDKGroup=b_sdk,                                                        
                                                         mirrorSide= self.d_module['mirrorDirection'],
                                                         mirrorAxis="translateX,rotateY,rotateZ",
                                                         makeAimable = False)
@@ -3300,6 +3361,23 @@ def rig_controls(self):
             
             mControlHighlight = _d['mObj']
             ml_controlsAll.append(mControlHighlight)
+
+
+        mPupil = mRigNull.getMessageAsMeta('controlPupil')
+        #mPupil ================================================================================
+        if mPupil:
+            log.debug("|{0}| >> Found pupil : {1}".format(_str_func, mPupil))
+            
+            _d = MODULECONTROL.register(mPupil,
+                                        addDynParentGroup = 0,
+                                        addSDKGroup=b_sdk,
+                                        #addSDKGroup=True,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ")
+            
+            mPupil = _d['mObj']
+            ml_controlsAll.append(mPupil)            
+            
             
         #controlHighlight
         #Close out...
@@ -3453,7 +3531,7 @@ def rig_frame(self):
         mBlendJoint.p_parent = mSettings
         
         
-    if self.str_lidSetup in ['full']:
+    if self.str_lidBuild in ['full']:
         log.debug("|{0}| >> lid setup...".format(_str_func)+ '-'*40)
         
         #Lid handles ------------------------------------------------------
@@ -3631,12 +3709,12 @@ def rig_highlightSetup(self):
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
 
-    if not self.str_highlightSetup:
+    if self.str_highlightSetup is not 'none':
         log.debug("|{0}| >> No highlight setup...".format(_str_func))
         return True
     
     _short = self.d_block['shortName']    
-    _lidSetup = self.str_lidSetup
+    _lidSetup = self.str_lidBuild
     mBlock = self.mBlock
     mRigNull = self.mRigNull
     mSettings = mRigNull.settings
@@ -4009,12 +4087,26 @@ def create_lidFollow(self):
     mPlug_lwrUpLimit.doConnectOut("{0}.minR".format(_lwrClamp))
     ATTR.connect("{0}.outputR".format(_lwrClamp),
                  "{0}.r{1}".format(_lwrLoc,_str_orientation[2]))
-    ATTR.connect("{0}.outputG".format(_lwrClamp),
-                 "{0}.r{1}".format(_lwrLoc,_str_orientation[1]))
+    #ATTR.connect("{0}.outputG".format(_lwrClamp),
+    #             "{0}.r{1}".format(_lwrLoc,_str_orientation[1]))
 
     self.mPlug_lwrUpLimit = mPlug_lwrUpLimit#store
     self.mPlug_lwrDnLimit = mPlug_lwrDnLimit#store
     self.mPlug_lwrDnStart = mPlug_lwrDnStart#store
+    
+    #Lwr left/right
+    
+    mPlug_driverSide = cgmMeta.cgmAttr(mEyeJoint.mNode,"r{0}".format(_str_orientation[1]))
+    mPlug_leftLwrLimit = cgmMeta.cgmAttr(mSettings,"lwrLeftLimit",value=20,defaultValue=20,attrType='float',keyable=False,hidden=False)
+    mPlug_rightLwrLimit = cgmMeta.cgmAttr(mSettings,"lwrRightLimit",value=-20,defaultValue=-20,attrType='float',keyable=False,hidden=False)
+
+    mPlug_driverSide.doConnectOut("{0}.inputG".format(_lwrClamp))
+    mPlug_leftLwrLimit.doConnectOut("{0}.maxG".format(_lwrClamp))
+    mPlug_rightLwrLimit.doConnectOut("{0}.minG".format(_lwrClamp))
+    mc.connectAttr("{0}.outputG".format(_lwrClamp),"{0}.r{1}".format(_lwrLoc,_str_orientation[1]))
+
+    self.mPlug_leftLwrLimit = mPlug_leftLwrLimit
+    self.mPlug_rightLwrLimit = mPlug_rightLwrLimit#store    
     
     #Contraints --------------------------------------------------------------   
     log.debug("|{0}| >> Contraints...".format(_str_func))
@@ -4054,12 +4146,12 @@ def rig_lidSetup(self):
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
 
-    if not self.str_lidSetup:
+    if not self.str_lidBuild:
         log.debug("|{0}| >> No lid setup...".format(_str_func))
         return True
     
     _short = self.d_block['shortName']    
-    _lidSetup = self.str_lidSetup
+    _lidSetup = self.str_lidBuild
     mBlock = self.mBlock
     mRigNull = self.mRigNull
     mSettings = mRigNull.settings
@@ -4488,7 +4580,7 @@ def rig_cleanUp(self):
     
     
     #Lid Defaults ===============================================================
-    if self.str_lidSetup:
+    if self.str_lidBuild:
         mPlug_leftLimit = self.mPlug_leftLimit#store
         mPlug_rightLimit = self.mPlug_rightLimit#store
         mPlug_uprUpLimit = self.mPlug_uprUpLimit#store
@@ -4812,9 +4904,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     ml_noFreeze = []
     
     
-    str_lidSetup = mBlock.getEnumValueString('lidBuild')
+    str_lidBuild = mBlock.getEnumValueString('lidBuild')
     #>>Lid setup ================================================
-    if str_lidSetup == 'clam':
+    if str_lidBuild == 'clam':
         #Need to make our lid roots and orient
         for k in 'upr','lwr':
             log.debug("|{0}| >> {1}...".format(_str_func,k))

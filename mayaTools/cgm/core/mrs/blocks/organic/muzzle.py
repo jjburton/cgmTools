@@ -159,11 +159,14 @@ l_attrsStandard = ['side',
                    'position',
                    'baseAim',
                    'attachPoint',
+                   'attachIndex',                   
                    'nameList',
                    'loftDegree',
                    'loftSplit',
                    'scaleSetup',
                    'visLabels',
+                   'buildSDK',                   
+                   
                    'controlOffset',
                    'conDirectOffset',
                    'moduleTarget',]
@@ -2548,7 +2551,24 @@ def form(self):
                                                 'rebuild':1}
 
             else:
-                raise ValueError,"Finish this"
+                l_nose_underTags = ['nostrilRight',
+                                    'nostrilBaseRight',
+                                    'noseBaseRight',
+                                    'noseBase',
+                                    'noseBaseLeft',
+                                    'nostrilBaseLeft',
+                                    'nostrilLeft']                
+                l_endKeys = copy.copy(l_nose_underTags)
+                d_tmp = {'right':[],'left':[]}
+
+                d_curveCreation['overEnd'] = {'keys':l_endKeys,
+                                              'rebuild':1}
+                
+                l_overStart = ['cornerPeakRight'] + d_curveCreation['upr_Peak']['keys'] + ['cornerPeakLeft']
+                d_curveCreation['overStart'] = {'keys':l_overStart,
+                                                'rebuild':1}
+                pass
+                #raise ValueError,"Finish this"
 
 
             #Loft/baseCurves ----------------------------------------------------------------------------------
@@ -5194,6 +5214,11 @@ def rig_dataBuffer(self):
             self.__dict__['str_{0}'.format(_tag)] = _v
         log.debug("|{0}| >> self.str_{1} = {2}".format(_str_func,_tag,self.__dict__['str_{0}'.format(_tag)]))    
     
+    
+    for k in ['buildSDK']:
+        self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)    
+        self.__dict__['v_{0}'.format(k)] = mBlock.getMayaAttr(k)    
+    
     #DynParents =============================================================================
     self.UTILS.get_dynParentTargetsDat(self)
     log.debug(cgmGEN._str_subLine)
@@ -5749,7 +5774,9 @@ def rig_controls(self):
         mPlug_visDirect = self.mPlug_visDirect_moduleParent
         mPlug_visSub = self.mPlug_visSub_moduleParent
         
-        
+        b_sdk=False
+        if self.str_buildSDK in ['dag']:
+            b_sdk = True        
         
         def simpleRegister(mObj):
             _dir = mObj.getMayaAttr('cgmDirection')
@@ -5762,6 +5789,7 @@ def rig_controls(self):
                     _dir = 'Centre'
                 
             _d = MODULECONTROL.register(mObj,
+                                        addSDKGroup=b_sdk,
                                         mirrorSide= _dir,
                                         mirrorAxis="translateX,rotateY,rotateZ",
                                         makeAimable = False)
@@ -5777,6 +5805,7 @@ def rig_controls(self):
                 
                 
                 _d = MODULECONTROL.register(mLink,
+                                            addSDKGroup=b_sdk,                                    
                                             mirrorSide= self.d_module['mirrorDirection'],
                                             mirrorAxis="translateX,rotateY,rotateZ",
                                             makeAimable = False)
@@ -5847,6 +5876,7 @@ def rig_controls(self):
                 for i,mHandle in enumerate(ml):
                     log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                     _d = MODULECONTROL.register(mHandle,
+                                                addSDKGroup=b_sdk,
                                                 mirrorSide= side,
                                                 mirrorAxis="translateX,rotateY,rotateZ",
                                                 makeAimable = False)

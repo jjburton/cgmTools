@@ -312,6 +312,7 @@ l_attrsStandard = ['side',
                    #'hasRootJoint',
                    'nameList',
                    'attachPoint',
+                   'attachIndex',                   
                    'loftSides',
                    'loftDegree',
                    'loftList',                   
@@ -1692,9 +1693,16 @@ def rig_shapes(self):
                 CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, False, replaceShapes=True)
                 
 
+
         for mShape in ml_fkShapes:
             try:mShape.delete()
             except:pass
+            
+            
+        #Pivots =======================================================================================
+        if mBlock.getMessage('pivotHelper'):
+            RIGSHAPES.pivotShapes(self,mBlock.pivotHelper)        
+            
         return        
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
@@ -1935,6 +1943,29 @@ def rig_controls(self):
                     ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
             
                 
+        # Pivots =================================================================================================
+        if mBlock.getMessage('pivotHelper'):
+            log.info("|{0}| >> Pivot helper found".format(_str_func))
+            for a in 'center','front','back','left','right':#This order matters
+                str_a = 'pivot' + a.capitalize()
+                if mRigNull.getMessage(str_a):
+                    log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
+                    
+                    mPivot = mRigNull.getMessage(str_a,asMeta=True)[0]
+                    
+                    d_buffer = MODULECONTROL.register(mPivot,
+                                                      typeModifier='pivot',
+                                                      mirrorSide= self.d_module['mirrorDirection'],
+                                                      mirrorAxis="translateX,rotateY,rotateZ",
+                                                      makeAimable = False)
+                    
+                    mPivot = d_buffer['instance']
+                    for mShape in mPivot.getShapes(asMeta=True):
+                        ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
+                    
+                    
+                    ml_controlsAll.append(mPivot)
+                
         #>> Direct Controls ==================================================================================
         log.debug("|{0}| >> Direct controls...".format(_str_func))
         
@@ -2080,6 +2111,7 @@ def rig_frame(self):
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
         mPlug_globalScale = self.d_module['mPlug_globalScale']
         mRoot = mRigNull.rigRoot
+        mSettings = mRigNull.settings
         
         b_cog = False
         if mBlock.getMessage('cogHelper'):
@@ -2121,7 +2153,6 @@ def rig_frame(self):
             if not mRigNull.getMessage('controlIK'):
                 raise ValueError,"No controlIK found"            
             
-            mSettings = mRigNull.settings
             ml_ikJoints = mRigNull.msgList_get('ikJoints')
             mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',lock=False,keyable=True)
             _jointOrientation = self.d_orientation['str']
@@ -2459,7 +2490,32 @@ def rig_frame(self):
             ml_fkAttachJoints = []
             for mObj in ml_fkJoints:
                 mAttach = mObj.getMessageAsMeta('fkAttach')
-                ml_fkAttachJoints.append(mAttach or mObj)                
+                ml_fkAttachJoints.append(mAttach or mObj)
+                
+            #Pivot Setup ========================================================================================
+            if mBlock.getMessage('pivotHelper'):
+                log.info("|{0}| >> Pivot setup...".format(_str_func))
+                
+                mPivotResultDriver = ml_ikJoints[0].doCreateAt()
+                mPivotResultDriver.addAttr('cgmName','pivotResult')
+                mPivotResultDriver.addAttr('cgmType','driver')
+                mPivotResultDriver.doName()
+                
+                mPivotResultDriver.addAttr('cgmAlias', 'PivotResult')
+                
+                mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
+         
+                mBlock.atBlockUtils('pivots_setup',
+                                    mControl = mSettings,
+                                    mRigNull = mRigNull,
+                                    pivotResult = mPivotResultDriver,
+                                    rollSetup = 'default',
+                                    front = 'front',
+                                    back = 'back')#front, back to clear the toe, heel defaults
+                
+                
+                        
+            
 
             #Setup blend ----------------------------------------------------------------------------------
             if self.b_scaleSetup:
@@ -2685,6 +2741,7 @@ def rig_cleanUp(self):
             mDynGroup.addDynParent(mTar)
         mDynGroup.rebuild()
         mDynGroup.dynFollow.p_parent = self.mDeformNull"""
+        mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
         
         
         #...ik controls ==================================================================================
@@ -2714,6 +2771,9 @@ def rig_cleanUp(self):
             
             ml_targetDynParents.append(self.md_dynTargetsParent['world'])
             ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
+            
+            if mPivotResultDriver:# and mControlIKBase == mHandle:
+                ml_targetDynParents.insert(0, mPivotResultDriver)                        
         
             mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
             if mModuleParent:
@@ -2726,6 +2786,8 @@ def rig_cleanUp(self):
             #mDynGroup.dynFollow.p_parent = self.mConstrainNull
             if mDynGroup.getMessage('dynFollow'):
                 mDynGroup.dynFollow.p_parent = self.mConstrainNull
+                
+
                 
         log.debug("|{0}| >>  IK targets...".format(_str_func))
         #pprint.pprint(ml_targetDynParents)        
@@ -2847,13 +2909,18 @@ def rig_cleanUp(self):
                 
             if i == 0:
                 ml_targetDynParents.append(mParent)
-                _mode = 2            
+                _mode = 2
+                
+                if mPivotResultDriver:
+                    ml_targetDynParents.insert(0, mPivotResultDriver)                        
             else:
                 ml_targetDynParents.insert(0,mParent)
                 _mode = 2
             
             ml_targetDynParents.extend(ml_endDynParents)
             ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))
+            
+        
         
             mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode, dynMode=_mode)# dynParents=ml_targetDynParents)
             #mDynGroup.dynMode = 2
