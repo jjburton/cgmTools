@@ -151,6 +151,7 @@ l_attrsStandard = ['side',
                    'attachPoint',
                    'attachIndex',
                    'nameList',
+                   'buildSDK',
                    'numSpacePivots',
                    'loftDegree',
                    'loftSplit',
@@ -2367,7 +2368,7 @@ def skeleton_build(self, forceNew = True):
         
         mPupilJoint.p_position = self.pupilHelper.p_position
         
-        mPrerigNull.connectChildNode(mPupilJoint.mNode,'eyePupilJoint')        
+        mPrerigNull.connectChildNode(mPupilJoint.mNode,'pupilJoint')        
         ml_joints.append(mPupilJoint)       
         
     #>> Highlight ===============================================================================
@@ -2516,7 +2517,7 @@ def rig_dataBuffer(self):
     if mBlock.highlightSetup:
         self.str_highlightSetup = mBlock.getEnumValueString('highlightSetup')"""
     
-    for k in ['lidBuild','highlightSetup','irisBuild','pupilBuild','ikSetup']:
+    for k in ['lidBuild','highlightSetup','irisBuild','pupilBuild','ikSetup','buildSDK']:
         self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)    
         self.__dict__['v_{0}'.format(k)] = mBlock.getMayaAttr(k)
         
@@ -2685,8 +2686,8 @@ def rig_skeleton(self):
 
         mRigNull.connectChildNode(mPupilRigJoint,'directPupil')
         
-        return
-        
+        self.mPupilJoint = mPupilJoint
+        self.mPupilRigJoint = mPupilRigJoint
     
     
     #IK setup ----------------------------------------------------------------------------------
@@ -3027,6 +3028,15 @@ def rig_shapes(self):
                 #s.overrideEnabled = 1
                 #s.overrideDisplayType = 2
                 
+        if self.str_pupilBuild in ['joint'] :
+            log.debug("|{0}| >> Pupil ...".format(_str_func))
+            mPupilRigJoint = self.mPupilRigJoint
+            mShape = mBlock.pupilHelper.doDuplicate(po=False)
+            mShape.tz = mShape.tz + self.v_offset
+            
+            CORERIG.shapeParent_in_place(mPupilRigJoint.mNode, mShape.mNode,False)
+            mRigNull.connectChildNode(mPupilRigJoint,'controlPupil','rigNull')#Connect                        
+        
         
         mHighlight = mPrerigNull.getMessageAsMeta('eyeHighlightJoint')
         if mHighlight:#==============================================================================
@@ -3137,6 +3147,10 @@ def rig_controls(self):
         mBlendJoint = mRigNull.getMessageAsMeta('blendEye')
         mDirect = mRigNull.getMessageAsMeta('directEye')
         
+        b_sdk=False
+        if self.str_buildSDK in ['dag']:
+            b_sdk = True
+        
         # Drivers ==========================================================================================    
         if mBlock.ikSetup:
             mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
@@ -3166,6 +3180,7 @@ def rig_controls(self):
         log.debug("|{0}| >> Found fk : {1}".format(_str_func, mControlFK))
         
         _d = MODULECONTROL.register(mControlFK,
+                                    addSDKGroup=b_sdk,                                    
                                     mirrorSide= self.d_module['mirrorDirection'],
                                     mirrorAxis="translateX,rotateY,rotateZ",
                                     makeAimable = True)
@@ -3255,6 +3270,7 @@ def rig_controls(self):
                     mRig = self.d_lidData[k]['mRig']
                     
                     MODULECONTROL.register(mHandle,
+                                           addSDKGroup=b_sdk,                                           
                                            mirrorSide= self.d_module['mirrorDirection'],
                                            mirrorAxis="translateX,rotateY,rotateZ")
                     
@@ -3289,6 +3305,7 @@ def rig_controls(self):
                         for i,mHandle in enumerate(ml):
                             log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                             _d = MODULECONTROL.register(mHandle,
+                                                        addSDKGroup=b_sdk,                                                        
                                                         mirrorSide= self.d_module['mirrorDirection'],
                                                         mirrorAxis="translateX,rotateY,rotateZ",
                                                         makeAimable = False)
@@ -3344,6 +3361,23 @@ def rig_controls(self):
             
             mControlHighlight = _d['mObj']
             ml_controlsAll.append(mControlHighlight)
+
+
+        mPupil = mRigNull.getMessageAsMeta('controlPupil')
+        #mPupil ================================================================================
+        if mPupil:
+            log.debug("|{0}| >> Found pupil : {1}".format(_str_func, mPupil))
+            
+            _d = MODULECONTROL.register(mPupil,
+                                        addDynParentGroup = 0,
+                                        addSDKGroup=b_sdk,
+                                        #addSDKGroup=True,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ")
+            
+            mPupil = _d['mObj']
+            ml_controlsAll.append(mPupil)            
+            
             
         #controlHighlight
         #Close out...
@@ -3675,7 +3709,7 @@ def rig_highlightSetup(self):
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
 
-    if not self.str_highlightSetup:
+    if self.str_highlightSetup is not 'none':
         log.debug("|{0}| >> No highlight setup...".format(_str_func))
         return True
     
@@ -4053,12 +4087,26 @@ def create_lidFollow(self):
     mPlug_lwrUpLimit.doConnectOut("{0}.minR".format(_lwrClamp))
     ATTR.connect("{0}.outputR".format(_lwrClamp),
                  "{0}.r{1}".format(_lwrLoc,_str_orientation[2]))
-    ATTR.connect("{0}.outputG".format(_lwrClamp),
-                 "{0}.r{1}".format(_lwrLoc,_str_orientation[1]))
+    #ATTR.connect("{0}.outputG".format(_lwrClamp),
+    #             "{0}.r{1}".format(_lwrLoc,_str_orientation[1]))
 
     self.mPlug_lwrUpLimit = mPlug_lwrUpLimit#store
     self.mPlug_lwrDnLimit = mPlug_lwrDnLimit#store
     self.mPlug_lwrDnStart = mPlug_lwrDnStart#store
+    
+    #Lwr left/right
+    
+    mPlug_driverSide = cgmMeta.cgmAttr(mEyeJoint.mNode,"r{0}".format(_str_orientation[1]))
+    mPlug_leftLwrLimit = cgmMeta.cgmAttr(mSettings,"lwrLeftLimit",value=20,defaultValue=20,attrType='float',keyable=False,hidden=False)
+    mPlug_rightLwrLimit = cgmMeta.cgmAttr(mSettings,"lwrRightLimit",value=-20,defaultValue=-20,attrType='float',keyable=False,hidden=False)
+
+    mPlug_driverSide.doConnectOut("{0}.inputG".format(_lwrClamp))
+    mPlug_leftLwrLimit.doConnectOut("{0}.maxG".format(_lwrClamp))
+    mPlug_rightLwrLimit.doConnectOut("{0}.minG".format(_lwrClamp))
+    mc.connectAttr("{0}.outputG".format(_lwrClamp),"{0}.r{1}".format(_lwrLoc,_str_orientation[1]))
+
+    self.mPlug_leftLwrLimit = mPlug_leftLwrLimit
+    self.mPlug_rightLwrLimit = mPlug_rightLwrLimit#store    
     
     #Contraints --------------------------------------------------------------   
     log.debug("|{0}| >> Contraints...".format(_str_func))

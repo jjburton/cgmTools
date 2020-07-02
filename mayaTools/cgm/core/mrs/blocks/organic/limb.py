@@ -430,7 +430,7 @@ d_block_profiles = {
           'settingsPlace':'start',
           'ikSetup':'rp',
           'ikEnd':'tipBase',
-          'numControls':3,
+          'numControls':4,
           'numShapers':4,          
           'numRoll':0,
           'ikRPAim':'default',              
@@ -441,7 +441,7 @@ d_block_profiles = {
           'nameList':['index'],
           'scaleSetup':False,
           
-          'buildEnd':'joint',
+          'buildEnd':'dag',
           'ikRollSetup':'control',
           'addBall':'none',
           'addToe':'none',
