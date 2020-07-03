@@ -31,15 +31,25 @@ import ctypes
 import copy
 import pprint
 
+# Audio
+import pyaudio
+import wave
+
 class RecordingThread(threading.Thread): 
-    def __init__(self, gamePad, startFrame = 0, deltaTime = .04): 
+    def __init__(self, gamePad, startFrame = 0, deltaTime = .04, audioFile=None, audioStartFrame = 0, audioSpeed = 1.0): 
         threading.Thread.__init__(self)
         self.dataDict = {}
         self.gamePad = gamePad
         self.deltaTime = deltaTime
 
         self.currentFrame = startFrame
-              
+        
+        self.audioFile = audioFile
+        self._audioActive = False
+        self._audioStartFrame = audioStartFrame
+        self._audioSpeed = audioSpeed
+        self.__audioData = {}
+        
     def run(self): 
   
         # target function of the thread class 
@@ -48,7 +58,13 @@ class RecordingThread(threading.Thread):
                 self.dataDict[self.currentFrame] = self.gamePad.get_state_dict()
                 time.sleep(self.deltaTime)
                 self.currentFrame = self.currentFrame + 1
+                
+                if self._audioStartFrame >= self.currentFrame:
+                    offset = (self.currentFrame - self._audioStartFrame)
+                    self.__audioData = processAudio(self.audioFile, offset, self._audioSpeed, self.deltaTime)
         finally: 
+            if self.__audioData.get('stream', False):
+                stopAudio(self.__audioData)
             print('stopped recording')
            
     def get_id(self): 
@@ -67,7 +83,7 @@ class RecordingThread(threading.Thread):
         if res > 1: 
             ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0) 
             print('Exception raise failure')
-
+    
 class ControllerPuppet(object):
     def __init__(self, mappingList, onEnded = None, onActivate = None, onDeactivate = None):
         self.gamePad = GamePad.GamePad(updateVisual=False)
@@ -125,6 +141,8 @@ class ControllerPuppet(object):
 
         self._recordingPressed = False
         self._startPressed = False
+        
+        self._playAudioPressed = False
 
         self._recordingThread = None
         self._recordedData = {}
@@ -133,6 +151,8 @@ class ControllerPuppet(object):
         self._downPushed = False
         self._leftPushed = False
         self._rightPushed = False
+        
+        self.__audioData = {}
 
     def onPress(self, btn):
         _str_func = 'ControllerPuppet.onPress'
@@ -144,6 +164,8 @@ class ControllerPuppet(object):
         elif btn == 'A':
             #log.info('{0} >> Pressed A'.format(_str_func))
             self._recordingPressed = True
+        elif btn == 'B':
+            self._playAudioPressed = True
 
     def start(self):
         _str_func = 'ControllerPuppet.start'
@@ -192,7 +214,34 @@ class ControllerPuppet(object):
                         self._startPressed = False
                         self._updatePuppet = not self._updatePuppet
                         self.displayMessage('Updating Puppet : {0}'.format(self._updatePuppet))
+                    
+                    if self._playAudioPressed:
+                        self._playAudioPressed = False
+                        
+                        if self.__audioData.get('stream', False):
+                            self.displayMessage('Stopping Audio')
+                            stopAudio(self.__audioData)
+                            self.__audioData = {}       
+                        else:
+                            self.displayMessage('Playing Audio')
+                            
+                            # figure out audio
+                            audioNodes = mc.ls(type='audio')
+                            audioFile = None
+                            audioStartFrame = 0
+                            offset = 0
+                            currentFrame = mc.currentTime(q=True)
+                            
+                            if len(audioNodes) > 0:
+                                audioFile = mc.getAttr( '{0}.filename'.format(audioNodes[0]))
+                                audioStartFrame = mc.getAttr( '{0}.offset'.format(audioNodes[0]))
+                            if currentFrame >= audioStartFrame:
+                                offset = (currentFrame - audioStartFrame)                        
+                            
+                            if audioFile:
+                                self.__audioData = processAudio(audioFile, offset, self.playbackMultiplier, self.fixedDeltaTime / self.playbackMultiplier)
 
+                    
                     if self.gamePad.right_bumper:
                         nextFrame = int(mc.currentTime(q=True)+1)
                         if nextFrame > mc.playbackOptions(q=True, max=True):
@@ -242,6 +291,7 @@ class ControllerPuppet(object):
             log.info("|{0}| >> Ending start".format(_str_func))
 
     def setMapping(self, idx):
+        self._keyList = []
         self.currentMapIdx = idx
         self.connectionDict = self.mappingList[self.currentMapIdx]
         for key in self.connectionDict:
@@ -262,6 +312,11 @@ class ControllerPuppet(object):
         if self._isRecording:
             return
 
+        if self.__audioData.get('stream', False):
+            #self.displayMessage('Stopping Audio')
+            stopAudio(self.__audioData)
+            self.__audioData = {}
+
         self._keyHolderDict = {}
 
         for k in self._keyList:
@@ -271,9 +326,18 @@ class ControllerPuppet(object):
 
             ATTR.copy_to( objName, attr, self._keyHolderDict[objName], inConnection=True, keepSourceConnections=False)
 
+
+        # figure out audio
+        audioNodes = mc.ls(type='audio')
+        audioFile = None
+        audioStartFrame = 0
+        if len(audioNodes) > 0:
+            audioFile = mc.getAttr( '{0}.filename'.format(audioNodes[0]))
+            audioStartFrame = mc.getAttr( '{0}.offset'.format(audioNodes[0]))
+
         self._startFrame = int(mc.currentTime(q=True))
         self._startTime = time.time()
-        self._recordingThread = RecordingThread( self.gamePad, startFrame = self._startFrame, deltaTime = self.fixedDeltaTime / self.playbackMultiplier ) 
+        self._recordingThread = RecordingThread( self.gamePad, startFrame = self._startFrame, deltaTime = self.fixedDeltaTime / self.playbackMultiplier, audioFile = audioFile, audioStartFrame = audioStartFrame, audioSpeed=self.playbackMultiplier ) 
         self._recordingThread.start() 
         
         #self._hasSavedKeys = mc.cutKey(self._keyList, t=(self._startFrame,))
@@ -391,3 +455,51 @@ class ControllerPuppet(object):
             self._parentCamera = currentCam
             mc.delete(mc.listRelatives(self.gamePad.controller_model, type='constraint'))
             mc.parentConstraint(currentCam, self.gamePad.controller_model, mo=False)
+
+def stopAudio(audioData = {}):
+    # stop stream
+    if audioData.get('stream', False):
+        audioData['stream'].stop_stream()
+        audioData['stream'].close()
+    if audioData.get('wf', False):
+        audioData['wf'].close()
+    
+    # close PyAudio
+    if audioData.get('p', False):
+        audioData['p'].terminate()
+    
+def processAudio(audioFile, offset, audioSpeed, deltaTime = .04):
+    if not audioFile:
+        return {}
+    
+    audioData = {}
+    
+    chunk = 1024
+    
+    audioData['wf'] = wave.open(audioFile, 'rb')
+    
+    # instantiate PyAudio
+    audioData['p'] = pyaudio.PyAudio()
+    
+    params = audioData['wf'].getparams()
+    
+    audioLength = float(params[3]) / params[2]
+    totalChunks = params[3] / 1024        
+    frameChunk = deltaTime * params[2]
+    
+    # remove chunk if we're starting from somewhere in the middle of the clip
+    audioData['wf'].readframes( int(frameChunk * offset) )
+    
+    # define callback
+    def streamCallback(in_data, frame_count, time_info, status):
+        data = audioData['wf'].readframes(frame_count)
+        return (data, pyaudio.paContinue)        
+    
+    # open stream using callback
+    audioData['stream'] = audioData['p'].open(format=audioData['p'].get_format_from_width(audioData['wf'].getsampwidth()),
+                    channels=audioData['wf'].getnchannels(),
+                    rate=int(audioData['wf'].getframerate() * audioSpeed),
+                    output=True,
+                    stream_callback=streamCallback)
+       
+    return audioData
