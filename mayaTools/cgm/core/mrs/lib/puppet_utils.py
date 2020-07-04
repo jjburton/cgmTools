@@ -1911,69 +1911,72 @@ def controller_verify(self,progressBar = None,progressEnd=True):
             
             
             for ii,mObj in enumerate(_l_tag):
-                mController =  get_tag(mObj)
-                ml.append(mController)
-                ml_children = []
-                
-                if mController in ml_all:
-                    continue
-                
-                if tag not in ['root']:
-                    if md_tmp.get('root'):
-                        md_failsafe[mController] = md_tmp['root'][0]
-                        
-                ml_all.append(mController)
-                
-                if not ii:#If our first obj, set to parent of module Parent
-                    if mModParent:
-                        _buffer = md_moduleController[mModParent].get(tag)
-                        if _buffer:
-                            mParentController = get_tag(_buffer[_idx_attach])
-                            mController.parent_set(mParentController)
-                        else:
-                            _buffer = md_moduleController[mModParent].get('root')
-                            if _buffer:
-                                mParentController = get_tag(_buffer[0])
-                                mController.parent_set(mParentController)                            
-                    else:
-                        if md_tmp.get('root'):
-                            _buffer = md_tmp.get('root')
-                            if _buffer:
-                                mParentController = get_tag(_buffer[0])
-                                mController.parent_set(mParentController)                             
-                            
-
-                if mObj == _l_tag[-1]:
-                    #....Last
-                    for modChild in ml_modChildren:
-                        _buffer = md_moduleController[modChild].get(tag)
-                        if _buffer:
-                            ml_children.append(_buffer[0])
-                    pass
-                else:
-                    mChild =_l_tag[ii+1]
-                    ml_children = [mChild]
+                try:
                     
-                    mMirror = mChild.getMessageAsMeta('mirrorControl')
-                    if mMirror:
-                        ml_children.append(mMirror)
-                    """
-                    for modChild in ml_modSiblings:
-                        _buffer = md_moduleController[modChild][tag]
-                        if _buffer:
-                            try:ml_children.append(_buffer[ii])
-                            except:pass"""
+                    mController =  get_tag(mObj)
+                    ml.append(mController)
+                    ml_children = []
+                    
+                    if mController in ml_all:
+                        continue
+                    
+                    if tag not in ['root']:
+                        if md_tmp.get('root'):
+                            md_failsafe[mController] = md_tmp['root'][0]
+                            
+                    ml_all.append(mController)
+                    
+                    if not ii:#If our first obj, set to parent of module Parent
+                        if mModParent:
+                            _buffer = md_moduleController[mModParent].get(tag)
+                            if _buffer:
+                                mParentController = get_tag(_buffer[_idx_attach])
+                                mController.parent_set(mParentController)
+                            else:
+                                _buffer = md_moduleController[mModParent].get('root')
+                                if _buffer:
+                                    mParentController = get_tag(_buffer[0])
+                                    mController.parent_set(mParentController)                            
+                        else:
+                            if md_tmp.get('root'):
+                                _buffer = md_tmp.get('root')
+                                if _buffer:
+                                    mParentController = get_tag(_buffer[0])
+                                    mController.parent_set(mParentController)                             
                                 
-
+    
+                    if mObj == _l_tag[-1]:
+                        #....Last
+                        for modChild in ml_modChildren:
+                            _buffer = md_moduleController[modChild].get(tag)
+                            if _buffer:
+                                ml_children.append(_buffer[0])
+                        pass
+                    else:
+                        mChild =_l_tag[ii+1]
+                        ml_children = [mChild]
                         
-                
-                _msg = False
-                for iii,mChild in enumerate(ml_children):
-                    if iii:
-                        _msg =True
-                    mChildController = get_tag(mChild)
-                    mChildController.parent_set(mController,msgConnect=_msg)
-
+                        mMirror = mChild.getMessageAsMeta('mirrorControl')
+                        if mMirror:
+                            ml_children.append(mMirror)
+                        """
+                        for modChild in ml_modSiblings:
+                            _buffer = md_moduleController[modChild][tag]
+                            if _buffer:
+                                try:ml_children.append(_buffer[ii])
+                                except:pass"""
+                                    
+    
+                            
+                    
+                    _msg = False
+                    for iii,mChild in enumerate(ml_children):
+                        if iii:
+                            _msg =True
+                        mChildController = get_tag(mChild)
+                        mChildController.parent_set(mController,msgConnect=_msg)
+                except Exception,err:
+                    log.error("Err: {0} | {1}".format(mObj,err))
             
             if ml:
                 md_failsafe[ml[-1]] = ml[0]

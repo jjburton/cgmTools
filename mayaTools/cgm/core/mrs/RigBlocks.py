@@ -3730,7 +3730,7 @@ class rigFactory(object):
             if mayaMainProgressBar:CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
             CGMUI.doEndMayaProgressBar()#Close out this progress bar
-            cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+            cgmGEN.cgmException(Exception,err,msg=vars())
 
             raise Exception,"|{0}| >> err: {1}".format(_str_func,err)
 
