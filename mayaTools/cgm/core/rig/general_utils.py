@@ -898,3 +898,32 @@ def rename_deformers(nodes= [],deformerTypes='all'):
             mc.rename(mDef.mNode, "{0}_{1}".format(mObj.p_nameBase,
                                                    SEARCH.get_tagInfoShort(mDef.getMayaType())))
             #mDef.doName()
+            
+
+def objectDat_get(nodes = []):
+    if not nodes:
+        nodes = mc.ls(sl=1)
+        
+    _res = {}
+    mNodes = cgmMeta.asMeta(nodes)
+    for mNode in mNodes:
+        try:
+            _res[mNode.mNode] = {'pos':mNode.p_position, 'orient':mNode.p_orient}
+        except Exception,err:
+            log.error("{0} | {1}".format(mNode,err))
+    pprint.pprint(_res)
+    return _res
+
+def objectDat_set(dat = {}, position = True, orient = True):
+    for Node,d in dat.iteritems():
+        try:
+            log.info(Node)
+            mNode = cgmMeta.asMeta(Node)
+            if position:
+                mNode.p_position = d['pos']
+            if orient:
+                mNode.p_orient = d['orient']
+        except Exception,err:
+            log.error("{0} | {1}".format(mNode,err))    
+    
+
