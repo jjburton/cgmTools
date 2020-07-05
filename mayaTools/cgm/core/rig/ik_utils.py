@@ -3830,6 +3830,11 @@ def ribbon_seal(driven1 = None,
                 mTrackBase.doStore('cgmName',mObj)
                 mTrackSeal = mTrackBase.doDuplicate()
                 mTrackBlend = mTrackBase.doDuplicate()
+                
+                mObj.connectChildNode(mTrackBase.mNode,'mTrackBase','cgmSource')
+                mObj.connectChildNode(mTrackSeal.mNode,'mTrackSeal','cgmSource')
+                mObj.connectChildNode(mTrackBlend.mNode,'mTrackBlend','cgmSource')
+
 
                 mTrackSeal.doStore('cgmType','trackSeal')
                 mTrackBase.doStore('cgmType','trackBase')

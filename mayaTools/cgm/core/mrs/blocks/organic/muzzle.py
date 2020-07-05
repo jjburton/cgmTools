@@ -6578,6 +6578,7 @@ def rig_lipSegments(self):
               'msgDriver':'driverJoint'}    
     
     #pprint.pprint(d_test)
+    reload(IK)
     IK.ribbon_seal(**d_lips)
     
     mc.parentConstraint(mLeftCorner.mNode, ml_uprRig[-1].masterGroup.mNode, maintainOffset = True)
@@ -7180,6 +7181,59 @@ _handleKey = {'define':'defineSubHandles',
               'form':'formHandles',
               'prerig':'prerigHandles'}
 
+def uiFunc_sealFix(self, ml = None, reset = False):
+    if not ml:
+        ml = cgmMeta.asMeta(mc.ls(sl=1))
+    
+    if not ml:
+        log.warning("Nothing Selected")
+        return False
+    md = {}
+    for mObj in ml:
+        mSeal = mObj.getMessageAsMeta('mTrackSeal')
+        mBase = mObj.getMessageAsMeta('mTrackBase')
+        
+        if not mSeal:
+            log.warning("Lacks seal: {0}".format(mObj))
+            continue
+        
+        if reset:
+            mSeal.p_position = mBase.p_position
+            mSeal.p_orient = mBase.p_orient
+            mObj.resetAttrs()
+            
+            continue
+        
+        #if reset:
+        #    pass
+        #else:
+        #TRANS.relativePos_get(mBase.mNode,mObj.mNode)
+        md[mObj] = {'pos':mObj.p_position,
+                    'orient':mObj.p_orient,
+                    'mSeal':mSeal}
+        mObj.resetAttrs()
+        
+        
+    if reset:
+        log.warning("LipSeal Reset.")
+        return
+    
+    for mObj in ml:
+        if not md.get(mObj):
+            continue
+        d = md[mObj]
+        mSeal = d['mSeal']
+        
+        mSeal.p_position = d['pos']
+        mSeal.p_orient = d['orient']
+        
+        #LOC.create(position = d['pos'],name="{0}_sealLoc".format(mObj.p_nameShort))
+        
+    pprint.pprint(md)
+    log.warning("LipSeal Set.")
+        
+
+
 def uiFunc_snapStateHandles(self,ml=None):
     if not ml:
         ml = cgmMeta.asMeta(mc.ls(sl=1))
@@ -7210,6 +7264,18 @@ def uiBuilderMenu(self,parent = None):
     mc.menuItem(ann = '[{0}] Snap state handles'.format(_short),
                 c = cgmGEN.Callback(uiFunc_snapStateHandles,self),
                 label = "Snap the state handles to selected")
+    
+
+    _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
+                       label = "Seal Fix")
+    mc.menuItem(ann = '[{0}] Seal Fix Reset'.format(_short),
+                c = cgmGEN.Callback(uiFunc_sealFix,self,reset=False),
+                label = "Set")    
+    mc.menuItem(ann = '[{0}] Seal Fix Reset'.format(_short),
+                c = cgmGEN.Callback(uiFunc_sealFix,self,reset=True),
+                label = "Reset")
+    
+    
     """
     mc.menuItem(en=True,divider = True,
                 label = "Utilities")
