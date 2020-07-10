@@ -102,12 +102,13 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 
 
 
-
+d_wiring_define = {'msgLinks':[],
+                   'msgLists':['defineStuff']}
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper','noTransPrerigNull']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
-                     }
+                 'msgLists':['formStuff']}
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
 
@@ -178,6 +179,8 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'lidDepth':'float',
                  'lidJointDepth':'float',
                  'lidClosed':'bool',
+                 'lidFanUpr':'none:single',
+                 'lidFanLwr':'none:single',
                  'prerigJointOrient':'bool',
                  'numConLids':'int',
                  'numLidUprJoints':'int',
@@ -807,7 +810,13 @@ def define(self):
             elif cgmGEN.__mayaVersion__ >= 2018:
                 mController = mHandle.controller_get()
                 
-                
+                try:
+                    ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                             "{0}.visibilityMode".format(mController.mNode))    
+                except Exception,err:
+                    log.error(err)
+
+                self.msgList_append('defineStuff',mController)                
         
             if 'End' not in tag:
                 mHandle.p_position = DIST.get_closest_point(mHandle.mNode, mBBShape.mNode)[0]
@@ -1126,7 +1135,14 @@ def form(self):
             for tag,mHandle in md_handles.iteritems():
                 if cgmGEN.__mayaVersion__ >= 2018:
                     mController = mHandle.controller_get()
-                    mController.visibilityMode = 2
+                    
+                    try:
+                        ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                                 "{0}.visibilityMode".format(mController.mNode))    
+                    except Exception,err:
+                        log.error(err)
+    
+                    self.msgList_append('formStuff',mController)                       
                     
                 #Depth setup
                 #_depthHelp = CURVES.create_fromName('cylinder', size = [_size,_size,1])
@@ -1563,11 +1579,17 @@ def prerig(self):
             
             d_baseHandeKWS = {'mStateNull' : mStateNull,
                               'mNoTransformNull' : mNoTransformNull,
-                              'jointSize': self.jointRadius}                        
-            #Lid Handles
+                              'jointSize': self.jointRadius}
+            
+            #Lid Handles ----------------------------------------------------------------------------
+            
+            
+            
+            #Lid Handles ----------------------------------------------------------------------------
             if _lidBuild == 'clam':
                 d_handles = {'upr':CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
                              'lwr':CURVES.getPercentPointOnCurve(mLwrLid.mNode,.5)}
+                
                 mUprHandle = create_lidHandle(self,'upr',
                                               CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
                                               mJointTrack=mUprLid,
@@ -1582,8 +1604,8 @@ def prerig(self):
                                               trackAttr = 'paramMidLwr',
                                               controlShape='loftCircleHalfDown',
                                               multiplier=1.5,
-                                              
                                               )
+                
                 """
                 import cgm.core.lib.locator_utils as LOC
                 for tag,p in d_handles.iteritems():
