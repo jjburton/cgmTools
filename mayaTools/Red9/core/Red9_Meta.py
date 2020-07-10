@@ -33,6 +33,7 @@ what each function is expected to return
 
 '''
 
+from __future__ import print_function
 
 import maya.cmds as cmds
 import maya.mel as mel
@@ -45,6 +46,7 @@ import uuid
 import types
 import inspect
 import traceback
+
 
 import Red9.startup.setup as r9Setup
 import Red9_General as r9General
@@ -144,7 +146,7 @@ def registerMClassInheritanceMapping():
 
 def printSubClassRegistry():
     for m in RED9_META_REGISTERY:
-        print m
+        print(m)
 
 def getMClassMetaRegistry():
     '''
@@ -313,7 +315,7 @@ def registerMClassNodeMapping(nodeTypes=[]):
 
 def printMetaTypeRegistry():
     for t in RED9_META_NODETYPE_REGISTERY:
-        print t
+        print(t)
 
 def getMClassNodeTypes():
     '''
@@ -488,7 +490,7 @@ def printMetaCacheRegistry():
     '''
     cleanCache()
     for k, v in RED9_META_NODECACHE.items():
-        print '%s : %s : %s' % (k, r9Core.nodeNameStrip(v.mNode), v)
+        print('%s : %s : %s' % (k, r9Core.nodeNameStrip(v.mNode), v))
 
 def cleanCache():
     '''
@@ -794,7 +796,8 @@ def isMetaNodeClassGrp(node, mClassGrps=[]):
         return False
     if issubclass(type(node), MetaClass):
         node = node.mNode
-    if not hasattr(mClassGrps, '__iter__'):
+#     if not hasattr(mClassGrps, '__iter__'):
+    if r9General.is_basestring(mClassGrps):
         mClassGrps = [mClassGrps]
     for grp in mClassGrps:
         # log.debug('mGroup testing: %s' % node)
@@ -843,7 +846,8 @@ def getMetaNodes(mTypes=[], mInstances=[], mClassGrps=[], mAttrs=None, dataType=
                 mNode = True
         if mNode:
             if mClassGrps:
-                if not hasattr(mClassGrps, '__iter__'):
+#                 if not hasattr(mClassGrps, '__iter__'):
+                if r9General.is_basestring(mClassGrps):
                     mClassGrps = [mClassGrps]
                 if isMetaNodeClassGrp(node, mClassGrps):
                     mNodes.append(node)
@@ -1490,15 +1494,15 @@ class MClassNodeUI(object):
 
             if mTypesFilter:
                 self.mNodes = getMetaNodes(mTypes=mCalssSelected, mInstances=None, dataType=self.dataType)
-                print 'mTypeFilter : ', mCalssSelected
+                print('mTypeFilter : ', mCalssSelected)
             elif mInstanceFilter:
                 self.mNodes = getMetaNodes(mTypes=None, mInstances=mCalssSelected, dataType=self.dataType)
-                print 'mInstanceFilter : ', mCalssSelected
+                print('mInstanceFilter : ', mCalssSelected)
             else:
                 self.mNodes = getMetaNodes(mTypes=self.mTypes, mInstances=self.mInstances, dataType=self.dataType)
         else:
             self.mNodes = getMetaNodes(mTypes=self.mTypes, mInstances=self.mInstances, dataType=self.dataType)
-            print 'none', self.mTypes, self.mInstances
+            print('none', self.mTypes, self.mInstances)
 
         if not self.mNodes:
             log.warning('no metaNodes found that match the filters')
@@ -1531,7 +1535,7 @@ class MClassNodeUI(object):
         if len(indexes) == 1:
             mNode = MetaClass(self.mNodes[indexes[0] - 1])
             for c in mNode.getInheritanceMap():
-                print 'Class Inheritance : ', c
+                print('Class Inheritance : ', c)
 
     def __uiCB_connectNode(self, *args):
         '''
@@ -1586,23 +1590,23 @@ class MClassNodeUI(object):
             raise StandardError('Connect Call only works with a single selected mNode from the UI')
         r9Setup.PRO_PACK_STUBS().MetaDataUI.uiCB_addChildMetaNode(mNode, mClass)
         self.fillScroll()
-        print 'adding childMetaNode of mClass type : %s to %s' % (mClass, mNode.mNode)
+        print('adding childMetaNode of mClass type : %s to %s' % (mClass, mNode.mNode))
 
     def printRegisteredNodeTypes(self, *args):
-        print '\nRED9_META_NODETYPE_REGISTERY:\n============================='
-        print getMClassNodeTypes()
+        print('\nRED9_META_NODETYPE_REGISTERY:\n=============================')
+        print(getMClassNodeTypes())
 
     def printRegisteredMetaClasses(self, *args):
         data = getMClassMetaRegistry()
-        print '\nRED9_META_REGISTERY:\n===================='
+        print('\nRED9_META_REGISTERY:\n====================')
         for key, value in sorted(data.items()):
-            print key, ' : ', value
+            print(key, ' : ', value)
 
     def printMetaNodeCache(self, *args):
         data = getMClassNodeCache()
-        print '\nRED9_META_NODECACHE:\n===================='
+        print('\nRED9_META_NODECACHE:\n====================')
         for key, value in sorted(data.items()):
-            print key, ' : ', value
+            print(key, ' : ', value)
 
 
 # ----------------------------------------------------------------------------
@@ -1667,7 +1671,7 @@ class MetaClass(object):
                 try:
                     if logging_is_debug():
                         log.debug('### Instantiating existing mClass : %s >> %s ###' % (mClass, _registeredMClass))
-                    return super(cls.__class__, cls).__new__(_registeredMClass, *args, **kws)
+                    return super(cls.__class__, cls).__new__(_registeredMClass)  # , *args, **kws)
                 except:
                     log.debug('Failed to initialize mClass : %s' % _registeredMClass)
                     pass
@@ -1819,7 +1823,7 @@ class MetaClass(object):
             if self.hasAttr('mClass') and not cmds.listConnections(self.mNode):
                 return False
         except MetaInstanceError, err:
-            print 'Bailing caught exception'
+            print('Bailing caught exception')
             return False
         return True
 
@@ -2309,7 +2313,8 @@ class MetaClass(object):
             overall state, ie, if any of the attrs in the list are locked then it will return True, only
             if they're all unlocked do we return False
         '''
-        if hasattr(attr, '__iter__'):
+#         if hasattr(attr, '__iter__'):
+        if not r9General.is_basestring(attr):
             locked = False
             for a in attr:
                 if cmds.getAttr('%s.%s' % (self.mNode, a), l=True):
@@ -2327,7 +2332,8 @@ class MetaClass(object):
         :param state: lock state
         '''
         try:
-            if not hasattr(attr, '__iter__'):
+#             if hasattr(attr, '__iter__'):
+            if r9General.is_basestring(attr):
                 attr = [attr]
             if not self.isReferenced():
                 for a in attr:
@@ -2403,19 +2409,19 @@ class MetaClass(object):
             raise ValueError('enum attrType must be passed with "enumName" keyword in args')
 
         DataTypeKws = {'string': {'longName': attr, 'dt': 'string'},
-                     'unicode': {'longName': attr, 'dt': 'string'},
-                     'int': {'longName': attr, 'at': 'long'},
-                     'long': {'longName': attr, 'at': 'long'},
-                     'bool': {'longName': attr, 'at': 'bool'},
-                     'float': {'longName': attr, 'at': 'double'},
-                     'float3': {'longName': attr, 'at': 'float3'},
-                     'double': {'longName': attr, 'at': 'double'},
-                     'double3': {'longName': attr, 'at': 'double3'},
-                     'doubleArray': {'longName': attr, 'dt': 'doubleArray'},
-                     'enum': {'longName': attr, 'at': 'enum'},
-                     'complex': {'longName': attr, 'dt': 'string'},
-                     'message': {'longName': attr, 'at': 'message', 'm': True, 'im': True},
-                     'messageSimple': {'longName': attr, 'at': 'message', 'm': False}}
+                        'unicode': {'longName': attr, 'dt': 'string'},
+                        'int': {'longName': attr, 'at': 'long'},
+                        'long': {'longName': attr, 'at': 'long'},
+                        'bool': {'longName': attr, 'at': 'bool'},
+                        'float': {'longName': attr, 'at': 'double'},
+                        'float3': {'longName': attr, 'at': 'float3'},
+                        'double': {'longName': attr, 'at': 'double'},
+                        'double3': {'longName': attr, 'at': 'double3'},
+                        'doubleArray': {'longName': attr, 'dt': 'doubleArray'},
+                        'enum': {'longName': attr, 'at': 'enum'},
+                        'complex': {'longName': attr, 'dt': 'string'},
+                        'message': {'longName': attr, 'at': 'message', 'm': True, 'im': True},
+                        'messageSimple': {'longName': attr, 'at': 'message', 'm': False}}
 
         keyable = ['int', 'float', 'bool', 'enum', 'double3']
         addCmdEditFlags = ['min', 'minValue', 'max', 'maxValue', 'defaultValue', 'dv',
@@ -3139,7 +3145,7 @@ class MetaClass(object):
             if currentSystem:
                 for child in children:
                     if child.hasAttr('mSystemRoot') and child.mSystemRoot:
-                        print 'skipping new Systems - preventing walking into child mRig systems : %s' % child
+                        print('skipping new Systems - preventing walking into child mRig systems : %s' % child)
                         children.remove(child)
             return children
         else:
@@ -3238,7 +3244,7 @@ class MetaClass(object):
             return mNodes[0]
 
     @r9General.Timer
-    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False, plugsOnly=False, **kws):
+    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False, plugsOnly=False, skip_cAttrs=[], **kws):
         '''
         This finds all UserDefined attrs of type message and returns all connected nodes
         This is now being run in the MetaUI on doubleClick. This is a generic call, implemented
@@ -3253,6 +3259,7 @@ class MetaClass(object):
         :param asMeta: return instantiated mNodes regardless of type
         :param asMap: return the data as a map such that {mNode.plugAttr:[nodes], mNode.plugAttr:[nodes]}
         :param plugsOnly: only with asMap flag, this truncates the return to [plugAttr, [nodes]]
+        :param skip_cAttrs: if given these cAttrs will be ignored in the returned data
 
         .. note::
             mAttrs is only searching attrs on the mNodes themselves, not the children
@@ -3274,6 +3281,8 @@ class MetaClass(object):
             attrs = cmds.listAttr(node.mNode, ud=True, st=cAttrs)
             if attrs:
                 for attr in attrs:
+                    if skip_cAttrs and attr in skip_cAttrs:
+                        continue
                     if cmds.getAttr('%s.%s' % (node.mNode, attr), type=True) == 'message':
                         msgLinked = cmds.listConnections('%s.%s' % (node.mNode, attr), destination=True, source=False)
                         if msgLinked:
@@ -3427,7 +3436,7 @@ def deleteEntireMetaRigStructure(searchNode=None):
     mNodes.reverse()
 
     for a in mNodes:
-        print a
+        print(a)
 
     for metaChild in mNodes:
         for child in metaChild.getChildren(walk=False):
@@ -3541,7 +3550,7 @@ class MetaRig(MetaClass):
             mNodes.reverse()
 
         for a in mNodes:
-            print 'nodes to delete : ', a
+            print('nodes to delete : ', a)
 
         for mNode in mNodes:
             try:
@@ -3657,7 +3666,8 @@ class MetaRig(MetaClass):
         '''
         return self.getChildren(walk, mAttrs)
 
-    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False, plugsOnly=False, incFacial=False, baseBehaviour=False, **kws):
+    def getChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], asMeta=False, asMap=False,
+                    plugsOnly=False, incFacial=False, baseBehaviour=False, skip_cAttrs=[], **kws):
         '''
         Massively important bit of code, this is used by most bits of code
         to find the child controllers linked to this metaRig instance.
@@ -3671,6 +3681,7 @@ class MetaRig(MetaClass):
         :param plugsOnly: only with asMap flag, this truncates the return to {plugAttr:[nodes]}
         :param incFacial: if we have a facial system linked include it's children in the return (uses the getFacialSystem to id the facial node)
         :param baseBehaviour: if True we revert the CTRL_Prefix logic such that the return won't be clamped to just controllers
+        :param skip_cAttrs: if given these connection attrs will be ignored in the returned data
 
         .. note::
             MetaRig getChildren has overloads adding the CTRL_Prefix to the cAttrs so that
@@ -3689,7 +3700,8 @@ class MetaRig(MetaClass):
                 if facialSystem:
                     cAttrs.append('%s_*' % facialSystem.CTRL_Prefix)
 
-        return super(MetaRig, self).getChildren(walk=walk, mAttrs=mAttrs, cAttrs=cAttrs, nAttrs=nAttrs, asMeta=asMeta, asMap=asMap, plugsOnly=plugsOnly, **kws)
+        return super(MetaRig, self).getChildren(walk=walk, mAttrs=mAttrs, cAttrs=cAttrs, nAttrs=nAttrs,
+                                                asMeta=asMeta, asMap=asMap, plugsOnly=plugsOnly, skip_cAttrs=skip_cAttrs, **kws)
 
     def selectChildren(self, walk=True, mAttrs=None, cAttrs=[], nAttrs=[], add=False):
         '''
@@ -3957,7 +3969,7 @@ class MetaRig(MetaClass):
         from the metaNode grab all controllers and return sets of nodes
         based on their mirror side data
 
-        :param set: which set/side to get, valid = 'Left' ,'Right', 'Center'
+        :param set: which set/side to get, valid = 'Left' ,'Right', 'Centre'
         :param forceRefresh: forces the mirrorDic (which is cached) to be updated
         '''
 #         submNodes=mRig.getChildMetaNodes(mAttrs=['mirrorSide=2'], walk=True)
@@ -3976,7 +3988,7 @@ class MetaRig(MetaClass):
         '''
         get the last mirror index for a given side
 
-        :param side: side to check, valid = 'Left' ,'Right', 'Center'
+        :param side: side to check, valid = 'Left' ,'Right', 'Centre'
         :param forceRefresh: forces the mirrorDic (which is cached) to be updated
         '''
         if not self.MirrorClass or forceRefresh:
@@ -3989,7 +4001,7 @@ class MetaRig(MetaClass):
         '''
         return the next available slot in the mirrorIndex list for a given side
 
-        :param side: side to check, valid = 'Left' ,'Right', 'Center'
+        :param side: side to check, valid = 'Left' ,'Right', 'Centre'
         :param forceRefresh: forces the mirrorDic (which is cached) to be updated
         '''
         return self.getMirror_lastIndexes(side, forceRefresh) + 1
@@ -4051,7 +4063,7 @@ class MetaRig(MetaClass):
             self.attrSetLocked(attr, True)
 
     def poseCacheLoad(self, nodes=None, attr=None, filepath=None, incRoots=True, relativePose=False, relativeRots='projected',
-                      relativeTrans='projected', maintainSpaces=False, *args, **kws):
+                      relativeTrans='projected', maintainSpaces=False, skipAttrs=[], *args, **kws):
         '''
         load a cached pose back to this mRig. If attr is given then its assumed
         that that attr is a cached poseDict on the mNode. If not given then it
@@ -4068,6 +4080,7 @@ class MetaRig(MetaClass):
         :param maintainSpaces: this preserves any parentSwitching mismatches between
             the stored pose and the current rig settings, current spaces are maintained.
             This only checks those nodes in the snapList and only runs under relative mode.
+        :param skipAttrs: attrs to skip when loading the data
         '''
         import Red9.core.Red9_PoseSaver as r9Pose  # lazy loaded
         if attr or filepath:
@@ -4078,6 +4091,12 @@ class MetaRig(MetaClass):
             if not nodes:
                 self.poseCache.metaPose = True  # force to metaPose
                 self.poseCache.settings.incRoots = incRoots  # force an incRoot flag update
+
+                # added June 2020, the priority was never getting turned on internally!!
+                if self.settings.filterPriority:
+                    self.poseCache.prioritySnapOnly = True
+                if skipAttrs:
+                    self.poseCache.skipAttrs = skipAttrs
                 self.poseCache.poseLoad(self.mNode,
                                         filepath=filepath,
                                         useFilter=True,
@@ -4151,7 +4170,7 @@ class MetaRig(MetaClass):
                 for shape in shapes:
                     cmds.setAttr('%s.lodVisibility' % shape, state)
             else:
-                print plug, skip
+                print(plug, skip)
 
     def hideNodes(self):
         '''
@@ -4197,24 +4216,31 @@ class MetaRig(MetaClass):
         '''
         self.poseCacheStore(attr='zeroPose')
 
-    def loadZeroPose(self, nodes=None, *args):
+    def loadZeroPose(self, nodes=None, skipAttrs=[], *args):
         '''
         load the zeroPose form the internal dict
 
         :param nodes: optional, load at subSystem level for given nodes
+        :param skipAttrs: optional list of attrs to skip during the load
         '''
-        self.poseCacheLoad(nodes=nodes, attr='zeroPose')
+        self.poseCacheLoad(nodes=nodes, attr='zeroPose', skipAttrs=skipAttrs)
 
-    def getAnimationRange(self, nodes=None, setTimeline=False):
+    def getAnimationRange(self, nodes=None, setTimeline=False, *args, **kws):
         '''
         return the extend of the animation range for this rig and / or the given controllers
 
         :param nodes: if given only return the extent of the animation data from the given nodes
         :param setTimeLine: if True set the playback timeranges also, default=False
+        :param decimals: int -1 default, this is the number of decimal places in the return, -1 = no clamp
+        :param transforms_only: if True we only test translate (animCurveTL) and rotate (animCurveTA) data, added for skeleton fbx baked tests
+        :param skip_static: if True we ignore static curves and return [], else we return
+            the key bounds for the static keys, ignoring the keyValues
+        :param bounds_only: if True we only return the key bounds, first and last key times,
+            else we look at the changing values to find the bounds
         '''
         if not nodes:
             nodes = self.getChildren(walk=True)
-        return r9Anim.animRangeFromNodes(nodes, setTimeline=setTimeline)
+        return r9Anim.animRangeFromNodes(nodes, setTimeline=setTimeline, *args, **kws)
 
     def keyChildren(self, nodes=[], walk=True, mAttrs=None, cAttrs=[], nAttrs=[], shapes=False):
         '''
@@ -4365,7 +4391,7 @@ class MetaRig(MetaClass):
 
     def loadAnimation(self, filepath, incRoots=True, useFilter=True, loadAsStored=True, loadFromFrm=0, loadFromTimecode=False,
                       timecodeBinding=[None, None], referenceNode=None, relativeRots='projected', relativeTrans='projected',
-                      manageRanges=1, manageFileName=True, keyStatics=False, blendRange=0, merge=False, matchMethod='metaData',
+                      manageRanges=1, manageFileName=True, keyStatics=False, blendRange=None, merge=False, matchMethod='metaData',
                       smartbake=False, loadInternalRig=False, *args, **kws):
         '''
         : PRO_PACK :
@@ -4389,11 +4415,11 @@ class MetaRig(MetaClass):
         :param manageRanges: valid values : 0=leave,  1=extend, 2=set the timeranges according to the anim data loaded
         :param manageFileName: if True and the current Maya scene has no filename other than a blank scene (ie freshly loaded rig)
             then we take the r9Anim's filename and rename the Maya scene accordingly
-        :param keyStatics: if True then we key everything in the data at startFrame so that all non-keyed and static
+        :param keyStatics: if True then we key everything in the data at startFrame & endFrame so that all non-keyed and static
             attrs that are stored internally as a pose are keyed.
-        :param blendRange: None or int : 1 is default. If an int is passed then we use this as the hold range for the data, setting a key at
-            time=startFarme-blendRange to hold the current data before we load the new keys. Note that this also turns on the keyStatics
-            to ensure the data is preserved
+        :param blendRange: None or int : None is default. If an int is passed then we use this as the hold range for the data, setting a key at
+            time=[startFarme-blendRange, endFarme+blendRange] to hold the current data before we load the new keys. Note that this also turns
+            on the keyStatics to ensure the data is preserved
         :param merge: if True we allow the data to be merged over any current keys, else we cut all keys in the load range first
         :param matchMethod: internal matching method used to match nodes to the stored data
         :param smartbake: only valid if we're loading with a referenceNode, this tries to respect current keys when doing the processing rather than frame baking
@@ -5204,7 +5230,7 @@ def monitorHUDManagement(func):
             HUDS = cmds.headsUpDisplay(lh=True)
             for hud in HUDS:
                 if 'MetaHUDConnector' in hud:
-                    print 'killing HUD : ', hud
+                    print('killing HUD : ', hud)
                     cmds.headsUpDisplay(hud, remove=True)
     if func == 'refreshHeadsUp':
         metaHUD.headsUpOnly = True
@@ -5230,7 +5256,7 @@ def monitorHUDremoveCBAttrs():
             metaHUD.killHud()
             for attr in attrs:
                 monitoredAttr = '%s_%s' % (r9Core.nodeNameStrip(node), attr)
-                print 'removing attr :', attr, monitoredAttr
+                print('removing attr :', attr, monitoredAttr)
                 try:
                     metaHUD.removeMonitoredAttr(monitoredAttr)
                 except:
@@ -5395,7 +5421,7 @@ class MetaHUDNode(MetaClass):
                                         attachToRefresh=True,
                                         command=partial(self.__compute__, attr))
             else:
-                print 'node : ', self.mNode, ' attrs : ', attr
+                print('node : ', self.mNode, ' attrs : ', attr)
                 connectedData = cmds.listConnections('%s.%s' % (self.mNode, attr),
                                                    connections=True,
                                                    skipConversionNodes=True,

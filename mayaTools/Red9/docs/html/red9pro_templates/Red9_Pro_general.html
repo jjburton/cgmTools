@@ -112,7 +112,8 @@ or build the same attrs with the same plugs and connections on other objects.</p
 <dl class="function">
 <dt id="Red9.pro_pack.core.general.attr_cache_rebuild">
 <code class="descname">attr_cache_rebuild</code><span class="sig-paren">(</span><em>node</em>, <em>attrs=[]</em>, <em>data=None</em>, <em>cast_connections=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.attr_cache_rebuild" title="Permalink to this definition">¶</a></dt>
-<dd><p>for a given object rebuild the given attrs from the data cache if given,
+<dd><p>&lt;&lt; reorder attrs &gt;&gt;
+for a given object rebuild the given attrs from the data cache if given,
 else we internally cache all attrs on the node and rebuild then against the
 given attrs[] list order, effectively re-ordering them</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -176,7 +177,7 @@ and return as a dict for easy use</p>
 <dt id="Red9.pro_pack.core.general.redirect_stdout_output">
 <code class="descname">redirect_stdout_output</code><span class="sig-paren">(</span><em>maya=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.redirect_stdout_output" title="Permalink to this definition">¶</a></dt>
 <dd><p>control where prints and logging gets sent. By default Maya sends them to
-the maya.utils.Output, printing in the scriptEditor. This lets you divert 
+the maya.utils.Output, printing in the scriptEditor. This lets you divert
 between the scriptEditor or the OutputWindow</p>
 </dd></dl>
 
@@ -189,7 +190,7 @@ between the scriptEditor or the OutputWindow</p>
 <p>internal vars:</p>
 <ul class="simple">
 <li>self.filepath : the output path for the movie</li>
-<li>self.batchMode : render the movie offscreen and turn off the player</li>
+<li>self.batchMode : True by default: render the movie offscreen and turn off the player</li>
 </ul>
 <ul class="simple">
 <li>self.playblast_settings__cam : camera shape to render from if given else we resolve it</li>
