@@ -1131,11 +1131,12 @@ def msgDat_delete(self,d_wiring = {}, msgLinks = [], msgLists = [] ):
                 
     for l in d_wiring.get('msgLists',[]) + msgLists:
         if self.msgList_exists(l):
-            dat = self.msgList_get(l,asMeta=False)
+            dat = self.msgList_get(l,asMeta=1)
             if dat:
-                log.debug("|{0}| >>  Purging msgList: {1} | {2}".format(_str_func,l, 0))
-                for o in dat:
-                    try:mc.delete(o)
+                log.debug("|{0}| >>  Purging msgList: {1} | {2}".format(_str_func, l, 0))
+                for mObj in dat:
+                    try:
+                        mObj.delete()
                     except Exception,err:
                         log.error("|{0}| >>  Failed to delete msgList: {1} | {2}".format(_str_func,l,err))                
                 #self.msgList_purge(l)
@@ -7209,12 +7210,13 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         
         
         ml_done = []
-        for mHandle in ml_handles + ml_shapers:
-            if mHandle in ml_done:
-                continue
-            if not mHandle:
-                continue
-            if cgmGEN.__mayaVersion__ >= 2018:
+        if cgmGEN.__mayaVersion__ >= 2018:
+        
+            for mHandle in ml_handles + ml_shapers:
+                if mHandle in ml_done:
+                    continue
+                if not mHandle:
+                    continue
                 mLoft = mHandle.getMessageAsMeta('loftCurve')
                 if mLoft:
                     mLoft = cgmMeta.controller_get(mLoft)
@@ -7223,6 +7225,18 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                 mController = cgmMeta.controller_get(mHandle)
                 mController.visibilityMode = 2                            
                 ml_done.append(mController)
+                    
+                    
+                    
+            for mObj in ml_done:
+                try:
+                    ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                                 "{0}.visibilityMode".format(mObj.mNode))    
+                except Exception,err:
+                    log.error(err)
+
+                self.msgList_append('formStuff',mObj)
+                
         return md_handles,ml_handles,ml_shapers,ml_handles_chain
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
@@ -10370,9 +10384,10 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         _str_func = 'prerig_get_rpBasePos'
         log.debug(cgmGEN.logString_start(_str_func))
 
-        
+        b_passedHandles = False
         if ml_handles:
             ml_use = ml_handles
+            b_passedHandles = True
         else:
             ml_handles = self.msgList_get('prerigHandles')
             if not ml_handles:
@@ -10422,27 +10437,28 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         
         mVectorRP = self.vectorRpHelper
         rpVectorY = mVectorRP.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
-        closestVector = rpVectorY
+        closestVector = copy.copy(rpVectorY)
         
         ml_prerig = self.msgList_get('prerigHandles')
         if ml_prerig:
-            log.info(cgmGEN.logString_msg(_str_func,"Prerig dat found. More accurate check.") )
-            
-            try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
-            except:idx_start,idx_end = 0,len(ml_prerig)-1
-    
+            log.info(cgmGEN.logString_msg(_str_func,"More accurate check.") )
             mLoc = mVectorRP.doLoc()
-            SNAP.aim_atPoint(mLoc.mNode, ml_prerig[idx_end].p_position,mode = 'vector',vectorUp=closestVector)
+            
+            if b_passedHandles:
+                idx_start,idx_end = 0,-1
+                SNAP.aim_atPoint(mLoc.mNode, ml_handles[idx_end].p_position,mode = 'vector',vectorUp=closestVector)
+            else:
+                try:idx_start,idx_end = self.atBlockModule('get_handleIndices')
+                except:idx_start,idx_end = 0,len(ml_prerig)-1
+                SNAP.aim_atPoint(mLoc.mNode, ml_prerig[idx_end].p_position,mode = 'vector',vectorUp=closestVector)
+    
                     
             closestVector =  mLoc.getTransformDirection(EUCLID.Vector3(0,1,0)).normalized()
             mLoc.delete()
         vec_use = closestVector
         log.debug("|{0}| >> Block up: {1}".format(_str_func,vec_use))
         
-        
-        
-        
-        
+
         #...Get vector -----------------------------------------------------------------------
         if b_absMid:
             crvCubic = CORERIG.create_at(ml_use, create= 'curve')
@@ -10481,7 +10497,9 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,
                                            DIST.get_distance_between_points(ml_handles[0].p_position,
                                                                                             pos_mid))
-        #pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,vec_base,dist_use)
+        #pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,rpVectorY,
+        #                                   DIST.get_distance_between_points(ml_handles[0].p_position,
+        #                                                                                    pos_mid))
         
         if markPos:
             crv = CORERIG.create_at(create='curve',l_pos= [pos_mid,pos_use])
@@ -10489,7 +10507,7 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
             TRANS.rotatePivot_set(crv,pos_use)
             CORERIG.override_color(crv,'white')
             #LOC.create(position=pos_use,name='{0}_RPPos'.format(self.p_nameBase))
-            #LOC.create(position=pos_use2,name='pos2')
+            #LOC.create(position=pos_use2,name='posClose')
         
         return pos_use
         
@@ -10613,7 +10631,7 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
 
                 l_box = [xDist,
                          yDist,
-                         None]
+                         xDist]
                 if mHandle in [ml_use[0],ml_use[-1]]:
                     l_box[2] = MATH.average(xDist,yDist)
                 #TRANS.scale_to_boundingBox(_mNode,l_box,freeze=False)

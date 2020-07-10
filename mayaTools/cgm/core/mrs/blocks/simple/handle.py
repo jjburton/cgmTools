@@ -193,6 +193,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    #'buildProfile',
                    'visMeasure',
+                   'visProximityMode',
                    'moduleTarget']
 
 d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
@@ -231,7 +232,10 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_form = {'msgLinks':['formNull'],
-                     }
+                 'msgLists':['formStuff']}
+d_wiring_define = {'msgLinks':['defineNull'],
+                   'msgLists':['defineStuff']}
+
 
 #=============================================================================================================
 #>> AttrMask 
@@ -468,7 +472,15 @@ def define(self):
         for tag,mHandle in md_handles.iteritems():
             if cgmGEN.__mayaVersion__ >= 2018:
                 mController = cgmMeta.controller_get(mHandle)
-                mController.visibilityMode = 2        
+                
+                try:
+                    ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                             "{0}.visibilityMode".format(mHandle.mNode))    
+                except Exception,err:
+                    log.error(err)
+                
+                self.msgList_append('defineStuff',mController)
+                
         
         #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
@@ -731,7 +743,13 @@ def form(self):
         for mHandle in ml_handles:
             if cgmGEN.__mayaVersion__ >= 2018:
                 mController = cgmMeta.controller_get(mHandle)
-                mController.visibilityMode = 2                    
+                
+                try:
+                    ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                             "{0}.visibilityMode".format(mHandle.mNode))    
+                except Exception,err:
+                    log.error(err)                                
+                self.msgList_append('formStuff',mController)
         
         #>>> Connections ================================================================================
         self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])

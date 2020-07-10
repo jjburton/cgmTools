@@ -2208,7 +2208,7 @@ def uiCB_contextualAction(self,**kws):
     self.var_resetMode = cgmMeta.cgmOptionVar('cgmVar_ChannelResetMode', defaultValue = 0)
     
     log.debug("contextualAction pre...")
-    pprint.pprint(d_contextSettings)
+    #pprint.pprint(d_contextSettings)
     
     _ml_controls = self.mDat.context_get(addMirrors=_mirrorQuery,**d_contextSettings)
     
@@ -2415,8 +2415,8 @@ def uiCB_contextualAction(self,**kws):
     log.debug(cgmGEN.logString_sub(_str_func,'contextualAction | time query | mirrorQuery: {0}'.format(_mirrorQuery)))
     _res  = self.mDat.contextTime_get(mirrorQuery=_mirrorQuery,**d_contextSettings)
     log.debug("contextualAction time...")
-    pprint.pprint(d_contextSettings)
-    pprint.pprint(_res)
+    #pprint.pprint(d_contextSettings)
+    #pprint.pprint(_res)
     #get_contextTimeDat(self,_mirrorQuery,**kws)
     try:
         if not _res[0]:

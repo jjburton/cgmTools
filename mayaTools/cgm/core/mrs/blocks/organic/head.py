@@ -97,7 +97,7 @@ d_wiring_skeleton = {'msgLinks':[],
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
                    'msgLists':['prerigHandles']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
-                     'msgLists':['formHandles']}
+                     'msgLists':['formHandles','formStuff']}
 
 _d_attrStateOn = {0:[],
                   1:['headRotate'],
@@ -223,6 +223,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',                   
                    'settingsDirection',
                    'visRotatePlane',
+                   'visProximityMode',
                    'visLabels',
                    'moduleTarget',]
 

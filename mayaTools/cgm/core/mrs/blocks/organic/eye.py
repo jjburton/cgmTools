@@ -162,6 +162,7 @@ l_attrsStandard = ['side',
                    'conDirectOffset',
                    'proxyDirect',
                    'moduleTarget',
+                   'visProximityMode',                   
                    'scaleSetup']
 
 d_attrsToMake = {'eyeType':'sphere:nonsphere',
@@ -805,7 +806,6 @@ def define(self):
                     
             elif cgmGEN.__mayaVersion__ >= 2018:
                 mController = mHandle.controller_get()
-                mController.visibilityMode = 2
                 
                 
         

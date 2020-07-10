@@ -119,7 +119,7 @@ d_wiring_skeleton = {'msgLinks':['moduleTarget'],
 d_wiring_prerig = {'msgLinks':['prerigNull','noTransPrerigNull'],
                    'msgLists':['prerigHandles']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull','prerigLoftMesh','orientHelper'],
-                     'msgLists':['formHandles']}
+                     'msgLists':['formHandles','formStuff']}
 d_wiring_define = {'msgLinks':['defineNull']}
 
 #>>>Profiles =====================================================================================================
@@ -622,6 +622,7 @@ l_attrsStandard = ['side',
                    'ribbonParam',
                    'visRotatePlane',
                    'visLabels',
+                   'visProximityMode',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'segmentMidIKControl',
                    'spaceSwitch_direct',
@@ -1448,7 +1449,7 @@ def form(self):
                 pass
                 #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
             elif mHandle in [md_handles['start'],md_handles['end']]:
-                _lock = ['sz']
+                _lock = []#['sz']
                 if mHandle == md_handles['start']:
                     _lock.append('rotate')
                     
@@ -1456,12 +1457,14 @@ def form(self):
                 #ATTR.set_standardFlags( mHandle.mNode, _lock)
                 #mHandle.doConnectOut('sy',['sx','sz'])
                 
-                ATTR.set_standardFlags( mHandle.mNode, _lock)
-                ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
+                if _lock:
+                    ATTR.set_standardFlags( mHandle.mNode, _lock)
+                #ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
                 
             else:
-                ATTR.set_standardFlags( mHandle.mNode, ['sz'])
-                ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
+                pass
+                #ATTR.set_standardFlags( mHandle.mNode, ['sz'])
+                #ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
                 
         
         #ml_shapers = copy.copy(ml_handles_chain)
@@ -1780,7 +1783,7 @@ def form(self):
         
         ml_done = []
         md_controllers = {}
-        
+        ml_controllers = []
         if cgmGEN.__mayaVersion__ >= 2018:
             print '2018...'
             mMainController = cgmMeta.controller_get(self)
@@ -1796,26 +1799,36 @@ def form(self):
                     mController.visibilityMode = 2
                     ml_done.append(mController)
                     md_controllers[mLoft] = mController
+                    ml_controllers.append(mController)
                     
                 mController = cgmMeta.controller_get(mHandle,True)
                 mController.visibilityMode = 2                            
                 ml_done.append(mHandle)
                 md_controllers[mHandle] = mController
-                
-        
+                ml_controllers.append(mController)
+
             for mSet in ml_handles, ml_shapers,ml_loftHandles:
                 for i,mHandle in enumerate(mSet):
                     if mHandle not in ml_done:
                         continue
                     
-                    print mHandle
                     mController =  md_controllers[mHandle]
                     if not i:
                         mController.parent_set(mMainController,msgConnect=True)
                     else:
                         mController.parent_set(md_controllers[mSet[i-1]],msgConnect=False)
                         
+                    ml_done.append(mController)
+            
+            for mObj in ml_controllers:
+                try:
+                    ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                             "{0}.visibilityMode".format(mObj.mNode))    
+                except Exception,err:
+                    log.error(err)
                     
+                self.msgList_append('formStuff',mObj)
+                
     
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -4534,6 +4547,8 @@ def rig_shapes(self):
             _ikDefault = False
             mShape2 = False
             
+            mIKOrientHelper = mBlock.ikOrientHandle
+            
             if mPivotHelper:# and str_ikEnd in ['foot']:
                 log.debug("|{0}| >> pivot helper...".format(_str_func))
                 
@@ -4563,7 +4578,7 @@ def rig_shapes(self):
                 if mBlock.addLeverEnd:
                     mIKCrv = ml_prerigHandles[self.int_handleEndIdx + 1].doCreateAt(setClass=True)
                 else:
-                    mIKCrv = ml_prerigHandles[self.int_handleEndIdx].doCreateAt(setClass=True)
+                    mIKCrv = mIKOrientHelper.doCreateAt(setClass=1)#ml_prerigHandles[self.int_handleEndIdx].doCreateAt(setClass=True)
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
                 
                 

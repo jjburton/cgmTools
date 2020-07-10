@@ -1387,7 +1387,10 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
 
     if transferConnection:
         if _connection and not is_connected(_d):
-            log.debug("|{0}| >> {1} | Transferring to fromAttr: {2} | connnection: {3}".format(_str_func,toAttr,fromAttr,_connection))            
+            log.debug("|{0}| >> {1} | Transferring to fromAttr: {2} | connnection: {3}".format(_str_func,
+                                                                                               toAttr,
+                                                                                               fromAttr,
+                                                                                               _connection))            
             mc.connectAttr(_connection,_combined)
 
     if _wasLocked or lock:
