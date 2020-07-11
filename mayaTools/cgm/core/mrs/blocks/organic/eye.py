@@ -2788,7 +2788,7 @@ def rig_skeleton(self):
         self.mPupilJoint = mPupilJoint
         self.mPupilRigJoint = mPupilRigJoint
         
-        for mJnt in mPupilJoint,mPupilRigJoint:
+        for mJnt in [mPupilRigJoint]:
             if mEyeBlend:
                 mJnt.p_parent = mEyeBlend
             else:

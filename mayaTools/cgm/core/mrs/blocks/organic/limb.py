@@ -8086,10 +8086,9 @@ def rig_cleanUp(self):
         
             mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
             #mDynGroup.dynMode = 2
-            if b_ikOrientToWorld:
-                mDynGroup.dynMode = 3#...point
-                
-                mHandle.masterGroup.p_parent = mRigNull.getMessage('ikGroup')[0]
+            #if b_ikOrientToWorld:
+                #mDynGroup.dynMode = 3#...point
+                #mHandle.masterGroup.p_parent = mRigNull.getMessage('ikGroup')[0]
         
             for mTar in ml_targetDynParents:
                 mDynGroup.addDynParent(mTar)
