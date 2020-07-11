@@ -1582,6 +1582,30 @@ def prerig(self):
                               'jointSize': self.jointRadius}
             
             #Lid Handles ----------------------------------------------------------------------------
+            _lidFanLwr = self.getEnumValueString('lidFanLwr')
+            _lidFanUpr = self.getEnumValueString('lidFanUpr')
+            mUprLidEdge = self.getMessageAsMeta('uprEdgeFormCurve')
+            mLwrLidEdge = self.getMessageAsMeta('lwrEdgeFormCurve')
+            
+            if _lidFanUpr == 'single':
+                log.debug("|{0}| >> Lid Fan Single...".format(_str_func)+ '-'*40)
+                
+                mUprFanHandle = create_lidHandle(self,'uprFanCenter',
+                                              CURVES.getPercentPointOnCurve(mUprLidEdge.mNode,.5),
+                                              mJointTrack=mUprLidEdge,
+                                              trackAttr = 'paramMidUpr',
+                                              controlShape='circle',
+                                              multiplier=1,
+                                              )
+                
+                mLwrFanHandle = create_lidHandle(self,'lwrFanCenter',
+                                              CURVES.getPercentPointOnCurve(mLwrLidEdge.mNode,.5),
+                                              mJointTrack=mLwrLidEdge,
+                                              trackAttr = 'paramMidLwr',
+                                              controlShape='circle',
+                                              multiplier=1,
+                                              )                
+                ml_handles.extend([mUprFanHandle,mLwrFanHandle])
             
             
             
@@ -2439,6 +2463,7 @@ def skeleton_build(self, forceNew = True):
                 log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
                 ml_joints.append(mJoint)
                 mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))
+                
         elif _lidBuild == "full":
             _d_Lid = {'cgmName':'lid'}
             for d in 'upr','lwr':
@@ -2459,11 +2484,36 @@ def skeleton_build(self, forceNew = True):
                         mShape.connectChildNode(mJnt,'targetJoint')
 
                     mPrerigNull.msgList_connect('{0}Joints'.format(key),ml)
-                    ml_joints.extend(ml)            
+                    ml_joints.extend(ml)
+            else:
+                log.error("Don't have setup for eyelidType: {0}".format(_lidBuild))
+        
+        if self.lidFanLwr or self.lidFanUpr:
+            l_toDo = []
+            if self.lidFanUpr:
+                l_toDo.append('uprFanCenter')
+            if self.lidFanLwr:
+                l_toDo.append('lwrFanCenter')
                 
+            for a in l_toDo:
+                log.debug("|{0}| >> Creating fan lid joint: {1}.".format(_str_func,a))
+                _a = '{0}LidHandle'.format(a)
+                
+                mHandle = self.getMessageAsMeta(_a)
+                mJointHandle = mHandle.jointHelper
+                
+                mJoint = mJointHandle.doCreateAt('joint')
+                mJoint.parent = mRoot
+                
+                mJoint.doStore('cgmName',a)
+                name(mJoint,_d_lids)
+                
+                JOINT.freezeOrientation(mJoint.mNode)
+                
+                log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
+                ml_joints.append(mJoint)
+                mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))
 
-        else:
-            log.error("Don't have setup for eyelidType: {0}".format(_lidBuild))
             
     
     mRigNull.msgList_connect('moduleJoints', ml_joints)
@@ -2539,7 +2589,7 @@ def rig_dataBuffer(self):
     if mBlock.highlightSetup:
         self.str_highlightSetup = mBlock.getEnumValueString('highlightSetup')"""
     
-    for k in ['lidBuild','highlightSetup','irisBuild','pupilBuild','ikSetup','buildSDK']:
+    for k in ['lidBuild','highlightSetup','irisBuild','pupilBuild','ikSetup','buildSDK','lidFanUpr','lidFanLwr']:
         self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)    
         self.__dict__['v_{0}'.format(k)] = mBlock.getMayaAttr(k)
         
@@ -2590,7 +2640,6 @@ def rig_dataBuffer(self):
     
     #eyeLook =============================================================================
     self.mEyeLook = self.UTILS.eyeLook_get(self,True)#autobuild...
-
     return True
 
 def create_jointFromHandle(mHandle=None,mParent = False,cgmType='skinJoint'):
@@ -2696,23 +2745,11 @@ def rig_skeleton(self):
                                                      singleMode = True)[0]    
     mEyeFK.p_parent = mEyeRigJoint.p_parent
     
-
-    #Pupil  =====================================================================
-    if self.str_pupilBuild == 'joint':
-        log.debug("|{0}| >> Eye...".format(_str_func)+'-'*40)
-        
-        mPupilJoint = mPrerigNull.getMessageAsMeta('pupilJoint')
-        mPupilRigJoint = mPupilJoint.getMessageAsMeta('rigJoint')
-        log.debug(mPupilJoint)
-        log.debug(mPupilRigJoint)
-
-        mRigNull.connectChildNode(mPupilRigJoint,'directPupil')
-        
-        self.mPupilJoint = mPupilJoint
-        self.mPupilRigJoint = mPupilRigJoint
-    
+   
     
     #IK setup ----------------------------------------------------------------------------------
+    mEyeBlend = False
+    
     if mBlock.ikSetup:
         log.debug("|{0}| >> Eye IK...".format(_str_func))              
 
@@ -2736,6 +2773,26 @@ def rig_skeleton(self):
         #ml_jointsToConnect.extend([mEyeIK])
         ml_jointsToHide.append(mEyeBlend)    
     log.debug(cgmGEN._str_subLine)
+    
+    #Pupil  =====================================================================
+    if self.str_pupilBuild == 'joint':
+        log.debug("|{0}| >> Eye...".format(_str_func)+'-'*40)
+        
+        mPupilJoint = mPrerigNull.getMessageAsMeta('pupilJoint')
+        mPupilRigJoint = mPupilJoint.getMessageAsMeta('rigJoint')
+        log.debug(mPupilJoint)
+        log.debug(mPupilRigJoint)
+
+        mRigNull.connectChildNode(mPupilRigJoint,'directPupil')
+        
+        self.mPupilJoint = mPupilJoint
+        self.mPupilRigJoint = mPupilRigJoint
+        
+        for mJnt in mPupilJoint,mPupilRigJoint:
+            if mEyeBlend:
+                mJnt.p_parent = mEyeBlend
+            else:
+                mJnt.p_parent = mEyeFK
     
     #EyeLid =====================================================================================
     log.debug("|{0}| >> Eye...".format(_str_func)+'-'*40)
@@ -2871,7 +2928,7 @@ def rig_skeleton(self):
                             mSub.p_parent = mJnt
                             mJnt.doStore('{0}Influence'.format(k),mSub)
                             ml_jointsToConnect.append(mSub)
-                            ml_jointsToHide.append(mSub)                
+                            ml_jointsToHide.append(mSub)
                 
                 ml_jointsToHide.extend(ml_hide)
                 md_handles[_k][side] = ml
@@ -2886,8 +2943,45 @@ def rig_skeleton(self):
                 mObj.doStore('mirrorControl',md_handles[_k]['left'][i])
                 md_handles[_k]['left'][i].doStore('mirrorControl', mObj)
                 """
-            log.debug(cgmGEN._str_subLine)        
+            log.debug(cgmGEN._str_subLine)
+            
+    if mBlock.lidBuild:
+        
+        l_toDo = []
+        if self.str_lidFanUpr:
+            l_toDo.append('uprFanCenter')
+        if self.str_lidFanLwr:
+            l_toDo.append('lwrFanCenter')
+            
+        for tag in l_toDo:
+            log.debug("|{0}| >> {1}...".format(_str_func,tag))
 
+            self.d_lidData[tag] = {}
+            _d = self.d_lidData[tag]
+            
+            mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(tag))
+            mLidRig = mLidSkin.getMessageAsMeta('rigJoint')
+            
+            _d['mSkin'] = mLidSkin
+            _d['mRig'] = mLidRig
+            
+            #Lid Root
+            mLidRoot = mEyeJoint.doDuplicate(po=True)
+            mLidRoot.doStore('cgmName','{0}Lid_rootJoint'.format(tag))
+            ATTR.delete(mLidRoot.mNode,'cgmType')
+            mLidRoot.p_parent = False
+            mLidRoot.doName()
+            
+            _d['mRoot'] = mLidRoot
+            
+            SNAP.aim(mLidRoot.mNode, mLidSkin.mNode, 'z+','y+','vector',
+                     mBlock.getAxisVector('y+'))
+            JOINT.freezeOrientation(mLidRoot.mNode)
+            
+            for mJnt in [mLidRoot]:
+                try:mJnt.drawStyle =2
+                except:mJnt.radius = .00001
+            mLidRig.p_parent = mLidRoot
 
     log.debug(cgmGEN._str_subLine)
     self.md_rigJoints = md_rigJoints
@@ -3094,6 +3188,8 @@ def rig_shapes(self):
                     
                     CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
                     mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                    _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
+                    mHandleFactory.color(mHandle.mNode, controlType = 'main')
                     
                     if self.mModule.hasAttr('cgmDirection'):
                         mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
@@ -3107,10 +3203,10 @@ def rig_shapes(self):
                     
                     _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
                                                         sizeMode= 'fixed',
-                                                        size = mRig.radius)
+                                                        size = _size)
                     mHandleFactory.color(_shape, controlType = 'sub')
-                    
                     CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
+                    
             else:
                 log.debug("|{0}| >> lid setup...".format(_str_func)+ '-'*40)
 
@@ -3137,6 +3233,44 @@ def rig_shapes(self):
                                                          self.md_directShapes[k][side][i].mNode)
                             #ml_processed.append(mHandle)                
 
+        if mBlock.lidFanLwr or mBlock.lidFanUpr:
+            l_toDo = []
+            if mBlock.lidFanUpr:
+                l_toDo.append('uprFanCenter')
+            if mBlock.lidFanLwr:
+                l_toDo.append('lwrFanCenter')
+                
+            for k in l_toDo:
+                log.info("|{0}| >> lid fan handle| {1}...".format(_str_func,k))                      
+                _key = '{0}LidHandle'.format(k)
+                
+                mShapeSource = mBlock.getMessageAsMeta(_key)
+                mHandle = mShapeSource.doCreateAt('joint',setClass=True)
+                
+                try:mHandle.drawStyle =2
+                except:mHandle.radius = .00001
+                
+                CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
+                mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                
+                _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
+                
+                if self.mModule.hasAttr('cgmDirection'):
+                    mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
+                
+                self.d_lidData[k]['mHandle'] = mHandle
+                mHandle.doName()
+                mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
+                
+                log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
+                mRig =  self.d_lidData[k]['mRig']
+                
+                _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
+                                                    sizeMode= 'fixed',
+                                                    size = _size)
+                mHandleFactory.color(_shape, controlType = 'sub')
+                CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
+                
  
         for mJnt in ml_rigJoints:
             try:
@@ -3369,6 +3503,45 @@ def rig_controls(self):
                             for mShape in mObj.getShapes(asMeta=True):
                                 ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
+                
+                
+            if mBlock.lidFanLwr or mBlock.lidFanUpr:
+                l_toDo = []
+                if mBlock.lidFanUpr:
+                    l_toDo.append('uprFanCenter')
+                if mBlock.lidFanLwr:
+                    l_toDo.append('lwrFanCenter')
+                    
+                for k in l_toDo:
+                    log.info("|{0}| >> lid fan handle| {1}...".format(_str_func,k))                      
+                    _key = '{0}LidHandle'.format(k)
+                    
+                    mHandle = self.d_lidData[k]['mHandle']
+                    mRig = self.d_lidData[k]['mRig']
+                    
+                    MODULECONTROL.register(mHandle,
+                                           #addSDKGroup=b_sdk,                                           
+                                           mirrorSide= self.d_module['mirrorDirection'],
+                                           mirrorAxis="translateX,rotateY,rotateZ")
+                    
+                    d_buffer = MODULECONTROL.register(mRig,
+                                           typeModifier='direct',
+                                           mirrorSide= self.d_module['mirrorDirection'],
+                                           mirrorAxis="translateX,rotateY,rotateZ",
+                                           makeAimable = False)
+                    
+                    mObj = d_buffer['instance']
+                    ATTR.set_hidden(mObj.mNode,'radius',True)        
+                    if mObj.hasAttr('cgmIterator'):
+                        ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
+                        
+                    for mShape in mObj.getShapes(asMeta=True):
+                        ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+                        
+                    ml_controlsAll.extend([mHandle,mRig])
+                    mHandle.addAttr('cgmControlDat','','string')
+                    mHandle.cgmControlDat = {'tags':['ik']}
+                    #ml_handles.append(mHandle)              
                                 
         mControlHighlight = mRigNull.getMessageAsMeta('controlHighlight')
         #mControlHighlight ================================================================================
@@ -4185,6 +4358,9 @@ def rig_lidSetup(self):
     if _lidSetup:
         log.debug("|{0}| >>  Lid setup ... ".format(_str_func)+'-'*40)
         
+        mUprRoot = None
+        mLwrRoot = None
+        
         if _lidSetup == 'clam':
             log.debug("|{0}| >>  clam ... ".format(_str_func))
             #First we need to make our new curves
@@ -4213,6 +4389,11 @@ def rig_lidSetup(self):
                 mRig = _d['mRig']
                 mHandle = _d['mHandle']
                 
+                if k == 'upr':
+                    mUprRoot = mRoot
+                else:
+                    mLwrRoot = mRoot
+                
                 mTarget = mRig.doLoc()
                 _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
                                                            self.md_blinkCurves[k]['mDriven'].mNode)
@@ -4240,6 +4421,7 @@ def rig_lidSetup(self):
                                  upVector = self.d_orientation['vectorUp'],
                                  worldUpVector = self.d_orientation['vectorUp'],
                                  worldUpObject = mHandle.mNode,
+                                 skip = [self.d_orientation['str'][0]],
                                  worldUpType = 'objectRotation' )
                 
                 mRoot.p_parent = mSettings
@@ -4315,11 +4497,12 @@ def rig_lidSetup(self):
                                    ml_lwrSkinJoints = ml_lwrLidInfluences)
 
             for mJoint in ml_uprRig:
-
-                
                 mTarget = mJoint.doLoc()
                 mDriver = mJoint.driverJoint
                 mLidRoot = mDriver.getMessageAsMeta('lidRoot')
+                
+                if mDriver.cgmPosition == 'center':
+                    mUprRoot = mLidRoot
                 
                 _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
                                                            self.md_blinkCurves['upr']['mDriven'].mNode)
@@ -4377,6 +4560,9 @@ def rig_lidSetup(self):
                 mDriver = mJoint.driverJoint
                 mLidRoot = mDriver.getMessageAsMeta('lidRoot')
                 
+                if mDriver.cgmPosition == 'center':
+                    mLwrRoot = mLidRoot
+                    
                 _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
                                                            self.md_blinkCurves['lwr']['mDriven'].mNode)
                 TRANS.parent_set(_res_attach[0], mRigNull.mNode)
@@ -4486,6 +4672,50 @@ def rig_lidSetup(self):
 
         #Autofollow --------------------------------------------------------------------
         create_lidFollow(self)
+        
+        
+        #Lid Fan Setup --------------------------------------------------------------------
+        if mBlock.lidFanLwr or mBlock.lidFanUpr:
+            
+            l_toDo = []
+            if mBlock.lidFanUpr:
+                l_toDo.append('upr')
+            if mBlock.lidFanLwr:
+                l_toDo.append('lwr')
+                
+            for k in l_toDo:
+                _key = k + 'FanCenter'
+                
+                if k == 'upr':
+                    mFollowRoot = mUprRoot
+                else:
+                    mFollowRoot = mLwrRoot
+                    
+                mHandle = self.d_lidData[_key]['mHandle']
+                mRig = self.d_lidData[_key]['mRig']
+                mRoot = self.d_lidData[_key]['mRoot']
+                
+                mHandle.masterGroup.p_parent = mRoot
+                mRig.masterGroup.p_parent = mHandle
+                
+                mRoot.p_parent = mSettings
+                
+                _out = "r{0}".format(self.d_orientation['str'][1])
+                _up = "r{0}".format(self.d_orientation['str'][2])
+                
+                mPlug_followUp = cgmMeta.cgmAttr(mSettings,_key + "UpMult",attrType = 'float', value = .5,
+                                                   hidden = False,keyable=True,minValue=0.01)	    
+                mPlug_followOut = cgmMeta.cgmAttr(mSettings,_key + "OutMult",attrType = 'float', value = .5,
+                                                  hidden = False,keyable=True,minValue=0.01)
+                
+                arg_up = "{0}.{1} = {2}.{1} * {3}".format(mRoot.mNode, _up,
+                                                          mFollowRoot.mNode,
+                                                          mPlug_followUp.p_combinedShortName)
+                arg_out = "{0}.{1} = {2}.{1} * {3}".format(mRoot.mNode, _out,
+                                                          mFollowRoot.mNode,
+                                                          mPlug_followOut.p_combinedShortName)
+                for a in arg_up,arg_out:
+                    NODEFACTORY.argsToNodes(a).doBuild()
 
     
 def rig_cleanUp(self):

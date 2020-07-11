@@ -4823,6 +4823,7 @@ def skeleton_build(self, forceNew = True):
         raise ValueError,"No prerig null"
     
     mRoot = self.UTILS.skeleton_getAttachJoint(self)
+    mLipRoot = mRoot
     
     #>> If skeletons there, delete -------------------------------------------------------------------------- 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
@@ -4845,7 +4846,7 @@ def skeleton_build(self, forceNew = True):
         mJnt.p_parent = mRoot
         ml_joints.append(mJnt)
         
-        mRoot = mJnt
+        mLipRoot = mJnt
         
 
     if self.jawSetup:
@@ -4853,6 +4854,8 @@ def skeleton_build(self, forceNew = True):
         mJaw = create_jointFromHandle(mObj,mRoot)
         mPrerigNull.doStore('jawJoint',mJaw)
         ml_joints.append(mJaw)
+    else:
+        mJaw = mRoot
         
     if self.lipSetup:
         str_lipSetup = self.getEnumValueString('lipSetup')
@@ -4871,7 +4874,7 @@ def skeleton_build(self, forceNew = True):
                 mHandles = mPrerigNull.msgList_get('{0}JointHelpers'.format(key))
                 ml = []
                 for mHandle in mHandles:
-                    mJnt = create_jointFromHandle(mHandle,mJaw)
+                    mJnt = create_jointFromHandle(mHandle,mLipRoot)
                     ml.append(mJnt)
                     mShape = mHandle.shapeHelper
                     mShape.connectChildNode(mJnt,'targetJoint')
@@ -6003,18 +6006,20 @@ def rig_frame(self):
             mMouth = mRigNull.getMessageAsMeta('controlMouth')
             log.debug("|{0}| >> mMouth: {1}".format(_str_func,mMouth))
             mMouth.masterGroup.p_parent = mFollowParent
-            
-            mJawSpaceMouth = mMouth.doCreateAt(setClass=1)
-            mJawSpaceMouth.p_parent = mJaw 
-            mJawSpaceMouth.rename('{0}_mouthJawSpace'.format(self.d_module['partName']))
-            mJawSpaceMouth.doGroup(True,asMeta=True,typeModifier = 'zero')
             _str_mouth = mMouth.mNode
-            _str_mouthJawSpace = mJawSpaceMouth.mNode
             
-            #Wire our jaw space mouth move
-            for a in 'translate','rotate','scale':
-                ATTR.connect("{0}.{1}".format(_str_mouth,a), "{0}.{1}".format(_str_mouthJawSpace,a))
-                #mMouth.doConnectOut(a,mJawSpaceMouth.mNode)
+            if mJaw:
+                
+                mJawSpaceMouth = mMouth.doCreateAt(setClass=1)
+                mJawSpaceMouth.p_parent = mJaw 
+                mJawSpaceMouth.rename('{0}_mouthJawSpace'.format(self.d_module['partName']))
+                mJawSpaceMouth.doGroup(True,asMeta=True,typeModifier = 'zero')
+                _str_mouthJawSpace = mJawSpaceMouth.mNode
+                
+                #Wire our jaw space mouth move
+                for a in 'translate','rotate','scale':
+                    ATTR.connect("{0}.{1}".format(_str_mouth,a), "{0}.{1}".format(_str_mouthJawSpace,a))
+                    #mMouth.doConnectOut(a,mJawSpaceMouth.mNode)
             
             #Lip handles ------------------------------------------------------
             log.debug("|{0}| >> lip handles...".format(_str_func)+ '-'*20)
@@ -6036,30 +6041,39 @@ def rig_frame(self):
             ml_uprChain = self.md_handles['lipUpr']['right'][1:] + [mUprCenter] + ml_uprLeft#self.md_handles['lipUpr']['left'][1:]
             ml_lwrChain = self.md_handles['lipLwr']['right'] + [mLwrCenter] + ml_lwrLeft#self.md_handles['lipLwr']['left']
             
-    
+            
+                
             for mHandle in mLeftCorner,mRightCorner:
                 log.debug("|{0}| >> lip handles | {1}".format(_str_func,mHandle))
+                if mJaw:
+                    mHandle.masterGroup.p_parent = mFollowBase
+                    
+                    mMainTrack = mHandle.doCreateAt(setClass=1)
+                    mMainTrack.doStore('cgmName',mHandle)
+                    mMainTrack.doStore('cgmType','mainTrack')
+                    mMainTrack.doName()
+                    mMainTrack.p_parent = mFollowParent
+                    
+                    mJawTrack = mHandle.doCreateAt(setClass=1)
+                    mJawTrack.doStore('cgmName',mHandle)
+                    mJawTrack.doStore('cgmType','jawTrack')
+                    mJawTrack.doName()
+                    mJawTrack.p_parent = mJawSpaceMouth
+                    
+                    mc.parentConstraint([mMainTrack.mNode,mJawTrack.mNode],
+                                        mHandle.masterGroup.mNode,
+                                        maintainOffset=True)
+                else:
+                    mHandle.masterGroup.p_parent = mMouth
+                    
                 
-                mHandle.masterGroup.p_parent = mFollowBase
-                
-                mMainTrack = mHandle.doCreateAt(setClass=1)
-                mMainTrack.doStore('cgmName',mHandle)
-                mMainTrack.doStore('cgmType','mainTrack')
-                mMainTrack.doName()
-                mMainTrack.p_parent = mFollowParent
-                
-                mJawTrack = mHandle.doCreateAt(setClass=1)
-                mJawTrack.doStore('cgmName',mHandle)
-                mJawTrack.doStore('cgmType','jawTrack')
-                mJawTrack.doName()
-                mJawTrack.p_parent = mJawSpaceMouth
-                
-                mc.parentConstraint([mMainTrack.mNode,mJawTrack.mNode],
-                                    mHandle.masterGroup.mNode,
-                                    maintainOffset=True)
                 
             mUprCenter.masterGroup.p_parent = mMouth
-            mLwrCenter.masterGroup.p_parent = mJawSpaceMouth
+            if mJaw:
+                mLwrCenter.masterGroup.p_parent = mJawSpaceMouth
+            else:
+                mLwrCenter.masterGroup.p_parent = mMouth
+                
             
             #side handles ---------------------------
             #First we're going to attach our handles to a surface to ge general placement. Then we're going to try
