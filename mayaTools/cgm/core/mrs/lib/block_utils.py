@@ -3110,8 +3110,8 @@ def skeleton_connectToParent(self):
     log.debug(cgmGEN.logString_start(_str_func))
 
     
-    if self.blockType == 'master':
-        log.debug("|{0}| >> Master block type. No connection possible".format(_str_func))                   
+    if self.blockType in ['master','eyeMain']:
+        log.debug("|{0}| >> {1} block type. No connection possible".format(_str_func,self.blockType))                   
         return True
     
     mModule = self.moduleTarget
@@ -7968,6 +7968,9 @@ def is_rigged(self):
                 if self.moduleTarget.getMessage('masterControl'):
                     return True
             return False
+        elif self.blockType in ['eyeMain']:
+            return self.atBlockModule('is_rig')
+        
         return self.moduleTarget.atUtils('is_rigged')
 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
@@ -8449,13 +8452,14 @@ def buildProfile_load(self, arg):
     if self.hasAttr('blockProfile'):
         _blockProfile = self.blockProfile
         if _d_block.get(_blockProfile):
-            _d_block = _d_block.get(_blockProfile)
+            _d_block = _d_block.get(_blockProfile,{})
         else:
-            _d_block = _d_block.get('default')
+            _d_block = _d_block.get('default',{})
     
     #cgmGEN.func_snapShot(vars())
-
-    _d.update(_d_block)
+    
+    if _d_block:
+        _d.update(_d_block)
 
     """
     if self.hasAttr('blockProfile'):

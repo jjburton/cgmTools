@@ -257,127 +257,126 @@ class cgmRigBlock(cgmMeta.cgmControl):
         self._callSize = _callSize
         #self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
         #>>> Initialization Procedure ================== 
-        try:
-            if _doVerify:
-                if blockType:
-                    _blockModule =  get_blockModule(blockType)
-                    reload(_blockModule)
-                    self.doStore('blockType',blockType,attrType='string')
-                else:
-                    _blockModule = False
-                
-                kw_blockProfile = kws.get('blockProfile',None)
-                if self.__justCreatedState__:
-                    self.addAttr('blockType', value = blockType,lock=True)
-                    if kw_blockProfile and kw_name is None:
-                        kw_name = kw_blockProfile
-                    elif blockType is not None and not kw_name:
-                        kw_name = blockType
-                    else:
-                        kw_name = 'NAMEME'
-                    self.addAttr('cgmName', kws.get('name', kw_name))
-                else:
-                    self.addAttr('cgmName',attrType='string')
-                    if kw_name:
-                        self.cgmName = kw_name
-                        
-    
-                log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
-                if self.isReferenced():
-                    log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
-                    return
-                elif not self.verify(blockType,side= _side):
-                    raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
-    
-                #Name -----------------------------------------------
-    
-                #On call attrs -------------------------------------------------------------------------
-                for a,v in kws.iteritems():
-                    if self.hasAttr(a):
-                        try:
-                            if a == 'side' and v == None:
-                                v = 0
-                            log.debug("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
-                            ATTR.set(self.mNode,a,v)
-                        except Exception,err:
-                            log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
-                
-                #Profiles --------------------------------------------------------------------------
-                
-                _kw_buildProfile = kws.get('buildProfile')
-                if _kw_buildProfile:
-                    self.UTILS.buildProfile_load(self, _kw_buildProfile)
-                    
-                _kw_blockProfile = kws.get('blockProfile')
-                if _kw_blockProfile:
-                    self.UTILS.blockProfile_load(self, kws.get('blockProfile',_kw_blockProfile))                
-                
-                #>>>Auto flags...
-                if not _blockModule:
-                    _blockModule =  get_blockModule(self.blockType)                    
-                    
-                #Size -----------------------------------------------------
-                _sizeMode = _blockModule.__dict__.get('__sizeMode__',None)
-                
-                #if _sizeMode:
-                    #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
-                    #self.atUtils('doSize', _sizeMode)
-    
-                #Snap with selection mode --------------------------------------
-                if _size in ['selection']:
-                    log.info("|{0}| >> Selection mode snap...".format(_str_func))                      
-                    if _sel:
-                        if  blockType in ['master']:
-                            SNAPCALLS.snap(self.mNode,_sel[0],rotation=False,targetPivot='groundPos')
-                        else:
-                            log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))
-                            SNAPCALLS.snap(self.mNode, _sel[0],targetPivot='bb',targetMode='center')
-                            #self.doSnapTo(_sel[0])
-                #cgmGEN.func_snapShot(vars())
-                
-                self._blockModule = _blockModule
-                
-                if _justCreated:
-                    if _baseSize:
-                        log.info("|{0}| >> on call base size: {1}".format(_str_func,_baseSize))
-                        self.baseSize = _baseSize
-                    if 'define' in _blockModule.__dict__.keys():
-                        log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
-                        _blockModule.define(self)
-                        
-                    try:BLOCKUTILS.attrMask_getBaseMask(self)
-                    except Exception,err:
-                        log.info(cgmGEN.logString_msg(_str_func,'attrMask fail | {0}'.format(err)))
-
-                    self.doName()
-                
-                #Form -------------------------------------------------
-                if autoForm and _blockModule.__dict__.get('__autoForm__'):
-                    log.debug("|{0}| >> AutoForm...".format(_str_func))
-                    if _sizeMode:
-                        _postState = 'form'
+        if _doVerify:
+            if blockType:
+                _blockModule =  get_blockModule(blockType)
+                reload(_blockModule)
+                self.doStore('blockType',blockType,attrType='string')
+            else:
+                _blockModule = False
             
-                    else:
-                        self.p_blockState = 'form'
-            else:log.debug("|{0}| >> No verify...".format(_str_func))
+            kw_blockProfile = kws.get('blockProfile',None)
+            if self.__justCreatedState__:
+                self.addAttr('blockType', value = blockType,lock=True)
+                if kw_blockProfile and kw_name is None:
+                    kw_name = kw_blockProfile
+                elif blockType is not None and not kw_name:
+                    kw_name = blockType
+                else:
+                    kw_name = 'NAMEME'
+                self.addAttr('cgmName', kws.get('name', kw_name))
+            else:
+                self.addAttr('cgmName',attrType='string')
+                if kw_name:
+                    self.cgmName = kw_name
+                    
+
+            log.debug("|{0}| >> Just created or do verify...".format(_str_func))            
+            if self.isReferenced():
+                log.error("|{0}| >> Cannot verify referenced nodes".format(_str_func))
+                return
+            elif not self.verify(blockType,side= _side):
+                raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
+
+            #Name -----------------------------------------------
+
+            #On call attrs -------------------------------------------------------------------------
+            for a,v in kws.iteritems():
+                if self.hasAttr(a):
+                    try:
+                        if a == 'side' and v == None:
+                            v = 0
+                        log.debug("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
+                        ATTR.set(self.mNode,a,v)
+                    except Exception,err:
+                        log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+            
+            #Profiles --------------------------------------------------------------------------
+            
+            _kw_buildProfile = kws.get('buildProfile')
+            if _kw_buildProfile:
+                self.UTILS.buildProfile_load(self, _kw_buildProfile)
                 
-            if blockParent is not None:
-                try:
-                    self.p_blockParent = blockParent
+            _kw_blockProfile = kws.get('blockProfile')
+            if _kw_blockProfile:
+                self.UTILS.blockProfile_load(self, kws.get('blockProfile',_kw_blockProfile))                
+            
+            #>>>Auto flags...
+            if not _blockModule:
+                _blockModule =  get_blockModule(self.blockType)                    
+                
+            #Size -----------------------------------------------------
+            _sizeMode = _blockModule.__dict__.get('__sizeMode__',None)
+            
+            #if _sizeMode:
+                #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
+                #self.atUtils('doSize', _sizeMode)
+
+            #Snap with selection mode --------------------------------------
+            if _size in ['selection']:
+                log.info("|{0}| >> Selection mode snap...".format(_str_func))                      
+                if _sel:
+                    if  blockType in ['master']:
+                        SNAPCALLS.snap(self.mNode,_sel[0],rotation=False,targetPivot='groundPos')
+                    else:
+                        log.info("|{0}| >> Selection mode snap to: {1}".format(_str_func,_sel))
+                        SNAPCALLS.snap(self.mNode, _sel[0],targetPivot='bb',targetMode='center')
+                        #self.doSnapTo(_sel[0])
+            #cgmGEN.func_snapShot(vars())
+            
+            self._blockModule = _blockModule
+            
+            if _justCreated:
+                if _baseSize:
+                    log.info("|{0}| >> on call base size: {1}".format(_str_func,_baseSize))
+                    self.baseSize = _baseSize
+                if 'define' in _blockModule.__dict__.keys():
+                    log.debug("|{0}| >> BlockModule define call found...".format(_str_func))            
+                    _blockModule.define(self)
+                    
+                try:BLOCKUTILS.attrMask_getBaseMask(self)
                 except Exception,err:
-                    log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
-                    for arg in err.args:
-                        log.error(arg)
-                            
+                    log.info(cgmGEN.logString_msg(_str_func,'attrMask fail | {0}'.format(err)))
+
+                self.doName()
+            
+            #Form -------------------------------------------------
+            if autoForm and _blockModule.__dict__.get('__autoForm__'):
+                log.debug("|{0}| >> AutoForm...".format(_str_func))
+                if _sizeMode:
+                    _postState = 'form'
+        
+                else:
+                    self.p_blockState = 'form'
+        else:log.debug("|{0}| >> No verify...".format(_str_func))
+            
+        if blockParent is not None:
+            try:
+                self.p_blockParent = blockParent
+            except Exception,err:
+                log.warning("|{0}| >> blockParent on call failure.".format(_str_func))
+                for arg in err.args:
+                    log.error(arg)
+                        
                 #if _sizeMode:
                     #log.debug("|{0}| >> Sizing: {1}...".format(_str_func, _sizeMode))
                     #self.atUtils('doSize', _sizeMode, postState = _postState )                
 
-        except Exception,err:
-            #pprint.pprint(vars())
-            log.error("|{0}| >> Failed to initialize properly! ".format(_str_func) + '='*80)
-            cgmGEN.cgmException(Exception,err)
-            #cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+        #except Exception,err:
+        #    #pprint.pprint(vars())
+        #    log.error("|{0}| >> Failed to initialize properly! ".format(_str_func) + '='*80)
+        #    cgmGEN.cgmException(Exception,err)
+        #    #cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
         #self._blockModule = get_blockModule(ATTR.get(self.mNode,'blockType'))        
 
@@ -3565,7 +3564,7 @@ class rigFactory(object):
         self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint,idx=_attachIdx )        
 
         if not self.mModule.getMessage('deformNull'):
-            if self.d_block['b_faceBlock']:
+            if self.d_block['b_faceBlock'] or _blockType in ['eyeMain']:
                 log.debug("|{0}| >> Face deformNull".format(_str_func))
                 mGrp = self.attachPoint.doCreateAt(setClass=True)
                 self.mModule.connectChildNode(mGrp,'constrainNull','module')
