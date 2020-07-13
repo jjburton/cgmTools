@@ -111,11 +111,30 @@ def eyeLook_verify(self):
         mRigNull = self.mRigNull
         mPuppet = self.mPuppet
         mHandleFactory = mBlock.asHandleFactory()
+        mBlockParent = mBlock.p_blockParent
         
         _eyeLook = eyeLook_get(self)
+        
         if _eyeLook:
             log.debug("|{0}| >> Found existing eyeLook...".format(_str_func))                      
             return _eyeLook
+        
+        if mBlockParent:
+            mEyeMainBlock = None
+            for mBlockChild in mBlockParent.getBlockChildren():
+                if mBlockChild.blockType == 'eyeMain':
+                    log.info("|{0}| >> Found eyeMain...".format(_str_func))
+                    log.info(mBlockChild)
+                    mEyeMainBlock = mBlockChild
+                    break
+            
+            if mEyeMainBlock:
+                if mEyeMainBlock.p_blockState != 'rig':
+                    log.info("|{0}| >> Rigging eyeMain...".format(_str_func))                    
+                    mEyeMainBlock.p_blockState = 'rig'
+                    
+                    return mEyeMainBlock.moduleTarget.eyeLook
+        
         
         if mBlock.blockType not in ['eye']:
             raise ValueError,"blocktype must be eye. Found {0} | {1}".format(mBlock.blockType,mBlock)
@@ -139,12 +158,11 @@ def eyeLook_verify(self):
                                                       absoluteSize=False),'cgmObject',setClass=True)
         mCrv.doSnapTo(mBlock.mNode,rotation=False)
         pos = mBlock.getPositionByAxisDistance('z+',
-                                               _sizeAvg * 8)
+                                               _sizeAvg * 4)
         
         mCrv.p_position = 0,pos[1],pos[2]
         
         
-        mBlockParent = mBlock.p_blockParent
         if mBlockParent:
             mCrv.doStore('cgmName',mBlockParent.cgmName + '_eyeLook')
             mBlockParent.asHandleFactory().color(mCrv.mNode)

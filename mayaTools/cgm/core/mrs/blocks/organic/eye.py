@@ -53,6 +53,7 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
+import cgm.core.rig.general_utils  as RIGGEN
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.rayCaster as RAYS
@@ -2639,7 +2640,10 @@ def rig_dataBuffer(self):
     log.debug(cgmGEN._str_subLine)
     
     #eyeLook =============================================================================
+    #reload(self.UTILS)
     self.mEyeLook = self.UTILS.eyeLook_get(self,True)#autobuild...
+    
+    
     return True
 
 def create_jointFromHandle(mHandle=None,mParent = False,cgmType='skinJoint'):
@@ -3102,11 +3106,13 @@ def rig_shapes(self):
                                                                 size = self.f_sizeAvg * .5 ,
                                                                 absoluteSize=False),'cgmObject',setClass=True)
             mIKControl.doSnapTo(mBlock.mNode)
-            pos = mBlock.getPositionByAxisDistance('z+',
-                                                   self.f_sizeAvg * 4)
+            pos = RIGGEN.get_planeIntersect(self.mEyeLook.mNode, mIKEye)
+            #pos = mBlock.getPositionByAxisDistance('z+',
+            #                                       self.f_sizeAvg * 4)
         
             mIKControl.p_position = pos
-        
+            
+            mIKControl.p_orient = self.mEyeLook.p_orient
             
             if mIKEye.hasAttr('cgmDirection'):
                 mIKControl.doStore('cgmDirection',mIKEye.cgmDirection)

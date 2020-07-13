@@ -54,10 +54,10 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = '1.04302019'
 __MAYALOCAL = 'EYEMAIN'
 
-
 __autoForm__ = True
 __menuVisible__ = True
 __baseSize__ = 10,10,10
+
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {'unityLow':{},
@@ -885,27 +885,29 @@ def skeleton_check(self):
 __l_rigBuildOrder__ = ['rig_cleanUp']
 
 
-def get_planeIntersect(self, target = None, axis = 'z+', mark = True):
+def get_planeIntersect(self, target = None, planeAxis = 'z+', objAxis = 'z+', mark = True):
     _short = self.mNode
     _str_func = '[{0}] get_planeIntersect'.format(_short)
+    
+    if target:
+        mTarget = cgmMeta.asMeta(target)
+    else:
+        mTarget = cgmMeta.asMeta(mc.ls(sl=1))
+        if not mTarget:
+            return log.error(cgmGEN.logString_msg( _str_func, 'No Target'))
+        mTarget = mTarget[0]
     
     if not self.atUtils('is_rigged'):
         mObj = self
     else:
         mObj = self.moduleTarget.eyeLook
         
-    if target:
-        mTarget = cgmMeta.asMeta(target)
-    else:
-        mTarget = cgmMeta.asMeta(mc.ls(sl=0))[0]
-        
-
     planePoint = VALID.euclidVector3Arg(mObj.p_position)
-    planeNormal = VALID.euclidVector3Arg(mObj.getAxisVector(axis))
+    planeNormal = VALID.euclidVector3Arg(mObj.getAxisVector(planeAxis))
 
     
     rayPoint = VALID.euclidVector3Arg(mTarget.p_position)
-    rayDirection = VALID.euclidVector3Arg(mTarget.getAxisVector(axis))
+    rayDirection = VALID.euclidVector3Arg(mTarget.getAxisVector(objAxis))
     
     plane = EUCLID.Plane( EUCLID.Point3(planePoint.x, planePoint.y, planePoint.z),
                           EUCLID.Point3(planeNormal.x, planeNormal.y, planeNormal.z) )
