@@ -6577,6 +6577,9 @@ def formDelete(self):
     d_links = get_stateLinks(self, 'form')
     msgDat_delete(self,d_links)
     
+    for mObj in self.msgList_get('formStuff'):
+        mObj.delete()    
+    
     self.blockState = 'define'#...yes now in this state
     return True
 

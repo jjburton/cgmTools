@@ -232,7 +232,7 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_form = {'msgLinks':['formNull'],
-                 'msgLists':['formStuff']}
+                 'msgLists':[]}
 d_wiring_define = {'msgLinks':['defineNull'],
                    'msgLists':['defineStuff']}
 
@@ -1458,8 +1458,9 @@ def rig_controls(self):
         
         # Drivers ==============================================================================================    
         #>> vis Drivers ================================================================================================	
-        mPlug_visSub = self.atBuilderUtils('build_visSub')
-        #mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+        mPlug_vis = cgmMeta.cgmAttr(mSettings,'visControls', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+        #mPlug_visSub = self.atBuilderUtils('build_visSub')
+        mPlug_visSub = cgmMeta.cgmAttr(mSettings,'visSub', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
         mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
         
         if self.mBlock.addAim:        
@@ -1604,6 +1605,11 @@ def rig_controls(self):
                     mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
                     ml_controlsAll.append(mPivot)    
     
+    
+            for mShape in mCtrl.getShapes(asMeta=True):
+                if not ATTR.get_driver(mShape.mNode,'overrideVisibility'):
+                    ATTR.connect(mPlug_vis.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+                        
         #Connections =======================================================================================
         #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)

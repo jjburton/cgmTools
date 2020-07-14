@@ -108,7 +108,7 @@ d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper','noTransPrerigNull']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
-                 'msgLists':['formStuff']}
+                 'msgLists':[]}
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
 

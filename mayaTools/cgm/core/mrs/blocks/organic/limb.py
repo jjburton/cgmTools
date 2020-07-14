@@ -119,7 +119,7 @@ d_wiring_skeleton = {'msgLinks':['moduleTarget'],
 d_wiring_prerig = {'msgLinks':['prerigNull','noTransPrerigNull'],
                    'msgLists':['prerigHandles']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull','prerigLoftMesh','orientHelper'],
-                     'msgLists':['formHandles','formStuff']}
+                     'msgLists':['formHandles']}
 d_wiring_define = {'msgLinks':['defineNull']}
 
 #>>>Profiles =====================================================================================================

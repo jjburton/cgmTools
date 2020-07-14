@@ -102,7 +102,7 @@ d_wiring_skeleton = {'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','noTransPrerigNull'],
                    'msgLists':['prerigHandles']}
 d_wiring_form = {'msgLinks':['formNull','prerigLoftMesh','noTransFormNull'],
-                     'msgLists':['formHandles','formStuff']}
+                     'msgLists':['formHandles']}
 
 _d_attrStateOn = {0:[],
                   1:[],
