@@ -108,8 +108,8 @@ d_wiring_define = {'msgLinks':[],
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper','noTransPrerigNull']}
-d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
-                 'msgLists':['formStuff']}
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
+
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
 
@@ -177,6 +177,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'irisDepth':'float',
                  'lidBuild':'none:clam:full',
                  'lidType':'simple:full',
+                 'lidAttach':'aimJoint:surfaceSlide',
                  'lidDepth':'float',
                  'lidJointDepth':'float',
                  'lidClosed':'bool',
@@ -192,8 +193,6 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'numLidSplit_v':'int',
                  'lidHandleOffset':'float',
                  'highlightSetup':'none:simple:sdk',
-                 
-                 
                  
 }
 
@@ -842,6 +841,9 @@ def formDelete(self):
     for mObj in self.msgList_get('defineCurves'):
         mObj.template=0
         mObj.v=1
+        
+    for mObj in self.msgList_get('formStuff'):
+        mObj.delete()
         
     """
     for k in ['end','rp','up','aim']:
