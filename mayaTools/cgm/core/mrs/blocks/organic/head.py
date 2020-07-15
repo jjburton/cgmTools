@@ -97,7 +97,7 @@ d_wiring_skeleton = {'msgLinks':[],
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
                    'msgLists':['prerigHandles']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
-                     'msgLists':['formHandles','formStuff']}
+                     'msgLists':['formHandles']}
 
 _d_attrStateOn = {0:[],
                   1:['headRotate'],
@@ -613,6 +613,8 @@ def formDelete(self):
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
             if mHandle:
                 mHandle.template=False
+                
+        
         try:self.defineLoftMesh.v = True
         except:pass
         self.bbHelper.v = True

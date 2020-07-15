@@ -53,7 +53,6 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
-import cgm.core.rig.general_utils  as RIGGEN
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.lib.rayCaster as RAYS
@@ -108,8 +107,8 @@ d_wiring_define = {'msgLinks':[],
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','eyeOrientHelper','rootHelper','noTransPrerigNull']}
-d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
-
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
+                 'msgLists':[]}
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
 
@@ -177,7 +176,6 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'irisDepth':'float',
                  'lidBuild':'none:clam:full',
                  'lidType':'simple:full',
-                 'lidAttach':'aimJoint:surfaceSlide',
                  'lidDepth':'float',
                  'lidJointDepth':'float',
                  'lidClosed':'bool',
@@ -193,6 +191,8 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'numLidSplit_v':'int',
                  'lidHandleOffset':'float',
                  'highlightSetup':'none:simple:sdk',
+                 
+                 
                  
 }
 
@@ -841,9 +841,6 @@ def formDelete(self):
     for mObj in self.msgList_get('defineCurves'):
         mObj.template=0
         mObj.v=1
-        
-    for mObj in self.msgList_get('formStuff'):
-        mObj.delete()
         
     """
     for k in ['end','rp','up','aim']:
@@ -2642,10 +2639,7 @@ def rig_dataBuffer(self):
     log.debug(cgmGEN._str_subLine)
     
     #eyeLook =============================================================================
-    #reload(self.UTILS)
     self.mEyeLook = self.UTILS.eyeLook_get(self,True)#autobuild...
-    
-    
     return True
 
 def create_jointFromHandle(mHandle=None,mParent = False,cgmType='skinJoint'):
@@ -3108,13 +3102,11 @@ def rig_shapes(self):
                                                                 size = self.f_sizeAvg * .5 ,
                                                                 absoluteSize=False),'cgmObject',setClass=True)
             mIKControl.doSnapTo(mBlock.mNode)
-            pos = RIGGEN.get_planeIntersect(self.mEyeLook.mNode, mIKEye)
-            #pos = mBlock.getPositionByAxisDistance('z+',
-            #                                       self.f_sizeAvg * 4)
+            pos = mBlock.getPositionByAxisDistance('z+',
+                                                   self.f_sizeAvg * 4)
         
             mIKControl.p_position = pos
-            
-            mIKControl.p_orient = self.mEyeLook.p_orient
+        
             
             if mIKEye.hasAttr('cgmDirection'):
                 mIKControl.doStore('cgmDirection',mIKEye.cgmDirection)
