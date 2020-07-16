@@ -68,6 +68,7 @@ import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.string_utils as STR
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.rig.create_utils as RIGCREATE
+import cgm.core.rig.general_utils as RIGGEN
 
 #for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
 #    reload(m)
@@ -174,6 +175,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'pupilBuild':'none:shape:joint:blendshape',
                  'irisBuild':'none:shape:joint:blendshape',
                  'irisDepth':'float',
+                 'lidAttach':'aimJoint:surfaceSlide',
                  'lidBuild':'none:clam:full',
                  'lidType':'simple:full',
                  'lidDepth':'float',
@@ -2578,8 +2580,6 @@ def rig_dataBuffer(self):
     self.b_scaleSetup = mBlock.scaleSetup
     
     
-    
-    
     """
     self.str_lidBuild = False
     if mBlock.lidBuild:
@@ -2589,7 +2589,9 @@ def rig_dataBuffer(self):
     if mBlock.highlightSetup:
         self.str_highlightSetup = mBlock.getEnumValueString('highlightSetup')"""
     
-    for k in ['lidBuild','highlightSetup','irisBuild','pupilBuild','ikSetup','buildSDK','lidFanUpr','lidFanLwr']:
+    for k in ['lidBuild','highlightSetup',
+              'irisBuild','pupilBuild','ikSetup','buildSDK',
+              'lidFanUpr','lidFanLwr','lidAttach']:
         self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)    
         self.__dict__['v_{0}'.format(k)] = mBlock.getMayaAttr(k)
         
@@ -2655,6 +2657,20 @@ def create_jointFromHandle(mHandle=None,mParent = False,cgmType='skinJoint'):
     return mJnt
 
 @cgmGEN.Timer
+def create_lidRoot(mJnt,mEyeJoint,mBlock):
+    mLidRoot = mEyeJoint.doDuplicate(po=True)
+    mLidRoot.doStore('cgmName',mJnt.p_nameBase)
+    mLidRoot.doStore('cgmType','lidRoot')
+    mLidRoot.p_parent = False
+    mLidRoot.doName()
+    
+    SNAP.aim(mLidRoot.mNode, mJnt.mNode, 'z+','y+','vector',
+             mBlock.getAxisVector('y+'))
+    JOINT.freezeOrientation(mLidRoot.mNode)
+    mJnt.connectChildNode(mLidRoot.mNode,'lidRoot')    
+    
+    return mLidRoot
+
 def rig_skeleton(self):
     def doSingleJoint(tag,mParent = None):
         log.debug("|{0}| >> gathering {1}...".format(_str_func,tag))            
@@ -2678,19 +2694,7 @@ def rig_skeleton(self):
         md_driverJoints[tag1].doStore('mirrorControl',md_driverJoints[tag2])
         md_driverJoints[tag2].doStore('mirrorControl', md_driverJoints[tag1])
         
-    def create_lidRoot(mJnt):
-        mLidRoot = mEyeJoint.doDuplicate(po=True)
-        mLidRoot.doStore('cgmName',mJnt.p_nameBase)
-        mLidRoot.doStore('cgmType','lidRoot')
-        mLidRoot.p_parent = False
-        mLidRoot.doName()
-        
-        SNAP.aim(mLidRoot.mNode, mJnt.mNode, 'z+','y+','vector',
-                 mBlock.getAxisVector('y+'))
-        JOINT.freezeOrientation(mLidRoot.mNode)
-        mJnt.connectChildNode(mLidRoot.mNode,'lidRoot')    
-        
-        return mLidRoot
+    
     
     _short = self.d_block['shortName']
     
@@ -2799,24 +2803,24 @@ def rig_skeleton(self):
     #reload(BLOCKUTILS)
     self.d_lidData = {}
     
+    mHighlight = mBlock.prerigNull.getMessageAsMeta('eyeHighlightJoint')
+    if mHighlight:
+        #doSingleJoint('eyeHighlight')
+        
+        mDriver = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                          [mHighlight],
+                                                          'driver',
+                                                          mRigNull,
+                                                          singleMode = True,
+                                                          cgmType='driver')[0]
+        
+        mRigJoint = mHighlight.getMessageAsMeta('rigJoint')
+        mRigJoint.doStore('driverJoint',mDriver)
+        mHighlight.doStore('driverJoint',mDriver)
 
         
     if self.str_lidBuild == 'clam':
-        mHighlight = mBlock.prerigNull.getMessageAsMeta('eyeHighlightJoint')
-        if mHighlight:
-            #doSingleJoint('eyeHighlight')
-            
-            mDriver = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                              [mHighlight],
-                                                              'driver',
-                                                              mRigNull,
-                                                              singleMode = True,
-                                                              cgmType='driver')[0]
-            
-            mRigJoint = mHighlight.getMessageAsMeta('rigJoint')
-            mRigJoint.doStore('driverJoint',mDriver)
-            mHighlight.doStore('driverJoint',mDriver)
-                        
+
         
         #Need to make our lid roots and orient
         for tag in 'upr','lwr':
@@ -2836,6 +2840,7 @@ def rig_skeleton(self):
                                                               cgmType=False)[0]
             _d['mBlend'] = mLidBlend
             
+            #if self.str_lidAttach == 'aimJoint':
             #Lid Root
             mLidRoot = mEyeJoint.doDuplicate(po=True)
             mLidRoot.doStore('cgmName','{0}lid_rootJoint'.format(tag))
@@ -2853,6 +2858,7 @@ def rig_skeleton(self):
             for mJnt in mLidBlend,mLidRoot:
                 try:mJnt.drawStyle =2
                 except:mJnt.radius = .00001
+                    
             mLidRig.p_parent = mLidBlend
     else:
         log.debug("|{0}| >>  lid ".format(_str_func)+ '-'*20)
@@ -2902,11 +2908,13 @@ def rig_skeleton(self):
                     mDriver.p_parent = False
                     mRigJoint.doStore('driverJoint',mDriver)
                     
-                    mLidRoot = create_lidRoot(mDriver)
-                    mDriver.p_parent = mLidRoot
+                    if self.str_lidAttach == 'aimJoint':
+                        mLidRoot = create_lidRoot(mDriver,mEyeJoint,mBlock)
+                        mDriver.p_parent = mLidRoot
+                        ml_hide.append(mLidRoot)
+                        
                     mRigJoint.p_parent = mDriver
-                    
-                    ml_hide.extend([mDriver,mLidRoot])
+                    ml_hide.append(mDriver)
                 
                 md_rigJoints[_k][side] = ml_rig
                 md_skinJoints[_k][side] = ml_skin
@@ -2946,7 +2954,6 @@ def rig_skeleton(self):
             log.debug(cgmGEN._str_subLine)
             
     if mBlock.lidBuild:
-        
         l_toDo = []
         if self.str_lidFanUpr:
             l_toDo.append('uprFanCenter')
@@ -2965,6 +2972,7 @@ def rig_skeleton(self):
             _d['mSkin'] = mLidSkin
             _d['mRig'] = mLidRig
             
+            #if self.str_lidAttach == 'aimJoint':
             #Lid Root
             mLidRoot = mEyeJoint.doDuplicate(po=True)
             mLidRoot.doStore('cgmName','{0}Lid_rootJoint'.format(tag))
@@ -3102,11 +3110,12 @@ def rig_shapes(self):
                                                                 size = self.f_sizeAvg * .5 ,
                                                                 absoluteSize=False),'cgmObject',setClass=True)
             mIKControl.doSnapTo(mBlock.mNode)
-            pos = mBlock.getPositionByAxisDistance('z+',
-                                                   self.f_sizeAvg * 4)
+            pos = RIGGEN.get_planeIntersect(self.mEyeLook, mIKEye)
+            #pos = mBlock.getPositionByAxisDistance('z+',
+            #                                       self.f_sizeAvg * 4)
         
             mIKControl.p_position = pos
-        
+            mIKControl.p_orient = self.mEyeLook.p_orient
             
             if mIKEye.hasAttr('cgmDirection'):
                 mIKControl.doStore('cgmDirection',mIKEye.cgmDirection)
@@ -3756,11 +3765,18 @@ def rig_frame(self):
         #side handles ---------------------------
         #First we're going to attach our handles to a surface to ge general placement. Then we're going to try
         d_lidSetup = {'upr':{'ml_chain':[mOuterCorner] + ml_uprChain + [mInnerCorner],
+                               'mInfluences':[mOuterCorner,mUprCenter,mInnerCorner],
+                               'mHandles':ml_uprLid},
+                      'lwr':{'ml_chain':[mOuterCorner] + ml_lwrChain + [mInnerCorner],
+                               'mInfluences':[mOuterCorner,mLwrCenter,mInnerCorner],
+                               'mHandles':ml_lwrLid}}        
+        """
+        d_lidSetup = {'upr':{'ml_chain':[mOuterCorner] + ml_uprChain + [mInnerCorner],
                                'mInfluences':[mOuterCorner.uprInfluence,mUprCenter,mInnerCorner.uprInfluence],
                                'mHandles':ml_uprLid},
                       'lwr':{'ml_chain':[mOuterCorner] + ml_lwrChain + [mInnerCorner],
                                'mInfluences':[mOuterCorner.lwrInfluence,mLwrCenter,mInnerCorner.lwrInfluence],
-                               'mHandles':ml_lwrLid}}
+                               'mHandles':ml_lwrLid}}"""
         
         for k,d in d_lidSetup.iteritems():
             #need our handle chain to make a ribbon
@@ -3813,18 +3829,36 @@ def rig_frame(self):
                         'lwr':{'inner':self.md_handles['lidLwr']['inner'],
                                'outer':self.md_handles['lidLwr']['outer']}}
             
-            """
+            
             for tag,sectionDat in d_lidAim.iteritems():
                 for side,sideDat in sectionDat.iteritems():
-
                     if side == 'inner':
                         _aim = [-1,0,0]
-                        _corner = mInnerCorner.mNode
+                        mCorner = mInnerCorner
+                        mInfluence = mInnerCorner.getMessageAsMeta('{0}Influence'.format(tag))
+                        _tar=sideDat[0].mNode
                     else:
                         _aim = [1,0,0]
-                        _corner = mOuterCorner.mNode
+                        mCorner = mOuterCorner
+                        mInfluence = mOuterCorner.getMessageAsMeta('{0}Influence'.format(tag))
                         
-                    for i,mJnt in enumerate(sideDat):
+                        _tar=sideDat[0].mNode
+                        
+                    mAimGroup = mInfluence.doGroup(True,True,
+                                                asMeta=True,
+                                                typeModifier = 'aim',
+                                                setClass='cgmObject')
+
+                    mc.aimConstraint(_tar,
+                                     mAimGroup.mNode,
+                                     maintainOffset = 1, weight = 1,
+                                     aimVector = _aim,
+                                     upVector = [0,1,0],
+                                     worldUpVector = [0,1,0],
+                                     worldUpObject = mCorner.masterGroup.mNode,
+                                     worldUpType = 'objectRotation' )                    
+                        
+                    """for i,mJnt in enumerate(sideDat):
                         _mode = None
                         
                         if not i:
@@ -3845,7 +3879,8 @@ def rig_frame(self):
                                          worldUpVector = [0,1,0],
                                          worldUpObject = mJnt.masterGroup.mNode,
                                          worldUpType = 'objectRotation' )"""
-                
+        
+        """
         #Lid Corner influences ------------------------------------------------------
         log.debug("|{0}| >> lid corner influences...".format(_str_func)+ '-'*20)
         for i,mHandle in enumerate([mOuterCorner,mInnerCorner]):
@@ -3893,7 +3928,7 @@ def rig_frame(self):
                 str_arg2 = "{0}.rz = -{1}".format(mHandle.lwrInfluence.mNode,
                                                  mPlug_lwr.p_combinedShortName)
                 for a in str_arg1,str_arg2:
-                    NODEFACTORY.argsToNodes(a).doBuild()
+                    NODEFACTORY.argsToNodes(a).doBuild()"""
         
     return
 
@@ -4354,6 +4389,23 @@ def rig_lidSetup(self):
     mModule = self.mModule
     _jointOrientation = self.d_orientation['str']
     _side = mBlock.atUtils('get_side')
+    
+    if self.str_lidAttach == 'surfaceSlide':
+        log.debug("|{0}| >> surfaceSlide orb dup...".format(_str_func))
+        mOrb = mBlock.bbHelper.doDuplicate(po=False)
+        mOrb.dagLock(False)
+        mOrb.rx = 90
+        mOrb.p_parent = mSettings
+        mOrb.rename("{0}_orb".format(self.d_module['partName']))
+        mOrb.template=1
+        
+    if mBlock.lidFanLwr or mBlock.lidFanUpr:
+        l_toDo_fan = []
+        if mBlock.lidFanUpr:
+            l_toDo_fan.append('upr')
+        if mBlock.lidFanLwr:
+            l_toDo_fan.append('lwr')    
+
 
     if _lidSetup:
         log.debug("|{0}| >>  Lid setup ... ".format(_str_func)+'-'*40)
@@ -4384,48 +4436,79 @@ def rig_lidSetup(self):
             
             for k in 'upr','lwr':
                 _d = self.d_lidData[k]
-                mRoot = _d['mRoot']
                 mBlend = _d['mBlend']
                 mRig = _d['mRig']
                 mHandle = _d['mHandle']
                 
-                if k == 'upr':
-                    mUprRoot = mRoot
-                else:
-                    mLwrRoot = mRoot
                 
-                mTarget = mRig.doLoc()
-                _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
-                                                           self.md_blinkCurves[k]['mDriven'].mNode)
-                
-                
-                TRANS.parent_set(_res_attach[0], mRigNull.mNode)
-                _shape = self.md_blinkCurves[k]['mDriven'].getShapes()[0]
-                mPOCI = cgmMeta.asMeta(_res_attach[1])
-                _minU = ATTR.get(_shape,'minValue')
-                _maxU = ATTR.get(_shape,'maxValue')
-                _param = mPOCI.parameter
-                pct = MATH.get_normalized_parameter(_minU,_maxU,_param)
-                log.debug("|{0}| >>  min,max,param,pct | {1},{2},{3},{4} ".format(_str_func,
-                                                                                  _minU,
-                                                                                  _maxU,
-                                                                                  _param,
-                                                                                  pct))
-                mPOCI.turnOnPercentage = True
-                mPOCI.parameter = pct
-
-                mc.aimConstraint(mTarget.mNode,
-                                 mRoot.mNode,
-                                 maintainOffset = True, weight = 1,
-                                 aimVector = self.d_orientation['vectorAim'],
-                                 upVector = self.d_orientation['vectorUp'],
-                                 worldUpVector = self.d_orientation['vectorUp'],
-                                 worldUpObject = mHandle.mNode,
-                                 skip = [self.d_orientation['str'][0]],
-                                 worldUpType = 'objectRotation' )
-                
-                mRoot.p_parent = mSettings
                 mHandle.masterGroup.p_parent = mSettings
+                mTarget = mRig.doLoc()
+                
+                if self.str_lidAttach == 'aimJoint' or l_toDo_fan:
+                    mRoot = _d['mRoot']
+                
+                    if k == 'upr':
+                        mUprRoot = mRoot
+                    else:
+                        mLwrRoot = mRoot
+                    
+                    mTarget = mRig.doLoc()
+                    _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
+                                                               self.md_blinkCurves[k]['mDriven'].mNode)
+                    
+                    
+                    TRANS.parent_set(_res_attach[0], mRigNull.mNode)
+                    _shape = self.md_blinkCurves[k]['mDriven'].getShapes()[0]
+                    mPOCI = cgmMeta.asMeta(_res_attach[1])
+                    _minU = ATTR.get(_shape,'minValue')
+                    _maxU = ATTR.get(_shape,'maxValue')
+                    _param = mPOCI.parameter
+                    pct = MATH.get_normalized_parameter(_minU,_maxU,_param)
+                    log.debug("|{0}| >>  min,max,param,pct | {1},{2},{3},{4} ".format(_str_func,
+                                                                                      _minU,
+                                                                                      _maxU,
+                                                                                      _param,
+                                                                                      pct))
+                    mPOCI.turnOnPercentage = True
+                    mPOCI.parameter = pct
+    
+                    mc.aimConstraint(mTarget.mNode,
+                                     mRoot.mNode,
+                                     maintainOffset = True, weight = 1,
+                                     aimVector = self.d_orientation['vectorAim'],
+                                     upVector = self.d_orientation['vectorUp'],
+                                     worldUpVector = self.d_orientation['vectorUp'],
+                                     worldUpObject = mHandle.mNode,
+                                     skip = [self.d_orientation['str'][0]],
+                                     worldUpType = 'objectRotation' )
+                    
+                    mRoot.p_parent = mSettings
+                    
+                    
+                if self.str_lidAttach == 'surfaceSlide':
+                    mDriver = mRig.masterGroup
+                    #mDriver.p_parent = mSettings
+                    
+                    #mTrack = mJoint.doCreateAt()
+                    #mTrack.p_parent = mRigNull                    
+                    #mTrack.rename("{0}_surfaceDriver".format(mJoint.p_nameBase))
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mOrb.mNode,None,
+                                                        driver= mHandle)
+                    
+                    md = _res[-1]
+                    mFollicle = md['mFollicle']
+                    for k in ['mDriverLoc','mFollicle']:
+                        md[k].p_parent = mRigNull
+                        md[k].v = False
+                    
+                    #mJoint.p_position = md['mFollicle'].p_position
+                    mc.parentConstraint(mFollicle.mNode,
+                                        mDriver.mNode,maintainOffset=1)
+                    
+                
+                
+                
         else:
             log.debug("|{0}| >>  full ... ".format(_str_func))
             
@@ -4499,10 +4582,7 @@ def rig_lidSetup(self):
             for mJoint in ml_uprRig:
                 mTarget = mJoint.doLoc()
                 mDriver = mJoint.driverJoint
-                mLidRoot = mDriver.getMessageAsMeta('lidRoot')
-                
-                if mDriver.cgmPosition == 'center':
-                    mUprRoot = mLidRoot
+
                 
                 _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
                                                            self.md_blinkCurves['upr']['mDriven'].mNode)
@@ -4524,17 +4604,49 @@ def rig_lidSetup(self):
                 mPOCI.turnOnPercentage = True
                 mPOCI.parameter = pct
                 
+                mLidRoot = mDriver.getMessageAsMeta('lidRoot')
                 
-                mc.aimConstraint(mTarget.mNode,
-                                 mLidRoot.mNode,
-                                 maintainOffset = True, weight = 1,
-                                 aimVector = self.d_orientation['vectorAim'],
-                                 upVector = self.d_orientation['vectorUp'],
-                                 worldUpVector = self.d_orientation['vectorUp'],
-                                 worldUpObject = mRigRoot.mNode,#mUprCenter.mNode,
-                                 worldUpType = 'objectRotation' )
+                if mDriver.cgmPosition == 'center':
+                    mUprRoot = mLidRoot
+                    
+                if self.str_lidAttach == 'aimJoint':
+                    
+                    
+
+                    
+                    mc.aimConstraint(mTarget.mNode,
+                                     mLidRoot.mNode,
+                                     maintainOffset = True, weight = 1,
+                                     aimVector = self.d_orientation['vectorAim'],
+                                     upVector = self.d_orientation['vectorUp'],
+                                     worldUpVector = self.d_orientation['vectorUp'],
+                                     worldUpObject = mRigRoot.mNode,#mUprCenter.mNode,
+                                     worldUpType = 'objectRotation' )
+                    mLidRoot.p_parent = mSettings
+                    
+                else:
+                    mDriver.p_parent = mSettings
+                    
+                    #mTrack = mJoint.doCreateAt()
+                    #mTrack.p_parent = mRigNull                    
+                    #mTrack.rename("{0}_surfaceDriver".format(mJoint.p_nameBase))
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mOrb.mNode,None,
+                                                        driver= mTarget)
+                    
+                    md = _res[-1]
+                    mFollicle = md['mFollicle']
+                    for k in ['mDriverLoc','mFollicle']:
+                        md[k].p_parent = mRigNull
+                        md[k].v = False
+                    
+                    #mJoint.p_position = md['mFollicle'].p_position
+                    mc.parentConstraint(mFollicle.mNode,
+                                       mDriver.mNode,maintainOffset=1)                     
+                    
+                    
                 
-                mLidRoot.p_parent = mSettings
+                
                 
                 #Blend point --------------------------------------------------------------------
                 _const = mc.parentConstraint([mDriver.mNode,mTarget.mNode],mJoint.masterGroup.mNode)[0]
@@ -4558,10 +4670,7 @@ def rig_lidSetup(self):
              
                 mTarget = mJoint.doLoc()
                 mDriver = mJoint.driverJoint
-                mLidRoot = mDriver.getMessageAsMeta('lidRoot')
-                
-                if mDriver.cgmPosition == 'center':
-                    mLwrRoot = mLidRoot
+
                     
                 _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
                                                            self.md_blinkCurves['lwr']['mDriven'].mNode)
@@ -4582,17 +4691,45 @@ def rig_lidSetup(self):
                 mPOCI.turnOnPercentage = True
                 mPOCI.parameter = pct
                 
-                mc.aimConstraint(mTarget.mNode,
-                                 mLidRoot.mNode,
-                                 maintainOffset = True, weight = 1,
-                                 aimVector = self.d_orientation['vectorAim'],
-                                 upVector = self.d_orientation['vectorUp'],
-                                 worldUpVector = self.d_orientation['vectorUp'],
-                                 worldUpObject = mRigRoot.mNode,#mLwrCenter.mNode,
-                                 worldUpType = 'objectRotation' )                
+                mLidRoot = mDriver.getMessageAsMeta('lidRoot')
                 
+                if mDriver.cgmPosition == 'center':
+                    mLwrRoot = mLidRoot
                 
-                mLidRoot.p_parent = mSettings
+                if self.str_lidAttach == 'aimJoint':
+                    
+
+                    
+                    mc.aimConstraint(mTarget.mNode,
+                                     mLidRoot.mNode,
+                                     maintainOffset = True, weight = 1,
+                                     aimVector = self.d_orientation['vectorAim'],
+                                     upVector = self.d_orientation['vectorUp'],
+                                     worldUpVector = self.d_orientation['vectorUp'],
+                                     worldUpObject = mRigRoot.mNode,#mUprCenter.mNode,
+                                     worldUpType = 'objectRotation' )
+                    mLidRoot.p_parent = mSettings
+                    
+                else:
+                    mDriver.p_parent = mSettings
+                    
+                    #mTrack = mJoint.doCreateAt()
+                    #mTrack.p_parent = mRigNull                    
+                    #mTrack.rename("{0}_surfaceDriver".format(mJoint.p_nameBase))
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mOrb.mNode,None,
+                                                        driver= mTarget)
+                    
+                    md = _res[-1]
+                    mFollicle = md['mFollicle']
+                    for k in ['mDriverLoc','mFollicle']:
+                        md[k].p_parent = mRigNull
+                        md[k].v = False
+                    
+                    #mJoint.p_position = md['mFollicle'].p_position
+                    mc.parentConstraint(mFollicle.mNode,
+                                       mDriver.mNode,maintainOffset=1)  
+                    
                 
                 #Blend point --------------------------------------------------------------------
                 _const = mc.parentConstraint([mDriver.mNode,mTarget.mNode],mJoint.masterGroup.mNode)[0]
@@ -4674,28 +4811,74 @@ def rig_lidSetup(self):
         create_lidFollow(self)
         
         
+        
         #Lid Fan Setup --------------------------------------------------------------------
-        if mBlock.lidFanLwr or mBlock.lidFanUpr:
+        if l_toDo_fan:
+            mDirectEye = mRigNull.getMessageAsMeta('directEye')
             
-            l_toDo = []
-            if mBlock.lidFanUpr:
-                l_toDo.append('upr')
-            if mBlock.lidFanLwr:
-                l_toDo.append('lwr')
-                
-            for k in l_toDo:
+            for k in l_toDo_fan:
                 _key = k + 'FanCenter'
+                    
+                mHandle = self.d_lidData[_key]['mHandle']
+                mRig = self.d_lidData[_key]['mRig']
+                
+                
+                                
+                #if self.str_lidAttach == 'aimJoint':
+                mRoot = self.d_lidData[_key]['mRoot']
+                mHandle.masterGroup.p_parent = mRoot
                 
                 if k == 'upr':
                     mFollowRoot = mUprRoot
                 else:
                     mFollowRoot = mLwrRoot
                     
-                mHandle = self.d_lidData[_key]['mHandle']
-                mRig = self.d_lidData[_key]['mRig']
-                mRoot = self.d_lidData[_key]['mRoot']
-                
-                mHandle.masterGroup.p_parent = mRoot
+                if not mFollowRoot:
+                    log.debug("|{0}| >>  Creating follow Root".format(_str_func,_key))
+                    mFollowEnd = mDirectEye.doDuplicate(po=True)
+                    
+                    mFollowEnd.doSnapTo(self.d_lidData[k]['mHandle'])
+                    
+                    mFollowRoot = create_lidRoot(mFollowEnd,mDirectEye,mBlock)
+                    mFollowEnd.p_parent = mFollowRoot
+                    
+                    
+                    mTarget = mFollowEnd.doLoc()
+    
+                        
+                    _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
+                                                               self.md_blinkCurves[k]['mDriven'].mNode)
+                    
+                    TRANS.parent_set(_res_attach[0], mRigNull.mNode)
+                    
+                    
+                    _shape = self.md_blinkCurves[k]['mDriven'].getShapes()[0]
+                    mPOCI = cgmMeta.asMeta(_res_attach[1])
+                    _minU = ATTR.get(_shape,'minValue')
+                    _maxU = ATTR.get(_shape,'maxValue')
+                    _param = mPOCI.parameter
+                    pct = MATH.get_normalized_parameter(_minU,_maxU,_param)
+                    log.debug("|{0}| >>  min,max,param,pct | {1},{2},{3},{4} ".format(_str_func,
+                                                                                      _minU,
+                                                                                      _maxU,
+                                                                                      _param,
+                                                                                      pct))
+                    mPOCI.turnOnPercentage = True
+                    mPOCI.parameter = pct
+                    
+
+
+                    mc.aimConstraint(self.d_lidData[k]['mHandle'].mNode,
+                                     mFollowRoot.mNode,
+                                     maintainOffset = True, weight = 1,
+                                     aimVector = self.d_orientation['vectorAim'],
+                                     upVector = self.d_orientation['vectorUp'],
+                                     worldUpVector = self.d_orientation['vectorUp'],
+                                     worldUpObject = mRigRoot.mNode,#mUprCenter.mNode,
+                                     worldUpType = 'objectRotation' )
+                    mFollowRoot.p_parent = mSettings                    
+                    
+
                 mRig.masterGroup.p_parent = mHandle
                 
                 mRoot.p_parent = mSettings
@@ -4716,6 +4899,77 @@ def rig_lidSetup(self):
                                                           mPlug_followOut.p_combinedShortName)
                 for a in arg_up,arg_out:
                     NODEFACTORY.argsToNodes(a).doBuild()
+                        
+                
+                if self.str_lidAttach == 'surfaceSlide':
+                    mDriver = mRig.masterGroup
+                    mDriver.p_parent = mRoot
+                    
+                    mHandle.masterGroup.p_parent = mRoot#mSettings
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mOrb.mNode,None,
+                                                        driver= mHandle)
+                    md = _res[-1]
+                    mFollicle = md['mFollicle']
+                    for k2 in ['mDriverLoc','mFollicle']:
+                        md[k2].p_parent = mRigNull
+                        md[k2].v = False
+                
+                    #mc.parentConstraint(mFollicle.mNode,
+                    #                    mDriver.mNode,maintainOffset=1)
+                    
+                    #mRig.masterGroup.p_parent = mDriver
+                    mDriver.p_parent = mSettings
+
+                    mc.parentConstraint([md['mFollicle'].mNode],
+                                        mDriver.mNode, maintainOffset = 1)                    
+                    #Blend point --------------------------------------------------------------------
+                    """_const = mc.parentConstraint([md['mFollicle'].mNode, mHandle.mNode],
+                                                 mDriver.mNode, maintainOffset = 1)[0]
+                    
+                    ATTR.set(_const,'interpType',2)
+                    
+                    targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
+                    
+                    #Connect                                  
+                    d_plug_hugs[k]['on'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                    d_plug_hugs[k]['off'].doConnectOut('%s.%s' % (_const,targetWeights[1]))"""
+                    
+                    
+                if self.str_lidAttach == 'surfaceSlideOLD':
+                    mDriver = mRig.getMessageAsMeta('sourceJoint').driverJoint
+                    mHandle.masterGroup.p_parent = mSettings
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mOrb.mNode,None,
+                                                        driver= mHandle)
+                    md = _res[-1]
+                    mFollicle = md['mFollicle']
+                    for k2 in ['mDriverLoc','mFollicle']:
+                        md[k2].p_parent = mRigNull
+                        md[k2].v = False
+                
+                    #mc.parentConstraint(mFollicle.mNode,
+                    #                    mDriver.mNode,maintainOffset=1)
+                    
+                    mRig.masterGroup.p_parent = mDriver
+                    mDriver.p_parent = mSettings
+    
+                    #Blend point --------------------------------------------------------------------
+                    mc.parentConstraint([md['mFollicle'].mNode],
+                                        mDriver.mNode, maintainOffset = 1)                    
+                    """
+                    _const = mc.parentConstraint([md['mFollicle'].mNode, mHandle.mNode],
+                                                 mDriver.mNode, maintainOffset = 1)[0]
+                    
+                    ATTR.set(_const,'interpType',2)
+                    
+                    targetWeights = mc.parentConstraint(_const,q=True, weightAliasList=True)
+                    
+                    
+    
+                    #Connect                                  
+                    d_plug_hugs[k]['on'].doConnectOut('%s.%s' % (_const,targetWeights[0]))
+                    d_plug_hugs[k]['off'].doConnectOut('%s.%s' % (_const,targetWeights[1]))   """         
 
     
 def rig_cleanUp(self):
