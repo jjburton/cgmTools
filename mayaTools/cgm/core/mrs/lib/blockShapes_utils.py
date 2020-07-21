@@ -1894,6 +1894,7 @@ def create_face_handle(self, pos, tag, k, side,
                        plugShape = 'shapeHelper',
                        plugDag = 'dagHelper',
                        attachToSurf = False,
+                       shapeToSurf = False,
                        orientToDriver = False,
                        orientToNormal = False,
                        aimGroup = 0,nameDict = None):
@@ -2107,6 +2108,9 @@ def create_face_handle(self, pos, tag, k, side,
                     
             ATTR.connect('{0}.{1}'.format(self.mNode,depthAttr), "{0}.tz".format(mDepth.mNode))
             
+            if shapeToSurf:
+                mHandle.p_parent = mTrack
+                
             if orientToDriver:
                 mc.orientConstraint(mDriver.mNode, mTrack.mNode,maintainOffset = False)
         else:
