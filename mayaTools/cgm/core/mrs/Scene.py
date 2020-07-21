@@ -84,6 +84,7 @@ example:
 		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
 		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
 		self.removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
+		self.zeroRootStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
 		self.useMayaPyStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
 		self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
 		self.subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
@@ -124,6 +125,7 @@ example:
 
 		self.showBakedOption             = None
 		self.removeNamespaceOption       = None
+		self.zeroRootOption              = None
 		self.useMayaPyOption             = None
 		self.showDirectoriesOption       = None
 		
@@ -132,6 +134,7 @@ example:
 
 		self.showBaked                   = self.showBakedStore.getValue()
 		self.removeNamespace             = self.removeNamespaceStore.getValue()
+		self.zeroRoot                    = self.zeroRootStore.getValue()
 		self.useMayaPy                   = self.useMayaPyStore.getValue()
 
 		self.fileListMenuItems           = []
@@ -251,19 +254,22 @@ example:
 			return True
 	
 	def LoadOptions(self, *args):
-		self.showBaked     = bool(self.showBakedStore.getValue())
-		self.categoryIndex = int(self.categoryStore.getValue())
-		self.subTypeIndex  = int(self.subTypeStore.getValue())
+		self.showBaked       = bool(self.showBakedStore.getValue())
+		self.categoryIndex   = int(self.categoryStore.getValue())
+		self.subTypeIndex    = int(self.subTypeStore.getValue())
 		self.removeNamespace = bool(self.removeNamespaceStore.getValue())
-		self.useMayaPy = bool(self.useMayaPyStore.getValue())
+		self.zeroRoot        = bool(self.zeroRootStore.getValue())
+		self.useMayaPy       = bool(self.useMayaPyStore.getValue())
 		self.showDirectories = bool(self.showDirectoriesStore.getValue())
-		self.displayDetails = bool(self.displayDetailsStore.getValue())
+		self.displayDetails  = bool(self.displayDetailsStore.getValue())
 
 		if self.showBakedOption:
 			self.showBakedOption(e=True, checkBox = self.showBaked)
 		if self.removeNamespaceOption:
 			self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
-
+		if self.zeroRootOption:
+			self.zeroRootOption(e=True, checkBox = self.zeroRoot)
+			
 		self.SetSubType(self.subTypeIndex)
 		self.buildMenu_subTypes()
 		self.SetCategory(self.categoryIndex)
@@ -277,11 +283,14 @@ example:
 		log.info( "Saving options" )
 		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
 		self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
+		self.zeroRoot = self.zeroRootOption( q=True, checkBox=True ) if self.zeroRootOption else False
+
 		self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
 		self.showDirectories = self.showDirectoriesOption( q=True, checkBox=True ) if self.showDirectoriesOption else False
 
 		self.showBakedStore.setValue(self.showBaked)
 		self.removeNamespaceStore.setValue(self.removeNamespace)
+		self.zeroRootStore.setValue(self.zeroRoot)
 		self.useMayaPyStore.setValue(self.useMayaPy)
 		self.showDirectoriesStore.setValue(self.showDirectories)
 		self.displayDetailsStore.setValue(self.displayDetails)
@@ -741,6 +750,9 @@ example:
 		                                        c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 		self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
 		                                              checkBox=self.removeNamespace,
+		                                              c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+		self.zeroRootOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero root upon export",
+		                                              checkBox=self.zeroRoot,
 		                                              c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 		self.useMayaPyOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use MayaPy",
 		                                         checkBox=self.useMayaPy,
@@ -1928,7 +1940,8 @@ example:
 			d_base = {'removeNamespace' : self.removeNamespace,
 			          'bakeSetName':bakeSetName,
 			          'exportSetName':exportSetName,
-			          'deleteSetName':deleteSetName}
+			          'deleteSetName':deleteSetName,
+					  'zeroRoot' : self.zeroRoot}
 
 			for animDict in self.batchExportItems:
 				# self.assetList['scrollList'].selectByValue( animDict["asset"] )
@@ -2074,6 +2087,7 @@ example:
 			'subType' : self.subType,
 			'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
 			'removeNamespace' : self.removeNamespace,
+			'zeroRoot' : self.zeroRoot,
 			'bakeSetName':bakeSetName,
 			'exportSetName':exportSetName,
 			'deleteSetName':deleteSetName,
@@ -2095,6 +2109,7 @@ example:
 		            categoryExportPath = categoryExportPath,
 		            exportAnimPath = exportAnimPath,
 		            removeNamespace = self.removeNamespace,
+					zeroRoot = self.zeroRoot,
                     animationName = self.selectedAnimation,
                     workspace=d_userPaths['content']
 		            )        
@@ -2122,12 +2137,10 @@ def BatchExport(dataList = []):
 		mFile = PATHS.Path(fileDat.get('file'))
 		_d['mode'] = int(fileDat.get('mode'))
 		_d['exportObjs'] = fileDat.get('objs')
-		_removeNamespace =  fileDat.get('removeNamespace')
-		if _removeNamespace == "False":
-			_d['removeNamespace'] = False
-		else:
-			_d['removeNamespace'] = True
-
+		_removeNamespace =  fileDat.get('removeNamespace', "False")
+		_d['removeNamespace'] = False if _removeNamespace == "False" else True
+		_zeroRoot =  fileDat.get('zeroRoot', "False")
+		_d['zeroRoot'] = False if _zeroRoot == "False" else True
 		_d['deleteSetName'] = fileDat.get('deleteSetName')
 		_d['exportSetName'] = fileDat.get('exportSetName')
 		_d['bakeSetName'] = fileDat.get('bakeSetName')
@@ -2285,6 +2298,7 @@ def ExportScene(mode = -1,
                 exportAssetPath = None,
                 exportAnimPath = None,
                 removeNamespace = False,
+				zeroRoot = False,
                 bakeSetName = None,
                 exportSetName = None,
                 deleteSetName = None,
@@ -2464,7 +2478,7 @@ def ExportScene(mode = -1,
 		if( exportAsRig ):
 			exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
-		bakeAndPrep.Prep(removeNamespace, deleteSetName,exportSetName)
+		bakeAndPrep.Prep(removeNamespace=removeNamespace, deleteSetName=deleteSetName,exportSetName=exportSetName, zeroRoot=zeroRoot)
 
 		exportTransforms = mc.ls(sl=True)
 
