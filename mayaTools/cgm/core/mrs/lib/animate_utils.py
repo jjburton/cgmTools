@@ -157,7 +157,7 @@ def get_contextDict(prefix=False):
     if prefix:
         _res['contextPrefix'] = prefix
         
-    pprint.pprint(_res)
+    #pprint.pprint(_res)
     return _res
             
 def uiSetup_context(self,prefix=False):
@@ -462,7 +462,7 @@ class dat(object):
             for i,v in enumerate(self.d_context['mModulesBase']):
                 log.info("[{0}] : {1}".format(i,v))
             log.info(cgmGEN._str_subLine)            
-        #pprint.pprint(self.d_context)
+        pprint.pprint(self.d_context)
         
         #for i,v in enumerate(self.d_context['res']):
         #    log.info("[{0}] : {1}".format(i,v))

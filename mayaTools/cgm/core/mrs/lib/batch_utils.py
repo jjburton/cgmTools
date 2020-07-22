@@ -414,16 +414,25 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = False):
                 if postProcesses:
                     log.info('mirror_verify...')
                     mPuppet.atUtils('mirror_verify')
-                    log.info('collect worldSpace...')                        
+                    log.info('collect worldSpace...')
                     mPuppet.atUtils('collect_worldSpaceObjects')
-                    log.info('qss...')                        
+                    log.info('qss...')
                     mPuppet.atUtils('qss_verify',puppetSet=1,bakeSet=1,deleteSet=1,exportSet=1)
                     log.info('proxyMesh...')
                     mPuppet.atUtils('proxyMesh_verify')
-                    log.info('ihi...')                        
+                    log.info('ihi...')
                     mPuppet.atUtils('rigNodes_setAttr','ihi',0)
-                    log.info('rig connect...')                        
+                    log.info('rig connect...')
                     mPuppet.atUtils('rig_connectAll')
+                    log.info('...')
+                    
+                    if cgmGEN.__mayaVersion__ >= 2018:
+                        log.info('controller_verify...')
+                        mPuppet.atUtils('controller_verify')
+                        log.info('...')
+                        
+                        
+
     except Exception,err:
         log.error(err)
         

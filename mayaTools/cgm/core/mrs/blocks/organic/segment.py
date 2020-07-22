@@ -337,6 +337,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    'spaceSwitch_fk',
                    'visRotatePlane',
+                   'visProximityMode',
                    'visLabels',
                    'settingsDirection',
                    'moduleTarget']

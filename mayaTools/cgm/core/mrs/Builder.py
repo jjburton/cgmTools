@@ -82,7 +82,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.07052020'
+__version__ = '1.07092020'
 _sidePadding = 25
 
 def check_cgm():
@@ -1259,11 +1259,16 @@ class ui(cgmUI.cgmGUI):
                                 c=d2.get('call'))
 
         #Vis menu -----------------------------------------------------------------------------
-        for a in ['Measure','RotatePlane','Labels']:
+        for a in ['Measure','RotatePlane','Labels','ProximityMode']:
             _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
                                    label = a,
                                    en=True,)
-            for i,v in enumerate(['off','on']):
+            if a == 'ProximityMode':
+                _l = ['off','inherit','proximity']
+            else:
+                _l = ['off','on']
+                
+            for i,v in enumerate(_l):
                 mUI.MelMenuItem(_sub,
                                 l = v,
                                 ann='Set visibility of: {0} | {1}'.format(a,v),

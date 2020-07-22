@@ -19,12 +19,15 @@ posePointCloud and the snapping core
 
 '''
 
+from __future__ import print_function
+
 import Red9.startup.setup as r9Setup
 import Red9_CoreUtils as r9Core
 import Red9_General as r9General
 import Red9_AnimationUtils as r9Anim
 import Red9_Meta as r9Meta
 import maya.OpenMaya as OpenMaya
+
 
 import maya.cmds as cmds
 import os
@@ -194,7 +197,7 @@ class DataMap(object):
         import imp
         log.debug('getNodesFromFolderConfig - useFilter=True : custom poseHandler running')
         posedir = os.path.dirname(self.filepath)
-        print 'imp : ', self.poseHandler.split('.py')[0], '  :  ', os.path.join(posedir, self.poseHandler)
+        print('imp : ', self.poseHandler.split('.py')[0], '  :  ', os.path.join(posedir, self.poseHandler))
         tempPoseFuncs = imp.load_source(self.poseHandler.split('.py')[0], os.path.join(posedir, self.poseHandler))
 
         if mode == 'load':
@@ -241,8 +244,11 @@ class DataMap(object):
         or loaded.
 
         .. note::
-            Currently only supported under MetaRig
+            The collection of these attrs is currently only supported under MetaRig
+            IF self.skipAttrs was passed into the object then we do NOT run this func, returning the currently setup list
         '''
+        if self.skipAttrs:
+            return self.skipAttrs
         if self.metaRig and self.metaRig.hasAttr('poseSkippedAttrs'):
             return self.metaRig.poseSkippedAttrs
         return []
@@ -955,7 +961,7 @@ class PoseData(DataMap):
     The PoseData is stored per node inside an internal dict as follows:
 
     >>> node = '|group|Rig|Body|TestCtr'
-    >>> poseDict['TestCtr'] 
+    >>> poseDict['TestCtr']
     >>> poseDict['TestCtr']['ID'] = 0   index in the Hierarchy used to build the data up
     >>> poseDict['TestCtr']['longName'] = '|group|Rig|Body|TestCtr'
     >>> poseDict['TestCtr']['attrs']['translateX'] = 0.5
@@ -1157,7 +1163,7 @@ class PoseData(DataMap):
         '''
         apply the attrs for the pose.
 
-        .. note: 
+        .. note:
             when dealing with pose blending or mirrorInverse handling we BY-PASS the
             sceneUnit conversions done in the main attr handler. This is for speed as generally
             complex adjustments such as blending in poses wouldn't be done between scenes in different Maya sceneUnits.
@@ -1203,9 +1209,10 @@ class PoseData(DataMap):
                 r9General.thumbNailScreen(self.filepath, self.thumbnailRes[0], self.thumbnailRes[1], modelPanel=modelPanel)
                 if sel:
                     cmds.select(sel)
-        log.info('Pose Saved Successfully to : %s' % self.filepath)
+            log.info('Pose Saved Successfully to : %s' % self.filepath)
 
     # @r9General.Timer
+    @r9General.evalManager_idleAction
     def poseLoad(self, nodes, filepath=None, useFilter=True, relativePose=False, relativeRots='projected',
                  relativeTrans='projected', maintainSpaces=False, percent=None):
         '''
@@ -1312,13 +1319,13 @@ class PoseData(DataMap):
                     if self.relativeRots == 'projected':
                         if self.mayaUpAxis == 'y':
                             pptRoot.ry = resetCache[1][1]
-                        elif self.mayaUpAxis == 'z':  # fucking Z!!!!!!
+                        elif self.mayaUpAxis == 'z':
                             pptRoot.rz = resetCache[1][2]
                     if self.relativeTrans == 'projected':
                         if self.mayaUpAxis == 'y':
                             pptRoot.tx = resetCache[0][0]
                             pptRoot.tz = resetCache[0][2]
-                        elif self.mayaUpAxis == 'z':  # fucking Z!!!!!!
+                        elif self.mayaUpAxis == 'z':
                             pptRoot.tx = resetCache[0][0]
                             pptRoot.ty = resetCache[0][1]
 
@@ -1976,16 +1983,16 @@ class PoseCompare(object):
                         continue
 
         if any(['missingKeys' in self.fails, 'failedAttrs' in self.fails, 'dagMismatch' in self.fails]):
-            print 'PoseCompare returns : "%s" ========================================\n' % self.compareDict
+            print('PoseCompare returns : "%s" ========================================\n' % self.compareDict)
             if logprint_keymismacth:
-                print logprint_keymismacth
+                print(logprint_keymismacth)
             if logprint_dagpath:
-                print logprint_dagpath
+                print(logprint_dagpath)
             if logprint_missingattr:
-                print logprint_missingattr
+                print(logprint_missingattr)
             if logprint_missingfail:
-                print logprint_missingfail
-            print 'PoseCompare returns : ========================================'
+                print(logprint_missingfail)
+            print('PoseCompare returns : ========================================')
             return False
         self.status = True
         return True
@@ -2015,7 +2022,7 @@ def batchPatchPoses(posedir, config, poseroot, load=True, save=True, patchfunc=N
     for f in files:
         if f.lower().endswith('.pose'):
             if load:
-                print 'Loading Pose : %s' % os.path.join(posedir, f)
+                print('Loading Pose : %s' % os.path.join(posedir, f))
                 mPose.poseLoad(nodes=poseroot,
                                filepath=os.path.join(posedir, f),
                                useFilter=True,
@@ -2023,10 +2030,10 @@ def batchPatchPoses(posedir, config, poseroot, load=True, save=True, patchfunc=N
                                relativeRots=relativeRots,
                                relativeTrans=relativeTrans)
             if patchfunc:
-                print 'Applying patch'
+                print('Applying patch')
                 patchfunc(f)
             if save:
-                print 'Saving Pose : %s' % os.path.join(posedir, f)
+                print('Saving Pose : %s' % os.path.join(posedir, f))
                 mPose.poseSave(nodes=poseroot,
                                filepath=os.path.join(posedir, f),
                                useFilter=True,

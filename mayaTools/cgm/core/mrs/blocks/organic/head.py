@@ -223,6 +223,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',                   
                    'settingsDirection',
                    'visRotatePlane',
+                   'visProximityMode',
                    'visLabels',
                    'moduleTarget',]
 
@@ -612,6 +613,8 @@ def formDelete(self):
             mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
             if mHandle:
                 mHandle.template=False
+                
+        
         try:self.defineLoftMesh.v = True
         except:pass
         self.bbHelper.v = True
