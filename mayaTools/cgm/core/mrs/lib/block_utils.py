@@ -6578,8 +6578,9 @@ def formDelete(self):
     msgDat_delete(self,d_links)
     
     for mObj in self.msgList_get('formStuff'):
-        mObj.delete()    
-    
+        try:mObj.delete()    
+        except Exception,err:
+            pass
     self.blockState = 'define'#...yes now in this state
     return True
 

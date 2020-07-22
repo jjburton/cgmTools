@@ -97,6 +97,7 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
                        'rig_shapes',
                        'rig_controls',
                        'rig_frame',
+                       'rig_pupilIris',
                        'rig_lidSetup',
                        'rig_highlightSetup',
                        'rig_cleanUp']
@@ -2776,7 +2777,20 @@ def rig_skeleton(self):
         md_driverJoints[tag1].doStore('mirrorControl',md_driverJoints[tag2])
         md_driverJoints[tag2].doStore('mirrorControl', md_driverJoints[tag1])
         
-    
+    def doSingleDriver(mJoint,tag,mRigJoint = None,):
+        print mJoint
+        mDriver = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
+                                                          [mJoint],
+                                                          'driver',
+                                                          False,
+                                                          singleMode = True,
+                                                          cgmType='driver')[0]
+        print mDriver
+        if mRigJoint:
+            mRigJoint.doStore('driverJoint',mDriver)
+        mJoint.doStore('driverJoint',mDriver)
+        md_driverJoints[tag] = mDriver
+
     
     _short = self.d_block['shortName']
     
@@ -2831,7 +2845,8 @@ def rig_skeleton(self):
                                                      singleMode = True)[0]    
     mEyeFK.p_parent = mEyeRigJoint.p_parent
     
-   
+    ml_driversToMake = copy.copy(ml_joints)
+    ml_driversToMake.remove(mEyeJoint)    
     
     #IK setup ----------------------------------------------------------------------------------
     mEyeBlend = False
@@ -2866,6 +2881,9 @@ def rig_skeleton(self):
         
         mPupilJoint = mPrerigNull.getMessageAsMeta('pupilJoint')
         mPupilRigJoint = mPupilJoint.getMessageAsMeta('rigJoint')
+        
+        mPupilDriver = mPupilJoint.getMessageAsMeta('driverJoint')
+        
         log.debug(mPupilJoint)
         log.debug(mPupilRigJoint)
 
@@ -2879,6 +2897,12 @@ def rig_skeleton(self):
                 mJnt.p_parent = mEyeBlend
             else:
                 mJnt.p_parent = mEyeFK
+                
+        ml_driversToMake.remove(mPupilJoint)
+        
+        doSingleDriver(mPupilJoint,'pupil',mPupilRigJoint)
+        
+    
                 
     #Iris  =====================================================================
     if self.str_irisBuild == 'joint':
@@ -2899,28 +2923,23 @@ def rig_skeleton(self):
                 mJnt.p_parent = mEyeBlend
             else:
                 mJnt.p_parent = mEyeFK
-                            
+
+        ml_driversToMake.remove(mIrisJoint)    
+        doSingleDriver(mIrisJoint,'iris',mIrisRigJoint)
+
     #EyeLid =====================================================================================
     log.debug("|{0}| >> Eye...".format(_str_func)+'-'*40)
     #reload(BLOCKUTILS)
     self.d_lidData = {}
     
     mHighlight = mBlock.prerigNull.getMessageAsMeta('eyeHighlightJoint')
+    
     if mHighlight:
-        #doSingleJoint('eyeHighlight')
+        mRigJoint = mHighlight.getMessageAsMeta('rigJoint')        
+        ml_driversToMake.remove(mHighlight)
+        doSingleDriver(mHighlight,'highlight',mRigJoint)
         
-        mDriver = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                          [mHighlight],
-                                                          'driver',
-                                                          mRigNull,
-                                                          singleMode = True,
-                                                          cgmType='driver')[0]
-        
-        mRigJoint = mHighlight.getMessageAsMeta('rigJoint')
-        mRigJoint.doStore('driverJoint',mDriver)
-        mHighlight.doStore('driverJoint',mDriver)
-
-        
+    
     if self.str_lidBuild == 'clam':
 
         #Need to make our lid roots and orient
@@ -2964,8 +2983,7 @@ def rig_skeleton(self):
     else:
         log.debug("|{0}| >>  lid ".format(_str_func)+ '-'*20)
         
-        ml_driversToMake = copy.copy(ml_joints)
-        ml_driversToMake.remove(mEyeJoint)
+
         ml_driverJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                   ml_driversToMake,
                                                                   None,
@@ -4504,7 +4522,83 @@ def create_lidFollow(self):
         d_autolidBlend['d_result2']['mi_plug'].doConnectOut('%s.%s' % (_const,l_weightTargets[0]))    
     
     
+@cgmGEN.Timer
+def rig_pupilIris(self):
+    _short = self.d_block['shortName']
+    _str_func = 'rig_pupilIris'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     
+    self.mOrb = False
+    
+    b_build = False
+    for v in self.str_lidAttach, self.str_irisAttach, self.str_pupilAttach:
+        if v == 'surfaceSlide':
+            b_build = True
+            break
+    if not b_build:
+        log.debug("|{0}| >> no build...".format(_str_func))
+        return    
+
+    
+    _short = self.d_block['shortName']    
+    _lidSetup = self.str_lidBuild
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    mSettings = mRigNull.settings
+    mRootParent = self.mConstrainNull
+    mModule = self.mModule
+    _jointOrientation = self.d_orientation['str']
+    _side = mBlock.atUtils('get_side')
+    
+
+    log.debug("|{0}| >> surfaceSlide orb dup...".format(_str_func))
+    mOrb = mBlock.bbHelper.doDuplicate(po=False)
+    mOrb.dagLock(False)
+    mOrb.rx = 90
+    mOrb.p_parent = mSettings
+    mOrb.rename("{0}_orb".format(self.d_module['partName']))
+    mOrb.template=1
+    
+    self.mOrb = mOrb
+    
+    #Setup Iris/pupil drivers -----------------------------------------------------------
+    mDirect = mRigNull.getMessageAsMeta('directEye')
+    
+    mLoc = False
+    for s in ['iris','pupil']:
+        #controlIris
+        if self.__dict__['str_{0}Attach'.format(s)] == 'surfaceSlide':
+            log.info("|{0}| >> surfaceSlide {1}...".format(_str_func,s))
+            mControl = mRigNull.getMessageAsMeta('control{0}'.format(STR.capFirst(s)))
+            if mControl:
+                print mControl
+                
+                if not mLoc:
+                    mLoc = mControl.doLoc()
+                    mLoc.p_parent = mDirect
+                    
+                    mDriver = mControl.doCreateAt()
+                    
+                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mOrb.mNode,None,
+                                                        driver= mLoc)
+                
+                    md = _res[-1]
+                    mFollicle = md['mFollicle']
+                    for k in ['mDriverLoc','mFollicle']:
+                        md[k].p_parent = mRigNull
+                        md[k].v = False
+                    
+                    mDriver.p_parent = mFollicle
+                    
+                self.md_driverJoints[s].p_parent = mDriver
+                
+                    #mJoint.p_position = md['mFollicle'].p_position
+                mc.parentConstraint(self.md_driverJoints[s].mNode,
+                                    mControl.masterGroup.mNode,maintainOffset=0)
+        
+    
+    
+        
 @cgmGEN.Timer
 def rig_lidSetup(self):
     _short = self.d_block['shortName']
@@ -4526,53 +4620,9 @@ def rig_lidSetup(self):
     _jointOrientation = self.d_orientation['str']
     _side = mBlock.atUtils('get_side')
     
-    self.mOrb = False
     
-    if self.str_lidAttach == 'surfaceSlide':
-        log.debug("|{0}| >> surfaceSlide orb dup...".format(_str_func))
-        mOrb = mBlock.bbHelper.doDuplicate(po=False)
-        mOrb.dagLock(False)
-        mOrb.rx = 90
-        mOrb.p_parent = mSettings
-        mOrb.rename("{0}_orb".format(self.d_module['partName']))
-        mOrb.template=1
-        
-    
-    #Setup Iris/pupil drivers -----------------------------------------------------------
-    mDirect = mRigNull.getMessageAsMeta('directEye')
-    
-    mLoc = False
-    for s in ['iris','pupil']:
-        #controlIris
-        if self.__dict__['str_{0}Build'] == 'surfaceSlide':
-            log.info("|{0}| >> surfaceSlide {1}...".format(_str_func,s))
-            mControl = mRigNull.getMessageAsMeta('control{0}'.format(STR.capFirst(s)))
-            if mControl:
-                if not mLoc:
-                    mLoc = mControl.doLoc()
-                    mLoc.p_parent = mDirect
-                    
-                    mDriver = mControl.doCreateAt()
-                    
-                    _res = RIGCONSTRAINT.attach_toShape(mDriver.mNode,mOrb.mNode,None,
-                                                        driver= mLoc)
-                
-                    md = _res[-1]
-                    mFollicle = md['mFollicle']
-                    for k in ['mDriverLoc','mFollicle']:
-                        md[k].p_parent = mRigNull
-                        md[k].v = False
-                
-                    #mJoint.p_position = md['mFollicle'].p_position
-                    mc.parentConstraint(mFollicle.mNode,
-                                        mDriver.mNode,maintainOffset=1)
-                
-                
-            
-    
-    return
-        
-        
+    mOrb = self.mOrb
+
     if mBlock.lidFanLwr or mBlock.lidFanUpr:
         l_toDo_fan = []
         if mBlock.lidFanUpr:
