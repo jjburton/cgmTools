@@ -40,6 +40,10 @@ import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.position_utils as POS
 from cgm.core.classes import NodeFactory as NODEFAC
+
+from cgm.core.cgmPy import validateArgs as VALID
+from cgm.core.lib import euclid as EUCLID
+from cgm.core.lib import locator_utils as LOC
 #reload(ATTR)
 @cgmGEN.Timer
 def reset_channels_fromMode(nodes=None, mode = 0,selectedChannels=None):
@@ -926,4 +930,32 @@ def objectDat_set(dat = {}, position = True, orient = True):
         except Exception,err:
             log.error("{0} | {1}".format(mNode,err))    
     
+    
+def get_planeIntersect(planeSource = None, target = None, planeAxis = 'z+', objAxis = 'z+', mark = False):
+    _str_func = 'get_planeIntersect'
+    
+    if target:
+        mTarget = cgmMeta.asMeta(target)
+    else:
+        mTarget = cgmMeta.asMeta(mc.ls(sl=1))
+        if not mTarget:
+            return log.error(cgmGEN.logString_msg( _str_func, 'No Target'))
+        mTarget = mTarget[0]
+    
+    mObj = cgmMeta.asMeta(planeSource)
+        
+    planePoint = VALID.euclidVector3Arg(mObj.p_position)
+    planeNormal = VALID.euclidVector3Arg(mObj.getAxisVector(planeAxis))
 
+    
+    rayPoint = VALID.euclidVector3Arg(mTarget.p_position)
+    rayDirection = VALID.euclidVector3Arg(mTarget.getAxisVector(objAxis))
+    
+    plane = EUCLID.Plane( EUCLID.Point3(planePoint.x, planePoint.y, planePoint.z),
+                          EUCLID.Point3(planeNormal.x, planeNormal.y, planeNormal.z) )
+    pos = plane.intersect( EUCLID.Line3( EUCLID.Point3(rayPoint.x, rayPoint.y, rayPoint.z), EUCLID.Vector3(rayDirection.x, rayDirection.y, rayDirection.z) ) )
+    
+    if mark:
+        LOC.create(position = pos, name = 'pewpew_planeIntersect')
+        
+    return pos
