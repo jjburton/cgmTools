@@ -40,6 +40,8 @@ from cgm.tools import trajectoryAim as TRAJECTORYAIM
 from cgm.tools import keyframeToMotionCurve as K2MC
 from cgm.tools import spring as SPRING
 
+from cgm.tools import animFilterTool as AFT
+
 #>>> Root settings =============================================================
 __version__ = '0.1.05172020'
 __toolname__ ='cgmAnimDraw'
@@ -228,7 +230,7 @@ def buildColumn_main(self,parent, asScroll = False):
     
     self._postProcessColumn = mUI.MelColumnLayout(_postProcessFrame,useTemplate = 'cgmUIHeaderTemplate') 
 
-    uiFunc_build_post_process_column(self)
+    AFT.uiFunc_build_post_process_column(self, self._postProcessColumn)
 
     _row.setStretchWidget(_subColumn)
 
@@ -448,551 +450,551 @@ def uiFunc_build_options_column(self):
     mc.setParent(self._optionColumn)
     cgmUI.add_LineSubBreak()   
 
-def uiFunc_build_post_process_column(self):
-    parentColumn = self._postProcessColumn
+#def uiFunc_build_post_process_column(self):
+    #parentColumn = self._postProcessColumn
     
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()
 
-    # Post Process Action
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-    self._post_row_aimDirection = _row
+    ## Post Process Action
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    #self._post_row_aimDirection = _row
 
-    mUI.MelSpacer(_row,w=_padding)                          
-    mUI.MelLabel(_row,l='Action:')
+    #mUI.MelSpacer(_row,w=_padding)                          
+    #mUI.MelLabel(_row,l='Action:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    actions = ['Dragger', 'Spring', 'Trajectory Aim', 'Keys to Motion Curve']
+    #actions = ['Dragger', 'Spring', 'Trajectory Aim', 'Keys to Motion Curve']
 
-    self.post_actionMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAction,self))
-    for dir in actions:
-        self.post_actionMenu.append(dir)
+    #self.post_actionMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAction,self))
+    #for dir in actions:
+        #self.post_actionMenu.append(dir)
     
-    self.post_actionMenu.setValue(actions[0])
+    #self.post_actionMenu.setValue(actions[0])
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Post Process Action
+    #_row.layout()
+    ##
+    ## End Post Process Action
 
-    # Post Process Options Frame
-    #
-    self._postProcessOptionsColumn = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
-    #
-    # Post Process Options Frame
+    ## Post Process Options Frame
+    ##
+    #self._postProcessOptionsColumn = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+    ##
+    ## Post Process Options Frame
 
-    uiFunc_setPostAction(self)
+    #uiFunc_setPostAction(self)
 
-def uiFunc_setPostAction(self):
-    postAction = self.post_actionMenu.getValue()
+#def uiFunc_setPostAction(self):
+    #postAction = self.post_actionMenu.getValue()
 
-    if postAction == 'Dragger':
-        uiFunc_build_post_dragger_column(self)
-    elif postAction == 'Spring':
-        uiFunc_build_post_spring_column(self)
-    elif postAction == 'Trajectory Aim':
-        uiFunc_build_post_trajectory_aim_column(self)
-    elif postAction == 'Keys to Motion Curve':
-        uiFunc_build_post_keyframe_to_motion_curve_column(self)
+    #if postAction == 'Dragger':
+        #uiFunc_build_post_dragger_column(self)
+    #elif postAction == 'Spring':
+        #uiFunc_build_post_spring_column(self)
+    #elif postAction == 'Trajectory Aim':
+        #uiFunc_build_post_trajectory_aim_column(self)
+    #elif postAction == 'Keys to Motion Curve':
+        #uiFunc_build_post_keyframe_to_motion_curve_column(self)
 
-def uiFunc_build_post_dragger_column(self):
-    parentColumn = self._postProcessOptionsColumn
+#def uiFunc_build_post_dragger_column(self):
+    #parentColumn = self._postProcessOptionsColumn
 
-    parentColumn.clear()
+    #parentColumn.clear()
 
-    # Aim
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-    self._post_row_aimDirection = _row
+    ## Aim
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    #self._post_row_aimDirection = _row
 
-    mUI.MelSpacer(_row,w=_padding)                          
-    mUI.MelLabel(_row,l='Aim:')  
+    #mUI.MelSpacer(_row,w=_padding)                          
+    #mUI.MelLabel(_row,l='Aim:')  
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+    #directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
 
-    mUI.MelLabel(_row,l='Fwd:') 
+    #mUI.MelLabel(_row,l='Fwd:') 
 
-    self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_fwdMenu.append(dir)
+    #self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
+    #for dir in directions:
+        #self.post_fwdMenu.append(dir)
     
-    self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
+    #self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
     
-    mUI.MelLabel(_row,l='Up:')
+    #mUI.MelLabel(_row,l='Up:')
 
-    self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_upMenu.append(dir)
+    #self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
+    #for dir in directions:
+        #self.post_upMenu.append(dir)
 
-    self.post_upMenu.setValue(self._optionDict['aimUp'])
+    #self.post_upMenu.setValue(self._optionDict['aimUp'])
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Aim
+    #_row.layout()
+    ##
+    ## End Aim
 
-    # Post Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Post Damp
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Damp:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Damp:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=3.0)
+    #self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=3.0)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Damp
+    #_row.layout()
+    ##
+    ## End Damp
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-    # Post Object Scale
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Post Object Scale
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Object Scale:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Object Scale:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=10.0)
+    #self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=10.0)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Object Scale
+    #_row.layout()
+    ##
+    ## End Object Scale
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-    # Debug
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Debug
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    mUI.MelLabel(_row,l='Additional Options:')
+    #mUI.MelLabel(_row,l='Additional Options:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    mUI.MelLabel(_row,l='Debug:')
+    #mUI.MelLabel(_row,l='Debug:')
 
-    self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Debug locators will not be deleted so you could see what happened')
-
-
-    mUI.MelLabel(_row,l='Show Bake:')
-
-    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Show the bake process')
+    #self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
+                               #v = False,
+                               #label = '',
+                               #ann='Debug locators will not be deleted so you could see what happened')
 
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Show Bake:')
 
-    _row.layout()
-    #
-    # End Debug
+    #self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                               #v = False,
+                               #label = '',
+                               #ann='Show the bake process')
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
 
-    # Bake Dragger Button
-    #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    #mUI.MelSpacer(_row,w=_padding)
+
+    #_row.layout()
+    ##
+    ## End Debug
+
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
+
+    ## Bake Dragger Button
+    ##
+    #_row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
     
-    cgmUI.add_Button(_row,'Bake Dragger',
-        cgmGEN.Callback(uiFunc_bake_dragger,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Dragger',h=30)
+    #cgmUI.add_Button(_row,'Bake Dragger',
+        #cgmGEN.Callback(uiFunc_bake_dragger,self),                         
+        ##lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        #'Bake Dragger',h=30)
 
-    _row.layout()   
-    #
-    # End Bake Dragger Button
+    #_row.layout()   
+    ##
+    ## End Bake Dragger Button
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-def uiFunc_build_post_spring_column(self):
-    parentColumn = self._postProcessOptionsColumn
+#def uiFunc_build_post_spring_column(self):
+    #parentColumn = self._postProcessOptionsColumn
 
-    parentColumn.clear()
+    #parentColumn.clear()
 
-    # Aim
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-    self._post_row_aimDirection = _row
+    ## Aim
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    #self._post_row_aimDirection = _row
 
-    mUI.MelSpacer(_row,w=_padding)                          
-    mUI.MelLabel(_row,l='Aim:')  
+    #mUI.MelSpacer(_row,w=_padding)                          
+    #mUI.MelLabel(_row,l='Aim:')  
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+    #directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
 
-    mUI.MelLabel(_row,l='Fwd:') 
+    #mUI.MelLabel(_row,l='Fwd:') 
 
-    self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_fwdMenu.append(dir)
+    #self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
+    #for dir in directions:
+        #self.post_fwdMenu.append(dir)
     
-    self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
+    #self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
     
-    mUI.MelLabel(_row,l='Up:')
+    #mUI.MelLabel(_row,l='Up:')
 
-    self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_upMenu.append(dir)
+    #self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
+    #for dir in directions:
+        #self.post_upMenu.append(dir)
 
-    self.post_upMenu.setValue(self._optionDict['aimUp'])
+    #self.post_upMenu.setValue(self._optionDict['aimUp'])
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Aim
+    #_row.layout()
+    ##
+    ## End Aim
 
-    # Spring
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Spring
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Spring Force:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Spring Force:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
+    #self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Spring
+    #_row.layout()
+    ##
+    ## End Spring
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-    # Post Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Post Damp
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Damp:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Damp:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
+    #self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Damp
+    #_row.layout()
+    ##
+    ## End Damp
 
-    # Spring
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Spring
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Angular Spring Force:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Angular Spring Force:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_angularSpring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
+    #self.uiFF_post_angularSpring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Spring
+    #_row.layout()
+    ##
+    ## End Spring
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-    # Post Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Post Damp
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Angular Damp:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Angular Damp:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_angularDamp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
+    #self.uiFF_post_angularDamp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Damp
+    #_row.layout()
+    ##
+    ## End Damp
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-    # Post Object Scale
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Post Object Scale
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Object Scale:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Object Scale:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=10.0)
+    #self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=10.0)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Object Scale
+    #_row.layout()
+    ##
+    ## End Object Scale
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-    # Debug
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Debug
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    mUI.MelLabel(_row,l='Additional Options:')
+    #mUI.MelLabel(_row,l='Additional Options:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    mUI.MelLabel(_row,l='Debug:')
+    #mUI.MelLabel(_row,l='Debug:')
 
-    self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Debug locators will not be deleted so you could see what happened')
-
-
-    mUI.MelLabel(_row,l='Show Bake:')
-
-    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Show the bake process')
+    #self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
+                               #v = False,
+                               #label = '',
+                               #ann='Debug locators will not be deleted so you could see what happened')
 
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Show Bake:')
 
-    _row.layout()
-    #
-    # End Debug
+    #self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                               #v = False,
+                               #label = '',
+                               #ann='Show the bake process')
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
 
-    # Bake Spring Button
-    #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    #mUI.MelSpacer(_row,w=_padding)
+
+    #_row.layout()
+    ##
+    ## End Debug
+
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
+
+    ## Bake Spring Button
+    ##
+    #_row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
     
-    cgmUI.add_Button(_row,'Bake Spring',
-        cgmGEN.Callback(uiFunc_bake_spring,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Spring',h=30)
+    #cgmUI.add_Button(_row,'Bake Spring',
+        #cgmGEN.Callback(uiFunc_bake_spring,self),                         
+        ##lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        #'Bake Spring',h=30)
 
-    _row.layout()   
-    #
-    # End Bake Spring Button
+    #_row.layout()   
+    ##
+    ## End Bake Spring Button
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-def uiFunc_build_post_trajectory_aim_column(self):
-    parentColumn = self._postProcessOptionsColumn
+#def uiFunc_build_post_trajectory_aim_column(self):
+    #parentColumn = self._postProcessOptionsColumn
 
-    parentColumn.clear()
+    #parentColumn.clear()
 
-    # Aim
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-    self._post_row_aimDirection = _row
+    ## Aim
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    #self._post_row_aimDirection = _row
 
-    mUI.MelSpacer(_row,w=_padding)                          
-    mUI.MelLabel(_row,l='Aim:')  
+    #mUI.MelSpacer(_row,w=_padding)                          
+    #mUI.MelLabel(_row,l='Aim:')  
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+    #directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
 
-    mUI.MelLabel(_row,l='Fwd:') 
+    #mUI.MelLabel(_row,l='Fwd:') 
 
-    self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_fwdMenu.append(dir)
+    #self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
+    #for dir in directions:
+        #self.post_fwdMenu.append(dir)
     
-    self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
+    #self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
     
-    mUI.MelLabel(_row,l='Up:')
+    #mUI.MelLabel(_row,l='Up:')
 
-    self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_upMenu.append(dir)
+    #self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
+    #for dir in directions:
+        #self.post_upMenu.append(dir)
 
-    self.post_upMenu.setValue(self._optionDict['aimUp'])
+    #self.post_upMenu.setValue(self._optionDict['aimUp'])
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Aim
+    #_row.layout()
+    ##
+    ## End Aim
 
-    # Post Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Post Damp
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Damp:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Damp:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=15)
+    #self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=15)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Damp
+    #_row.layout()
+    ##
+    ## End Damp
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-    # Debug
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Debug
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Show Bake:')
+    #mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Show Bake:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )   
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )   
 
-    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Show the bake process')
+    #self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                               #v = False,
+                               #label = '',
+                               #ann='Show the bake process')
 
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Debug
+    #_row.layout()
+    ##
+    ## End Debug
 
-    # Bake Trajectory Aim Button
-    #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    ## Bake Trajectory Aim Button
+    ##
+    #_row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
     
-    cgmUI.add_Button(_row,'Bake Trajectory Aim',
-        cgmGEN.Callback(uiFunc_bake_trajectory_aim,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Trajectory Aim',h=30)
+    #cgmUI.add_Button(_row,'Bake Trajectory Aim',
+        #cgmGEN.Callback(uiFunc_bake_trajectory_aim,self),                         
+        ##lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        #'Bake Trajectory Aim',h=30)
 
-    _row.layout()   
-    #
-    # End Bake Dragger Button
+    #_row.layout()   
+    ##
+    ## End Bake Dragger Button
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-def uiFunc_build_post_keyframe_to_motion_curve_column(self):
-    parentColumn = self._postProcessOptionsColumn
+#def uiFunc_build_post_keyframe_to_motion_curve_column(self):
+    #parentColumn = self._postProcessOptionsColumn
 
-    parentColumn.clear()
+    #parentColumn.clear()
 
-    # Debug
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    ## Debug
+    ##
+    #_row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    mUI.MelLabel(_row,l='Additional Options:')
+    #mUI.MelLabel(_row,l='Additional Options:')
 
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    mUI.MelLabel(_row,l='Debug:')
+    #mUI.MelLabel(_row,l='Debug:')
 
-    self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Debug locators will not be deleted so you could see what happened')
-
-
-    mUI.MelLabel(_row,l='Show Bake:')
-
-    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Show the bake process')
+    #self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
+                               #v = False,
+                               #label = '',
+                               #ann='Debug locators will not be deleted so you could see what happened')
 
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelLabel(_row,l='Show Bake:')
 
-    _row.layout()
-    #
-    # End Debug
+    #self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                               #v = False,
+                               #label = '',
+                               #ann='Show the bake process')
 
-    # Bake Trajectory Aim Button
-    #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+
+    #mUI.MelSpacer(_row,w=_padding)
+
+    #_row.layout()
+    ##
+    ## End Debug
+
+    ## Bake Trajectory Aim Button
+    ##
+    #_row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
     
-    cgmUI.add_Button(_row,'Bake Keyframes to Motion Curve',
-        cgmGEN.Callback(uiFunc_bake_keyframe_to_motion_curve,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Keyframes to Motion Curve',h=30)
+    #cgmUI.add_Button(_row,'Bake Keyframes to Motion Curve',
+        #cgmGEN.Callback(uiFunc_bake_keyframe_to_motion_curve,self),                         
+        ##lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        #'Bake Keyframes to Motion Curve',h=30)
 
-    _row.layout()   
-    #
-    # End Bake Dragger Button
+    #_row.layout()   
+    ##
+    ## End Bake Dragger Button
 
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
+    #mc.setParent(parentColumn)
+    #cgmUI.add_LineSubBreak()  
 
-def uiFunc_bake_dragger(self):
-    for obj in mc.ls(sl=True):
-        mc.select(obj)
-        postInstance = DRAGGER.Dragger(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
-        postInstance.bake()
+#def uiFunc_bake_dragger(self):
+    #for obj in mc.ls(sl=True):
+        #mc.select(obj)
+        #postInstance = DRAGGER.Dragger(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
+        #postInstance.bake()
 
-def uiFunc_bake_spring(self):
-    for obj in mc.ls(sl=True):
-        mc.select(obj)
-        postInstance = SPRING.Spring(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), springForce=self.uiFF_post_spring.getValue(), angularDamp = self.uiFF_post_angularDamp.getValue(), angularSpringForce = self.uiFF_post_angularSpring.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
-        postInstance.bake()
+#def uiFunc_bake_spring(self):
+    #for obj in mc.ls(sl=True):
+        #mc.select(obj)
+        #postInstance = SPRING.Spring(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), springForce=self.uiFF_post_spring.getValue(), angularDamp = self.uiFF_post_angularDamp.getValue(), angularSpringForce = self.uiFF_post_angularSpring.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
+        #postInstance.bake()
 
-def uiFunc_bake_trajectory_aim(self):
-    for obj in mc.ls(sl=True):
-        mc.select(obj)
-        postInstance = TRAJECTORYAIM.TrajectoryAim(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), showBake=self.uiCB_post_show_bake.getValue())
-        postInstance.bake()
+#def uiFunc_bake_trajectory_aim(self):
+    #for obj in mc.ls(sl=True):
+        #mc.select(obj)
+        #postInstance = TRAJECTORYAIM.TrajectoryAim(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), showBake=self.uiCB_post_show_bake.getValue())
+        #postInstance.bake()
 
-def uiFunc_bake_keyframe_to_motion_curve(self):
-    for obj in mc.ls(sl=True):
-        mc.select(obj)
-        postInstance = K2MC.KeyframeToMotionCurve(debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
-        postInstance.bake()
+#def uiFunc_bake_keyframe_to_motion_curve(self):
+    #for obj in mc.ls(sl=True):
+        #mc.select(obj)
+        #postInstance = K2MC.KeyframeToMotionCurve(debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
+        #postInstance.bake()
 
 def uiFunc_set_post_blend_frames(self):
     self._optionDict['postBlendFrames'] = self.uiIF_postBlendFrames.getValue()
