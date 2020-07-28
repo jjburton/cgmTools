@@ -2742,11 +2742,12 @@ def rig_dataBuffer(self):
     log.debug(cgmGEN._str_subLine)
     
     #eyeLook =============================================================================
+    reload(self.UTILS)
+    self.mEyeLook = False
+    
     if self.str_ballSetup != 'fixed':
         self.mEyeLook = self.UTILS.eyeLook_get(self,True)#autobuild...
-    else:
-        self.mEyeLook = False
-        
+
     return True
 
 
@@ -3220,12 +3221,12 @@ def rig_shapes(self):
         log.debug("|{0}| >> ballRoot ...".format(_str_func))
         mBallControl = mBlock.rootHelper.doDuplicate(po=False)
         mc.makeIdentity(mBallControl.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
+        mBallControl.doStore('cgmName','ball')
         mBallControl.p_parent = mSettings
+        mBallControl.doName()
         mBallRoot = mBallControl
         mRigNull.connectChildNode(mBallControl,'controlBall','rigNull')#Connect
             
-            
-        
         if self.str_ballSetup != 'fixed':
             #Logic ====================================================================================
             mFKEye = mRigNull.getMessageAsMeta('fkEye')
@@ -3254,11 +3255,11 @@ def rig_shapes(self):
                 log.debug("|{0}| >> IK eye...".format(_str_func))  
                 log.debug(mIKEye)
                 
-                #IK direct shape... ----------------------------------------------------------------------
-                CORERIG.shapeParent_in_place(mIKEye.mNode,mEyeOrientHelper.mNode,1)
-                mHandleFactory.color(mIKEye.mNode, controlType = 'sub')
-                
-                mRigNull.connectChildNode(mIKEye.mNode,'controlIKDirect','rigNull')#Connect
+                if not self.b_eyeSlide:#IK direct shape... -------------------------------------------
+                    CORERIG.shapeParent_in_place(mIKEye.mNode,mEyeOrientHelper.mNode,1)
+                    mHandleFactory.color(mIKEye.mNode, controlType = 'sub')
+                    
+                    mRigNull.connectChildNode(mIKEye.mNode,'controlIKDirect','rigNull')#Connect
                 
                 
                 #Create shape... -----------------------------------------------------------------------        
@@ -3284,8 +3285,8 @@ def rig_shapes(self):
                 mIKControl.doName()
                 
                 mIKControl.p_parent = self.mEyeLook
-                
                 mRigNull.connectChildNode(mIKControl,'controlIK','rigNull')#Connect
+            
             
         
         mDirectEye = mRigNull.getMessageAsMeta('directEye')
@@ -3525,10 +3526,23 @@ def rig_controls(self):
             
     
         #>> vis Drivers ==============================================================================	
-        mPlug_visSub = self.atBuilderUtils('build_visSub')
-        mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True,
+        #mPlug_visSub = self.atBuilderUtils('build_visSub')
+        
+        mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
+        mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
+        
+        """
+        mPlug_visSub = cgmMeta.cgmAttr(mSettings,'visSub', value = True,
                                           attrType='bool', defaultValue = True,
-                                          keyable = False,hidden = False)
+                                          keyable = False,hidden = False)        
+        mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True,
+                                          attrType='bool', defaultValue = False,
+                                          keyable = False,hidden = False)"""
+        
+        
+        # Connect to visModule ...
+        ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
+                     "{0}.visibility".format(self.mDeformNull.mNode))            
         
         #Settings ========================================================================================
         if mSettings:
@@ -3594,6 +3608,7 @@ def rig_controls(self):
                 ml_controlsAll.append(mControlIK)
                 self.atUtils('get_switchTarget', mControlIK, mBlendJoint)
                 
+            
             
         mControlIKDirect = mRigNull.getMessageAsMeta('controlIKDirect')
         if mControlIKDirect:
@@ -3821,6 +3836,10 @@ def rig_controls(self):
             mControlSlideEye = _d['mObj']
             ml_controlsAll.append(mControlSlideEye)
             
+            ml_controlsAll.append( _d['mObj'])
+            for mShape in _d['mObj'].getShapes(asMeta=True):
+                ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                        
+            
             
         mControlHighlight = mRigNull.getMessageAsMeta('controlHighlight')
         #mControlHighlight ================================================================================
@@ -3934,8 +3953,14 @@ def rig_frame(self):
                                      )    
         #Aim setup ---------------------------------------------------------------
         log.debug("|{0}| >> Aim setup...".format(_str_func, mControlIK))    
+        
+        if not self.b_eyeSlide:#IK direct shape... -------------------------------------------
+            mIKTarget = mJointIK.masterGroup
+        else:
+            mIKTarget = mJointIK
+            
         mc.aimConstraint(mControlIK.mNode,
-                         mJointIK.masterGroup.mNode,
+                         mIKTarget.mNode,
                          maintainOffset = False, weight = 1,
                          aimVector = self.d_orientation['vectorAim'],
                          upVector = self.d_orientation['vectorUp'],
@@ -3961,7 +3986,7 @@ def rig_frame(self):
     
         mIKGroup.parent = mBallRoot
         mControlIK.masterGroup.parent = mIKGroup
-        mJointIK.masterGroup.p_parent = mIKGroup
+        mIKTarget.p_parent = mIKGroup
         
         #FK...
         FKGroup = mSettings.doCreateAt()
@@ -4750,6 +4775,7 @@ def rig_lidSetup(self):
     mModule = self.mModule
     _jointOrientation = self.d_orientation['str']
     _side = mBlock.atUtils('get_side')
+    mControlBall = mRigNull.getMessageAsMeta('controlBall')
     
     
     mOrb = self.mOrb
@@ -5221,9 +5247,37 @@ def rig_lidSetup(self):
                     mPOCI.turnOnPercentage = True
                     mPOCI.parameter = pct
                     
+                    
+                    #Need to make our diver that follows the blink curve and not just the handle =============
+                    #self.d_lidData[k]['mHandle'].mNode
 
+                    mTarget = self.d_lidData[k]['mHandle'].doCreateAt()
+    
+                        
+                    _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
+                                                               self.md_blinkCurves[k]['mDriven'].mNode)
+                    TRANS.parent_set(_res_attach[0], mRigNull.mNode)
+                    
+                    
+                    _shape = self.md_blinkCurves[k]['mDriven'].getShapes()[0]
+                    mPOCI = cgmMeta.asMeta(_res_attach[1])
+                    _minU = ATTR.get(_shape,'minValue')
+                    _maxU = ATTR.get(_shape,'maxValue')
+                    _param = mPOCI.parameter
+                    pct = MATH.get_normalized_parameter(_minU,_maxU,_param)
+                    log.debug("|{0}| >>  min,max,param,pct | {1},{2},{3},{4} ".format(_str_func,
+                                                                                      _minU,
+                                                                                      _maxU,
+                                                                                      _param,
+                                                                                      pct))
+                    mPOCI.turnOnPercentage = True
+                    mPOCI.parameter = pct
+                    
+                    #.... ------------------------------------------
+                    
+                    #self.d_lidData[k]['mHandle'].mNode
 
-                    mc.aimConstraint(self.d_lidData[k]['mHandle'].mNode,
+                    mc.aimConstraint(mTarget.mNode,
                                      mFollowRoot.mNode,
                                      maintainOffset = True, weight = 1,
                                      aimVector = self.d_orientation['vectorAim'],
@@ -5231,12 +5285,19 @@ def rig_lidSetup(self):
                                      worldUpVector = self.d_orientation['vectorUp'],
                                      worldUpObject = mRigRoot.mNode,#mUprCenter.mNode,
                                      worldUpType = 'objectRotation' )
-                    mFollowRoot.p_parent = mSettings                    
+                    
+                    if mControlBall:
+                        mFollowRoot.p_parent = mControlBall                    
+                    else:
+                        mFollowRoot.p_parent = mSettings                    
                     
 
                 mRig.masterGroup.p_parent = mHandle
                 
-                mRoot.p_parent = mSettings
+                if mControlBall:
+                    mRoot.p_parent = mControlBall   
+                else:
+                    mRoot.p_parent = mSettings
                 
                 _out = "r{0}".format(self.d_orientation['str'][1])
                 _up = "r{0}".format(self.d_orientation['str'][2])
