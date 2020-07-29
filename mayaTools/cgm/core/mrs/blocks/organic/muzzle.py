@@ -5777,6 +5777,10 @@ def rig_controls(self):
         mPlug_visDirect = self.mPlug_visDirect_moduleParent
         mPlug_visSub = self.mPlug_visSub_moduleParent
         
+        self.mDeformNull.overrideEnabled = 1
+        ATTR.connect(self.mPlug_visModule.p_combinedShortName,
+                     "{0}.overrideVisibility".format(self.mDeformNull.mNode))        
+        
         b_sdk=False
         if self.str_buildSDK in ['dag']:
             b_sdk = True        

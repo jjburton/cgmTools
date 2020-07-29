@@ -3305,8 +3305,8 @@ class rigFactory(object):
         _str_partVis = self.d_module['partName'] + '_vis'
         _mMasterVis = self.d_module['mMasterVis']
 
-        self.mPlug_visModule = cgmMeta.cgmAttr(_mMasterVis,_str_partVis,
-                                               defaultValue = 1, attrType = 'bool',
+        self.mPlug_visModule = cgmMeta.cgmAttr(_mMasterVis,_str_partVis,value = True,
+                                               defaultValue = True, attrType = 'bool',
                                                keyable = False,hidden = False)
 
         #>>> Object Set -----------------------------------------------------------------------------------

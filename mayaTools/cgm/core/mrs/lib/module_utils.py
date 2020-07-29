@@ -822,7 +822,7 @@ def controls_getDat(self, keys = None,
                         mRigNull.msgList_append('controlsAll',mObj)
                         mRigNull.moduleSet.append(mObj.mNode)                        
                     else:
-                        log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
+                        log.debug("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
             log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
             mList.append(mObj)
 

@@ -3530,6 +3530,10 @@ def rig_controls(self):
         
         mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
         mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
+
+        # Connect to visModule ...
+        ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
+                     "{0}.visibility".format(self.mDeformNull.mNode))
         
         """
         mPlug_visSub = cgmMeta.cgmAttr(mSettings,'visSub', value = True,
@@ -3537,12 +3541,7 @@ def rig_controls(self):
                                           keyable = False,hidden = False)        
         mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True,
                                           attrType='bool', defaultValue = False,
-                                          keyable = False,hidden = False)"""
-        
-        
-        # Connect to visModule ...
-        ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
-                     "{0}.visibility".format(self.mDeformNull.mNode))            
+                                          keyable = False,hidden = False)"""        
         
         #Settings ========================================================================================
         if mSettings:
