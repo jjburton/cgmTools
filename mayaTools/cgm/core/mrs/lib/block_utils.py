@@ -641,6 +641,7 @@ def set_side(self,side=None):
         
         self.doName()
         color(self)
+        if self.getMessage('moduleTarget'):module_verify(self)
             
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
@@ -678,6 +679,8 @@ def set_position(self,position=None,ui=False):
             return False
         
         self.doName()
+        if self.getMessage('moduleTarget'):module_verify(self)
+        
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def color(self):
@@ -7927,6 +7930,9 @@ def module_verify(self,moduleType = None, moduleLink = 'moduleTarget',**kws):
             if _side != 'center':
                 log.debug("|{0}| >> rigBlock side: {1}".format(_str_func,_side))
                 _nameDict['cgmDirection'] = _side
+            else:
+                if mModule.hasAttr('cgmDirection'):
+                    ATTR.delete(mModule.mNode,'cgmDirection')
     
             for k,v in _nameDict.iteritems():
                 if v:
@@ -8649,6 +8655,9 @@ def get_loftCurves(self):
 
 
     return ml_loftCurves
+
+def get_baseNameDict(self):
+    return self.getNameDict(ignore=['cgmType','cgmIterator'])
 
 
 def get_module(self):

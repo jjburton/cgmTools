@@ -1141,10 +1141,10 @@ def skeleton_build(self, forceNew = True):
     #else:
         #self.copyAttrTo('blockType',mJoint.mNode,'cgmName',driven='target')
         
-    if mModule.getMayaAttr('cgmDirection'):
-        mModule.copyAttrTo('cgmDirection',mJoint.mNode,'cgmDirection',driven='target')
-    if mModule.getMayaAttr('cgmPosition'):
-        mModule.copyAttrTo('cgmPosition',mJoint.mNode,'cgmPosition',driven='target')
+    #if mModule.getMayaAttr('cgmDirection'):
+    #    mModule.copyAttrTo('cgmDirection',mJoint.mNode,'cgmDirection',driven='target')
+    #if mModule.getMayaAttr('cgmPosition'):
+    #    mModule.copyAttrTo('cgmPosition',mJoint.mNode,'cgmPosition',driven='target')
         
     mJoint.doName()
 
@@ -1217,7 +1217,8 @@ def rig_dataBuffer(self):
 
         log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
         
-        
+        self.d_blockNameDict = mBlock.atUtils('get_baseNameDict')
+
         #DynParents =============================================================================
         self.UTILS.get_dynParentTargetsDat(self)
         
@@ -1368,7 +1369,10 @@ def rig_shapes(self):
         CORERIG.shapeParent_in_place(mControl,mMainHandle.mNode,True)
         
     mControl = cgmMeta.validateObjArg(mControl,'cgmObject',setClass=True)
-    ATTR.copy_to(_short_module,'cgmName',mControl.mNode,driven='target')
+    
+    
+    for a,v in self.d_blockNameDict.iteritems():
+        mControl.doStore(a,v)
     mControl.doName()    
     
     CORERIG.colorControl(mControl.mNode,_side,'main')
@@ -1458,10 +1462,15 @@ def rig_controls(self):
         
         # Drivers ==============================================================================================    
         #>> vis Drivers ================================================================================================	
-        mPlug_vis = cgmMeta.cgmAttr(mSettings,'visControls', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
-        #mPlug_visSub = self.atBuilderUtils('build_visSub')
-        mPlug_visSub = cgmMeta.cgmAttr(mSettings,'visSub', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
-        mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
+        mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
+        mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
+
+        # Connect to visModule ...
+        ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
+                     "{0}.visibility".format(self.mDeformNull.mNode))        
+        
+        
+
         
         if self.mBlock.addAim:        
             mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
@@ -1608,7 +1617,7 @@ def rig_controls(self):
     
             for mShape in mCtrl.getShapes(asMeta=True):
                 if not ATTR.get_driver(mShape.mNode,'overrideVisibility'):
-                    ATTR.connect(mPlug_vis.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+                    ATTR.connect(self.mPlug_visModule.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                         
         #Connections =======================================================================================
         #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)

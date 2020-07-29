@@ -5006,7 +5006,7 @@ def rig_controls(self):
 
         # Connect to visModule ...
         ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
-                     "{0}.visibility".format(self.mDeformNull.mNode))        
+                     "{0}.visibility".format(self.mDeformNull.mNode))
 
         
         if self.b_followParentBank:

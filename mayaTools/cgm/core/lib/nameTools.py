@@ -202,6 +202,7 @@ combineDict = returnCombinedNameFromDict
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def get_combinedNameDict(obj,ignore=[False], stripInvalid=True, removeDups=True):
     return combineDict(get_objNameDict(obj,ignore), stripInvalid=stripInvalid, removeDups=removeDups)
+
 def get_objNameDict(obj,ignore=[False]):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -242,10 +243,12 @@ def get_objNameDict(obj,ignore=[False]):
             if tagInfo is not False:
                 namesDict[tag] = (tagInfo)
                 
-        _iterator = ATTR.get(obj,'cgmIterator')
-        if _iterator is not False:
-            log.debug("Iterator found")
-            namesDict['cgmIterator'] = (_iterator)
+        
+        if 'cgmIterator' in order:
+            _iterator = ATTR.get(obj,'cgmIterator')
+            if _iterator is not False:
+                log.debug("Iterator found")
+                namesDict['cgmIterator'] = (_iterator)
                 
         # remove tags up stream that we don't want if they don't exist on the actual object"""
         if not mc.objExists(obj+'.cgmTypeModifier'):
