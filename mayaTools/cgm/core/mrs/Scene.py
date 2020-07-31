@@ -2466,7 +2466,8 @@ def ExportScene(mode = -1,
 
 	for obj in exportObjs:			
 		log.info( cgmGEN.logString_sub(_str_func,'On: {0}'.format(obj)) )
-
+		
+		cgmObj = cgmMeta.asMeta(obj)
 		mc.select(obj)
 
 		assetName = obj.split(':')[0].split('|')[-1]
@@ -2503,7 +2504,7 @@ def ExportScene(mode = -1,
 
 			if len(exportObjs) > 1 and removeNamespace:
 				# Deleting the exported transforms in case another file has duplicate export names
-				mc.delete(obj)
+				mc.delete(cgmObj.mNode)
 				try:
 					mc.delete(exportTransforms)
 				except:
