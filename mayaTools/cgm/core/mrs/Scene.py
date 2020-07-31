@@ -91,6 +91,9 @@ example:
 		self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
 		self.showDirectoriesStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
 		self.displayDetailsStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
+		self.bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
+		self.deleteSet                   = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet')
+		self.exportSet                   = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet') 
 
 		## sizes
 		self.__itemHeight                = 35
@@ -327,19 +330,19 @@ example:
 		sel = mc.ls(sl=True)
 		deleteSet = sel[0].split(':')[-1]
 		log.info( "Setting delete set to: %s" % deleteSet )
-		cgmMeta.cgmOptionVar('cgm_delete_set', varType="string").setValue(deleteSet)
+		self.deleteSet.setValue(deleteSet)
 
 	def SetBakeSet(self, *args):
 		sel = mc.ls(sl=True)
 		bakeSet = sel[0].split(':')[-1]
 		log.info( "Setting bake set to: %s" % bakeSet )
-		cgmMeta.cgmOptionVar('cgm_bake_set', varType="string").setValue(bakeSet)
+		self.bakeSet.setValue(bakeSet)
 
 	def SetExportSet(self, *args):
 		sel = mc.ls(sl=True)
 		exportSet = sel[0].split(':')[-1]
 		log.info( "Setting geo set to: %s" % exportSet )
-		cgmMeta.cgmOptionVar('cgm_export_set', varType="string").setValue(exportSet)
+		self.exportSet.setValue(exportSet)
 
 	def build_layoutWrapper(self,parent):
 
@@ -1925,16 +1928,16 @@ example:
 			#reload(BATCH)
 			log.info('Maya Py!')
 
-			bakeSetName = None
-			deleteSetName = None
-			exportSetName = None
+			bakeSetName = self.bakeSet.getValue()
+			deleteSetName = self.deleteSet.getValue()
+			exportSetName = self.exportSet.getValue()
 
-			if(mc.optionVar(exists='cgm_bake_set')):
-				bakeSetName = mc.optionVar(q='cgm_bake_set')    
-			if(mc.optionVar(exists='cgm_delete_set')):
-				deleteSetName = mc.optionVar(q='cgm_delete_set')
-			if(mc.optionVar(exists='cgm_export_set')):
-				exportSetName = mc.optionVar(q='cgm_export_set')                
+			#if(mc.optionVar(exists='cgm_bake_set')):
+				#bakeSetName = mc.optionVar(q='cgm_bake_set')    
+			#if(mc.optionVar(exists='cgm_delete_set')):
+				#deleteSetName = mc.optionVar(q='cgm_delete_set')
+			#if(mc.optionVar(exists='cgm_export_set')):
+				#exportSetName = mc.optionVar(q='cgm_export_set')                
 
 			l_dat = []
 			d_base = {'removeNamespace' : self.removeNamespace,
@@ -2065,17 +2068,10 @@ example:
 		if self.useMayaPy:
 			#reload(BATCH)
 			log.info('Maya Py!')
-
-			bakeSetName = None
-			deleteSetName = None
-			exportSetName = None
-
-			if(mc.optionVar(exists='cgm_bake_set')):
-				bakeSetName = mc.optionVar(q='cgm_bake_set')    
-			if(mc.optionVar(exists='cgm_delete_set')):
-				deleteSetName = mc.optionVar(q='cgm_delete_set')
-			if(mc.optionVar(exists='cgm_export_set')):
-				exportSetName = mc.optionVar(q='cgm_export_set')                
+			
+			bakeSetName = self.bakeSet.getValue()
+			deleteSetName = self.deleteSet.getValue()
+			exportSetName = self.exportSet.getValue()             
 
 			d = {
 			'file':mc.file(q=True, sn=True),
@@ -2431,14 +2427,11 @@ def ExportScene(mode = -1,
 	mc.file(rn=bakedLoc)
 
 	if not bakeSetName:
-		if(mc.optionVar(exists='cgm_bake_set')):
-			bakeSetName = mc.optionVar(q='cgm_bake_set')    
+		bakeSetName = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet').getValue()
 	if not deleteSetName:
-		if(mc.optionVar(exists='cgm_delete_set')):
-			deleteSetName = mc.optionVar(q='cgm_delete_set')
+		deleteSetName = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet').getValue()
 	if not exportSetName:
-		if(mc.optionVar(exists='cgm_export_set')):
-			exportSetName = mc.optionVar(q='cgm_export_set')    
+		exportSetName = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet').getValue()  
 
 	animList = SHOTS.AnimList()
 	#find our minMax
