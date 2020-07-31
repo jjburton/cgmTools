@@ -2456,6 +2456,7 @@ def ExportScene(mode = -1,
 
 	bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end)
 
+	mc.loadPlugin("fbxmaya")
 
 	for obj in exportObjs:			
 		log.info( cgmGEN.logString_sub(_str_func,'On: {0}'.format(obj)) )
