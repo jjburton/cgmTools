@@ -82,7 +82,7 @@ example:
 		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
 		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
 		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
-		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
+		self.showAllFilesStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 0)
 		self.removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
 		self.zeroRootStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
 		self.useMayaPyStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
@@ -126,7 +126,7 @@ example:
 
 		self.exportCommand               = ""
 
-		self.showBakedOption             = None
+		self.showAllFilesOption          = None
 		self.removeNamespaceOption       = None
 		self.zeroRootOption              = None
 		self.useMayaPyOption             = None
@@ -135,7 +135,7 @@ example:
 		self.showDirectories             = self.showDirectoriesStore.getValue()
 		self.displayDetails              = self.displayDetailsStore.getValue()
 
-		self.showBaked                   = self.showBakedStore.getValue()
+		self.showAllFiles                = self.showAllFilesStore.getValue()
 		self.removeNamespace             = self.removeNamespaceStore.getValue()
 		self.zeroRoot                    = self.zeroRootStore.getValue()
 		self.useMayaPy                   = self.useMayaPyStore.getValue()
@@ -176,7 +176,7 @@ example:
 		return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
 	
 	@property
-	def selectedAnimation(self):
+	def selectedSubType(self):
 		return self.subTypeSearchList['scrollList'].getSelectedItem()	
 
 	@property
@@ -257,7 +257,7 @@ example:
 			return True
 	
 	def LoadOptions(self, *args):
-		self.showBaked       = bool(self.showBakedStore.getValue())
+		self.showAllFiles    = bool(self.showAllFilesStore.getValue())
 		self.categoryIndex   = int(self.categoryStore.getValue())
 		self.subTypeIndex    = int(self.subTypeStore.getValue())
 		self.removeNamespace = bool(self.removeNamespaceStore.getValue())
@@ -266,8 +266,8 @@ example:
 		self.showDirectories = bool(self.showDirectoriesStore.getValue())
 		self.displayDetails  = bool(self.displayDetailsStore.getValue())
 
-		if self.showBakedOption:
-			self.showBakedOption(e=True, checkBox = self.showBaked)
+		if self.showAllFilesOption:
+			self.showAllFilesOption(e=True, checkBox = self.showAllFiles)
 		if self.removeNamespaceOption:
 			self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
 		if self.zeroRootOption:
@@ -284,14 +284,14 @@ example:
 
 	def SaveOptions(self, *args):
 		log.info( "Saving options" )
-		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
+		self.showAllFiles = self.showAllFilesOption( q=True, checkBox=True ) if self.showAllFilesOption else False
 		self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
 		self.zeroRoot = self.zeroRootOption( q=True, checkBox=True ) if self.zeroRootOption else False
 
 		self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
 		self.showDirectories = self.showDirectoriesOption( q=True, checkBox=True ) if self.showDirectoriesOption else False
 
-		self.showBakedStore.setValue(self.showBaked)
+		self.showAllFilesStore.setValue(self.showAllFiles)
 		self.removeNamespaceStore.setValue(self.removeNamespace)
 		self.zeroRootStore.setValue(self.zeroRoot)
 		self.useMayaPyStore.setValue(self.useMayaPy)
@@ -300,7 +300,7 @@ example:
 		
 		# self.optionVarExportDirStore.setValue( self.exportDirectory )
 		self.categoryStore.setValue( self.categoryIndex )
-		self.subTypeStore.setValue( self.subTypeStore )
+		self.subTypeStore.setValue( self.subTypeIndex )
 		self.uiFunc_showDirectories( self.showDirectories )
 		self.uiFunc_displayDetails( self.displayDetails )
 
@@ -748,9 +748,9 @@ example:
 		self.uiMenu_OptionsMenu.clear()
 		#>>> Reset Options		
 
-		self.showBakedOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show baked versions",
-		                                        checkBox=self.showBaked,
-		                                        c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+		self.showAllFilesOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
+		                                        checkBox=self.showAllFiles,
+		                                        c = lambda *a:mc.evalDeferred(self.uiFunc_showAllFiles,lp=True))
 		self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
 		                                              checkBox=self.removeNamespace,
 		                                              c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
@@ -764,6 +764,10 @@ example:
 		                                         checkBox=self.showDirectories,
 		                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 	
+	def uiFunc_showAllFiles(self):
+		self.SaveOptions()
+		self.LoadVersionList()
+		
 	def uiFunc_selectVersionList(self):
 		self.assetMetaData = self.getMetaDataFromFile()
 		self.buildDetailsColumn()
@@ -1306,11 +1310,16 @@ example:
 				if d[0] == '_' or d[0] == '.':
 					continue
 
-				for ext in fileExtensions:
-					if os.path.splitext(d)[-1].lower() == ".%s" % ext :
-						if not "_baked" in d or self.showBaked:
+				if os.path.splitext(d)[-1].lower()[1:] in fileExtensions:
+					if self.showAllFiles:
+						anims.append(d)
+					elif self.hasVariant:
+						if '{0}_{1}_{2}_'.format(self.selectedAsset, self.selectedSubType, self.selectedVariation) in d:
 							anims.append(d)
-
+					else:
+						if '{0}_{1}_'.format(self.selectedAsset, self.selectedSubType) in d:
+							anims.append(d)
+							
 		searchList['items'] = anims
 		searchList['scrollList'].clear()
 		searchList['scrollList'].setItems(anims)
@@ -2087,7 +2096,7 @@ example:
 			'bakeSetName':bakeSetName,
 			'exportSetName':exportSetName,
 			'deleteSetName':deleteSetName,
-            'animationName':self.selectedAnimation,
+            'animationName':self.selectedSubType,
             'workspace':d_userPaths['content']
 			}
 
@@ -2106,7 +2115,7 @@ example:
 		            exportAnimPath = exportAnimPath,
 		            removeNamespace = self.removeNamespace,
 					zeroRoot = self.zeroRoot,
-                    animationName = self.selectedAnimation,
+                    animationName = self.selectedSubType,
                     workspace=d_userPaths['content']
 		            )        
 
@@ -2525,8 +2534,8 @@ def PurgeData():
 	optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
 	optionVarLastVersionStore.purge()
 
-	showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
-	showBakedStore.purge()
+	showAllFilesStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 0)
+	showAllFilesStore.purge()
 
 	removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
 	removeNamespaceStore.purge()
