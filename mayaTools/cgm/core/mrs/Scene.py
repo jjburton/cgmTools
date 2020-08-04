@@ -304,9 +304,6 @@ example:
 		self.uiFunc_showDirectories( self.showDirectories )
 		self.uiFunc_displayDetails( self.displayDetails )
 
-	def TagAsset(self, *args):
-		pass
-
 	def UpdateToLatestRig(self, *args):
 		for obj in mc.ls(sl=True):
 			myAsset = ASSET.Asset(obj)
@@ -1018,9 +1015,6 @@ example:
 	def buildMenu_tools( self, *args):
 		self.uiMenu_ToolsMenu.clear()
 		#>>> Reset Options		
-
-		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Tag As Current Asset",
-		                 c = lambda *a:mc.evalDeferred(self.TagAsset,lp=True))
 
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Set Export Sets",
 		                 c = lambda *a:mc.evalDeferred(self.SetExportSets,lp=True))
