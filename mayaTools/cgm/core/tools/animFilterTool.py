@@ -35,10 +35,10 @@ from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 
-from cgm.tools import dragger as DRAGGER
-from cgm.tools import trajectoryAim as TRAJECTORYAIM
-from cgm.tools import keyframeToMotionCurve as K2MC
-from cgm.tools import spring as SPRING
+from cgm.core.tools import dragger as DRAGGER
+from cgm.core.tools import trajectoryAim as TRAJECTORYAIM
+from cgm.core.tools import keyframeToMotionCurve as K2MC
+from cgm.core.tools import spring as SPRING
 
 #>>> Root settings =============================================================
 __version__ = '0.1.20.7.23'

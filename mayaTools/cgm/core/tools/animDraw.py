@@ -25,7 +25,7 @@ from cgm.core.lib import ease_utils as EASE
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core import cgm_General as cgmGeneral
 
-from cgm.tools.liveRecord import LiveRecord
+from cgm.core.tools.liveRecord import LiveRecord
 
 import time
 

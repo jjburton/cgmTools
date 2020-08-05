@@ -129,13 +129,13 @@ def cgmSimChain():
         
 def animDraw():
     try:
-        import cgm.tools.liveRecord as liveRecord
+        import cgm.core.tools.liveRecord as liveRecord
         reload(liveRecord)
-        import cgm.tools.animDrawTool as ADT
+        import cgm.core.tools.animDrawTool as ADT
         reload(ADT)
-        import cgm.tools.animDraw as animDraw
+        import cgm.core.tools.animDraw as animDraw
         reload(animDraw)
-        mel.eval('python "import cgm.tools.animDrawTool as ADT;animDrawInstance = ADT.ui();"')
+        mel.eval('python "import cgm.core.tools.animDrawTool as ADT;animDrawInstance = ADT.ui();"')
         
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
