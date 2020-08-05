@@ -3103,9 +3103,9 @@ def rig_skeleton(self):
             
     if mBlock.lidBuild:
         l_toDo = []
-        if self.str_lidFanUpr:
+        if self.v_lidFanUpr:
             l_toDo.append('uprFanCenter')
-        if self.str_lidFanLwr:
+        if self.v_lidFanLwr:
             l_toDo.append('lwrFanCenter')
             
         for tag in l_toDo:

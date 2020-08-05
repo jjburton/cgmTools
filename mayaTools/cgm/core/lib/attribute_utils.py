@@ -1206,7 +1206,10 @@ def is_connected(*a):
     _d = validate_arg(*a) 
     _children = get_children(_d)    
     if _children:
-        _l = [mc.connectionInfo("{0}.{1}".format(_d['node'],a), isDestination=True) for a in _children ]
+        try:
+            _l = [mc.connectionInfo("{0}.{1}".format(_d['node'],a), isDestination=True) for a in _children ]
+        except Exception,err:
+            return False
         for v in _l:
             if v:return True
         return False

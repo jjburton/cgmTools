@@ -82,7 +82,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.07092020'
+__version__ = '1.07292020'
 _sidePadding = 25
 
 def check_cgm():
@@ -932,6 +932,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_block.clear()   
         _menu = self.uiMenu_block
         d_s = {'Set Side':{},
+               'Set Position':{},
                'Skeleton':{'Joints | get bind':{'ann':self._d_ui_annotations.get('Joints | get bind'),
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','skeleton_getBind',
@@ -1149,7 +1150,14 @@ class ui(cgmUI.cgmGUI):
                                                         'atUtils','set_side',side,
                                                         **{}))                
                 
-                continue
+            if s == 'Set Position':
+                for i,position in enumerate(['none','upper','lower','front','back','top','bottom']):
+                    mUI.MelMenuItem(_sub,
+                                    label = position,
+                                    ann = 'Specify the position for the current block to : {0}'.format(position),
+                                    c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                        'atUtils','set_position',position,
+                                                        **{}))             
             
             l_keys2 = d.get('order',False)
             if l_keys2:
