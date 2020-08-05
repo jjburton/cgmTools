@@ -78,7 +78,8 @@ def transfer_fromTo(source = None, targets = None):
 def get_influences_fromSelected(*args):
     skinJoints = []
     for obj in mc.ls(sl=True):
-        for shape in mc.listRelatives(obj, shapes=True):
+        shapes = mc.listRelatives(obj, shapes=True)
+        for shape in shapes if shapes else []:
             for skinCluster in mc.listConnections(type='skinCluster'):
                 for joint in get_influences_fromCluster(skinCluster):
                     if joint not in skinJoints:
