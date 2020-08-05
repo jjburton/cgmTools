@@ -1303,15 +1303,19 @@ example:
 			for d in os.listdir(searchDir):
 				if d[0] == '_' or d[0] == '.':
 					continue
-
-				if os.path.splitext(d)[-1].lower()[1:] in fileExtensions:
-					if self.showAllFiles:
-						anims.append(d)
-					elif self.hasVariant:
-						if '{0}_{1}_{2}_'.format(self.selectedAsset, self.selectedSubType, self.selectedVariation) in d:
-							anims.append(d)
+				
+				if self.showAllFiles:
+					anims.append(d)
+				elif os.path.splitext(d)[-1].lower()[1:] in fileExtensions:
+					if self.hasSub:
+						if self.hasVariant:
+							if '{0}_{1}_{2}_'.format(self.selectedAsset, self.selectedSubType, self.selectedVariation) in d:
+								anims.append(d)
+						else:
+							if '{0}_{1}_'.format(self.selectedAsset, self.selectedSubType) in d:
+								anims.append(d)							
 					else:
-						if '{0}_{1}_'.format(self.selectedAsset, self.selectedSubType) in d:
+						if '{0}_{1}_'.format(self.selectedAsset, self.subType) in d:
 							anims.append(d)
 							
 		searchList['items'] = anims
@@ -1559,7 +1563,10 @@ example:
 		self.refreshMetaData()
 
 	def OpenDirectory(self, path):
-		os.startfile(path)
+		if os.path.exists(path):
+			os.startfile(path)
+		else:
+			log.warning("Path not found - {0}".format(path))
 
 	def LoadProject(self, path, *args):
 		if not os.path.exists(path):
