@@ -2237,12 +2237,16 @@ def rig_controls(self):
                 mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
         
             #>> vis Drivers ==============================================================================	
-            mPlug_visSub = self.atBuilderUtils('build_visSub')
-            mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True, attrType='bool', defaultValue = False,keyable = False,hidden = False)
-            
-        mPlug_visDirect = cgmMeta.cgmAttr(mSettings,'visDirect', value = True,
-                                          attrType='bool', defaultValue = False,
-                                          keyable = False,hidden = False)
+            mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
+            mPlug_visRoot = self.atBuilderUtils('build_visModuleMD','visRoot')
+
+
+        mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
+
+        # Connect to visModule ...
+        ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
+                     "{0}.visibility".format(self.mDeformNull.mNode))
+
         
         if self.mBlock.headAim:        
             mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',

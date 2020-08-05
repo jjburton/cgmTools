@@ -82,7 +82,7 @@ example:
 		self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
 		self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
 		self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
-		self.showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
+		self.showAllFilesStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 0)
 		self.removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
 		self.zeroRootStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
 		self.useMayaPyStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
@@ -91,6 +91,9 @@ example:
 		self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
 		self.showDirectoriesStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
 		self.displayDetailsStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
+		self.bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
+		self.deleteSet                   = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet')
+		self.exportSet                   = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet') 
 
 		## sizes
 		self.__itemHeight                = 35
@@ -123,7 +126,7 @@ example:
 
 		self.exportCommand               = ""
 
-		self.showBakedOption             = None
+		self.showAllFilesOption          = None
 		self.removeNamespaceOption       = None
 		self.zeroRootOption              = None
 		self.useMayaPyOption             = None
@@ -132,7 +135,7 @@ example:
 		self.showDirectories             = self.showDirectoriesStore.getValue()
 		self.displayDetails              = self.displayDetailsStore.getValue()
 
-		self.showBaked                   = self.showBakedStore.getValue()
+		self.showAllFiles                = self.showAllFilesStore.getValue()
 		self.removeNamespace             = self.removeNamespaceStore.getValue()
 		self.zeroRoot                    = self.zeroRootStore.getValue()
 		self.useMayaPy                   = self.useMayaPyStore.getValue()
@@ -173,7 +176,7 @@ example:
 		return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
 	
 	@property
-	def selectedAnimation(self):
+	def selectedSubType(self):
 		return self.subTypeSearchList['scrollList'].getSelectedItem()	
 
 	@property
@@ -254,7 +257,7 @@ example:
 			return True
 	
 	def LoadOptions(self, *args):
-		self.showBaked       = bool(self.showBakedStore.getValue())
+		self.showAllFiles    = bool(self.showAllFilesStore.getValue())
 		self.categoryIndex   = int(self.categoryStore.getValue())
 		self.subTypeIndex    = int(self.subTypeStore.getValue())
 		self.removeNamespace = bool(self.removeNamespaceStore.getValue())
@@ -263,8 +266,8 @@ example:
 		self.showDirectories = bool(self.showDirectoriesStore.getValue())
 		self.displayDetails  = bool(self.displayDetailsStore.getValue())
 
-		if self.showBakedOption:
-			self.showBakedOption(e=True, checkBox = self.showBaked)
+		if self.showAllFilesOption:
+			self.showAllFilesOption(e=True, checkBox = self.showAllFiles)
 		if self.removeNamespaceOption:
 			self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
 		if self.zeroRootOption:
@@ -281,14 +284,14 @@ example:
 
 	def SaveOptions(self, *args):
 		log.info( "Saving options" )
-		self.showBaked = self.showBakedOption( q=True, checkBox=True ) if self.showBakedOption else False
+		self.showAllFiles = self.showAllFilesOption( q=True, checkBox=True ) if self.showAllFilesOption else False
 		self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
 		self.zeroRoot = self.zeroRootOption( q=True, checkBox=True ) if self.zeroRootOption else False
 
 		self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
 		self.showDirectories = self.showDirectoriesOption( q=True, checkBox=True ) if self.showDirectoriesOption else False
 
-		self.showBakedStore.setValue(self.showBaked)
+		self.showAllFilesStore.setValue(self.showAllFiles)
 		self.removeNamespaceStore.setValue(self.removeNamespace)
 		self.zeroRootStore.setValue(self.zeroRoot)
 		self.useMayaPyStore.setValue(self.useMayaPy)
@@ -297,12 +300,9 @@ example:
 		
 		# self.optionVarExportDirStore.setValue( self.exportDirectory )
 		self.categoryStore.setValue( self.categoryIndex )
-		self.subTypeStore.setValue( self.subTypeStore )
+		self.subTypeStore.setValue( self.subTypeIndex )
 		self.uiFunc_showDirectories( self.showDirectories )
 		self.uiFunc_displayDetails( self.displayDetails )
-
-	def TagAsset(self, *args):
-		pass
 
 	def UpdateToLatestRig(self, *args):
 		for obj in mc.ls(sl=True):
@@ -327,19 +327,19 @@ example:
 		sel = mc.ls(sl=True)
 		deleteSet = sel[0].split(':')[-1]
 		log.info( "Setting delete set to: %s" % deleteSet )
-		cgmMeta.cgmOptionVar('cgm_delete_set', varType="string").setValue(deleteSet)
+		self.deleteSet.setValue(deleteSet)
 
 	def SetBakeSet(self, *args):
 		sel = mc.ls(sl=True)
 		bakeSet = sel[0].split(':')[-1]
 		log.info( "Setting bake set to: %s" % bakeSet )
-		cgmMeta.cgmOptionVar('cgm_bake_set', varType="string").setValue(bakeSet)
+		self.bakeSet.setValue(bakeSet)
 
 	def SetExportSet(self, *args):
 		sel = mc.ls(sl=True)
 		exportSet = sel[0].split(':')[-1]
 		log.info( "Setting geo set to: %s" % exportSet )
-		cgmMeta.cgmOptionVar('cgm_export_set', varType="string").setValue(exportSet)
+		self.exportSet.setValue(exportSet)
 
 	def build_layoutWrapper(self,parent):
 
@@ -745,9 +745,9 @@ example:
 		self.uiMenu_OptionsMenu.clear()
 		#>>> Reset Options		
 
-		self.showBakedOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show baked versions",
-		                                        checkBox=self.showBaked,
-		                                        c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+		self.showAllFilesOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
+		                                        checkBox=self.showAllFiles,
+		                                        c = lambda *a:mc.evalDeferred(self.uiFunc_showAllFiles,lp=True))
 		self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
 		                                              checkBox=self.removeNamespace,
 		                                              c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
@@ -761,6 +761,10 @@ example:
 		                                         checkBox=self.showDirectories,
 		                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 	
+	def uiFunc_showAllFiles(self):
+		self.SaveOptions()
+		self.LoadVersionList()
+		
 	def uiFunc_selectVersionList(self):
 		self.assetMetaData = self.getMetaDataFromFile()
 		self.buildDetailsColumn()
@@ -1011,9 +1015,6 @@ example:
 	def buildMenu_tools( self, *args):
 		self.uiMenu_ToolsMenu.clear()
 		#>>> Reset Options		
-
-		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Tag As Current Asset",
-		                 c = lambda *a:mc.evalDeferred(self.TagAsset,lp=True))
 
 		mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Set Export Sets",
 		                 c = lambda *a:mc.evalDeferred(self.SetExportSets,lp=True))
@@ -1302,12 +1303,21 @@ example:
 			for d in os.listdir(searchDir):
 				if d[0] == '_' or d[0] == '.':
 					continue
-
-				for ext in fileExtensions:
-					if os.path.splitext(d)[-1].lower() == ".%s" % ext :
-						if not "_baked" in d or self.showBaked:
+				
+				if self.showAllFiles:
+					anims.append(d)
+				elif os.path.splitext(d)[-1].lower()[1:] in fileExtensions:
+					if self.hasSub:
+						if self.hasVariant:
+							if '{0}_{1}_{2}_'.format(self.selectedAsset, self.selectedSubType, self.selectedVariation) in d:
+								anims.append(d)
+						else:
+							if '{0}_{1}_'.format(self.selectedAsset, self.selectedSubType) in d:
+								anims.append(d)							
+					else:
+						if '{0}_{1}_'.format(self.selectedAsset, self.subType) in d:
 							anims.append(d)
-
+							
 		searchList['items'] = anims
 		searchList['scrollList'].clear()
 		searchList['scrollList'].setItems(anims)
@@ -1553,7 +1563,10 @@ example:
 		self.refreshMetaData()
 
 	def OpenDirectory(self, path):
-		os.startfile(path)
+		if os.path.exists(path):
+			os.startfile(path)
+		else:
+			log.warning("Path not found - {0}".format(path))
 
 	def LoadProject(self, path, *args):
 		if not os.path.exists(path):
@@ -1925,16 +1938,16 @@ example:
 			#reload(BATCH)
 			log.info('Maya Py!')
 
-			bakeSetName = None
-			deleteSetName = None
-			exportSetName = None
+			bakeSetName = self.bakeSet.getValue()
+			deleteSetName = self.deleteSet.getValue()
+			exportSetName = self.exportSet.getValue()
 
-			if(mc.optionVar(exists='cgm_bake_set')):
-				bakeSetName = mc.optionVar(q='cgm_bake_set')    
-			if(mc.optionVar(exists='cgm_delete_set')):
-				deleteSetName = mc.optionVar(q='cgm_delete_set')
-			if(mc.optionVar(exists='cgm_export_set')):
-				exportSetName = mc.optionVar(q='cgm_export_set')                
+			#if(mc.optionVar(exists='cgm_bake_set')):
+				#bakeSetName = mc.optionVar(q='cgm_bake_set')    
+			#if(mc.optionVar(exists='cgm_delete_set')):
+				#deleteSetName = mc.optionVar(q='cgm_delete_set')
+			#if(mc.optionVar(exists='cgm_export_set')):
+				#exportSetName = mc.optionVar(q='cgm_export_set')                
 
 			l_dat = []
 			d_base = {'removeNamespace' : self.removeNamespace,
@@ -2065,17 +2078,10 @@ example:
 		if self.useMayaPy:
 			#reload(BATCH)
 			log.info('Maya Py!')
-
-			bakeSetName = None
-			deleteSetName = None
-			exportSetName = None
-
-			if(mc.optionVar(exists='cgm_bake_set')):
-				bakeSetName = mc.optionVar(q='cgm_bake_set')    
-			if(mc.optionVar(exists='cgm_delete_set')):
-				deleteSetName = mc.optionVar(q='cgm_delete_set')
-			if(mc.optionVar(exists='cgm_export_set')):
-				exportSetName = mc.optionVar(q='cgm_export_set')                
+			
+			bakeSetName = self.bakeSet.getValue()
+			deleteSetName = self.deleteSet.getValue()
+			exportSetName = self.exportSet.getValue()             
 
 			d = {
 			'file':mc.file(q=True, sn=True),
@@ -2091,7 +2097,7 @@ example:
 			'bakeSetName':bakeSetName,
 			'exportSetName':exportSetName,
 			'deleteSetName':deleteSetName,
-            'animationName':self.selectedAnimation,
+            'animationName':self.selectedSubType,
             'workspace':d_userPaths['content']
 			}
 
@@ -2110,7 +2116,7 @@ example:
 		            exportAnimPath = exportAnimPath,
 		            removeNamespace = self.removeNamespace,
 					zeroRoot = self.zeroRoot,
-                    animationName = self.selectedAnimation,
+                    animationName = self.selectedSubType,
                     workspace=d_userPaths['content']
 		            )        
 
@@ -2431,14 +2437,11 @@ def ExportScene(mode = -1,
 	mc.file(rn=bakedLoc)
 
 	if not bakeSetName:
-		if(mc.optionVar(exists='cgm_bake_set')):
-			bakeSetName = mc.optionVar(q='cgm_bake_set')    
+		bakeSetName = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet').getValue()
 	if not deleteSetName:
-		if(mc.optionVar(exists='cgm_delete_set')):
-			deleteSetName = mc.optionVar(q='cgm_delete_set')
+		deleteSetName = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet').getValue()
 	if not exportSetName:
-		if(mc.optionVar(exists='cgm_export_set')):
-			exportSetName = mc.optionVar(q='cgm_export_set')    
+		exportSetName = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet').getValue()  
 
 	animList = SHOTS.AnimList()
 	#find our minMax
@@ -2463,10 +2466,12 @@ def ExportScene(mode = -1,
 
 	bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end)
 
+	mc.loadPlugin("fbxmaya")
 
 	for obj in exportObjs:			
 		log.info( cgmGEN.logString_sub(_str_func,'On: {0}'.format(obj)) )
-
+		
+		cgmObj = cgmMeta.asMeta(obj)
 		mc.select(obj)
 
 		assetName = obj.split(':')[0].split('|')[-1]
@@ -2503,7 +2508,7 @@ def ExportScene(mode = -1,
 
 			if len(exportObjs) > 1 and removeNamespace:
 				# Deleting the exported transforms in case another file has duplicate export names
-				mc.delete(obj)
+				mc.delete(cgmObj.mNode)
 				try:
 					mc.delete(exportTransforms)
 				except:
@@ -2530,8 +2535,8 @@ def PurgeData():
 	optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
 	optionVarLastVersionStore.purge()
 
-	showBakedStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_baked", defaultValue = 0)
-	showBakedStore.purge()
+	showAllFilesStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 0)
+	showAllFilesStore.purge()
 
 	removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
 	removeNamespaceStore.purge()

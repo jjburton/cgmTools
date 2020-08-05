@@ -19,7 +19,7 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__version__ = "1.06.15.2020"
+__version__ = "1.07.31.2020"
 __MAYALOCAL = 'CGMPROJECT'
 
 

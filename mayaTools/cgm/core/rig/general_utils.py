@@ -928,7 +928,7 @@ def objectDat_set(dat = {}, position = True, orient = True):
             if orient:
                 mNode.p_orient = d['orient']
         except Exception,err:
-            log.error("{0} | {1}".format(mNode,err))    
+            log.error("{0} | {1}".format(mNode,err))
     
     
 def get_planeIntersect(planeSource = None, target = None, planeAxis = 'z+', objAxis = 'z+', mark = False):

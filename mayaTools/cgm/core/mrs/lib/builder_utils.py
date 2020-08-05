@@ -85,7 +85,7 @@ def eyeLook_get(self,autoBuild=False):
 
     try:return mModule.eyeLook
     except:pass
-    try:return mi_module.moduleParent.eyeLook
+    try:return mModule.moduleParent.eyeLook
     except:pass
     
     ml_puppetEyelooks = mPuppet.msgList_get('eyeLook')
@@ -138,6 +138,7 @@ def eyeLook_verify(self):
         
         if mBlock.blockType not in ['eye']:
             raise ValueError,"blocktype must be eye. Found {0} | {1}".format(mBlock.blockType,mBlock)
+        
         
         #Data... -----------------------------------------------------------------------
         log.debug("|{0}| >> Get data...".format(_str_func))
@@ -209,6 +210,7 @@ def eyeLook_verify(self):
             mDynParent.addDynParent(o)
         mDynParent.rebuild()
         
+        
         #Connections... -----------------------------------------------------------------------        
         log.debug("|{0}| >> Connections... ".format(_str_func))
         mModule.connectChildNode(mCrv,'eyeLook')
@@ -222,16 +224,18 @@ def eyeLook_verify(self):
                 mBlockParentRigNull = mModuleParent.rigNull
                 mBlockParentRigNull.msgList_append('controlsAll',mCrv)
                 mBlockParentRigNull.moduleSet.append(mCrv)
-                mRigNull.faceSet.append(mCrv)
+                try:mRigNull.faceSet.append(mCrv)
+                except:pass
                 
                 mCrv.connectParentNode(mBlockParentRigNull,'rigNull')
                 
             else:
                 mModuleParent.puppetSet.append(mCrv)
                 mModuleParent.msgList_append('controlsAll',mCrv)
-                mModuleParent.faceSet.append(mCrv)
-                
-
+                try:mModuleParent.faceSet.append(mCrv)
+                except:pass
+        
+        
         #Connections... -----------------------------------------------------------------------        
         log.debug("|{0}| >> Heirarchy... ".format(_str_func))
         mCrv.masterGroup.p_parent = self.mDeformNull
@@ -242,7 +246,6 @@ def eyeLook_verify(self):
                 
         mCrv.addAttr('cgmControlDat','','string')
         mCrv.cgmControlDat = {'tags':['ik']}                
-        
         return mCrv
     
     except Exception,error:
@@ -1131,6 +1134,41 @@ def build_visSub(self):
     
     return mPlug_result_moduleSubDriver
 
+
+def build_visModuleMD(self,plug = '',defaultValue = True):
+    _start = time.clock()    
+    _str_func = 'build_visModuleMD'
+        
+    mSettings = self.mRigNull.settings
+    if not mSettings:
+        raise ValueError,"Not settings found"
+    
+    
+    self.mPlug_visModule
+    
+    mMasterControl = self.d_module['mMasterControl']
+    mMasterVis = self.d_module['mMasterVis']
+
+    #Add our attrs
+    mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,plug, value = True, attrType='bool', defaultValue = defaultValue,keyable = False,hidden = False)
+    #mPlug_moduleSubDriver = cgmMeta.cgmAttr(mSettings,'visSub', value = 1, defaultValue = 1, attrType = 'int', minValue=0,maxValue=1,keyable = False,hidden = False)
+    mPlug_result_moduleSubDriver = cgmMeta.cgmAttr(mSettings,plug + '_out', attrType = 'int', keyable = False,hidden = True,lock=True)
+
+    #Get one of the drivers
+    """
+    if self.mModule.getAttr('cgmDirection') and self.mModule.cgmDirection.lower() in ['left','right']:
+        str_mainSubDriver = "%s.%sSubControls_out"%(mMasterControl.controlVis.getShortName(),
+                                                    self.mModule.cgmDirection)
+    else:
+        str_mainSubDriver = "%s.subControls_out"%(mMasterControl.controlVis.getShortName())"""
+
+    iVis = mMasterControl.controlVis
+    visArg = [{'result':[mPlug_result_moduleSubDriver.obj.mNode, mPlug_result_moduleSubDriver.attr],
+               'drivers':[[mMasterVis,self.mPlug_visModule.attr],[mSettings,mPlug_moduleSubDriver.attr]]}]
+    NODEFACTORY.build_mdNetwork(visArg)
+    
+    
+    return mPlug_result_moduleSubDriver
 
 def get_blockScale(self,plug='blockScale',ml_joints = None):
     """

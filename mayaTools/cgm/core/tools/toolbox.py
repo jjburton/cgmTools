@@ -1703,6 +1703,13 @@ def buildRow_skin(self,parent):
     _row.setStretchWidget( mUI.MelSeparator(_row) )
 
     mc.button(parent=_row,
+              l='Get Joints',
+              ut = 'cgmUITemplate',
+              ann = "Select skinned joints from cluster",                                                                                                                       
+              c = cgmGen.Callback(MMCONTEXT.func_process, SKIN.get_influences_fromSelected))           
+
+
+    mc.button(parent=_row,
               l='Copy',
               ut = 'cgmUITemplate',
               ann = "Copy skin weights based on targets",                                                                                                                       

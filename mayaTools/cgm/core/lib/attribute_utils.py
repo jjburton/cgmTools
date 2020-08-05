@@ -1206,7 +1206,10 @@ def is_connected(*a):
     _d = validate_arg(*a) 
     _children = get_children(_d)    
     if _children:
-        _l = [mc.connectionInfo("{0}.{1}".format(_d['node'],a), isDestination=True) for a in _children ]
+        try:
+            _l = [mc.connectionInfo("{0}.{1}".format(_d['node'],a), isDestination=True) for a in _children ]
+        except Exception,err:
+            return False
         for v in _l:
             if v:return True
         return False
@@ -2380,7 +2383,7 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
                     try:
                         connect((n + ".message"),holderDict['combined'],nextAvailable=True)
                     except Exception,err:
-                        log.warning("|{0}| >> {1} failed: {2}".format(_str_func, n, err))  
+                        log.debug("|{0}| >> {1} failed: {2}".format(_str_func, n, err))  
                         
             if len(message) > 1 or _multi:#MULTIMESSAGE MODE...
                 if mc.objExists(_combined):

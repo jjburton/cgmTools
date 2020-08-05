@@ -2158,6 +2158,14 @@ def rig_controls(self):
         mPlug_visDirect = self.mPlug_visDirect_moduleParent
         mPlug_visSub = self.mPlug_visSub_moduleParent
         
+        #ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
+        #             "{0}.visibility".format(self.mDeformNull.mNode))
+        
+        self.mDeformNull.overrideEnabled = 1
+        ATTR.connect(self.mPlug_visModule.p_combinedShortName,
+                     "{0}.overrideVisibility".format(self.mDeformNull.mNode))
+        
+        
         """
         cgmMeta.cgmAttr(self.mSettings,'visDirect_{0}'.format(self.d_module['partName']),
                                           value = True,
@@ -2180,6 +2188,7 @@ def rig_controls(self):
         b_sdk = False
         if self.str_buildSDK == 'dag':
             b_sdk = True
+            
         #Handles ================================================================================
         log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
         for k,d in self.md_handles.iteritems():

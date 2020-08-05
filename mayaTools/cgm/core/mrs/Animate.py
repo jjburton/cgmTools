@@ -130,6 +130,7 @@ class ui(cgmUI.cgmGUI):
         self.uiPopUpMenu_poses = None
         self.uiMenu_snap = None
         self.uiMenu_help = None
+        self.uiMenu_vis = None
         self._l_contexts = _l_contexts
         self._l_contextTime = _l_contextTime
         self._l_contextKeys = _l_contextKeys
@@ -160,6 +161,8 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
         self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
         self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)
+        self.uiMenu_vis = mUI.MelMenu(l = 'Vis', pmc = lambda *a:self.buildMenu_vis()) 
+        
         #self.uiMenu_picker = mUI.MelMenu( l='Picker',pmc=lambda *a:self.buildMenu_picker(True), tearOff=1)                
         self.uiMenu_help = mUI.MelMenu(l = 'Help', pmc = lambda *a:self.buildMenu_help()) 
         
@@ -193,6 +196,47 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(self.uiMenu_snap, l='Rebuild',
                         c=self.mmCallback(self.buildMenu_snap,True))
         log.debug("Snap menu rebuilt")
+        
+    def buildMenu_vis( self, force=False, *args, **kws):
+        if self.uiMenu_vis and force is not True:
+            return
+        self.uiMenu_vis.clear()        
+        
+        
+        #Toggles ===============================================================================
+        #_toggle = mc.menuItem(p=parent,l="Toggle",subMenu=True)
+        
+        l_settings = ['visModule','visSub','visDirect','visRoot']
+        l_enums = ['skeleton','geo','proxy']
+    
+        for n in l_settings + l_enums:
+            _sub = mc.menuItem(p=self.uiMenu_vis, l=n, subMenu=True)
+            if n in l_settings:
+                l_options = ['hide','show']
+                
+                if n == 'visModule':
+                    _mode = 'moduleVis'
+                else:
+                    _mode = 'moduleSettings'
+            else:
+                l_options = ['off','lock','on']
+                _mode = 'puppetSettings'
+                
+            _d_tmp = {}
+            #_d_tmp = {'contextMode':None,
+            #          'contextTime':None,
+            #          'contextMirror':False,
+            #          'contextChildren':False,
+            #          'contextSiblings':False}
+            
+            for v,o in enumerate(l_options):
+                mUI.MelMenuItem(_sub,
+                                l=o,
+                                c=self.mmCallback(uiCB_contextSetValue,self,n,v,_mode,**_d_tmp))
+                
+                
+                #mc.menuItem(p=_sub,l=o,c=self.mmCallback(uiCB_contextSetValue,self,n,v,_mode,**_d_tmp))        
+        
         
     def uiFunc_fillPickerMenu():
         try:
@@ -1868,7 +1912,7 @@ def buildTab_mrs(self,parent):
     buildFrame_mrsHold(self,_columnBelow)        
     buildFrame_mrsMirror(self,_columnBelow)
     buildFrame_mrsSwitch(self,_columnBelow)
-    buildFrame_mrsSettings(self,_columnBelow)
+    #buildFrame_mrsSettings(self,_columnBelow)
     
     
     parent(edit = True,
@@ -4569,7 +4613,16 @@ def uiCB_contextSetValue(self, attr=None,value=None, mode = None,**kws):
     _str_func='cgmUICB_settingsSet'
     log.debug("|{0}| >>  context: {1} | attr: {2} | value: {3} | mode: {4}".format(_str_func,mode,attr,value,mode)+ '-'*80)
     
-    self.mDat.context_get(**kws)
+    try:contextArg = self.__class__.TOOLNAME 
+    except:contextArg = False
+        
+    log.debug(cgmGEN.logString_msg(_str_func,"contextArg: {0}".format(contextArg)))
+    d_contextSettings = MRSANIMUTILS.get_contextDict(contextArg)
+    d_contextSettings['contextPrefix'] = contextArg    
+    
+    self.mDat.context_get(**d_contextSettings)
+    
+    #pprint.pprint(self.mDat.d_context)
     
     if mode == 'moduleSettings':
         if not self.mDat.d_context['mModules']:
@@ -4580,21 +4633,16 @@ def uiCB_contextSetValue(self, attr=None,value=None, mode = None,**kws):
     elif mode == 'puppetSettings':
         for mPuppet in self.mDat.d_context['mPuppets']:
             ATTR.set(mPuppet.masterControl.controlSettings.mNode, attr, value)
+    elif mode == 'moduleVis':
+        for mModule in self.mDat.d_context['mModules']:
+            attr = "{0}_vis".format(mModule.get_partNameBase())
+            try:ATTR.set(mModule.modulePuppet.masterControl.controlVis.mNode, attr, value)
+            except Exception,err:
+                log.info("attr: {0} | Switch call".format(attr))
+                
     else:
         return log.error("Unknown contextualSetValue mode: {0}".format(mode))
-    """
-    for mPuppet in self.mDat.d_context['mPuppets']:
-        if mode == 'moduleSettings':
-            mPuppet.atUtils('modules_settings_set',**{attr:value})
-            #mPuppet.UTILS.module_settings_set(mPuppet,**{attr,value})
-        elif mode == 'puppetSettings':
-            ATTR.set(mPuppet.masterControl.controlSettings.mNode, attr, value)
-        else:
-            return log.error("Unknown contextualSetValue mode: {0}".format(mode))"""
-        
-    
-    
-    
+
 
 def buildColumn_main(self,parent, asScroll = False):
     """

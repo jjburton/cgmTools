@@ -119,8 +119,8 @@ def Bake(assets, bakeSetName = 'bakeSet',
     return baked
 
 def Prep(removeNamespace = False, 
-         deleteSetName = "deleteSet",
-         exportSetName = "exportSet",
+         deleteSetName = "delete_tdSet",
+         exportSetName = "export_tdSet",
          zeroRoot = False):
     
     _str_func = 'Prep'

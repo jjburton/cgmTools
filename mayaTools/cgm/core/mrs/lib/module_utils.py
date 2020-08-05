@@ -70,7 +70,7 @@ def get_partName(self):
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
     try:#Quick select sets ================================================================
-        _d = NAMETOOLS.get_objNameDict(self.mNode)
+        _d = NAMETOOLS.get_objNameDict(self.mNode,['cgmType'])
         if not _d.get('cgmName'):
             _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
         log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
@@ -822,7 +822,7 @@ def controls_getDat(self, keys = None,
                         mRigNull.msgList_append('controlsAll',mObj)
                         mRigNull.moduleSet.append(mObj.mNode)                        
                     else:
-                        log.warning("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
+                        log.debug("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
             log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
             mList.append(mObj)
 

@@ -298,3 +298,54 @@ class build_conditionNetworkFromGroup(object):
             attributes.doConnectAttr('%s.outColorR'%i_node.mNode,'%s.%s'%(c,self.connectToAttr))
 
         return True
+    
+    
+def shaderDat_get(nodes = []):
+    if not nodes:
+        nodes = mc.ls(sl=1)
+        
+    _res = {}
+    mNodes = cgmMeta.asMeta(nodes)
+    for mNode in mNodes:
+        _node = mNode.mNode
+        try:
+            _d = {}
+            
+            for a in mNode.getAttrs():
+                try:
+                    
+                    if ATTR.get_driver(_node,a):
+                        continue
+                    _d[a] = mNode.getMayaAttr(a)
+                except Exception,err:
+                    log.error("{0} | {1}".format(mNode,err))
+            
+            _res[mNode.mNode] = _d
+            
+        except Exception,err:
+            log.error("{0} | {1}".format(mNode,err))
+    pprint.pprint(_res)
+    return _res
+
+def shaderDat_set(dat = {},  key = None, nodes = []):
+    _d = dat.get(key,False)
+    if not _d:
+        return False
+    
+    if not nodes:
+        nodes = mc.ls(sl=1)
+    _res = {}
+    mNodes = cgmMeta.asMeta(nodes)
+    
+    for node in nodes:
+        for a,v in _d.iteritems():
+            if a  in ['color']:
+                continue
+            log.info(node)
+            try:
+                log.info('{0} --> {1}'.format(a,v))
+                ATTR.set(node,a,v)
+            except Exception,err:
+                log.error("{0} | {1}".format(node,err))
+            
+            

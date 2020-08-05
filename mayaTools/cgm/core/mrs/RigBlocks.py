@@ -3300,7 +3300,14 @@ class rigFactory(object):
         cgmMeta.cgmAttr(_str_moduleRigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(_str_moduleRigNull,'overrideDisplayType'))    
 
         #log.debug("%s >> Time >> = %0.3f seconds " % (_str_funcName,(time.clock()-start)) + "-"*75)   
+        
+        #Block Vis ---------------------------------------------------------------------------------------
+        _str_partVis = self.d_module['partName'] + '_vis'
+        _mMasterVis = self.d_module['mMasterVis']
 
+        self.mPlug_visModule = cgmMeta.cgmAttr(_mMasterVis,_str_partVis,value = True,
+                                               defaultValue = True, attrType = 'bool',
+                                               keyable = False,hidden = False)
 
         #>>> Object Set -----------------------------------------------------------------------------------
         self.mModule.verify_objectSet()
@@ -3320,6 +3327,7 @@ class rigFactory(object):
             log.debug("|{0}| >> mModuleParent mSettings: {1}".format(_str_func,mSettings))
             self.mPlug_visSub_moduleParent = cgmMeta.cgmAttr(mSettings,'visSub','bool')
             self.mPlug_visDirect_moduleParent = cgmMeta.cgmAttr(mSettings,'visDirect','bool')
+
 
 
         log.debug("|{0}| >> passed...".format(_str_func)+ cgmGEN._str_subLine)
@@ -3478,6 +3486,8 @@ class rigFactory(object):
             _d['mMasterControl'] = _mPuppet.masterControl
             _d['mPlug_globalScale'] =  cgmMeta.cgmAttr(_d['mMasterControl'].mNode,'scaleY')	 
             _d['mMasterSettings'] = _d['mMasterControl'].controlSettings
+            _d['mMasterVis'] = _d['mMasterControl'].controlVis
+            
             _d['mMasterDeformGroup'] = _mPuppet.masterNull.deformGroup
 
             #_d['mMasterNull'].worldSpaceObjectsGroup.parent = _mPuppet.masterControl
