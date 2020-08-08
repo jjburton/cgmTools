@@ -77,7 +77,7 @@ if cgmGEN.__mayaVersion__ >=2016:
 def uiSection_git(parent):
     _str_func = 'uiSection_git'  
     
-    l_branches = 'master','MRSDEV','MRSWORKSHOP'
+    l_branches = 'main','MRSDEV','MRSWORKSHOP'
     
     _git = mc.menuItem(parent = parent,subMenu=True,
                        l='Pull',
@@ -668,6 +668,118 @@ def uiSection_layout(parent):
             ann = "from Hamish McKenzie's zooToolbox -  zooHUDCtrl lets you easily add stuff to your viewport HUD.",
             c=lambda *a: mel.eval('zooHUDCtrl'))
 
+
+
+def uiSection_mrsMove(parent):
+    _str_func = 'uiSection_layout'  
+    
+    mUI.MelMenuItemDiv(parent,label='Move')
+    
+    mc.menuItem(parent = parent,
+                l='mrsAnimate',
+                ann = "MRS Animation Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsANIMATE())    
+    mc.menuItem(parent = parent,
+                l='mrsPoser',
+                ann = "Pose Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsPOSER())
+    mc.menuItem(parent = parent,
+                l='cgmMocapBakeTool',
+                ann = "Mocap Bake Tool - A tool for retargeting and baking control transforms from an animated source",
+                c=lambda *a:TOOLCALLS.mocapBakeTool())        
+    mc.menuItem(parent = parent,
+                l='cgmLocinator',
+                ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",
+                c=lambda *a: TOOLCALLS.locinator()) 
+    
+    mc.menuItem(parent = parent,
+                l='cgmSnapTools',
+                ann = "Launch cgmSnapTools - a tool for snapping things around in maya",
+                c=lambda *a: TOOLCALLS.cgmSnapTools())
+    mc.menuItem(parent = parent,
+                l='cgmSetTools',
+                ann = "Launch cgm's setTools - a tool for managing maya selection sets",
+                c=lambda *a: TOOLCALLS.setTools())
+
+    
+    
+def uiSection_mrsDynamics(parent):
+    _str_func = 'uiSection_layout'  
+    
+    mUI.MelMenuItemDiv(parent,label='Dynamics')
+    
+    
+    mc.menuItem(parent = parent,
+                l='cgmSimChain',
+                ann = "cgmSimChain - a tool for doing simulation on control chains",
+                c=lambda *a: TOOLCALLS.cgmSimChain())
+ 
+    mc.menuItem(parent = parent,
+                l='cgmAnimDraw',
+                ann = "Launch cgm's animDraw - a tool for drawing anim data",
+                c=lambda *a: TOOLCALLS.animDraw())
+    mc.menuItem(parent = parent,
+                l='cgmAnimFilterTool',
+                ann = "Launch cgm's animFilterTool - a tool for simple dynamics",
+                c=lambda *a: TOOLCALLS.animFilter())    
+
+    
+def uiSection_mrsLearn(parent):
+    _str_func = 'uiSection_layout'  
+    
+    mUI.MelMenuItemDiv(parent,label='Learn')
+    mc.menuItem(parent = parent,
+                l='cgmTools Documentation',
+                ann = "cgmTools Docs | ...",
+                c=lambda *a: webbrowser.open("http://docs.cgmonks.com/"))    
+    
+    mc.menuItem(parent = parent,
+                l='MRS Documentation',
+                ann = "Access to MRS Docmenation |",
+                c=lambda *a: webbrowser.open("http://mrsdocs.cgmonastery.com/"))
+
+def uiSection_mrsTD(parent):
+    _str_func = 'uiSection_layout'  
+    
+    
+    mUI.MelMenuItemDiv(parent,label='TD')
+
+    mc.menuItem(parent = parent,
+                l='mrsBuilder',
+                ann = "MRS Rigging Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsUI())
+    mc.menuItem(parent = parent,
+                l='cgmDynParentTool',
+                ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
+                c=lambda *a: TOOLCALLS.dynParentTool())
+    
+    mc.menuItem(parent = parent,
+                l='cgmAttrTools',
+                ann = "Launch cgmAttrTools",
+                c=lambda *a: TOOLCALLS.attrTools())    
+    mc.menuItem(parent = parent,
+                l='cgmJointTools',
+                ann = "Launch cgmJointTools",
+                c=lambda *a: TOOLCALLS.jointTools())    
+    
+
+def uiSection_mrsManage(parent):
+    _str_func = 'uiSection_layout'  
+    
+    mUI.MelMenuItemDiv(parent,label='Manage')
+    mc.menuItem(parent = parent,
+                l='Project',
+                ann = "Project Management Tool | Alpha",
+                c=lambda *a:TOOLCALLS.cgmProject())
+    mc.menuItem(parent = parent,
+                l='Shots',
+                ann = "Shot Chunk Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsShots())
+    mc.menuItem(parent = parent,
+                l='Scene',
+                ann = "Scene Management Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsScene())
+
 def uiSection_mrs(parent):
     _str_func = 'uiSection_layout'  
     
@@ -739,7 +851,14 @@ def uiSection_mrs(parent):
                 ann = "Launch cgm's setTools - a tool for managing maya selection sets",
                 c=lambda *a: TOOLCALLS.setTools())
 
-
+    mc.menuItem(parent = parent,
+                l='cgmAnimDraw',
+                ann = "Launch cgm's animDraw - a tool for drawing anim data",
+                c=lambda *a: TOOLCALLS.animDraw())
+    mc.menuItem(parent = parent,
+                l='cgmAnimFilterTool',
+                ann = "Launch cgm's animFilterTool - a tool for simple dynamics",
+                c=lambda *a: TOOLCALLS.setTools())    
     
     mUI.MelMenuItemDiv(parent,label='Learn')
     mc.menuItem(parent = parent,

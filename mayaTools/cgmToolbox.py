@@ -234,6 +234,8 @@ def uiMainMenu_rebuild():
         try:mc.deleteUI(getattr(maya,'_cgmMenu'))
         except:pass
         delattr(maya,'_cgmMenu')
+    
+    reload(UICHUNKS)
     uiMainMenu_add()
 
 
@@ -443,6 +445,7 @@ def uiBuild_cgmMenu( *args ):
     _str_func = 'uiBuild_cgmMenu'
     menu = maya._cgmMenu
     menu.clear()
+    
     #reload(UICHUNKS)
     log.info("|{0}| >> building...".format(_str_func))        
     
@@ -461,8 +464,13 @@ def uiBuild_cgmMenu( *args ):
 
     #mUI.MelMenuItem(menu, l='Open Tool Win',
     #                c=lambda *args: ToolboxWindow())
+    
     mc.menuItem(p = menu, l='Open Tool Win',
                 c= lambda *a:mc.evalDeferred(callUI,lp=1))
+    
+    
+    #Utils ==========================================================================
+    mUI.MelMenuItemDiv(menu,label='General')
 
     #>>Snap ----------------------------------------------------------------------
     _snap = mc.menuItem(p=menu,l='Snap',subMenu = True, tearOff = True)  
@@ -471,7 +479,6 @@ def uiBuild_cgmMenu( *args ):
     _create = mc.menuItem(p=menu,l='Create',subMenu = True, tearOff = True,
                           ann= 'Create objects from selected objects or components')  
     UICHUNKS.uiSection_createFromSel(_create)
-        
     #>>TD ----------------------------------------------------------------------
     _td = mc.menuItem(p=menu,l='TD/Create',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_selection(_td)
@@ -485,27 +492,59 @@ def uiBuild_cgmMenu( *args ):
     UICHUNKS.uiSection_curves(_td)
     UICHUNKS.uiSection_mesh(_td)
     UICHUNKS.uiSection_skin(_td)
-    UICHUNKS.uiSection_nodes(_td)
-
+    UICHUNKS.uiSection_nodes(_td)    
+    UICHUNKS.uiSection_utils(_td)    
+        
     #>>>Anim ----------------------------------------------------------------------
     _anim = mc.menuItem(p=menu,l='Anim',subMenu = True, tearOff = True)
     UICHUNKS.uiSection_animUtils(_anim) 
+    UICHUNKS.uiSection_layout(_anim)
 
     #>>Layout ----------------------------------------------------------------------
-    _layout = mc.menuItem(p=menu,l='Layout',subMenu = True, tearOff = True)
-    UICHUNKS.uiSection_layout(_layout)
+    #_layout = mc.menuItem(p=menu,l='Layout',subMenu = True, tearOff = True)
+    #UICHUNKS.uiSection_layout(_layout)
     
-    #>>LightStudio ----------------------------------------------------------------------
-    #_layout = mc.menuItem(p=menu,l='LightStudio',subMenu = True, tearOff = True)
-    UICHUNKS.LIGHTLOOMLITE.uiMenu(menu)    
-    
-    #>>Mrs ----------------------------------------------------------------------
-    _layout = mc.menuItem(p=menu,l='MRS',subMenu = True, tearOff = True)
-    UICHUNKS.uiSection_mrs(_layout)    
-
     #>>Hotkeys ----------------------------------------------------------------------
     _hotkeys = mc.menuItem(p=menu,l='Hotkeys',subMenu = True, tearOff = False)
-    UICHUNKS.uiSection_hotkeys(_hotkeys)
+    UICHUNKS.uiSection_hotkeys(_hotkeys)    
+    
+    
+    UICHUNKS.LIGHTLOOMLITE.uiMenu(menu)   
+    
+        
+    #>>MRS ==========================================================================
+    mUI.MelMenuItemDiv(menu,label='MRS')
+    
+    _manage = mc.menuItem(p=menu,l='Manage',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_mrsManage(_manage)    
+    
+    _TD = mc.menuItem(p=menu,l='TD',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_mrsTD(_TD)    
+    
+    _Dyn = mc.menuItem(p=menu,l='Dynamics',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_mrsDynamics(_Dyn)    
+    
+    _Move = mc.menuItem(p=menu,l='Move',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_mrsMove(_Move)    
+    
+    _Learn = mc.menuItem(p=menu,l='Learn',subMenu = True, tearOff = True)
+    UICHUNKS.uiSection_mrsLearn(_Learn)    
+    
+    
+    
+    #>>Mrs ----------------------------------------------------------------------
+    #_layout = mc.menuItem(p=menu,l='MRS',subMenu = True, tearOff = True)
+    #UICHUNKS.uiSection_mrs(_layout)        
+    
+    
+    #>>MRS ==========================================================================
+    mUI.MelMenuItemDiv(menu,label='Extra')    
+
+    #>>LightStudio ----------------------------------------------------------------------
+    #_layout = mc.menuItem(p=menu,l='LightStudio',subMenu = True, tearOff = True)
+
+
+
 
     #>>dev ----------------------------------------------------------------------
     _dev = mc.menuItem(p=menu,l='Dev',subMenu = True, tearOff = True)
@@ -513,7 +552,6 @@ def uiBuild_cgmMenu( *args ):
     
     #>>utils ----------------------------------------------------------------------
     #_utils = mc.menuItem(p=menu,l='Dev',subMenu = True, tearOff = True)
-    UICHUNKS.uiSection_utils(menu)    
     
     #>>Git ----------------------------------------------------------------------
     _git = mc.menuItem(p=menu,l='Git',subMenu = True, tearOff = True)

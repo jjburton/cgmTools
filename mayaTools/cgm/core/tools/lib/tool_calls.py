@@ -116,6 +116,25 @@ def mrsScene():
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
+def animDraw():
+    try:
+        import cgm.core.tools.animDrawTool as ANIMDRAW
+        reload(ANIMDRAW)
+        mel.eval('python "import cgm.core.tools.animDrawTool as ANIMDRAW;cgmAnimDrawUI = ANIMDRAW.ui()"')
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+        
+def animFilter():
+    try:
+        import cgm.core.tools.animFilterTool as ANIMFILTER
+        reload(ANIMFILTER)
+        mel.eval('python "import cgm.core.tools.animFilterTool as ANIMFILTER;cgmAnimFilterUI = ANIMFILTER.ui()"')
+    except Exception,err:
+        cgmGEN.cgmException(Exception,err)
+        
+        
+        
         
     #except Exception,err:
     #    log.warning("[mrsScene] failed to load. | {0}".format(err))
