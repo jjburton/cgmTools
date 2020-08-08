@@ -111,7 +111,8 @@ def mrsScene():
     try:
         import cgm.core.mrs.Scene as SCENE
         reload(SCENE)
-        x = SCENE.ui()
+        mel.eval('python "import cgm.core.mrs.Scene as SCENE;cgmSceneUI = SCENE.ui()"')
+
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
@@ -128,11 +129,13 @@ def cgmSimChain():
         
 def animDraw():
     try:
-        import cgm.tools.liveRecordTool as LR
-        reload(LR)
-        import cgm.tools.liveRecord as liveRecord
+        import cgm.core.tools.liveRecord as liveRecord
         reload(liveRecord)
-        mel.eval('python "animDraw = cgm.tools.liveRecordTool.ui();"')
+        import cgm.core.tools.animDrawTool as ADT
+        reload(ADT)
+        import cgm.core.tools.animDraw as animDraw
+        reload(animDraw)
+        mel.eval('python "import cgm.core.tools.animDrawTool as ADT;animDrawInstance = ADT.ui();"')
         
     except Exception,err:
         cgmGEN.cgmException(Exception,err)

@@ -98,7 +98,9 @@ def create(target = None, position = None, tag = True, setMatchTarget=True, pivo
                 return mc.rename(_loc, name)            
             return mc.rename("pos_loc")
         if not target:
-            return mc.rename("world_center_loc")
+            if name:
+                return mc.rename(_loc, name) 
+            return mc.rename(_loc, "world_center_loc")
     
         _targets = VALID.objStringList(target, noneValid=False, calledFrom= __name__ + _str_func + ">> validate target")
         #_targets = VALID.listArg(target)
