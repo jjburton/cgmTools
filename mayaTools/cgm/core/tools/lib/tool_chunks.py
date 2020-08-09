@@ -683,6 +683,9 @@ def uiSection_mrsMove(parent):
                 l='mrsPoser',
                 ann = "Pose Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsPOSER())
+    
+    mUI.MelMenuItemDiv(parent,label='Utils')
+    
     mc.menuItem(parent = parent,
                 l='cgmMocapBakeTool',
                 ann = "Mocap Bake Tool - A tool for retargeting and baking control transforms from an animated source",
@@ -748,6 +751,10 @@ def uiSection_mrsTD(parent):
                 l='mrsBuilder',
                 ann = "MRS Rigging Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsUI())
+
+    
+    
+    mUI.MelMenuItemDiv(parent,label='Utils')
     mc.menuItem(parent = parent,
                 l='cgmDynParentTool',
                 ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
@@ -772,13 +779,17 @@ def uiSection_mrsManage(parent):
                 ann = "Project Management Tool | Alpha",
                 c=lambda *a:TOOLCALLS.cgmProject())
     mc.menuItem(parent = parent,
-                l='Shots',
-                ann = "Shot Chunk Tool | Beta",
-                c=lambda *a:TOOLCALLS.mrsShots())
-    mc.menuItem(parent = parent,
                 l='Scene',
                 ann = "Scene Management Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsScene())
+    
+    mUI.MelMenuItemDiv(parent,label='Utils')
+    
+    mc.menuItem(parent = parent,
+                l='Shots',
+                ann = "Shot Chunk Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsShots())
+
 
 def uiSection_mrs(parent):
     _str_func = 'uiSection_layout'  
@@ -789,13 +800,13 @@ def uiSection_mrs(parent):
                 ann = "Project Management Tool | Alpha",
                 c=lambda *a:TOOLCALLS.cgmProject())
     mc.menuItem(parent = parent,
-                l='Shots',
-                ann = "Shot Chunk Tool | Beta",
-                c=lambda *a:TOOLCALLS.mrsShots())
-    mc.menuItem(parent = parent,
                 l='Scene',
                 ann = "Scene Management Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsScene())
+    mc.menuItem(parent = parent,
+                l='Shots',
+                ann = "Shot Chunk Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsShots())    
     
     mUI.MelMenuItemDiv(parent,label='TD')
     
