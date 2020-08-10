@@ -1986,9 +1986,11 @@ class ui(cgmUI.cgmGUI):
                 ml_res.append(res)
                 if res:
                     if _call == 'rebuild':
-                        mBlock = res                    
-                    log.info("[{0}] ...".format(mBlock.p_nameShort,res))
-                    pprint.pprint(res)
+                        mBlock = res
+                        
+                    log.debug("[{0}] ...".format(mBlock.p_nameShort,res))
+                    if kws.get('mode') not in ['prechecks']:
+                        pprint.pprint(res)
                     
 
                         
@@ -3799,7 +3801,7 @@ class ui(cgmUI.cgmGUI):
         _row_contextModes.layout()         
   
         #Context Start  -------------------------------------------------------------------------------          
-        self.create_guiOptionVar('contextStartMode',defaultValue = 0)       
+        self.create_guiOptionVar('contextStartMode',defaultValue = 1)       
     
         _rc_contextStartMode = mUI.MelRadioCollection()
     

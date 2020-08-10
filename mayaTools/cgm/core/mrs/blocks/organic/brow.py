@@ -22,7 +22,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -148,6 +148,16 @@ l_attrsStandard = ['side',
                    'buildSDK',                   
                    'controlOffset',
                    'conDirectOffset',
+                   'ribbonParam',
+                   
+                   'ribbonAim',
+                   'ribbonConnectBy',                 
+                   'squashMeasure',
+                   'squash',
+                   'squashExtraControl',
+                   'squashFactorMax',
+                   'squashFactorMin',                   
+ 
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:split:side',
@@ -162,7 +172,7 @@ d_attrsToMake = {'browType':'full:split:side',
                  'numSplit_v':'int',
                  'addEyeSqueeze':'bool',
                  'browSetup':'ribbon:undefined',
-                 'numHandlesBrow':'int',
+                 #'numHandlesBrow':'int',
                  'numBrowJoints':'int',
                  'profileOptions':'string',
                  'numBrowControl':'int',
@@ -1819,7 +1829,7 @@ d_preferredAngles = {}#In terms of aim up out for orientation relative values, s
 d_rotateOrders = {}
 
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_prechecks(self):
     _str_func = 'rig_prechecks'
     log.debug(cgmGEN.logString_start(_str_func))
@@ -1833,11 +1843,21 @@ def rig_prechecks(self):
     str_browType = mBlock.getEnumValueString('browType')
     if str_browType not in ['full','split']:
         self.l_precheckErrors.append("Brow setup not completed: {0}".format(str_browType))
-                
+    
     if mBlock.scaleSetup:
-        self.l_precheckErrors.append("Scale setup not complete")
+        
+        str_ribbonParam = mBlock.getEnumValueString('ribbonParam')
+        str_squashMeasure = mBlock.getEnumValueString('squashMeasure')
+        if str_squashMeasure in ['pointDist']:
+            if str_ribbonParam in ['floating']:
+                self.l_precheckErrors.append("Squash measure pointDist and floating ribbon param is pointless. Change ribbonParam to fixed or floating OR squashMeasure to arcLen")
+        
+        if str_browType in ['full']:
+            if str_squashMeasure in ['arcLen']:
+                self.l_precheckErrors.append("Full brow with arcLen setup not recommended")
+    
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_dataBuffer(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_dataBuffer'
@@ -1866,6 +1886,10 @@ def rig_dataBuffer(self):
     for k in ['browSetup','buildSDK','browType']:
         self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k) or False
         
+    self.b_SDKonly = False
+    if self.str_buildSDK in ['only']:
+        self.b_SDKonly = True
+    
     #Logic checks ========================================================================
     l_handleKeys = (['center','left','right'])
     if not mBlock.buildCenter:
@@ -1873,6 +1897,49 @@ def rig_dataBuffer(self):
     
     self.l_handleKeys = l_handleKeys
     
+    
+    #Squash stretch logic  =================================================================================
+    log.debug("|{0}| >> Squash stretch..".format(_str_func))
+    self.b_scaleSetup = mBlock.scaleSetup
+    
+    self.b_squashSetup = False
+    
+    self.d_squashStretch = {}
+    
+    _squashStretch = None
+    if mBlock.squash:
+        _squashStretch =  mBlock.getEnumValueString('squash')
+        self.b_squashSetup = True
+    self.d_squashStretch['squashStretch'] = _squashStretch
+    
+    _squashMeasure = None
+    if mBlock.squashMeasure:
+        _squashMeasure =  mBlock.getEnumValueString('squashMeasure')    
+    self.d_squashStretch['squashStretchMain'] = _squashMeasure    
+
+    _driverSetup = None
+    if mBlock.ribbonAim:
+        _driverSetup =  mBlock.getEnumValueString('ribbonAim')
+    self.d_squashStretch['driverSetup'] = _driverSetup
+
+    self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
+    self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
+    self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
+    self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
+    
+    log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
+    #pprint.pprint(self.d_squashStretch)
+    
+
+    #self.d_squashStretchIK['sectionSpans'] = 2
+
+    
+    log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
+    log.debug("|{0}| >> self.b_squashSetup: {1}".format(_str_func,self.b_squashSetup))
+    #pprint.pprint(self.d_squashStretch)
+    log.debug(cgmGEN._str_subLine)    
+    
+
     #Offset ============================================================================ 
     self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
     """
@@ -1935,7 +2002,7 @@ def rig_dataBuffer(self):
     return True
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_skeleton(self):
     _short = self.d_block['shortName']
     
@@ -1968,10 +2035,15 @@ def rig_skeleton(self):
                                                            cgmType = False,
                                                            blockNames=False)
     
-    ml_segmentJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_joints, None,
-                                                               mRigNull,'segmentJoints','seg',
-                                                               cgmType = 'segJnt')    
-    ml_jointsToHide.extend(ml_segmentJoints)        
+    
+    if not self.b_SDKonly:
+        ml_segmentJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_joints, None,
+                                                                   mRigNull,'segmentJoints','seg',
+                                                                   cgmType = 'segJnt')    
+        ml_jointsToHide.extend(ml_segmentJoints)
+    else:
+        for mJnt in ml_rigJoints:
+            mJnt.p_parent = False
     
     #Brow joints ================================================================================
     log.debug("|{0}| >> Brow Joints...".format(_str_func)+ '-'*40)
@@ -1996,11 +2068,12 @@ def rig_skeleton(self):
             mRigJoint = mJnt.getMessageAsMeta('rigJoint')
             ml_rig.append(mRigJoint)
             
-            mSegJoint = mJnt.getMessageAsMeta('segJoint')
-            ml_seg.append(mSegJoint)
-            mSegJoint.p_parent = False
+            if not self.b_SDKonly:
+                mSegJoint = mJnt.getMessageAsMeta('segJoint')
+                ml_seg.append(mSegJoint)
+                mSegJoint.p_parent = False
             
-            mRigJoint.p_parent = mSegJoint
+                mRigJoint.p_parent = mSegJoint
             
         md_rigJoints['brow'][k] = ml_rig
         md_segJoints['brow'][k] = ml_seg
@@ -2013,41 +2086,43 @@ def rig_skeleton(self):
     ml_jointsToHide.extend(ml_segmentJoints)        
         """
     log.debug(cgmGEN._str_subLine)
-    
-    #Brow Handles ================================================================================
-    log.debug("|{0}| >> Brow Handles...".format(_str_func)+ '-'*40)    
-    #mBrowCurve = mBlock.getMessageAsMeta('browLineloftCurve')
-    #_BrowCurve = mBrowCurve.getShapes()[0]
     md_handles = {'brow':{}}
-    md_handleShapes = {'brow':{}}
+    md_handleShapes = {'brow':{}}    
+    if not self.b_SDKonly:
     
-    #if self.str_browType == 'full':
-    #    else:
-    #    l_handleKeys = ['left','right']
-    
-    for k in self.l_handleKeys:
-        log.debug("|{0}| >> {1}...".format(_str_func,k))        
-        ml_helpers = self.mPrerigNull.msgList_get('brow{0}PrerigHandles'.format(k.capitalize()))
-        ml_handleShapes = self.mPrerigNull.msgList_get('brow{0}PrerigShapes'.format(k.capitalize()))
-        
-        ml_new = []
-        for mHandle in ml_helpers:
-            mJnt = mHandle.doCreateAt('joint')
-            mJnt.doCopyNameTagsFromObject(mHandle.mNode,ignore = ['cgmType'])
-            #mJnt.doStore('cgmType','dag')
-            mJnt.doName()
-            ml_new.append(mJnt)
-            ml_joints.append(mJnt)
-            JOINT.freezeOrientation(mJnt.mNode)
-            mJnt.p_parent = False
-            mJnt.p_position = mHandle.p_position
-            #DIST.get_closest_point(mHandle.mNode,_BrowCurve,True)[0]
+        #Brow Handles ================================================================================
+        log.debug("|{0}| >> Brow Handles...".format(_str_func)+ '-'*40)    
+        #mBrowCurve = mBlock.getMessageAsMeta('browLineloftCurve')
+        #_BrowCurve = mBrowCurve.getShapes()[0]
 
-        md_handles['brow'][k] = ml_new
-        md_handleShapes['brow'][k] = ml_handleShapes
         
-        ml_jointsToHide.extend(ml_new)
-    log.debug(cgmGEN._str_subLine)
+        #if self.str_browType == 'full':
+        #    else:
+        #    l_handleKeys = ['left','right']
+        
+        for k in self.l_handleKeys:
+            log.debug("|{0}| >> {1}...".format(_str_func,k))        
+            ml_helpers = self.mPrerigNull.msgList_get('brow{0}PrerigHandles'.format(k.capitalize()))
+            ml_handleShapes = self.mPrerigNull.msgList_get('brow{0}PrerigShapes'.format(k.capitalize()))
+            
+            ml_new = []
+            for mHandle in ml_helpers:
+                mJnt = mHandle.doCreateAt('joint')
+                mJnt.doCopyNameTagsFromObject(mHandle.mNode,ignore = ['cgmType'])
+                #mJnt.doStore('cgmType','dag')
+                mJnt.doName()
+                ml_new.append(mJnt)
+                ml_joints.append(mJnt)
+                JOINT.freezeOrientation(mJnt.mNode)
+                mJnt.p_parent = False
+                mJnt.p_position = mHandle.p_position
+                #DIST.get_closest_point(mHandle.mNode,_BrowCurve,True)[0]
+    
+            md_handles['brow'][k] = ml_new
+            md_handleShapes['brow'][k] = ml_handleShapes
+            
+            ml_jointsToHide.extend(ml_new)
+        log.debug(cgmGEN._str_subLine)
     
     self.md_rigJoints = md_rigJoints
     self.md_skinJoints = md_skinJoints
@@ -2064,7 +2139,7 @@ def rig_skeleton(self):
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
     return
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_shapes(self):
     try:
         _short = self.d_block['shortName']
@@ -2081,34 +2156,35 @@ def rig_shapes(self):
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         
-        #Brow center ================================================================================
-        if self.str_browType == 'full':
-            mBrowCenter = self.md_handles['brow']['center'][0].doCreateAt()
-            mBrowCenterShape = self.md_handleShapes['brow']['center'][0].doDuplicate(po=False)
-            mBrowCenterShape.scale = [1.5,1.5,1.5]
+        if not self.b_SDKonly:
+            #Brow center ================================================================================
+            if self.str_browType == 'full':
+                mBrowCenter = self.md_handles['brow']['center'][0].doCreateAt()
+                mBrowCenterShape = self.md_handleShapes['brow']['center'][0].doDuplicate(po=False)
+                mBrowCenterShape.scale = [1.5,1.5,1.5]
+                
+                mBrowCenter.doStore('cgmName','browMain')
+                mBrowCenter.doName()
+                
+                CORERIG.shapeParent_in_place(mBrowCenter.mNode,
+                                             mBrowCenterShape.mNode,False)
+                
+                mRigNull.connectChildNode(mBrowCenter,'browMain','rigNull')#Connect
             
-            mBrowCenter.doStore('cgmName','browMain')
-            mBrowCenter.doName()
             
-            CORERIG.shapeParent_in_place(mBrowCenter.mNode,
-                                         mBrowCenterShape.mNode,False)
-            
-            mRigNull.connectChildNode(mBrowCenter,'browMain','rigNull')#Connect
-        
-        
-        #Handles ================================================================================
-        log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
-        for k,d in self.md_handles.iteritems():
-            log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
-            for side,ml in d.iteritems():
-                log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
-                for i,mHandle in enumerate(ml):
-                    log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
-                    CORERIG.shapeParent_in_place(mHandle.mNode,
-                                                 self.md_handleShapes[k][side][i].mNode)
-                    
-                    if side == 'center':
-                        mHandleFactory.color(mHandle.mNode,side='center',controlType='sub')
+            #Handles ================================================================================
+            log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
+            for k,d in self.md_handles.iteritems():
+                log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
+                for side,ml in d.iteritems():
+                    log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
+                    for i,mHandle in enumerate(ml):
+                        log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+                        CORERIG.shapeParent_in_place(mHandle.mNode,
+                                                     self.md_handleShapes[k][side][i].mNode)
+                        
+                        if side == 'center':
+                            mHandleFactory.color(mHandle.mNode,side='center',controlType='sub')
                         
                     
         #Direct ================================================================================
@@ -2140,7 +2216,7 @@ def rig_shapes(self):
         cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_controls(self):
     try:
         _short = self.d_block['shortName']
@@ -2173,44 +2249,45 @@ def rig_controls(self):
                                           defaultValue = False,
                                           keyable = False,hidden = False)"""        
         
-        
-        
-        if self.str_browType == 'full':
-            mBrowMain = mRigNull.browMain
-            _d = MODULECONTROL.register(mBrowMain,
-                                        mirrorSide= self.d_module['mirrorDirection'],
-                                        mirrorAxis="translateX,rotateY,rotateZ",
-                                        makeAimable = False)
-            ml_controlsAll.append(_d['mObj'])
-            ml_segmentHandles.append(_d['mObj'])
-        
-        
         b_sdk = False
         if self.str_buildSDK == 'dag':
             b_sdk = True
             
-        #Handles ================================================================================
-        log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
-        for k,d in self.md_handles.iteritems():
-            log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
-            for side,ml in d.iteritems():
-                log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
-                for i,mHandle in enumerate(ml):
-                    log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
-                    _d = MODULECONTROL.register(mHandle,
-                                                mirrorSide= side,
-                                                addSDKGroup=b_sdk,
-                                                mirrorAxis="translateX,rotateY,rotateZ",
-                                                makeAimable = False)
-                    
-                    ml_controlsAll.append(_d['mObj'])
-                    ml_segmentHandles.append(_d['mObj'])
-                    
-                    if side == 'right':
-                        log.debug("|{0}| >> mirrorControl connect".format(_str_func))                        
-                        mTarget = d['left'][i]
-                        _d['mObj'].doStore('mirrorControl',mTarget)
-                        mTarget.doStore('mirrorControl',_d['mObj'])                    
+        if not self.b_SDKonly:
+            if self.str_browType == 'full':
+                mBrowMain = mRigNull.browMain
+                _d = MODULECONTROL.register(mBrowMain,
+                                            mirrorSide= self.d_module['mirrorDirection'],
+                                            mirrorAxis="translateX,rotateY,rotateZ",
+                                            makeAimable = False)
+                ml_controlsAll.append(_d['mObj'])
+                ml_segmentHandles.append(_d['mObj'])
+            
+            
+
+                
+            #Handles ================================================================================
+            log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
+            for k,d in self.md_handles.iteritems():
+                log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
+                for side,ml in d.iteritems():
+                    log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
+                    for i,mHandle in enumerate(ml):
+                        log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+                        _d = MODULECONTROL.register(mHandle,
+                                                    mirrorSide= side,
+                                                    addSDKGroup=b_sdk,
+                                                    mirrorAxis="translateX,rotateY,rotateZ",
+                                                    makeAimable = False)
+                        
+                        ml_controlsAll.append(_d['mObj'])
+                        ml_segmentHandles.append(_d['mObj'])
+                        
+                        if side == 'right':
+                            log.debug("|{0}| >> mirrorControl connect".format(_str_func))                        
+                            mTarget = d['left'][i]
+                            _d['mObj'].doStore('mirrorControl',mTarget)
+                            mTarget.doStore('mirrorControl',_d['mObj'])                    
                     
         #Direct ================================================================================
         log.debug("|{0}| >> Direct...".format(_str_func)+ '-'*80)
@@ -2222,6 +2299,7 @@ def rig_controls(self):
                     log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                     _d = MODULECONTROL.register(mHandle,
                                                 typeModifier='direct',
+                                                addSDKGroup= self.b_SDKonly,
                                                 mirrorSide= side,
                                                 mirrorAxis="translateX,rotateY,rotateZ",
                                                 makeAimable = False)
@@ -2277,7 +2355,7 @@ def rig_controls(self):
         cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_frame(self):
     _short = self.d_block['shortName']
     _str_func = ' rig_rigFrame'
@@ -2289,6 +2367,18 @@ def rig_frame(self):
     mRigNull = self.mRigNull
     mRootParent = self.mDeformNull
     mModule = self.mModule
+    
+    
+    if self.b_SDKonly:
+        for k,d in self.md_rigJoints.iteritems():
+            log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
+            for side,ml in d.iteritems():
+                log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
+                for i,mHandle in enumerate(ml):
+                    log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+                    mHandle.masterGroup.p_parent = mRootParent
+        
+        return
     
     if self.str_browType == 'full':
         mBrowMain = mRigNull.browMain
@@ -2334,6 +2424,15 @@ def rig_frame(self):
     if mBlock.buildCenter:
         ml_centerHandles = md_brow['center']
     
+    
+    if self.b_scaleSetup:
+        res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
+        mPlug_masterScale = res_segScale[0]
+        mMasterCurve = res_segScale[1]
+        
+        mMasterCurve.p_parent = mRootParent
+    
+    
     if self.str_browType == 'split':
         d_sides = {'left':{'ribbonJoints':ml_left,
                            'skinDrivers':ml_leftHandles},
@@ -2350,15 +2449,19 @@ def rig_frame(self):
                     'tightenWeights':False,
                     'driverSetup':'stable',#'stableBlend',
                     'squashStretch':None,
+                    'settingsControl': self.mSettings.mNode,
                     'connectBy':'constraint',
                     'squashStretchMain':'arcLength',
-                    'paramaterization':'fixed',#mBlock.getEnumValueString('ribbonParam'),
+                    'paramaterization':mBlock.getEnumValueString('ribbonParam'),
                     #masterScalePlug:mPlug_masterScale,
                     #'settingsControl': mSettings.mNode,
                     'extraSquashControl':True,
                     'influences':dat['skinDrivers'],
                     'moduleInstance' : self.mModule}    
             
+            if self.b_scaleSetup:
+                d_ik['masterScalePlug'] = mPlug_masterScale                
+                d_ik.update(self.d_squashStretch)
             
             res_ribbon = IK.ribbon(**d_ik)
             
@@ -2393,16 +2496,20 @@ def rig_frame(self):
                 'tightenWeights':False,
                 'driverSetup':'stable',#'stableBlend',
                 'squashStretch':None,
+                'settingsControl': self.mSettings.mNode,
                 'connectBy':'constraint',
                 'squashStretchMain':'arcLength',
-                'paramaterization':'fixed',#mBlock.getEnumValueString('ribbonParam'),
+                'paramaterization':mBlock.getEnumValueString('ribbonParam'),
                 #masterScalePlug:mPlug_masterScale,
                 #'settingsControl': mSettings.mNode,
                 'extraSquashControl':True,
                 'influences':ml_skinDrivers,
                 'moduleInstance' : self.mModule}    
         
-        
+        if self.b_scaleSetup:
+            d_ik['masterScalePlug'] = mPlug_masterScale
+            d_ik.update(self.d_squashStretch)
+            
         res_ribbon = IK.ribbon(**d_ik)
     
     #Setup some constraints============================================================================
@@ -2444,7 +2551,7 @@ def rig_frame(self):
     return
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_cleanUp'
