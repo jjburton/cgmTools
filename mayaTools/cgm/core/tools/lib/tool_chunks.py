@@ -590,6 +590,7 @@ def uiSection_nodes(parent):
         
 def uiSection_animUtils(parent):
     _str_func = 'uiSection_animUtils'  
+    """
     mc.menuItem(parent = parent,
                 l='cgmLocinator',
                 ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",
@@ -614,7 +615,7 @@ def uiSection_animUtils(parent):
                 l='cgmMocapBakeTool',
                 ann = "Mocap Bake Tool - A tool for retargeting and baking control transforms from an animated source",
                 c=lambda *a:TOOLCALLS.mocapBakeTool())    
-    
+    """
     mc.menuItem(parent = parent,
                 l='mlBreakdown',
                 ann = "mlBreakdown by Morgan Loomis",
@@ -670,10 +671,10 @@ def uiSection_layout(parent):
 
 
 
-def uiSection_mrsMove(parent):
+def uiSection_mrsAnim(parent):
     _str_func = 'uiSection_layout'  
     
-    mUI.MelMenuItemDiv(parent,label='Move')
+    mUI.MelMenuItemDiv(parent,label='Anim')
     
     mc.menuItem(parent = parent,
                 l='mrsAnimate',
@@ -685,6 +686,15 @@ def uiSection_mrsMove(parent):
                 c=lambda *a:TOOLCALLS.mrsPOSER())
     
     mUI.MelMenuItemDiv(parent,label='Utils')
+    
+    mc.menuItem(parent = parent,
+                l='cgmAnimDraw',
+                ann = "Launch cgm's animDraw - a tool for drawing anim data",
+                c=lambda *a: TOOLCALLS.animDraw())
+    mc.menuItem(parent = parent,
+                l='cgmAnimFilterTool',
+                ann = "Launch cgm's animFilterTool - a tool for simple dynamics",
+                c=lambda *a: TOOLCALLS.animFilter())        
     
     mc.menuItem(parent = parent,
                 l='cgmMocapBakeTool',
@@ -716,11 +726,7 @@ def uiSection_mrsDynamics(parent):
                 l='cgmSimChain',
                 ann = "cgmSimChain - a tool for doing simulation on control chains",
                 c=lambda *a: TOOLCALLS.cgmSimChain())
- 
-    mc.menuItem(parent = parent,
-                l='cgmAnimDraw',
-                ann = "Launch cgm's animDraw - a tool for drawing anim data",
-                c=lambda *a: TOOLCALLS.animDraw())
+
     mc.menuItem(parent = parent,
                 l='cgmAnimFilterTool',
                 ann = "Launch cgm's animFilterTool - a tool for simple dynamics",
@@ -752,14 +758,11 @@ def uiSection_mrsTD(parent):
                 ann = "MRS Rigging Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsUI())
 
-    
-    
-    mUI.MelMenuItemDiv(parent,label='Utils')
+    mUI.MelMenuItemDiv(parent,label='Manage')
     mc.menuItem(parent = parent,
-                l='cgmDynParentTool',
-                ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
-                c=lambda *a: TOOLCALLS.dynParentTool())
-    
+                l='cgmSetTools',
+                ann = "Launch cgm's setTools - a tool for managing maya selection sets",
+                c=lambda *a: TOOLCALLS.setTools())    
     mc.menuItem(parent = parent,
                 l='cgmAttrTools',
                 ann = "Launch cgmAttrTools",
@@ -770,10 +773,32 @@ def uiSection_mrsTD(parent):
                 c=lambda *a: TOOLCALLS.jointTools())    
     
 
+    mUI.MelMenuItemDiv(parent,label='Move')
+    mc.menuItem(parent = parent,
+                l='cgmLocinator',
+                ann = "Launch cgmLocinator - a tool for aiding in the snapping of things",
+                c=lambda *a: TOOLCALLS.locinator())     
+    mc.menuItem(parent = parent,
+                l='cgmTransformTools',
+                ann = "Launch cgm's Transform Tools - a tool for world space transformation",
+                c=lambda *a: TOOLCALLS.transformTools())    
+    mc.menuItem(parent = parent,
+                l='cgmSnapTools',
+                ann = "Launch cgmSnapTools - a tool for snapping things around in maya",
+                c=lambda *a: TOOLCALLS.cgmSnapTools())
+    
+    mUI.MelMenuItemDiv(parent,label='Utils')
+    mc.menuItem(parent = parent,
+                l='cgmDynParentTool',
+                ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
+                c=lambda *a: TOOLCALLS.dynParentTool())    
+    
+    
+    
 def uiSection_mrsManage(parent):
     _str_func = 'uiSection_layout'  
     
-    mUI.MelMenuItemDiv(parent,label='Manage')
+    mUI.MelMenuItemDiv(parent,label='Pipeline')
     mc.menuItem(parent = parent,
                 l='Project',
                 ann = "Project Management Tool | Alpha",
@@ -1170,10 +1195,7 @@ def uiSection_riggingUtils(parent, selection = None):
                      ann = 'Series of functions for typical rigging functions',
                      l = 'Rigging Utils')  
    
-    _create = mc.menuItem(parent=_p,subMenu=True,
-                          l='Create From Sel',
-                          ann = 'Create from selected options',                        
-                          )        
+
     _copy = mc.menuItem(parent=_p,subMenu=True,
                         l='Copy',
                         ann = 'Copy stuff in a from:to selection',                        
@@ -1191,6 +1213,7 @@ def uiSection_riggingUtils(parent, selection = None):
     uiSection_controlCurves(_p,selection)
     
     #Create stuff -------------------------------------------------------------------------------------------
+    """
     mc.menuItem(parent=_create,
                 l = 'Transform',
                 c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'each','Create Tranform',**{'create':'null'}),          
@@ -1215,7 +1238,7 @@ def uiSection_riggingUtils(parent, selection = None):
                 c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}),                          
                 #c = cgmGEN.Callback(self.button_action_per_sel,RIGGING.create_at,'Create Curve',**{'create':'curve'}),
                 rp = "S")  
-    
+    """
     
     #Group stuff -------------------------------------------------------------------------------------------
     mc.menuItem(parent=_gSet,
@@ -1272,28 +1295,7 @@ def uiSection_riggingUtils(parent, selection = None):
                     l = m,
                     c = cgmGEN.Callback(MMCONTEXT.func_process, RIGCONSTRAINTS.attach_toShape, None,'eachToLast',**{'connectBy':m}),                    
                     ann = "Attach each to last by {0}".format(m))    
-    
-    
-    #Continue... -------------------------------------------------------------------------------------------    
-    mc.menuItem(parent = _p, l = '_______________________')
-    mc.menuItem(parent=_p,
-                l = 'DynParent Tool',
-                en=True,
-                c=cgmGEN.Callback(TOOLCALLS.dynParentTool),
-                ann = "Tool for modifying and setting up dynamic parent groups")
-    mc.menuItem(parent=_p,
-                l = 'MRS - WIP!',
-                en=True,
-                c=cgmGEN.Callback(TOOLCALLS.mrsUI),
-                ann = "Be forwarned - Dragons be here. Soon...")    
-    mc.menuItem(parent=_p,
-                l = 'Constraints',
-                en=False,
-                #c = lambda *a:buttonAction(tdToolsLib.doPointSnap()),
-                #c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGING.match_orientation, None,'eachToFirst','Match Orientation'),                    
-                ann = "")
-    
-    
+
 
 from cgm.core.tools.lib import snap_calls as SNAPCALLS
 

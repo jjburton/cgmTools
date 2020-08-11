@@ -84,7 +84,12 @@ def setTools():
     import cgm.core.tools.setTools as SETTOOLS
     reload(SETTOOLS)
     SETTOOLS.ui()
-
+    
+def transformTools():
+    import cgm.core.tools.transformTools as TT
+    reload(TT)
+    TT.ui()
+    
 def jointTools():
     import cgm.core.tools.jointTools as JOINTTOOLS
     reload(JOINTTOOLS)
