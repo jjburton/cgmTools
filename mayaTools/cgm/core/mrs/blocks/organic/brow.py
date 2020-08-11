@@ -200,6 +200,8 @@ d_defaultSettings = {'version':__version__,
                      'jointRadius':1.0,
                      'controlOffset':1,
                      'buildCenter':2,
+                     'squashFactorMax':1.0,
+                     'squashFactorMin':1.0,                        
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
