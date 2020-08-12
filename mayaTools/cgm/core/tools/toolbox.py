@@ -165,11 +165,11 @@ def buildTab_td(self,parent):
     buildSection_rigging(self,_column)
     cgmUI.add_SectionBreak()  
     
-    buildSection_joint(self,_column)
-    cgmUI.add_SectionBreak()          
+    #buildSection_joint(self,_column)
+    #cgmUI.add_SectionBreak()          
     
-    buildSection_transform(self,_column)
-    cgmUI.add_SectionBreak()  
+    #buildSection_transform(self,_column)
+    #cgmUI.add_SectionBreak()  
     
     
     buildSection_shape(self,_column)
