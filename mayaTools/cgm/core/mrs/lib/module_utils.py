@@ -208,13 +208,16 @@ def verify_faceObjectSet(self):
             mPuppetSet = mModulePuppet.getMessageAsMeta('puppetSet') or mModulePuppet.verify_objectSet()
                 
         mParentModule = self.getMessageAsMeta('moduleParent')
+        mParentRigNull = False
         if not mParentModule:
             mParentModule = mModulePuppet
             mParentRigNull = mModulePuppet
         else:
             mParentRigNull = mParentModule.rigNull
-            
-        mFaceSet = mRigNull.getMessageAsMeta('faceSet')
+        
+        mFaceSet = False
+        if mParentRigNull:
+            mFaceSet = mParentRigNull.getMessageAsMeta('faceSet')
         
         #mParentSet = mParentModule.rigNull.getMessageAsMeta('moduleSet')
         
@@ -818,7 +821,7 @@ def controls_getDat(self, keys = None,
                     ml_objs.remove(mObj)
                 else:
                     if rewire and not _isReferenced:
-                        log.warning("|{0}| >> Repair on. Connecting: {1}".format(_str_func,mObj))
+                        log.debug("|{0}| >> Repair on. Connecting: {1}".format(_str_func,mObj))
                         mRigNull.msgList_append('controlsAll',mObj)
                         mRigNull.moduleSet.append(mObj.mNode)                        
                     else:
@@ -879,7 +882,8 @@ def controls_getDat(self, keys = None,
                     if not md_controls.get(_t):
                         md_controls[_t] = []
                     _ml = md_controls[_t] 
-                    ml_controls.append(mObj)                    
+                    if mObj not in ml_controls:
+                        ml_controls.append(mObj)                    
                     addMObj(mObj,_ml)
     
     if not keys and 'spacePivots' not in ignore:
@@ -889,12 +893,15 @@ def controls_getDat(self, keys = None,
             mBuffer = mObj.msgList_get('spacePivots')
             for mSpace in mBuffer:
                 addMObj(mSpace,_ml)
-                ml_controls.append(mSpace)
+                if mSpace not in ml_controls:ml_controls.append(mSpace)
     
     ml_core = []
     for k in 'settings','cog','root','settings','fk','ik','segmentHandles','face':
         ml = md_controls.get(k)
         if ml:ml_core.extend(ml)
+    
+    ml_core = LISTS.get_noDuplicates(ml_core)
+    ml_controls = LISTS.get_noDuplicates(ml_controls)
     
     if core:
         return ml_core
@@ -915,7 +922,7 @@ def controls_getDat(self, keys = None,
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
     if rewire and not _isReferenced:
-        log.warning("|{0}| >> rewire... ".format(_str_func))        
+        log.warning("|{0}| >> rewire [{1}] ".format(_str_func,self))        
         for mObj in ml_controls:
             if not mObj.getMessageAsMeta('rigNull'):
                 log.info("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))

@@ -2765,7 +2765,8 @@ def create_jointFromHandle(mHandle=None,mParent = False,cgmType='skinJoint'):
 
 @cgmGEN.Timer
 def create_lidRoot(mJnt,mEyeJoint,mBlock):
-    mLidRoot = mEyeJoint.doDuplicate(po=True)
+    mLidRoot = mEyeJoint.doCreateAt('joint')
+    mLidRoot.jointOrient = mLidRoot.jointOrient
     mLidRoot.doStore('cgmName',mJnt.p_nameBase)
     mLidRoot.doStore('cgmType','lidRoot')
     mLidRoot.p_parent = False
@@ -5186,7 +5187,7 @@ def rig_lidSetup(self):
             for mObj in ml_uprRig + ml_lwrRig:
                 mObj.driverJoint.p_parent = mDeformNull
                         """
-
+        
         #Autofollow --------------------------------------------------------------------
         create_lidFollow(self)
         
@@ -5203,7 +5204,6 @@ def rig_lidSetup(self):
                 mRig = self.d_lidData[_key]['mRig']
                 
                 
-                                
                 #if self.str_lidAttach == 'aimJoint':
                 mRoot = self.d_lidData[_key]['mRoot']
                 mHandle.masterGroup.p_parent = mRoot
@@ -5212,14 +5212,18 @@ def rig_lidSetup(self):
                     mFollowRoot = mUprRoot
                 else:
                     mFollowRoot = mLwrRoot
-                    
+                
+                
                 if not mFollowRoot:
-                    log.debug("|{0}| >>  Creating follow Root".format(_str_func,_key))
-                    mFollowEnd = mDirectEye.doDuplicate(po=True)
+                    log.info("|{0}| >>  Creating follow Root".format(_str_func,_key))
+                    mFollowEnd = mDirectEye.doCreateAt('joint')
+                    mFollowEnd.rename("{0}_fanEnd".format(k))
                     
                     mFollowEnd.doSnapTo(self.d_lidData[k]['mHandle'])
                     
                     mFollowRoot = create_lidRoot(mFollowEnd,mDirectEye,mBlock)
+                    mFollowRoot.rename("{0}_fanRoot".format(k))
+                    
                     mFollowEnd.p_parent = mFollowRoot
                     
                     
@@ -5281,7 +5285,7 @@ def rig_lidSetup(self):
                                      maintainOffset = True, weight = 1,
                                      aimVector = self.d_orientation['vectorAim'],
                                      upVector = self.d_orientation['vectorUp'],
-                                     worldUpVector = self.d_orientation['vectorUp'],
+                                     worldUpVector = self.d_orientation['vectorOut'],
                                      worldUpObject = mRigRoot.mNode,#mUprCenter.mNode,
                                      worldUpType = 'objectRotation' )
                     
@@ -5290,7 +5294,7 @@ def rig_lidSetup(self):
                     else:
                         mFollowRoot.p_parent = mSettings                    
                     
-
+                
                 mRig.masterGroup.p_parent = mHandle
                 
                 if mControlBall:
