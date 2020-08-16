@@ -35,8 +35,8 @@ class KeyframeToMotionCurve(PostBake.PostBake):
         mc.setKeyframe(self.motionPath.mNode, at='uValue', v=d_closest['parameter'])
 
     def bake(self):
-        startTime = int(mc.findKeyframe(self.obj.mNode, which='first'))
-        endTime = int(mc.findKeyframe(self.obj.mNode, which='last'))
+        startTime = int(mc.playbackOptions(q=True, min=True)) #int(mc.findKeyframe(self.obj.mNode, which='first'))
+        endTime = int(mc.playbackOptions(q=True, max=True)) #int(mc.findKeyframe(self.obj.mNode, which='last'))
 
         PostBake.PostBake.bake(self, startTime, endTime)
 
