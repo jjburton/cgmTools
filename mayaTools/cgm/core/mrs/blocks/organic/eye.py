@@ -4496,7 +4496,8 @@ def create_lidFollow(self):
     _str_orientation = self.d_orientation['str']
     
     mRigNull = self.mRigNull
-    mEyeJoint = mRigNull.getMessageAsMeta('blendEye') or mRigNull.getMessageAsMeta('fkEye')
+    mEyeJoint = mRigNull.getMessageAsMeta('blendEye') or mRigNull.getMessageAsMeta('fkEye') or  self.mOrb
+
     mSettings = mRigNull.settings
     
     #mPlug_autoFollow = cgmMeta.cgmAttr(mSettings,"autoFollow",attrType = 'float', value = 1.0,

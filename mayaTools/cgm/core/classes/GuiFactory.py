@@ -67,7 +67,66 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
 
-
+#Code chunk from Charles for doc stuff =====================================================================
+## ======================================================================
+'''
+def show_actual():
+	if utils.softwareVersion() < 2017:
+		## drop it into a dock control for ease of deletion
+		if pm.dockControl(CauldronMayaUI.dockWidgetName, q=True, ex=True):
+			pm.deleteUI( CauldronMayaUI.dockWidgetName )
+		win = CauldronMayaUI()
+		dock = pm.dockControl( CauldronMayaUI.dockWidgetName, allowedArea=('left','right'), 
+						area='left', width=300, floating=False, content=win.objectName(),
+						# vcc=killDock,
+						label=CauldronMayaUI.windowTitle )
+		win.setDock( dock )
+		win.enableScriptJob()
+	else:
+		if not mc.workspaceControl(CauldronMayaUI.dockWidgetName, q=True, exists=True):
+			mc.workspaceControl(CauldronMayaUI.dockWidgetName,
+				retain=False, floating=True,
+				uiScript="from witch.ui import cauldron; cauldron.fill_workspace_control()")
+		## force a raise
+		if mc.control( CauldronMayaUI.dockWidgetName, e=True, isObscured=True ):
+			maya.utils.executeDeferred(
+				lambda *args: mc.workspaceControl(CauldronMayaUI.dockWidgetName, 
+													e=True, r=True)
+			)
+## ======================================================================
+def fill_workspace_control():
+	"""
+	Put the Cauldron UI into the workspace control
+	"""
+	## make sure the title gets changed whenever
+	## the toolset gets updated
+	mc.workspaceControl(CauldronMayaUI.dockWidgetName, e=True,
+							label=CauldronMayaUI.dockTitle )
+	pointer = omui.MQtUtil.getCurrentParent()
+	window = wrapInstance(long(pointer), QWidget)
+	## workspaceControl minimum width is not properly saved in maya 2017
+	window.setMinimumWidth(300)
+	win = CauldronMayaUI()
+	win.setParent(window)
+	window.layout().addWidget(win)
+## ======================================================================
+def show():
+	"""
+	Because of how Maya and PySide interact, you'll get a weird lag and other bugs if you don't
+	run the real launcher through evalDeferred.  Doing it this way makes things stable.
+	"""
+	## ensure the runtime functions are available
+	reload(utils)
+	import witch.ui.cauldron_runtime as crt
+	reload(crt)
+	if mc.lsUI(CauldronMayaUI.dockWidgetName):
+		mc.deleteUI(CauldronMayaUI.dockWidgetName)
+	qApp.processEvents()
+	pm.evalDeferred( launch_str, lp=True )
+## ======================================================================
+if __name__ == '__main__':
+	show()
+'''
 _str_popWindow = 'cgmMM'#...outside to push to killUI
 class markingMenu(object):#mUI.BaseMelWindow
     POPWINDOW = _str_popWindow

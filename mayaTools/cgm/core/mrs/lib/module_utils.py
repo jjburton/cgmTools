@@ -1609,8 +1609,8 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
                     log.debug("|{0}| >> no switchTarget ".format(_str_func))                    
                     mTarget = mObj.getMessageAsMeta('blendJoint')
                 if not mTarget:
-                    log.warning("|{0}| >> No target joint found! ".format(_str_func))
-                    break
+                    log.warning("|{0}| >> No target joint found! {1} ".format(_str_func,mObj.p_nameShort))
+                    continue
                 
                 log.debug("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
                 

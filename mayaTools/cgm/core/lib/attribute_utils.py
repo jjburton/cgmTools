@@ -2308,8 +2308,18 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
             return _msgBuffer
         
         _dataAttr = 'cgmMsgData'
+        
         if dataAttr:
             _dataAttr = dataAttr
+        else:
+            log.debug("|{0}| >> checking...".format(_str_func))              
+            for a in ["{0}_datdict".format(messageAttr),'cgmMsgData']:
+                log.debug("|{0}| >> {1}.{2}".format(_str_func,_d['node'],a))              
+                if has_attr(_d['node'],a):
+                    _dataAttr = a
+                    continue
+
+        
     
         if '.' in _dataAttr or issubclass(type(_dataAttr),dict):
             _d_dataAttr = validate_arg(_dataAttr)            
