@@ -3,6 +3,9 @@ import os
 import pprint
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
+
+from cgm.core import cgm_Meta as cgmMeta
+
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -25,7 +28,7 @@ def BakeAndPrep(bakeSetName = 'bake_tdSet',
 
     return prepped
 
-def Bake(assets, bakeSetName = 'bakeSet',
+def Bake(assets, bakeSetName = 'bake_tdSet',
          startFrame = None,
          endFrame = None):
     _str_func = 'Bake'
@@ -134,30 +137,30 @@ def Prep(removeNamespace = False,
     #    exportSetName = mc.optionVar(q='cgm_export_set')
 
     try:
-        topNode = mc.ls(sl=True)[0]
+        topNode = cgmMeta.asMeta(mc.ls(sl=True)[0])
     except:
         print "Select top node and try again."
         return
 
     currentTime = mc.currentTime(q=True)
 
-    topNodeSN = topNode.split(':')[-1]
+    topNodeSN = topNode.mNode.split(':')[-1]
 
-    namespaces = topNode.split(':')[:-1]
+    namespaces = topNode.mNode.split(':')[:-1]
     
     log.debug("{0} || topNode: {1}".format(_str_func,format(topNodeSN)))
     
     log.debug("{0} || ref import".format(_str_func))
     
     # import reference
-    if( mc.referenceQuery(topNode, isNodeReferenced=True) ):
-        refFile = mc.referenceQuery( topNode ,filename=True )
-        topRefNode = mc.referenceQuery( topNode, referenceNode=True, topReference=True)
+    if( mc.referenceQuery(topNode.mNode, isNodeReferenced=True) ):
+        refFile = mc.referenceQuery( topNode.mNode ,filename=True )
+        topRefNode = mc.referenceQuery( topNode.mNode, referenceNode=True, topReference=True)
         topRefFile = mc.referenceQuery(topRefNode, filename=True)
 
         while refFile != topRefFile:
             mc.file(topRefFile, ir=True)
-            topRefNode = mc.referenceQuery( topNode, referenceNode=True, topReference=True)
+            topRefNode = mc.referenceQuery( topNode.mNode, referenceNode=True, topReference=True)
             topRefFile = mc.referenceQuery(topRefNode, filename=True)
 
         mc.file(topRefFile, ir=True)
@@ -168,9 +171,9 @@ def Prep(removeNamespace = False,
         for space in namespaces[:-1]:
             mc.namespace( removeNamespace = space, mergeNamespaceWithRoot = True)
 
-        ns = '%s:' % namespaces[-1]
+        ns = '%s:' % namespaces[-1].replace('|', '')
     else:
-        ns = "%s_" % topNode
+        ns = "%s_" % topNode.mNode
 
     exportSet = "%s%s" % (ns, exportSetName)
     exportSetObjs = []
@@ -179,7 +182,7 @@ def Prep(removeNamespace = False,
     
     
     if mc.objExists(exportSet):
-        exportSetObjs = mc.sets(exportSet, q=True)
+        exportSetObjs = cgmMeta.asMeta(mc.sets(exportSet, q=True))
     else:
         exportSetObjs = [topNode]
 
@@ -197,30 +200,32 @@ def Prep(removeNamespace = False,
 
     if exportSetObjs:
         for exportObj in exportSetObjs:
-            log.debug("{0} || exportObj: {1}".format(_str_func,exportObj))
-            mc.delete(mc.listRelatives(exportObj, ad=True, type='constraint', fullPath = 1))
+            log.debug("{0} || exportObj: {1}".format(_str_func,exportObj.mNode))
+            mc.delete(mc.listRelatives(exportObj.mNode, ad=True, type='constraint', fullPath = 1))
 
-            if zeroRoot and mc.objExists('{0}.cgmTypeModifier'.format(exportObj)):
-                if mc.getAttr('{0}.cgmTypeModifier'.format(exportObj)) == 'rootMotion':
-                    log.debug("{0} || Zeroing root: {1}".format(_str_func,exportObj))
-                    mc.cutKey(exportObj, at=['translate', 'rotate'], clear=True)
-                    mc.setAttr('{0}.translate'.format(exportObj), 0, 0, 0, type='float3')
-                    mc.setAttr('{0}.rotate'.format(exportObj), 0, 0, 0, type='float3')
+            if zeroRoot and mc.objExists('{0}.cgmTypeModifier'.format(exportObj.mNode)):
+                if mc.getAttr('{0}.cgmTypeModifier'.format(exportObj.mNode)) == 'rootMotion':
+                    log.debug("{0} || Zeroing root: {1}".format(_str_func,exportObj.mNode))
+                    mc.cutKey(exportObj.mNode, at=['translate', 'rotate'], clear=True)
+                    mc.setAttr('{0}.translate'.format(exportObj.mNode), 0, 0, 0, type='float3')
+                    mc.setAttr('{0}.rotate'.format(exportObj.mNode), 0, 0, 0, type='float3')
 
     if removeNamespace and len(exportSetObjs) > 0:
-        for obj in mc.listRelatives(exportSetObjs, ad=True, fullPath = 1) + exportSetObjs:
-            if ':' in obj:
-                mc.rename(obj, obj.split(':')[-1])
+        for obj in cgmMeta.asMeta(mc.listRelatives([x.mNode for x in exportSetObjs], ad=True, fullPath = 1)) + exportSetObjs:
+            if ':' in obj.mNode:
+                mc.rename(obj.mNode, obj.mNode.split(':')[-1])
 
-        exportSetObjs = [x.split(':')[-1] for x in exportSetObjs]
+        #exportSetObjs = [x.split(':')[-1] for x in exportSetObjs]
 
     # export
     newTopNode = '%s%s' % (ns, topNodeSN)
     if not mc.objExists(newTopNode):
-        if mc.objExists(topNode):
+        if mc.objExists(topNode.mNode):
             newTopNode = topNode
+    else:
+        newTopNode = cgmMeta.asMeta(newTopNode)
             
-    log.debug("{0} || topNode: {1}".format(_str_func,newTopNode))
+    log.debug("{0} || topNode: {1}".format(_str_func,newTopNode.mNode))
             
     
     # revert to old name
@@ -233,20 +238,20 @@ def Prep(removeNamespace = False,
     if(mc.objExists(exportSet)):
         mc.select( mc.sets( exportSet, q=True ) ) 
     else:
-        print "No export set found. Selecting top node."
-        mc.select( topNode )
+        print "No export set found ({0}). Selecting top node.".format(exportSet)
+        mc.select( topNode.mNode )
         prepped = False
 
-    exportObjs = mc.ls(sl=True)
+    exportObjs = cgmMeta.asMeta(mc.ls(sl=True))
     for obj in exportObjs:
         log.debug("{0} || parent pass: {1}".format(_str_func,obj))
         
         try:
-            mc.parent(obj, w=True)
+            mc.parent(obj.mNode, w=True)
         except:
             print "%s already a child of 'world'" % obj
 
-    mc.select(exportObjs)
+    mc.select( [x.mNode for x in exportObjs] )
 
     mc.refresh()
 
