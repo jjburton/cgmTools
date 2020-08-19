@@ -3037,9 +3037,9 @@ class cgmObject(cgmNode):
         return TRANS.pivots_zeroTransform(self)
     
     def getBBSize(self):
-        return POS.get_bb_center(self,*a,**kws)    
+        return POS.get_bb_size(self,*a,**kws)    
     def getBBCenter(self):
-        return POS.get_bb_size(self,*a,**kws) 
+        return POS.get_bb_center(self,*a,**kws) 
     
     
     #...vectors
@@ -6857,12 +6857,21 @@ def asMeta(*args,**kws):
     See validateObjArg
     '''  
     try:
+        try:_selected = kws.pop('sl')
+        except:_selected = False
+        arg = None
+        
+        if _selected:
+            l = mc.ls(sl=1)
+            if l:
+                args = [l]
+                
         if args:
             arg = args[0]
         elif kws:
-            arg = kws['arg']
-
-        if VALID.isListArg(arg):#make sure it's not a list
+            arg = kws.get('arg')
+            
+        if arg and VALID.isListArg(arg):#make sure it's not a list
             return validateObjListArg(*args,**kws)
         return validateObjArg(*args,**kws)
     except Exception,err:
