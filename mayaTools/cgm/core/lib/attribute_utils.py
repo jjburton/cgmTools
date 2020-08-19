@@ -580,6 +580,10 @@ def set(node, attr = None, value = None, lock = False,**kws):
         _obj = _d['node']
         _attr = _d['attr']
         _wasLocked = False
+        
+        if cgmGEN.__mayaVersion__ >= 2018 and _attr in ['UUID']:
+            #We don't wanna mess with UUID above 2018
+            return
     
         log.debug("|{0}| >> attr: {1} | value: {2} | lock: {3}".format(_str_func,_combined,value, lock))    
         if kws:log.debug("|{0}| >> kws: {1}".format(_str_func,kws))  

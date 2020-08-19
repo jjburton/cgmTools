@@ -766,7 +766,7 @@ class cgmNode(r9Meta.MetaClass):
         else:
             return POS.get(self.getComponent(),space = 'world')    
         
-    def getTransform(self,asMeta = False):
+    def getDag(self,asMeta = False):
         _res = VALID.getTransform(self.mNode)
         
         if _res and asMeta:
@@ -781,7 +781,7 @@ class cgmNode(r9Meta.MetaClass):
         if buffer:
             return buffer[0]
         return False
-    getDag = getTransform
+    getTransform = getDag
     
     #========================================================================================================     
     #>>> Attributes 

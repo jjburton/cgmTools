@@ -828,7 +828,10 @@ class ui(cgmUI.cgmGUI):
                          #c = cgmGEN.Callback(ui)
                          c=cgmGEN.Callback(self.uiFunc_contextPuppetCall,'postUI'))
         mUI.MelMenuItemDiv(_menu)
-        
+        mUI.MelMenuItem(_menu, l="Report",
+                        ann = "Report rig data",
+                        c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'get_report'),
+                        )                
         mUI.MelMenuItem( _menu, l="Gather Blocks",
                          c = self.uiCallback(self,BUILDERUTILS.gather_rigBlocks,self.uiPB_mrs))
                          #c=lambda *a: BUILDERUTILS.gather_rigBlocks(self.uiPB_mrs) )

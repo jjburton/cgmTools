@@ -115,7 +115,7 @@ def modules_getHeirarchal(self,rewire=False):
             try:
                 _res = self.mModulesAll
                 if _res:
-                    log.info(cgmGEN.logString_msg(_str_func,'mModulesAll buffer...'))
+                    log.debug(cgmGEN.logString_msg(_str_func,'mModulesAll buffer...'))
                     return _res
             except Exception,err:
                 log.error(err)
@@ -137,7 +137,7 @@ def modules_getHeirarchal(self,rewire=False):
         return ml_allModules        
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def modules_get(self,rewire=False):
     try:
         _str_func = ' modules_get'.format(self)
@@ -147,7 +147,7 @@ def modules_get(self,rewire=False):
             try:
                 _res = VALID.listArg(self.mModulesAll)
                 if _res:
-                    log.info(cgmGEN.logString_msg(_str_func,'mModulesAll buffer...'))
+                    log.debug(cgmGEN.logString_msg(_str_func,'mModulesAll buffer...'))
                     return _res
             except Exception,err:
                 log.debug(err)    
@@ -1504,6 +1504,93 @@ def controls_get(self,walk=False,rewire=False,core=False):
     log.error("|{0}| >> No options specified".format(_str_func))
     return False
 
+
+def get_report(self):
+    
+    print(cgmGEN._str_hardBreak)
+    print("Puppet: '{0}' | {1}".format(self.cgmName, self.p_nameBase))
+    print(cgmGEN._str_hardBreak)
+    
+    
+    ml_modules = modules_get(self)
+    
+    md_modules = {}
+    int_joints = 0
+    int_nodes = 0
+    
+    d_counts = {}
+    
+    for i,mModule in enumerate(ml_modules):
+        _d = {}
+        md_modules[mModule] = _d
+        try:mBlock = mModule.rigBlock
+        except:
+            log.warning("No rigBlock: {0}".format(mModule.p_nameShort))
+            continue
+        _d['Bind'] = len(mBlock.atUtils('skeleton_getBind',warn=False) or [])
+        int_joints += _d['Bind']
+        
+        
+        mRigNull = mModule.getMessageAsMeta('rigNull')
+        if mRigNull:
+            _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+            #Rig nodes....
+            
+            ml_rigNodes = mRigNull.getMessageAsMeta('rigNodes') or []
+            
+            for mObj in ml_rigNodes:
+                _type = mObj.getMayaType()
+                if not _d.has_key(_type):
+                    _d[_type] = 0
+                    
+                if not d_counts.has_key(_type):
+                    d_counts[_type] = 0
+                    
+                _d[_type] += 1
+                d_counts[_type] +=1
+                
+            int_nodes += len(ml_rigNodes)
+            #_d['Nodes'] = len(ml_rigNodes)
+        
+        
+        print(cgmGEN.logString_sub("{0} - '{1}'".format(i,mModule.p_nameShort),
+                                   "[{0}] | Type: {1} | Profile: {2}".format(mBlock.p_nameShort, mBlock.blockType, mBlock.blockProfile)))
+              
+        _keys = _d.keys()
+        _keys.sort()
+        
+        for k in _keys:
+            print "   [{0}] : {1}".format(k,_d[k])
+        
+        print('\n')
+        
+
+    print(cgmGEN.logString_sub("Counts", 'Nodes'))
+    _keys = d_counts.keys()
+    _keys.sort()
+    
+    for k in _keys:
+        print "   [{0}] : {1}".format(k,d_counts[k])    
+        
+        
+    print('\n')
+    print(cgmGEN._str_subLine)
+    
+    d_dat = {'Modules': len(ml_modules),
+             'Bind Joints':int_joints,
+             'Nodes':int_nodes}
+    
+    for d,v in d_dat.iteritems():
+        print "   [{0}] : {1}".format(d,v)
+        
+        
+        
+    print('\n')
+
+    BLOCKGEN.get_rigBlock_heirarchy_context(self.rigBlock,'below',False,True)
+    
+
+    print(cgmGEN._str_hardBreak)
 
 def get_uiString(self,showSide=True):
     """

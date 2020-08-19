@@ -7376,7 +7376,7 @@ def skeleton(self):
     return True
 
 
-def skeleton_getBind(self,select=False):
+def skeleton_getBind(self,select=False, warn = True):
     _str_func = 'skeleton_getBind'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
     
@@ -7390,8 +7390,8 @@ def skeleton_getBind(self,select=False):
         if mRigNull:
             ml_joints = mRigNull.msgList_get('moduleJoints')
             if not ml_joints:
-                return log.error("|{0}| >> No joints found".format(_str_func))
-            
+                if warn: return log.error("|{0}| >> No joints found".format(_str_func))
+                return False
             if select:
                 mc.select([mJnt.mNode for mJnt in ml_joints],add=True)
             
