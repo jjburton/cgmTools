@@ -157,7 +157,7 @@ l_attrsStandard = ['side',
                    'squashExtraControl',
                    'squashFactorMax',
                    'squashFactorMin',                   
- 
+                   'visProximityMode',
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:split:side',
@@ -249,6 +249,12 @@ def define(self):
     _size = MATH.average(self.baseSize[1:])
     _crv = CURVES.create_fromName(name='locatorForm',#'axis3d',#'arrowsAxis', 
                                   direction = 'z+', size = _size/4)
+    
+    
+    if self.jointRadius > _size/4:
+        log.warning("|{0}| >> jointRadius too small. Reset".format(_str_func))   
+        self.jointRadius = _size/4
+        
     SNAP.go(_crv,self.mNode,)
     CORERIG.override_color(_crv, 'white')        
     CORERIG.shapeParent_in_place(self.mNode,_crv,False)
@@ -280,7 +286,7 @@ def define(self):
     #...
     _browType = self.getEnumValueString('browType')
     
-    if _browType == 'full':
+    if _browType in ['full','split']:
         log.debug("|{0}| >>  full brow setup...".format(_str_func))
         _d_pairs = {}
         _d = {}
@@ -375,8 +381,8 @@ def define(self):
     #make em...============================================================
     log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))        
     
-    #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0]
-    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size/6, mDefineNull, mBBShape)
+    #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0] 
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape)
 
     md_handles = md_res['md_handles']
     ml_handles = md_res['ml_handles']
@@ -396,6 +402,13 @@ def define(self):
         if cgmGEN.__mayaVersion__ >= 2018:
             mController = mHandle.controller_get()
             mController.visibilityMode = 2
+            
+            try:
+                ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                             "{0}.visibilityMode".format(mController.mNode))    
+            except Exception,err:
+                log.error(err)
+            self.msgList_append('defineStuff',mController)                
             
         mHandle._verifyMirrorable()
         _center = True
@@ -428,6 +441,7 @@ def define(self):
     self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect    
     
     md_curves = md_resCurves['md_curves']
+    
     """
     mSurf = self.UTILS.create_simpleFormLoftMesh(self,
                                                  [mObj.mNode for mObj in [md_curves['upperLine'],
@@ -444,6 +458,7 @@ def define(self):
     
     
     #Mid track curve
+    
     
     
     
@@ -548,7 +563,7 @@ def form(self):
         log.debug("|{0}| >> Brow Handles...".format(_str_func)+ '-'*40)
 
         
-        if self.browType == 0:#Full brow
+        if self.browType >=0:#Full brow
             log.debug("|{0}| >>  Full Brow...".format(_str_func))
             
             #Gather all our define dhandles and curves -----------------------------
@@ -747,7 +762,13 @@ def form(self):
             for tag,mHandle in md_handles.iteritems():
                 if cgmGEN.__mayaVersion__ >= 2018:
                     mController = mHandle.controller_get()
-                    mController.visibilityMode = 2
+                    
+                    try:
+                        ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                                 "{0}.visibilityMode".format(mController.mNode))    
+                    except Exception,err:
+                        log.error(err)
+                    self.msgList_append('formStuff',mController)                    
                     
             #Mirror indexing -------------------------------------
             log.debug("|{0}| >> Mirror Indexing...".format(_str_func)+'-'*40) 
@@ -1260,6 +1281,7 @@ def prerig(self):
                                                          plugDag= 'jointHelper',
                                                          plugShape= 'directShape',
                                                          nameDict= d_use)"""
+                        reload(BLOCKSHAPES)
                         mShape, mDag = BLOCKSHAPES.create_face_handle(self,
                                                                       p,tag,None,side,
                                                                       mDriver=mDriver,
@@ -1271,7 +1293,7 @@ def prerig(self):
                                                                       plugDag= 'jointHelper',
                                                                       plugShape= 'directShape',
                                                                       attachToSurf=True,
-                                                                      orientToDriver=True,
+                                                                      #orientToDriver=True,
                                                                       offsetAttr='conDirectOffset',
                                                                       
                                                                       nameDict= d_use,**d_baseHandeKWS)                        

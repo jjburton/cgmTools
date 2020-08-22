@@ -12247,3 +12247,59 @@ def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None):
         mc.select(_sel)
     pprint.pprint(_res)
     return _res
+
+
+
+def controller_wireHandles(self,ml_handles,state=None):
+    _str_func = 'controller_wireHandles'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    if not state:
+        _state = self.getEnumValueString('blockState') 
+    
+    ml_done = []
+    md_controllers = {}
+    ml_controllers = []
+    if cgmGEN.__mayaVersion__ >= 2018:
+        print '2018...'
+        mMainController = cgmMeta.controller_get(self)
+        
+        for mHandle in ml_handles:
+            if mHandle in ml_done:
+                continue
+            if not mHandle:
+                continue
+            mLoft = mHandle.getMessageAsMeta('loftCurve')
+            if mLoft:
+                mController = cgmMeta.controller_get(mLoft)
+                mController.visibilityMode = 2
+                ml_done.append(mController)
+                md_controllers[mLoft] = mController
+                ml_controllers.append(mController)
+                
+            mController = cgmMeta.controller_get(mHandle,True)
+            mController.visibilityMode = 2                            
+            ml_done.append(mHandle)
+            md_controllers[mHandle] = mController
+            ml_controllers.append(mController)
+
+        for mSet in ml_handles:
+            for i,mHandle in enumerate(mSet):
+                if mHandle not in ml_done:
+                    continue
+                
+                mController =  md_controllers[mHandle]
+                if not i:
+                    mController.parent_set(mMainController,msgConnect=True)
+                else:
+                    mController.parent_set(md_controllers[mSet[i-1]],msgConnect=False)
+                    
+                ml_done.append(mController)
+        
+        for mObj in ml_controllers:
+            try:
+                ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                             "{0}.visibilityMode".format(mObj.mNode))    
+            except Exception,err:
+                log.error(err)
+            self.msgList_append('{0}Stuff'.format(state),mObj)    

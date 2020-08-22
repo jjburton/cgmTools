@@ -2030,7 +2030,9 @@ def create_face_handle(self, pos, tag, k, side,
                         md[k].v = False
                     
                     mSurfaceTrack.p_position = md['mFollicle'].p_position
-                    mc.pointConstraint(mFollicle.mNode,mSurfaceTrack.mNode,maintainOffset=0)                    
+                    mc.pointConstraint(mFollicle.mNode,mSurfaceTrack.mNode,maintainOffset=0)
+                    
+
                 
             else:
                 mTrack.rename("{0}_surfaceDriver".format(mHandle.p_nameBase))
@@ -2044,6 +2046,8 @@ def create_face_handle(self, pos, tag, k, side,
                 
                 mTrack.p_position = md['mFollicle'].p_position
                 mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
+                if not orientToDriver:
+                    mc.orientConstraint(mFollicle.mNode, mTrack.mNode,maintainOffset = False)                
                 
             mDepth = mTrack.doCreateAt(setClass=1)
             mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))
@@ -2102,9 +2106,8 @@ def create_face_handle(self, pos, tag, k, side,
                         mPush.p_parent = mTrack
                         mHandle.p_parent = mPush
                         ATTR.connect('{0}.{1}'.format(self.mNode,offsetAttr), "{0}.tz".format(mPush.mNode))
-                        
-                        #if orientToDriver:
-                        #    mc.orientConstraint(mDriver.mNode, mSurfaceTrack.mNode,maintainOffset = False)                    
+                        mPush.rotate = 0,0,0
+                    
                     
             ATTR.connect('{0}.{1}'.format(self.mNode,depthAttr), "{0}.tz".format(mDepth.mNode))
             
@@ -2113,6 +2116,7 @@ def create_face_handle(self, pos, tag, k, side,
                 
             if orientToDriver:
                 mc.orientConstraint(mDriver.mNode, mTrack.mNode,maintainOffset = False)
+
         else:
             _dat = DIST.get_closest_point_data(mSurface.mNode, targetObj=mHandle)
             mHandle.p_position = DIST.get_pos_by_vec_dist(_dat['position'],_dat['normal'], self.controlOffset)
