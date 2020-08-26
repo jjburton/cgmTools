@@ -82,7 +82,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.07292020'
+__version__ = '1.08252020'
 _sidePadding = 25
 
 def check_cgm():
@@ -1994,8 +1994,6 @@ class ui(cgmUI.cgmGUI):
                     log.debug("[{0}] ...".format(mBlock.p_nameShort,res))
                     if kws.get('mode') not in ['prechecks']:
                         pprint.pprint(res)
-                    
-
                         
                 if b_dupMode:
                     md_dat[res] = mBlock

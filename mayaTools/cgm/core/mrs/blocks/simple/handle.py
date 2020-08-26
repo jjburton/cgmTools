@@ -405,6 +405,7 @@ def define(self):
         mHandleFactory = self.asHandleFactory()
         self.addAttr('cgmColorLock',True,lock=True,hidden=True)    
         mDefineNull = self.atUtils('stateNull_verify','define')
+        md_handles = {}
         
         if self.blockProfile not in ['snapPoint']:
             #Get our base attr dat ============================================================

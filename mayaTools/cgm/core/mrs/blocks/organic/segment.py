@@ -1746,8 +1746,10 @@ def rig_controls(self):
                      "{0}.visibility".format(self.mDeformNull.mNode))        
         
         
-        """
         if not b_cog:
+            mPlug_visRoot = self.atBuilderUtils('build_visModuleMD','visRoot',defaultValue=False)
+            
+        """
             mPlug_visRoot = cgmMeta.cgmAttr(mSettings,'visRoot', value = True,
                                             attrType='bool', defaultValue = False,
                                             keyable = False,hidden = False)

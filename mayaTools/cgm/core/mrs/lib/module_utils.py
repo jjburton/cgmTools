@@ -26,7 +26,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #========================================================================
-__version__ = '1.05312019'
+__version__ = '1.08232020'
 
 import maya.cmds as mc
 
@@ -1163,7 +1163,8 @@ def mirror_get(self,recheck=False):
     elif not ml_match:
         return False
     
-    self.doStore('moduleMirror',ml_match[0])
+    if not self.isReferenced() and self.getMessage('moduleMirror'):
+        self.doStore('moduleMirror',ml_match[0])
     return ml_match[0]
 
 def mirror_reportSetup(self):

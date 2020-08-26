@@ -358,7 +358,9 @@ class dat(object):
         
         if mModule in self.dat['mModules']:
             log.debug(cgmGEN.logString_msg('using buffer...'))                        
-            if not update:return self.dat[mModule]
+            if not update:
+                return self.dat[mModule]
+                #return self.dat.get(mModule,{})
         else:
             self.dat['mModules'].append(mModule)
             

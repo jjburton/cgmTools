@@ -3029,27 +3029,25 @@ class rigFactory(object):
         _buildModule = rigBlock.p_blockModule
         #reload(_buildModule)
         _short = self.mBlock.p_nameShort
-        if _buildModule.__dict__.get('rig_prechecks'):
-            log.debug("|{0}| >> Found precheck call".format(_str_func,))
-            _buildModule.rig_prechecks(self)        
-        
-        if self.l_precheckErrors:
-            _short = self.mBlock.mNode
-            print(cgmGEN._str_hardLine)
-            print("|{0}| >> Block: {1} ".format(_str_func, _short))            
-            print("|{0}| >> Prechecks failed! ".format(_str_func))
-            for i,e in enumerate(self.l_precheckErrors):
-                print("{0} | {1}".format(i,e))
-            print(cgmGEN._str_hardLine)
-            #log.error("[ '{0}' ] Failure. See script editor".format(_short))
-            return log.error("[ '{0}' ] Failure. See script editor".format(_short))
-            raise ValueError,("[ '{0}' ] Failure. See script editor".format(_short))
         
 
+
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        _prechecks = self.prechecks()
+        if not _prechecks and mode not in ['prechecks']:
+            raise ValueError,cgmGEN.logString_start("FAIL || [ {0} ]".format(self.mBlock.p_nameShort))
+            
         
         if mode == 'prechecks':
-            print(cgmGEN.logString_start("[ {0} ] || PRECHECK PASSED".format(self.mBlock.p_nameShort)))
+            _strBlock =  "[ {0} ] |type: {1} | profile: {2}".format(self.mBlock.p_nameShort,
+                                                                    self.mBlock.blockType,
+                                                                    self.mBlock.getMayaAttr('blockProfile'))
+            if _prechecks:
+                print(cgmGEN.logString_start("PASS || {0}".format(_strBlock)))
+            else:
+                print(cgmGEN.logString_start("FAIL || {0} ".format(_strBlock)))
+                print(cgmGEN._str_hardLine)
+            
             return
         
         self.fnc_check_rigBlock()
@@ -3067,12 +3065,11 @@ class rigFactory(object):
         self.fnc_deformConstrainNulls()
         
         if self.l_precheckWarnings:
-            print(cgmGEN._str_hardLine)
             print("|{0}| >> Block: {1} ".format(_str_func, _short))            
             print("|{0}| >> Prechecks Warnings! ".format(_str_func))
             for i,e in enumerate(self.l_precheckWarnings):
                 print("{0} | {1}".format(i,e))
-            print(cgmGEN._str_hardLine)                            
+            #print(cgmGEN._str_hardLine)                            
         self.fnc_processBuild(**kws)
         
 
@@ -3081,7 +3078,32 @@ class rigFactory(object):
 
         #_verify = kws.get('verify',False)
         #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
-
+    
+    def prechecks(self):
+        _str_func = 'rigFactory.prechecks'
+        
+        _buildModule = self.mBlock.p_blockModule
+        _short = self.mBlock.p_nameShort
+        
+        if _buildModule.__dict__.get('rig_prechecks'):
+            log.debug("|{0}| >> Found precheck call".format(_str_func,))
+            _buildModule.rig_prechecks(self)
+            
+        if self.mBlock.blockState < 3:
+            self.l_precheckErrors.append("Not skeletonized")
+                
+        
+        if self.l_precheckErrors:
+            print(cgmGEN._str_hardBreak)                            
+            
+            _short = self.mBlock.mNode
+            #print("|{0}| >> Block: {1} ".format(_str_func, _short))            
+            for i,e in enumerate(self.l_precheckErrors):
+                print("   {0} | {1}".format(i,e))
+            return False
+        return True
+        
+        
     def __repr__(self):
         try:return "{0}(rigBlock: {1})".format(self.__class__, self.mBlock.mNode)
         except:return self

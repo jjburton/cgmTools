@@ -112,7 +112,7 @@ def get_list(context = 'selection', mType = None, getTransform = False):
                 if mType:
                     try:_buffer = mc.listRelatives (root, allDescendents=True, type = mType, fullPath = True) or []
                     except:_buffer = []
-                    else:_buffer = mc.listRelatives (root, allDescendents=True, fullPath = True) or []
+                else:_buffer = mc.listRelatives (root, allDescendents=True, fullPath = True) or []
                 for o2 in _buffer:
                     if o2 not in _l_context:
                         _l_context.append(o2)

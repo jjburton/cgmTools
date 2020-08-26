@@ -7176,7 +7176,10 @@ def rig_frameSingle(self):
                                     #ml_ikJoints[self.int_handleEndIdx].mNode,
                                     ml_ikJoints[-1].mNode,                                    
                                     maintainOffset = True)
-                
+                mc.pointConstraint([mIKEndDriver.mNode],
+                                    #ml_ikJoints[self.int_handleEndIdx].mNode,
+                                    ml_ikJoints[-1].mNode,                                    
+                                    maintainOffset = True)                
                 if ml_end_children:
                     for mChild in ml_end_children:
                         mChild.parent = mEnd                

@@ -175,8 +175,15 @@ def uiSection_selection(parent = None):
                     c=cgmGEN.Callback(MMCONTEXT.select,s,'mesh'))        
         mc.menuItem(l='Surface', subMenu = False,
                     ann = "Select all surfaces in {0}".format(s),                    
-                    c=cgmGEN.Callback(MMCONTEXT.select,s,'nurbsSurface'))   
-    
+                    c=cgmGEN.Callback(MMCONTEXT.select,s,'nurbsSurface'))
+        
+        #mUI.MelMenuItemDiv(uiSelect)
+        for c in ['point','orient','parent','scale','normal']:
+            mc.menuItem(l='{0} Const'.format(c), subMenu = False,
+                        ann = "Select all {1} constraints in {0}".format(s,c),                    
+                        c=cgmGEN.Callback(MMCONTEXT.select,s,'{0}Constraint'.format(c)))                   
+
+
     return uiSelect
 
 def uiSection_arrange(parent = None, selection = None, pairSelected = True):
