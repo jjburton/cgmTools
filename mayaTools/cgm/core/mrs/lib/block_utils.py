@@ -12256,6 +12256,11 @@ def controller_wireHandles(self,ml_handles,state=None):
     
     if not state:
         _state = self.getEnumValueString('blockState') 
+    if not ml_handles:
+        return
+    
+    ml_handles = VALID.listArg(ml_handles)
+    
     
     ml_done = []
     md_controllers = {}
@@ -12272,17 +12277,18 @@ def controller_wireHandles(self,ml_handles,state=None):
             mLoft = mHandle.getMessageAsMeta('loftCurve')
             if mLoft:
                 mController = cgmMeta.controller_get(mLoft)
-                mController.visibilityMode = 2
+                #mController.visibilityMode = 2
                 ml_done.append(mController)
                 md_controllers[mLoft] = mController
                 ml_controllers.append(mController)
                 
             mController = cgmMeta.controller_get(mHandle,True)
-            mController.visibilityMode = 2                            
+            #mController.visibilityMode = 2                            
             ml_done.append(mHandle)
             md_controllers[mHandle] = mController
             ml_controllers.append(mController)
-
+        
+        """
         for mSet in ml_handles:
             for i,mHandle in enumerate(mSet):
                 if mHandle not in ml_done:
@@ -12294,12 +12300,17 @@ def controller_wireHandles(self,ml_handles,state=None):
                 else:
                     mController.parent_set(md_controllers[mSet[i-1]],msgConnect=False)
                     
-                ml_done.append(mController)
+                ml_done.append(mController)"""
         
         for mObj in ml_controllers:
-            try:
-                ATTR.connect("{0}.visProximityMode".format(self.mNode),
-                             "{0}.visibilityMode".format(mObj.mNode))    
-            except Exception,err:
-                log.error(err)
-            self.msgList_append('{0}Stuff'.format(state),mObj)    
+            if not ATTR.get_driver(mObj.mNode, 'visibilityMode') and not ATTR.is_locked(mObj.mNode,
+                                                                                        'visibilityMode'):
+                try:
+                    ATTR.connect("{0}.visProximityMode".format(self.mNode),
+                                 "{0}.visibilityMode".format(mObj.mNode))    
+                except Exception,err:
+                    log.error(err)
+            #self.addAttr('{0}Stuff'.format(state), attrType = 'multiMessage')
+            #self.msgList_append('{0}Stuff'.format(state),mObj)    
+        
+            ATTR.multi_append(self.mNode, '{0}Stuff'.format(state), mObj)

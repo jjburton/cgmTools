@@ -87,7 +87,7 @@ DPCTDIST = DIST.get_pos_by_linearPct
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.10.31.2018'
+__version__ = '09.04.2020'
 __autoForm__ = False
 __menuVisible__ = True
 __faceBlock__ = True
@@ -157,18 +157,18 @@ d_block_profiles = {'default':{},
 #>>>Attrs =================================================================================================
 l_attrsStandard = ['side',
                    'position',
-                   'baseAim',
                    'attachPoint',
                    'attachIndex',                   
                    'nameList',
-                   'loftDegree',
-                   'loftSplit',
+                   #'loftDegree',
+                   #'loftSplit',
                    'scaleSetup',
                    'visLabels',
                    'buildSDK',                   
                    
                    'controlOffset',
                    'conDirectOffset',
+                   'visProximityMode',
                    'moduleTarget',]
 
 d_attrsToMake = {'faceType':'default:muzzle:beak',
@@ -194,7 +194,7 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  'numJointsNostril':'int',
                  'numJointsNoseTip':'int',
                  #Lips...
-                 'lipSealSetup':'none:default',
+                 #'lipSealSetup':'none:default',
                  'numConLips':'int',
                  'numLipShapersUpr':'int',
                  'numLipShapersLwr':'int',
@@ -235,7 +235,7 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
 d_defaultSettings = {'version':__version__,
                      'attachPoint':'end',
                      'side':'none',
-                     'loftDegree':'cubic',
+                     #'loftDegree':'cubic',
                      'numJointsLipUpr':3,
                      'numConLips':3,
                      'numJointsLipLwr':3,
@@ -719,7 +719,7 @@ def define(self):
     self.setAttrFlags(attrs=['sx','sz','sz'])
     self.doConnectOut('sy',['sx','sz'])
 
-    ATTR.set_min(_short, 'loftSplit', 1)
+    #ATTR.set_min(_short, 'loftSplit', 1)
     ATTR.set_min(_short, 'paramUprStart', 0.0)
     ATTR.set_min(_short, 'paramLwrStart', 0.0)
     
@@ -749,6 +749,7 @@ def define(self):
     #rigBlock Handle ===========================================================
     log.debug("|{0}| >>  RigBlock Handle...".format(_str_func))            
     _size = MATH.average(self.baseSize[1:])
+    self.jointRadius = _size / 10
     _crv = CURVES.create_fromName(name='locatorForm',#'axis3d',#'arrowsAxis', 
                                   direction = 'z+', size = _size/4)
     SNAP.go(_crv,self.mNode,)
@@ -1436,8 +1437,9 @@ def define(self):
         d_creation[tag]['shape'] = 'locatorForm'
         
     log.debug("|{0}| >>  Make the handles...".format(_str_func))    
-    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size / 10, mDefineNull, mBBShape)
-
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape)
+    
+    
     md_handles = md_res['md_handles']
     ml_handles = md_res['ml_handles']
     
@@ -1448,12 +1450,13 @@ def define(self):
     idx_ctr = 0
     idx_side = 0
     d = {}
-    
+    ml_toController = []
     for tag,mHandle in md_handles.iteritems():
         if tag not in l_mainHandles:
-            if cgmGEN.__mayaVersion__ >= 2018:
-                mController = mHandle.controller_get()
-                mController.visibilityMode = 2
+            #if cgmGEN.__mayaVersion__ >= 2018:
+            #    mController = mHandle.controller_get()
+            #    mController.visibilityMode = 2
+            ml_toController.append(mHandle)
             
         mHandle._verifyMirrorable()
         _center = True
@@ -1493,6 +1496,8 @@ def define(self):
     self.msgList_connect('defineHandles',ml_handles)#Connect    
     self.msgList_connect('defineSubHandles',ml_handles)#Connect
     self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect
+    
+    self.atUtils('controller_wireHandles',ml_toController,'define')
     
     return
 
@@ -3350,7 +3355,7 @@ def form(self):
             except Exception,err:
                 log.error('Mirror error: {0}'.format(err))
         
-        
+        self.atUtils('controller_wireHandles',ml_subHandles,'form')
         self.msgList_connect('formHandles',ml_subHandles)#Connect
         self.msgList_connect('formCurves',md_res['ml_curves'])#Connect        
         return
@@ -3481,6 +3486,9 @@ def prerig(self):
         self.blockState = 'prerig'
         _side = self.UTILS.get_side(self)
         
+        if MATH.is_even(self.numConLips):
+            raise ValueError,"numConLips must be odd."
+        
         self.atUtils('module_verify')
         mStateNull = self.UTILS.stateNull_verify(self,'prerig')
         mNoTransformNull = self.atUtils('noTransformNull_verify','prerig')
@@ -3488,12 +3496,13 @@ def prerig(self):
         #self.formNull.template=True
         
         _offset = self.atUtils('get_shapeOffset')/4.0
-        _size = MATH.average(self.baseSize[1:])
-        _size_base = _size * .25
+        _size = self.jointRadius  #MATH.average(self.baseSize[1:])
+        _size_base = self.jointRadius 
         _size_sub = _size_base * .5
-        _size_anchor = _size_sub/4
-        
-        _muzzleSize = _offset * 4.0
+        _size_anchor = _size / 1.5
+        _size_anchorLips = _size / 2.0
+        _size_direct = _size * .75
+        _muzzleSize = _size * 1.2# * 4.0
         
         #mRoot = self.getMessageAsMeta('rootHelper')
         mHandleFactory = self.asHandleFactory()
@@ -3519,9 +3528,7 @@ def prerig(self):
         for mObj in self.msgList_get('defineSubHandles') + self.msgList_get('formHandles'):
             _handleTag = mObj.handleTag
             md_dHandles[_handleTag] = mObj
-            #mLabel = mObj.getMessageAsMeta('jointLabel')
-            #if mLabel:
-                #mLabel.v=0
+
             ml_defineHandles.append(mObj)
             d_basePosDat[_handleTag] = mObj.p_position
 
@@ -3583,7 +3590,7 @@ def prerig(self):
             _d_kws['jointSize'] *= 2 
             mShape,mDag = BLOCKSHAPES.create_face_handle(self, None,'jaw',None,'center',
                                                          mHandleShape=mShape,
-                                                         size = _muzzleSize,
+                                                         size = _offset,
                                                          nameDict=_d_name,
                                                          aimGroup=0,
                                                          **_d_kws)            
@@ -3602,7 +3609,7 @@ def prerig(self):
             
             mDag.p_parent = mStateNull        
         
-        
+         
         #Tongue =========================================================================================
         _tongueSetup = self.tongueSetup
         if _tongueSetup:#============================================================
@@ -3651,7 +3658,7 @@ def prerig(self):
                 f_distLip = DIST.get_distance_between_points(p_gumUpr, p_lwrLipBack)
                 p_shape = DIST.get_pos_by_vec_dist(DGETAVG([p_lwrLipBack,p_gumUpr]),
                                                   vec_self,
-                                                  _offset)
+                                                  0)
                 _tag = 'teeth'+'Upr'
                 #------------------------------------------------------------
             
@@ -3680,7 +3687,7 @@ def prerig(self):
                 f_distLip = DIST.get_distance_between_points(p_gumLwr, p_lwrLipBack)
                 p_shape = DIST.get_pos_by_vec_dist(DGETAVG([p_lwrLipBack,p_gumLwr]),
                                                   vec_self,
-                                                  _offset)
+                                                  0)
                 _tag = 'teeth'+'Lwr'
                 #------------------------------------------------------------
             
@@ -3734,12 +3741,13 @@ def prerig(self):
                     'ml_jointHandles':ml_jointHandles,
                 }
                 d_handleKWS.update(d_baseHandeKWS)
-
+                reload(BLOCKSHAPES)
                 mAnchor,mShape,mDag = BLOCKSHAPES.create_face_anchorHandleCombo(self,
                                                                                 p_chinBase,
                                                                                 _tag,
                                                                                 None,
                                                                                 'center',
+                                                                                size= _size_anchor,
                                                                                 offsetAttr = 'conDirectOffset',
                                                                                 **d_handleKWS)
                 #ml_handles.extend([mAnchor,mShape,mDag])                
@@ -3763,7 +3771,7 @@ def prerig(self):
                                                              """
             else:
                 raise ValueError,"Invalid chinSetup: {0}".format(str_chinSetup)
-            
+        
         if self.muzzleSetup:#Muzzle ============================================================
             log.debug(cgmGEN.logString_sub(_str_func,'muzzle'))
             
@@ -3853,6 +3861,7 @@ def prerig(self):
                                                                                     _tag,
                                                                                     None,
                                                                                     side,
+                                                                                    size= _size_anchor,
                                                                                     offsetAttr = 'conDirectOffset',
                                                                                     **d_handleKWS)                        
 
@@ -3881,7 +3890,7 @@ def prerig(self):
                                                              None,
                                                              'center',
                                                              mainShape='loftWideDown',
-                                                             size = _size_sub*2.0,
+                                                             size = _size * 2.5,
                                                              nameDict=_dTmp,
                                                              **d_baseHandeKWS)
                     
@@ -3923,6 +3932,7 @@ def prerig(self):
                                                                                     'noseTip',
                                                                                     None,
                                                                                     'center',
+                                                                                    size= _size_direct,
                                                                                     **d_handleKWS)
 
                     BLOCKSHAPES.create_visualTrack(self, mDag, md_handles['noseBaseJoint'],_tag,mNoTransformNull)
@@ -3961,6 +3971,7 @@ def prerig(self):
                                                                                         _tag,
                                                                                         None,
                                                                                         side,
+                                                                                        size= _size_direct,
                                                                                         offsetAttr = 'conDirectOffset',
                                                                                         
                                                                                         **d_handleKWS)
@@ -3969,7 +3980,7 @@ def prerig(self):
                                                        _tag,mNoTransformNull)
 
 
-
+        
         if self.cheekSetup:# cheek setup ============================================================
             log.debug(cgmGEN.logString_sub(_str_func,'Cheek setup'))
             str_cheekSetup = self.getEnumValueString('cheekSetup')
@@ -4015,6 +4026,7 @@ def prerig(self):
                                                                                     _tag,
                                                                                     None,
                                                                                     side,
+                                                                                    size= _size_anchor,
                                                                                     offsetAttr = 'conDirectOffset',
                                                                                     
                                                                                     **d_handleKWS)                    
@@ -4071,6 +4083,7 @@ def prerig(self):
                                                                                     _tag,
                                                                                     None,
                                                                                     side,
+                                                                                    size= _size_anchor,
                                                                                     offsetAttr = 'conDirectOffset',
                                                                                     
                                                                                     **d_handleKWS)                    
@@ -4080,7 +4093,7 @@ def prerig(self):
     
             else:
                 raise ValueError,"Invalid cheekSetup: {0}".format(str_cheekUprSetup)
-            
+        
         if self.smileSetup:# cheek setup ============================================================
             log.debug(cgmGEN.logString_sub(_str_func,'Smile setup'))
             str_smileSetup = self.getEnumValueString('smileSetup')
@@ -4129,6 +4142,7 @@ def prerig(self):
                                                                                     _tag,
                                                                                     None,
                                                                                     side,
+                                                                                    size= _size_anchor,
                                                                                     offsetAttr = 'conDirectOffset',
                                                                                     
                                                                                     **d_handleKWS)                    
@@ -4152,7 +4166,7 @@ def prerig(self):
                                                           md_dHandles['cornerFrontRight'].p_position)
             
             mShape = cgmMeta.validateObjArg(CURVES.create_fromName(name='dumbell', 
-                                                                  size=3.0, 
+                                                                  size=dist_width * .75, 
                                                                   direction='z+'),'cgmObject',setClass=1)
             #mHandleFactory.buildBaseShape('dumbell',baseSize = 3.0, shapeDirection = 'z+')
             mShape.p_parent = mStateNull
@@ -4268,7 +4282,7 @@ def prerig(self):
                                                                  side,
                                                                  nameDict=_dUse,
                                                                  mStateNull=mStateNull,
-                                                                 size= _size_sub/4)
+                                                                 size= _size_anchorLips)
                         
                         #mAnchor.rotate = 0,0,0
                         
@@ -4409,6 +4423,7 @@ def prerig(self):
                                                                       tag,
                                                                       None,
                                                                       side,
+                                                                      size = _size,
                                                                       mDriver=mAnchor,
                                                                       mSurface=mLipLoft,
                                                                       mainShape=_mainShape,
@@ -4444,6 +4459,7 @@ def prerig(self):
                                                                           tag,
                                                                           None,
                                                                           side,
+                                                                          size = _size,
                                                                           mDriver=mAnchor,
                                                                           mSurface=mLipLoft,
                                                                           mainShape=_shapeUse,
@@ -4688,28 +4704,34 @@ def prerig(self):
                         if _mode == 'simple':
                             mc.orientConstraint(_closest, mDriver.mNode, maintainOffset = False)
                         else:
-                            if mDriver == sideDat[-1]:
-                                _tar = md_lipDrivers[tag]['center'][0].mNode
-                            else:
+                            #if mDriver == sideDat[-1]:
+                            #    _tar = md_lipDrivers[tag]['center'][0].mNode
+                            #else:
+                            try:
                                 _tar = sideDat[i+1].mNode
                                 
-                            mc.aimConstraint(_tar,
-                                             mDriver.mNode,
-                                             maintainOffset = False, weight = 1,
-                                             aimVector = _aim,
-                                             upVector = [0,0,1],
-                                             worldUpVector = [0,0,1],
-                                             worldUpObject = _closest,
-                                             worldUpType = 'objectRotation' )
+                                mc.aimConstraint(_tar,
+                                                 mDriver.mNode,
+                                                 maintainOffset = False, weight = 1,
+                                                 aimVector = _aim,
+                                                 upVector = [0,0,1],
+                                                 worldUpVector = [0,0,1],
+                                                 worldUpObject = _closest,
+                                                 worldUpType = 'objectRotation' )
+                            except:
+                                log.error("Unable to find aim dat for: {0} | {1}".format(tag,i))
                         
             
             #Driven Curve
-            ml_uprCenter = md_jointHelpers['upr']['center']
+
+                
             ml_uprLeft = copy.copy(md_jointHelpers['upr']['left'])
             ml_uprLeft.reverse()
             ml_uprRight = md_jointHelpers['upr']['right']
             
-            ml_lwrCenter = md_jointHelpers['lwr']['center']
+            
+
+                
             ml_lwrLeft = copy.copy(md_jointHelpers['lwr']['left'])
             ml_lwrLeft.reverse()
             
@@ -4717,9 +4739,19 @@ def prerig(self):
             
             md_crvDrivers = {}
             
-            md_crvDrivers['upr'] = ml_uprRight + ml_uprCenter + ml_uprLeft
-            md_crvDrivers['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrCenter + ml_lwrLeft + ml_uprLeft[-1:]
-            
+            #...if we have odd counts we have centers, else not
+            if not MATH.is_even(self.numJointsLipUpr):
+                ml_uprCenter = md_jointHelpers['upr']['center']
+                md_crvDrivers['upr'] = ml_uprRight + ml_uprCenter + ml_uprLeft
+            else:
+                md_crvDrivers['upr'] = ml_uprRight + ml_uprLeft
+                
+            if not MATH.is_even(self.numJointsLipLwr):
+                ml_lwrCenter = md_jointHelpers['lwr']['center']
+                md_crvDrivers['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrCenter + ml_lwrLeft + ml_uprLeft[-1:]
+            else:
+                md_crvDrivers['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrLeft + ml_uprLeft[-1:]
+                
             #pprint.pprint(md_anchors)
             #pprint.pprint(d_anchorDat)
             #pprint.pprint(md_crvDrivers)

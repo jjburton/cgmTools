@@ -2345,7 +2345,87 @@ def get_message(messageHolder, messageAttr = None, dataAttr = None, dataKey = No
             else:#Try to repair it
                 return repairMessageToReferencedTarget(storageObject,messageAttr)
     return False    
+
+def multi_append(messageHolder, messageAttr, message, im=True):
+    """   
+    Append to an existing multimessage attribute.
     
+    :parameters:
+        messageHolder(str) -- object to store to
+        messageAttr(str) -- 
+        message(str) -- may be object, attribute, shape, or component 
+       
+
+    :returns
+        status(bool)
+    """
+    _str_func = 'multi_append'    
+    
+    _d = validate_arg(messageHolder,messageAttr)
+    _combined = _d['combined']
+
+    #>> Validation -----------------------------------------------------------------------------------------------
+    _mode = 'reg'
+    
+    if mc.objExists(_combined) and mc.addAttr(_combined,q=True,m=True):
+        _multi = True
+        if not message:
+            log.debug("|{0}| >> multimessage delete...".format(_str_func))
+            delete(_combined)
+            add(_combined,'message',m=True,im=im)
+
+            return True            
+    
+    message = VALID.listArg(message)
+    
+    def storeMsgMulti(msgNodes,holderDict):
+        for n in msgNodes:
+            try:
+                connect((n + ".message"),holderDict['combined'],nextAvailable=True)
+            except Exception,err:
+                log.debug("|{0}| >> {1} failed: {2}".format(_str_func, n, err))  
+                
+    if mc.objExists(_combined):
+        if not get_type(_combined) == 'message':
+            log.warning("|{0}| >> Not a message attribute. converting..".format(_str_func))  
+            delete(_d)
+            add(messageHolder,messageAttr,'message',m=True,im=im)
+            storeMsgMulti(message,_d)
+            return True
+        
+        if not mc.addAttr(_combined,q=True,m=True):#not multi...
+            log.warning("|{0}| >> Not a multi message attribute. converting..".format(_str_func))  
+            delete(_d)
+            add(messageHolder,messageAttr,'message',m=True,im=im)
+            storeMsgMulti(message,_d)
+            return True                    
+            
+        else:
+            """
+            log.debug("|{0}| >> multimessage...".format(_str_func)) \ 
+            _messageLong = [NAMES.get_long(m) for m in message]
+            if _buffer and [NAMES.get_long(m) for m in _buffer] == _messageLong:
+                log.debug("|{0}| >> message match. Good to go".format(_str_func))                            
+                return True
+            else:"""
+            """
+            log.debug("|{0}| >> No match...".format(_str_func))                                                    
+            connections = get_driven(_combined)
+            if connections:
+                for c in connections:
+                    break_connection(c)
+
+            delete(_d)
+            add(messageHolder,messageAttr,'message',m=True,im=False)"""
+            storeMsgMulti(message,_d)
+
+    else:
+        log.debug("|{0}| >> new attr...".format(_str_func))                    
+        add(messageHolder,messageAttr,'message',m=True,im=False)
+        storeMsgMulti(message,_d)
+    return True
+
+
 def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = None, simple = False, connectBack = None, multi = None):
     """   
     This is a speciality cgm setup using both message attributes and a cgmMessageData attriubute for storing extra data via json
