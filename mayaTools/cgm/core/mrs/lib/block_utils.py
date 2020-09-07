@@ -9932,8 +9932,16 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 md_handles['end'].p_position = 1,2,3
                 md_handles['end'].p_position = pos
                 
-                
+
             mel.eval('EnableAll;doEnableNodeItems true all;')
+            
+        for mHandle in ml_handles:
+            d = d_definitions[mHandle.handleTag]
+            if d.get('jointScale'):
+                if not ATTR.is_connected('{0}.scale'.format(mHandle.mNode)):
+                    if self.hasAttr('jointRadius'):
+                        mHandle.doConnectIn('scale', "{0}.jointRadius".format(self.mNode),pushToChildren=True)                
+                        ATTR.set_standardFlags(mHandle.mNode, ['sx','sy','sz'])
 
         return {'md_handles':md_handles,
                 'ml_handles':ml_handles,

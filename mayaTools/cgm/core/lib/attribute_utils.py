@@ -1349,7 +1349,7 @@ def disconnect(fromAttr,toAttr):
         
     return True
 
-def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
+def connect(fromAttr,toAttr,transferConnection=False,lock = False, pushToChildren=False, **kws):
     """   
     Connects attributes. Handles locks on source or end
 
@@ -1382,6 +1382,31 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
 
     _wasLocked = False
     _connection = False
+    
+    if pushToChildren:
+        _childrenSource = get_children(_d) or []
+        _children = get_children(_d_to) or []
+        if _children and len(_childrenSource) != len(_children):
+            for c in _children:
+                _d_tmp = validate_arg(_d_to['obj'],c)
+                _combined_to_tmp = _d_tmp['combined']
+                
+                
+                if (mc.objExists(_combined_to_tmp)):
+                    if mc.getAttr(_combined_to_tmp,lock=True):
+                        _wasLocked = True
+                        mc.setAttr(_combined_to_tmp,lock=False)
+            
+                    #bufferConnection = get_driver(toAttr)
+                    _connection = break_connection(_d_tmp)
+                    #doBreakConnection(attrBuffer[0],attrBuffer[1])
+                    mc.connectAttr(_combined,_combined_to_tmp,**kws)     
+            
+                if _wasLocked or lock:
+                    mc.setAttr(_combined_to_tmp,lock=True)
+            return True
+        
+    
     if (mc.objExists(_combined_to)):
         if mc.getAttr(_combined_to,lock=True):
             _wasLocked = True
@@ -1402,7 +1427,7 @@ def connect(fromAttr,toAttr,transferConnection=False,lock = False, **kws):
 
     if _wasLocked or lock:
         mc.setAttr(_combined_to,lock=True)  
-        
+    
     return True
 
 

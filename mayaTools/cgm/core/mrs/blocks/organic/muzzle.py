@@ -1433,11 +1433,15 @@ def define(self):
 
 
     #make em... ==============================================================================================
-    for tag in l_mainHandles:
-        d_creation[tag]['shape'] = 'locatorForm'
+    for tag,d in d_creation.iteritems():
+        if tag in l_mainHandles:
+            d_creation[tag]['shape'] = 'locatorForm'
+            d_creation[tag]['jointScale'] = False
+        else:
+            d_creation[tag]['jointScale'] = True
         
     log.debug("|{0}| >>  Make the handles...".format(_str_func))    
-    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape)
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation,self.jointRadius, mDefineNull, mBBShape)
     
     
     md_handles = md_res['md_handles']
@@ -3257,7 +3261,9 @@ def form(self):
         
         #l_dTagsUsed.sort()
         #pprint.pprint(l_dTagsUsed)        
-        
+        for tag,d in d_creation.iteritems():
+            d_creation[tag]['jointScale'] = True
+            
         md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size / 10,
                                                  mFormNull)
         ml_subHandles.extend(md_res['ml_handles'])

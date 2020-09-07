@@ -181,10 +181,10 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'irisAttach':'parent:surfaceSlide',
                  'pupilAttach':'parent:surfaceSlide',
                  'lidBuild':'none:clam:full',
-                 'lidType':'simple:full',
+                 #'lidType':'simple:full',
                  'lidDepth':'float',
                  'lidJointDepth':'float',
-                 'lidClosed':'bool',
+                 #'lidClosed':'bool',
                  'lidFanUpr':'none:single',
                  'lidFanLwr':'none:single',
                  'prerigJointOrient':'bool',
@@ -195,7 +195,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'numLidLwrShapers':'int',
                  'numLidSplit_u':'int',
                  'numLidSplit_v':'int',
-                 'lidHandleOffset':'float',
+                 #'lidHandleOffset':'float',
                  'highlightSetup':'none:simple:sdk:surfaceSlide',
 
 }
@@ -504,40 +504,6 @@ def define(self):
     ml_handles.append(mIrisPosHelper)    
     mPupilTrackDriver.p_parent = mIrisPosHelper#...parent our tracker to the orient handle    
     
-    """
-    #Orient helper =====================================================================================
-    _orientHelper = CURVES.create_fromName('arrowSingle', size = _size_base)
-    mShape = cgmMeta.validateObjArg(_orientHelper)
-
-
-    mShape.doSnapTo(self.mNode)
-    mShape.p_parent = mMidGroup
-
-    mShape.tz = self.baseSizeZ
-    mShape.rz = 90
-    
-    mPupilTrackDriver = self.doCreateAt(setClass=1)
-    mPupilTrackDriver.rename('eyeTrackDriver')
-
-    _crvLinear = CORERIG.create_at(create='curveLinear',
-                                   l_pos=[mMidGroup.p_position,mShape.p_position])
-    
-    
-    mOrientHelper = mMidGroup.doCreateAt(setClass=True)
-    CORERIG.shapeParent_in_place(mOrientHelper.mNode, mShape.mNode,False)
-    CORERIG.shapeParent_in_place(mOrientHelper.mNode, _crvLinear,False)
-    
-    mOrientHelper.p_parent = mMidGroup
-
-    mOrientHelper.doStore('cgmType','formHandle')
-    mOrientHelper.rename('eyeOrient_formHandle')
-
-    self.connectChildNode(mOrientHelper.mNode,'eyeOrientHelper','module')
-    mHandleFactory.color(mOrientHelper.mNode,controlType='sub')
-    
-    ml_handles.append(mOrientHelper)    
-    mPupilTrackDriver.p_parent = mOrientHelper#...parent our tracker to the orient handle
-    """
 
     #Bounding sphere ==================================================================
     #_bb_shape = CURVES.create_fromName('sphere', 1.0, baseSize=1.0)
@@ -773,7 +739,8 @@ def define(self):
         
         _size_depthHelper = _size_base/8
         
-            
+        ml_toControl = []
+        
         for tag,mHandle in md_handles.iteritems():
             #print DIST.get_closest_point(mHandle.mNode, mBBShape.mNode,True)
             mHandle.doConnectIn('scaleX',"{0}.jointRadius".format( _short))
@@ -811,19 +778,14 @@ def define(self):
                     #self.doConnectOut('lidDepth', "{0}.{1}".format(mHandle.mNode,a))
                     #ATTR.set_standardFlags(mHandle.mNode,[a])
                     
-            elif cgmGEN.__mayaVersion__ >= 2018:
-                mController = mHandle.controller_get()
-                
-                try:
-                    ATTR.connect("{0}.visProximityMode".format(self.mNode),
-                             "{0}.visibilityMode".format(mController.mNode))    
-                except Exception,err:
-                    log.error(err)
-
-                self.msgList_append('defineStuff',mController)                
+            else:
+                ml_toControl.append(mHandle)
         
             if 'End' not in tag:
                 mHandle.p_position = DIST.get_closest_point(mHandle.mNode, mBBShape.mNode)[0]
+    
+    
+        self.atUtils('controller_wireHandles',ml_toControl,'define')
     
     #_dat = self.baseDat
     #self.baseSize = _dat['baseSize']
@@ -935,7 +897,7 @@ def form(self):
             mVec = self.getAxisVector('z+')
 
             _offset = self.lidDepth#DIST.get_distance_between_points(d_defPos['inner'],d_defPos['upr']) * .25
-            _size = self.atUtils('defineSize_get') / 8
+            _size = self.jointRadius #self.atUtils('defineSize_get') / 8
             
             for tag in 'upr','lwr','outer','inner':
                 d_defPos[tag+'Line'] = DIST.get_pos_by_vec_dist(d_defPos[tag],mVec,_offset)
@@ -1064,7 +1026,11 @@ def form(self):
                                                         'rebuildType':1},
                                          'kws':{'noRebuild':1}
                                              }
-
+            
+            for tag,d in d_creation.iteritems():
+                d_creation[tag]['jointScale'] = True                
+            
+            
             md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size, 
                                                      mFormNull,statePlug = 'form')
             
@@ -1096,19 +1062,7 @@ def form(self):
                         md[k].p_parent = mNoTransformNull
                         md[k].v = False
                         
-                """
-                for i,key in enumerate(d_curveKeys[tag]['edge']):
-                    if key in [d_curveKeys[tag]['edge'][0],d_curveKeys[tag]['edge'][-1]] and tag == 'lwr':
-                        continue
-                    
-                    mHandle = md_handles[key]
-                    #pos  = DIST.get_closest_point(mHandle.mNode, mTrackSurface.mNode)[0]
-                    pos = DIST.get_pos_by_vec_dist(mHandle.p_position,mVec,-_offset)
-                    mHandle.p_position = pos
-                    """
-            
-        
-                
+
             md_res = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull,'formCurve')
             md_resCurves = md_res['md_curves']
             
@@ -1136,68 +1090,9 @@ def form(self):
         
             
             
-            for tag,mHandle in md_handles.iteritems():
-                if cgmGEN.__mayaVersion__ >= 2018:
-                    mController = mHandle.controller_get()
-                    
-                    try:
-                        ATTR.connect("{0}.visProximityMode".format(self.mNode),
-                                 "{0}.visibilityMode".format(mController.mNode))    
-                    except Exception,err:
-                        log.error(err)
-    
-                    self.msgList_append('formStuff',mController)                       
-                    
-                #Depth setup
-                #_depthHelp = CURVES.create_fromName('cylinder', size = [_size,_size,1])
-                #mShape = cgmMeta.validateObjArg(_depthHelp)
-                #mShape.doSnapTo(mHandle.mNode)
+ 
                 
-                #CORERIG.shapeParent_in_place(mHandle.mNode,_depthHelp,False,True,True)
-                #self.doConnectOut('lidDepth', "{0}.scaleZ".format(mHandle.mNode))
-                
-                #SNAP.aim_atPoint(mHandle.mNode,mEdgeDriver.p_position,'z-',mode='vector', vectorUp=self.getAxisVector('y+'))
-                #ATTR.set_standardFlags(mHandle.mNode,['sz'])
-            """       
-    
-            #Mirror indexing -------------------------------------
-            log.debug("|{0}| >> Mirror Indexing...".format(_str_func)+'-'*40) 
-            
-            idx_ctr = 0
-            idx_side = 0
-            d = {}
-            
-            for tag,mHandle in md_handles.iteritems():
-                if mHandle in ml_defineHandles:
-                    continue
-                
-                mHandle._verifyMirrorable()
-                _center = True
-                for p1,p2 in d_pairs.iteritems():
-                    if p1 == tag or p2 == tag:
-                        _center = False
-                        break
-                if _center:
-                    log.debug("|{0}| >>  Center: {1}".format(_str_func,tag))    
-                    mHandle.mirrorSide = 0
-                    mHandle.mirrorIndex = idx_ctr
-                    idx_ctr +=1
-                mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
-        
-            #Self mirror wiring -------------------------------------------------------
-            for k,m in d_pairs.iteritems():
-                try:
-                    md_handles[k].mirrorSide = 1
-                    md_handles[m].mirrorSide = 2
-                    md_handles[k].mirrorIndex = idx_side
-                    md_handles[m].mirrorIndex = idx_side
-                    md_handles[k].doStore('mirrorHandle',md_handles[m])
-                    md_handles[m].doStore('mirrorHandle',md_handles[k])
-                    idx_side +=1        
-                except Exception,err:
-                    log.error('Mirror error: {0}'.format(err))
-            """
-                
+            self.atUtils('controller_wireHandles',ml_subHandles,'form')
         
             self.msgList_connect('formHandles',ml_subHandles)#Connect
             self.msgList_connect('formCurves',md_res['ml_curves'])#Connect        
@@ -1206,67 +1101,6 @@ def form(self):
             
         
 
-        """
-        ml_defSubHandles = self.msgList_get('defineSubHandles')
-        for mObj in ml_defSubHandles:
-            mObj.template = True
-            
-        l_tags = ['upr','lwr','inner','outer',
-                  'uprEnd','lwrEnd','innerEnd','outerEnd']
-        md_handles = {}
-        d_pos = {}
-        for tag in l_tags:
-            md_handles[tag] = self.getMessageAsMeta("define{0}Helper".format(STR.capFirst(tag)))
-            d_pos[tag] = md_handles[tag].p_position
-            
-        
-        #Build our curves =======================================================================
-        #For this first pass we're just doing simple curve, will loop back when we do full lids
-        log.debug("|{0}| >> Lid cuves...".format(_str_func)+ '-'*40)
-        
-        md_loftCurves = {}
-        d_loftCurves = {'upr':[d_pos['inner'],
-                               d_pos['upr'],
-                               d_pos['outer']],
-                        'lwr':[d_pos['inner'],
-                               d_pos['lwr'],
-                               d_pos['outer']],
-                        'uprEnd':[d_pos['innerEnd'],
-                                  d_pos['uprEnd'],
-                                  d_pos['outerEnd']],
-                        'lwrEnd':[d_pos['innerEnd'],
-                                  d_pos['lwrEnd'],
-                                  d_pos['outerEnd']]}
-
-
-        for tag,l_pos in d_loftCurves.iteritems():
-            _crv = CORERIG.create_at(create='curve',l_pos = l_pos)
-            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject',setClass=True)
-            mCrv.p_parent = mFormNull
-            mHandleFactory.color(mCrv.mNode)
-            
-            mCrv.rename('{0}_loftCurve'.format(tag))
-            
-            self.connectChildNode(mCrv, tag+'LidLoftCurve','block')
-            md_loftCurves[tag]=mCrv
-            
-        self.UTILS.create_simpleFormLoftMesh(self,
-                                                 [md_loftCurves['upr'].mNode,
-                                                  md_loftCurves['uprEnd'].mNode],
-                                                 mFormNull,
-                                                 polyType = 'bezier',
-                                                 baseName = 'uprLid')
-        self.UTILS.create_simpleFormLoftMesh(self,
-                                                 [md_loftCurves['lwr'].mNode,
-                                                  md_loftCurves['lwrEnd'].mNode],
-                                                 mFormNull,
-                                                 polyType = 'bezier',
-                                                 baseName = 'lwrLid')    
-        
-        log.debug(self.uprLidFormLoft)
-        log.debug(self.lwrLidFormLoft)
-        log.debug(self.uprLidLoftCurve)
-        log.debug(self.lwrLidLoftCurve)"""
     
         
     except Exception,err:
@@ -1305,8 +1139,8 @@ def prerig(self):
         _size_width = _bb_axisBox[0]#...x width
         
         if self.lidBuild:
-            _size_base = _size_width * .25
-            _size_sub = _size_base * .2            
+            _size_base = self.jointRadius * 2.0 #_size_width * .25
+            _size_sub = self.jointRadius * .75 #_size_base * .2            
         else:
             _size_base = _size_width * .25
             _size_sub = _size_base * .2
@@ -4778,11 +4612,11 @@ def rig_lidSetup(self):
     _side = mBlock.atUtils('get_side')
     mControlBall = mRigNull.getMessageAsMeta('controlBall')
     
+    l_toDo_fan = []
     
     mOrb = self.mOrb
 
     if mBlock.lidFanLwr or mBlock.lidFanUpr:
-        l_toDo_fan = []
         if mBlock.lidFanUpr:
             l_toDo_fan.append('upr')
         if mBlock.lidFanLwr:
