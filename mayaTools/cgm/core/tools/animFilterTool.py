@@ -78,7 +78,9 @@ class ui(cgmUI.cgmGUI):
             #'plane' : 'screen',
             #'planeObject' : None,
             'aimFwd' : 'z+',
-            'aimUp' : 'y+'#,
+            'aimUp' : 'y+',
+            'translate' : True,
+            'rotate' : True
             #'loopTime' : False,
             #'debug' : False,
             #'postBlendFrames' : 6,
@@ -230,9 +232,70 @@ def uiFunc_build_post_dragger_column(self):
 
     parentColumn.clear()
 
-    # Aim
+    # Translate
     #
     _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Translate:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict['translate'], changeCommand=cgmGEN.Callback(uiFunc_set_translate,self))
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    
+    #
+    # End Translate
+
+    self.uiCL_translate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+    
+    # Post Damp
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Damp:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=7.0)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    
+    #
+    # End Damp
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
+    # Rotate
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Rotate:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_rotate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict['rotate'], changeCommand=cgmGEN.Callback(uiFunc_set_rotate,self))
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    
+    #
+    # End Rotate
+
+    self.uiCL_rotate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+
+    # Aim
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
     self._post_row_aimDirection = _row
 
     mUI.MelSpacer(_row,w=_padding)                          
@@ -266,29 +329,29 @@ def uiFunc_build_post_dragger_column(self):
     #
     # End Aim
 
-    # Post Damp
+    # Post Angular Damp
     #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Damp:')
+    mUI.MelLabel(_row,l='Angular Damp:')
 
     _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=3.0)
+    self.uiFF_post_angular_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=7.0)
 
     mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()
     #
-    # End Damp
+    # End Angular Damp
 
-    mc.setParent(parentColumn)
+    mc.setParent(self.uiCL_rotate)
     cgmUI.add_LineSubBreak()  
 
     # Post Object Scale
     #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row,l='Object Scale:')
@@ -357,14 +420,102 @@ def uiFunc_build_post_dragger_column(self):
     mc.setParent(parentColumn)
     cgmUI.add_LineSubBreak()  
 
+def uiFunc_set_translate(self):
+    self._optionDict['translate'] = self.uiFF_translate.getValue()
+    self.uiCL_translate(e=True, vis=self._optionDict['translate'])
+
+def uiFunc_set_rotate(self):
+    self._optionDict['rotate'] = self.uiFF_rotate.getValue()
+    self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
+
 def uiFunc_build_post_spring_column(self):
     parentColumn = self._postProcessOptionsColumn
 
     parentColumn.clear()
 
-    # Aim
+    # Translate
     #
     _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Translate:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict['translate'], changeCommand=cgmGEN.Callback(uiFunc_set_translate,self))
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    
+    #
+    # End Translate
+
+    self.uiCL_translate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+
+    # Spring
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Spring Force:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Spring
+
+    mc.setParent(self.uiCL_translate)
+    cgmUI.add_LineSubBreak()  
+
+    # Post Damp
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Damp:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Damp
+
+    mc.setParent(parentColumn)
+    cgmUI.add_LineSubBreak()  
+
+    # Rotate
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Rotate:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_rotate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict['rotate'], changeCommand=cgmGEN.Callback(uiFunc_set_rotate,self))
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    
+    #
+    # End Rotate
+
+    self.uiCL_rotate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+
+    # Aim
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
     self._post_row_aimDirection = _row
 
     mUI.MelSpacer(_row,w=_padding)                          
@@ -398,86 +549,86 @@ def uiFunc_build_post_spring_column(self):
     #
     # End Aim
 
-    # Spring
+    # Angular Spring
     #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Spring Force:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Spring
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-    # Post Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Damp:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Damp
-
-    # Spring
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row,l='Angular Spring Force:')
 
     _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_angularSpring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
+    self.uiFF_post_angular_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
 
     mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()
     #
-    # End Spring
+    # End Angular Spring
 
-    mc.setParent(parentColumn)
+    mc.setParent(self.uiCL_rotate)
     cgmUI.add_LineSubBreak()  
 
-    # Post Damp
+    # Post Angular Damp
     #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row,l='Angular Damp:')
 
     _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    self.uiFF_post_angularDamp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
+    self.uiFF_post_angular_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
 
     mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()
     #
-    # End Damp
+    # End Angular Damp
 
-    mc.setParent(parentColumn)
+    # Angular Up Spring
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Angular Up Spring Force:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_post_angular_up_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # Angular Up Spring
+
+    mc.setParent(self.uiCL_rotate)
+    cgmUI.add_LineSubBreak()  
+
+    # Post Angular Up Damp
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Angular Damp:')
+
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+    self.uiFF_post_angular_up_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Post Angular Up Damp
+
+    mc.setParent(self.uiCL_rotate)
     cgmUI.add_LineSubBreak()  
 
     # Post Object Scale
     #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row,l='Object Scale:')
@@ -700,13 +851,13 @@ def uiFunc_build_post_keyframe_to_motion_curve_column(self):
 def uiFunc_bake_dragger(self):
     for obj in mc.ls(sl=True):
         mc.select(obj)
-        postInstance = DRAGGER.Dragger(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
+        postInstance = DRAGGER.Dragger(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), angularDamp = self.uiFF_post_angular_damp.getValue(), translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
         postInstance.bake()
 
 def uiFunc_bake_spring(self):
     for obj in mc.ls(sl=True):
         mc.select(obj)
-        postInstance = SPRING.Spring(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), springForce=self.uiFF_post_spring.getValue(), angularDamp = self.uiFF_post_angularDamp.getValue(), angularSpringForce = self.uiFF_post_angularSpring.getValue(), objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
+        postInstance = SPRING.Spring(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), springForce=self.uiFF_post_spring.getValue(), angularDamp = self.uiFF_post_angular_damp.getValue(), angularSpringForce = self.uiFF_post_angular_spring.getValue(), angularUpDamp = self.uiFF_post_angular_up_damp.getValue(), angularUpSpringForce = self.uiFF_post_angular_up_spring.getValue(),objectScale=self.uiFF_post_object_scale.getValue(), translate=self._optionDict['translate'], rotate=self._optionDict['rotate'],debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
         postInstance.bake()
 
 def uiFunc_bake_trajectory_aim(self):

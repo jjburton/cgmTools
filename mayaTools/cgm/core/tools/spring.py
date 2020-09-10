@@ -26,20 +26,26 @@ log.setLevel(logging.INFO)
 #=========================================================================
 
 class Spring(PostBake.PostBake):
-    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, angularDamp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, angularSpringForce = 5.0, collider = None, debug=False, showBake=False):
+    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, angularDamp = .1, angularUpDamp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, angularSpringForce = 5.0, angularUpSpringForce = 5.0, collider = None, rotate=True, translate=True, debug=False, showBake=False):
         PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
 
+        self.translate = translate
+        self.rotate = rotate
+        
         self.aimFwd = VALID.simpleAxis(aimFwd)
         self.aimUp = VALID.simpleAxis(aimUp)
 
         self.pushForce = pushForce
+        
         self.springForce = springForce
         self.angularSpringForce = angularSpringForce
+        self.angularUpSpringForce = angularUpSpringForce
         
         self.maxDistance = maxDistance;
     
         self.positionForce = MATH.Vector3.zero()
         self.angularForce = MATH.Vector3.zero()
+        self.angularUpForce = MATH.Vector3.zero()
         
         self.spring = spring
 
@@ -52,13 +58,15 @@ class Spring(PostBake.PostBake):
         
         self.damp = damp
         self.angularDamp = angularDamp
+        self.upDamp = angularUpDamp
+        
         self.objectScale = objectScale
 
         self.dir = self.obj.getTransformDirection(self.aimFwd.p_vector)*self.objectScale
         self.aimTargetPos = self.obj.p_position + self.dir
         self.upTargetPos = self.obj.getTransformDirection(self.aimUp.p_vector)*self.objectScale
         
-        self.keyableAttrs = ['rx', 'ry', 'rz']
+        self.keyableAttrs = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz']
 
         #self.lastFwd = MATH.Vector3.forward()
         #self.lastUp = MATH.Vector3.up()
@@ -66,21 +74,28 @@ class Spring(PostBake.PostBake):
     def update(self, deltaTime=.04):
         #log.info("Updating")
         
-        self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale
-
-        wantedTargetPos = ((VALID.euclidVector3Arg(self.obj.p_position) + self.dir) - self.obj.p_position).normalized() * self.objectScale + self.obj.p_position
-        wantedUp = self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale
-        
-        self.positionForce = self.positionForce + ((wantedTargetPos - self.aimTargetPos) * self.springForce)
-        self.positionForce = self.positionForce * (1.0 - self.damp)
-        
-        self.angularForce = self.angularForce + ((wantedUp - self.upTargetPos) * self.angularSpringForce)
-        self.angularForce = self.angularForce * (1.0 - self.angularDamp)       
-        
-        self.aimTargetPos = self.aimTargetPos + (self.positionForce * deltaTime)
-        self.upTargetPos = self.upTargetPos + (self.angularForce * deltaTime)
-                
-        SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.upTargetPos.normalized() )
+        if self.translate:
+            self.positionForce = self.positionForce + ((VALID.euclidVector3Arg(self._bakedLoc.p_position) - VALID.euclidVector3Arg(self.previousPosition)) * self.springForce)
+            self.positionForce = self.positionForce * (1.0 - self.damp)
+            
+            self.obj.p_position = self.obj.p_position + (self.positionForce * deltaTime)
+            
+        if self.rotate:
+            self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale
+    
+            wantedTargetPos = ((VALID.euclidVector3Arg(self.obj.p_position) + self.dir) - self.obj.p_position).normalized() * self.objectScale + self.obj.p_position
+            wantedUp = self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale
+            
+            self.angularForce = self.angularForce + ((wantedTargetPos - self.aimTargetPos) * self.angularSpringForce)
+            self.angularForce = self.angularForce * (1.0 - self.angularDamp)
+            
+            self.angularUpForce = self.angularUpForce + ((wantedUp - self.upTargetPos) * self.angularUpSpringForce)
+            self.angularUpForce = self.angularUpForce * (1.0 - self.upDamp)       
+            
+            self.aimTargetPos = self.aimTargetPos + (self.angularForce * deltaTime)
+            self.upTargetPos = self.upTargetPos + (self.angularUpForce * deltaTime)
+                    
+            SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.upTargetPos.normalized() )
 
         if self.debug:
             if not self._debugLoc:
@@ -109,6 +124,13 @@ class Spring(PostBake.PostBake):
         
         self.positionForce = MATH.Vector3.zero()
         self.angularForce = MATH.Vector3.zero()
+        self.angularUpForce = MATH.Vector3.zero()
+        
+        self.keyableAttrs = []
+        if self.translate:
+            self.keyableAttrs += ['tx', 'ty', 'tz']
+        if self.rotate:
+            self.keyableAttrs += ['rx', 'ry', 'rz']        
         
     def finishBake(self):
         self.aimTargetPos = self.startPosition + self.dir
