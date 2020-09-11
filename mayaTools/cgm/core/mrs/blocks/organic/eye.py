@@ -82,7 +82,7 @@ DPCTDIST = DIST.get_pos_by_linearPct
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.10.31.2018'
+__version__ = '09.07.2020'
 __autoForm__ = False
 __menuVisible__ = True
 __faceBlock__ = True
@@ -128,21 +128,39 @@ d_block_profiles = {
     'eyeType':'sphere',
     'ikSetup':True,
     'lidBuild':'clam',
+    'ballSetup':'aim',    
     'numLidUprJoints':1,
     'numLidLwrJoints':1,
     'baseDat':{'upr':[0,1,0],'lwr':[0,-1,0],'left':[1,0,0],'right':[-1,0,0],
                'baseSize':[2.7,2.7,2.7]},
        },
-    'fullLid':{
+    'ballLid':{
     'eyeType':'sphere',
+    'ballSetup':'aim',
     'ikSetup':True,
     'lidBuild':'full',
     'numLidUprJoints':5,
     'numLidLwrJoints':5,
     'numConLids':3,
+    'lidAttach':'surfaceSlide',    
     'baseDat':{'upr':[0,1,0],'lwr':[0,-1,0],'left':[1,0,0],'right':[-1,0,0],
                'baseSize':[2.7,2.7,2.7]},
-       }
+       },
+    'nonSphereLid':{
+    'eyeType':'nonsphere',
+    'ikSetup':True,
+    'lidBuild':'full',
+    'numLidUprJoints':5,
+    'numLidLwrJoints':5,
+    'numConLids':3,
+    'ballSetup':'fixed',
+    'lidAttach':'surfaceSlide',
+    'irisAttach':'surfaceSlide',
+    'pupilAttach':'surfaceSlide',    
+    'baseSize':[2.7,5.0,1.5],
+    'baseDat':{'upr':[0,1,0],'lwr':[0,-1,0],'left':[1,0,0],'right':[-1,0,0],
+               'baseSize':[2.7,5.0,1.5]},
+       }    
 }
 
 
@@ -204,6 +222,7 @@ d_defaultSettings = {'version':__version__,
                      'proxyDirect':True,
                      'attachPoint':'end',
                      'side':'right',
+                     'ballSetup':'aim',
                      'nameList':['eye','eyeOrb','pupil','iris','cornea'],
                      'loftDegree':'cubic',
                      'visLabels':True,
@@ -1315,7 +1334,7 @@ def prerig(self):
             _size_bb = mHandleFactory.get_axisBox_size(self.getMessage('bbHelper'))
             _size = MATH.average(_size_bb)
             
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size_base,
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size_base * .5,
                                                                            'z+'),'cgmObject',setClass=True)
             
             mSettingsShape.doSnapTo(mHandleRoot.mNode)
@@ -1484,7 +1503,7 @@ def prerig(self):
             
             d_baseHandeKWS = {'mStateNull' : mStateNull,
                               'mNoTransformNull' : mNoTransformNull,
-                              'jointSize': self.jointRadius}
+                              'jointSize': self.jointRadius * .5}
             
             #Lid Handles ----------------------------------------------------------------------------
             _lidFanLwr = self.getEnumValueString('lidFanLwr')
@@ -1802,7 +1821,7 @@ def prerig(self):
                                                                           None,
                                                                           _side,
                                                                           mDriver=mAnchor,
-                                                                          size= self.lidDepth,
+                                                                          size= _size_sub * .5,#self.lidDepth,
                                                                           
                                                                           mSurface=mLidSurf,#mLidLoft,
                                                                           #mAttachCrv=mDriverCrv,
@@ -1859,7 +1878,7 @@ def prerig(self):
                                                                               mainShape=_shapeUse,
                                                                               jointShape='locatorForm',
                                                                               depthAttr = 'lidJointDepth',
-                                                                              size= _size_sub,
+                                                                              size= _size_sub * .5,
                                                                               controlType=_controlType,
                                                                               mode='handle',
                                                                               plugDag= 'preDag',
@@ -2472,6 +2491,14 @@ def rig_prechecks(self):
     str_lidBuild = mBlock.getEnumValueString('lidBuild')
     if str_lidBuild not in ['none','clam','full']:
         self.l_precheckErrors.append("Lid setup not completed: {0}".format(str_lidBuild))
+        
+    str_ballSetup = mBlock.getEnumValueString('ballSetup')
+    if str_ballSetup in ['aim']:
+        if not mBlock.pupilAttach:
+            self.l_precheckErrors.append("ballSetup[aim] not recommended with pupil surfaceAttach")
+        if not mBlock.irisAttach:
+            self.l_precheckErrors.append("ballSetup[aim] not recommended with iris surfaceAttach")
+    
     
     
 
@@ -2844,7 +2871,7 @@ def rig_skeleton(self):
                 except:mJnt.radius = .00001
                     
             mLidRig.p_parent = mLidBlend
-    else:
+    elif self.v_lidBuild:
         log.debug("|{0}| >>  lid ".format(_str_func)+ '-'*20)
         
 
@@ -3249,7 +3276,7 @@ def rig_shapes(self):
                     mHandleFactory.color(_shape, controlType = 'sub')
                     CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
                     
-            else:
+            elif self.v_lidBuild:
                 log.debug("|{0}| >> lid setup...".format(_str_func)+ '-'*40)
 
                 
@@ -5303,7 +5330,7 @@ def rig_cleanUp(self):
         
         for mChild in mHighlightDriver.getChildren(asMeta=1):
             mChild.resetAttrs()
-
+    
     #Settings =================================================================================
     log.debug("|{0}| >> Settings...".format(_str_func))
     mSettings.visDirect = 0
@@ -5365,7 +5392,7 @@ def rig_cleanUp(self):
             d['plug'].p_defaultValue = _value
             d['plug'].value = _value
     
-
+    
     
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']
