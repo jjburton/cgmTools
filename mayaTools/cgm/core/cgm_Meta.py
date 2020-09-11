@@ -845,7 +845,7 @@ class cgmNode(r9Meta.MetaClass):
     def getMayaAttrString(self,attr=None, nameCall = 'short'):
         return "{0}.{1}".format(getattr(NAMES,nameCall)(self.mNode), attr)
     
-    def doConnectIn(self, attr=None, source = None, transferConnections = False, lock=False):
+    def doConnectIn(self, attr=None, source = None, transferConnections = False, lock=False,**kws):
         """   
         Connect a source to a given attribute(s) on our node. You may only have one source. You may have multiple
         attrs
@@ -863,12 +863,12 @@ class cgmNode(r9Meta.MetaClass):
         _res = []  
         for a in attr:    
             if '.' in source:
-                _res.append( ATTR.connect(source, self.getMayaAttrString(a),transferConnections, lock) )          
+                _res.append( ATTR.connect(source, self.getMayaAttrString(a),transferConnections, lock,**kws) )          
             else:
-                _res.append( ATTR.connect(self.getMayaAttrString(source), self.getMayaAttrString(a),transferConnections, lock) ) 
+                _res.append( ATTR.connect(self.getMayaAttrString(source), self.getMayaAttrString(a),transferConnections, lock,**kws) ) 
         return _res
     
-    def doConnectOut(self, attr=None, target = None, transferConnections = False, lock=False):
+    def doConnectOut(self, attr=None, target = None, transferConnections = False, lock=False,**kws):
         if not VALID.isListArg(target):
             target = [target]
         
@@ -878,11 +878,11 @@ class cgmNode(r9Meta.MetaClass):
                 _res.append( ATTR.connect(self.getMayaAttrString(attr),
                                           t,
                                           transferConnections,
-                                          lock) ) 
+                                          lock,**kws) ) 
             else:
                 _res.append( ATTR.connect(self.getMayaAttrString(attr),
                                           self.getMayaAttrString(t),
-                                          transferConnections, lock) )             
+                                          transferConnections, lock,**kws) )             
             
         return _res
     
