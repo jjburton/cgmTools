@@ -170,7 +170,7 @@ def rebuild_controlShape(self):
     
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def resize_masterShape(self,sizeBy=None,resize=False):
     try:
         
@@ -395,7 +395,7 @@ def prerigDelete(self):
 #=============================================================================================================
 #>> rig
 #=============================================================================================================
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_prechecks(self):
     #try:
     #_short = self.d_block['shortName']
@@ -409,7 +409,7 @@ def rig_prechecks(self):
     
     return True
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_cleanUp(self):
     try:
         _short = self.d_block['shortName']
@@ -789,7 +789,7 @@ def rig_cleanUp(self):
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rigDelete(self):
     try:
         _str_func = 'rigDelete'

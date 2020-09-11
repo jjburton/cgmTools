@@ -71,6 +71,7 @@ import cgm.core.rig.general_utils as RIGGEN
 #>> Queries
 #=============================================================================================================
 def find_tmpFiles(path = None, level = None, cleanFiles = False,
+                  endMatch = ['_batch.py','_MRSbatch.py'],
                   l_mask = ['max',
                             'mab',
                             'markdown',
@@ -136,6 +137,7 @@ def find_tmpFiles(path = None, level = None, cleanFiles = False,
             
             _dot_split = f.split('.')
             _extension = _dot_split[-1]
+            _pre = _dot_split[0]
             
             if _extension in l_mask:
                 continue
@@ -144,6 +146,14 @@ def find_tmpFiles(path = None, level = None, cleanFiles = False,
                 if _extension.startswith('ma') or _extension.startswith('mb'):
                     _l_weirdFiles.append(f)
                     _d_weirdFiles[f] = os.path.join(root,f)
+                    continue
+            
+            for s in endMatch:
+                if f.endswith(s):
+                    _l_weirdFiles.append(f)
+                    _d_weirdFiles[f] = os.path.join(root,f)
+                    continue                
+            
                     
 
         if level is not None and _i >= level:break 

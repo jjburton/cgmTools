@@ -706,7 +706,7 @@ def mirror_self(self,primeAxis = 'Left'):
         r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_use],
                                                  mode = '',primeAxis = primeAxis.capitalize() )
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def define(self):
     _str_func = 'define'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -1526,7 +1526,7 @@ def formDelete(self):
         mObj.v=1
     
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def form(self):
     try:    
         _str_func = 'form'
@@ -5181,7 +5181,7 @@ d_preferredAngles = {}#In terms of aim up out for orientation relative values, s
 d_rotateOrders = {}
 
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_prechecks(self):
     _str_func = 'rig_prechecks'
     log.debug(cgmGEN.logString_start(_str_func))
@@ -5225,7 +5225,7 @@ def rig_prechecks(self):
         self.l_precheckErrors.append("Chin setup not completed: {0}".format(str_chinSetup))
                 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_dataBuffer(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_dataBuffer'
@@ -5308,7 +5308,7 @@ def rig_dataBuffer(self):
     return True
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_skeleton(self):
     _short = self.d_block['shortName']
     
@@ -5576,7 +5576,7 @@ def rig_skeleton(self):
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
     return
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_shapes(self):
     try:
         _short = self.d_block['shortName']
@@ -5792,7 +5792,7 @@ def rig_shapes(self):
         cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_controls(self):
     try:
         _short = self.d_block['shortName']
@@ -5993,7 +5993,7 @@ def rig_controls(self):
         cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_frame(self):
     try:
             
@@ -6567,7 +6567,7 @@ def rig_frame(self):
         cgmGEN.cgmExceptCB(Exception,error)
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_lipSegments(self):
     _short = self.d_block['shortName']
     _str_func = ' rig_lipSegments'
@@ -6791,7 +6791,7 @@ def rig_lipSegments(self):
         
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_cleanUp'

@@ -420,7 +420,7 @@ d_skeletonSetup = {'mode':'curveCast',
 #=================================================================================================
 #>> Define
 #================================================================================================
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def define(self):
     try:
         _str_func = 'define'
@@ -1153,7 +1153,7 @@ d_rotateOrders = {'default':'yxz'}
 
 #Rig build stuff goes through the rig build factory --------------------------------------------
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_prechecks(self):
     try:
         _str_func = 'rig_prechecks'
@@ -1171,7 +1171,7 @@ def rig_prechecks(self):
             #raise NotImplementedError,"scaleSetup not ready."
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_dataBuffer(self):
     try:
         _short = self.d_block['shortName']
@@ -1408,7 +1408,7 @@ def rig_dataBuffer(self):
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_skeleton(self):
     try:
         _short = self.d_block['shortName']
@@ -1568,7 +1568,7 @@ def rig_skeleton(self):
         return True
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_shapes(self):
     try:
         _short = self.d_block['shortName']
@@ -1708,7 +1708,7 @@ def rig_shapes(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
     
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_controls(self):
     try:
         _short = self.d_block['shortName']
@@ -2024,7 +2024,7 @@ def rig_controls(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_segments(self):
     try:
         _short = self.d_block['shortName']
@@ -2103,7 +2103,7 @@ def rig_segments(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_frame(self):
     try:
         _short = self.d_block['shortName']
@@ -2585,7 +2585,7 @@ def rig_frame(self):
         return    
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
-#@cgmGEN.Timer
+##@cgmGEN.Timer
 def rig_matchSetup(self):
     try:
         _short = self.d_block['shortName']

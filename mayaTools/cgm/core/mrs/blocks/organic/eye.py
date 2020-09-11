@@ -384,7 +384,7 @@ def uiFunc_aimPreHandles(self,upr=1,lwr=1):
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def define(self):
     _str_func = 'define'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -852,7 +852,7 @@ def formDelete(self):
     except:pass
     self.bbHelper.v = True
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def form(self):
     try:    
         _str_func = 'form'
@@ -2480,7 +2480,7 @@ d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation 
 d_rotateOrders = {'head':'yxz'}
 
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_prechecks(self):
     _str_func = 'rig_prechecks'
     log.debug(cgmGEN.logString_start(_str_func))
@@ -2494,15 +2494,15 @@ def rig_prechecks(self):
         
     str_ballSetup = mBlock.getEnumValueString('ballSetup')
     if str_ballSetup in ['aim']:
-        if not mBlock.pupilAttach:
+        if  mBlock.pupilAttach:
             self.l_precheckErrors.append("ballSetup[aim] not recommended with pupil surfaceAttach")
-        if not mBlock.irisAttach:
+        if  mBlock.irisAttach:
             self.l_precheckErrors.append("ballSetup[aim] not recommended with iris surfaceAttach")
     
     
     
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_dataBuffer(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_dataBuffer'
@@ -2624,7 +2624,7 @@ def create_jointFromHandle(mHandle=None,mParent = False,cgmType='skinJoint'):
     except:pass
     return mJnt
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def create_lidRoot(mJnt,mEyeJoint,mBlock):
     mLidRoot = mEyeJoint.doCreateAt('joint')
     mLidRoot.jointOrient = mLidRoot.jointOrient
@@ -2764,6 +2764,9 @@ def rig_skeleton(self):
             
             #ml_jointsToConnect.extend([mEyeIK])
             ml_jointsToHide.append(mEyeBlend)    
+            
+            ml_jointsToConnect.append(mEyeIK)
+            ml_jointsToHide.append(mEyeIK)            
         log.debug(cgmGEN._str_subLine)
     
     #Pupil  =====================================================================
@@ -3352,7 +3355,7 @@ def rig_shapes(self):
         cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_controls(self):
     try:
         _short = self.d_block['shortName']
@@ -3741,7 +3744,7 @@ def rig_controls(self):
         cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_frame(self):
     _short = self.d_block['shortName']
     _str_func = ' rig_rigFrame'
@@ -4081,7 +4084,7 @@ def rig_frame(self):
         
     return
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_highlightSetup(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_highlightSetup'
@@ -4347,7 +4350,7 @@ def create_clamBlinkCurves(self, ml_uprSkinJoints = None, ml_lwrSkinJoints = Non
     self.ml_blinkCurves = ml_curves    
     return md,ml_curves
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def create_lidFollow(self):
     _short = self.d_block['shortName']
     _str_func = 'create_lidFollow'
@@ -4518,7 +4521,7 @@ def create_lidFollow(self):
         d_autolidBlend['d_result2']['mi_plug'].doConnectOut('%s.%s' % (_const,l_weightTargets[0]))    
     
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_pupilIris(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_pupilIris'
@@ -4617,7 +4620,7 @@ def rig_pupilIris(self):
     
     
         
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_lidSetup(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_lidSetup'
@@ -4821,11 +4824,17 @@ def rig_lidSetup(self):
             
             create_clamBlinkCurves(self, ml_uprSkinJoints = ml_uprLidInfluences,
                                    ml_lwrSkinJoints = ml_lwrLidInfluences)
-
+            
+            
+            #REBUILD - driven curve
+            _node = mc.rebuildCurve(self.md_blinkCurves['upr']['mDriven'].mNode,
+                                    d=3, keepControlPoints=False,
+                                    ch=1,s=len(ml_uprRig))
+            mc.rename(_node[1],"{0}_reparamRebuild".format(self.md_blinkCurves['upr']['mDriven'].p_nameBase))
+            
             for mJoint in ml_uprRig:
                 mTarget = mJoint.doLoc()
                 mDriver = mJoint.driverJoint
-
                 
                 _res_attach = RIGCONSTRAINT.attach_toShape(mTarget.mNode,
                                                            self.md_blinkCurves['upr']['mDriven'].mNode)
@@ -4908,7 +4917,12 @@ def rig_lidSetup(self):
                 
                 #mHandle.masterGroup.p_parent = mSettings                
                 
-                
+            #REBUILD - driven curve
+            _node = mc.rebuildCurve(self.md_blinkCurves['lwr']['mDriven'].mNode,
+                                    d=3, keepControlPoints=False,
+                                    ch=1,s=len(ml_lwrRig))
+            mc.rename(_node[1],"{0}_reparamRebuild".format(self.md_blinkCurves['lwr']['mDriven'].p_nameBase))
+            
             for mJoint in ml_lwrRig:
              
                 mTarget = mJoint.doLoc()
@@ -5074,6 +5088,7 @@ def rig_lidSetup(self):
                     mFollowRoot = mUprRoot
                 else:
                     mFollowRoot = mLwrRoot
+                    
                 
                 
                 if not mFollowRoot:
@@ -5087,6 +5102,8 @@ def rig_lidSetup(self):
                     mFollowRoot.rename("{0}_fanRoot".format(k))
                     
                     mFollowEnd.p_parent = mFollowRoot
+                    
+                    self.fnc_connect_toRigGutsVis( [mFollowRoot] )        
                     
                     
                     mTarget = mFollowEnd.doLoc()
@@ -5812,6 +5829,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 mMesh = RIGCREATE.get_meshFromNurbs(mMesh,**d_kws)    
                 ml_proxy.append(mMesh)
                 ml_noFreeze.append(mMesh)
+                CORERIG.colorControl(mMesh.mNode,_side,'main',transparent=False,proxy=True)
                 
                 mc.skinCluster ([mJnt.mNode for mJnt in md_map[k] + md_map['lidCorner'] + _d_joints[k]],
                                 mMesh.mNode,

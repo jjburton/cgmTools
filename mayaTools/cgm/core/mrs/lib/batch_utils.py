@@ -272,7 +272,7 @@ def create_MRS_batchFile(f=None, blocks = [None], process = False,
         
         _d = mFile.up().asFriendly()
         log.debug(cgmGEN.logString_msg(_str_func,_name))
-        _batchPath = os.path.join(_d,_name+'_batch.py')
+        _batchPath = os.path.join(_d,_name+'_MRSbatch.py')
         log.debug(cgmGEN.logString_msg(_str_func,"batchPath: "+_batchPath))
         log.debug(cgmGEN.logString_msg(_str_func,"template: "+_path))
         

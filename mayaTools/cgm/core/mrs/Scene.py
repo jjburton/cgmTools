@@ -706,8 +706,8 @@ example:
 
         self.uiMenu_FileMenu = mUI.MelMenu( l='Projects', pmc=self.buildMenu_file)		        
         self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)
-        self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools)  
-        self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
+        self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools,pmo=True)  
+        self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help,pmo=True)   
 
     def buildMenu_help( self, *args):
         self.uiMenu_HelpMenu.clear()
@@ -1046,13 +1046,13 @@ example:
                                  c = cgmGEN.Callback(self.VerifyAssetDirs) )
 
         #DropBox...
-        _dropBoxTrash = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='Dropbox',subMenu=True)
+        _fileTrash = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='File Trash',subMenu=True)
         
-        mUI.MelMenuItem(_dropBoxTrash,
+        mUI.MelMenuItem(_fileTrash,
                       label='Query',ut='cgmUITemplate',
                        c=lambda *a: SCENEUTILS.find_tmpFiles( self.directory),
                        ann='Query trash files')    
-        mUI.MelMenuItem(_dropBoxTrash,
+        mUI.MelMenuItem(_fileTrash,
                       label='Clean',ut='cgmUITemplate',
                        c=lambda *a: SCENEUTILS.find_tmpFiles( self.directory,cleanFiles=1),
                        ann='Clean trash files')        
