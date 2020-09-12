@@ -3319,9 +3319,10 @@ def form(self):
         d = {}
                 
         for tag,mHandle in md_handles.iteritems():
+            """
             if cgmGEN.__mayaVersion__ >= 2018:
                 mController = mHandle.controller_get()
-                mController.visibilityMode = 2
+                mController.visibilityMode = 2"""
                 
             if mHandle in ml_defineHandles:
                 continue
