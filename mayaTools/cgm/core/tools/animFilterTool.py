@@ -6,7 +6,7 @@ email: dbokser@cgmonks.com
 
 Website : http://www.cgmonastery.com
 ------------------------------------------
-Example ui to start from
+Collection of anim post filters to help with animation
 ================================================================
 """
 # From Python =============================================================
@@ -41,7 +41,7 @@ from cgm.core.tools import keyframeToMotionCurve as K2MC
 from cgm.core.tools import spring as SPRING
 
 #>>> Root settings =============================================================
-__version__ = '0.1.20.7.23'
+__version__ = '0.2.20.9.12'
 __toolname__ ='postFilter'
 
 _padding = 5
