@@ -3012,6 +3012,7 @@ class rigFactory(object):
         self.md_controlShapes = {}
         self.l_precheckErrors = []
         self.l_precheckWarnings = []
+        self.b_prechecks = True
         
         if a:log.debug("|{0}| >> a: {1}".format(_str_func,a))
         if kws:#...intial population
@@ -3079,6 +3080,9 @@ class rigFactory(object):
         #_verify = kws.get('verify',False)
         #log.debug("|{0}| >> verify: {1}".format(_str_func,_verify))
     
+    def return_prechecks(self):
+        return self.b_prechecks
+    
     def prechecks(self):
         _str_func = 'rigFactory.prechecks'
         
@@ -3100,6 +3104,8 @@ class rigFactory(object):
             #print("|{0}| >> Block: {1} ".format(_str_func, _short))            
             for i,e in enumerate(self.l_precheckErrors):
                 print("   {0} | {1}".format(i,e))
+            
+            self.b_prechecks  = False
             return False
         return True
         

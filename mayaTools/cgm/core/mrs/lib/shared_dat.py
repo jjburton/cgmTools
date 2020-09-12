@@ -22,6 +22,7 @@ d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockState':'define:form:prerig:skeleton:rig',
                 'blockDat':'string',#...for pickle?
                 'baseDat':'string',
+                'blockProfile':'string',
                 'blockParent':'messageSimple',
                 'blockMirror':'messageSimple'}
 d_defaultAttrSettings = {'blockState':'define'}

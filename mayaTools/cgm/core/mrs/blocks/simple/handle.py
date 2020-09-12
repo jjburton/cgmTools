@@ -1346,7 +1346,6 @@ def rig_shapes(self):
 
         mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect    
         CORERIG.colorControl(mCog.mNode,_side,'sub')
-        
         mCog.doStore('cgmName','cog')
         mCog.doStore('cgmAlias','cog')
         
@@ -1768,6 +1767,12 @@ def rig_cleanUp(self):
     
     mRoot = mRigNull.getMessageAsMeta('rigRoot')
     if mRoot:
+        mDynGroup = mRoot.getMessageAsMeta('dynParentGroup')
+        mDynGroup.dynMode = 0
+        for o in ml_targetDynParents:
+            mDynGroup.addDynParent(o)
+        mDynGroup.rebuild()
+        
         ml_targetDynParents.insert(0,mRoot)
         
     
@@ -1786,6 +1791,7 @@ def rig_cleanUp(self):
         mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
                             mHandle.masterGroup.mNode,maintainOffset = True)
     #mDynGroup.dynFollow.parent = mMasterDeformGroup
+    
     
     #Direct ---------------------------------------------------------------------------------------------
     if mBlock.spaceSwitch_direct:

@@ -1,6 +1,6 @@
 """
 ------------------------------------------
-cgm.core.mrs.blocks.simple.e
+cgm.core.mrs.blocks.simple.main
 Author: Josh Burton
 email: jjburton@cgmonks.com
 
@@ -33,17 +33,14 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
+#reload(ATTR)
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
+#reload(BLOCKSHAPES)
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.math_utils as MATH
-import cgm.core.lib.list_utils as LISTS
-import cgm.core.cgm_RigMeta as cgmRIGMETA
-from cgm.core.cgmPy import validateArgs as VALID
-from cgm.core.lib import euclid as EUCLID
-from cgm.core.lib import locator_utils as LOC
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -52,41 +49,37 @@ from cgm.core import cgm_Meta as cgmMeta
 #>> Block Settings
 #=============================================================================================================
 __version__ = '1.04302019'
-__MAYALOCAL = 'EYEMAIN'
+__MAYALOCAL = 'MASTER'
+
 
 __autoForm__ = True
 __menuVisible__ = True
-__baseSize__ = 10,10,10
-
+__baseSize__ = 170,170,170
 
 #>>>Profiles =====================================================================================================
-d_build_profiles = {'unityLow':{},
-                    'unityMed':{},
-                    'feature':{}}
+d_build_profiles = {'unityLow':{'addMotionJoint':True},
+                    'unityMed':{'addMotionJoint':True,},
+                    'feature':{'addMotionJoint':False}}
 
 #>>>Attrs =======================================================================================================
-l_attrsStandard = ['side',
-                   'position',
-                   'attachPoint',
-                   'attachIndex',
-                   'buildSDK',
-                   'buildSDK',
-                   'numSpacePivots',
-                   'blockProfile',
-                   'visLabels',
-                   'visMeasure',
-                   'visProximityMode',
-                   'moduleTarget']
+l_attrsStandard = ['addMotionJoint',
+                   'moduleTarget',
+                   'baseSize',
+                   'controlOffset',
+                   'numSpacePivots']
 
-d_attrsToMake = {}
+d_attrsToMake = {'rootJoint':'messageSimple',
+                 }
 
 d_defaultSettings = {'version':__version__,
-                     'baseName':'eyeMain',
-                     'numSpacePivots':0,
+                     'baseName':'MasterBlock',
+                     'addMotionJoint':True,
+                     'controlOffset':.9999,
+                     'numSpacePivots':1,
                      'attachPoint':'end'}
 
 d_wiring_prerig = {'msgLinks':['moduleTarget']}
-d_wiring_form = {'msgLinks':[]}
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
 
 _d_attrStateMasks = {0:[],
                      1:[],
@@ -111,71 +104,39 @@ _d_attrStateOff = {0:[],
 
 def uiBuilderMenu(self,parent = None):
     _short = self.p_nameShort
-
     
-    #mc.menuItem(ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),
-    #            c = cgmGEN.Callback(resize_masterShape,self,**{'resize':1}),
-    #            label = "Resize")            
+    mc.menuItem(en=False,
+                label = "Master")        
+    
+    mc.menuItem(ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),
+                c = cgmGEN.Callback(resize_mainShape,self,**{'resize':1}),
+                label = "Resize")            
     
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
 def define(self):
-    _short = self.mNode
-    _str_func = '[{0}] define'.format(_short)
-    
-    ATTR.set_alias(_short,'sy','blockScale')    
-    self.setAttrFlags(attrs=['sx','sz','sz'])
-    self.doConnectOut('sy',['sx','sz'])
-    ATTR.set_hidden(_short, 'baseSize', True)
-    
-    _shapes = self.getShapes()
-    if _shapes:
-        log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
-        mc.delete(_shapes)
-
-    _size = self.atUtils('defineSize_get')
-
-    #_sizeSub = _size / 2.0
-    log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
-    _crv = CURVES.create_fromName(name='locatorForm',
-                                  direction = 'z+', size = _size * 2.0)
-
-    SNAP.go(_crv,self.mNode)
-    CORERIG.override_color(_crv, 'white')
-    CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-    mHandleFactory = self.asHandleFactory()
-    self.addAttr('cgmColorLock',True,lock=True,hidden=True)    
-    
-    if self.cgmName == 'default':
-        self.cgmName = 'eyeLook'
-        self.doName()
-    #try:mc.delete(self.getShapes())
-    #except:pass
-
+    try:
+        _short = self.mNode
+        ATTR.set_alias(_short,'sy','blockScale')    
+        self.setAttrFlags(attrs=['sx','sz','sz'])
+        self.doConnectOut('sy',['sx','sz'])
+        ATTR.set_min(_short,'controlOffset',.001)
+        
+        try:mc.delete(self.getShapes())
+        except:pass
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())    
     
 #=============================================================================================================
 #>> Form
 #=============================================================================================================
-def rebuild_controlShape(self):
-    _short = self.mNode
-    _str_func = '[{0}] rebuild_controlShape'.format(_short)
-    
-    if not self.atUtils('is_rigged'):
-        log.warning(cgmGEN.logString_msg(_str_func,"Must be rigged"))
-        return False
-    
-    bb_sizeBase = TRANS.bbSize_get(self.mNode,True)
-    pprint.pprint(bb_sizeBase)
-    
-
-
-#@cgmGEN.Timer
-def resize_masterShape(self,sizeBy=None,resize=False):
+@cgmGEN.Timer
+def resize_mainShape(self,sizeBy=None,resize=False):
     try:
         
         _short = self.p_nameShort        
-        _str_func = '[{0}] resize_masterShape'.format(_short)
+        _str_func = '[{0}] resize_mainShape'.format(_short)
         log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
         _sel = mc.ls(sl=True)
         _bb = False
@@ -361,7 +322,43 @@ def resize_masterShape(self,sizeBy=None,resize=False):
     
     
 def form(self):
-    pass
+    try:
+        _short = self.mNode    
+        _str_func = '[{0}] form'.format(_short)
+        log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
+    
+    
+        #_average = MATH.average([self.baseSize[0],self.baseSize[2]])
+        #_size = _average * 1.5
+        #_offsetSize = _average * .1
+        #log.info(_size)
+        
+        #mHandleFactory = self.asHandleFactory(_short)
+        mc.select(cl=True)
+        resize_mainShape(self)
+        
+        
+        return True
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+
+
+    _crv = CURVES.create_controlCurve(self.mNode,shape='squareOpen',direction = 'y+', sizeMode = 'fixed', size = 1)    
+    TRANS.scale_to_boundingBox(_crv, [self.baseSize[0],None,self.baseSize[2]])
+    
+    mHandleFactory.color(_crv,'center','sub',transparent = False)
+    
+    mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
+    l_offsetCrvs = []
+    for shape in mCrv.getShapes():
+        offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
+        mHandleFactory.color(offsetShape,'center','main',transparent = False)
+        
+        l_offsetCrvs.append(offsetShape)
+        
+    for s in [_crv] + l_offsetCrvs:
+        RIG.shapeParent_in_place(self.mNode,s,False)
+    return True
 
 def formDelete(self):
     pass
@@ -376,26 +373,57 @@ def is_form(self):
 #>> Prerig
 #=============================================================================================================
 def prerig(self):
-    #Create preRig Null  ==================================================================================
-    mPrerigNull = self.atBlockUtils('prerigNull_verify')
-    mHandleFactory = self.asHandleFactory(self.mNode)
-    
-    self.atBlockUtils('module_verify')
-
+    try:
+        #self.atUtils('puppet_verify')
+        self.UTILS.puppet_verify(self)
+        
+        
+        #Create preRig Null  ==================================================================================
+        mPrerigNull = self.atBlockUtils('prerigNull_verify')
+        mHandleFactory = self.asHandleFactory(self.mNode)
+        ml_handles = [self.mNode]
+        _offset = self.controlOffset 
+        
+        #Helpers=====================================================================================
+        self.msgList_connect('prerigHandles',[self.mNode])
+        
+        if self.addMotionJoint:
+            _baseSize = self.baseSize
+            _sizeHandle = (MATH.average(_baseSize[0],_baseSize[1]) * .1) + _offset
+            mMotionJoint = BLOCKSHAPES.rootMotionHelper(self,size=_sizeHandle)
+            mMotionJoint.p_parent = mPrerigNull
             
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def prerigDelete(self):
-    #self.atBlockUtils('prerig_delete',formHandles=True)
-    #try:self.moduleTarget.masterNull.delete()
-    #except Exception,err:
-    #    for a in err:
-    #        print a
+    self.atBlockUtils('prerig_delete',formHandles=True)
+    try:self.moduleTarget.mainNull.delete()
+    except Exception,err:
+        for a in err:
+            print a
     return True   
 
+def is_prerig(self):
+    _str_func = 'is_prerig'
+    _l_missing = []
+    
+    _d_links = {self : ['moduleTarget']}
+    
+    for plug,l_links in _d_links.iteritems():
+        for l in l_links:
+            if not plug.getMessage(l):
+                _l_missing.append(plug.p_nameBase + '.' + l)
+                
+    if _l_missing:
+        log.info("|{0}| >> Missing...".format(_str_func))  
+        for l in _l_missing:
+            log.info("|{0}| >> {1}".format(_str_func,l))  
+        return False
+    return True
 #=============================================================================================================
 #>> rig
 #=============================================================================================================
-#@cgmGEN.Timer
+@cgmGEN.Timer
 def rig_prechecks(self):
     #try:
     #_short = self.d_block['shortName']
@@ -409,7 +437,7 @@ def rig_prechecks(self):
     
     return True
 
-#@cgmGEN.Timer
+@cgmGEN.Timer
 def rig_cleanUp(self):
     try:
         _short = self.d_block['shortName']
@@ -427,205 +455,6 @@ def rig_cleanUp(self):
         _spacePivots = mBlock.numSpacePivots
         
         ml_controlsAll = []
-        
-        #DynParents =============================================================================
-        self.UTILS.get_dynParentTargetsDat(self)
-        log.debug(cgmGEN._str_subLine)
-            
-        mModule = self.mModule
-        mRigNull = self.mRigNull
-        mPuppet = self.mPuppet
-        mHandleFactory = mBlock.asHandleFactory()
-        
-        """
-        _eyeLook = eyeLook_get(self)
-        
-        if _eyeLook:
-            log.debug("|{0}| >> Found existing eyeLook...".format(_str_func))                      
-            return _eyeLook
-        
-        if mBlock.blockType not in ['eye']:
-            raise ValueError,"blocktype must be eye. Found {0} | {1}".format(mBlock.blockType,mBlock)
-        """
-        
-        #Data... -----------------------------------------------------------------------
-        log.debug("|{0}| >> Get data...".format(_str_func))
-        #_size = mHandleFactory.get_axisBox_size(mBlock.getMessage('bbHelper'))
-        
-        try:
-            _size = self.v_baseSize
-            _sizeAvg = self.f_sizeAvg             
-        except:
-            _size = [mBlock.blockScale * v for v in mBlock.baseSize]
-            _sizeAvg = MATH.average(_size)
-        
-        #Create shape... -----------------------------------------------------------------------        
-        log.debug("|{0}| >> Creating shape...".format(_str_func))
-        mCrv = cgmMeta.asMeta( CURVES.create_fromName('arrow4Fat',
-                                                      direction = 'z+',
-                                                      size = _sizeAvg ,
-                                                      absoluteSize=False),'cgmObject',setClass=True)
-        mCrv.doSnapTo(mBlock.mNode,rotation=False)
-        pos = mBlock.p_position
-        
-        mCrv.p_position = pos
-        
-        
-        mBlockParent = mBlock.p_blockParent
-        if mBlockParent:
-            _parentName = mBlockParent.getMayaAttr('cgmName') or mBlockParent.p_nameShort
-            mCrv.doStore('cgmName',_parentName + '_eyeLook')
-            mBlockParent.asHandleFactory().color(mCrv.mNode)
-        else:
-            mCrv.doStore('cgmName','eyeLook')
-            mHandleFactory.color(mCrv.mNode)
-        
-        mCrv.doName()
-        
-
-        #Register control... -----------------------------------------------------------------------        
-        log.debug("|{0}| >> Registering Control... ".format(_str_func))
-        d_controlSpaces = self.atBuilderUtils('get_controlSpaceSetupDict')
-        
-        d_buffer = MODULECONTROL.register(mCrv,
-                                          mirrorSide= 'center',
-                                          mirrorAxis="translateX,rotateY,rotateZ",
-                                          **d_controlSpaces)
-        
-        mCrv = d_buffer['mObj']        
-        
-        
-        #Dynparent... -----------------------------------------------------------------------        
-        log.debug("|{0}| >> Dynparent setup.. ".format(_str_func))
-        ml_dynParents = copy.copy(self.ml_dynParentsAbove)
-        mHead = False
-        for mParent in ml_dynParents:
-            log.debug("|{0}| >> mParent: {1}".format(_str_func,mParent))
-            
-            if mParent.getMayaAttr('cgmName') == 'head':
-                log.debug("|{0}| >> found head_direct...".format(_str_func))
-                mHead = mParent
-                break
-        if mHead:
-            ml_dynParents.insert(0,mHead)
-            
-        #if mBlock.attachPoint == 'end':
-        #ml_dynParents.reverse()
-        
-        ml_dynParents.extend(mCrv.msgList_get('spacePivots'))
-        ml_dynParents.extend(copy.copy(self.ml_dynEndParents))
-        
-        ml_dynParents = LISTS.get_noDuplicates(ml_dynParents)
-        mDynParent = cgmRIGMETA.cgmDynParentGroup(dynChild=mCrv,dynMode=0)
-        
-        for o in ml_dynParents:
-            mDynParent.addDynParent(o)
-        mDynParent.rebuild()
-        
-        #Connections... -----------------------------------------------------------------------        
-        log.debug("|{0}| >> Connections... ".format(_str_func))
-        mModule.connectChildNode(mCrv,'eyeLook')
-        mPuppet.msgList_append('eyeLook',mCrv,'puppet')
-        
-        if mBlockParent:
-            log.debug("|{0}| >> Adding to blockParent...".format(_str_func))
-            mModuleParent = mBlockParent.moduleTarget
-            mModuleParent.connectChildNode(mCrv,'eyeLook')
-            if mModuleParent.mClass == 'cgmRigModule':
-                mBlockParentRigNull = mModuleParent.rigNull
-                mBlockParentRigNull.msgList_append('controlsAll',mCrv)
-                mBlockParentRigNull.moduleSet.append(mCrv)
-                #mRigNull.faceSet.append(mCrv)
-                
-                #mCrv.connectParentNode(mBlockParentRigNull,'rigNull')
-                
-            else:
-                mModuleParent.puppetSet.append(mCrv)
-                mModuleParent.msgList_append('controlsAll',mCrv)
-                #mModuleParent.faceSet.append(mCrv)
-                
-
-        #Connections... -----------------------------------------------------------------------        
-        log.debug("|{0}| >> Heirarchy... ".format(_str_func))
-        mCrv.masterGroup.p_parent = self.mDeformNull
-        
-        for link in 'masterGroup','dynParentGroup':
-            if mCrv.getMessage(link):
-                mCrv.getMessageAsMeta(link).dagLock(True)
-                
-        mCrv.addAttr('cgmControlDat','','string')
-        mCrv.cgmControlDat = {'tags':['ik']}                
-        
-        
-        
-        
-        mBlock.template = True
-        return True
-    
-
-    
-       
-    
-    
-        try:#moduleParent Stuff =======================================================
-            if mi_moduleParent:
-                try:
-                    for mCtrl in self.ml_controlsAll:
-                        mi_parentRigNull.msgList_append('controlsAll',mCtrl)
-                except Exception,error: raise Exception,"!Controls all connect!| %s"%error	    
-                try:mi_parentRigNull.moduleSet.extend(self.ml_controlsAll)
-                except Exception,error: raise Exception,"!Failed to set module objectSet! | %s"%error
-        except Exception,error:raise Exception,"!Module Parent registration! | %s"%(error)	            
-        
-        return
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
          
         #MasterControl =======================================================================
         log.debug("|{0}| >> MasterConrol | dynParent setup...".format(_str_func))
@@ -643,7 +472,7 @@ def rig_cleanUp(self):
                                    mirrorAxis="translateX,rotateY,rotateZ",
                                    noFreeze = True)
             
-            mMasterControl.masterGroup.setAttrFlags()
+            mMasterControl.mainGroup.setAttrFlags()
             ml_dynParents = [mMasterNull]
             
             ml_spacePivots = mMasterControl.msgList_get('spacePivots',asMeta = True)
@@ -661,7 +490,7 @@ def rig_cleanUp(self):
             for o in ml_dynParents:
                 mDynGroup.addDynParent(o)
             mDynGroup.rebuild()
-        #mMasterGroup = mMasterControl.masterGroup
+        #mMasterGroup = mMasterControl.mainGroup
         #ml_dynParents.append(mMasterGroup)
     
         #Add our parents
@@ -675,11 +504,11 @@ def rig_cleanUp(self):
                 skeleton_build(mBlock)
             
             mRootMotionHelper = mBlock.rootMotionHelper
-            mMasterNull = mPuppet.masterNull
+            mMasterNull = mPuppet.mainNull
             
             #Make joint =================================================================
             mJoint = mBlock.moduleTarget.getMessage('rootJoint', asMeta = True)[0]
-            mJoint.p_parent = mBlock.moduleTarget.masterNull.skeletonGroup
+            mJoint.p_parent = mBlock.moduleTarget.mainNull.skeletonGroup
             
             #Make the handle ===========================================================
             log.debug("|{0}| >> Motion Joint | Main control shape...".format(_str_func))
@@ -708,7 +537,7 @@ def rig_cleanUp(self):
                                    mirrorSide= 'Centre',
                                    mirrorAxis="translateX,rotateY,rotateZ")
             
-            mControl.masterGroup.parent = mPuppet.masterNull.deformGroup
+            mControl.mainGroup.parent = mPuppet.mainNull.deformGroup
             
             mMasterControl.controlVis.addAttr('rootMotionControl',value = True, keyable=False)
             mMasterControl.rootMotionControl = 0
@@ -720,7 +549,7 @@ def rig_cleanUp(self):
             ml_dynParents = [mMasterNull.puppetSpaceObjectsGroup,
                              mMasterNull.worldSpaceObjectsGroup]
                              
-            #mMasterGroup = mMasterControl.masterGroup
+            #mMasterGroup = mMasterControl.mainGroup
             #ml_dynParents.append(mMasterGroup)
     
             #Add our parents
@@ -789,41 +618,36 @@ def rig_cleanUp(self):
         #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
-#@cgmGEN.Timer
+@cgmGEN.Timer
 def rigDelete(self):
     try:
         _str_func = 'rigDelete'
         log.debug("|{0}| >> ...".format(_str_func,)+'-'*80)
         log.debug(self)
         self.template = False
-        
-        self.moduleTarget.eyeLook.masterGroup.delete()
-        
-        return True
-    
         self.noTransFormNull.template=True
         mPuppet = self.moduleTarget
         mRootMotion = self.moduleTarget.getMessageAsMeta('rootMotionHandle')
         if mRootMotion:
             if mRootMotion.getMessage('dynParentGroup'):mRootMotion.dynParentGroup.doPurge()
-            mRootMotion.masterGroup.delete()
+            mRootMotion.mainGroup.delete()
         
         
-        if self.moduleTarget.masterControl.getMessage('dynParentGroup'):
-            self.moduleTarget.masterControl.dynParentGroup.doPurge()
+        if self.moduleTarget.mainControl.getMessage('dynParentGroup'):
+            self.moduleTarget.mainControl.dynParentGroup.doPurge()
         
-        ml_spacePivots = self.moduleTarget.masterControl.msgList_get('spacePivots')
+        ml_spacePivots = self.moduleTarget.mainControl.msgList_get('spacePivots')
         if ml_spacePivots:
             for mObj in ml_spacePivots:
                 log.info("|{0}| >> SpacePivot: {1}".format(_str_func,mObj))  
-                for link in ['constraintGroup','constrainGroup','masterGroup']:
+                for link in ['constraintGroup','constrainGroup','mainGroup']:
                     mGroup = mObj.getMessageAsMeta(link)
                     if mGroup:
                         mGroup.delete()
                         break
                 
-        if self.moduleTarget.masterControl.getMessage('masterGroup'):
-            self.moduleTarget.masterControl.masterGroup.delete()
+        if self.moduleTarget.mainControl.getMessage('mainGroup'):
+            self.moduleTarget.mainControl.mainGroup.delete()
         
         log.debug("|{0}| >> rigNodes...".format(_str_func,)+'-'*40)                             
         ml_rigNodes = mPuppet.getMessageAsMeta('rigNodes')
@@ -838,7 +662,7 @@ def rigDelete(self):
         
         return True
         self.v = 1
-        try:self.moduleTarget.masterControl.masterGroup.delete()
+        try:self.moduleTarget.mainControl.mainGroup.delete()
         except Exception,err:
             cgmGEN.cgmExceptCB(Exception,err,msg=vars())
             raise Exception,err
@@ -846,11 +670,10 @@ def rigDelete(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def is_rig(self):
-    return True
     _str_func = 'is_rig'
     _l_missing = []
     
-    _d_links = {'moduleTarget' : ['masterControl']}
+    _d_links = {'moduleTarget' : ['mainControl']}
     
     for plug,l_links in _d_links.iteritems():
         _mPlug = self.getMessage(plug,asMeta=True)[0]
@@ -873,52 +696,45 @@ def is_rig(self):
 #=============================================================================================================
 def skeleton_build(self):
     #    
-    return True
-def skeleton_delete(self):
-    #    
-    return True
+    try:
+        if skeleton_check(self):
+            return True
+        if self.addMotionJoint:
+            mPuppet = self.moduleTarget
+            if not mPuppet:
+                raise ValueError,"No moduleTarget connected"
+            
+            mJoint = self.rootMotionHelper.doCreateAt('joint')
+            mPuppet.connectChildNode(mJoint,'rootJoint','module')
+            mJoint.connectParentNode(self,'module','rootJoint')
+            mJoint.doStore('cgmName','ignore')            
+            #self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
+            mJoint.doStore('cgmTypeModifier','rootMotion')
+            mJoint.doName()
+            
+            mJoint.radius = self.controlOffset
+            
+            
+            #self.atBlockUtils('skeleton_connectToParent')
+            if self.moduleTarget.mainNull.getMessage('skeletonGroup'):
+                mJoint.p_parent = self.moduleTarget.mainNull.skeletonGroup
+            return mJoint.mNode
+        
+    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def skeleton_check(self):
+    if self.addMotionJoint:
+        if not self.getMessage('rootJoint'):
+            return False
     return True
 
+def skeleton_delete(self):
+    if skeleton_check(self):
+        log.warning("MUST ACCOUNT FOR CHILD JOINTS")
+        mc.delete(self.getMessage('rootJoint'))
+    return True
 
 __l_rigBuildOrder__ = ['rig_cleanUp']
-
-
-def get_planeIntersect(self, target = None, planeAxis = 'z+', objAxis = 'z+', mark = True):
-    _short = self.mNode
-    _str_func = '[{0}] get_planeIntersect'.format(_short)
-    
-    if target:
-        mTarget = cgmMeta.asMeta(target)
-    else:
-        mTarget = cgmMeta.asMeta(mc.ls(sl=1))
-        if not mTarget:
-            return log.error(cgmGEN.logString_msg( _str_func, 'No Target'))
-        mTarget = mTarget[0]
-    
-    if not self.atUtils('is_rigged'):
-        mObj = self
-    else:
-        mObj = self.moduleTarget.eyeLook
-        
-    planePoint = VALID.euclidVector3Arg(mObj.p_position)
-    planeNormal = VALID.euclidVector3Arg(mObj.getAxisVector(planeAxis))
-
-    
-    rayPoint = VALID.euclidVector3Arg(mTarget.p_position)
-    rayDirection = VALID.euclidVector3Arg(mTarget.getAxisVector(objAxis))
-    
-    plane = EUCLID.Plane( EUCLID.Point3(planePoint.x, planePoint.y, planePoint.z),
-                          EUCLID.Point3(planeNormal.x, planeNormal.y, planeNormal.z) )
-    pos = plane.intersect( EUCLID.Line3( EUCLID.Point3(rayPoint.x, rayPoint.y, rayPoint.z), EUCLID.Vector3(rayDirection.x, rayDirection.y, rayDirection.z) ) )
-    
-    if mark:
-        LOC.create(position = pos, name = 'pewpew')
-        
-    return pos
-    
-
 
 
 

@@ -6925,6 +6925,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             mTransformedGroup = mLoft.getMessageAsMeta('transformedGroup')
             if not mTransformedGroup:
                 mTransformedGroup = mLoft.doGroup(True,asMeta=True,typeModifier = 'transformed')
+                
             mLoft.visibility = 1
             #mLoft.setAttrFlags(['translate'])
     
@@ -6968,14 +6969,14 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                                  worldUpVector = [0,1,0])
             else:
                 mAimForward = mLoft.doCreateAt()
-                mAimForward.p_parent = mLoft.p_parent
+                mAimForward.p_parent = mHandle.p_parent#mLoft
                 mAimForward.doStore('cgmName',mHandle)                
                 mAimForward.doStore('cgmTypeModifier','forward')
                 mAimForward.doStore('cgmType','aimer')
                 mAimForward.doName()
     
                 mAimBack = mLoft.doCreateAt()
-                mAimBack.p_parent = mLoft.p_parent
+                mAimBack.p_parent = mHandle.p_parent
                 mAimBack.doStore('cgmName',mHandle)                                
                 mAimBack.doStore('cgmTypeModifier','back')
                 mAimBack.doStore('cgmType','aimer')
@@ -9932,8 +9933,16 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 md_handles['end'].p_position = 1,2,3
                 md_handles['end'].p_position = pos
                 
-                
+
             mel.eval('EnableAll;doEnableNodeItems true all;')
+            
+        for mHandle in ml_handles:
+            d = d_definitions[mHandle.handleTag]
+            if d.get('jointScale'):
+                if not ATTR.is_connected('{0}.scale'.format(mHandle.mNode)):
+                    if self.hasAttr('jointRadius'):
+                        mHandle.doConnectIn('scale', "{0}.jointRadius".format(self.mNode),pushToChildren=True)                
+                        ATTR.set_standardFlags(mHandle.mNode, ['sx','sy','sz'])
 
         return {'md_handles':md_handles,
                 'ml_handles':ml_handles,
@@ -12165,11 +12174,11 @@ def uiStatePickerMenu(self,parent = None):
         for k in ['cogHelper','scalePivotHelper']:
             mHandle = self.getMessageAsMeta("{0}".format(k))
             if mHandle:
-                if mObj in ml_done:continue                                                
+                if mHandle in ml_done:continue                                                
                 d_pre.append({'ann':'[{0}] {1}'.format(_short,k),
                               'c':cgmGEN.Callback(mHandle.select),
                               'label':"{0}".format(k)})
-                ml_done.append(mObj)
+                ml_done.append(mHandle)
                 
         
         ml_preHandles = self.msgList_get('prerigHandles')

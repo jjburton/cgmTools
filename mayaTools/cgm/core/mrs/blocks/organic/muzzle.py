@@ -706,7 +706,7 @@ def mirror_self(self,primeAxis = 'Left'):
         r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_use],
                                                  mode = '',primeAxis = primeAxis.capitalize() )
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def define(self):
     _str_func = 'define'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -1433,11 +1433,15 @@ def define(self):
 
 
     #make em... ==============================================================================================
-    for tag in l_mainHandles:
-        d_creation[tag]['shape'] = 'locatorForm'
+    for tag,d in d_creation.iteritems():
+        if tag in l_mainHandles:
+            d_creation[tag]['shape'] = 'locatorForm'
+            d_creation[tag]['jointScale'] = False
+        else:
+            d_creation[tag]['jointScale'] = True
         
     log.debug("|{0}| >>  Make the handles...".format(_str_func))    
-    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape)
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation,self.jointRadius, mDefineNull, mBBShape)
     
     
     md_handles = md_res['md_handles']
@@ -1522,7 +1526,7 @@ def formDelete(self):
         mObj.v=1
     
     
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def form(self):
     try:    
         _str_func = 'form'
@@ -3257,7 +3261,9 @@ def form(self):
         
         #l_dTagsUsed.sort()
         #pprint.pprint(l_dTagsUsed)        
-        
+        for tag,d in d_creation.iteritems():
+            d_creation[tag]['jointScale'] = True
+            
         md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size / 10,
                                                  mFormNull)
         ml_subHandles.extend(md_res['ml_handles'])
@@ -3313,9 +3319,10 @@ def form(self):
         d = {}
                 
         for tag,mHandle in md_handles.iteritems():
+            """
             if cgmGEN.__mayaVersion__ >= 2018:
                 mController = mHandle.controller_get()
-                mController.visibilityMode = 2
+                mController.visibilityMode = 2"""
                 
             if mHandle in ml_defineHandles:
                 continue
@@ -5175,7 +5182,7 @@ d_preferredAngles = {}#In terms of aim up out for orientation relative values, s
 d_rotateOrders = {}
 
 #Rig build stuff goes through the rig build factory ------------------------------------------------------
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_prechecks(self):
     _str_func = 'rig_prechecks'
     log.debug(cgmGEN.logString_start(_str_func))
@@ -5219,7 +5226,7 @@ def rig_prechecks(self):
         self.l_precheckErrors.append("Chin setup not completed: {0}".format(str_chinSetup))
                 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_dataBuffer(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_dataBuffer'
@@ -5302,7 +5309,7 @@ def rig_dataBuffer(self):
     return True
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_skeleton(self):
     _short = self.d_block['shortName']
     
@@ -5570,7 +5577,7 @@ def rig_skeleton(self):
     self.fnc_connect_toRigGutsVis( ml_jointsToConnect )        
     return
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_shapes(self):
     try:
         _short = self.d_block['shortName']
@@ -5786,7 +5793,7 @@ def rig_shapes(self):
         cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_controls(self):
     try:
         _short = self.d_block['shortName']
@@ -5987,7 +5994,7 @@ def rig_controls(self):
         cgmGEN.cgmExceptCB(Exception,error,msg=vars())
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_frame(self):
     try:
             
@@ -6561,7 +6568,7 @@ def rig_frame(self):
         cgmGEN.cgmExceptCB(Exception,error)
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_lipSegments(self):
     _short = self.d_block['shortName']
     _str_func = ' rig_lipSegments'
@@ -6785,7 +6792,7 @@ def rig_lipSegments(self):
         
 
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
     _str_func = 'rig_cleanUp'

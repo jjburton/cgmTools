@@ -82,7 +82,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.08252020'
+__version__ = '1.09102020'
 _sidePadding = 25
 
 def check_cgm():
@@ -1347,6 +1347,25 @@ class ui(cgmUI.cgmGUI):
         log.info("Context menu rebuilt")        
         
     def batch_call(self):
+        ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
+                                         nTypes=['transform','network'],
+                                         mAttrs='blockType=master')
+        
+        l_fails = []
+        ml_fails = []
+        for mMaster in ml_masters:    
+            ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(mMaster,'below',True,False)
+    
+            for mSubBlock in ml_context:
+                l_fails.append(mSubBlock.asRigFactory(**{'mode':'prechecks'}).b_prechecks)
+                if not l_fails[-1]: ml_fails.append(mSubBlock)
+        
+        if False in l_fails:
+            #self.uiScrollList_blocks.selectByObj(ml_fails[0])
+            return (log.warning("Prechecks failed. Check script editor!"))
+        
+        log.info("Batch file creating...")
+    
         import cgm.core.mrs.lib.batch_utils as MRSBATCH
         reload(MRSBATCH)
         

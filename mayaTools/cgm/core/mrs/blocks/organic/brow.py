@@ -209,7 +209,7 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 #>> Define
 #=============================================================================================================
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def define(self):
     _str_func = 'define'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -379,7 +379,9 @@ def define(self):
         
         
     #make em...============================================================
-    log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))        
+    log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))
+    for tag,d in d_creation.iteritems():
+        d_creation[tag]['jointScale'] = True    
     
     #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0] 
     md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape)
@@ -720,7 +722,10 @@ def form(self):
         md_loftCreation['brow'] = {'keys':l_curveKeys,
                                      'rebuild':{'spansU':5,'spansV':5},
                                      'kws':{'noRebuild':1}}
-
+        
+        for tag,d in d_creation.iteritems():
+            d_creation[tag]['jointScale'] = True
+            
         md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size, 
                                                  mFormNull,statePlug = 'form')
         
