@@ -384,7 +384,8 @@ def define(self):
         d_creation[tag]['jointScale'] = True    
     
     #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0] 
-    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape)
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape,
+                                             forceSize=1)
 
     md_handles = md_res['md_handles']
     ml_handles = md_res['ml_handles']
@@ -727,7 +728,8 @@ def form(self):
             d_creation[tag]['jointScale'] = True
             
         md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size, 
-                                                 mFormNull,statePlug = 'form')
+                                                 mFormNull,statePlug = 'form',
+                                                 forceSize=1)
         
         ml_subHandles.extend(md_res['ml_handles'])
         md_handles.update(md_res['md_handles'])
@@ -2255,6 +2257,7 @@ def rig_controls(self):
         #mPlug_visSub = self.atBuilderUtils('build_visSub')
         mPlug_visDirect = self.mPlug_visDirect_moduleParent
         mPlug_visSub = self.mPlug_visSub_moduleParent
+        self.atBuilderUtils('build_visModuleProxy')#...proxyVis wiring
         
         #ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
         #             "{0}.visibility".format(self.mDeformNull.mNode))
@@ -2895,7 +2898,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
         #Vis connect -----------------------------------------------------------------------
         mProxy.overrideEnabled = 1
-        ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
+        ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
         ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
         for mShape in mProxy.getShapes(asMeta=1):
             str_shape = mShape.mNode

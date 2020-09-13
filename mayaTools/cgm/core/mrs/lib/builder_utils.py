@@ -1134,9 +1134,33 @@ def build_visSub(self):
     
     return mPlug_result_moduleSubDriver
 
+def build_visModuleProxy(self):
+    """
+    Build vis md setup for proxy vis by part
+    """
+    _str_func = 'build_visModuleMD'
+        
+    mRigNull = self.mRigNull
+    if not mRigNull:
+        raise ValueError,"Not settings found"
+    
+    mMasterControl = self.d_module['mMasterControl']
+    mMasterVis = self.d_module['mMasterVis']
+    mMasterSettings = self.d_module['mMasterSettings']
+
+    #Add our attrs
+    mPlug_result_moduleProxy = cgmMeta.cgmAttr(mRigNull,'proxyVis_out', attrType = 'int', keyable = False,hidden = True,lock=True)
+
+    iVis = mMasterControl.controlVis
+    visArg = [{'result':[mPlug_result_moduleProxy.obj.mNode, mPlug_result_moduleProxy.attr],
+               'drivers':[[mMasterSettings,'proxyVis'],[self.mPlug_visModule.obj.mNode, self.mPlug_visModule.attr]]}]
+    NODEFACTORY.build_mdNetwork(visArg)
+    
+    
+    return mPlug_result_moduleProxy
+
 
 def build_visModuleMD(self,plug = '',defaultValue = True):
-    _start = time.clock()    
     _str_func = 'build_visModuleMD'
         
     mSettings = self.mRigNull.settings

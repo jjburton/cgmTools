@@ -58,6 +58,8 @@ from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 import cgm.core.lib.arrange_utils as ARRANGE
 import cgm.core.tools.lightLoomLite as LIGHTLOOMLITE
 import cgm.core.rig.joint_utils as JOINTS
+from cgm.core.lib import transform_utils as TRANS
+from cgm.core.lib import constraint_utils as CONSTRAINTS
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
                                    ml_resetChannels,
@@ -182,9 +184,57 @@ def uiSection_selection(parent = None):
             mc.menuItem(l='{0} Const'.format(c), subMenu = False,
                         ann = "Select all {1} constraints in {0}".format(s,c),                    
                         c=cgmGEN.Callback(MMCONTEXT.select,s,'{0}Constraint'.format(c)))                   
-
-
     return uiSelect
+
+def uiSection_query(parent = None):
+    uiQuery = mc.menuItem(parent = parent, l='Query', subMenu=True,tearOff = True)
+    
+    def printLen():
+        log.warning( "Selected: {0}".format(len(mc.ls(sl=1)) ))
+    
+    mc.menuItem(parent=uiQuery,
+              l = 'Len',
+              ut = 'cgmUITemplate',
+              c = lambda *a:printLen(),
+              ann = 'Size all')            
+    
+    #General...---------------------------------------------------------------
+    #_sub = mc.menuItem(p=uiQuery, l='Size',
+    #                   subMenu=True)
+    
+    mUI.MelMenuItemDiv(uiQuery,l='Size')        
+    
+    mc.menuItem(parent=uiQuery,
+              l = 'Each',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, TRANS.bbSize_get, None,'each', 'Size', **{'shapes':1}),
+              ann = 'Size each')    
+    mc.menuItem(parent=uiQuery,
+              l = 'All',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, TRANS.bbSize_get, None,'all', 'Size', **{'shapes':1}),
+              ann = 'Size all')
+    
+    
+    #General...---------------------------------------------------------------
+    #_sub = mc.menuItem(p=uiQuery, l='Constraints',
+    #                   subMenu=True)
+    mUI.MelMenuItemDiv(uiQuery,l='Constraints')            
+    mc.menuItem(parent=uiQuery,
+                l='Get Targets',
+                ut = 'cgmUITemplate',
+                ann = "Get targets of contraints",
+                c = cgmGEN.Callback(MMCONTEXT.func_process, CONSTRAINTS.get_targets, None, 'each','Get targets',True,**{'select':True}))
+    
+    mc.menuItem(parent=uiQuery,
+              l = 'Report',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, CONSTRAINTS.get_datDict, None, 'each','Get contraint dat',True,**{'report':True}))
+
+
+    return uiQuery
+
+
+
+
+
 
 def uiSection_arrange(parent = None, selection = None, pairSelected = True):
     #>>Arrange ----------------------------------------------------------------------------------------
@@ -195,7 +245,7 @@ def uiSection_arrange(parent = None, selection = None, pairSelected = True):
     mc.menuItem(parent=_arrange,
               l = 'Linear[Even]',
               ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),                                               
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine', **{}),
               ann = ARRANGE._d_arrangeLine_ann.get('linearEven'))
     mc.menuItem(parent=_arrange,
                 l = 'Linear[Spaced]',

@@ -5003,6 +5003,8 @@ def rig_controls(self):
             
         mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
         mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
+        
+        self.atBuilderUtils('build_visModuleProxy')#...proxyVis wiring
 
         # Connect to visModule ...
         ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
@@ -8375,6 +8377,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         mBall = False
         int_handleEndIdx = -1
         mEnd = False
+        ml_rigJointsBase = copy.copy(ml_rigJoints)
         if _str_ikEnd in ['foot']:
             l= []
             if mBlock.addToe == 2:
@@ -8386,6 +8389,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 log.debug("|{0}| >> mBall: {1}".format(_str_func,mBall))        
                 int_handleEndIdx -=1
                 pprint.pprint(ml_rigJoints)
+            
             
             if mBall or mToe:
                 mEnd = ml_rigJoints.pop(-1)
@@ -8403,8 +8407,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             mEnd = ml_rigJoints[-1]
                 
         
-        log.debug("|{0}| >> Handles Targets: {1}".format(_str_func,ml_rigJoints))            
-        log.debug("|{0}| >> End idx: {1} | {2}".format(_str_func,int_handleEndIdx,
+        log.info("|{0}| >> Handles Targets: {1}".format(_str_func,ml_rigJoints))            
+        log.info("|{0}| >> End idx: {1} | {2}".format(_str_func,int_handleEndIdx,
                                                        ml_rigJoints[int_handleEndIdx]))                
             
         
@@ -8608,10 +8612,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             
             mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
             return ml_segProxy
-    
+        
+        
         for i,mGeo in enumerate(ml_segProxy):
-            log.debug("{0} : {1}".format(mGeo, ml_rigJoints[i]))
-            mGeo.parent = ml_rigJoints[i]
+            log.debug("{0} : {1}".format(mGeo, ml_rigJointsBase[i]))
+            mGeo.parent = ml_rigJointsBase[i]
             #ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
             mGeo.doStore('cgmName',str_partName)
             
@@ -8620,9 +8625,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             mGeo.doName()
             
             if directProxy:
-                CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,True)
-                CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)
-                for mShape in ml_rigJoints[i].getShapes(asMeta=True):
+                CORERIG.shapeParent_in_place(ml_rigJointsBase[i].mNode,mGeo.mNode,True,True)
+                CORERIG.colorControl(ml_rigJointsBase[i].mNode,_side,'main',directProxy=True)
+                for mShape in ml_rigJointsBase[i].getShapes(asMeta=True):
                     #mShape.overrideEnabled = 0
                     mShape.overrideDisplayType = 0
                     ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
@@ -8634,7 +8639,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     
             #Vis connect -----------------------------------------------------------------------
             mProxy.overrideEnabled = 1
-            ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
+            ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
             ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
             
             for mShape in mProxy.getShapes(asMeta=1):

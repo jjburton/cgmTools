@@ -228,7 +228,7 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  'jointDepthLip':'float',
                  
                  'jointRadius':'float',                 
-
+                 'preLipStartSplit':'float',
                  
                  }
 
@@ -265,6 +265,7 @@ d_defaultSettings = {'version':__version__,
                      'numLipUnderSplit':2,
                      'jointDepth':-.41,
                      'jointDepthLip':-.41,
+                     'preLipStartSplit':.05,
                      
                      'controlOffset':1,
                      'conDirectOffset':0,
@@ -1441,7 +1442,8 @@ def define(self):
             d_creation[tag]['jointScale'] = True
         
     log.debug("|{0}| >>  Make the handles...".format(_str_func))    
-    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation,self.jointRadius, mDefineNull, mBBShape)
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation,self.jointRadius, mDefineNull, mBBShape,
+                                             forceSize=1)
     
     
     md_handles = md_res['md_handles']
@@ -3265,7 +3267,7 @@ def form(self):
             d_creation[tag]['jointScale'] = True
             
         md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size / 10,
-                                                 mFormNull)
+                                                 mFormNull, forceSize=1)
         ml_subHandles.extend(md_res['ml_handles'])
         md_handles.update(md_res['md_handles'])
     
@@ -4545,8 +4547,12 @@ def prerig(self):
                 
                 _count = self.getMayaAttr('numJointsLip'+tag.capitalize())
                 
-                l_driverPos =  CURVES.getUSplitList(mDriverCrv.mNode,_count + 2,rebuild=0)
-                l_drivenPos = CURVES.getUSplitList(mDrivenCrv.mNode,_count + 2,rebuild=0)
+                l_driverPos =  CURVES.getUSplitList(mDriverCrv.mNode,_count + 2,rebuild=0,
+                                                    startSplitFactor=self.preLipStartSplit)
+                                                    
+                l_drivenPos = CURVES.getUSplitList(mDrivenCrv.mNode,_count + 2,rebuild=0,
+                                                   startSplitFactor=self.preLipStartSplit)
+                                                   
                 
                 d_split_driven = MATH.get_evenSplitDict(l_drivenPos)
                 d_split_driver = MATH.get_evenSplitDict(l_driverPos)
@@ -5815,6 +5821,7 @@ def rig_controls(self):
         #mPlug_visSub = self.atBuilderUtils('build_visSub')
         mPlug_visDirect = self.mPlug_visDirect_moduleParent
         mPlug_visSub = self.mPlug_visSub_moduleParent
+        self.atBuilderUtils('build_visModuleProxy')#...proxyVis wiring
         
         self.mDeformNull.overrideEnabled = 1
         ATTR.connect(self.mPlug_visModule.p_combinedShortName,
@@ -7106,7 +7113,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
         #Vis connect -----------------------------------------------------------------------
         mProxy.overrideEnabled = 1
-        ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
+        ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
         ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
         for mShape in mProxy.getShapes(asMeta=1):
             str_shape = mShape.mNode

@@ -1191,21 +1191,20 @@ def getUSplitList(curve=None, points=3, markPoints=False,
         #>>> Divide stuff#===========================================================================
         f_maxU = ATTR.get(_shapeUse,'maxValue')
         f_minU = ATTR.get(_shapeUse,'minValue')
+        
         int_points = int(points)
         f_points = float(points)
         
         if minU is not None:
             if minU < f_minU:
                 return log.error("|{0}| >> minU [{1}] is less than detected: {2}".format(_str_func,
-                                                                                         minU,
-                                                                                         f_minU))
+                                                                                         minU,f_minU))
             else:
                 f_minU = minU
         if maxU is not None:
             if maxU > f_maxU:
                 return log.error("|{0}| >> maxU [{1}] is greater than detected: {2}".format(_str_func,
-                                                                                         maxU,
-                                                                                         f_maxU))
+                                                                                         maxU,f_maxU))
             else:
                 f_maxU = maxU
         
@@ -1213,7 +1212,7 @@ def getUSplitList(curve=None, points=3, markPoints=False,
         log.debug("|{0}| >> minU: {1} | maxU: {2} | divide...".format(_str_func,f_minU,f_maxU))                
         
 
-        _range = (f_minU - f_maxU)
+        _range = (f_maxU - f_minU)
         l_uValues = [f_minU]
         if int_points == 1:
             l_uValues = [(f_maxU-f_minU)/2]
@@ -1245,42 +1244,23 @@ def getUSplitList(curve=None, points=3, markPoints=False,
                 log.debug("%s >> insetSplitFactor : %s"%(_str_func,insetSplitFactor))  
                 #Figure out our u's
                 f_base = insetSplitFactor * _range 
-                f_len = f_maxU - (f_base *2)	
-                f_factor = f_len/(f_points-1)
-                log.debug("%s >> f_maxU : %s"%(_str_func,f_maxU)) 
-                log.debug("%s >> f_len : %s"%(_str_func,f_len)) 			
-                log.debug("%s >> f_base : %s"%(_str_func,f_base)) 			
-                log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
+                
+                f_maxU_use = f_maxU - f_base
+                f_minU_use = f_minU + f_base
+                
+                _range2 = (f_maxU_use - f_minU_use)
+
+                f_factor = _range2/(f_points-1)
+                log.info("%s >> f_maxU : %s"%(_str_func,f_maxU_use)) 
+                log.info("%s >> range2 : %s"%(_str_func,_range2)) 			
+                log.info("%s >> f_base : %s"%(_str_func,f_base)) 			
+                log.info("%s >> f_factor : %s"%(_str_func,f_factor))               
                 for i in range(1,int_points-1):
-                    l_uValues.append((i*f_factor))
+                    l_uValues.append((i*f_factor+f_minU_use))
                 l_uValues.append(f_maxU)
-                log.debug("%s >> l_uValues : %s"%(_str_func,l_uValues))  			
-                """
-            elif f_kwMinU is not False or f_kwMaxU is not False:
-                log.debug("%s >> Sub mode. "%(_str_func))
-                if f_kwMinU is not False:
-                    if f_kwMinU > f_maxU:
-                        raise StandardError, "kw minU value(%s) cannot be greater than maxU(%s)"%(f_kwMinU,f_maxU)
-                    f_useMinU = f_kwMinU
-                else:f_useMinU = 0.0
-                if f_kwMaxU is not False:
-                    if f_kwMaxU > f_maxU:
-                        raise StandardError, "kw maxU value(%s) cannot be greater than maxU(%s)"%(f_kwMaxU,f_maxU)	
-                    f_useMaxU = f_kwMaxU
-                else:f_useMaxU = f_maxU
-    
-                if int_points == 1:
-                    l_uValues = [(f_useMaxU - f_useMinU)/2]
-                elif int_points == 2:
-                    l_uValues = [f_useMaxU,f_useMinU]		    
-                else:
-                    l_uValues = [f_useMinU]
-                    f_factor = (f_useMaxU - f_useMinU)/(f_points-1)
-                    log.debug("%s >> f_maxU : %s"%(_str_func,f_useMaxU)) 
-                    log.debug("%s >> f_factor : %s"%(_str_func,f_factor))               
-                    for i in range(1,int_points-1):
-                        l_uValues.append((i*f_factor) + f_useMinU)
-                    l_uValues.append(f_useMaxU)"""
+                log.info("%s >> l_uValues : %s"%(_str_func,l_uValues))  			
+                
+
             else:
                 #Figure out our u's
                 log.debug("%s >> Regular mode. Points = %s "%(_str_func,int_points))

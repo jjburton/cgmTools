@@ -285,7 +285,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
     :parameters
         func(function)
         objects(list)
-        mode(str)
+        processMode(str)
             all -- objects
             each -- func to each object
             eachToNext -- o,objects[i+1]
@@ -338,7 +338,10 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
                     _res = func(o,**kws)    
                     
                 if _res:log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
-                
+        elif processMode in ['all']:
+            _res = func(objects,**kws)    
+            if _res:log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
+            
         elif processMode in ['eachToNext','fromPreviousEach','eachToLast']:
             for i,o in enumerate(objects[:-1]):
                 log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  

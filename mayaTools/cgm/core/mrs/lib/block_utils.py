@@ -9362,7 +9362,7 @@ def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
         return mPlane
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, statePlug ='define',vectorScaleAttr = 'baseSize',startScale=False):
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, statePlug ='define',vectorScaleAttr = 'baseSize',startScale=False, forceSize = False):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
@@ -9390,11 +9390,11 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 continue
             
             log.debug("|{0}| >> handle: {1} ...".format(_str_func,k))
-            if k in ['end','start','lever']:
+            if k in ['end','start','lever'] or forceSize:
                 _useSize = 1.0
             else:
                 _useSize = _sizeSub
-            
+                
             str_name = _dtmp.get('name') or "{0}_{1}".format(self.cgmName,k)
             _tagOnly = _dtmp.get('tagOnly',False)
             _pos = _dtmp.get('pos',False)

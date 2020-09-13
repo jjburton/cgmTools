@@ -1740,6 +1740,7 @@ def rig_controls(self):
         
         mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
         mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
+        self.atBuilderUtils('build_visModuleProxy')#...proxyVis wiring
 
         # Connect to visModule ...
         ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
@@ -3141,7 +3142,7 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
     
             #Vis connect -----------------------------------------------------------------------
             mProxy.overrideEnabled = 1
-            ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
+            ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
             ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )        
             for mShape in mProxy.getShapes(asMeta=1):
                 str_shape = mShape.mNode

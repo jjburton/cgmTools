@@ -14,6 +14,7 @@ __MAYALOCAL = 'CONSTRAINTS'
 import copy
 import re
 import random
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -334,7 +335,7 @@ def set_weightsByDistance(constraint=None,vList = None):
 
     return vList
 
-def get_datDict(constraint = None):
+def get_datDict(constraint = None,report=False):
     _str_func = 'get_datDict'
         
     log.debug("|{0}| >> constraint: {1} ".format(_str_func,constraint))
@@ -350,6 +351,8 @@ def get_datDict(constraint = None):
     for a in result['attrs']:
         result['attrDrivers'].append(ATTR.get_driver("{0}.{1}".format(constraint,a)))
     
+    if report:
+        pprint.pprint(result)
     return result
 
 def copy_constraint(sourceConstraint=None, targetObj=None, constraintType=None, maintainOffset = True):

@@ -213,6 +213,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'numLidLwrShapers':'int',
                  'numLidSplit_u':'int',
                  'numLidSplit_v':'int',
+                 'preLidStartSplit':'float',
                  #'lidHandleOffset':'float',
                  'highlightSetup':'none:simple:sdk:surfaceSlide',
 
@@ -242,6 +243,7 @@ d_defaultSettings = {'version':__version__,
                      'scaleSetup':False,
                      'numLidLwrShapers':5,
                      'numLidUprShapers':5,
+                     'preLidStartSplit':.05,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -705,7 +707,7 @@ def define(self):
                     'uprEnd','lwrEnd','innerEnd','outerEnd']
     
     
-        md_res = self.UTILS.create_defineHandles(self, _l_order, _d, _size / 2)
+        md_res = self.UTILS.create_defineHandles(self, _l_order, _d, 1.0, forceSize=1)#_size / 2
         #self.UTILS.define_set_baseSize(self)
         
         md_handles = md_res['md_handles']
@@ -1050,8 +1052,8 @@ def form(self):
                 d_creation[tag]['jointScale'] = True                
             
             
-            md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, _size, 
-                                                     mFormNull,statePlug = 'form')
+            md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, 1.0,#_size 
+                                                     mFormNull,statePlug = 'form',forceSize=1)
             
             ml_subHandles.extend(md_res['ml_handles'])
             md_handles.update(md_res['md_handles'])
@@ -1158,8 +1160,8 @@ def prerig(self):
         _size_width = _bb_axisBox[0]#...x width
         
         if self.lidBuild:
-            _size_base = self.jointRadius * 2.0 #_size_width * .25
-            _size_sub = self.jointRadius * .75 #_size_base * .2            
+            _size_base = self.jointRadius * 3.0 #_size_width * .25
+            _size_sub = self.jointRadius  #_size_base * .2            
         else:
             _size_base = _size_width * .25
             _size_sub = _size_base * .2
@@ -1821,7 +1823,7 @@ def prerig(self):
                                                                           None,
                                                                           _side,
                                                                           mDriver=mAnchor,
-                                                                          size= _size_sub * .5,#self.lidDepth,
+                                                                          size= self.jointRadius,#self.lidDepth,
                                                                           
                                                                           mSurface=mLidSurf,#mLidLoft,
                                                                           #mAttachCrv=mDriverCrv,
@@ -1878,7 +1880,7 @@ def prerig(self):
                                                                               mainShape=_shapeUse,
                                                                               jointShape='locatorForm',
                                                                               depthAttr = 'lidJointDepth',
-                                                                              size= _size_sub * .5,
+                                                                              size= _size_sub,
                                                                               controlType=_controlType,
                                                                               mode='handle',
                                                                               plugDag= 'preDag',
@@ -1952,8 +1954,10 @@ def prerig(self):
                     _count = self.getMayaAttr('numLid'+tag.capitalize()+'Joints')
                     
                     
-                    l_driverPos =  CURVES.getUSplitList(mDriverCrv.mNode,_count + 2,rebuild=0)
-                    l_drivenPos = CURVES.getUSplitList(mDrivenCrv.mNode,_count + 2,rebuild=0)
+                    l_driverPos =  CURVES.getUSplitList(mDriverCrv.mNode,_count + 2,rebuild=0,
+                                                        startSplitFactor=self.preLidStartSplit)
+                    l_drivenPos = CURVES.getUSplitList(mDrivenCrv.mNode,_count + 2,rebuild=0,
+                                                       startSplitFactor=self.preLidStartSplit)
                     
                     l_drivenPos.reverse()
                     l_driverPos.reverse()
@@ -2128,8 +2132,10 @@ def prerig(self):
                                 if _mode == 'simple':
                                     mc.orientConstraint(_closest, mDriver.mNode, maintainOffset = False)
                                 else:
+                                    
                                     if mDriver == sideDat[-1]:
-                                        _tar = md_lidDrivers[tag]['center'][0].mNode
+                                        try:_tar = md_lidDrivers[tag]['center'][0].mNode
+                                        except:continue
                                     else:
                                         _tar = sideDat[i+1].mNode
                                         
@@ -2144,22 +2150,27 @@ def prerig(self):
                             
                 
                 #Driven Curve
-                ml_uprCenter = md_jointHelpers['upr']['center']
+                md_crvDrivers = {}
                 ml_uprLeft = copy.copy(md_jointHelpers['upr']['inner'])
                 ml_uprLeft.reverse()
                 ml_uprRight = md_jointHelpers['upr']['outer']
                 
-                ml_lwrCenter = md_jointHelpers['lwr']['center']
                 ml_lwrLeft = copy.copy(md_jointHelpers['lwr']['inner'])
                 ml_lwrLeft.reverse()
-                
                 ml_lwrRight = md_jointHelpers['lwr']['outer']
                 
-                md_crvDrivers = {}
-                
-                md_crvDrivers['upr'] = ml_uprRight + ml_uprCenter + ml_uprLeft
-                md_crvDrivers['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrCenter + ml_lwrLeft + ml_uprLeft[-1:]
-                
+                if  md_jointHelpers['upr'].get('center'):
+                    ml_uprCenter = md_jointHelpers['upr']['center']
+                    md_crvDrivers['upr'] = ml_uprRight + ml_uprCenter + ml_uprLeft
+                else:
+                    md_crvDrivers['upr'] = ml_uprRight + ml_uprLeft                    
+                    
+                if  md_jointHelpers['lwr'].get('center'):
+                    ml_lwrCenter = md_jointHelpers['lwr']['center']
+
+                    md_crvDrivers['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrCenter + ml_lwrLeft + ml_uprLeft[-1:]
+                else:
+                    md_crvDrivers['lwr'] = ml_uprRight[:1] + ml_lwrRight + ml_lwrLeft + ml_uprLeft[-1:]
                 #pprint.pprint(md_anchors)
                 #pprint.pprint(d_anchorDat)
                 #pprint.pprint(md_crvDrivers)
@@ -3395,6 +3406,7 @@ def rig_controls(self):
         
         mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
         mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
+        self.atBuilderUtils('build_visModuleProxy')#...proxyVis wiring
 
         # Connect to visModule ...
         ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
@@ -5848,7 +5860,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
         #Vis connect -----------------------------------------------------------------------
         mProxy.overrideEnabled = 1
-        ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(mProxy.mNode) )
+        ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
         ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
         for mShape in mProxy.getShapes(asMeta=1):
             str_shape = mShape.mNode

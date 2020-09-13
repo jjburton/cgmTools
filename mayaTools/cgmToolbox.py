@@ -510,6 +510,7 @@ def uiBuild_cgmMenu( *args ):
     #>>Layout ----------------------------------------------------------------------
     #_layout = mc.menuItem(p=menu,l='Layout',subMenu = True, tearOff = True)
     #UICHUNKS.uiSection_layout(_layout)
+    UICHUNKS.uiSection_query(menu)
 
         
     #>>MRS ==========================================================================
