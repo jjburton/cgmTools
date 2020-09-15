@@ -198,7 +198,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'lidAttach':'aimJoint:surfaceSlide',
                  'irisAttach':'parent:surfaceSlide',
                  'pupilAttach':'parent:surfaceSlide',
-                 'lidBuild':'none:clam:full',
+                 'lidBuild':'none:clam:clamSimple:full',
                  #'lidType':'simple:full',
                  'lidDepth':'float',
                  'lidJointDepth':'float',
@@ -1536,7 +1536,7 @@ def prerig(self):
             
             
             #Lid Handles ----------------------------------------------------------------------------
-            if _lidBuild == 'clam':
+            if _lidBuild in ['clam','clamSimple']:
                 d_handles = {'upr':CURVES.getPercentPointOnCurve(mUprLid.mNode,.5),
                              'lwr':CURVES.getPercentPointOnCurve(mLwrLid.mNode,.5)}
                 
@@ -2390,6 +2390,8 @@ def skeleton_build(self, forceNew = True):
         #'lidRootHelper'
         
         mLidsHelper = self.getMessageAsMeta('lidsHelper')
+        mLidRootHelper = self.getMessageAsMeta('lidRootHelper')
+        
         _d_lids = copy.copy(_d_base)
         
         _d_lids['cgmNameModifier'] = 'lid'
@@ -2412,6 +2414,33 @@ def skeleton_build(self, forceNew = True):
                 log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
                 ml_joints.append(mJoint)
                 mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))
+        
+        elif _lidBuild == 'clamSimple':
+            #Parenting this joint here is necessary for scale work
+            mPrerigNull.getMessageAsMeta('pupilJoint').p_parent = mEyeJoint
+            
+            
+            for a in ['upr','lwr']:
+                log.debug("|{0}| >> Creating lid joint: {1}.".format(_str_func,a))
+                _a = '{0}LidHandle'.format(a)
+                mHandle = self.getMessageAsMeta(_a)
+                mJointHandle = mHandle.jointHelper
+                
+                mJoint = mLidRootHelper.doCreateAt('joint')
+                mJoint.parent = mRoot
+                
+                SNAP.aim(mJoint.mNode, mJointHandle.mNode, 'z+','y+','vector',
+                         mOrientHelper.getAxisVector('y+'))                
+                
+                
+                mJoint.doStore('cgmName',a)
+                name(mJoint,_d_lids)
+                
+                JOINT.freezeOrientation(mJoint.mNode)
+                
+                log.debug("|{0}| >> joint: {1} | {2}.".format(_str_func,mJoint,mJoint.parent))                
+                ml_joints.append(mJoint)
+                mPrerigNull.connectChildNode(mJoint.mNode,'{0}LidJoint'.format(a))            
                 
         elif _lidBuild == "full":
             _d_Lid = {'cgmName':'lid'}
@@ -2500,7 +2529,7 @@ def rig_prechecks(self):
     mBlock = self.mBlock
     
     str_lidBuild = mBlock.getEnumValueString('lidBuild')
-    if str_lidBuild not in ['none','clam','full']:
+    if str_lidBuild not in ['none','clam','full','clamSimple']:
         self.l_precheckErrors.append("Lid setup not completed: {0}".format(str_lidBuild))
         
     str_ballSetup = mBlock.getEnumValueString('ballSetup')
@@ -2885,6 +2914,49 @@ def rig_skeleton(self):
                 except:mJnt.radius = .00001
                     
             mLidRig.p_parent = mLidBlend
+    
+    elif self.str_lidBuild == 'clamSimple':
+        #Need to make our lid roots and orient
+        for tag in 'upr','lwr':
+            log.debug("|{0}| >> {1}...".format(_str_func,tag))
+            self.d_lidData[tag] = {}
+            _d = self.d_lidData[tag]
+            
+            mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(tag))
+            mLidRig = mLidSkin.getMessageAsMeta('rigJoint')
+            _d['mSkin'] = mLidSkin
+            #Lid Blend
+            mLidBlend = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,[mLidRig],
+                                                              'ik', mRigNull,
+                                                              '{0}IKLid'.format(tag),
+                                                              singleMode = True,
+                                                              cgmType=False)[0]
+            _d['mBlend'] = mLidBlend
+            
+            _d['mRoot'] = mLidBlend
+            
+            #in this case we need an end
+            _a = '{0}LidHandle'.format(tag)
+            mHandle = mBlock.getMessageAsMeta(_a)
+            mJointHandle = mHandle.jointHelper
+            mEnd = mLidSkin.doCreateAt('joint')            
+            mEnd.p_parent = mLidBlend
+            
+            mEnd.doSnapTo(mJointHandle)
+            
+            _d['mRig'] = mEnd
+            
+            JOINT.freezeOrientation(mEnd.mNode)
+            
+            for mJnt in [mLidBlend,mEnd]:
+                try:mJnt.drawStyle =2
+                except:mJnt.radius = .00001
+                
+                if self.b_scaleSetup:
+                    mJnt.segmentScaleCompensate = False
+                    
+            mLidRig.p_parent = mLidBlend        
+        
     elif self.v_lidBuild:
         log.debug("|{0}| >>  lid ".format(_str_func)+ '-'*20)
         
@@ -3289,7 +3361,41 @@ def rig_shapes(self):
                                                         size = _size)
                     mHandleFactory.color(_shape, controlType = 'sub')
                     CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
+            
+            elif self.str_lidBuild == 'clamSimple':
+                for k in 'upr','lwr':
+                    log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
+                    _key = '{0}LidHandle'.format(k)
+                    mShapeSource = mBlock.getMessageAsMeta(_key)
+                    mHandle = mShapeSource.doCreateAt('joint',setClass=True)
                     
+                    try:mHandle.drawStyle =2
+                    except:mHandle.radius = .00001
+                    
+                    CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
+                    mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                    _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
+                    mHandleFactory.color(mHandle.mNode, controlType = 'main')
+                    
+                    if self.mModule.hasAttr('cgmDirection'):
+                        mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
+                    
+                    self.d_lidData[k]['mHandle'] = mHandle
+                    mHandle.doName()
+                    mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
+                    
+                    log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
+                    mRig =  self.d_lidData[k]['mRig']
+                    
+                    _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
+                                                        sizeMode= 'fixed',
+                                                        size = _size)
+                    mShape = cgmMeta.asMeta(_shape)[0]
+                    mShape.p_position = mHandle.p_position
+                    mHandleFactory.color(_shape, controlType = 'sub')
+                    CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)            
+            
+            
             elif self.v_lidBuild:
                 log.debug("|{0}| >> lid setup...".format(_str_func)+ '-'*40)
 
@@ -3538,7 +3644,7 @@ def rig_controls(self):
                             minValue=0,maxValue=1,
                             lock=False,keyable=True)            
             
-            if self.str_lidBuild == 'clam':
+            if self.str_lidBuild in ['clam','clamSimple']:
                 ml_handles = []
                 for k in 'upr','lwr':
                     log.debug("|{0}| >> lid | {1}...".format(_str_func,k))
@@ -3880,12 +3986,16 @@ def rig_frame(self):
       
     if self.b_scaleSetup :
         log.debug("|{0}| >> scale blend chain setup...".format(_str_func))    
+        l_constraints = ['point','orient']
         
+        if self.str_lidBuild not in ['clamSimple']:
+            l_constraints.append('scale')
+            
         if mBlock.ikSetup:
             RIGCONSTRAINT.blendChainsBy(mJointFK,mJointIK,mBlendJoint,
                                         driver = mPlug_FKIK.p_combinedName,
-                                        l_constraints=['point','orient','scale'])
-            
+                                        l_constraints= l_constraints)        
+        
         for mJnt in ml_joints:
             mJnt.segmentScaleCompensate = False
             
@@ -4671,7 +4781,7 @@ def rig_lidSetup(self):
         mUprRoot = None
         mLwrRoot = None
         
-        if _lidSetup == 'clam':
+        if _lidSetup in ['clam','clamSimple']:
             log.debug("|{0}| >>  clam ... ".format(_str_func))
             #First we need to make our new curves
             for k in 'upr','lwr':
@@ -4763,10 +4873,7 @@ def rig_lidSetup(self):
                     #mJoint.p_position = md['mFollicle'].p_position
                     mc.parentConstraint(mFollicle.mNode,
                                         mDriver.mNode,maintainOffset=1)
-                    
-                
-                
-                
+        
         else:
             log.debug("|{0}| >>  full ... ".format(_str_func))
             
