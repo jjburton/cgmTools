@@ -1678,250 +1678,255 @@ def controller_verify(self,progressBar = None,progressEnd=True):
     """
     Verify the mirror setup of the puppet modules
     """
-    _str_func = ' controller_verify'.format(self)
-    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
-    
-    if self.isReferenced():
-        log.debug("|{0}| >> can't process referenced asset | {1}".format(_str_func,self))        
-        return 
-    
-    
-    controller_purge(self,progressBar,False)
-    
-    controls_get(self,True,rewire=False)#Wire pass
-    
-    md_data = {}
-    md_cgmTags = {}
-    ml_processed = []
-    ml_controlOrphans = []
-    md_controls = {}
-    
-    ml_modules = modules_getHeirarchal(self,True)
-    int_lenModules = len(ml_modules)
-    
-    if progressBar:
-        cgmUI.progressBar_start(progressBar)
-    else:
-        progressBar = cgmUI.doStartMayaProgressBar()
+    try:
         
-    def validate_controls(ml):
-        for i,mObj in enumerate(ml):
-            log.debug("|{0}| >> First pass: {1}".format(_str_func,mObj))
-            if not issubclass(type(mObj), cgmMeta.cgmControl):
-                log.debug("|{0}| >> Reclassing: {1}".format(_str_func,mObj))
-                mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
-                ml[i] = mObj#...push back
-            md_cgmTags[mObj] = mObj.getCGMNameTags(['cgmName'])
-            md_controls[mObj] = mObj.controller_get()
-            ml_controlOrphans.append(mObj)
+        _str_func = ' controller_verify'.format(self)
+        log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
         
-
-            
-
-    
-    #Self controls =====================================================
-    #ml_self = controls_get(self)
-    #process_set(ml_self)
-    
-    #mPuppetController = self.controller_get()
-    
-    #>> Process ======================================================================================
-    md_moduleController = {}
-    md_moduleInt = {}
-    for i,mModule in enumerate(ml_modules):
-        md_moduleController[mModule] = mModule.atUtils('get_controllerDat')
-        md_moduleInt[i] = md_moduleController[mModule]
-        #mModule.atUtils('get_mirrorDat',False)
-        
-        """
-        for mObj in md_moduleMirrorDat[i]['ml_controls']:
-            mController = mObj.getMessageAsMeta('mController')
-            if mController:
-                mController.purge()"""
-
-    
-    #pprint.pprint(md_moduleInt)
-    #if progressBar and progressEnd:
-    #    cgmUI.progressBar_end(progressBar)
-        
-    
-    #pprint.pprint(md_moduleMirrorDat)
-    md_tags = {}
-    def get_tag(mObj):
-        mTag = md_tags.get(mObj)
-        if mTag:
-            return mTag
-        
-        mTag = cgmMeta.controller_get(mObj,True)
-        mTag.cycleWalkSibling = 1
-        mTag.prepopulate = 1
-        mTag.parentprepopulate = 1
-        md_tags[mObj] = mTag
-        return mTag
+        if self.isReferenced():
+            log.debug("|{0}| >> can't process referenced asset | {1}".format(_str_func,self))        
+            return 
         
         
-    ml_all = []
-    md_failsafe = {}
-    
-    for i,mModule in enumerate(ml_modules):
-        _str_module = mModule.p_nameShort
-        log.info(cgmGEN.logString_sub(_str_func,"mModule: {0}".format(_str_module)))
+        controller_purge(self,progressBar,False)
         
-        if mModule in ml_processed:
-            log.debug("|{0}| >> Already processed: {1}".format(_str_func,mModule))
-            continue
+        controls_get(self,True,rewire=False)#Wire pass
         
-        log.debug("|{0}| >> Processing: {1}".format(_str_func,mModule))
+        md_data = {}
+        md_cgmTags = {}
+        ml_processed = []
+        ml_controlOrphans = []
+        md_controls = {}
+        
+        ml_modules = modules_getHeirarchal(self,True)
+        int_lenModules = len(ml_modules)
         
         if progressBar:
-            _str = '{0}'.format(mModule.mNode)
-            log.debug(cgmGEN.logString_sub(_str_func,_str))
-            cgmUI.progressBar_set(progressBar,
-                                  minValue = 0,
-                                  maxValue=int_lenModules+1,
-                                  status = _str,
-                                  progress=i, vis=True)
-        
-        
-        md_controls = md_moduleController[mModule]
-        
-        mSettings = md_controls.get('settings') or False
-        mSettingsController = False
-        if mSettings:
-            mSettings = mSettings[0]
-            mSettingsController = get_tag(mSettings)
-
-        mModParent = mModule.moduleParent
-        ml_modSiblings = mModule.atUtils('siblings_get') or []
-        ml_modChildren = mModule.moduleChildren or []
-        md_tmp = {}
-        
-        mBlock = mModule.getMessageAsMeta('rigBlock')
-        _idx_attach = 0
-        _b_face = False
-        if mBlock:
-            _str_attachPoint = mBlock.getEnumValueString('attachPoint')
-            if _str_attachPoint == 'start':
-                _idx_attach = 0
-            elif _str_attachPoint == 'end':
-                _idx_attach = -1
-            elif _str_attachPoint == 'index':
-                _idx_attach = mBlock.attachIndex
+            cgmUI.progressBar_start(progressBar)
+        else:
+            progressBar = cgmUI.doStartMayaProgressBar()
             
-            if mBlock.blockType in ['eye','muzzle','brow']:
-                _b_face = True
-        
-        for tag in ['root','settings','fk','ik','segmentHandles','direct','face']:
-            log.debug(cgmGEN.logString_msg(_str_func,"tag: {0}".format(tag)))
-            #First validate...
-            _l_tag = md_controls.get(tag,[])
-            ml = []
-            md_tmp[tag] = ml
+        def validate_controls(ml):
+            for i,mObj in enumerate(ml):
+                log.debug("|{0}| >> First pass: {1}".format(_str_func,mObj))
+                if not issubclass(type(mObj), cgmMeta.cgmControl):
+                    log.debug("|{0}| >> Reclassing: {1}".format(_str_func,mObj))
+                    mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
+                    ml[i] = mObj#...push back
+                md_cgmTags[mObj] = mObj.getCGMNameTags(['cgmName'])
+                md_controls[mObj] = mObj.controller_get()
+                ml_controlOrphans.append(mObj)
             
-            for ii,mObj in enumerate(_l_tag):
-                try:
-                    log.info( cgmGEN.logString_sub(_str_func, mObj))
-                    mController =  get_tag(mObj)
-                    ml.append(mController)
-                    ml_children = []
-                    
-                    if mController in ml_all:
-                        continue
-                    
-                    if tag not in ['root']:
-                        if md_tmp.get('root'):
-                            md_failsafe[mController] = md_tmp['root'][0]
-                            
-                    ml_all.append(mController)
-                    
-                    if not ii:#If our first obj, set to parent of module Parent
-                        if mModParent:
-                            _buffer = md_moduleController[mModParent].get(tag)
-                            if _buffer:
-                                mParentController = get_tag(_buffer[_idx_attach])
-                                mController.parent_set(mParentController)
-                            else:
-                                _buffer = md_moduleController[mModParent].get('root')
-                                if _buffer:
-                                    print _buffer                                    
-                                    mParentController = get_tag(_buffer[0])
-                                    mController.parent_set(mParentController)                            
-                        else:
+    
+                
+    
+        
+        #Self controls =====================================================
+        #ml_self = controls_get(self)
+        #process_set(ml_self)
+        
+        #mPuppetController = self.controller_get()
+        
+        #>> Process ======================================================================================
+        md_moduleController = {}
+        md_moduleInt = {}
+        for i,mModule in enumerate(ml_modules):
+            md_moduleController[mModule] = mModule.atUtils('get_controllerDat')
+            md_moduleInt[i] = md_moduleController[mModule]
+            #mModule.atUtils('get_mirrorDat',False)
+            
+            """
+            for mObj in md_moduleMirrorDat[i]['ml_controls']:
+                mController = mObj.getMessageAsMeta('mController')
+                if mController:
+                    mController.purge()"""
+    
+        
+        #pprint.pprint(md_moduleInt)
+        #if progressBar and progressEnd:
+        #    cgmUI.progressBar_end(progressBar)
+            
+        
+        #pprint.pprint(md_moduleMirrorDat)
+        md_tags = {}
+        def get_tag(mObj):
+            mTag = md_tags.get(mObj)
+            if mTag:
+                return mTag
+            
+            mTag = cgmMeta.controller_get(mObj,True)
+            mTag.cycleWalkSibling = 1
+            mTag.prepopulate = 1
+            mTag.parentprepopulate = 1
+            md_tags[mObj] = mTag
+            return mTag
+            
+            
+        ml_all = []
+        md_failsafe = {}
+        
+        for i,mModule in enumerate(ml_modules):
+            _str_module = mModule.p_nameShort
+            log.info(cgmGEN.logString_sub(_str_func,"mModule: {0}".format(_str_module)))
+            
+            if mModule in ml_processed:
+                log.debug("|{0}| >> Already processed: {1}".format(_str_func,mModule))
+                continue
+            
+            log.debug("|{0}| >> Processing: {1}".format(_str_func,mModule))
+            
+            if progressBar:
+                _str = '{0}'.format(mModule.mNode)
+                log.debug(cgmGEN.logString_sub(_str_func,_str))
+                cgmUI.progressBar_set(progressBar,
+                                      minValue = 0,
+                                      maxValue=int_lenModules+1,
+                                      status = _str,
+                                      progress=i, vis=True)
+            
+            
+            md_controls = md_moduleController[mModule]
+            
+            mSettings = md_controls.get('settings') or False
+            mSettingsController = False
+            if mSettings:
+                mSettings = mSettings[0]
+                mSettingsController = get_tag(mSettings)
+    
+            mModParent = mModule.moduleParent
+            ml_modSiblings = mModule.atUtils('siblings_get') or []
+            ml_modChildren = mModule.moduleChildren or []
+            md_tmp = {}
+            
+            mBlock = mModule.getMessageAsMeta('rigBlock')
+            _idx_attach = 0
+            _b_face = False
+            if mBlock:
+                _str_attachPoint = mBlock.getEnumValueString('attachPoint')
+                if _str_attachPoint == 'start':
+                    _idx_attach = 0
+                elif _str_attachPoint == 'end':
+                    _idx_attach = -1
+                elif _str_attachPoint == 'index':
+                    _idx_attach = mBlock.attachIndex
+                
+                if mBlock.blockType in ['eye','muzzle','brow']:
+                    _b_face = True
+            
+            for tag in ['root','settings','fk','ik','segmentHandles','direct','face']:
+                log.debug(cgmGEN.logString_msg(_str_func,"tag: {0}".format(tag)))
+                #First validate...
+                _l_tag = md_controls.get(tag,[])
+                ml = []
+                md_tmp[tag] = ml
+                
+                for ii,mObj in enumerate(_l_tag):
+                    try:
+                        log.info( cgmGEN.logString_sub(_str_func, mObj))
+                        mController =  get_tag(mObj)
+                        ml.append(mController)
+                        ml_children = []
+                        
+                        if mController in ml_all:
+                            continue
+                        
+                        if tag not in ['root']:
                             if md_tmp.get('root'):
-                                _buffer = md_tmp.get('root')
-                                if _buffer:
-                                    print _buffer                                    
-                                    mParentController = get_tag(_buffer[0])
-                                    mController.parent_set(mParentController)                             
+                                md_failsafe[mController] = md_tmp['root'][0]
                                 
-                    """
-                    if _b_face:
-                        mMirror = mObj.getMessageAsMeta('mirrorControl')
-                        if mMirror:
-                            ml_children.append(mMirror)
-                            
-                        print mObj
-                        pprint.pprint(ml_children)
-                            """
-                    
-                    if mObj == _l_tag[-1]:
-                        #....Last
-                        for modChild in ml_modChildren:
-                            _buffer = md_moduleController[modChild].get(tag)
-                            if _buffer:
-                                print _buffer
-                                ml_children.append(_buffer[0])
-                    else:
-                        mChild = False
+                        ml_all.append(mController)
                         
-                        try:mChild =_l_tag[ii+1]
-                        except:
-                            pass
-                        
-                        if mChild:
-                            ml_children = [mChild]
-                            
-                            mMirror = mChild.getMessageAsMeta('mirrorControl')
+                        if not ii:#If our first obj, set to parent of module Parent
+                            if mModParent:
+                                _buffer = md_moduleController[mModParent].get(tag)
+                                if _buffer:
+                                    mParentController = get_tag(_buffer[_idx_attach])
+                                    mController.parent_set(mParentController)
+                                else:
+                                    _buffer = md_moduleController[mModParent].get('root')
+                                    if _buffer:
+                                        print _buffer                                    
+                                        mParentController = get_tag(_buffer[0])
+                                        mController.parent_set(mParentController)                            
+                            else:
+                                if md_tmp.get('root'):
+                                    _buffer = md_tmp.get('root')
+                                    if _buffer:
+                                        print _buffer                                    
+                                        mParentController = get_tag(_buffer[0])
+                                        mController.parent_set(mParentController)                             
+                                    
+                        """
+                        if _b_face:
+                            mMirror = mObj.getMessageAsMeta('mirrorControl')
                             if mMirror:
                                 ml_children.append(mMirror)
-
-                    _msg = False
-                    for iii,mChild in enumerate(ml_children):
-                        try:
-                            
-                            if iii or _b_face:
-                                _msg =True
-                            mChildController = get_tag(mChild)
-                            mChildController.parent_set(mController,msgConnect=_msg)
-                        except Exception,err:
-                            log.error("Child Err: {0} | {1}".format(mChild,err))
+                                
+                            print mObj
+                            pprint.pprint(ml_children)
+                                """
                         
-                except Exception,err:
-                    log.error("Err: {0} | {1}".format(mObj,err))
-            
-            if ml:
-                md_failsafe[ml[-1]] = ml[0]
-        
-    """
-    for mController in ml_all:
-        #print mController
-        if not mController.children:
-            if md_failsafe.get(mController):
-                log.info("|{0}| >>  Failsafe | {1} | parent: {2}".format(_str_func,
-                                                                         mController.mNode,
-                                                                         md_failsafe.get(mController).mNode))
+                        if mObj == _l_tag[-1]:
+                            #....Last
+                            for modChild in ml_modChildren:
+                                _buffer = md_moduleController[modChild].get(tag)
+                                if _buffer:
+                                    print _buffer
+                                    ml_children.append(_buffer[0])
+                        else:
+                            mChild = False
+                            
+                            try:mChild =_l_tag[ii+1]
+                            except:
+                                pass
+                            
+                            if mChild:
+                                ml_children = [mChild]
+                                
+                                mMirror = mChild.getMessageAsMeta('mirrorControl')
+                                if mMirror:
+                                    ml_children.append(mMirror)
+    
+                        _msg = False
+                        for iii,mChild in enumerate(ml_children):
+                            try:
+                                
+                                if iii or _b_face:
+                                    _msg =True
+                                mChildController = get_tag(mChild)
+                                mChildController.parent_set(mController,msgConnect=_msg)
+                            except Exception,err:
+                                log.error("Child Err: {0} | {1}".format(mChild,err))
+                            
+                    except Exception,err:
+                        log.error("Err: {0} | {1}".format(mObj,err))
                 
-                md_failsafe.get(mController).parent_set( mController, msgConnect=True)
-    """
-
-    if ml_controlOrphans:
-        log.error(cgmGEN.logString_sub(_str_func,"Orphans!"))
-        pprint.pprint(ml_controlOrphans)
-
-    if progressBar and progressEnd:
-        cgmUI.progressBar_end(progressBar)
-        
-    return
+                if ml:
+                    md_failsafe[ml[-1]] = ml[0]
+            
+        """
+        for mController in ml_all:
+            #print mController
+            if not mController.children:
+                if md_failsafe.get(mController):
+                    log.info("|{0}| >>  Failsafe | {1} | parent: {2}".format(_str_func,
+                                                                             mController.mNode,
+                                                                             md_failsafe.get(mController).mNode))
+                    
+                    md_failsafe.get(mController).parent_set( mController, msgConnect=True)
+        """
+    
+        if ml_controlOrphans:
+            log.error(cgmGEN.logString_sub(_str_func,"Orphans!"))
+            pprint.pprint(ml_controlOrphans)
+    
+        if progressBar and progressEnd:
+            cgmUI.progressBar_end(progressBar)
+            
+        return
+    except Exception,err:
+        pprint.pprint(vars())
+        log.error("controller_verify | {0}".format(err))
 
 @cgmGEN.Timer
 def controller_purge(self,progressBar = None,progressEnd=True):
