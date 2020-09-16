@@ -2194,6 +2194,8 @@ def rig_shapes(self):
                                              mBrowCenterShape.mNode,False)
                 
                 mRigNull.connectChildNode(mBrowCenter,'browMain','rigNull')#Connect
+                
+                
             
             
             #Handles ================================================================================
@@ -2202,6 +2204,25 @@ def rig_shapes(self):
                 log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
                 for side,ml in d.iteritems():
                     log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
+                    
+                    if self.str_browType == 'split':
+                        if side != 'center':
+                            log.info("|{0}| >> split...".format(_str_func))
+                            _tmpKey = 'brow{0}Main'.format( STR.capFirst(side))
+                            mSide = ml[0].doCreateAt()
+                            mSideShape = self.md_handleShapes['brow'][side][0].doDuplicate(po=False)
+                            mSideShape.scale = [v * 2.0 for v in mSideShape.scale]
+                            
+                            
+                            mSide.doStore('cgmName',_tmpKey)
+                            mSide.doName()
+                            
+                            CORERIG.shapeParent_in_place(mSide.mNode,
+                                                         mSideShape.mNode,False)
+                            mRigNull.connectChildNode(mSide,_tmpKey,'rigNull')#Connect                        
+                        
+
+                    
                     for i,mHandle in enumerate(ml):
                         log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                         CORERIG.shapeParent_in_place(mHandle.mNode,
@@ -2210,7 +2231,8 @@ def rig_shapes(self):
                         if side == 'center':
                             mHandleFactory.color(mHandle.mNode,side='center',controlType='sub')
                         
-                    
+            
+
         #Direct ================================================================================
         log.debug("|{0}| >> Direct...".format(_str_func)+ '-'*80)
         
@@ -2288,7 +2310,8 @@ def rig_controls(self):
                 ml_controlsAll.append(_d['mObj'])
                 ml_segmentHandles.append(_d['mObj'])
             
-            
+        
+                
 
                 
             #Handles ================================================================================
@@ -2297,6 +2320,29 @@ def rig_controls(self):
                 log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
                 for side,ml in d.iteritems():
                     log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
+                    
+                    if self.str_browType == 'split':
+                        if side != 'center':
+                            log.info("|{0}| >> split...".format(_str_func))
+                            _tmpKey = 'brow{0}Main'.format( STR.capFirst(side))
+                            mHandle = mRigNull.getMessageAsMeta(_tmpKey)
+                            if mHandle:
+                                _d = MODULECONTROL.register(mHandle,
+                                                            mirrorSide= side,
+                                                            addSDKGroup=b_sdk,
+                                                            mirrorAxis="translateX,rotateY,rotateZ",
+                                                            makeAimable = False)
+                                
+                                ml_controlsAll.append(_d['mObj'])
+                                ml_segmentHandles.append(_d['mObj'])
+                                
+                                if side == 'right':
+                                    log.debug("|{0}| >> mirrorControl connect".format(_str_func))                        
+                                    mTarget = mRigNull.getMessageAsMeta('brow{0}Main'.format( STR.capFirst('left')))
+                                    _d['mObj'].doStore('mirrorControl',mTarget)
+                                    mTarget.doStore('mirrorControl',_d['mObj'])                                   
+                    
+                    
                     for i,mHandle in enumerate(ml):
                         log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                         _d = MODULECONTROL.register(mHandle,
@@ -2392,7 +2438,7 @@ def rig_frame(self):
     mRigNull = self.mRigNull
     mRootParent = self.mDeformNull
     mModule = self.mModule
-    
+    md_browMains = {}
     
     if self.b_SDKonly:
         for k,d in self.md_rigJoints.iteritems():
@@ -2408,6 +2454,17 @@ def rig_frame(self):
     if self.str_browType == 'full':
         mBrowMain = mRigNull.browMain
         mBrowMain.masterGroup.p_parent = self.mDeformNull
+    elif self.str_browType == 'split':
+        log.info("|{0}| >> split...".format(_str_func))
+        
+        
+        for side in 'left','right':
+            mHandle = mRigNull.getMessageAsMeta('brow{0}Main'.format( STR.capFirst(side)))
+            md_browMains[side] = mHandle
+
+            mHandle.masterGroup.p_parent = mRootParent
+
+            
         
     #Parenting ============================================================================
     log.debug("|{0}| >>Parenting...".format(_str_func)+ '-'*80)
@@ -2552,6 +2609,8 @@ def rig_frame(self):
         ml = md_brow[side]
         if self.str_browType == 'full':
             ml[0].masterGroup.p_parent = mBrowMain
+            
+  
         mc.pointConstraint([ml[0].mNode, ml[-1].mNode],
                            ml[1].masterGroup.mNode,
                            maintainOffset=True)
@@ -2570,6 +2629,11 @@ def rig_frame(self):
                          worldUpObject = ml[-1].masterGroup.mNode,
                          worldUpType = 'objectRotation')            
         
+        
+        if self.str_browType == 'split':
+            for mObj in ml:
+                if not mObj.getConstraintsTo():
+                    mObj.masterGroup.p_parent = md_browMains[side]        
         
     #pprint.pprint(vars())
 
