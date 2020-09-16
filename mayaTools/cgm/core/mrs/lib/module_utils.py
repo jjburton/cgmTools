@@ -60,7 +60,7 @@ import cgm.core.mrs.lib.general_utils as BLOCKGEN
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
 import cgm.core.rig.general_utils as RIGGEN
 
-l_faceModules = ['eyebrow','eyelids','eyeball','mouthNose','simpleFace']
+l_faceModules = ['eyebrow','eyelids','eyeball','mouthNose','simpleFace','eye']
 
 #=============================================================================================================
 #>> Queries
@@ -375,7 +375,7 @@ def rig_connect(self,force=False):
     
         if self.moduleType in l_faceModules:
             _b_faceState = True
-            mi_faceDeformNull = self.faceDeformNull
+            #mi_faceDeformNull = self.faceDeformNull
         else:_b_faceState = False
     
         if len(ml_skinJoints)!=len(ml_rigJoints):
@@ -387,9 +387,14 @@ def rig_connect(self,force=False):
             _str_joint = mJnt.p_nameShort
             if _b_faceState:
                 log.debug("|{0}| >>  face connect mode...".format(_str_func))                
-                #pntConstBuffer = mc.parentConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1)  
-                pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1)        
-                orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1) 			
+                mc.parentConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1)      
+                #pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1)        
+                #orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1) 			
+                
+                
+                
+                
+                
                 #scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,i_jnt.mNode,maintainOffset=True,weight=1) 
                 #if 'eyeOrb' not in _str_joint:
                     #for str_a in 'xyz':

@@ -2927,15 +2927,17 @@ def rig_skeleton(self):
             _d['mSkin'] = mLidSkin
             #Lid Blend
             mLidBlend = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,[mLidRig],
-                                                              'ik', mRigNull,
-                                                              '{0}IKLid'.format(tag),
+                                                              'blend', mRigNull,
+                                                              '{0}BlendLid'.format(tag),
                                                               singleMode = True,
                                                               cgmType=False)[0]
             _d['mBlend'] = mLidBlend
             
-            _d['mRoot'] = mLidBlend
+            #_d['mRoot'] = mLidBlend
+            _d['mRig'] = mLidRig
             
             #in this case we need an end
+            """
             _a = '{0}LidHandle'.format(tag)
             mHandle = mBlock.getMessageAsMeta(_a)
             mJointHandle = mHandle.jointHelper
@@ -2944,11 +2946,10 @@ def rig_skeleton(self):
             
             mEnd.doSnapTo(mJointHandle)
             
-            _d['mRig'] = mEnd
             
-            JOINT.freezeOrientation(mEnd.mNode)
+            JOINT.freezeOrientation(mEnd.mNode)"""
             
-            for mJnt in [mLidBlend,mEnd]:
+            for mJnt in [mLidBlend]:
                 try:mJnt.drawStyle =2
                 except:mJnt.radius = .00001
                 
@@ -3363,9 +3364,41 @@ def rig_shapes(self):
                     CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
             
             elif self.str_lidBuild == 'clamSimple':
+                
+                _baseSize = [v * 1.4 for v in mBlock.baseSize]
+                
+
+                    
+                _size = mBlock.jointRadius #TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
+                    
                 for k in 'upr','lwr':
                     log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
                     _key = '{0}LidHandle'.format(k)
+                    mTarget = mBlock.getMessageAsMeta(_key)
+                    
+                    if k == 'upr':
+                        _dir = 'y+'
+                        _color = 'main'
+                    else:
+                        _dir = 'y-'
+                        _color = 'sub'
+                        _baseSize = [v * .95 for v in _baseSize]
+                    
+                    mHandle = self.d_lidData[k]['mRig'].doCreateAt(setClass=True)
+                    mShapeSource = cgmMeta.asMeta( CURVES.create_fromName('semiSphere', size =1.0, direction= _dir) )
+                    
+                    mShapeSource.scale = _baseSize
+                    
+                    mShapeSource.doSnapTo(mHandle)
+                    
+                    CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode, False)
+                    mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                    
+                    
+                    mHandleFactory.color(mHandle.mNode, controlType = _color)                    
+                    
+                    
+                    """
                     mShapeSource = mBlock.getMessageAsMeta(_key)
                     mHandle = mShapeSource.doCreateAt('joint',setClass=True)
                     
@@ -3375,7 +3408,7 @@ def rig_shapes(self):
                     CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
                     mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
                     _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
-                    mHandleFactory.color(mHandle.mNode, controlType = 'main')
+                    mHandleFactory.color(mHandle.mNode, controlType = 'main')"""
                     
                     if self.mModule.hasAttr('cgmDirection'):
                         mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
@@ -3391,7 +3424,7 @@ def rig_shapes(self):
                                                         sizeMode= 'fixed',
                                                         size = _size)
                     mShape = cgmMeta.asMeta(_shape)[0]
-                    mShape.p_position = mHandle.p_position
+                    mShape.p_position = mTarget.p_position
                     mHandleFactory.color(_shape, controlType = 'sub')
                     CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)            
             
@@ -4781,7 +4814,106 @@ def rig_lidSetup(self):
         mUprRoot = None
         mLwrRoot = None
         
-        if _lidSetup in ['clam','clamSimple']:
+        
+        if _lidSetup in ['clamSimple']:
+            
+            #Create our blink drivers
+            mPlug_blink = cgmMeta.cgmAttr(mSettings,'blink',attrType = 'float', keyable=True, minValue=0, maxValue=1, defaultValue=0, hidden=False)
+            mPlug_height = cgmMeta.cgmAttr(mSettings,'blinkHeight',attrType = 'float', defaultValue=.1, minValue = 0, maxValue = 1,hidden=False)
+
+            d_return = NODEFACTORY.createSingleBlendNetwork([mSettings.mNode,'blinkHeight'],
+                                                      [mSettings.mNode,'blinkHeight_upr'],
+                                                      [mSettings.mNode,'blinkHeight_lwr'],
+                                                      keyable=True)	            
+
+            
+            for k in 'upr','lwr':
+                _d = self.d_lidData[k]
+                mBlend = _d['mBlend']
+                mRig = _d['mRig']
+                mHandle = _d['mHandle']
+                mHandle.masterGroup.p_parent = mSettings
+
+                if k == 'upr':
+                    mUprRoot = mBlend
+                else:
+                    mLwrRoot = mBlend
+                    
+                #Now we need to create our sealing targets and parent each to the other so we can blend between them
+                
+                mBaseTrack = mBlend.doLoc()
+                mBaseTrack.rename("{0}_baseTrack".format(mBlend.p_nameBase))
+                
+                mSealTrack = mBlend.doLoc()
+                mSealTrack.rename("{0}_sealTrack".format(mBlend.p_nameBase))
+                
+                mBlendTrack = mBlend.doLoc()
+                mBlendTrack.rename("{0}_blendTrack".format(mBlend.p_nameBase))                
+                mBlendTrack.p_parent = mSettings
+                
+                self.fnc_connect_toRigGutsVis( [mBaseTrack,mSealTrack,mBlendTrack] )
+                
+                if k == 'upr':
+                    mBaseTrack.p_parent = self.d_lidData['upr']['mHandle']
+                    mSealTrack.p_parent = self.d_lidData['lwr']['mHandle']
+                    
+                    mSealTrack.doSnapTo(self.d_lidData['lwr']['mBlend'])
+                else:
+                    mBaseTrack.p_parent = self.d_lidData['lwr']['mHandle']
+                    mSealTrack.p_parent = self.d_lidData['upr']['mHandle']
+                    
+                    mSealTrack.doSnapTo(self.d_lidData['upr']['mBlend'])
+                    
+                mBlend.p_parent = mSettings
+                
+                
+
+                #Connect                                  
+                #d_return['d_result1']['mi_plug'].doConnectOut('%s.%s' % (mBsNode.mNode,l_bsAttrs[0]))
+                #d_return['d_result2']['mi_plug'].doConnectOut('%s.%s' % (mBsNode.mNode,l_bsAttrs[1]))
+                
+                #Blend the tracker....-------------------------------------------------------------
+                _const = mc.parentConstraint([mBaseTrack.mNode,
+                                              mSealTrack.mNode],
+                                             mBlendTrack.mNode,
+                                             maintainOffset = False)[0]
+                
+                l_weightTargets = mc.parentConstraint(_const,q=True,weightAliasList = True)
+                if k == 'upr':
+                    _t1 = 0
+                    _t2 = 1
+                else:
+                    _t1 = 1
+                    _t2 = 0
+                    
+                d_return['d_result1']['mi_plug'].doConnectOut('%s.%s' % (_const,l_weightTargets[_t1]))
+                d_return['d_result2']['mi_plug'].doConnectOut('%s.%s' % (_const,l_weightTargets[_t2]))  
+
+                #Blend the actual mBlend.... ---------------------------------------------
+                d_sealBlend = NODEFACTORY.createSingleBlendNetwork([mSettings.mNode,'blink'],
+                                                                   [mSettings.mNode,'resultBlink{0}Off'.format(k.capitalize())],
+                                                                   [mSettings.mNode,'resultBlink{0}On'.format(k.capitalize())],
+                                                                   hidden = True,keyable=False)           
+                
+                #mRoot = _d['mRoot']
+                mHandle = _d['mHandle']
+                
+                _const = mc.parentConstraint([mBaseTrack.mNode,
+                                              mBlendTrack.mNode],
+                                             mBlend.mNode,
+                                             maintainOffset = False)[0]
+                
+                l_weightTargets = mc.parentConstraint(_const,q=True,weightAliasList = True)
+                d_sealBlend['d_result1']['mi_plug'].doConnectOut('%s.%s' % (_const,l_weightTargets[1]))
+                d_sealBlend['d_result2']['mi_plug'].doConnectOut('%s.%s' % (_const,l_weightTargets[0]))               
+            
+                #self.fnc_connect_toRigGutsVis( ml_curves )
+            
+            ATTR.set_hidden(mSettings.mNode,'blink',False)
+            ATTR.set_keyable(mSettings.mNode,'blink',True)
+            
+        
+        elif _lidSetup in ['clam']:
             log.debug("|{0}| >>  clam ... ".format(_str_func))
             #First we need to make our new curves
             for k in 'upr','lwr':
