@@ -2067,6 +2067,7 @@ def rig_segments(self):
         res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
         mPlug_masterScale = res_segScale[0]
         mMasterCurve = res_segScale[1]
+        self.fnc_connect_toRigGutsVis( mMasterCurve )
         
         
         _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
@@ -2141,6 +2142,7 @@ def rig_frame(self):
         mPlug_masterScale = res_segScale[0]
         mMasterCurve = res_segScale[1]
         mMasterCurve.p_parent = mRoot
+        self.fnc_connect_toRigGutsVis( mMasterCurve )
         
         #>> handleJoints =====================================================================================
         if ml_handleJoints:
