@@ -156,6 +156,8 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'visRotatePlane':'bool',
                    'visLabels':'bool',
                    'visProximityMode':'off:inherit:proximity',
+                   'parentToDriver':'bool',
+                   
                    'visMeasure':'bool',}
 
 _l_defineHandlesOrder = ('end','start','up','rp','aim','lever')

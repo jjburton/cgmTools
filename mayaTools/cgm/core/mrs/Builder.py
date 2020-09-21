@@ -1738,8 +1738,8 @@ class ui(cgmUI.cgmGUI):
         self.uiScrollList_blocks.rebuild()
         self.uiScrollList_blocks.selectByObj(_mBlock)
         
-        if  not self.var_mrsDevMode.value:
-            _mBlock.atUtils('attrMask_set',mode=None)        
+        #if  not self.var_mrsDevMode.value:
+        #    _mBlock.atUtils('attrMask_set',mode=None)        
         
         if _sel:
             mc.select(_sel)
@@ -2018,8 +2018,8 @@ class ui(cgmUI.cgmGUI):
                     md_dat[res] = mBlock
                     md_datRev[mBlock] = res
                 
-                if b_changeState and not b_devMode:
-                    mBlock.atUtils('attrMask_set',mode=None)
+                #if b_changeState and not b_devMode:
+                #    mBlock.atUtils('attrMask_set',mode=None)
                     
             #if _mActiveBlock and b_changeState:
                 #self.uiUpdate_blockDat()

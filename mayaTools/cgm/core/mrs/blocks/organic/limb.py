@@ -170,7 +170,7 @@ d_block_profiles = {
     'mainRotAxis':'out',
     'nameList':['clav','shoulder','knee','wrist','ball','end'],
     'formEndAim':'block',
-    
+    'proxyLoft':3,
     #'hasEndJoint':True,
     'buildEnd':'dag',    
     'ikRollSetup':'control',
@@ -212,6 +212,7 @@ d_block_profiles = {
     'addLeverEnd':'joint',
     'loftList':['widePos','wideUp','wideDown','circle'],
     'loftShapeEnd':'circle',
+    'proxyLoft':3,
     
     'baseAim':[0,-1,0],
     'baseUp':[0,0,1],
@@ -237,6 +238,7 @@ d_block_profiles = {
     'mainRotAxis':'out',
     'nameList':['clav','shoulder','knee','wrist','ball','end'],
     'formEndAim':'block',
+    'proxyLoft':3,
     
     'buildEnd':'joint',
     'ikRollSetup':'control',
@@ -270,6 +272,7 @@ d_block_profiles = {
     'mainRotAxis':'out',
     'nameList':['hip','knee','ankle','ball','toe','end'],
     'formEndAim':'block',
+    'proxyLoft':3,
     
     'buildEnd':'joint',
     'ikRollSetup':'control',
@@ -314,6 +317,7 @@ d_block_profiles = {
     'addLeverEnd':'joint',
     'loftList':['wideUp','squircleDiamond','wideUp','squircleDiamond','circle'],
     'loftShapeEnd':'wideUp',
+    'proxyLoft':3,
     
     'baseAim':[-1,-1,0],
     'baseUp':[0,0,1],
@@ -6416,7 +6420,7 @@ def rig_frame(self):
                 
                 mPlug_spinMid = cgmMeta.cgmAttr(mSpinTarget,'spinMid',attrType='float',defaultValue = 0,keyable = True,lock=False,hidden=False)	
                 
-                if self.d_module['direction'].lower() == 'right':
+                if self.d_module['direction'] and self.d_module['direction'].lower() == 'right':
                     str_arg = "{0}.r{1} = -{2}".format(mSpinGroupAdd.mNode,
                                                        _jointOrientation[0].lower(),
                                                        mPlug_spinMid.p_combinedShortName)
@@ -6633,7 +6637,14 @@ def rig_frame(self):
                 for s in mTrackCrv.getShapes(asMeta=True):
                     s.overrideEnabled = 1
                     s.overrideDisplayType = 2
-                mTrackCrv.doConnectIn('visibility',"{0}.v".format(mIKGroup.mNode))
+                
+                #Need this to ikGroup and this overload
+                #mTrackCrv.doConnectIn('visibility',"{0}".format(self.mPlug_visModule.p_combinedShortName))
+                #mTrackCrv.doConnectIn('visibility',"{0}.v".format(mIKGroup.mNode))
+                #Make md network to hide our track crvs...
+                visArg = [{'result':[mTrackCrv.mNode, 'visibility'],
+                           'drivers':[[mIKGroup.mNode,'v'],[self.mPlug_visModule.obj.mNode, self.mPlug_visModule.attr]]}]
+                NODEFACTORY.build_mdNetwork(visArg)                
                 
                 #Full IK chain -----------------------------------------------------------------------
                 if ml_ikFullChain:

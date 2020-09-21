@@ -90,7 +90,10 @@ class ui(cgmUI.cgmGUI):
             'loopTime' : False,
             'debug' : False,
             'postBlendFrames' : 6,
-            'recordMode' : 'replace'
+            'recordMode' : 'replace',
+            'translate' : True,
+            'rotate' : True,
+            
         }
 
         self._positionPlane = self._optionDict['plane']

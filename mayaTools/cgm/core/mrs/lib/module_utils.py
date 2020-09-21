@@ -1168,7 +1168,7 @@ def mirror_get(self,recheck=False):
     elif not ml_match:
         return False
     
-    if not self.isReferenced() and self.getMessage('moduleMirror'):
+    if not self.isReferenced() and not self.getMessage('moduleMirror'):
         self.doStore('moduleMirror',ml_match[0])
     return ml_match[0]
 

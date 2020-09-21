@@ -327,6 +327,7 @@ l_attrsStandard = ['side',
                    'ikOrientToWorld',
                    #'buildProfile',
                    'blockProfile',
+                   'parentToDriver',
                    'numSpacePivots',                   
                    'scaleSetup',
                    'offsetMode',
@@ -1167,7 +1168,17 @@ def rig_prechecks(self):
         str_ikSetup = mBlock.getEnumValueString('ikSetup')
         if mBlock.scaleSetup and str_ikSetup in ['spline']:
             self.l_precheckErrors.append('scaleSetup with spline not ready. Use ribbon if you need scale')
-            return False        
+            #return False
+            
+        str_settingPlace = mBlock.getEnumValueString('settingsPlace')
+        if str_settingPlace == 'cog' and not mBlock.addCog:
+            self.l_precheckErrors.append('Settings place is cog and addCog off. Please resolve')
+            
+        
+        
+        
+        
+        
             #raise NotImplementedError,"scaleSetup not ready."
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
@@ -2143,6 +2154,11 @@ def rig_frame(self):
         mMasterCurve = res_segScale[1]
         mMasterCurve.p_parent = mRoot
         self.fnc_connect_toRigGutsVis( mMasterCurve )
+        
+        
+        if mBlock.parentToDriver:
+            log.debug("|{0}| >> Parent to driver".format(_str_func))
+            self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode                
         
         #>> handleJoints =====================================================================================
         if ml_handleJoints:

@@ -2604,13 +2604,18 @@ def rig_frame(self):
                                skip = 'z',
                                maintainOffset=True)
             
-        
+    
     for side in ['left','right']:
         ml = md_brow[side]
         if self.str_browType == 'full':
             ml[0].masterGroup.p_parent = mBrowMain
             
-  
+        if self.str_browType == 'split':
+            for mObj in ml:
+                if not mObj.getConstraintsTo():
+                    mObj.masterGroup.p_parent = md_browMains[side]
+                    
+                    
         mc.pointConstraint([ml[0].mNode, ml[-1].mNode],
                            ml[1].masterGroup.mNode,
                            maintainOffset=True)
@@ -2630,10 +2635,7 @@ def rig_frame(self):
                          worldUpType = 'objectRotation')            
         
         
-        if self.str_browType == 'split':
-            for mObj in ml:
-                if not mObj.getConstraintsTo():
-                    mObj.masterGroup.p_parent = md_browMains[side]        
+
         
     #pprint.pprint(vars())
 

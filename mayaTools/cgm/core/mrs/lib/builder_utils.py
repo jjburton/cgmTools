@@ -1297,7 +1297,7 @@ def register_mirrorIndices(self, ml_controls = []):
     
     return ml_controls
 
-
+@cgmGEN.Timer
 def rigNodes_store(self):
     """
     :parameters:
@@ -1326,9 +1326,9 @@ def rigNodes_store(self):
             
     if self.__dict__.get('mRigNull'):
         _str_owner = self.mRigNull.module.mNode
-        self.mRigNull.connectChildrenNodes(_res,'rigNodes')
-        for o in _res:
-            ATTR.set_message(o,'cgmOwner',_str_owner,simple=True)
+        self.mRigNull.connectChildrenNodes(_res,'rigNodes','cgmOwner')
+        #for o in _res:
+            #ATTR.set_message(o,'cgmOwner',_str_owner,simple=True)
     else:
         self.mPuppet.connectChildrenNodes(_res,'rigNodes','cgmOwner')
         

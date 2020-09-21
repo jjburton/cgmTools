@@ -234,6 +234,17 @@ class ui(cgmUI.cgmGUI):
                                 l=o,
                                 c=self.mmCallback(uiCB_contextSetValue,self,n,v,_mode,**_d_tmp))
                 
+            if _mode == 'moduleVis':
+                mUI.MelMenuItemDiv(_sub, label = 'Focus')
+                mUI.MelMenuItem(_sub,
+                                l='Set',
+                                c=self.mmCallback(uiCB_contextSetValue,self,'visModule','focusSet',_mode,**_d_tmp))
+                mUI.MelMenuItem(_sub,
+                                l='Inverse',
+                                c=self.mmCallback(uiCB_contextSetValue,self,'visModule','focusInverse',_mode,**_d_tmp))
+                mUI.MelMenuItem(_sub,
+                                l='Clear',
+                                c=self.mmCallback(uiCB_contextSetValue,self,'visModule','focusClear',_mode,**_d_tmp))                
                 
                 #mc.menuItem(p=_sub,l=o,c=self.mmCallback(uiCB_contextSetValue,self,n,v,_mode,**_d_tmp))        
         
@@ -4627,18 +4638,70 @@ def uiCB_contextSetValue(self, attr=None,value=None, mode = None,**kws):
     if mode == 'moduleSettings':
         if not self.mDat.d_context['mModules']:
             return log.error("No modules found in context")
+
         for mModule in self.mDat.d_context['mModules']:
             try:ATTR.set(mModule.rigNull.settings.mNode, attr, value)
             except Exception,err:log.warning("Failed to set: {0} | value: {1} | mModule: {2} | {3}".format(attr,value,mModule,err))
+            
+            
+            
     elif mode == 'puppetSettings':
         for mPuppet in self.mDat.d_context['mPuppets']:
             ATTR.set(mPuppet.masterControl.controlSettings.mNode, attr, value)
     elif mode == 'moduleVis':
-        for mModule in self.mDat.d_context['mModules']:
-            attr = "{0}_vis".format(mModule.get_partNameBase())
-            try:ATTR.set(mModule.modulePuppet.masterControl.controlVis.mNode, attr, value)
-            except Exception,err:
-                log.info("attr: {0} | Switch call".format(attr))
+        
+        if value in ['focusSet','focusInverse','focusClear']:
+            log.warn('Setting this')
+            if value in ['focusSet','focusInverse']:
+                #self.dat[mPuppet]['mModules']
+                if value == 'focusSet':
+                    _v1 = 1
+                    _v2 = 0
+                else:
+                    _v1 = 0
+                    _v2 = 1
+                    
+                for mPuppet in self.mDat.d_context['mPuppets']:
+                    if not self.mDat.dat.get(mPuppet):
+                        self.mDat.puppet_get(mPuppet)
+                        
+                    md = self.mDat.dat[mPuppet]['mModules']
+                    for mModule in md:
+                        attr = "{0}_vis".format(mModule.get_partNameBase())
+                        
+                        try:
+                            if mModule in self.mDat.d_context['mModules']:
+                                try:ATTR.set(mModule.modulePuppet.masterControl.controlVis.mNode, attr, _v1)
+                                except Exception,err:
+                                    log.info("attr: {0} | Switch call".format(attr))
+                            else:
+                                try:ATTR.set(mModule.modulePuppet.masterControl.controlVis.mNode, attr, _v2)
+                                except Exception,err:
+                                    log.info("attr: {0} | Switch call".format(attr))
+                                
+                        except Exception,err:log.warning("Failed to set: {0} | value: {1} | mModule: {2} | {3}".format(attr,value,mModule,err))                
+            elif value == 'focusClear':
+                if not self.mDat.d_context['mPuppets']:
+                    return log.warning("Nothing selected")
+                else:
+                    for mPuppet in self.mDat.d_context['mPuppets']:
+                        if not self.mDat.dat.get(mPuppet):
+                            self.mDat.puppet_get(mPuppet)
+                            
+                        md = self.mDat.dat[mPuppet]['mModules']
+                        for mModule in md:
+                            attr = "{0}_vis".format(mModule.get_partNameBase())
+                            
+                            try:ATTR.set(mModule.modulePuppet.masterControl.controlVis.mNode, attr, 1)
+                            except Exception,err:
+                                log.info("attr: {0} | Switch call".format(attr))
+        
+        else:
+            for mModule in self.mDat.d_context['mModules']:
+                attr = "{0}_vis".format(mModule.get_partNameBase())
+                try:ATTR.set(mModule.modulePuppet.masterControl.controlVis.mNode, attr, value)
+                except Exception,err:
+                    log.info("attr: {0} | Switch call".format(attr))
                 
     else:
         return log.error("Unknown contextualSetValue mode: {0}".format(mode))

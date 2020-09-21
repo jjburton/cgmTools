@@ -916,7 +916,7 @@ def gather_skinning_dict(*args,**kws):
                         skinValues[str(ii)] = influenceValue"""
                 
                 for ii,influence in enumerate(l_influences):
-                    _bfr = self._d_data['weights'][str(ii)][i]#...pull from our weights data to be much much faster...
+                    _bfr = self._d_data['weights'][str(ii)][_key]#...pull from our weights data to be much much faster...
                     if _bfr != 0:
                         skinValues[str(ii)] = _bfr
                 

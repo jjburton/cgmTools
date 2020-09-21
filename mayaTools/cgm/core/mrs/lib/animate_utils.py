@@ -356,12 +356,13 @@ class dat(object):
         _str_func='dat.module_get'
         log.debug(cgmGEN.logString_start(_str_func))
         
-        if mModule in self.dat['mModules']:
+        if  self.dat.get(mModule):
             log.debug(cgmGEN.logString_msg('using buffer...'))                        
             if not update:
-                return self.dat[mModule]
+                return self.dat[mModule]                    
                 #return self.dat.get(mModule,{})
-        else:
+                
+        if not mModule in self.dat['mModules']:
             self.dat['mModules'].append(mModule)
             
         try:
@@ -377,7 +378,7 @@ class dat(object):
             _m['mMirror'] = mModule.UTILS.mirror_get(mModule)
 
             #Children...
-            ml_children = mModule.UTILS.moduleChildren_get(mModule)
+            ml_children = mModule.UTILS.moduleChildren_get(mModule) or []
             _m['mChildren'] = ml_children
             if _b_debug:
                 log.debug(cgmGEN.logString_msg('children'))                
@@ -557,9 +558,10 @@ class dat(object):
             except:pass
             return False
         
-        if not update:
-            try:return self.dat[mPuppet]
-            except:pass
+        if self.dat.get(mPuppet):
+            log.debug(cgmGEN.logString_msg('using buffer...'))                        
+            if not update:
+                return self.dat[mPuppet]           
             
         if mPuppet not in self.dat['mPuppets']:
             self.dat['mPuppets'].append(mPuppet)
@@ -626,7 +628,7 @@ class dat(object):
         
         #>>  Individual objects....===============================================================
         sel = mc.ls(sl=True)
-        ml_sel = cgmMeta.asMeta(mc.ls(sl=True))
+        ml_sel = cgmMeta.asMeta(sl=1,noneValid=True) or []
         ml_check = copy.copy(ml_sel)
         
         self._sel = sel
@@ -831,8 +833,8 @@ class dat(object):
             if b_children:
                 for mModule in self.d_context['mModules']:
                     log.debug("|{0}| >> child check: {1}".format(_str_func,mModule))
-                    d_mModule = self.module_get(mModule)                            
-                    for mChild in d_mModule['mChildren']:
+                    d_mModule = self.module_get(mModule) or {}
+                    for mChild in d_mModule.get('mChildren',[]):
                         if mChild not in self.d_context['mModules']:
                             d_mModule = self.module_get(mChild)
                             self.d_context['mModules'].append(mChild)
@@ -840,8 +842,8 @@ class dat(object):
             if  b_mirror or addMirrors:
                 ml_mirrors =[]
                 for mModule in self.d_context['mModules']:
-                    d_mModule = self.module_get(mModule)                            
-                    mMirror = d_mModule['mMirror']#mModule.atUtils('mirror_get')
+                    d_mModule = self.module_get(mModule) or {}
+                    mMirror = d_mModule.get('mMirror')#mModule.atUtils('mirror_get')
                     if mMirror:
                         log.debug("|{0}| >> Mirror: {1}".format(_str_func,mMirror))
                         if mMirror not in self.d_context['mModules']:

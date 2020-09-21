@@ -769,6 +769,7 @@ def seek_downStream(startingNode, endObjType = None, mode = 'objType', getPlug=F
             timeOut +=1
     return endNode
 
+@cgmGEN.Timer
 def get_nodeSnapShot(report = False,uuid=False):
     _str_func = 'get_nodeSnapShot'
     _res = mc.ls(l=True)
