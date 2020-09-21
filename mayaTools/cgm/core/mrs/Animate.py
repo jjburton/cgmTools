@@ -81,7 +81,7 @@ from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_convertRotationOrder,
                                    ml_copyAnim)
 #>>> Root settings =============================================================
-__version__ = '1.07162019'
+__version__ = cgmGEN.__RELEASE
 __toolname__ ='MRSAnimate'
 _d_contexts = MRSANIMUTILS._d_contexts
 _l_contexts = MRSANIMUTILS._l_contexts

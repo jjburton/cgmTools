@@ -82,7 +82,7 @@ d_state_colors = {'define':[1,.3,.3],
                   }
 
 #>>> Root settings =============================================================
-__version__ = '1.09102020'
+__version__ =  cgmGEN.__RELEASE
 _sidePadding = 25
 
 def check_cgm():
