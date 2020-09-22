@@ -19,6 +19,9 @@ from cgm.core.mrs.lib import batch_utils as BATCH
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.lib import math_utils as MATH
 from cgm.core.mrs.lib import scene_utils as SCENEUTILS
+reload(SCENEUTILS)
+from cgm.core.lib import skinDat as SKINDAT
+reload(SKINDAT)
 
 import Red9.core.Red9_General as r9General
 
@@ -706,8 +709,19 @@ example:
 
         self.uiMenu_FileMenu = mUI.MelMenu( l='Projects', pmc=self.buildMenu_file)		        
         self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)
-        self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools,pmo=True)  
-        self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help,pmo=True)   
+        self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools,pmo=True)
+        self.uiMenu_Utils = mUI.MelMenu(l='Utils', pmo=1,
+                                        pmc = cgmGEN.Callback(self.buildMenu_utils),
+                                        tearOff=True)         
+        self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help,pmo=True)
+        
+        
+    def buildMenu_utils(self):
+        self.uiMenu_Utils.clear()
+
+        SCENEUTILS.buildMenu_utils(self, self.uiMenu_Utils)
+        
+
 
     def buildMenu_help( self, *args):
         self.uiMenu_HelpMenu.clear()
@@ -1025,16 +1039,8 @@ example:
     def buildMenu_tools( self, *args):
         self.uiMenu_ToolsMenu.clear()
         #>>> Reset Options		
-
-        #Export Menu ...
-        _exportMenu = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='Export Sets',subMenu=True)
-        mUI.MelMenuItem( _exportMenu, l="Set",
-                         c = lambda *a:mc.evalDeferred(self.SetExportSets,lp=True))
-        mUI.MelMenuItem( _exportMenu, l="Reset",
-                         c = lambda *a:mc.evalDeferred(self.ResetExportSets,lp=True))
-        mUI.MelMenuItem( _exportMenu, l="Query",
-                         c = lambda *a:mc.evalDeferred(self.QueryExportSets,lp=True))
         
+        mUI.MelMenuItemDiv( self.uiMenu_ToolsMenu, label='Asset..' )
         
         mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Update Selected Rigs",
                                  c = lambda *a:mc.evalDeferred(self.UpdateToLatestRig,lp=True))
@@ -1044,18 +1050,22 @@ example:
 
         mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Verify Asset Dirs",
                                  c = cgmGEN.Callback(self.VerifyAssetDirs) )
-
-        #DropBox...
-        _fileTrash = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='File Trash',subMenu=True)
         
-        mUI.MelMenuItem(_fileTrash,
-                      label='Query',ut='cgmUITemplate',
-                       c=lambda *a: SCENEUTILS.find_tmpFiles( self.directory),
-                       ann='Query trash files')    
-        mUI.MelMenuItem(_fileTrash,
-                      label='Clean',ut='cgmUITemplate',
-                       c=lambda *a: SCENEUTILS.find_tmpFiles( self.directory,cleanFiles=1),
-                       ann='Clean trash files')        
+        mUI_skinDat = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='SkinDat',subMenu=True)
+        SKINDAT.uiBuildMenu(mUI_skinDat)
+        
+        mUI.MelMenuItemDiv( self.uiMenu_ToolsMenu, label='Baking..' )
+        
+        #Export Menu ...
+        _exportMenu = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='Export Sets',subMenu=True)
+        mUI.MelMenuItem( _exportMenu, l="Set",
+                         c = lambda *a:mc.evalDeferred(self.SetExportSets,lp=True))
+        mUI.MelMenuItem( _exportMenu, l="Reset",
+                         c = lambda *a:mc.evalDeferred(self.ResetExportSets,lp=True))
+        mUI.MelMenuItem( _exportMenu, l="Query",
+                         c = lambda *a:mc.evalDeferred(self.QueryExportSets,lp=True))        
+
+        
 
     def RemapTextures(self, *args):
         import cgm.tools.findTextures as findTextures
@@ -1600,6 +1610,8 @@ example:
             mel.eval('warning "No Project Set"')
 
         self.project = Project.data(filepath=path)
+        self.mDat = self.project
+        
         _bgColor = self.v_bgc
         try:
             _bgColor = self.project.d_colors['project']

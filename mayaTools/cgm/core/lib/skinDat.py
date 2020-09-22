@@ -44,8 +44,9 @@ from Red9.core import Red9_Meta as r9Meta
 import Red9.packages.configobj as configobj
 
 # From cgm ==============================================================
+from cgm.core.classes import GuiFactory as cgmUI
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_General as cgmGeneral
+from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 from cgm.lib import (search,
                      names,
@@ -55,6 +56,89 @@ from cgm.lib import (search,
                      distance,
                      skinning)
 import cgm.core.lib.attribute_utils as ATTR
+from cgm.core.cgmPy import path_Utils as PATHS
+mUI = cgmUI.mUI
+_ext = 'sknDat'
+
+
+def uiBuildMenu(mMenu):
+    
+    mUI.MelMenuItemDiv( mMenu, label='Selection..')
+    
+    mUI.MelMenuItem( mMenu, l="Export to Dir",
+                        c = lambda *a:exportDat())
+    mUI.MelMenuItem( mMenu, l="Import from Dir",
+                        c = lambda *a:importDat())
+
+def exportDat(sourceMesh=[],dirpath=None):
+    _str_func = 'exportDat'
+    
+    #Validate --------------------------------------------------------------------
+    log.info(cgmGEN.logString_sub(_str_func,'validate'))    
+    
+    if not dirpath:
+        dirpath = mc.fileDialog2(fileMode=3,
+                                  dir='')[0]
+        
+    log.info(dirpath)
+    if not PATHS.Path(dirpath).exists():
+        return log.error (cgmGEN.logString_msg(_str_func, "Invalid dir: {0}".format(dirpath)))
+    
+    if not sourceMesh:
+        sourceMesh = mc.ls(sl=1)
+        
+    ml_check = cgmMeta.asMeta(sourceMesh)
+    ml_use = []
+    
+    mDat = data()
+    
+    for mObj in ml_check:
+        log.info(cgmGEN.logString_msg(_str_func, mObj))
+        if not mDat.validateSourceMesh(mObj.mNode):
+            log.error (cgmGEN.logString_msg(_str_func, "Invalid source: {0}".format(mObj)))
+            continue
+        
+        mDat.write(os.path.join(dirpath,"{0}.sknDat".format(mObj.p_nameBase)))
+        
+def importDat(sourceMesh=[],dirpath=None):
+    _str_func = 'importDat'
+    
+    #Validate --------------------------------------------------------------------
+    if not dirpath:
+        dirpath = mc.fileDialog2(fileMode=3,
+                                  dir='')[0]
+        
+    log.info(dirpath)
+    if not PATHS.Path(dirpath).exists():
+        return log.error (cgmGEN.logString_msg(_str_func, "Invalid path: {0}".format(dirpath)))
+    
+    if not sourceMesh:
+        sourceMesh = mc.ls(sl=1)
+        
+    ml_check = cgmMeta.asMeta(sourceMesh)
+    ml_use = []
+    
+    mDat = data()
+    
+    for mObj in ml_check:
+        log.info(cgmGEN.logString_msg(_str_func, mObj))
+        
+        #See if the data file exists
+        _pathTest = os.path.join(dirpath,"{0}.sknDat".format(mObj.p_nameBase) )
+        if PATHS.Path(_pathTest).exists():
+            log.error (cgmGEN.logString_msg(_str_func, "Found path: {0}".format(_pathTest)))
+            _pathUse = _pathTest
+            
+            
+        
+        mDat.read(_pathUse)
+        mDat.validateTargetMesh(mObj.mNode)
+        mDat.applySkin(influenceMode = 'config', nameMatch = True)        
+        
+        
+        
+        #mDat.write(os.path.join(filepath,"{0}.sknDat".format(mObj.p_nameBase)))
+    
 
 class data(object):
     '''
@@ -82,7 +166,7 @@ class data(object):
         self.d_sourceInfluences = {}
         self.d_weights = {}
         self.str_filepath = None
-        self.d_general = cgmGeneral.get_mayaEnviornmentDict()
+        self.d_general = cgmGEN.get_mayaEnviornmentDict()
         self.d_general['file'] = mc.file(q = True, sn = True)            
            
         if sourceMesh is not None:
@@ -152,7 +236,10 @@ class data(object):
         '''        
         _d_Mesh = self.validateMeshArg(sourceMesh)
         self.d_source = _d_Mesh
+        if not _d_Mesh.get('skin'):
+            return False
         log.info("Source Mesh validated...")
+        
         return _d_Mesh
         
     def validateTargetMesh(self, targetMesh = None):
@@ -171,7 +258,7 @@ class data(object):
         if filepath is None:
             startDir = mc.workspace(q=True, rootDirectory=True)
             filepath = mc.fileDialog2(dialogStyle=2, fileMode=fileMode, startingDirectory=startDir,
-                                      fileFilter='Config file (*.cfg)')
+                                      fileFilter='Config file (*.sknDat)')
             if filepath:filepath = filepath[0]
             
         if filepath is None:
@@ -187,7 +274,7 @@ class data(object):
         if not self.d_source:
             raise ValueError, "No source found. Cannot write data"
         
-        _d = gather_skinning_dict(self.d_source['mesh'])      
+        _d = gather_skinning_dict(source = self.d_source['mesh'])      
         self.d_source.update(_d['mesh'])#...update source dict
         self.d_sourceSkin = _d['skin']
         self.d_sourceInfluences = _d['influences']
@@ -240,25 +327,25 @@ class data(object):
         return applySkin(self,**kws)
         
     def report(self):
-        log.info("Read Data Report "+ cgmGeneral._str_hardBreak)
+        log.info("Read Data Report "+ cgmGEN._str_hardBreak)
         log.info("Config File: {0}".format(self.str_filepath))
         for k in data._configToStored.keys():
             _d_bfr = self.__dict__[data._configToStored[k]]
             if _d_bfr:
-                log.info("{0} ".format(k) + cgmGeneral._str_subLine)
+                log.info("{0} ".format(k) + cgmGEN._str_subLine)
                 l_keys = _d_bfr.keys()
                 l_keys.sort()
                 for k1 in l_keys:
                     _bfr = _d_bfr[k1]
                     if isinstance(_bfr,dict):
-                        print(">" + "Nested Dict: {0}".format(k1) + cgmGeneral._str_subLine)
+                        print(">" + "Nested Dict: {0}".format(k1) + cgmGEN._str_subLine)
                         l_bufferKeys = _bfr.keys()
                         l_bufferKeys.sort()
                         for k2 in l_bufferKeys:
                             print("-"*3 +'>' + " {0} : {1} ".format(k2,_bfr[k2]))			
                     else:
                         print(">" + " {0} : {1} ".format(k1,_d_bfr[k1]))                	    
-                print(cgmGeneral._str_subLine)
+                print(cgmGEN._str_subLine)
         
 #>>> Utilities
 #===================================================================
@@ -289,7 +376,7 @@ def applySkin(*args,**kws):
                          'list':{},
                          'msgLink':{},
                          }    
-    class fncWrap(cgmGeneral.cgmFuncCls):
+    class fncWrap(cgmGEN.cgmFuncCls):
 
         def __init__(self,*args, **kws):	    
             super(fncWrap, self).__init__(*args, **kws)
@@ -390,7 +477,6 @@ def applySkin(*args,**kws):
                         return self._FailBreak_("No msgLink on jnt | link: {0} | jnt: {1}".format(_msgLink,o))
                     _l_jointTargets.append(jnt[0])
                 
-               
             elif _mode == 'target':
                 if not _targetSkin:
                     return self._FailBreak_("Target mesh not skinned, cannot use '{0}' influenceMode".format(_mode))                
@@ -422,7 +508,7 @@ def applySkin(*args,**kws):
                 
             
             if self._b_case_addMissingInfluences:#Missing Influence Add...
-                self.log_info("addMissingInfluencesAttempt... "+ cgmGeneral._str_subLine)
+                self.log_info("addMissingInfluencesAttempt... "+ cgmGEN._str_subLine)
                 if _len_configList < len(_l_jointTargets):
                     self.log_warning("More targetJoints({0}) than config joints({1}). Not implemented".format(len(_l_jointTargets),_len_configList))
                 else:
@@ -714,7 +800,7 @@ def applySkin(*args,**kws):
             
 
             self.mData.d_target['skin'] = _targetSkin#...update the stored data
-            self.log_info("Created '{0}'".format(_targetSkin) + cgmGeneral._str_subLine)
+            self.log_info("Created '{0}'".format(_targetSkin) + cgmGEN._str_subLine)
             
             #...Does this skin cluster have our expected targets?
             
@@ -820,8 +906,177 @@ def gather_skinning_dict(*args,**kws):
     Gathers skinning information - most likely for export to a file.
     
     :param mInstanes: given metaClass to test inheritance - cls or [cls]
+'''
+    def __getGeometryComponents(fn):
+        # Has jurisdiction over what is allowed to be influenced.
+        fnSet = OM.MFnSet(fn.deformerSet())
+        members = OM.MSelectionList()
+        fnSet.getMembers(members, False)
+        dagPath = OM.MDagPath()
+        components = OM.MObject()
+        members.getDagPath(0, dagPath, components)
+        return dagPath, components
+
+    def __getCurrentWeights(fn, dagPath, components):
+        weights = OM.MDoubleArray()
+        util = OM.MScriptUtil()
+        util.createFromInt(0)
+        pUInt = util.asUintPtr()
+        fn.getWeights(dagPath, components, weights, pUInt)
+        return weights
+
+    def gatherInfluenceData(fn, dagPath, components):
+        """
+        Get the influence data
+        """
+        weights = __getCurrentWeights(fn,dagPath, components)
+
+        influencePaths = OM.MDagPathArray()
+        numInfluences = fn.influenceObjects(influencePaths)
+        numComponentsPerInfluence = weights.length() / numInfluences
+        
+        #progressBar_start(stepMaxValue=influencePaths.length(), 
+        #                       statusMessage='Calculating....', 
+        #                       interruptableState=False)
+        _d_influenceData = {}            
+        for i in range(influencePaths.length()):
+            _k = str(i)
+            influenceName = influencePaths[i].partialPathName()
+            influenceWithoutNamespace = names.getBaseName(influenceName)
+            
+            _d_influenceData[_k] = {'name': influenceWithoutNamespace,
+                                    'position':distance.returnWorldSpacePosition(influenceName)}
+            
+            # store weights by influence & not by namespace so it can be imported with different namespaces.
+            #progressBar_iter(status = 'Getting {0}...data'.format(influenceName))                                
+            _d_data['weights'][_k] = \
+                [weights[jj*numInfluences+i] for jj in range(numComponentsPerInfluence)]
+            
+        _d_data['influences']['data'] = _d_influenceData  
+        #progressBar_end()
+
+    def gatherBlendWeightData(fn, dagPath, components):
+        weights = OM.MDoubleArray()
+        fn.getBlendWeights(dagPath, components, weights)
+        _d_data['influences']['blendWeights'] = [weights[i] for i in range(weights.length())]      
+
+    
+    _str_func = 'gather_skinning_dict'
+    
+    #Validate --------------------------------------------------------------------
+    log.info(cgmGEN.logString_sub(_str_func,'validate'))
+    
+    _d_data = {"mesh": {},
+               "skin": {},
+               "weights":{},
+               "blendWeights":[],
+               "influences":{}}
+    
+    #_validate our source
+    _source = kws['source']
+    _d = data().validateSourceMesh(_source)
+
+    _mesh = _d['mesh']
+    _skin = _d['skin']  
+    mi_mesh = cgmMeta.cgmObject(_mesh)
+    mi_cluster = cgmMeta.cgmNode(_skin)
+    
+    # Get the skinCluster MObject
+    selectionList = OM.MSelectionList()
+    selectionList.add(_skin, True)
+    mobject = OM.MObject()
+    selectionList.getDependNode(0, mobject)
+    fn = OMA.MFnSkinCluster(mobject)            
+    
+    _d['name'] = mi_mesh.mNode
+    _d['d_vertPositions'] = {}
+    
+    _d_data['mesh'] = _d    
+    
+    
+    #Gather Skin  --------------------------------------------------------------------
+    log.info(cgmGEN.logString_sub(_str_func,'Gather Skin'))    
+    
+    d_skin = {}
+    
+    #for a in 'useComponents','skinningMethod','normalize','geometryType','bindMethod',
+    #'normalizeWeights',
+    #'maintainMaxInfluences','maxInfluences','dropoffRate','smoothness','lockweights':
+    for a in mi_cluster.getAttrs():#...first gather general attributes
+        if a in ['paintWeights','weightList',]:
+            continue        
+        try:
+            _bfr = mi_cluster.getMayaAttr(a)
+            if issubclass(type(_bfr),dict):
+                if a in ['matrix']:
+                    _bfr2 = {}
+                    for k,v in _bfr.iteritems():
+                        _bfr2[str(k)] = v
+                    d_skin[a] = _bfr2
+                else: 
+                    log.info(cgmGEN.logString_msg(_str_func,'Skipping {0}'.format(a)))    
+                continue
+            elif _bfr is not None:d_skin[a] = _bfr
+        except:
+            log_error("{0} failed to query".format(a))
+                       
+    _d_data['skin'] = d_skin            
+    
+
+    #...gather weighting data -------------------------------------------------------------------
+    dagPath, components = __getGeometryComponents(fn)
+    gatherInfluenceData(fn,dagPath, components)
+    gatherBlendWeightData(fn,dagPath, components)
+
+    _vtx = _d_data['mesh']['component']#...link to the component type 
+    l_sourceComponent = (mc.ls ("{0}.{1}[*]".format(_mesh,_vtx),flatten=True))
+    l_influences = d_skin['matrix']
+    
+    _bar = cgmGEN.doStartMayaProgressBar(stepMaxValue=len(l_sourceComponent), 
+                                         statusMessage='Calculating....', 
+                                         interruptableState=False)
+    #progressBar_start(stepMaxValue=len(l_sourceComponent), 
+    #                       statusMessage='Calculating....', 
+    #                       interruptableState=False)
+    
+    _d_componentWeights = {}
+    
+    try:
+        for i,vertice in enumerate(l_sourceComponent):
+            cgmUI.progressBar_iter(_bar,status = 'Getting {0}'.format(vertice))
+            #progressBar_iter(status = 'Getting {0}'.format(vertice))
+            skinValues = {}
+            _key = str(i)
+            
+            _d_data['mesh']['d_vertPositions'][_key] = mc.pointPosition("{0}.{1}[{2}]".format(_mesh,_vtx,i),w=True)
+                    
+            for ii,influence in enumerate(l_influences):
+                _bfr = _d_data['weights'][str(ii)][i]#...pull from our weights data to be much much faster...
+                if _bfr != 0:
+                    skinValues[str(ii)] = _bfr
+            
+            _d_componentWeights[_key] = skinValues 
+    except Exception,err:
+        raise Exception,err
+    finally:
+        cgmGEN.doEndMayaProgressBar(_bar)
+        #progressBar_end()
+        
+    #log_infoDict( _d_componentWeights, "Component Weights...")            
+    _d_data['influences']['componentWeights'] = _d_componentWeights    
+    
+    #pprint.pprint(_d_data)
+    return _d_data
+    
+
+
+def gather_skinning_dictOLD(*args,**kws):
     '''
-    class fncWrap(cgmGeneral.cgmFuncCls):
+    Gathers skinning information - most likely for export to a file.
+    
+    :param mInstanes: given metaClass to test inheritance - cls or [cls]
+    '''
+    class fncWrap(cgmGEN.cgmFuncCls):
         def __init__(self,*args, **kws):	    
             super(fncWrap, self).__init__(*args, **kws)
             self._str_funcName = 'gather_skinning_dict'

@@ -265,7 +265,7 @@ class cgmFuncCls(object):
             if detail == 2:self.log_info(_str_hardBreak)
             self.progressBar_end()
             #mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload
-            return cgmExceptCB(etype,value,tb,detail,True)
+            return cgmExceptCB(etype,value,tb,detail)#True
             #return mUtils._formatGuiException(etype, value, tb, detail)	
         except Exception,error:
             #mUtils.formatGuiException = cgmExceptCB#Link back to our orignal overload	    

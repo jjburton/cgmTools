@@ -35,6 +35,13 @@ from cgm.core import cgm_General as cgmGEN
 
 from cgm.core.cgmPy import path_Utils as PATH
 
+import cgm.core.classes.GuiFactory as cgmUI
+mUI = cgmUI.mUI
+
+import cgm.core.lib.mayaSettings_utils as MAYASET
+import cgm.core.tools.lib.project_utils as PU
+
+
 """
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -203,9 +210,159 @@ def find_tmpFiles(path = None, level = None, cleanFiles = False,
                     raise RuntimeError,"Stop"
         _l_pyc = []
         """
- 
-    
-
-
-            
     #return _d_files, _l_ordered_list, _l_pycd
+    
+def buildMenu_utils(self, mMenu):
+
+    mUI.MelMenuItemDiv( mMenu, label='Maya Settings..' )
+    
+    for a in 'inTangent','outTangent','both':
+        
+        if a == 'inTangent':
+            fnc = MAYASET.defaultInTangent_set
+            _current = MAYASET.defaultInTangent_get()
+        elif a == 'outTangent':
+            fnc = MAYASET.defaultOutTangent_set
+            _current = MAYASET.defaultOutTangent_get()
+        else:
+            fnc = MAYASET.defaultTangents_set
+            _current = MAYASET.defaultOutTangent_get()
+            
+        _sub = mUI.MelMenuItem( mMenu, l=a,
+                         subMenu=True)
+        
+        for t in PU._tangents:
+            if t == _current:
+                _l = "{0}(current)".format(t)
+            else:
+                _l = t
+                
+            mUI.MelMenuItem( _sub,
+                             l=_l,                
+            c = cgmGEN.Callback(fnc,t))        
+
+    mUI.MelMenuItemDiv( mMenu, label='Global Settings..' )
+    mUI.MelMenuItem( mMenu, l="World Match",
+                     c = lambda *a:fncMayaSett_do(self,True,False))
+    mUI.MelMenuItem( mMenu, l="Anim Match",
+                     c = lambda *a:fncMayaSett_do(self,False,True))
+    mUI.MelMenuItem( mMenu, l="All Match",
+                     c = lambda *a:fncMayaSett_do(self,True,True))
+    
+    #mUI.MelMenuItemDiv( mMenu,)
+    
+    mUI.MelMenuItem( mMenu, l="Query",
+                     c = lambda *a:fncMayaSett_query(self))
+    
+    
+    mUI.MelMenuItemDiv( mMenu )
+    
+    #DropBox...
+    _fileTrash = mUI.MelMenuItem(mMenu,l='File Trash',subMenu=True)
+    
+    mUI.MelMenuItem(_fileTrash,
+                  label='Query',ut='cgmUITemplate',
+                   c=lambda *a: find_tmpFiles( self.directory),
+                   ann='Query trash files')    
+    mUI.MelMenuItem(_fileTrash,
+                  label='Clean',ut='cgmUITemplate',
+                   c=lambda *a: find_tmpFiles( self.directory,cleanFiles=1),
+                   ann='Clean trash files')            
+    
+    
+    
+d_nameToKey = {'world':'d_world',
+               'anim':'d_animSettings'}
+
+def fncMayaSett_do(self,world=False,anim=False):
+    _str_func = 'ui.fncMayaSett_do'
+    log.info("|{0}| >>...".format(_str_func))
+    
+    d_settings  = {'world':PU._worldSettings,
+                   'anim':PU._animSettings}
+    d_toDo = {}
+    if world:
+        d_toDo['world'] = d_settings['world']
+    if anim:
+        d_toDo['anim'] = d_settings['anim']
+        
+    d_nameToSet = {'world':{'worldUp':MAYASET.sceneUp_set,
+                            'linear':MAYASET.distanceUnit_set,
+                            'angular':MAYASET.angularUnit_set},
+                   'anim':{'frameRate':MAYASET.frameRate_set,
+                           'defaultInTangent':MAYASET.defaultInTangent_set,
+                           'defaultOutTangent':MAYASET.defaultOutTangent_set,
+                           'weightedTangents':MAYASET.weightedTangets_set},}
+    
+    #pprint.pprint(d_toDo)
+    for k,l in d_toDo.iteritems():
+        log.info(cgmGEN.logString_sub(_str_func,k))
+        
+        #_d = self.d_tf[k]
+        _d = self.mDat.__dict__.get(d_nameToKey.get(k))
+        
+        for d in l:
+            try:
+                
+                log.info(cgmGEN.logString_msg(_str_func,d))
+                _type = d.get('t')
+                _dv = d.get('dv')
+                _name = d.get('n')
+                
+                _value = _d[_name]#_d[_name].getValue()
+                
+                fnc = d_nameToSet.get(k,{}).get(_name)
+                log.info(cgmGEN.logString_msg(_str_func,"name: {0} | value: {1}".format(_name,_value)))
+                
+                if fnc:
+                    fnc(_value)
+                else:
+                    log.warning("No function found for {0} | {1}".format(k,_name))
+            except Exception,err:
+                log.error("Failure {0} | {1} | {2}".format(k,_name,err))
+    
+def fncMayaSett_query(self):
+    _str_func = 'ui.fncMayaSett_query'
+    log.info("|{0}| >>...".format(_str_func))
+    
+    d_settings  = {'world':PU._worldSettings,
+                   'anim':PU._animSettings}
+
+    d_nameToCheck = {'world':{'worldUp':MAYASET.sceneUp_get,
+                            'linear':MAYASET.distanceUnit_get,
+                            'angular':MAYASET.angularUnit_get},
+                   'anim':{'frameRate':MAYASET.frameRate_get,
+                           'defaultInTangent':MAYASET.defaultInTangent_get,
+                           'defaultOutTangent':MAYASET.defaultOutTangent_get,
+                           'weightedTangents':MAYASET.weightedTangents_get},}
+
+    #pprint.pprint(d_toDo)
+    for k,l in d_settings.iteritems():
+        log.info(cgmGEN.logString_sub(_str_func,k))
+        
+        _d = self.mDat.__dict__.get(d_nameToKey.get(k))
+        
+        for d in l:
+            try:
+                
+                log.debug(cgmGEN.logString_msg(_str_func,d))
+                _type = d.get('t')
+                _dv = d.get('dv')
+                _name = d.get('n')
+                
+                _value = _d[_name]#_d[_name].getValue()
+                
+                fnc = d_nameToCheck.get(k,{}).get(_name)
+                
+                if fnc:
+                    _current = fnc()
+
+                    if _value != _current:
+                        log.warning(cgmGEN.logString_msg(_str_func,"name: {0} | setting: {1} | found :{2}".format(_name,_value,_current)))
+                    else:
+                        log.debug(cgmGEN.logString_msg(_str_func,"name: {0} | setting: {1} | found :{2}".format(_name,_value,_current)))
+                    
+                else:
+                    log.warning("No function found for {0} | {1}".format(k,_name))
+            except Exception,err:
+                log.error("Failure {0} | {1} | {2}".format(k,_name,err))        
