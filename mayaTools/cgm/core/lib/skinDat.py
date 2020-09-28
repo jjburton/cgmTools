@@ -78,7 +78,10 @@ def exportDat(sourceMesh=[],dirpath=None):
     
     if not dirpath:
         dirpath = mc.fileDialog2(fileMode=3,
-                                  dir='')[0]
+                                  dir='')
+        if not dirpath:
+            return log.error (cgmGEN.logString_msg(_str_func, "No path selected"))
+        dirpath = dirpath[0]
         
     log.info(dirpath)
     if not PATHS.Path(dirpath).exists():
@@ -106,7 +109,10 @@ def importDat(sourceMesh=[],dirpath=None):
     #Validate --------------------------------------------------------------------
     if not dirpath:
         dirpath = mc.fileDialog2(fileMode=3,
-                                  dir='')[0]
+                                  dir='')
+        if not dirpath:
+            return log.error (cgmGEN.logString_msg(_str_func, "No path selected"))
+        dirpath = dirpath[0]
         
     log.info(dirpath)
     if not PATHS.Path(dirpath).exists():
