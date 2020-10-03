@@ -19,7 +19,6 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__version__ = "1.07.31.2020"
 __MAYALOCAL = 'CGMPROJECT'
 
 
@@ -70,6 +69,7 @@ mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
 mUI = cgmUI.mUI
 
+__version__ = cgmGEN.__RELEASE
 _colorGood = CORESHARE._d_colors_to_RGB['greenWhite']
 _colorBad = CORESHARE._d_colors_to_RGB['redWhite']
         

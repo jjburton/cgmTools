@@ -48,7 +48,7 @@ from cgm.lib import lists
 
 
 #>>> Root settings =============================================================
-__version__ = '0.08312017'
+__version__ = cgmGEN.__RELEASE
 __toolname__ ='mocapBakeTool'
 
 _subLineBGC = [.75,.75,.75]

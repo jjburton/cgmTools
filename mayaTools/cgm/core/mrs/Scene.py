@@ -42,7 +42,7 @@ log.setLevel(logging.INFO)
 
 
 #>>> Root settings =============================================================
-__version__ = "1.1.2020.06.12"
+__version__ = cgmGEN.__RELEASE
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]

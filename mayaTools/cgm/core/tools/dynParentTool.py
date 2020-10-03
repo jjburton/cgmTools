@@ -43,7 +43,7 @@ from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 #>>> Root settings =============================================================
-__version__ = '0.905312017'
+__version__ = cgmGEN.__RELEASE
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'

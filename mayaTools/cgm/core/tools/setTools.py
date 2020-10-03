@@ -56,7 +56,7 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists"""
 
 #>>> Root settings =============================================================
-__version__ = '2.11.021418'
+__version__ = cgmGEN.__RELEASE
 
 _l_setTypes = ['NONE',
                'animation',

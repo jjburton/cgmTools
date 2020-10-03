@@ -43,7 +43,7 @@ from cgm.core.tools import spring as SPRING
 from cgm.core.tools import animFilterTool as AFT
 
 #>>> Root settings =============================================================
-__version__ = '0.1.05172020'
+__version__ = cgmGEN.__RELEASE
 __toolname__ ='cgmAnimDraw'
 
 _padding = 5

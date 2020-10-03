@@ -9,8 +9,6 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
-__version__ = '0.1.01092019'
-
 import webbrowser
 
 import logging
@@ -71,6 +69,8 @@ from cgm.lib.ml import (ml_breakdownDragger,
                         ml_arcTracer,
                         ml_convertRotationOrder,
                         ml_copyAnim)
+
+__version__ = cgmGen.__RELEASE
 
 mUI = cgmUI.mUI
 

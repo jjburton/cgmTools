@@ -9,7 +9,6 @@ Website : http://www.cgmonks.com
 2.0 rewrite
 ================================================================
 """
-__version__ = '2.0.05312017'
 
 
 # From Python =============================================================
@@ -36,6 +35,8 @@ from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
+
+__version__ = cgmGen.__RELEASE
 
 import cgm.core.classes.GuiFactory as cgmUI
 #reload(cgmUI)

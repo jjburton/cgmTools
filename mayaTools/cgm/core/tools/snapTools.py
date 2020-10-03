@@ -49,7 +49,7 @@ from cgm.core.tools.lib import tool_chunks as UICHUNKS
 #reload(UICHUNKS)
 
 #>>> Root settings =============================================================
-__version__ = 'Alpha - 0.11282017'
+__version__ = cgmGEN.__RELEASE
 __toolname__ ='cgmSnap'
 
 class ui(cgmUI.cgmGUI):

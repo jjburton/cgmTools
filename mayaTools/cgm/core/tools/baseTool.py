@@ -36,7 +36,7 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 
 #>>> Root settings =============================================================
-__version__ = '0.08312017'
+__version__ = cgmGEN.__RELEASE
 __toolname__ ='baseTool'
 
 class ui(cgmUI.cgmGUI):

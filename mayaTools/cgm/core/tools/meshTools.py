@@ -44,7 +44,7 @@ from cgm.core.lib import selection_Utils as selUtils
 mayaVersion = cgmGeneral.__mayaVersion__
 
 #>>> Root settings =============================================================
-__version__ = '0.08182017'
+__version__ = cgmGeneral.__RELEASE
 __toolName__ = 'cgmMeshTools'
 __description__ = "These are tools for working with mesh"
 #__toolURL__ = 'www.cgmonks.com'

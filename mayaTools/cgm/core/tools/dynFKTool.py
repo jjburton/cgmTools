@@ -39,7 +39,7 @@ from cgm.core.lib import search_utils as SEARCH
 import cgm.core.rig.dynamic_utils as RIGDYN
 
 #>>> Root settings =============================================================
-__version__ = '0.05052020'
+__version__ = cgmGEN.__RELEASE
 __toolname__ ='cgmSimChain'
 
 _padding = 5

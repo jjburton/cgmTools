@@ -9,7 +9,6 @@ Website : http://www.cgmonks.com
 
 ================================================================
 """
-__version__ = '0.1.09042017'
 
 #from __future__ import with_statement
 
@@ -23,6 +22,8 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 from cgm.core import cgm_General as cgmGen
+__version__ = cgmGen.__RELEASE
+
 import cgm.core.classes.GuiFactory as cgmUI
 #try:
 #    import wingdbstub

@@ -36,7 +36,7 @@ import cgmUpdate
 #reload(cgmUpdate)
 
 #>>> Root settings =============================================================
-__version__ = '1.03042019'
+__version__ = cgmGEN.__RELEASE
 __toolname__ ='cgmUpdate'
 _commit_limit = 12
 _l_branches = ['stable','master','MRS','MRSDEV','MRSWORKSHOP','MRSWORKSHOPDEV']
