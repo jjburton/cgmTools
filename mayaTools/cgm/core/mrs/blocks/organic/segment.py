@@ -1173,8 +1173,15 @@ def rig_prechecks(self):
         str_settingPlace = mBlock.getEnumValueString('settingsPlace')
         if str_settingPlace == 'cog' and not mBlock.addCog:
             self.l_precheckErrors.append('Settings place is cog and addCog off. Please resolve')
-            
         
+        if mBlock.numControls > mBlock.numJoints:
+            self.l_precheckErrors.append('More controls ({0}) than joints ({1})'.format(mBlock.numControls, mBlock.numJoints))
+        
+        
+        ml = mBlock.moduleTarget.rigNull.msgList_get('moduleJoints',cull=True)
+        if len(ml) != mBlock.numJoints:
+            self.l_precheckErrors.append('Joint len ({0}) != numJoints setting ({1})'.format(len(ml), mBlock.numJoints))
+            
         
         
         
@@ -1454,7 +1461,7 @@ def rig_skeleton(self):
         
         ml_jointsToHide.extend(ml_fkJoints)
     
-    
+        
         #...fk chain -----------------------------------------------------------------------------------------------
         if mBlock.ikSetup:
             log.debug("|{0}| >> ikSetup on. Building blend and IK chains...".format(_str_func))  

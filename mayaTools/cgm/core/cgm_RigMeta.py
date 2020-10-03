@@ -1382,8 +1382,9 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         self.addAttr('cgmType','dynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
 
         self.addAttr('dynMode',attrType = 'enum', enumName= 'space:orient:follow:point', keyable = False, hidden=True)
+        self.addAttr('scaleMode',attrType = 'enum', enumName= 'none:space', keyable = False, hidden=True)
         self.addAttr('dynChild',attrType = 'messageSimple',lock=True)
-        self.addAttr('dynFollow',attrType = 'messageSimple',lock=True)				
+        self.addAttr('dynFollow',attrType = 'messageSimple',lock=True)
 
         #Unlock all transform attriutes
         for attr in ['tx','ty','tz','rx','ry','rz','sx','sy','sz']:
@@ -1417,7 +1418,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                 ATTR.set(mChild.mNode, a, ':'.join(l_parentShortNames))
             else:
                 log.error("|{0}| >> dynChild lacks attr: {1}. Cannot update".format(_str_func,a))
-
+        
+        
                 
         
         
@@ -1616,6 +1618,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         mDynParentConst = False
         mDynPointConst = False
         mDynOrientConst = False
+        mDynScaleConst = False
 
         if self.dynMode == 0:#Parent
             cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
@@ -1644,7 +1647,10 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             i_dynConst = cgmMeta.cgmNode(cBuffer)
             log.debug("|{0}| >> Point: {1}".format(_str_func,i_dynConst))                    
         
-        
+        if self.getEnumValueString('scaleMode') in ['space']:
+            cBuffer = mc.scaleConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
+            mDynScaleConst = cgmMeta.cgmNode(cBuffer)
+            
         
     
         #Name and store -----------------------------------------------------------
@@ -1659,6 +1665,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         if mDynParentConst:self.connectChildNode(mDynParentConst,'dynParentConstraint','dynMaster')
         if mDynPointConst:self.connectChildNode(mDynPointConst,'dynPointConstraint','dynMaster')	
         if mDynOrientConst:self.connectChildNode(mDynOrientConst,'dynOrientConstraint','dynMaster')	
+        if mDynScaleConst:self.connectChildNode(mDynScaleConst,'dynScaleConstraint','dynMaster')	
         
         
         #Build nodes ------------------------------------------------------------------------------
@@ -1690,6 +1697,30 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             mc.setAttr("%s.colorIfTrueR"%i_condNode.mNode,1)
             mc.setAttr("%s.colorIfFalseR"%i_condNode.mNode,0)
             mc.connectAttr("%s.outColorR"%i_condNode.mNode,"%s.w%s"%(i_dynConst.mNode,i))
+            
+            
+            if mDynScaleConst:
+                if self.scaleMode == 2:
+                    mScaleCondNode = cgmMeta.cgmNode(mc.createNode('condition'))
+                    mScaleCondNode.operation = 0
+                    mc.connectAttr("%s.scale"%mDynChild.mNode,"%s.firstTerm"%mScaleCondNode.mNode)
+                    mc.setAttr("%s.secondTerm"%mScaleCondNode.mNode,i)
+                    mc.setAttr("%s.colorIfTrueR"%mScaleCondNode.mNode,1)
+                    mc.setAttr("%s.colorIfFalseR"%mScaleCondNode.mNode,0)
+                    mc.connectAttr("%s.outColorR"%mScaleCondNode.mNode,"%s.w%s"%(mDynScaleConst.mNode,i))
+    
+                    mScaleCondNode.doStore('cgmName',i_p) 
+                    mScaleCondNode.addAttr('cgmTypeModifier','dynScale')
+                    #mScaleCondNode.addAttr('mClass','cgmNode')	
+                    mScaleCondNode.doName()
+    
+                    ml_nodes.append(mScaleCondNode)                    
+                    
+                elif self.dynMode == 2:#Follow
+                    mc.connectAttr("%s.outColorR"%i_followCondNode.mNode,"%s.w%s"%(mDynScaleConst.mNode,i))
+                else:    
+                    mc.connectAttr("%s.outColorR"%i_condNode.mNode,"%s.w%s"%(mDynScaleConst.mNode,i))
+                
 
             i_condNode.doStore('cgmName',"{0}_to_{1}".format(mDynChild.getShortName(),
                                                              i_p.getShortName())) 

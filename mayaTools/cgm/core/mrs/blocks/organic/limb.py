@@ -723,6 +723,8 @@ d_defaultSettings = {'version':__version__,
                      'squashFactorMin':0.0,
                      'segmentMidIKControl':True,
                      'visRotatePlane':False,
+                     'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
+                     
                      }
 _l_hiddenAttrs = ['baseAim','baseSize','baseUp']
 

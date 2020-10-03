@@ -3840,8 +3840,10 @@ def blockMirror_create(self, forceNew = False):
         _d = {'blockType':self.blockType, 'side':_side,
               'autoForm':False,
               'blockParent':mBlockParent,
+              
               #'baseAim':[self.baseAimX,-self.baseAimY,self.baseAimZ],
               'baseSize':baseSize_get(self)}
+        
         for a in 'blockProfile','buildProfile','cgmName':
             if a in ['cgmName']:
                 _d['name'] =  self.getMayaAttr(a)

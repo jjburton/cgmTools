@@ -1298,7 +1298,7 @@ def register_mirrorIndices(self, ml_controls = []):
     return ml_controls
 
 @cgmGEN.Timer
-def rigNodes_store(self):
+def rigNodes_store(self,report=False):
     """
     :parameters:
 
@@ -1332,7 +1332,7 @@ def rigNodes_store(self):
     else:
         self.mPuppet.connectChildrenNodes(_res,'rigNodes','cgmOwner')
         
-    print _res
+    if report:print _res
 
 
 #@cgmGEN.Timer
