@@ -18,6 +18,8 @@ saveViewportSettings;
 """
 __MAYALOCAL = 'MAYASETTINGS'
 
+import cgm.core.lib.search_utils as SEARCH
+
 # From Python =============================================================
 #import copy
 #import re
@@ -90,7 +92,7 @@ def frameRate_get():
     log.debug(cgmGEN.logString_start(_str_func))    
     return mc.currentUnit(q=1, time=True)    
 
-def frameRate_set(arg):
+def frameRate_set(arg, fixFractionalSlider = True):
     _str_func = 'frameRate_set'
     log.debug(cgmGEN.logString_start(_str_func))
     
@@ -113,6 +115,16 @@ def frameRate_set(arg):
     log.debug(cgmGEN.logString_msg(_str_func,"| arg: {0} | validated: {1}".format(arg,_arg)))
 
     mc.currentUnit(time = _arg)
+    
+    if fixFractionalSlider:
+        log.debug(cgmGEN.logString_msg(_str_func,'fixFractionalSlider...'))        
+        _current = mc.currentTime(q=True)
+        mc.playbackOptions(animationStartTime= int(mc.playbackOptions(q=True,animationStartTime=True)),
+                           animationEndTime= int(mc.playbackOptions(q=True,animationEndTime=True)),
+                           max =int(mc.playbackOptions(q=True,max=True)),
+                           min =int(mc.playbackOptions(q=True,min=True)),
+                           )
+        mc.currentTime(int(_current))
     
 def sceneUp_get():
     _str_func = 'sceneUp_get'
