@@ -244,9 +244,8 @@ class ui(cgmUI.cgmGUI):
                      l="Log Self",
                      c=lambda *a: cgmUI.log_selfReport(self))  
         
-        mc.menuItem( parent = self.uiMenu_FirstMenu,
-                     l="Dock",
-                     c=lambda *a: self.do_dock())
+        self.uiMenu_buildDock(self.uiMenu_FirstMenu)
+
         
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 

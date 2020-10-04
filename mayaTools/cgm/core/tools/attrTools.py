@@ -238,7 +238,8 @@ class ui(cgmUI.cgmGUI):
                     en = True,
                     c = cgmGEN.Callback(self.uiFunc_channelBoxBridge))          
         
-
+        self.uiMenu_buildDock(self.uiMenu_utils)
+        
         
         return
         

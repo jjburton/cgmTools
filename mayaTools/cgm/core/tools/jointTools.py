@@ -110,6 +110,8 @@ class ui(cgmUI.cgmGUI):
         mc.menuItem(parent=self.uiMenu_FirstMenu, 
                     l = 'Dat Preview',
                     c=lambda *a:uiFunc_getCreateData(self,True))        
+        
+        self.uiMenu_buildDock(self.uiMenu_FirstMenu)
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 

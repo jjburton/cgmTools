@@ -1231,8 +1231,10 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='UI' )
         
+        self.uiMenu_buildDock(self.uiMenu_FirstMenu)
+        """
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
-                         c = lambda *a:self.do_dock())        
+                         c = lambda *a:self.do_dock())"""        
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))

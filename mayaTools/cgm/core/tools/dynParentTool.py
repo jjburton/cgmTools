@@ -91,6 +91,7 @@ class ui(cgmUI.cgmGUI):
     
     def buildMenu_help( self, *args):
         self.uiMenu_help.clear()
+        self.uiMenu_buildDock(self.uiMenu_help)
     
         mc.menuItem(parent=self.uiMenu_help,
                     l = 'Get Help',

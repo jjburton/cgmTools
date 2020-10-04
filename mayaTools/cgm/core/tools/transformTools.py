@@ -95,6 +95,7 @@ class ui(cgmUI.cgmGUI):
         #>>> Reset Options		                     
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        self.uiMenu_buildDock(self.uiMenu_FirstMenu)
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
