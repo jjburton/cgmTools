@@ -25,6 +25,8 @@ __defaultSize__ = 200, 300
 import os
 import maya.cmds as mc
 import maya.mel as mel
+import maya.utils as mutils
+
 import copy
 import time
 import pprint
@@ -369,7 +371,7 @@ class cgmGUI(mUI.BaseMelWindow):
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created
     TOOLNAME = 'cgmGUI'
     WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
-    l_allowedDockAreas = ['right', 'left']
+    l_allowedDockAreas = [';eft','right']
     
     def __init__( self,*a,**kw):
         try:
@@ -415,7 +417,6 @@ class cgmGUI(mUI.BaseMelWindow):
             #====================
             #Maya2011 QT docking - from Red9's examples
             #if mayaVersion == 2011:
-            #'Maya2011 dock delete'
     
             #log.info(self.l_allowedDockAreas[self.var_DockSide.value])
             """_dock = '{0}Dock'.format(__toolName__)        
@@ -426,10 +427,24 @@ class cgmGUI(mUI.BaseMelWindow):
                                           width=self.DEFAULT_SIZE[0], height = self.DEFAULT_HEIGHT)""" 
             
             
-            _dock = '{0}Dock'.format(self.__toolName__)            
+            _dock = '{0}Dock'.format(self.__toolName__)
+            
             if mc.dockControl(_dock, exists=True):
                 log.info('Deleting {0}'.format(_dock))
-                mc.deleteUI(_dock, control=True)   
+                mc.deleteUI(_dock, control=True)
+                
+            """
+            if not mc.workspaceControl(_dock, q=True, exists=True):
+                mc.workspaceControl(_dock,
+                                    retain=False, floating=True)
+                                    #uiScript="from witch.ui import cauldron; cauldron.fill_workspace_control()")
+            ## force a raise
+            if mc.control( _dock, e=True, isObscured=True ):
+                mutils.executeDeferred(
+                                    lambda *args: mc.workspaceControl(_dock, 
+                                                                      e=True, r=True))            
+                    """
+                
             """    
             if self.var_Dock and self.var_Dock.value:
                 try:
@@ -535,11 +550,21 @@ class cgmGUI(mUI.BaseMelWindow):
                          #c=cgmGEN.Callback( resetUI,self.__class__, self.WINDOW_NAME, self.l_optionVars))                         
                          #c=lambda *a: resetUI(self.__class__, self.WINDOW_NAME, self.l_optionVars))    
 
+    def uiMenu_buildDock(self, mMenu = None):
+        _dockMenu =  mUI.MelMenuItem( mMenu, l="Dock",
+                                      subMenu=True)        
+        
+        for i,s in enumerate(self.l_allowedDockAreas):
+            mUI.MelMenuItem( _dockMenu, l = s,
+                             c = cgmGEN.Callback(self.do_dock,s))#lambda *a:self.do_dock(s))            
+            #mc.evalDeferred(self.do_dock,lp=True)
+        
     def buildMenu_options( self, *args):
         self.uiMenu_OptionsMenu.clear()
         #>>> Reset Options				
-        mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Dock",
-                         c = lambda *a:mc.evalDeferred(self.do_dock,lp=True))                         
+        
+        self.uiMenu_buildDock(self.uiMenu_OptionsMenu)
+        
 
     def buildMenu_help( self, *args):
         self.uiMenu_HelpMenu.clear()
@@ -600,7 +625,7 @@ class cgmGUI(mUI.BaseMelWindow):
         #self.delete()
         #run()
                    
-    def do_dock( self):
+    def do_dock( self,side =None):
         _str_func = 'do_dock'
         #log.info("dockCnt: {0}".format(self.dockCnt))
         #log.debug("uiDock: {0}".format(self.uiDock))                
@@ -620,22 +645,41 @@ class cgmGUI(mUI.BaseMelWindow):
         _dock = '{0}Dock'.format(self.__toolName__)   
         _l_allowed = self.__class__.l_allowedDockAreas
         
+        """
+        import cgm.core.classes.GuiFactory as cgmUI
+        reload(cgmUI)
+        cgmUI.cgmGUI()
+        """
   
         _content = self.Get()
-            
+        
+        if side is not None:
+            log.info("|{0}| >> Dock side passed...".format(_str_func))             
+            _side = side
+        else:
+            _side = _l_allowed[self.var_DockSide.value]
+        
+        if _side == 'clear':
+
+            return
+
         if mc.dockControl(_dock,q=True, exists = True):
             log.debug('linking...')
             self.uiDock = _dock
-            mc.dockControl(_dock , edit = True, area=_l_allowed[self.var_DockSide.value],
+            mc.dockControl(_dock , edit = True, area=_side,
                            label=self.WINDOW_TITLE, content=_content,
-                           allowedArea=_l_allowed,
+                           allowedArea=['all'],#_l_allowed,
+                           fcc = self.floatingCC,
+                           fh = False,fw=False,
                            width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])                    
         #else:
         else:
             log.debug('creating...')       
-            mc.dockControl(_dock , area=_l_allowed[self.var_DockSide.value],
+            mc.dockControl(_dock , area=_side,
                            label=self.WINDOW_TITLE, content=_content,
-                           allowedArea=_l_allowed,
+                           allowedArea=['all'],#_l_allowed,
+                           fcc = self.floatingCC,
+                           fh = False,fw=False,                           
                            width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1]) 
             self.uiDock = _dock
         
@@ -655,10 +699,21 @@ class cgmGUI(mUI.BaseMelWindow):
         _floating = mc.dockControl(_dock, q = True, floating = True)            
         if _floating:
             #log.info("Not visible, resetting position.")
-            #mc.dockControl(self.uiDock, e=True, visible = False)
             mc.window(_dock, edit = True, tlc = [200, 200])
-        self.var_Dock.toggle()
-                
+            self.show(forceDefaultSize=True)
+            self.var_Dock.toggle()
+            
+        
+    def floatingCC(self):
+        _dock = '{0}Dock'.format(self.__toolName__)   
+        
+        _floating = mc.dockControl(_dock, q = True, floating = True)            
+        if _floating:
+            log.info("Not visible, resetting position.")
+            mc.dockControl(self.uiDock, e=True, 
+                           width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])
+            mc.window(_dock, edit = True, tlc = [200, 200])
+
 
     def do_showHelpToggle( self):
         doToggleInstancedUIItemsShowState(self.var_ShowHelp.value,self.l_helpElements)
@@ -684,6 +739,7 @@ class cgmGUI(mUI.BaseMelWindow):
     #=========================================================================
     # Layouts
     #=========================================================================
+    @cgmGEN.Timer
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
@@ -700,7 +756,7 @@ class cgmGUI(mUI.BaseMelWindow):
         #self.uiROW_pb.layout()
         #progressBar_start('cgmUITESTProgressBar',hidden = True)
 
-        self.l_helpElements.extend(add_InstructionBlock(MainForm,"Purge all traces of cgmThinga tools from the object and so and so forth forever, amen.",vis = self.var_ShowHelp.value))        
+        #self.l_helpElements.extend(add_InstructionBlock(MainForm,"Purge all traces of cgmThinga tools from the object and so and so forth forever, amen.",vis = self.var_ShowHelp.value))        
         add_Button(MainForm)
         add_Button(MainForm,'Debug test', lambda *a: self.do_DebugEchoTest())
         add_Button(MainForm,'Debug test 2', lambda *a: self.do_DebugEchoTest())
@@ -715,7 +771,8 @@ class cgmGUI(mUI.BaseMelWindow):
         #add_Button(MainForm,'module Reload', lambda *a: reloadUI(self))
         
         mc.melInfo(p=MainForm,label ='asdf!')
-
+    
+    @cgmGEN.Timer
     def initializeTemplates(self):
         initializeTemplates()
         return
