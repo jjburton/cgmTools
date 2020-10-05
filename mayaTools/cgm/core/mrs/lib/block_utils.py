@@ -7379,9 +7379,10 @@ def skeleton(self):
     return True
 
 
-def skeleton_getBind(self,select=False, warn = True):
+def skeleton_getBind(self,select=False, tag = False, warn = True):
     _str_func = 'skeleton_getBind'
     log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    _d = {'left':'Left','right':'Right'}
     
     mModule = self.getMessageAsMeta('moduleTarget')
     if mModule:
@@ -7395,6 +7396,23 @@ def skeleton_getBind(self,select=False, warn = True):
             if not ml_joints:
                 if warn: return log.error("|{0}| >> No joints found".format(_str_func))
                 return False
+            
+            if tag:
+                for mJnt in ml_joints:
+                    _name = mJnt.mNode#...get our name string to avoid multiple calls
+                    _tag = NAMETOOLS.get_combinedNameDict(_name,['cgmDirection','cgmType'])#...get tag via name dict without direction or type
+                    
+                
+                    d = mJnt.getNameDict()#...get name dict
+                    _s = _d.get(d.get('cgmDirection'),'Center')#...get the maya side value from a simple dict with 'Center' default
+                    log.debug(cgmGEN.logString_msg(_str_func,"Tag: '{0}' | side '{1}' | {2}".format(_tag,_s,_name)))
+                    
+                    #set our stuff
+                    ATTR.set(_name,'side',_s)
+                    mJnt.type = 18
+                    mJnt.otherType = _tag                    
+                
+            
             if select:
                 mc.select([mJnt.mNode for mJnt in ml_joints],add=True)
             

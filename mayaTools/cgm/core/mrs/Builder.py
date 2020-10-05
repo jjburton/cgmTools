@@ -681,7 +681,8 @@ class ui(cgmUI.cgmGUI):
                          'delete proxy': 'Delete proxy geo if it exists',
                          'reset rig': 'Reset rig controls',
                          'query rig nodes':"Query and display the rig nodes of the block",
-                         'verify':"Verify the attributes rigBlocks"}    
+                         'verify':"Verify the attributes rigBlocks",
+                         'Joints | tag':"Tag joints for maya tools to work better by side and tag",}    
     
     def insert_init(self,*args,**kws):
             if kws:log.debug("kws: %s"%str(kws))
@@ -939,7 +940,13 @@ class ui(cgmUI.cgmGUI):
                'Skeleton':{'Joints | get bind':{'ann':self._d_ui_annotations.get('Joints | get bind'),
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','skeleton_getBind',
-                                      **{'select':1})},},
+                                      **{'select':1,'mode':'noSelect'})},
+                           'Joints | tag':{'ann':self._d_ui_annotations.get('Joints | tag'),
+                                                          'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                 'atUtils','skeleton_getBind',
+                                                                 **{'tag':1})}                           
+                           },
+       
                'Rig':{'Step Build':{'ann':self._d_ui_annotations.get('step build'),
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                       'stepUI',
@@ -1871,7 +1878,9 @@ class ui(cgmUI.cgmGUI):
                     return
                 kws['sourceBlock'] = _mActiveBlock
                 kws.pop('mode')
-                
+            elif _mode == 'noSelect':
+                mc.select(clear=1)
+                kws.pop('mode')
                 
             #elif  _mode == 'clearParentBlock':
             #else:
