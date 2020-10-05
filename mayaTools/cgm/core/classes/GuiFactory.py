@@ -916,6 +916,7 @@ class cgmGUI(mUI.BaseMelWindow):
             #====================
             mc.progressBar(self.pg_maya,edit=True,status = '{0} | Layout'.format(self.__toolName__),
                            progress = 8, maxValue= 10)                        
+            
             self.build_layoutWrapper(self)
     
             #====================
@@ -1282,87 +1283,6 @@ class cgmGUI(mUI.BaseMelWindow):
     def initializeTemplates(self):
         initializeTemplates()
         return
-        guiBackgroundColor = [.45,.45,.45]
-        guiTextFieldColor = [.4,.4,.4]    
-        guiHeaderColor = [.25,.25,.25]
-        guiSubMenuColor = [.65,.65,.65]
-        guiButtonColor = [.35,.35,.35]
-        guiHelpBackgroundColor = [0.8, 0.8, 0.8]
-        guiHelpBackgroundReservedColor = [0.411765 , 0.411765 , 0.411765]
-        guiHelpBackgroundLockedColor = [0.837, 0.399528, 0.01674]
-
-        if mc.uiTemplate( 'cgmUITemplate', exists=True ):
-            mc.deleteUI( 'cgmUITemplate', uiTemplate=True )
-        mc.uiTemplate('cgmUITemplate')
-        mc.separator(dt='cgmUITemplate', height = 10, style = 'none')
-        mc.button(dt = 'cgmUITemplate', height = 15, backgroundColor = guiButtonColor,align = 'center')
-        mc.window(dt = 'cgmUITemplate', backgroundColor = guiBackgroundColor)
-        mc.optionMenu(dt='cgmUITemplate',backgroundColor = guiButtonColor)
-        mc.optionMenuGrp(dt ='cgmUITemplate', backgroundColor = guiButtonColor)
-        mc.textField(dt = 'cgmUITemplate',backgroundColor = [1,1,1],h=20)
-        mc.formLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor)    
-        mc.textScrollList(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
-        mc.frameLayout(dt='cgmUITemplate', backgroundColor = guiBackgroundColor) 
-
-        # Define our header template
-        if mc.uiTemplate( 'cgmUIHeaderTemplate', exists=True ):
-            mc.deleteUI( 'cgmUIHeaderTemplate', uiTemplate=True )
-        mc.uiTemplate('cgmUIHeaderTemplate')
-        mc.text(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
-        mc.separator(dt='cgmUIHeaderTemplate', height = 5, style = 'none',backgroundColor = guiHeaderColor)
-        mc.formLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)    
-        mc.rowLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
-        mc.rowColumnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)
-        mc.columnLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor)  
-        mc.textScrollList(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
-        mc.frameLayout(dt='cgmUIHeaderTemplate', backgroundColor = guiHeaderColor) 
-
-        # Define our sub template
-        if mc.uiTemplate( 'cgmUISubTemplate', exists=True ):
-            mc.deleteUI( 'cgmUISubTemplate', uiTemplate=True )
-        mc.uiTemplate('cgmUISubTemplate')
-        mc.formLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
-        mc.text(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
-        mc.separator(dt='cgmUISubTemplate', height = 2, style = 'none', backgroundColor = guiSubMenuColor)
-        mc.rowLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
-        mc.rowColumnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
-        mc.columnLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
-        mc.scrollLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor)
-        mc.textField(dt = 'cgmUISubTemplate',backgroundColor = [1,1,1],h=20)
-        mc.textScrollList(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
-        mc.frameLayout(dt='cgmUISubTemplate', backgroundColor = guiSubMenuColor) 
-
-
-        # Define our instructional template
-        if mc.uiTemplate( 'cgmUIInstructionsTemplate', exists=True ):
-            mc.deleteUI( 'cgmUIInstructionsTemplate', uiTemplate=True )
-        mc.uiTemplate('cgmUIInstructionsTemplate')
-        mc.text(dt = 'cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
-        mc.formLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
-        mc.rowLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
-        mc.rowColumnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)
-        mc.columnLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor)    
-        mc.textField(dt = 'cgmUIInstructionsTemplate',backgroundColor = [1,1,1],h=20)
-        mc.textScrollList(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor) 
-        mc.frameLayout(dt='cgmUIInstructionsTemplate', backgroundColor = guiHelpBackgroundColor) 
-
-        # Define our Reserved
-        if mc.uiTemplate( 'cgmUIReservedTemplate', exists=True ):
-            mc.deleteUI( 'cgmUIReservedTemplate', uiTemplate=True )
-        mc.uiTemplate('cgmUIReservedTemplate')
-        mc.textField(dt = 'cgmUIReservedTemplate', backgroundColor = guiTextFieldColor,h=20)
-        mc.formLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)    
-        mc.rowLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
-        mc.rowColumnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)
-        mc.columnLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor)  
-        mc.frameLayout(dt='cgmUIReservedTemplate', backgroundColor = guiButtonColor) 
-
-        # Define our Locked
-        if mc.uiTemplate( 'cgmUILockedTemplate', exists=True ):
-            mc.deleteUI( 'cgmUILockedTemplate', uiTemplate=True )
-        mc.uiTemplate('cgmUILockedTemplate')
-        mc.textField(dt = 'cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor, h=20)
-        mc.frameLayout(dt='cgmUILockedTemplate', backgroundColor = guiHelpBackgroundLockedColor) 
 
 
 

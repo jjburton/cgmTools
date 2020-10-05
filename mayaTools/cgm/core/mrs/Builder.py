@@ -56,6 +56,7 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 from cgm.core.mrs.lib import block_utils as BLOCKUTILS
 from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
+import cgm.core.lib.string_utils as CORESTRINGS
 
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
@@ -64,6 +65,7 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.snapTools as SNAPTOOLS
 import cgm.core.lib.list_utils as LISTS
+from cgm.core.lib import nameTools as NAMETOOLS
 
 #for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
     #reload(m)
@@ -92,7 +94,467 @@ def check_cgm():
     except:
         import cgm
         cgm.core._reload()
+
+"""
+import cgm.core.mrs.Builder as BUILDER
+reload(BUILDER)
+BUILDER.ui_blockEdit('master_masterBlock')
+"""
+class ui_blockEdit(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'mrsBlockEditor'    
+    WINDOW_TITLE = 'Block Edit | - {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 250,500
+    
+    _d_ui_annotations = {'select':"Select rigBlocks in maya from ui."}
+    
+    def __init__(self,mBlock = None, *a,**kws):
+        super(ui_blockEdit, self).__init__(*a,**kws)
         
+        self.mBlockDict = {}
+        self.uiPopUpMenu_children = None
+        self.uiPopUpMenu_siblings = None
+        
+        self.uiFunc_loadBlock(mBlock)
+        
+        
+    def uiFunc_updateStatus(self):
+        if not self.mBlock:
+            self.uiStatus(edit=1,
+                          label='...')
+            return log.error("No block loaded")
+
+        self.uiFunc_updateBlock()
+        
+        
+        
+        self.uiStatus(edit=1,
+                      label="State: {0}".format(self.mBlock.blockState))        
+        
+        """            
+            if _status:
+                self.uiStatus(edit=1,
+                              label="State: {0}".format(_status))
+            else:
+                self.uiStatus(edit=1,
+                              label=self.str_lastStep)
+                              """            
+    def uiCallback_contextualSetAttrFromField(self, attr, attrType, field):
+        _v = field.getValue()
+        
+        log.info("{0} | {1}".format(attr,_v))
+
+        self.uiFunc_contextBlockCall('atUtils', 'blockAttr_set', **{'updateUI':False, attr:_v})
+        
+        if attr == 'buildProfile':
+            #_strValue = BLOCKSHARE._d_attrsTo_make['buildProfile'].split(':')[_v]
+            log.info("Loading buildProfile... {0}".format(_v))
+            self.uiFunc_contextBlockCall('atUtils', 'buildProfile_load', _v, **{'updateUI':False})
+        
+        
+        return
+        if attrType == 'enum':
+            #_strValue = ATTR.get_enumValueString(obj,attr)
+            #field.setValue(_strValue)
+            
+            if attr == 'buildProfile':
+                log.info("Loading buildProfile...")
+                self._blockCurrent.atUtils('buildProfile_load',_strValue)
+            if attr == 'blockProfile':
+                log.info("Loading blockProfile...")
+                self._blockCurrent.atUtils('blockProfile_load',_strValue)
+                
+    def uiCallback_setAttrFromField(self, obj, attr, attrType, field):
+        _v = field.getValue()
+        ATTR.set(obj,attr,_v)
+        
+        if attrType == 'enum':
+            _strValue = ATTR.get_enumValueString(obj,attr)
+            field.setValue(_strValue)
+            
+            if attr == 'buildProfile':
+                log.info("Loading buildProfile...")
+                self._blockCurrent.atUtils('buildProfile_load',_strValue)
+            if attr == 'blockProfile':
+                log.info("Loading blockProfile...")
+                self._blockCurrent.atUtils('blockProfile_load',_strValue)                
+        else:
+            field.setValue(ATTR.get(obj,attr))
+            
+        if attr == 'numRoll':
+            log.info("numRoll check...")                            
+            if ATTR.datList_exists(obj,'rollCount'):
+                log.info("rollCount Found...")                                            
+                l = ATTR.datList_getAttrs(obj,'rollCount')
+                for a in l:
+                    log.info("{0}...".format(a))                                                
+                    ATTR.set(obj,a, _v)
+                
+                #self.uiUpdate_blockDat()
+        
+        log.info("Set: {0} | {1} | {2}".format(obj,attr,_v))
+    
+    def uiCallback_loadChild(self):
+        _v = self.uiOM_child.getValue()
+        mBlock =  self.mBlockDict.get(_v)
+        if not mBlock:
+            return
+        
+        self.uiBlock_content.clear()
+        self.uiFunc_loadBlock( mBlock)
+        
+    def uiCallback_loadSibling(self):
+        _v = self.uiOM_sibling.getValue()
+        mBlock =  self.mBlockDict.get(_v)
+        if not mBlock:
+            return
+        
+        self.uiBlock_content.clear()
+        self.uiFunc_loadBlock( mBlock)
+        
+    def uiPopup_createChildren(self,button):
+        if self.uiPopUpMenu_children:
+            self.uiPopUpMenu_children.clear()
+            self.uiPopUpMenu_children.delete()
+            self.uiPopUpMenu_children = None
+    
+        self.uiPopUpMenu_children = mUI.MelPopupMenu(button,button = 1)
+        _popUp = self.uiPopUpMenu_children 
+    
+        mUI.MelMenuItem(_popUp,
+                        label = "Set Children",
+                        en=False)     
+        mUI.MelMenuItemDiv(_popUp)
+        
+        _pop = mUI.MelMenuItem(_popUp,subMenu = True,
+                               label = "Children",
+                               en=True)
+        
+        for mChild in self.mChildren:
+            _label =  mChild.p_nameBase
+            mUI.MelMenuItem(_pop,
+                            label = _label,
+                            ann = "Set the create shape to: {0}".format(_label),
+                            c=lambda *a:self.uiFunc_loadBlock(mChild))  
+                
+                
+    def uiFunc_updateBlock(self):
+        _str_func = ' uiFunc_updateBlock'
+        log.debug("|{0}| >> mBlock: {1}".format(_str_func,self.mBlock))
+        
+        self.uiBlock_content.clear()
+        
+        mBlock = self.mBlock
+        
+
+        #Lock nulls row ------------------------------------------------------------------------
+        _mRow_lockNulls = mUI.MelHSingleStretchLayout(self.uiBlock_content,ut='cgmUISubTemplate',padding = 2)
+        mUI.MelSpacer(_mRow_lockNulls,w=_sidePadding)
+        
+        mUI.MelLabel(_mRow_lockNulls,l='Lock null:')
+        _mRow_lockNulls.setStretchWidget(mUI.MelSeparator(_mRow_lockNulls,))
+        
+        for null in ['formNull','prerigNull']:
+            _str_null = mBlock.getMessage(null)
+            if _str_null:
+                _nullShort = _str_null[0]
+                mUI.MelCheckBox(_mRow_lockNulls, l="- {0}".format(null),
+                                value = ATTR.get(_nullShort,'template'),
+                                onCommand = cgmGEN.Callback(ATTR.set,_nullShort,'template',1),
+                                offCommand = cgmGEN.Callback(ATTR.set,_nullShort,'template',0))                
+            else:
+                mUI.MelCheckBox(_mRow_lockNulls, l="- {0}".format(null),
+                                en=False)
+        
+        mUI.MelSpacer(_mRow_lockNulls,w=_sidePadding)
+        _mRow_lockNulls.layout()
+        
+        #Load ------------------------------------------------------------------------
+        _mRow_load = mUI.MelHLayout(self.uiBlock_content,ut='cgmUISubTemplate',padding = 2)
+        #mUI.MelSpacer(_mRow_load,w=_sidePadding)
+        
+        #mUI.MelLabel(_mRow_load,l='Load:')
+        #_mRow_load.setStretchWidget(mUI.MelSeparator(_mRow_load,))
+        
+        mParent = mBlock.p_blockParent
+        mChildren = mBlock.getBlockChildren() or []
+        mSiblings = mBlock.atUtils('siblings_get') or []
+        mMirror = mBlock.getMessageAsMeta('blockMirror')
+        
+        
+        self.mParent = mParent
+        self.mChildren = mChildren
+        self.mSiblings = mSiblings
+        self.mMirror = mMirror
+
+        
+        if mParent:
+            _key = NAMETOOLS.get_combinedNameDict(mParent.mNode,'cgmType')            
+            mUI.MelButton(_mRow_load,
+                          label=_key,ut='cgmUITemplate',
+                          c = lambda *a: self.uiFunc_loadBlock(mParent),
+                          en=  1 if mParent else 0,
+                          ann='Load Parent block')
+        else:
+            mUI.MelButton(_mRow_load,
+                          label='Parent',ut='cgmUITemplate',
+                          en= 0,
+                          ann='Load Parent block')            
+        
+        if mChildren:
+            #mButton = mUI.MelLabel(_mRow_load,label = "Chld")
+            
+            _optionMenu = mUI.MelOptionMenu(_mRow_load,ut = 'cgmUITemplate',h=25)
+            self.uiOM_child = _optionMenu
+            _optionMenu.append('Children')
+            
+            for mObj in mChildren:
+                _key = NAMETOOLS.get_combinedNameDict(mObj.mNode,'cgmType')
+                _optionMenu.append(_key)
+                self.mBlockDict[_key] = mObj
+                
+            _optionMenu(e=True,
+                        cc = lambda *a:mc.evalDeferred(self.uiCallback_loadChild))
+ 
+
+        if mSiblings:
+            #mUI.MelLabel(_mRow_load,label = "Sib")
+            
+            _optionMenu = mUI.MelOptionMenu(_mRow_load,ut = 'cgmUITemplate',h=25)
+            self.uiOM_sibling = _optionMenu
+            _optionMenu.append('Siblings')
+            
+            for mObj in mSiblings:
+                _key = NAMETOOLS.get_combinedNameDict(mObj.mNode,'cgmType')
+                _optionMenu.append(_key)
+                self.mBlockDict[_key] = mObj
+                
+            _optionMenu(e=True,
+                        cc = lambda *a:mc.evalDeferred(self.uiCallback_loadSibling))
+                    
+        if mMirror:
+            #_key = NAMETOOLS.get_combinedNameDict(mMirror.mNode,'cgmType')            
+            mUI.MelButton(_mRow_load,
+                          label='Mirror',ut='cgmUITemplate',
+                          c = lambda *a: self.uiFunc_loadBlock(mMirror),
+                          ann='Load mMirror block')
+
+        
+        #mUI.MelSpacer(_mRow_load,w=_sidePadding)
+        _mRow_load.layout()
+        
+        
+        _d = self.mBlock.atUtils('uiQuery_getStateAttrDict',0,0)
+        self._d_attrFields = {}
+        
+        _short = mBlock.mNode
+        
+ 
+        _keys = _d.keys()
+        _keys.sort()
+        l_order =['basic','name','define','form','prerig','skeleton','rig']
+        l_order.reverse()
+        for k in l_order:
+            if k in _keys:
+                _keys.remove(k)
+                _keys.insert(0,k)
+        
+        
+        for k in _keys:
+            l = _d[k]
+            if not l:
+                log.debug("|{0}| >> No attrs in : {1}".format(_str_func,k))                
+                continue
+            
+            try:self.__dict__['var_{0}FrameCollapse'.format(k)]
+            except:self.create_guiOptionVar('{0}FrameCollapse'.format(k),defaultValue = 0)
+            
+            mVar_frame = self.__dict__['var_{0}FrameCollapse'.format(k)]
+            
+            _frame = mUI.MelFrameLayout(self.uiBlock_content,label = CORESTRINGS.capFirst(k),vis=True,
+                                        collapse=mVar_frame.value,
+                                        collapsable=True,
+                                        enable=True,
+                                        useTemplate = 'cgmUITemplate',
+                                        expandCommand = cgmGEN.Callback(mVar_frame.setValue,0),
+                                        collapseCommand =  cgmGEN.Callback(mVar_frame.setValue,1),
+                                        statusBarMessage = k,
+                                        )	
+            _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')            
+
+    
+            #Attrs... ------------------------------------------------------------------------
+            for a in l:
+                try:
+                    if a in ['blockState']:
+                        continue
+                    _type = ATTR.get_type(_short,a)
+                    log.debug("|{0}| >> attr: {1} | {2}".format(_str_func, a, _type))
+                    
+                    if k in ['data','wiring']:
+                        
+                        mUI.MelLabel(_inside,l = "{0} | {1}".format(a, ATTR.get(_short,a)))
+                        continue                    
+                    
+                    _hlayout = mUI.MelHSingleStretchLayout(_inside,padding = 5,h=25)
+
+
+                    #if _type not in ['bool']:#Some labels parts of fields
+                    mUI.MelLabel(_hlayout,l="  {0} ".format(a))   
+        
+                    mUI.MelSpacer(_hlayout,w=_sidePadding)
+            
+                    _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))            
+            
+            
+                    if _type == 'bool':
+                        mUI.MelCheckBox(_hlayout, l="",
+                                        #annotation = "Copy values",		                           
+                                        value = ATTR.get(_short,a),
+                                        onCommand = cgmGEN.Callback(ATTR.set,_short,a,1),
+                                        offCommand = cgmGEN.Callback(ATTR.set,_short,a,0))
+            
+                    elif _type in ['double','doubleAngle','doubleLinear','float']:
+                        self._d_attrFields[a] = mUI.MelFloatField(_hlayout,w = 50,
+                                                                  value = ATTR.get(_short,a),                                                          
+                                                                  )
+                        self._d_attrFields[a](e=True,
+                                              cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                                    self._d_attrFields[a]),
+                                              )
+                    elif _type == 'long':
+                        self._d_attrFields[a] = mUI.MelIntField(_hlayout,w = 50,
+                                                                 value = ATTR.get(_short,a),
+                                                                 maxValue=20,
+                                                                 minValue=ATTR.get_min(_short,a),
+                                                                  )
+                        self._d_attrFields[a](e=True,
+                                              cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                                    self._d_attrFields[a]),
+                                              )                
+                    elif _type == 'string':
+                        self._d_attrFields[a] = mUI.MelTextField(_hlayout,w = 75,
+                                                                 text = ATTR.get(_short,a),
+                                                                  )
+                        self._d_attrFields[a](e=True,
+                                              cc  = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                                    self._d_attrFields[a]),
+                                              )
+                    elif _type == 'enum':
+                        _optionMenu = mUI.MelOptionMenu(_hlayout,ut = 'cgmUITemplate')
+                        _optionMenu(e=True,
+                                    cc = cgmGEN.Callback(self.uiCallback_setAttrFromField,_short, a, _type,
+                                                         _optionMenu),) 
+                        for option in ATTR.get_enumList(_short,a):
+                            _optionMenu.append(option)
+                        _optionMenu.setValue(ATTR.get_enumValueString(_short,a))
+                    else:
+                        mUI.MelLabel(_hlayout,l="{0}({1}):{2}".format(a,_type,ATTR.get(_short,a)))        
+            
+                    mUI.MelSpacer(_hlayout,w=_sidePadding)                
+                    _hlayout.layout()
+                except Exception,err:
+                    log.info("Attr {0} failed. err: {1}".format(a,err))            
+            
+            
+            
+            
+            
+            
+    def uiFunc_loadBlock(self,mBlock = None):
+        self.mBlock = cgmMeta.validateObjArg(mBlock,'cgmRigBlock',True)
+        self.block = None
+        if self.mBlock:
+            self.block = self.mBlock.mNode        
+        else:
+            return log.warning("Invalid block: {0}".format(mBlock))
+        
+        if self.mBlock:
+            _strBlock = self.mBlock.UTILS.get_uiString(self.mBlock)#p_nameBase
+        else:
+            _strBlock = self.mBlock
+            
+        self.uiStr_header(edit=1, label = 'Syncing')
+            
+        _blockState = self.mBlock.getEnumValueString('blockState')
+        
+        if not self.block:
+            self.uiStatus(edit=True,vis=True,label="Must have something loaded")
+            return
+        
+        
+        self.uiFunc_updateStatus()
+        self.uiStr_header(edit=1, label = _strBlock)
+        
+        
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        _MainForm = mUI.MelFormLayout(parent,ut='cgmUISubTemplate')#mUI.MelColumnLayout(ui_tabs)
+        _inside = mUI.MelScrollLayout(_MainForm, ut='cgmUITemplate')
+        
+       
+                    
+        SetHeader = mUI.MelLabel(_inside,label = '', al = 'center', ut = 'cgmUIHeaderTemplate')
+        self.uiStr_header = SetHeader
+        
+        #mc.setParent(_MainForm)
+        self.uiStatus = mUI.MelButton(_MainForm,bgc=SHARED._d_gui_state_colors.get('warning'),
+                                      c=lambda *a:self.uiFunc_updateStatus(),
+                                      ann="Query the last buffered state and update status",
+                                      label='...',
+                                      h=20)
+        #mUI.MelLabel(_MainForm,
+        #                             vis=True,
+        #                             bgc = SHARED._d_gui_state_colors.get('warning'),
+        #                             label = '...',
+        #                             h=20)        
+        self.uiPB_test=None
+        self.uiPB_test = mc.progressBar(vis=False)
+
+        
+        #Let's gather our attributes...
+        
+        self.uiBlock_content = mUI.MelColumn(_inside,
+                                             bgc=cgmUI.guiBackgroundColorLight,
+                                             useTemplate = 'cgmUITemplate')        
+        
+        
+        #_row_cgm = cgmUI.add_cgmFooter(_MainForm)
+        mc.setParent(_MainForm)
+ 
+        
+        #_rowProgressBar = mUI.MelRow(_MainForm)
+
+        _MainForm(edit = True,
+                  af = [(_inside,"top",0),
+                        (_inside,"left",0),
+                        (_inside,"right",0),
+                        (self.uiStatus,"left",0),
+                        (self.uiStatus,"right",0),
+                        #(self.uiPB_test,"left",0),
+                        #(self.uiPB_test,"right",0),                        
+                        #(_row_cgm,"left",0),
+                        #(_row_cgm,"right",0),
+                        (self.uiStatus,"bottom",0),
+    
+                        ],
+                  ac = [(_inside,"bottom",0,self.uiStatus),
+                        #(_button,"bottom",0,_row_cgm),
+                        #(self.uiPB_test,"bottom",0,_row_cgm),
+                        ],
+                  attachNone = [(self.uiStatus,"top")])    
+        
+        
+        
+        
+
 class ui_stepBuild(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = 'cgmBuilderSteppped'    
@@ -128,7 +590,6 @@ class ui_stepBuild(cgmUI.cgmGUI):
         self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
                                                     defaultValue = 'unityMed')
                 
-        
     def build_menus(self):pass
     
     @cgmGEN.Timer
@@ -1974,6 +2435,9 @@ class ui(cgmUI.cgmGUI):
             #Now parse to sets of data
             if args[0] == 'stepUI':
                 return ui_stepBuild(ml_blocks[0])
+            elif args[0] == 'blockEdit':
+                return ui_blockEdit(ml_blocks[0])
+                
             elif args[0] == 'select':
                 #log.info('select...')
                 return mc.select([mBlock.mNode for mBlock in ml_context])
@@ -2194,6 +2658,13 @@ class ui(cgmUI.cgmGUI):
                 _b_active = True
                 
             #>>>Special menu ---------------------------------------------------------------------------------------
+            mUI.MelMenuItem(_popUp,
+                            ann = self._d_ui_annotations.get('block edit'),
+                            c =cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                               'blockEdit',
+                                               **{'updateUI':0,'mode':'blockEdit'}),
+                            label = "Edit Block UI")
+            
             
             mBlockModule = _mBlock.getBlockModule()
             if 'uiBuilderMenu' in mBlockModule.__dict__.keys():

@@ -6535,7 +6535,81 @@ def uiQuery_getStateAttrs(self,mode = None,report=True):
             pprint.pprint(l_attrs)
         return l_attrs
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
-    
+
+_d_attrStateVisOn = {0:['blockState','scaleSetup','numControls',
+                        #'proxyShape','shapeDirection','numShapers',
+                        #'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
+                        ],
+                     1:['attachPoint','attachIndex','numRoll',
+                        'addAim','addCog','addPivot','addScalePivot','axisAim','axisUp',],
+                     2:['ikEnd','ikSetup','ikOrientToWorld','ikBase',
+                        'mainRotAxis','hasEndJoint',
+                        'ribbonAim','ribbonParam','rigSetup',
+                        'segmentMidIKControl','settingsDirection','settingsPlace',
+                        'spaceSwitch_fk','ribbonConnectBy','numSpacePivots',
+                        'rollCount'],
+                     3:['spaceSwitch_direct','squash','squashExtraControl',
+                        'squashFactorMax','squashFactorMin','squashMeasure',
+                        'offsetMode','proxyDirect',],
+                     4:['proxyLoft','proxyGeoRoot']}
+
+d_uiAttrDict = {'name':['cgmName',
+                        'nameList',
+                        'iterName'],
+                'basic':['attachPoint','attachIndex'],
+                'define':['basicShape','shapeDirection'],
+                'form':['numShapers','numSubShapers','shapersAim',
+                        'loftSetup','loftList','loftShape',
+                        'proxyShape'],
+                'proxySurface':['loftSides','loftDegree','loftSplit'],
+                'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace'],
+                'skeleton':['numRoll','hasJoint'],
+                'wiring':['blockMirror','blockParent','moduleTarget'],
+                'rig':['axisAim','axisUp','buildSDK','rotPivotPlace',
+                       'ribbonAim','ribbonParam','rigSetup','scaleSetup','numControls',
+                       'segmentMidIKControl','settingsDirection','settingsPlace',
+                       'spaceSwitch_fk','ribbonConnectBy','numSpacePivots',                       
+                       'spaceSwitch_direct','squash','squashExtraControl',
+                        'squashFactorMax','squashFactorMin','squashMeasure',
+                        'offsetMode','proxyDirect','parentToDriver'],
+                'advanced':['baseDat'],
+                'vis':[ 'visLabels','visMeasure','visProximityMode'],
+                'data':['version','blockType','blockProfile'],
+                'post':['proxyLoft','proxyGeoRoot','proxyType']}
+
+def uiQuery_getStateAttrDict(self,report = True, unknown = True):
+    _str_func = ' uiQuery_getStateAttrDict'
+    log.debug(cgmGEN.logString_start(_str_func))
+    _short = self.mNode
+        
+    _res = {}
+    _done = []
+    for k,l in d_uiAttrDict.iteritems():
+        _tmp = []
+        for s in l:
+            if self.hasAttr(s):
+                if s in _done:
+                    log.warning(s)
+                else:
+                    _tmp.append(s)
+                    _done.append(s)
+        _res[k] = _tmp
+        
+    if report:
+        pprint.pprint(_res)
+        
+    if unknown:
+        _tmp = []
+        for a in self.getAttrs(ud=True):
+            if a not in _done:
+                _tmp.append(a)
+        _tmp.sort()
+        log.info(cgmGEN.logString_sub(_str_func,'Unknown...'))
+        pprint.pprint(_tmp) 
+        
+    return _res
+
+
 #=============================================================================================================
 #>> State Changing
 #=============================================================================================================
