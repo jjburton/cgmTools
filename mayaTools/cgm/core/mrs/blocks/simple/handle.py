@@ -194,10 +194,10 @@ l_attrsStandard = ['side',
                    #'buildProfile',
                    'visMeasure',
                    'visProximityMode',
+                   'shapeDirection',
                    'moduleTarget']
 
-d_attrsToMake = {'shapeDirection':":".join(CORESHARE._l_axis_by_string),
-                 'axisAim':":".join(CORESHARE._l_axis_by_string),
+d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
                  'axisUp':":".join(CORESHARE._l_axis_by_string),
                  'rotPivotPlace':'handle:jointHelper:cog',
                  'loftSetup':'default:loftList',
@@ -409,7 +409,7 @@ def define(self):
         
         if self.blockProfile not in ['snapPoint']:
             #Get our base attr dat ============================================================
-            _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
+            """_d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
                                        'x-':{'end':[-1,0,0],'up':[0,1,0]},
                                        'y+':{'end':[0,1,0],'up':[0,0,-1]},
                                        'y-':{'end':[0,-1,0],'up':[0,0,-1]},
@@ -421,8 +421,9 @@ def define(self):
     
             _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
             _dBase['lever'] = [-1 * v for v in _dBase['end']]
-            self.baseDat = _dBase        
+            self.baseDat = _dBase        """
     
+            self.atUtils('shapeDirection_toBaseDat')
             
             #Aim Controls ==================================================================
             _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},

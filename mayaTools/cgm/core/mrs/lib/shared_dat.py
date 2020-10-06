@@ -11,6 +11,8 @@ Website : http://www.cgmonks.com
 """
 __MAYALOCAL = 'BLOCKSHARE'
 
+import cgm.core.lib.shared_data as CORESHARE
+
 d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockType':'string',
                 #'moduleTarget':'messageSimple',
@@ -143,6 +145,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'ribbonConnectBy': 'constraint:matrix',                 
                    
                    'ribbonParam': 'fixed:floating:blend',
+                   'shapeDirection':":".join(CORESHARE._l_axis_by_string),
                    'segmentMidIKControl':'bool',
                    'spaceSwitch_direct':'bool',
                    'spaceSwitch_fk':'bool',

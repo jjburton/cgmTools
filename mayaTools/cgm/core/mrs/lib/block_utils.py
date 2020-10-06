@@ -6536,22 +6536,6 @@ def uiQuery_getStateAttrs(self,mode = None,report=True):
         return l_attrs
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
-_d_attrStateVisOn = {0:['blockState','scaleSetup','numControls',
-                        #'proxyShape','shapeDirection','numShapers',
-                        #'loftList','shapersAim','loftShape','loftSetup','numSubShapers',
-                        ],
-                     1:['attachPoint','attachIndex','numRoll',
-                        'addAim','addCog','addPivot','addScalePivot','axisAim','axisUp',],
-                     2:['ikEnd','ikSetup','ikOrientToWorld','ikBase',
-                        'mainRotAxis','hasEndJoint',
-                        'ribbonAim','ribbonParam','rigSetup',
-                        'segmentMidIKControl','settingsDirection','settingsPlace',
-                        'spaceSwitch_fk','ribbonConnectBy','numSpacePivots',
-                        'rollCount'],
-                     3:['spaceSwitch_direct','squash','squashExtraControl',
-                        'squashFactorMax','squashFactorMin','squashMeasure',
-                        'offsetMode','proxyDirect',],
-                     4:['proxyLoft','proxyGeoRoot']}
 
 d_uiAttrDict = {'name':['cgmName',
                         'nameList',
@@ -6562,17 +6546,24 @@ d_uiAttrDict = {'name':['cgmName',
                         'loftSetup','loftList','loftShape',
                         'proxyShape'],
                 'proxySurface':['loftSides','loftDegree','loftSplit'],
-                'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace'],
+                'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace',
+                          'numControls',],
                 'skeleton':['numRoll','hasJoint'],
                 'wiring':['blockMirror','blockParent','moduleTarget'],
-                'rig':['axisAim','axisUp','buildSDK','rotPivotPlace',
-                       'ribbonAim','ribbonParam','rigSetup','scaleSetup','numControls',
+                'rig':['numSpacePivots','axisAim','axisUp','rotPivotPlace',
+                       'ribbonAim','ribbonParam','ribbonConnectBy',
                        'segmentMidIKControl','settingsDirection','settingsPlace',
-                       'spaceSwitch_fk','ribbonConnectBy','numSpacePivots',                       
-                       'spaceSwitch_direct','squash','squashExtraControl',
-                        'squashFactorMax','squashFactorMin','squashMeasure',
-                        'offsetMode','proxyDirect','parentToDriver'],
+                       'spaceSwitch_fk',                       
+                       'spaceSwitch_direct',
+                       'buildSDK',
+                       'ikOrientToWorld',
+                       'ikSetup',
+                       'ikBase',
+                       'ikEnd',
+                        'offsetMode','proxyDirect','parentToDriver','rigSetup','scaleSetup'],
                 'advanced':['baseDat'],
+                'squashStretch':['squash','squashExtraControl','squashFactorMin','squashFactorMax',
+                                 'squashMeasure'],
                 'vis':[ 'visLabels','visMeasure','visProximityMode'],
                 'data':['version','blockType','blockProfile'],
                 'post':['proxyLoft','proxyGeoRoot','proxyType']}
@@ -6609,6 +6600,19 @@ def uiQuery_getStateAttrDict(self,report = True, unknown = True):
         
     return _res
 
+def shapeDirection_toBaseDat(self):
+    _d_baseDatFromDirection = {'x+':{'end':[1,0,0],'up':[0,1,0]},
+                               'x-':{'end':[-1,0,0],'up':[0,1,0]},
+                               'y+':{'end':[0,1,0],'up':[0,0,-1]},
+                               'y-':{'end':[0,-1,0],'up':[0,0,-1]},
+                               'z+':{'end':[0,0,1],'up':[0,1,0]},
+                               'z-':{'end':[0,0,-1],'up':[0,1,0]}}
+    _shapeDirection = self.getEnumValueString('shapeDirection')
+
+    _dBase = self.baseDat
+    _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
+    _dBase['lever'] = [-1 * v for v in _dBase['end']]
+    self.baseDat = _dBase            
 
 #=============================================================================================================
 #>> State Changing
@@ -9564,6 +9568,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                         _shape = 'eye'
                     else:
                         _shape = 'sphere'
+                        _useSize = [_useSize,_useSize,_useSize*.5]
                     
                 _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
                                               bakeScale = 1,                                              

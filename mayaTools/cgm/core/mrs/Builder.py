@@ -87,6 +87,16 @@ d_state_colors = {'define':[1,.3,.3],
 __version__ =  cgmGEN.__RELEASE
 _sidePadding = 25
 
+
+
+def reloadMRSStuff():
+    log.info("reloading...")
+    for m in BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,BLOCKGEN,CONTEXT,NAMETOOLS:
+        print m
+        reload(m)
+    log.info(cgmGEN._str_subLine)
+    
+
 def check_cgm():
     return
     try:
@@ -98,9 +108,22 @@ def check_cgm():
 """
 import cgm.core.mrs.Builder as BUILDER
 reload(BUILDER)
-BUILDER.ui_blockEdit('master_masterBlock')
+BUILDER.ui_blockEditor('master_masterBlock')
 """
-class ui_blockEdit(cgmUI.cgmGUI):
+global BLOCKEDITOR
+BLOCKEDITOR = None
+
+def blockEditor_get(mBlock=None):
+    global BLOCKEDITOR
+    if BLOCKEDITOR:
+        log.info('cached...')
+        if mBlock:
+            BLOCKEDITOR.uiFunc_loadBlock(mBlock)
+        BLOCKEDITOR.show()
+        return  BLOCKEDITOR
+    return ui_blockEditor(mBlock)
+
+class ui_blockEditor(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = 'mrsBlockEditor'    
     WINDOW_TITLE = 'Block Edit | - {0}'.format(__version__)
@@ -109,20 +132,96 @@ class ui_blockEdit(cgmUI.cgmGUI):
     MIN_BUTTON = False
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 250,500
+    DEFAULT_SIZE = 300,600
     
     _d_ui_annotations = {'select':"Select rigBlocks in maya from ui."}
     
     def __init__(self,mBlock = None, *a,**kws):
-        super(ui_blockEdit, self).__init__(*a,**kws)
+        global BLOCKEDITOR
+
+        
+        super(ui_blockEditor, self).__init__(*a,**kws)
         
         self.mBlockDict = {}
         self.uiPopUpMenu_children = None
         self.uiPopUpMenu_siblings = None
         
         self.uiFunc_loadBlock(mBlock)
+        BLOCKEDITOR = self
         
-        
+    def uiFunc_blockCall(self,*args,**kws):
+        try:
+            if not self.mBlock:
+                return
+            mBlock = self.mBlock
+            
+            mc.refresh(su=1)
+            _sel = mc.ls(sl=1)
+            if _sel:
+                mc.select(cl=1)
+
+            _str_func = ''
+            log.info(cgmGEN._str_hardBreak)
+            
+            _mode = kws.get('mode')
+
+                
+            #elif  _mode == 'clearParentBlock':
+            #else:
+                #raise ValueError,"Mode not setup: {0}".format(_mode)            
+            b_devMode = False
+            b_dupMode = False
+            b_changeState = False
+            b_rootMode = False
+            if args[0] == 'changeState':
+                b_changeState = True
+                b_devMode = self.var_mrsDevMode.value
+                if _contextMode in ['scene']:
+                    log.warning("|{0}| >> Change state cannot be run in any mode but self. Changing context.".format(_str_func))
+                elif _contextMode == 'root':
+                    b_rootMode = True
+                
+                if _contextMode == 'self':
+                    kws['forceNew'] = True
+                    kws['checkDependency'] = True
+                else:
+                    kws['forceNew'] = self.var_contextForceMode.value
+
+            if args[0] == 'VISUALIZEHEIRARCHY':
+                BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,False,True)
+                return True
+                
+            #Now parse to sets of data
+            if args[0] == 'select':
+                #log.info('select...')
+                return mc.select(mBlock.mNode)
+   
+            ml_res = []
+            md_dat = {}
+            md_datRev = {}
+            
+            _short = mBlock.p_nameShort
+            _call = str(args[0])
+            if _call in ['atUtils']:
+                _call = str(args[1])
+
+            res = getattr(mBlock,args[0])(*args[1:],**kws) or None
+            ml_res.append(res)
+            if res:
+                if kws.get('mode') not in ['prechecks']:
+                    pprint.pprint(res)
+
+            self.uiFunc_updateStatus()
+
+            if _sel:
+                try:mc.select(_sel)
+                except:pass
+                
+        #except Exception,err:
+        #    cgmGEN.cgmExceptCB(Exception,err)
+        finally:
+            mc.refresh(su=0)
+            
     def uiFunc_updateStatus(self):
         if not self.mBlock:
             self.uiStatus(edit=1,
@@ -136,14 +235,7 @@ class ui_blockEdit(cgmUI.cgmGUI):
         self.uiStatus(edit=1,
                       label="State: {0}".format(self.mBlock.blockState))        
         
-        """            
-            if _status:
-                self.uiStatus(edit=1,
-                              label="State: {0}".format(_status))
-            else:
-                self.uiStatus(edit=1,
-                              label=self.str_lastStep)
-                              """            
+
     def uiCallback_contextualSetAttrFromField(self, attr, attrType, field):
         _v = field.getValue()
         
@@ -275,7 +367,7 @@ class ui_blockEdit(cgmUI.cgmGUI):
         _mRow_lockNulls.layout()
         
         #Load ------------------------------------------------------------------------
-        _mRow_load = mUI.MelHLayout(self.uiBlock_content,ut='cgmUISubTemplate',padding = 2)
+        _mRow_load = mUI.MelHLayout(self.uiBlock_content,ut='cgmUISubTemplate',padding = 10)
         #mUI.MelSpacer(_mRow_load,w=_sidePadding)
         
         #mUI.MelLabel(_mRow_load,l='Load:')
@@ -296,7 +388,7 @@ class ui_blockEdit(cgmUI.cgmGUI):
         if mParent:
             _key = NAMETOOLS.get_combinedNameDict(mParent.mNode,'cgmType')            
             mUI.MelButton(_mRow_load,
-                          label=_key,ut='cgmUITemplate',
+                          label="^ {0}".format(_key),ut='cgmUITemplate',
                           c = lambda *a: self.uiFunc_loadBlock(mParent),
                           en=  1 if mParent else 0,
                           ann='Load Parent block')
@@ -311,7 +403,7 @@ class ui_blockEdit(cgmUI.cgmGUI):
             
             _optionMenu = mUI.MelOptionMenu(_mRow_load,ut = 'cgmUITemplate',h=25)
             self.uiOM_child = _optionMenu
-            _optionMenu.append('Children')
+            _optionMenu.append('Children | {0}'.format(len(mChildren)))
             
             for mObj in mChildren:
                 _key = NAMETOOLS.get_combinedNameDict(mObj.mNode,'cgmType')
@@ -327,7 +419,7 @@ class ui_blockEdit(cgmUI.cgmGUI):
             
             _optionMenu = mUI.MelOptionMenu(_mRow_load,ut = 'cgmUITemplate',h=25)
             self.uiOM_sibling = _optionMenu
-            _optionMenu.append('Siblings')
+            _optionMenu.append('Siblings | {0}'.format(len(mSiblings)))
             
             for mObj in mSiblings:
                 _key = NAMETOOLS.get_combinedNameDict(mObj.mNode,'cgmType')
@@ -350,11 +442,11 @@ class ui_blockEdit(cgmUI.cgmGUI):
         
         
         _d = self.mBlock.atUtils('uiQuery_getStateAttrDict',0,0)
+        
         self._d_attrFields = {}
         
         _short = mBlock.mNode
         
- 
         _keys = _d.keys()
         _keys.sort()
         l_order =['basic','name','define','form','prerig','skeleton','rig']
@@ -363,12 +455,20 @@ class ui_blockEdit(cgmUI.cgmGUI):
             if k in _keys:
                 _keys.remove(k)
                 _keys.insert(0,k)
+                
+        l_end = ['post','data','wiring','advanced']
+        for k in l_end:
+            if k in _keys:
+                _keys.remove(k)
+                _keys.append(k)        
         
         
         for k in _keys:
-            l = _d[k]
+            log.info(cgmGEN.logString_sub(_str_func,k))                
+            
+            l = _d.get(k)
             if not l:
-                log.debug("|{0}| >> No attrs in : {1}".format(_str_func,k))                
+                log.info("|{0}| >> No attrs in : {1}".format(_str_func,k))                
                 continue
             
             try:self.__dict__['var_{0}FrameCollapse'.format(k)]
@@ -380,14 +480,93 @@ class ui_blockEdit(cgmUI.cgmGUI):
                                         collapse=mVar_frame.value,
                                         collapsable=True,
                                         enable=True,
-                                        useTemplate = 'cgmUITemplate',
+                                        marginWidth = 5,
+                                        useTemplate = 'cgmUIHeaderTemplate',
                                         expandCommand = cgmGEN.Callback(mVar_frame.setValue,0),
                                         collapseCommand =  cgmGEN.Callback(mVar_frame.setValue,1),
                                         statusBarMessage = k,
                                         )	
-            _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate')            
+            _inside = mUI.MelColumnLayout(_frame,
+                                          #rowSpacing = 5,
+                                          useTemplate = 'cgmUISubTemplate')
+            
+            if k == 'name':#Name section....-------------------------------------------------
+                log.info("|{0}| >> Name...".format(_str_func))
+                _nameIter = mBlock.hasAttr('nameIter')
+                if _nameIter:
+                    mUI.MelLabel(_inside,l = "Tag: {0} | Iterator: {1}".format(mBlock.getMayaAttr('cgmName'),
+                                                                               mBlock.getMayaAttr('nameIter')),
+                                 ut ='cgmUIInstructionsTemplate' ,
+                                 )
+                else:
+                    mUI.MelLabel(_inside,l = "Tag: {0}".format(mBlock.getMayaAttr('cgmName')),
+                                 ut ='cgmUIInstructionsTemplate' ,
+                                 )                    
 
-    
+                #Base name stuff...
+                _mRow = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 2)
+                
+                mUI.MelButton(_mRow,
+                              label='Tag',ut='cgmUITemplate',
+                              c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                                  'atUtils','set_nameTag', **{}),
+                              ann='Change nameTag')
+                if _nameIter:
+                    mUI.MelButton(_mRow,
+                                  label='NameIter',ut='cgmUITemplate',
+                                  c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                                      'atUtils','set_nameIter', **{}),
+                                  ann='Change iter name')                
+                
+                _mRow.layout()
+                
+                
+                _nameList = mBlock.datList_get('nameList')
+                if _nameList:
+                    mc.setParent(_inside)
+                    cgmUI.add_LineBreak()
+                    cgmUI.add_Header('nameList')
+                    
+                    #mUI.MelLabel(_inside,l = 'NAMELIST',
+                    #             useTemplate = 'cgmUITemplate')
+                    
+                    mUI.MelLabel(_inside,l = "{0} | {1}".format(len(_nameList),
+                                                                [str(n) for n in _nameList]),
+                                useTemplate = 'cgmUIInstructionsTemplate',
+                                )
+                    
+                    #Namelist...
+                    _mRow = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate')
+                    mUI.MelSpacer(_mRow,w=_sidePadding)
+                    
+                    mUI.MelLabel(_mRow,l='NameList:')
+                    _mRow.setStretchWidget(mUI.MelSeparator(_mRow,))
+                    
+                    _d_nameList = {
+                                'Reset':{'ann':'Reset the name list to the profile',
+                                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                      'atUtils','nameList_resetToProfile',
+                                                                      **{})},
+                                'Edit':{'ann':'Ui Prompt to edit nameList',
+                                                    'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                           'atUtils','nameList_uiPrompt',
+                                                                           **{})},                  
+                                 'Iter baseName':{'ann':'Set nameList values from name attribute',
+                                                  'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                         'atUtils','set_nameListFromName',
+                                                                         **{})}}
+                
+                    for k2,d2 in _d_nameList.iteritems():
+                        mUI.MelButton(_mRow,
+                                     label=k2,ut='cgmUITemplate',
+                                     ann = d2.get('ann',''),
+                                     c=d2.get('call'))
+                        
+                    mUI.MelSpacer(_mRow,w=_sidePadding)
+                    _mRow.layout()
+                
+                continue
+
             #Attrs... ------------------------------------------------------------------------
             for a in l:
                 try:
@@ -399,15 +578,15 @@ class ui_blockEdit(cgmUI.cgmGUI):
                     if k in ['data','wiring']:
                         
                         mUI.MelLabel(_inside,l = "{0} | {1}".format(a, ATTR.get(_short,a)))
-                        continue                    
-                    
-                    _hlayout = mUI.MelHSingleStretchLayout(_inside,padding = 5,h=25)
+                        continue
+
+                    _hlayout = mUI.MelHSingleStretchLayout(_inside,padding = 10)
 
 
                     #if _type not in ['bool']:#Some labels parts of fields
                     mUI.MelLabel(_hlayout,l="  {0} ".format(a))   
         
-                    mUI.MelSpacer(_hlayout,w=_sidePadding)
+                    #mUI.MelSpacer(_hlayout,w=_sidePadding)
             
                     _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))            
             
@@ -456,7 +635,7 @@ class ui_blockEdit(cgmUI.cgmGUI):
                     else:
                         mUI.MelLabel(_hlayout,l="{0}({1}):{2}".format(a,_type,ATTR.get(_short,a)))        
             
-                    mUI.MelSpacer(_hlayout,w=_sidePadding)                
+                    #mUI.MelSpacer(_hlayout,w=_sidePadding)                
                     _hlayout.layout()
                 except Exception,err:
                     log.info("Attr {0} failed. err: {1}".format(a,err))            
@@ -496,7 +675,7 @@ class ui_blockEdit(cgmUI.cgmGUI):
         _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
         
-        _MainForm = mUI.MelFormLayout(parent,ut='cgmUISubTemplate')#mUI.MelColumnLayout(ui_tabs)
+        _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
         _inside = mUI.MelScrollLayout(_MainForm, ut='cgmUITemplate')
         
        
@@ -522,7 +701,8 @@ class ui_blockEdit(cgmUI.cgmGUI):
         #Let's gather our attributes...
         
         self.uiBlock_content = mUI.MelColumn(_inside,
-                                             bgc=cgmUI.guiBackgroundColorLight,
+                                             #rowSpacing=2,
+                                             #bgc=cgmUI.guiBackgroundColorLight,
                                              useTemplate = 'cgmUITemplate')        
         
         
@@ -2436,7 +2616,7 @@ class ui(cgmUI.cgmGUI):
             if args[0] == 'stepUI':
                 return ui_stepBuild(ml_blocks[0])
             elif args[0] == 'blockEdit':
-                return ui_blockEdit(ml_blocks[0])
+                return blockEditor_get(ml_blocks[0])
                 
             elif args[0] == 'select':
                 #log.info('select...')
@@ -3904,7 +4084,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem( self.uiMenu_help, l="Test Context",
                          c=lambda *a: self.uiFunc_contextBlockCall('VISUALIZEHEIRARCHY') )
         mUI.MelMenuItem( self.uiMenu_help, l="Reverify Scene Blocks",
-                         c=lambda *a: BLOCKGEN.verify_sceneBlocks() )        
+                         c=lambda *a: BLOCKGEN.verify_sceneBlocks() )
+        
+        mUI.MelMenuItem( self.uiMenu_help, l="Reload BlocksStuff",
+                         c=lambda *a: reloadMRSStuff() )        
+        
         
         mUI.MelMenuItem( self.uiMenu_help, l="Thanks!",
                          c=lambda *a: cgmUI.uiWindow_thanks() )

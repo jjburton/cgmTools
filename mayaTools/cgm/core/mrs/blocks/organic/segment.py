@@ -333,7 +333,8 @@ l_attrsStandard = ['side',
                    'offsetMode',
                    'ribbonParam',
                    'proxyDirect',
-                   'proxyGeoRoot',                   
+                   'proxyGeoRoot',
+                   'shapeDirection',
                    #'settingsPlace',
                    'spaceSwitch_direct',
                    'spaceSwitch_fk',
@@ -402,6 +403,7 @@ d_defaultSettings = {'version':__version__,
                      'spaceSwitch_direct':False,
                      'spaceSwitch_fk':False,
                      'nameList':['',''],
+                     'shapeDirection':'y+',
                      #'blockProfile':'spine',
                      'attachPoint':'base',}
 
@@ -470,6 +472,8 @@ def define(self):
         
         #Joint Label ---------------------------------------------------------------------------
         mHandleFactory.addJointLabel(self,self.blockProfile)
+        
+        self.atUtils('shapeDirection_toBaseDat')
         
     
         #Define our controls ===================================================================
@@ -1182,9 +1186,6 @@ def rig_prechecks(self):
         if len(ml) != mBlock.numJoints:
             self.l_precheckErrors.append('Joint len ({0}) != numJoints setting ({1})'.format(len(ml), mBlock.numJoints))
             
-        
-        
-        
         
             #raise NotImplementedError,"scaleSetup not ready."
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
