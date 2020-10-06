@@ -115,6 +115,15 @@ _d_attrStateOff = {0:[],
                    2:[],
                    3:[],
                    4:[]}
+
+d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
+                   'form':['formEndAim',
+                           'loftShapeEnd','loftShapeStart'],
+                   'prerig':[],
+                   'skeleton':[],
+                   'rig':[]}
+
+
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'numJoints':3,

@@ -111,6 +111,13 @@ _d_attrStateOff = {0:[],
                    3:[],
                    4:[]}
 
+d_attrStateMask = {'define':['neckDirection'],
+                   'form':['neckBuild',
+                           'neckSubShapers','neckShapers'],
+                   'prerig':['neckControls'],
+                   'skeleton':['neckJoints'],
+                   'rig':['neckIK']}
+
 #=============================================================================================================
 #>> AttrMask 
 #=============================================================================================================

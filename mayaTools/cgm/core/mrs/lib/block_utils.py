@@ -71,6 +71,7 @@ import cgm.core.lib.skin_utils as CORESKIN
 import cgm.core.lib.string_utils as STR
 import cgm.core.mrs.lib.post_utils as MRSPOST
 from cgm.core.classes import GuiFactory as CGMUI
+from cgm.core.cgmPy import dict_utils as CGMDICT
 
 #=============================================================================================================
 #>> Queries
@@ -6575,7 +6576,23 @@ def uiQuery_getStateAttrDict(self,report = True, unknown = True):
         
     _res = {}
     _done = []
-    for k,l in d_uiAttrDict.iteritems():
+        
+    mBlockModule = self.p_blockModule
+    _d = {}
+    try:
+        _d = mBlockModule.d_attrStateMask
+    except Exception,err:
+        log.error(err)
+        
+    
+    d_use = CGMDICT.blendDat(d_uiAttrDict,_d)
+    
+    #pprint.pprint(d_use)
+    
+    
+    for k,l in d_use.iteritems():
+        log.debug(cgmGEN.logString_sub(_str_func, k))
+        pprint.pprint(l)
         _tmp = []
         for s in l:
             if self.hasAttr(s):
@@ -6584,6 +6601,7 @@ def uiQuery_getStateAttrDict(self,report = True, unknown = True):
                 else:
                     _tmp.append(s)
                     _done.append(s)
+        _tmp.sort()
         _res[k] = _tmp
         
     if report:

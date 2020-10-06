@@ -464,11 +464,11 @@ class ui_blockEditor(cgmUI.cgmGUI):
         
         
         for k in _keys:
-            log.info(cgmGEN.logString_sub(_str_func,k))                
+            log.debug(cgmGEN.logString_sub(_str_func,k))                
             
             l = _d.get(k)
             if not l:
-                log.info("|{0}| >> No attrs in : {1}".format(_str_func,k))                
+                log.debug("|{0}| >> No attrs in : {1}".format(_str_func,k))                
                 continue
             
             try:self.__dict__['var_{0}FrameCollapse'.format(k)]
@@ -491,7 +491,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
                                           useTemplate = 'cgmUISubTemplate')
             
             if k == 'name':#Name section....-------------------------------------------------
-                log.info("|{0}| >> Name...".format(_str_func))
+                log.debug("|{0}| >> Name...".format(_str_func))
                 _nameIter = mBlock.hasAttr('nameIter')
                 if _nameIter:
                     mUI.MelLabel(_inside,l = "Tag: {0} | Iterator: {1}".format(mBlock.getMayaAttr('cgmName'),
@@ -638,7 +638,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
                     #mUI.MelSpacer(_hlayout,w=_sidePadding)                
                     _hlayout.layout()
                 except Exception,err:
-                    log.info("Attr {0} failed. err: {1}".format(a,err))            
+                    log.warning("Attr {0} failed. err: {1}".format(a,err))            
             
             
             

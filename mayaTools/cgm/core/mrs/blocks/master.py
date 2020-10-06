@@ -98,6 +98,13 @@ _d_attrStateOff = {0:[],
                   3:['addMotionJoint'],
                   4:[]}
 
+d_attrStateMask = {'define':[],
+                   'form':[],
+                   'prerig':['addMotionJoint'],
+                   'skeleton':['hasJoint'],
+                   'rig':[]}
+
+
 #MRP - Morpheus Rig Platform
 #MRF - Morpheus Rig Format
 #cgmRigamathig

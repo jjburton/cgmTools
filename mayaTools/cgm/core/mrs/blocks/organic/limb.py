@@ -122,6 +122,19 @@ d_wiring_form = {'msgLinks':['formNull','noTransFormNull','prerigLoftMesh','orie
                      'msgLists':['formHandles']}
 d_wiring_define = {'msgLinks':['defineNull']}
 
+
+d_attrStateMask = {'define':[],
+                   'form':['loftList'],
+                   'prerig':['addBall',
+                             'addLeverBase',
+                             'addLeverEnd',
+                             'addToe',
+                             'buildEnd'],
+                   'skeleton':[],
+                   'rig':[ 'ikExtendSetup','ikRollSetup', 'ikRPAim',
+                           'mainRotAxis',  'followParentBank',],
+                   'vis':['visRotatePlane']}
+
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'numRoll':0,},
