@@ -633,7 +633,7 @@ def get_referencePrefix(node = None):
     return False
 
 
-def seek_upStream(startingNode,endObjType = None, mode = 'objType', getPlug=False):
+def seek_upStream(startingNode,endObjType = None, mode = 'objType', getPlug=False,matchAttrValue = {}):
     """
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     NOT DONE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -660,7 +660,9 @@ def seek_upStream(startingNode,endObjType = None, mode = 'objType', getPlug=Fals
     # do a loop to keep doing down stream on the connections till the type
     # of what we are searching for is found
     _done = False
-    if mode == 'objType':
+    if matchAttrValue and issubclass(type(matchAttrValue),dict):
+        mode = 'matchAttrValue'
+    elif mode == 'objType':
         if endObjType == None:
             raise ValueError,"Must have endObjType when objType mode is True"
         else:
@@ -680,7 +682,15 @@ def seek_upStream(startingNode,endObjType = None, mode = 'objType', getPlug=Fals
         destNodeTypeBuffer = mc.ls(destNodeName[0], st = True)
         destNodeType = destNodeTypeBuffer[1]
         
-        if mode == 'objType' and destNodeType == endObjType:
+        
+        if mode == 'matchAttrValue':
+            for k,v in matchAttrValue.iteritems():
+                if ATTR.get(endNode,k) != v:
+                    continue
+                _done = True
+                return endNode
+        
+        elif mode == 'objType' and destNodeType == endObjType:
             _done = True
         elif mode == 'isTransform' and is_transform(destNodeName[0]):
             _done = True
@@ -697,7 +707,8 @@ def seek_upStream(startingNode,endObjType = None, mode = 'objType', getPlug=Fals
         timeOut +=1
     return endNode
 
-def seek_downStream(startingNode, endObjType = None, mode = 'objType', getPlug=False):
+def seek_downStream(startingNode, endObjType = None, mode = 'objType', getPlug=False,
+                    matchAttrValue = {}):
     """
     endObjType
     isTransform
@@ -726,7 +737,10 @@ def seek_downStream(startingNode, endObjType = None, mode = 'objType', getPlug=F
     # do a loop to keep doing down stream on the connections till the type
     # of what we are searching for is found
     _done = False
-    if mode == 'objType':
+    
+    if matchAttrValue and issubclass(type(matchAttrValue),dict):
+        mode = 'matchAttrValue'
+    elif mode == 'objType':
         if endObjType == None:
             raise ValueError,"Must have endObjType when objType mode is True"
         else:
@@ -752,7 +766,14 @@ def seek_downStream(startingNode, endObjType = None, mode = 'objType', getPlug=F
             destNodeTypeBuffer = mc.ls(destNodeName[0], st = True)
             destNodeType = destNodeTypeBuffer[1]
             
-            if mode == 'objType' and destNodeType == endObjType:
+            if mode == 'matchAttrValue':
+                for k,v in matchAttrValue.iteritems():
+                    if ATTR.get(endNode,k) != v:
+                        continue
+                    _done = True
+                    return endNode
+                    
+            elif mode == 'objType' and destNodeType == endObjType:
                 _done = True
             elif mode == 'isTransform' and is_transform(destNodeName[0]):
                 _done = True

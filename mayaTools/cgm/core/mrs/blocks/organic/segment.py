@@ -120,7 +120,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                    'form':['formEndAim',
                            'loftShapeEnd','loftShapeStart'],
                    'prerig':[],
-                   'skeleton':[],
+                   'skeleton':['numJoints'],
                    'rig':[]}
 
 

@@ -16,6 +16,7 @@ import re
 import copy
 import time
 import os
+import pprint
 
 #From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
@@ -37,6 +38,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import GuiFactory as CGMUI
 import cgm.core.lib.string_utils as STR
+from cgm.core.lib import attribute_utils as ATTR
 
 #from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
@@ -46,7 +48,7 @@ from cgm.core.lib import attribute_utils as ATTR
 #from cgm.core.lib import snap_utils as SNAP
 #from cgm.core.lib import rigging_utils as RIGGING
 #from cgm.core.rigger.lib import joint_Utils as JOINTS
-#from cgm.core.lib import search_utils as SEARCH
+from cgm.core.lib import search_utils as SEARCH
 #from cgm.core.lib import rayCaster as RAYS
 #from cgm.core.cgmPy import validateArgs as VALID
 #from cgm.core.cgmPy import path_Utils as PATH
@@ -66,6 +68,25 @@ def verify_sceneBlocks():
     for mBlock in r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',nTypes=['transform','network']):
         mBlock.atUtils('verify_blockAttrs',queryMode=False)
         
+
+def block_getFromSelected():
+    _str_func = 'block_getFromSelected'
+    _res = []
+    
+    mL = cgmMeta.asMeta(sl=1)
+    for mObj in mL:
+        if mObj.getMayaAttr('mClass') == 'cgmRigBlock':
+            return mObj
+        
+        _found = SEARCH.seek_upStream(mObj.mNode,matchAttrValue = {'mClass':'cgmRigBlock'})
+        if _found:
+            return cgmMeta.asMeta(_found)
+        
+    
+    return False
+
+        
+    
         
 
 def validate_stateArg(stateArg = None,):

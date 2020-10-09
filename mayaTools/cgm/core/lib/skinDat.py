@@ -134,7 +134,9 @@ def importDat(sourceMesh=[],dirpath=None):
         if PATHS.Path(_pathTest).exists():
             log.error (cgmGEN.logString_msg(_str_func, "Found path: {0}".format(_pathTest)))
             _pathUse = _pathTest
-            
+        else:
+            log.error (cgmGEN.logString_msg(_str_func, "Invalid path: {0}".format(_pathTest)))
+            continue
             
         
         mDat.read(_pathUse)

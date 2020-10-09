@@ -417,11 +417,11 @@ def define(self):
                                        'z-':{'end':[0,0,-1],'up':[0,1,0]}}
             _shapeDirection = self.getEnumValueString('shapeDirection')
     
-            _dBase = self.baseDat
     
             _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
             _dBase['lever'] = [-1 * v for v in _dBase['end']]
             self.baseDat = _dBase        """
+            _dBase = self.baseDat
     
             self.atUtils('shapeDirection_toBaseDat')
             
