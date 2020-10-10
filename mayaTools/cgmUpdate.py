@@ -10,7 +10,7 @@ Website : http://www.cgmonks.com
 This is housed outside our core stuff to be able to access and update it.
 ================================================================
 """
-__version__ = '1.0.05162020'
+__version__ = '1.0.10092020'
 
 from urllib2 import Request, urlopen, URLError
 import urllib2
@@ -43,7 +43,7 @@ _pathPull =  "https://bitbucket.org/jjburton/cgmtools/get/"
 _pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
 _pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'"""
 
-_defaultBranch = 'stable'
+_defaultBranch = 'main'
 _sep = os.sep
 
 global CGM_BUILDS_DAT

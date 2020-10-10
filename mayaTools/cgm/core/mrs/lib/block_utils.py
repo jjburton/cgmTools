@@ -100,7 +100,7 @@ def get_side(self):
 def reorder_udAttrs(self):
     ATTR.reorder_ud(self.mNode)
     
-def get_uiString(self,showSide=True):
+def get_uiString(self,showSide=True, skip = []):
     """
     Get a snap shot of all of the controls of a rigBlock
     """
@@ -136,12 +136,13 @@ def get_uiString(self,showSide=True):
         
             
         #_l_report.append(ATTR.get(_short,'blockState'))
-        if self.getMayaAttr('isBlockFrame'):
-            _l_report.append("[FRAME]")
-        else:
-            _state = self.getEnumValueString('blockState')
-            _blockState = _d_scrollList_shorts.get(_state,_state)
-            _l_report.append("[{0}]".format(_blockState.upper()))
+        if 'blockState' not in skip:
+            if self.getMayaAttr('isBlockFrame'):
+                _l_report.append("[FRAME]")
+            else:
+                _state = self.getEnumValueString('blockState')
+                _blockState = _d_scrollList_shorts.get(_state,_state)
+                _l_report.append("[{0}]".format(_blockState.upper()))
         
         """
         if mObj.hasAttr('baseName'):
@@ -6538,9 +6539,7 @@ def uiQuery_getStateAttrs(self,mode = None,report=True):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
-d_uiAttrDict = {'name':['cgmName',
-                        'nameList',
-                        'iterName'],
+d_uiAttrDict = {'name':['nameList'],
                 'basic':['attachPoint','attachIndex'],
                 'define':['basicShape','shapeDirection'],
                 'form':['numShapers','numSubShapers','shapersAim',
@@ -6569,7 +6568,7 @@ d_uiAttrDict = {'name':['cgmName',
                 'data':['version','blockType','blockProfile'],
                 'post':['proxyLoft','proxyGeoRoot','proxyType']}
 
-def uiQuery_getStateAttrDict(self,report = True, unknown = True):
+def uiQuery_getStateAttrDict(self,report = False, unknown = True):
     _str_func = ' uiQuery_getStateAttrDict'
     log.debug(cgmGEN.logString_start(_str_func))
     _short = self.mNode
@@ -6595,6 +6594,12 @@ def uiQuery_getStateAttrDict(self,report = True, unknown = True):
         pprint.pprint(l)
         _tmp = []
         for s in l:
+            if s.endswith('List'):
+                if ATTR.datList_exists(_short,s):
+                    for s2 in ATTR.datList_getAttrs(_short,s):
+                        _tmp.append(s2)
+                        _done.append(s2)
+                
             if self.hasAttr(s):
                 if s in _done:
                     log.warning(s)

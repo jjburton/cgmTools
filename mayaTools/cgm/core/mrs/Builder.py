@@ -153,11 +153,452 @@ class ui_blockEditor(cgmUI.cgmGUI):
         self.uiFunc_loadBlock(mBlock)
         BLOCKEDITOR = self
         
+        
+    def buildMenu_block(self,*args,**kws):
+        self.uiMenu_block.clear()   
+        _menu = self.uiMenu_block
+        d_s = {'Set Side':{},
+               'Set Position':{},
+               'Skeleton':{'Joints | get bind':{'ann':self._d_ui_annotations.get('Joints | get bind'),
+                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                      'atUtils','skeleton_getBind',
+                                      **{'select':1,'mode':'noSelect'})},
+                           'Joints | tag':{'ann':self._d_ui_annotations.get('Joints | tag'),
+                                                          'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                 'atUtils','skeleton_getBind',
+                                                                 **{'tag':1})}                           
+                           },
+       
+               'Rig':{'Step Build':{'ann':self._d_ui_annotations.get('step build'),
+                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                      'stepUI',
+                                                      **{'updateUI':0,'mode':'stepBuild'})},
+                      'Prechecks':{'ann':'Precheck blocks for problems',
+                                   'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                          'asRigFactory',
+                                                          **{'updateUI':0,'mode':'prechecks'})},                      
+                      'Proxy | Verify':{'ann':self._d_ui_annotations.get('verify proxy mesh'),
+                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                      'verify_proxyMesh',
+                                      **{'updateUI':0})},
+                      'Proxy | Delete':{'ann':self._d_ui_annotations.get('delete proxy mesh'),
+                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                      'proxyMesh_delete',
+                                      **{'updateUI':0})},                      
+                      'Rig Connect':{'ann':self._d_ui_annotations.get('connect rig'),
+                                        'call':cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_connect',**{'updateUI':0})},
+                      'Rig Disconnect':{'ann':self._d_ui_annotations.get('disconnect rig'),
+                                     'call':cgmGEN.Callback(self.uiFunc_contextModuleCall,'rig_disconnect',**{'updateUI':0})},                      
+                      'Reset Controls':{'ann':self._d_ui_annotations.get('reset rig controls'),
+                               'call':cgmGEN.Callback(self.uiFunc_contextModuleCall,
+                                      'rig_reset',
+                                      **{'updateUI':0})},
+                                       
+                      'Query Nodes':{'ann':self._d_ui_annotations.get('query rig nodes'),
+                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                      'atUtils','rigNodes_get',
+                                      **{'updateUI':0,'report':True})},},
+               
+               
+               'Parent':{'To Active':{'ann':'Set parent block to active block',
+                                  'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                         'atUtils','blockParent_set',
+                                                         **{'mode':'setParentToActive'})},
+                         'Clear':{'ann':'Clear blockParent',
+                                           'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                  'atUtils','blockParent_set',
+                                                                  **{'parent':False})},},
+               'Siblings':{'Form | Push Sub shapers':{'ann':'Push Sub shaper values to siblings',
+                                  'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                         'atUtils','siblings_pushSubShapers',
+                                                         **{})},
+                           'Form | Push Handles':{'ann':'Push form shaper values to siblings',
+                                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                      'atUtils','siblings_pushFormHandles',
+                                                                      **{})},                           
+                         'Prerig | Push Handles':{'ann':'Push prerig handle values to siblings',
+                                  'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                         'atUtils','siblings_pushPrerigHandles',
+                                                         **{})}},               
+               'Form':{'Snap to RP':{'ann':'Snap handles to rp plane',
+                                 'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                 'atUtils', 'handles_snapToRotatePlane','form',True,
+                                 **{'updateUI':0})},},
+               
+               'Names':{ 
+                   'divTags':['nameList | edit'],
+                   'Name | Set tag':{'ann':'Set the name tag of the block and rename dags',
+                                     'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                            'atUtils','set_nameTag', **{})},
+                   'Position | Set tag':{'ann':'Set the position tag of the block and rename dags',
+                                         'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                'atUtils','set_position',
+                                                                **{'ui':True})},
+                  'nameList | reset':{'ann':'Reset the name list to the profile',
+                                 'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                        'atUtils','nameList_resetToProfile',
+                                                        **{})},
+                  'nameList | edit':{'ann':'Ui Prompt to edit nameList',
+                                      'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                             'atUtils','nameList_uiPrompt',
+                                                             **{})},                  
+                   'nameList | iter baseName':{'ann':'Set nameList values from name attribute',
+                                 'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                        'atUtils','set_nameListFromName',
+                                                        **{})}},
+               
+               
+               
+               'Prerig':{
+                   'Visualize | RP Pos':{'ann':'Create locator at the where the system thinks your rp handle will be',
+                             'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                'atUtils', 'prerig_get_rpBasePos',
+                                **{'markPos':1,'updateUI':0})},
+                   'Visualize | Up Vector':{'ann':'Create a curve showing what the assumed rp up vector is',
+                                         'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                            'atUtils', 'prerig_get_upVector',
+                                            **{'markPos':1,'updateUI':0})},                   
+                   'Snap RP to Orient':{'ann':'Snap rp hanlde to orient vector',
+                            'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                   'atUtils', 'prerig_snapRPtoOrientHelper',
+                                   **{'updateUI':0})},
+                   'Snap to RP':{'ann':'Snap handles to rp plane',
+                                 'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                 'atUtils', 'handles_snapToRotatePlane','prerig',True,
+                                 **{'updateUI':0})},
+                   'Handles | Lock':{'ann':'Lock the prerig handles',
+                                 'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                 'atUtils', 'prerig_handlesLock',True,
+                                 **{'updateUI':0})},
+                   'Handles | Unlock':{'ann':'Unlock the prerig handles',
+                                   'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                   'atUtils', 'prerig_handlesLock',False,
+                                   **{'updateUI':0})},
+                   'divTags':['Handles | Lock','Query Indices',
+                              'Visualize | RP Pos',
+                              ],                   
+                   'Arrange | Linear Spaced':{'ann':'Unlock the prerig handles',
+                                             'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                             'atUtils', 'prerig_handlesLayout','spaced','linear',
+                                             **{'updateUI':0})},
+                   'Arrange | Linear Even':{'ann':'Unlock the prerig handles',
+                                             'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                             'atUtils', 'prerig_handlesLayout','even','linear',
+                                             **{'updateUI':0})},
+                   'Arrange | Cubic Even':{'ann':'Unlock the prerig handles',
+                                            'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                            'atUtils', 'prerig_handlesLayout','even','cubicRebuild',
+                                            **{'updateUI':0})},
+                   'Arrange | Cubic Spaced':{'ann':'Unlock the prerig handles',
+                                             'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                             'atUtils', 'prerig_handlesLayout','spaced','cubicRebuild',
+                                             **{'updateUI':0})},                                      
+
+                   },
+               'Geo':{
+                   'order':['Block Mesh','Block Loft | Default',
+                            'Block Loft | Even',
+                            'Puppet Mesh',
+                            'Unified','Unified [Skinned]',
+                            'Parts Mesh','Parts Mesh [Skinned]',
+                            'Proxy Mesh [Parented]','Delete',
+                            ],
+                   'divTags':['Delete'],
+                   'headerTags':['Puppet Mesh'],
+                   'Block Mesh':{'ann':'Generate Simple mesh',
+                               'call':cgmGEN.CB(self.uiFunc_blockCall,
+                                                'atUtils','create_simpleMesh',
+                                                **{'connect':False,'updateUI':0,'deleteHistory':1})},
+                   'Block Loft | Default':{'ann':'Generate Simple mesh with history to tweak the loft manually',
+                               'call':cgmGEN.CB(self.uiFunc_blockCall,
+                                                'atUtils','create_simpleMesh',
+                                                **{'connect':False,'updateUI':0,'deleteHistory':0})},
+                   'Block Loft | Even':{'ann':'Generate Simple mesh with history to tweak the loft manually',
+                                 'call':cgmGEN.CB(self.uiFunc_blockCall,
+                                                  'atUtils','create_simpleMesh',
+                                                  **{'connect':False,'updateUI':0,'deleteHistory':0,
+                                                     'loftMode':'evenCubic'})},                   
+                   'Unified':{'ann':"Create a unified unskinned puppet mesh from the active block's basis.",
+                              'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_create',
+                                               **{'unified':True,'skin':False})},
+                   'Unified [Skinned]':{
+                       'ann':"Create parts skinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':True,'skin':True})},
+                   'Parts Mesh':{
+                       'ann':"Create parts unskinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':False,'skin':False})},
+                   'Parts Mesh [Skinned]':{
+                       'ann':"Create parts skinned puppet mesh from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_create',
+                                         **{'unified':False,'skin':True})},
+                   'Proxy Mesh [Parented]':{
+                       'ann':"Create proxy puppet mesh parented to skin joints from the active block's basis.",
+                       'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_create',
+                                         **{'proxy':True,'unified':False,'skin':False})},
+                   'Delete':{
+                       'ann':"Remove skinned or wired puppet mesh",
+                       'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_delete')},
+                   },
+               
+               }
+
+        
+        """
+        for state in ['define','form','prerig']:
+            d_s['blockDat']['order'].append('Load {0}'.format(state))
+            d_s['blockDat']['Load {0}'.format(state)] = {
+                'ann':"Load {0} blockDat in context".format(state),
+                'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                       'atUtils','blockDat_load_state',state,
+                                       **{})}"""
+        
+        
+        l_keys = d_s.keys()
+        l_keys.sort()
+        l_check = ['Define','Form','Prerig','Skeleton','Rig']
+        l_check.reverse()
+        for k in l_check:
+            if k in l_keys:
+                l_keys.remove(k)
+                l_keys.insert(0,k)
+                
+        for s in l_keys:
+            d = d_s[s]
+            divTags = d.get('divTags',[])
+            headerTags = d.get('headerTags',[])
+            
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
+                            label = s,
+                            en=True,)
+            
+            if s == 'Set Side':
+                for i,side in enumerate(['none','left','right','center']):
+                    mUI.MelMenuItem(_sub,
+                                    l = side,
+                                    ann='Set contextual block side to: {0}'.format(side),
+                                    c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                                        'atUtils','set_side',side,
+                                                        **{}))                
+                
+            if s == 'Set Position':
+                for i,position in enumerate(['none','upper','lower','front','back','top','bottom']):
+                    mUI.MelMenuItem(_sub,
+                                    label = position,
+                                    ann = 'Specify the position for the current block to : {0}'.format(position),
+                                    c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                                        'atUtils','set_position',position,
+                                                        **{}))             
+            
+            l_keys2 = d.get('order',False)
+            if l_keys2:
+                for k in d.keys():
+                    if k not in l_keys2:
+                        l_keys2.append(k)
+            else:
+                l_keys2 = d.keys()
+                l_keys2.sort()
+            for l in l_keys2:
+                if l in ['divTags','headerTags','order']:
+                    continue
+                if l in divTags:
+                    mUI.MelMenuItemDiv(_sub)                
+                if l in headerTags:
+                    mUI.MelMenuItem(_sub,divider = True,
+                                    label = l,
+                                    en=False)
+                    """
+                    mUI.MelMenuItemDiv(_sub)
+                    mUI.MelMenuItem(_sub,
+                                    label = "--- {0} ---".format(l.upper()),
+                                    en=False)
+                    mUI.MelMenuItemDiv(_sub)"""
+                    continue
+                d2 = d[l]
+                mUI.MelMenuItem(_sub,
+                                label = l,
+                                ann = d2.get('ann',''),
+                                c=d2.get('call'))
+                
+            if s == 'Rig':
+                mUI.MelMenuItemDiv(_menu)            
+
+
+
+        log.info("Context menu rebuilt")        
+        
+    
+    def buildMenu_vis(self,*args,**kws):
+        self.uiMenu_vis.clear()   
+        _menu = self.uiMenu_vis
+        
+        d_s = {'Focus':{'Clear':{'ann':self._d_ui_annotations.get('focus clear'),
+                                 'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                        'focus',False,None,
+                                        **{'updateUI':0})},
+                        'Vis':{'ann':self._d_ui_annotations.get('focus vis'),
+                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                      'focus',True,'vis',
+                                      **{'updateUI':0})},
+                        'Template':{'ann':self._d_ui_annotations.get('focus template'),
+                                    'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                           'focus',True,'template',
+                                           **{'updateUI':0})},},
+                   }
+
+
+        
+        """
+        for state in ['define','form','prerig']:
+            d_s['blockDat']['order'].append('Load {0}'.format(state))
+            d_s['blockDat']['Load {0}'.format(state)] = {
+                'ann':"Load {0} blockDat in context".format(state),
+                'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                       'atUtils','blockDat_load_state',state,
+                                       **{})}"""
+        
+        
+        l_keys = d_s.keys()
+        l_keys.sort()
+                
+        for s in l_keys:
+            d = d_s[s]
+            divTags = d.get('divTags',[])
+            headerTags = d.get('headerTags',[])
+            
+                
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
+                            label = s,
+                            en=True,)
+
+            l_keys2 = d.get('order',False)
+            if l_keys2:
+                for k in d.keys():
+                    if k not in l_keys2:
+                        l_keys2.append(k)
+            else:
+                l_keys2 = d.keys()
+                l_keys2.sort()
+            for l in l_keys2:
+                if l in ['divTags','headerTags','order']:
+                    continue
+                if l in divTags:
+                    mUI.MelMenuItemDiv(_sub)                
+                if l in headerTags:
+                    mUI.MelMenuItemDiv(_sub)
+                    mUI.MelMenuItem(_sub,
+                                    label = "--- {0} ---".format(l.upper()),
+                                    en=False)
+                    mUI.MelMenuItemDiv(_sub)
+                    continue
+                d2 = d[l]
+                mUI.MelMenuItem(_sub,
+                                label = l,
+                                ann = d2.get('ann',''),
+                                c=d2.get('call'))
+
+        #Vis menu -----------------------------------------------------------------------------
+        for a in ['Measure','RotatePlane','Labels','ProximityMode']:
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
+                                   label = a,
+                                   en=True,)
+            if a == 'ProximityMode':
+                _l = ['off','inherit','proximity']
+            else:
+                _l = ['off','on']
+                
+            for i,v in enumerate(_l):
+                mUI.MelMenuItem(_sub,
+                                l = v,
+                                ann='Set visibility of: {0} | {1}'.format(a,v),
+                                c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                            'atUtils', 'blockAttr_set',
+                                            **{"vis{0}".format(a):i,'updateUI':0}))
+                
+                
+                
+        d_shared = {'formNull':{},
+                    'prerigNull':{}}
+        
+        l_settings = ['visibility']
+        l_locks = ['rigBlock','formNull','prerigNull']
+        l_enums = []
+    
+        for n in l_locks:
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
+                                   label = n,
+                                   en=True,)
+            
+    
+            if n in l_settings:
+                l_options = ['hide','show']
+                _mode = 'moduleSettings'
+            elif n in l_locks:
+                l_options = ['unlock','lock']
+                _mode = 'moduleSettings'
+                if n != 'rigBlock':
+                    _plug = d_shared[n].get('plug',n)
+            else:
+                l_options = ['off','lock','on']
+                _mode = 'puppetSettings'
+                
+            for v,o in enumerate(l_options):
+                if n == 'rigBlock':
+                    mUI.MelMenuItem(_sub,
+                                    l = o,
+                                    ann='Set visibility of: {0} | {1}'.format(a,v),
+                                    c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                                'atUtils','templateAttrLock',v,**{'updateUI':0}))
+                         
+  
+                else:
+                    mUI.MelMenuItem(_sub,
+                                    l = o,
+                                    ann='Set visibility of: {0} | {1}'.format(a,v),
+                                    c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                                'atUtils', 'messageConnection_setAttr',
+                                                _plug,**{'template':v,'updateUI':0}))                    
+
+
+        
+            for n in l_settings:
+                l_options = ['hide','show']
+    
+                for v,o in enumerate(l_options):
+                    mUI.MelMenuItem(_sub,
+                                    l = o,
+                                    ann='Set visibility of: {0} | {1}'.format(a,v),
+                                    c=cgmGEN.Callback(self.uiFunc_blockCall,
+                                                'atUtils', 'blockAttr_set',
+                                                **{n:v,'updateUI':0}))                    
+
+        log.info("Context menu rebuilt")
+        
+    @cgmGEN.Timer
+    def uiFunc_contextModuleCall(self,*args,**kws):
+        try:
+            _str_func = ''
+
+            if not self.mBlock:
+                return
+            mBlock = self.mBlock            
+            
+            mc.refresh(su=1)
+
+            res = RIGBLOCKS.contextual_module_method_call(mBlock,'self',*args,**kws)
+            log.debug("|{0}| >> res: {1}".format(_str_func,res))
+
+        finally:
+            mc.refresh(su=0)
+            
     def uiFunc_blockCall(self,*args,**kws):
         try:
             if not self.mBlock:
                 return
             mBlock = self.mBlock
+            
+            b_update = kws.pop('updateUI',True)
             
             mc.refresh(su=1)
             _sel = mc.ls(sl=1)
@@ -205,8 +646,9 @@ class ui_blockEditor(cgmUI.cgmGUI):
             if res:
                 if kws.get('mode') not in ['prechecks']:
                     pprint.pprint(res)
-
-            self.uiFunc_updateStatus()
+                    
+            if b_update:
+                self.uiFunc_updateStatus()
 
             if _sel:
                 try:mc.select(_sel)
@@ -221,6 +663,11 @@ class ui_blockEditor(cgmUI.cgmGUI):
         _str_func = 'build_menus[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func))   
         self.uiMenu_load = mUI.MelMenu( l='Load',pmc=self.buildMenu_load,)
+        
+        self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1, tearOff=1)
+        self.uiMenu_vis = mUI.MelMenu( l='Vis', tearOff=1)
+        self.buildMenu_vis()
+        
         self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
         self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
 
@@ -304,7 +751,6 @@ class ui_blockEditor(cgmUI.cgmGUI):
             mUI.MelMenuItem(  self.uiMenu_load, l = "Mirror: {0}".format(_key),
                              c = lambda *a:self.uiFunc_loadBlock(mMirror))#
                 
-                
         
     def uiFunc_updateStatus(self):
         if not self.mBlock:
@@ -317,11 +763,29 @@ class ui_blockEditor(cgmUI.cgmGUI):
 
         self.uiFunc_updateBlock()
         
-        
         #_strBlock = self.mBlock.UTILS.get_uiString(self.mBlock)#p_nameBase
         mBlock = self.mBlock
-        _strBlock = ">>> {0} | {1} | {2} <<<".format(mBlock.cgmName, mBlock.blockType, mBlock.getMayaAttr('blockProfile'))
+        """
+        l = []
+
+        #...pre
+        for a in ['cgmDirection','cgmPosition']:
+            _v = mBlock.getMayaAttr(a)
+            if _v:
+                l.append(_v)
+                
+        #...base
+        l.extend([mBlock.cgmName, mBlock.blockType])
         
+        #...post
+        for a in ['blockProfile']:
+            _v = mBlock.getMayaAttr(a)
+            if _v:
+                l.append(_v)
+                
+        _strBlock = ">>> {0} <<<".format(' | '.join(l))"""
+        
+        _strBlock = self.mBlock.atUtils('get_uiString',skip = ['blockState'])
         _strState = self.mBlock.getEnumValueString('blockState')
         
         self.uiStr_header(edit=1, label = _strBlock,
@@ -661,7 +1125,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
                     mUI.MelSpacer(_mRow,w=_sidePadding)
                     _mRow.layout()
                 
-                continue
+                
             
             if k == 'vis':
                 #Lock nulls row ------------------------------------------------------------------------
@@ -794,12 +1258,11 @@ class ui_blockEditor(cgmUI.cgmGUI):
         log.debug("|{0}| >>...".format(_str_func))
         
         _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
-        _inside = mUI.MelScrollLayout(_MainForm, ut='cgmUITemplate')
         
        
-                    
+        _top = mUI.MelColumn(_MainForm)
         #SetHeader = mUI.MelLabel(_inside,label = '', al = 'center', ut = 'cgmUIHeaderTemplate')
-        SetHeader = mUI.MelButton(_inside,
+        SetHeader = mUI.MelButton(_top,
                                   en=False,
                                   c=lambda *a:self.mBlock.select(),
                                   al = 'center', ut = 'cgmUIHeaderTemplate')
@@ -808,10 +1271,10 @@ class ui_blockEditor(cgmUI.cgmGUI):
         
         
         #Push Rows  -------------------------------------------------------------------------------  
-        mc.setParent(_inside)
+        mc.setParent(_top)
         CGMUI.add_LineSubBreak()
         cgmUI.add_HeaderBreak()
-        _row_push = mUI.MelHLayout(_inside,ut='cgmUIHeaderTemplate',padding = 2)
+        _row_push = mUI.MelHLayout(_top,ut='cgmUIHeaderTemplate',padding = 2)
         mc.button(l='Define>',
                   bgc = d_state_colors['define'],#SHARED._d_gui_state_colors.get('warning'),
                   height = 20,
@@ -847,6 +1310,10 @@ class ui_blockEditor(cgmUI.cgmGUI):
                   ann='[Rig] - Push to a fully rigged state.')
         _row_push.layout()
         
+        
+        #Inside...
+        
+        _inside = mUI.MelScrollLayout(_MainForm, ut='cgmUITemplate')
 
         #mc.setParent(_MainForm)
         self.uiStatus = mUI.MelButton(_MainForm,bgc=SHARED._d_gui_state_colors.get('warning'),
@@ -879,9 +1346,11 @@ class ui_blockEditor(cgmUI.cgmGUI):
         #_rowProgressBar = mUI.MelRow(_MainForm)
 
         _MainForm(edit = True,
-                  af = [(_inside,"top",0),
+                  af = [(_top,"top",0),
+                        (_top,"left",0),
+                        (_top,"right",0),
                         (_inside,"left",0),
-                        (_inside,"right",0),
+                        (_inside,"right",0),                        
                         (self.uiStatus,"left",0),
                         (self.uiStatus,"right",0),
                         #(self.uiPB_test,"left",0),
@@ -891,7 +1360,8 @@ class ui_blockEditor(cgmUI.cgmGUI):
                         (self.uiStatus,"bottom",0),
     
                         ],
-                  ac = [(_inside,"bottom",0,self.uiStatus),
+                  ac = [(_inside,"top",0,_top),
+                        (_inside,"bottom",0,self.uiStatus),
                         #(_button,"bottom",0,_row_cgm),
                         #(self.uiPB_test,"bottom",0,_row_cgm),
                         ],
