@@ -6540,6 +6540,7 @@ def uiQuery_getStateAttrs(self,mode = None,report=True):
 
 
 d_uiAttrDict = {'name':['nameList'],
+                'profile':['blockProfile','buildProfile'],
                 'basic':['attachPoint','attachIndex'],
                 'define':['basicShape','shapeDirection'],
                 'form':['numShapers','numSubShapers','shapersAim',
