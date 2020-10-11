@@ -1434,16 +1434,19 @@ def define(self):
 
 
     #make em... ==============================================================================================
+    size_locForm = self.jointRadius
     for tag,d in d_creation.iteritems():
         if tag in l_mainHandles:
             d_creation[tag]['shape'] = 'locatorForm'
             d_creation[tag]['jointScale'] = False
+            d_creation[tag]['size'] = size_locForm
+            
         else:
             d_creation[tag]['jointScale'] = True
         
     log.debug("|{0}| >>  Make the handles...".format(_str_func))    
     md_res = self.UTILS.create_defineHandles(self, l_order, d_creation,self.jointRadius, mDefineNull, mBBShape,
-                                             forceSize=1)
+                                             forceSize=1, )
     
     
     md_handles = md_res['md_handles']

@@ -9592,7 +9592,8 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                         _shape = 'eye'
                     else:
                         _shape = 'sphere'
-                        _useSize = [_useSize,_useSize,_useSize*.5]
+                        if _dtmp.get('jointScale') != True:#We want spherical face shapes
+                            _useSize = [_useSize,_useSize,_useSize*.5]
                     
                 _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
                                               bakeScale = 1,                                              

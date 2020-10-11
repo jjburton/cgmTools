@@ -827,7 +827,7 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                     _key = i+1
                     for v2 in l_pos[_key:]:
                         if COREMATH.is_vector_equivalent(v,v2):
-                            log.warning(cgmGEN.logString_msg(_str_func,"Matching values: {0} | {1}".format(v,v2)))
+                            log.debug(cgmGEN.logString_msg(_str_func,"Matching values: {0} | {1}".format(v,v2)))
                             l_match.append(_key)
                     if _key not in l_match:
                         l_use.append(v)

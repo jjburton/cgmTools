@@ -83,6 +83,10 @@ d_state_colors = {'define':[1,.3,.3],
                   'rig':[.310,1,0],
                   }
 
+d_uiStateSubColors = {}
+for k,color in d_state_colors.iteritems():
+    d_uiStateSubColors[k] = [v *.6 for v in color ]
+
 #>>> Root settings =============================================================
 __version__ =  cgmGEN.__RELEASE
 _sidePadding = 25
@@ -151,6 +155,8 @@ class ui_blockEditor(cgmUI.cgmGUI):
         #self.uiMenu_load = None 
         self.uiFunc_loadBlock(mBlock)
         BLOCKEDITOR = self
+        
+
         
         
     def buildMenu_block(self,*args,**kws):
@@ -427,23 +433,30 @@ class ui_blockEditor(cgmUI.cgmGUI):
 
         log.info("Context menu rebuilt")        
         
-    def uiFunc_buildProfile_set(self,*args,**kws):
+    def uiFunc_profileSet(self,mode = 'build',**kws):
         _str_func = ''
         _updateUI = kws.pop('updateUI',True)
         _profile = kws.pop('buildProfile',None)
         
-        if not _profile:
-            return log.error("|{0}| >> blockProfile arg".format(_str_func))
         
-        _current = self.var_buildProfile.value
-        if _current != _profile:
-            log.debug("|{0}| >> Setting to: {1}".format(_str_func,_profile))
-            self.var_buildProfile.setValue(_profile)
-            
-        if self.uiScrollList_blocks.getSelectedIdxs() or self._blockCurrent:
-            self.uiFunc_contextBlockCall('atUtils','buildProfile_load',_profile, **{'contextMode':'root'})
-            
-            
+        _profile = self.__dict__['uiOM_{0}'.format(mode)].getValue()
+        
+        
+        
+        #if not _profile:
+        #    return log.error("|{0}| >> blockProfile arg".format(_str_func))
+        
+        log.info("Setting Profile: {0} | {1}".format(mode,_profile))
+        
+        if mode == 'build':
+            self.uiFunc_blockCall('atUtils','buildProfile_load',_profile)
+        elif mode == 'block':
+            self.uiFunc_blockCall('atUtils','blockProfile_load',_profile)
+        else:
+            return log.error("Unknown Profile mode: {0}".format(mode))
+
+        return
+
             
     def buildMenu_vis(self,*args,**kws):
         self.uiMenu_vis.clear()   
@@ -1025,19 +1038,26 @@ class ui_blockEditor(cgmUI.cgmGUI):
         
         _keys = _d.keys()
         _keys.sort()
-        l_order =['profile','basic','name','define','form','prerig','skeleton','rig']
+        l_order =['profile','basic','name','define','form','proxySurface','prerig','skeleton','rig','squashStretch']
         l_order.reverse()
         for k in l_order:
             if k in _keys:
                 _keys.remove(k)
                 _keys.insert(0,k)
                 
-        l_end = ['post','data','wiring','advanced']
+        l_end = ['data','wiring','advanced']
         for k in l_end:
             if k in _keys:
                 _keys.remove(k)
                 _keys.append(k)        
         
+        
+        d_keyColors = {'profile':'define',
+                       'basic':'define',
+                       'name':'define',
+                       'proxySurface':'form',
+                       'squashStretch':'rig',
+                       'post':'rig'}
         
         for k in _keys:
             log.debug(cgmGEN.logString_sub(_str_func,k))                
@@ -1065,6 +1085,17 @@ class ui_blockEditor(cgmUI.cgmGUI):
             _inside = mUI.MelColumnLayout(_frame,
                                           #rowSpacing = 5,
                                           useTemplate = 'cgmUISubTemplate')
+            
+            _bgc = None
+            _sub_bgc = d_keyColors.get(k)
+            if _sub_bgc: 
+                _bgc = d_uiStateSubColors.get(_sub_bgc)
+                _bgc = [v*.7 for v in _bgc]
+            else:
+                _bgc = d_uiStateSubColors.get(k)
+                
+            if _bgc:
+                _frame(edit=1, bgc=_bgc)
             
             if k == 'name':#Name section....-------------------------------------------------
                 log.debug("|{0}| >> Name...".format(_str_func))
@@ -1169,10 +1200,11 @@ class ui_blockEditor(cgmUI.cgmGUI):
             if k == 'profile':
                 log.debug("|{0}| >> profile...".format(_str_func))
                 
-                d_profileDat = {'block':{'options':RIGBLOCKS.get_blockProfile_options(mBlock.blockType)
-,
+                d_profileDat = {'block':{'options':RIGBLOCKS.get_blockProfile_options(mBlock.blockType),
+                                         'current':str(mBlock.blockProfile),
                                          },
-                                'build':{'options':BLOCKSHARE._l_buildProfiles}}
+                                'build':{'options':BLOCKSHARE._l_buildProfiles,
+                                         'current':str(mBlock.buildProfile)}}
                 
                 
                 for k2,d2 in d_profileDat.iteritems():
@@ -1185,35 +1217,42 @@ class ui_blockEditor(cgmUI.cgmGUI):
                             
                             
                     _mRow = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 10)
-                    mUI.MelLabel(_mRow,l="  {0}".format(k2))
+                    mUI.MelLabel(_mRow,l="  {0} > ".format(CORESTRINGS.capFirst(k2)))
+                    #_mRow.setStretchWidget(mUI.MelSeparator(_mRow,))            
                     
-                    mUI.MelLabel(_mRow, bgc=cgmUI.guiBackgroundColorLight,w=75,al='center',
-                                 en=_en,
-                                 l="  {0}".format(mBlock.getMayaAttr('{0}Profile'.format(k2))))
+                    
                     
                     _optionMenu = mUI.MelOptionMenu(_mRow,ut = 'cgmUITemplate',h=25,en=_en)
+                    
                     _mRow.setStretchWidget(_optionMenu)
+                    
                     
                     self.__dict__['uiOM_{0}'.format(k2)] = _optionMenu
                 
                     for option in d2.get('options',[]):
                         _optionMenu.append(option)
                         
-                        
+                    try:_optionMenu.selectByValue(d2['current'])
+                    except:pass
+                    
+                    #mUI.MelLabel(_mRow, bgc=cgmUI.guiBackgroundColorLight,w=50,al='center',en=_en,
+                    #             l="{0}".format(mBlock.getMayaAttr('{0}Profile'.format(k2))))                    
+                    
+                    
                     mUI.MelButton(_mRow,en=_en,
                                   label='Load',ut='cgmUITemplate',
-                                  c = cgmGEN.Callback(self.uiFunc_blockCall,
-                                                      'atUtils','set_nameIter', **{}),
-                                  ann='Change iter name')     
+                                  c = cgmGEN.Callback(self.uiFunc_profileSet,
+                                                      k2, **{}),
+                                  ann='Load {0}Profile'.format(k2))     
                         
-                    
+                    #mUI.MelSpacer(_mRow,w=_sidePadding)                
                     _mRow.layout()
                     
                     if _defineOff:
                         mUI.MelLabel(_inside, bgc=cgmUI.d_stateColors['warning'],
                                      w=75,al='center',
                                      en=_en,
-                                     l = "blockType can only be changed in define state")                        
+                                     l = "blockType can only be changed in define state")
                     
                     mc.setParent(_inside)
                     cgmUI.add_LineSubBreak()
@@ -1332,12 +1371,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
                     _hlayout.layout()
                 except Exception,err:
                     log.warning("Attr {0} failed. err: {1}".format(a,err))            
-            
-            
-            
-            
-            
-            
+
     def uiFunc_loadBlock(self,mBlock = None):
         if mBlock == None:
             mBlock = BLOCKGEN.block_getFromSelected()
