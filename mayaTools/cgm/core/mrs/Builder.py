@@ -2867,8 +2867,10 @@ class ui(cgmUI.cgmGUI):
                 #ml_processed.extend(BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,True,False))
                 #self.uiScrollList_blocks.selectByIdx(_indices[0])                
                 pass
-            if _sel and args and args[1] not in ['skeleton_getBind']:
-                try:mc.select(_sel)
+            if _sel and args:
+                try:
+                    if args[1] not in ['skeleton_getBind']:
+                        mc.select(_sel)
                 except:pass
             return ml_context
                 
