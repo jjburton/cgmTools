@@ -817,10 +817,11 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
         log.debug("|{0}| >> create:{1}".format(_str_func,_create))  
         
         if l_pos:
-            l_pos2 = []
+            l_use = []
+            i_end = len(l_pos) +1
             for i,v in enumerate(l_pos):
-                if v == l_pos[-1] and l_pos[-1] not in l_pos2:
-                    l_pos2.append(v)
+                if i==i_end and v not in l_use:
+                    l_use.append(v)
                 else:
                     l_match = []
                     _key = i+1
@@ -829,9 +830,9 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                             log.warning(cgmGEN.logString_msg(_str_func,"Matching values: {0} | {1}".format(v,v2)))
                             l_match.append(_key)
                     if _key not in l_match:
-                        l_pos2.append(v)
-            if l_pos2:
-                l_pos = l_pos2
+                        l_use.append(v)
+            if not l_use:
+                l_use = l_pos
         
         if midPoint:
             _d = TRANS.POS.get_midPointDict(obj)
@@ -865,21 +866,22 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                 mc.xform(_created, ws=True, ra= objRotAxis,p=False)
             
         elif _create in ['curve','curveLinear','linearTrack','cubicTrack']:
-            if not l_pos:
-                l_pos = []
+            if not l_use:
+                l_use = []
                 #_sel = mc.ls(sl=True,flatten=True)
                 for i,o in enumerate(obj):
                     p = TRANS.position_get(o)
-                    log.debug("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
-                    l_pos.append(p)
+                    if p not in l_use:
+                        log.debug("|{0}| >> {3}: {1} | pos: {2}".format(_str_func,o,p,i)) 
+                        l_use.append(p)
             
-            if len(l_pos) <= 1:
+            if len(l_use) <= 1:
                 raise ValueError,"Must have more than one position to create curve"
             if _create in ['linearTrack','cubicTrack']:
                 _d = 1
                 if _create == 'cubicTrack':
                     _d = 3
-                _trackCurve = mc.curve(d=1,p=l_pos)
+                _trackCurve = mc.curve(d=1,p=l_use)
                 _trackCurve = mc.rename(_trackCurve,"{0}_trackCurve".format(baseName))
         
                 l_clusters = []
@@ -896,10 +898,15 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                     
                     
             elif _create == 'curve':
-                knot_len = len(l_pos)+3-1		
-                _created = mc.curve (d=3, ep = l_pos, k = [i for i in range(0,knot_len)], os=True)
+                if len(l_use) > 3:
+                    knot_len = len(l_use)+2#-1		                    
+                    _created = mc.curve (d=3, ep = l_use, k = [i for i in range(0,knot_len)], os=True)
+                else:
+                    knot_len = len(l_use)+1#-1		                    
+                    _created = mc.curve (d=2, ep = l_use, k = [i for i in range(0,knot_len)], os=True)
+                    
             else:
-                _created = mc.curve (d=1, ep = l_pos, k = [i for i in range(0,len(l_pos))], os=True)
+                _created = mc.curve (d=1, ep = l_use, k = [i for i in range(0,len(l_use))], os=True)
                 
             log.debug("|{0}| >> created: {1}".format(_str_func,_created))  
             
