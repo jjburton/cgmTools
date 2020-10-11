@@ -833,7 +833,9 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                         l_use.append(v)
             if not l_use:
                 l_use = l_pos
-        
+        else:
+            l_use = l_pos
+            
         if midPoint:
             _d = TRANS.POS.get_midPointDict(obj)
             objTrans = _d['position']
