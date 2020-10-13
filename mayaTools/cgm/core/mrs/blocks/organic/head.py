@@ -116,7 +116,7 @@ d_attrStateMask = {'define':['neckDirection'],
                            'neckSubShapers','neckShapers'],
                    'prerig':['neckControls'],
                    'skeleton':['neckJoints'],
-                   'rig':['neckIK']}
+                   'rig':['neckIK','headAim']}
 
 #=============================================================================================================
 #>> AttrMask 
@@ -220,7 +220,7 @@ l_attrsStandard = ['side',
                    'ribbonParam',
                    #'ikSetup',
                    #'ikBase',
-                   #'buildProfile',
+                   'buildProfile',
                    'ikOrientToWorld',
                    'numSpacePivots',
                    'scaleSetup',

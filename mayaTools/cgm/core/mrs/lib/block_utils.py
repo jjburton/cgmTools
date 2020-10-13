@@ -6586,13 +6586,10 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         
     
     d_use = CGMDICT.blendDat(d_uiAttrDict,_d)
-    
-    #pprint.pprint(d_use)
-    
-    
+        
     for k,l in d_use.iteritems():
         log.debug(cgmGEN.logString_sub(_str_func, k))
-        pprint.pprint(l)
+        if report:pprint.pprint(l)
         _tmp = []
         for s in l:
             if s.endswith('List'):
@@ -6603,7 +6600,7 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
                 
             if self.hasAttr(s):
                 if s in _done:
-                    log.warning(s)
+                    log.debug("Already done: {0}".format(s))
                 else:
                     _tmp.append(s)
                     _done.append(s)
@@ -8557,6 +8554,8 @@ def blockProfile_load(self, arg):
                 _done = True
             if not _done:
                 ATTR.set(_short,a,v)
+            log.info("|{0}| >>  {1} | {2}".format(_str_func,a,v))                
+            
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
     
@@ -8617,7 +8616,7 @@ def buildProfile_load(self, arg):
     log.debug("|{0}| >>  Loading: {1}...".format(_str_func,arg))
     for a,v in _d.iteritems():
         try:
-            log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
+            log.info("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
             _done = False
             if issubclass(type(v),list):
                 if self.datList_exists(a):
@@ -8635,7 +8634,8 @@ def buildProfile_load(self, arg):
                     l = ATTR.datList_getAttrs(_short,'rollCount')
                     for a2 in l:
                         log.debug("{0}...".format(a2))
-                        ATTR.set(_short,a2, v)                
+                        ATTR.set(_short,a2, v)
+                        
         except Exception,err:
             log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
     

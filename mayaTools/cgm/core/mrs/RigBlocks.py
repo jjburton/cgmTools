@@ -4869,7 +4869,7 @@ def get_blockProfile_options(arg):
         
         try:return mBlockModule.d_block_profiles.keys()
         except Exception,err:
-            log.error("|{0}| >>  [{2}] Failed to query. | {1} ".format(_str_func,err,arg))
+            log.debug("|{0}| >>  [{2}] Failed to query. | {1} ".format(_str_func,err,arg))
         return []
         
     except Exception,err:

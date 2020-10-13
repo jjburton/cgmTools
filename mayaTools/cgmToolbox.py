@@ -225,7 +225,7 @@ def uiMainMenu_add():
         cgmToolbox.uiBuild_cgmMenu(*a)
         
     if not hasattr(maya,'_cgmMenu'):
-        log.info('No _cgmMenu found')
+        log.debug('No _cgmMenu found')
 
         menu = mUI.MelMainMenu(l='CGM', pmc=build, tearOff = True, postMenuCommandOnce=True)
         setattr(maya,'_cgmMenu',menu)

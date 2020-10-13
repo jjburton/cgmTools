@@ -32,9 +32,17 @@ def mrsUI():
     try:
         import cgm.core.mrs.Builder as MRSBUILDER
         reload(MRSBUILDER)
-        MRSBUILDER.ui()
+        #MRSBUILDER.ui()
+        MRSBUILDER.ui_get()
     except Exception,err:
-        cgmGEN.cgmException(Exception,err)    
+        cgmGEN.cgmException(Exception,err)
+        
+def mrsBlockEditor():
+    import cgm.core.mrs.Builder as MRSBUILDER
+    #MRSBUILDER.ui()
+    MRSBUILDER.blockEditor_get()
+
+        
     
 def mrsANIMATE():
     import cgm.core.mrs.Animate as MRSANIMATE
@@ -142,9 +150,7 @@ def animFilter():
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
-        
-        
-        
+
     #except Exception,err:
     #    log.warning("[mrsScene] failed to load. | {0}".format(err))
 def cgmSimChain():

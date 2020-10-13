@@ -142,25 +142,30 @@ d_build_profiles = {
                        'addBall':'none'},
                 'finger':{'numRoll':0},
                 'thumb':{'numRoll':0},
+                'toe':{'numRoll':0},
                 },
     'unityMed':{'default':{'numRoll':1},
                'finger':{'numRoll':0},
                'thumb':{'numRoll':0},
+               'toe':{'numRoll':0},
                },
     'unityToon':{'default':{'squashMeasure':'arcLength',
-                            'squash':'simple',
+                            'squash':'single',
                             'scaleSetup':True,
                             },
                  'finger':{'numRoll':0},
+                 'toe':{'numRoll':0},
                  'thumb':{'numRoll':0},
                  },    
     'unityHigh':{'default':{'numRoll':3},
                 'finger':{'numRoll':0},
                 'thumb':{'numRoll':0},
+                'toe':{'numRoll':0},
                            },
     'feature':{'default':{'numRoll':3,},
                'finger':{'numRoll':0},
                'thumb':{'numRoll':0},
+               'toe':{'numRoll':0},
                }}
 
 d_block_profiles = {
@@ -2756,6 +2761,9 @@ def rig_prechecks(self):
         if str_ikEnd in ['tipCombo']:
             self.l_precheckErrors.append("{0} no longer supported".format(str_ikEnd))
             
+        str_squash = mBlock.getEnumValueString('squash')
+        if str_squash in ['simple']:
+            self.l_precheckErrors.append("{0} not ready".format(str_squash))        
             
         if mBlock.numControls < 3 and str_ikEnd != 'default':
             self.l_precheckWarnings.append('With less than 3 controls, using ikEnd of default')
