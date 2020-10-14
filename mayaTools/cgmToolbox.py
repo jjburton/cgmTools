@@ -447,7 +447,10 @@ def uiBuild_cgmMenu( *args ):
     menu = maya._cgmMenu
     menu.clear()
     
-    #reload(UICHUNKS)
+    try:reload(UICHUNKS)
+    except Exception,err:
+        log.error("Failed to reload UICHUNKS: {0}".format(err))
+        
     log.info("|{0}| >> building...".format(_str_func))        
     
     """

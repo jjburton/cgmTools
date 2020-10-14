@@ -82,6 +82,16 @@ d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},
                     'unityHigh':{'default':{}},
                     'feature':{'default':{}}}
+
+
+d_attrStateMask = {'define':[],
+                   'form':['loftList','basicShape','proxyShape','proxyType','shapersAim'],
+                   'prerig':[],
+                   'skeleton':['hasJoint'],
+                   'proxySurface':['proxy'],
+                   'rig':['rotPivotPlace'],
+                   'vis':[]}
+
 d_block_profiles = {
     'simple':{
         'basicShape':'cube',

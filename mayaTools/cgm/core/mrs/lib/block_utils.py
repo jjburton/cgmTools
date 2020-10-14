@@ -6539,7 +6539,7 @@ def uiQuery_getStateAttrs(self,mode = None,report=True):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
-d_uiAttrDict = {'name':['nameList'],
+d_uiAttrDict = {'name':['nameList','cgmName'],
                 'profile':['blockProfile','buildProfile'],
                 'basic':['attachPoint','attachIndex'],
                 'define':['basicShape','shapeDirection'],

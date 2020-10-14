@@ -85,7 +85,7 @@ d_state_colors = {'define':[1,.3,.3],
 
 d_uiStateSubColors = {}
 for k,color in d_state_colors.iteritems():
-    d_uiStateSubColors[k] = [v *.9 for v in color ]
+    d_uiStateSubColors[k] = [v *.95 for v in color ]
 
 #>>> Root settings =============================================================
 __version__ =  cgmGEN.__RELEASE
@@ -131,7 +131,8 @@ def blockEditor_get(mBlock=None):
         if mBlock:
             BLOCKEDITOR.uiFunc_loadBlock(mBlock)
         try:
-            BLOCKEDITOR.show()
+            if not BLOCKEDITOR(q=1, visible=True):
+                BLOCKEDITOR.show()
             return  BLOCKEDITOR
         except Exception,err:
             log.error(err)
@@ -1118,8 +1119,12 @@ class ui_blockEditor(cgmUI.cgmGUI):
         
         _keys = _d.keys()
         _keys.sort()
-        l_order =['profile','basic','name','define','form','proxySurface','prerig','skeleton','rig','squashStretch']
+        l_order =['define','profile','basic','name',
+                  'form','proxySurface','prerig',
+                  'skeleton',
+                  'rig','squashStretch']
         l_order.reverse()
+        
         for k in l_order:
             if k in _keys:
                 _keys.remove(k)

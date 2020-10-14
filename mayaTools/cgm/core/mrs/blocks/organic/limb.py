@@ -149,8 +149,8 @@ d_build_profiles = {
                'thumb':{'numRoll':0},
                'toe':{'numRoll':0},
                },
-    'unityToon':{'default':{'squashMeasure':'arcLength',
-                            'squash':'single',
+    'unityToon':{'default':{'squashMeasure':'pointDist',
+                            'squash':'both',
                             'scaleSetup':True,
                             },
                  'finger':{'numRoll':0},
@@ -646,6 +646,7 @@ l_attrsStandard = ['side',
                    'visLabels',
                    'visProximityMode',
                    #'ribbonConnectBy': 'constraint:matrix',
+                   'shapeDirection',
                    'segmentMidIKControl',
                    'spaceSwitch_direct',
                    'proxyGeoRoot',
@@ -841,6 +842,7 @@ def define(self):
                                               setClass=True)
         mRotateGroup.p_parent = mDefineNull"""
         
+        self.atUtils('shapeDirection_toBaseDat')
         
         #Aim Controls ==================================================================
         _d = {'start':{'color':'white'},
