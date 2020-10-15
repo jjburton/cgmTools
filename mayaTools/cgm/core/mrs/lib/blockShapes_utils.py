@@ -1514,10 +1514,11 @@ def addJointLabel(self,mHandle = None, label = None):
     mParent = mJointLabel.getParent(asMeta=1)
     if mParent.mNode != mHandle.mNode:
         mParent.rename("{0}_zeroGroup".format(mHandle.p_nameBase))
-        mParent.p_parent = mHandle            
+        mParent.p_parent = mHandle
+        mJointLabel.resetAttrs()
+        
         mParent.resetAttrs()
         mParent.dagLock()
-        #mJointLabel.resetAttrs()
         
     mJointLabel.radius = 0
     mJointLabel.side = 0
@@ -1544,65 +1545,90 @@ def addJointLabel(self,mHandle = None, label = None):
     return mJointLabel
 
 
+def addJointRadiusVisualizer(self,mParent = False):
+    
+    if not self.hasAttr('jointRadius'):
+        return log.warning("No jointRadius attr: {0}".format(self))
+    
+    _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
+                                  bakeScale = 1,                                              
+                                  direction = 'z+', size = 1.0)
+
+    mJointRadius = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
+    mJointRadius.p_parent = mParent
+    mJointRadius.doSnapTo(self.mNode)
+    CORERIG.override_color(mJointRadius.mNode, 'black')
+    
+    mJointRadius.tempate = 1
+    
+    mJointRadius.rename("jointRadiusVis")
+    _base = self.atUtils('get_shapeOffset')*4
+    if self.jointRadius < _base:
+        self.jointRadius = _base
+    self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
+    mJointRadius.dagLock()
+    mJointRadius.connectParentNode(self, 'rigBlock','jointRadiusVisualize')
+    
+    return mJointRadius
+
 def addJointHelper(self,mHandle=None,
                    baseShape='sphere',
                    size = 1.0,
                    shapeDirection = 'z+',
                    loftHelper = True,
                    lockChannels = ['rotate','scale']):
-    try:
-        if not mHandle:mHandle = self
-        
+    
+    if not mHandle:mHandle = self
+    
 
-        _bfr = mHandle.getMessage('jointHelper')
-        if _bfr:mc.delete(_bfr)
-        
-        _size_vector = get_sizeVector(size)
-        _size = MATH.average(_size_vector[:1]) #* .5
+    _bfr = mHandle.getMessage('jointHelper')
+    if _bfr:mc.delete(_bfr)
+    
+    _size_vector = get_sizeVector(size)
+    _size = MATH.average(_size_vector[:1]) #* .5
 
 
-        #Joint helper ======================================================================================
-        #jack
-        _jointHelper = CURVES.create_fromName(baseShape,  direction= shapeDirection, size = _size,bakeScale = False,baseSize=1.0)
-        mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
-        mJointCurve.doSnapTo(mHandle.mNode)
-        
-        if mHandle.hasAttr('cgmName'):
-            ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
-        mJointCurve.doStore('cgmType','jointHandle')
-        mJointCurve.doName()    
+    #Joint helper ======================================================================================
+    #jack
+    _jointHelper = CURVES.create_fromName(baseShape,  direction= shapeDirection, size = _size,bakeScale = False,baseSize=1.0)
+    mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
+    mJointCurve.doSnapTo(mHandle.mNode)
+    
+    if mHandle.hasAttr('cgmName'):
+        ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
+    mJointCurve.doStore('cgmType','jointHandle')
+    mJointCurve.doName()    
 
-        mJointCurve.p_parent = mHandle
+    mJointCurve.p_parent = mHandle
 
-        color(self,mJointCurve.mNode)
+    color(self,mJointCurve.mNode)
 
-        #CORERIG.match_transform(mJointCurve.mNode, mHandle)
+    #CORERIG.match_transform(mJointCurve.mNode, mHandle)
 
-        #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
-        #                   etx = (True,True), ety = (True,True), etz = (True,True))        
+    #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
+    #                   etx = (True,True), ety = (True,True), etz = (True,True))        
 
-        mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
+    mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
 
-        mJointCurve.setAttrFlags(lockChannels)
+    mJointCurve.setAttrFlags(lockChannels)
 
-        if loftHelper:#...loft curve -------------------------------------------------------------------------------------
-            #mLoft = self.buildBaseShape('square',_size*.5,'z+')
-            _loft = CURVES.create_controlCurve(mHandle.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .5,bakeScale = False)
-            mLoft = cgmMeta.validateObjArg(_loft,'cgmObject',setClass=True)
-            mLoft.doStore('cgmName',mJointCurve)
-            mLoft.doStore('cgmType','loftCurve')
-            mLoft.doName()
-            mLoft.p_parent = mJointCurve
-            color(self,mLoft.mNode,controlType='sub')
+    if loftHelper:#...loft curve -------------------------------------------------------------------------------------
+        #mLoft = self.buildBaseShape('square',_size*.5,'z+')
+        _loft = CURVES.create_controlCurve(mHandle.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .5,bakeScale = False)
+        mLoft = cgmMeta.validateObjArg(_loft,'cgmObject',setClass=True)
+        mLoft.doStore('cgmName',mJointCurve)
+        mLoft.doStore('cgmType','loftCurve')
+        mLoft.doName()
+        mLoft.p_parent = mJointCurve
+        color(self,mLoft.mNode,controlType='sub')
 
-            for s in mLoft.getShapes(asMeta=True):
-                s.overrideEnabled = 1
-                s.overrideDisplayType = 2
-            mLoft.connectParentNode(mJointCurve,'handle','loftCurve')        
+        for s in mLoft.getShapes(asMeta=True):
+            s.overrideEnabled = 1
+            s.overrideDisplayType = 2
+        mLoft.connectParentNode(mJointCurve,'handle','loftCurve')        
 
-        return mJointCurve
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
+    return mJointCurve
+
 
 def pivotHelper(self,mHandle=None, 
                 baseShape=None,
@@ -2339,11 +2365,11 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             
             pos = RAYS.get_cast_pos(_mTar.mNode,str_settingsDirections,shapes = str_meshShape)
             if not pos:
-                log.debug(cgmGEN.logString_msg(_str_func, 'standard IK end'))
-                pos = _mTar.getPositionByAxisDistance(str_settingsDirections,v_offset * 5)
+                log.warning(cgmGEN.logString_msg(_str_func, 'miscast | standard IK end'))
+                pos = _mTar.getPositionByAxisDistance(str_settingsDirections,v_offset * 3)
                 
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
-            newPos = DIST.get_pos_by_vec_dist(pos,vec,v_offset * 4)
+            newPos = DIST.get_pos_by_vec_dist(pos,vec,v_offset * 3)
             
             _settingsSize = v_offset * 1.5
             
