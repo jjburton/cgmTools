@@ -160,7 +160,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'visLabels':'bool',
                    'visProximityMode':'off:inherit:proximity',
                    'parentToDriver':'bool',
-                   
+                   'visJointHandle':'bool',
                    'visMeasure':'bool',}
 
 _l_defineHandlesOrder = ('end','start','up','rp','aim','lever')

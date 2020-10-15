@@ -114,7 +114,7 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
     """   
     _str_func = 'alongLine'
     objList = VALID.mNodeStringList(objList)
-    log.info("|{0}| >> ObjList: {1} ".format(_str_func,objList))             
+    log.debug("|{0}| >> ObjList: {1} ".format(_str_func,objList))             
     _len = len(objList)
     if _len < 3:
         raise ValueError,"|{0}| >> Need at least 3 objects".format(_str_func)
@@ -135,7 +135,7 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
 
     elif curve == 'cubicArc':
         _mid = MATH.get_midIndex(_len)
-        log.info("|{0}| >> cubicArc | mid: {1} ".format(_str_func,_mid))
+        log.debug("|{0}| >> cubicArc | mid: {1} ".format(_str_func,_mid))
         
         l_pos = [POS.get(o) for o in [objList[0],objList[_mid],objList[-1]]]
         knot_len = len(l_pos)+3-1		
@@ -148,8 +148,8 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
             _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
             _offsetDist = DIST.get_distance_between_points(_pos_start,_pos_end) / (_len - 1)
             _l_pos = [ DIST.get_pos_by_vec_dist(_pos_start, _vec, (_offsetDist * i)) for i in range(_len)]
-            log.info("|{0}| >> offset: {1} ".format(_str_func,_offsetDist))   
-            log.info("|{0}| >> l_pos: {1} ".format(_str_func,_l_pos)) 
+            log.debug("|{0}| >> offset: {1} ".format(_str_func,_offsetDist))   
+            log.debug("|{0}| >> l_pos: {1} ".format(_str_func,_l_pos)) 
             for i,o in enumerate(objList[1:-1]):
                 POS.set(o,_l_pos[i+1])        
         else:

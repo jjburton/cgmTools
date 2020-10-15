@@ -1054,10 +1054,10 @@ class handleFactory(object):
             #Transform ---------------------------------------------------------------------------
             #CURVES.create_text('COG',MATH.average(_sizeByBB))
             mTrans = cgmMeta.validateObjArg( CURVES.create_fromName('axis3d',
-                                                                    MATH.average(_sizeByBB)) ,
+                                                                    MATH.average(_sizeByBB),bakeScale=1) ,
                                              'cgmObject',setClass=True)
             SNAP.go(mTrans.mNode, mCurve.mNode)
-            self.color(mTrans.mNode,_side,'main')
+            #self.color(mTrans.mNode,_side,'main')
             
             if mHandle.hasAttr('cgmName'):
                 ATTR.copy_to(mHandle.mNode,'cgmName',mTrans.mNode,driven='target')            
@@ -1239,10 +1239,10 @@ class handleFactory(object):
         if mParent.mNode != mHandle.mNode:
             mParent.rename("{0}_zeroGroup".format(mHandle.p_nameBase))
             mParent.p_parent = mHandle            
-            mParent.resetAttrs()
-            mParent.dagLock()
+            #mParent.resetAttrs()
+            #mParent.dagLock()
+            mJointLabel.resetAttrs()
             
-
         mJointLabel.radius = 0
         mJointLabel.side = 0
         mJointLabel.type = 18
@@ -1495,6 +1495,54 @@ def get_sizeVector(value):
     if VALID.isListArg(value):
         return value
     return [value,value,value]
+
+
+def addJointLabel(self,mHandle = None, label = None):
+    _bfr = mHandle.getMessage('jointLabel')
+    if _bfr:
+        mc.delete(_bfr)
+    
+    if label is None:
+        label = mHandle.cgmName
+        
+    #Joint Label ---------------------------------------------------------------------------
+    mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
+
+    mJointLabel.p_parent = mHandle
+    mJointLabel.resetAttrs()
+    
+    mParent = mJointLabel.getParent(asMeta=1)
+    if mParent.mNode != mHandle.mNode:
+        mParent.rename("{0}_zeroGroup".format(mHandle.p_nameBase))
+        mParent.p_parent = mHandle            
+        mParent.resetAttrs()
+        mParent.dagLock()
+        #mJointLabel.resetAttrs()
+        
+    mJointLabel.radius = 0
+    mJointLabel.side = 0
+    mJointLabel.type = 18
+    mJointLabel.drawLabel = 1
+    mJointLabel.otherType = label
+
+    mJointLabel.doStore('cgmName',mHandle)
+    mJointLabel.doStore('cgmType','jointLabel')
+    mJointLabel.doName()
+
+
+    mJointLabel.overrideEnabled = 1
+    mJointLabel.overrideDisplayType = 2
+    
+    mJointLabel.connectParentNode(mHandle.mNode,'handle','jointLabel')
+    
+    try:
+        ATTR.connect("{0}.visLabels".format(self.mNode), "{0}.overrideVisibility".format(mJointLabel.mNode))
+    except:pass
+        
+    mJointLabel.dagLock()
+    
+    return mJointLabel
+
 
 def addJointHelper(self,mHandle=None,
                    baseShape='sphere',
@@ -2250,7 +2298,12 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             ml_targets = self.msgList_get('formHandles')
         
         mBlock = self
-        v_offset = self.atUtils('get_shapeOffset')
+        
+        if self.hasAttr('jointRadius'):
+            v_offset = self.jointRadius
+            
+        else:
+            v_offset = self.atUtils('get_shapeOffset')
         
         if self.getEnumValueString('rigSetup') == 'digit':
             v_offset = v_offset * .5
@@ -2292,7 +2345,7 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,v_offset * 4)
             
-            _settingsSize = v_offset * 2
+            _settingsSize = v_offset * 1.5
             
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
                                                                            '{0}+'.format(_jointOrientation[2]),
