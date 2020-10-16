@@ -4241,7 +4241,7 @@ def defineSize_get(self,resetBase=False):
     _baseSize = self.baseSize
     if _baseSize:
         log.debug("|{0}| >> Base size found: {1}...".format(_str_func,_baseSize))                    
-        return MATH.average(_baseSize[:-2])/2.0
+        return MATH.average(_baseSize[:-2])/3.0
     return self.atUtils('get_shapeOffset') or 1.0# * 2.0
 
 def define_getHandles(self):

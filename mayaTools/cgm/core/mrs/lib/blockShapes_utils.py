@@ -1651,7 +1651,12 @@ def pivotHelper(self,mHandle=None,
         #_bbsize = POS.get_axisBox_size(mHandle.mNode,False)
         #_size = MATH.average(_bbsize)
         _size = baseSize
-        _sizeSub = _size * .2        
+        if self.hasAttr('jointRadius'):
+            _sizeSub = self.jointRadius * .5
+        else:
+            _sizeSub = _size * .2        
+            
+        
         mHandleFactory = self.asHandleFactory()
         
         if side == None:

@@ -615,7 +615,7 @@ class dat(object):
         b_core = kws.get('contextCore',d_globalContext['contextCore'])
         
         
-        pprint.pprint(d_globalContext)
+        #pprint.pprint(d_globalContext)
         #_contextTime = kws.get('contextTime') or self.var_mrsContext_time.value
         #_contextKeys = kws.get('contextKeys') or self.var_mrsContext_keys.value
 
@@ -1046,8 +1046,8 @@ class dat(object):
             #before we get mirrors we're going to buffer our main modules so that mirror calls don't get screwy
             self.d_context['mModulesBase'] = copy.copy(self.d_context['mModules'])
             ls=[]
-            pprint.pprint(res)
-            pprint.pprint(self.d_context)
+            #pprint.pprint(res)
+            #pprint.pprint(self.d_context)
             
             #process...
             log.debug(cgmGEN.logString_sub(_str_func,"Initial Process..."))

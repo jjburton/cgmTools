@@ -1093,7 +1093,7 @@ def prerig(self):
     mCog = False
     
     if self.addCog:
-        mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection='y+')
+        mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection= self.getEnumValueString('shapeDirection'))
         
         mShape = mCog.shapeHelper
         mShape.p_parent = mPrerigNull

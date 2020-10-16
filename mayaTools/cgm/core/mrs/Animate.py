@@ -1918,13 +1918,14 @@ def buildTab_mrs(self,parent):
     _columnBelow = mUI.MelScrollLayout(parent,useTemplate = 'cgmUITemplate') 
     
     mc.setParent(_columnBelow)
-    buildFrame_mrsList(self,_columnBelow)    
     buildFrame_mrsAnim(self,_columnBelow)
-    buildFrame_poses(self,_columnBelow)    
-    buildFrame_mrsTween(self,_columnBelow)
-    buildFrame_mrsHold(self,_columnBelow)        
+    buildFrame_mrsSwitch(self,_columnBelow)  
     buildFrame_mrsMirror(self,_columnBelow)
-    buildFrame_mrsSwitch(self,_columnBelow)
+    buildFrame_mrsTween(self,_columnBelow)    
+    buildFrame_mrsHold(self,_columnBelow)        
+    buildFrame_poses(self,_columnBelow)    
+    buildFrame_mrsList(self,_columnBelow)    
+    
     #buildFrame_mrsSettings(self,_columnBelow)
     
     
@@ -2236,6 +2237,13 @@ def uiCB_contextualAction(self,**kws):
             log.info(cgmGEN.logString_msg(_str_func,"Found: {0} : {1}".format(k,kws.get(k))))
             d_contextSettings[k] = kws.get(k)
             
+            
+    if _mode in ['FKsnap','FKon',
+                 'IKsnap','IKforce','IKon',
+                 'aimOn','aimOff','aimToFK','aimToIK','aimSnap']:
+        log.warning('Switch mode override: part')
+        d_contextSettings['contextMode'] = 'part'
+        
     _context = d_contextSettings.get('contextMode')
     _contextTime = d_contextSettings.get('contextTime')
     _contextKeys = d_contextSettings.get('contextKeys')

@@ -89,7 +89,7 @@ d_attrStateMask = {'define':[],
                    'prerig':[],
                    'skeleton':['hasJoint'],
                    'proxySurface':['proxy'],
-                   'rig':['rotPivotPlace'],
+                   'rig':['rotPivotPlace','scaleSetup'],
                    'vis':[]}
 
 d_block_profiles = {
@@ -200,7 +200,9 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftList',
                    'visLabels',
+                   'jointRadius',
                    'spaceSwitch_direct',
+                   'scaleSetup',                   
                    #'buildProfile',
                    'visMeasure',
                    'visProximityMode',
@@ -409,7 +411,7 @@ def define(self):
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * 2.0)
+                                      direction = 'z+', size = _size * .5)
     
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
@@ -495,6 +497,8 @@ def define(self):
                 
                 self.msgList_append('defineStuff',mController)
                 
+        
+        BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
         
         #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
@@ -933,6 +937,11 @@ def prerig(self):
         _side = self.atUtils('get_side')
         _size = DIST.get_bb_size(self.mNode,True,True)
         
+        if self.hasAttr('jointRadius'):
+            _sizeSub = self.jointRadius * .5
+        else:
+            _sizeSub = _size * .2                
+        
         #Create preRig Null  ==================================================================================
         mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
         
@@ -967,9 +976,7 @@ def prerig(self):
         mHandleFactory =  self.asHandleFactory(self.mNode)
         
 
-        if self.hasJoint:
-            _sizeSub = _size * .2   
-        
+        if self.hasJoint:        
             log.debug("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
         
             #Joint Helper ==========================================================================================
@@ -1020,9 +1027,23 @@ def prerig(self):
             
             
         if self.addCog:
-            mCog = mHandleFactory.addCogHelper()
+            mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection= self.getEnumValueString('shapeDirection'))
+            
+            mShape = mCog.shapeHelper
+            
+            mLoftMesh = self.getMessageAsMeta('prerigLoftMesh')
+            if mLoftMesh:
+                p_bb = TRANS.bbCenter_get(mLoftMesh.mNode)
+                for mObj in mCog,mShape:
+                    mObj.p_position = p_bb
+            
+            mShape.p_parent = mPrerigNull
             mCog.p_parent = mPrerigNull
-            if b_shapers:mCog.p_position = pos_shaperBase
+            
+
+            self.UTILS.controller_walkChain(self,[mCog,mShape],'prerig')
+
+            #if b_shapers:mCog.p_position = pos_shaperBase
             
         if b_shapers:
             mc.parentConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
