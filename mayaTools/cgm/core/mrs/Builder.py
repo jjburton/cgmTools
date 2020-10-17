@@ -951,7 +951,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
                     log.info("{0}...".format(a))                                                
                     ATTR.set(obj,a, _v)
                 
-        if attr == 'numShapers':
+        if attr in ['numShapers','neckShapers']:
             log.info("loftList verify check...")
             self.mBlock.UTILS.verify_loftList(self.mBlock,_v)
             mc.evalDeferred(self.uiFunc_updateBlock,lp=True)
@@ -3498,12 +3498,12 @@ class ui(cgmUI.cgmGUI):
                 BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks[0],_contextMode,False,True)
                 return True
                 
-            _len = len(ml_blocks)
-            if _b_confirm and _len>1:
-                _message = "{0} \n Selected: {1}".format(_message,len(ml_blocks))
-                if not confirm(_title, _message, _funcString):return False
-                
             ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,_contextMode,True,False)
+            
+            _len = len(ml_context)
+            if _b_confirm and _len>8:
+                _message = "{0} \n Selected: {1}".format(_message,len(ml_context))
+                if not confirm(_title, _message, _funcString):return False            
             
             if _reverseContext:
                 log.warning(cgmGEN.logString_msg(_str_func,'REVERSE CONTEXT MODE ON'))

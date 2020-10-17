@@ -1629,7 +1629,7 @@ def rig_skeleton(self):
                 #SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
                          #self.mVec_up)
                 #reload(JOINT)
-                #JOINT.freezeOrientation(mMidIK.mNode)
+                JOINT.freezeOrientation(mMidIK.mNode)
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
             
         
@@ -2461,36 +2461,10 @@ def rig_frame(self):
                 
 
                 RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,ml_skinDrivers,mPlug_masterScale)
-                """
-                res_spline = IK.spline([mObj.mNode for mObj in ml_ikJoints],
-                                       orientation = _jointOrientation,
-                                       advancedTwistSetup=True,
-                                       baseName= self.d_module['partName'] + '_spline',
-                                       moduleInstance = self.mModule)
-                mSplineCurve = res_spline['mSplineCurve']
-                log.debug("|{0}| >> spline curve...".format(_str_func))
-                
-                ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode,driven='source')
-                ATTR.copy_to(mSplineCurve.mNode,'twistStart',mIKBaseControl.mNode,driven='source')
-                ATTR.copy_to(mSplineCurve.mNode,'twistType',mIKControl.mNode,driven='source')
-                """
+
                 ATTR.set_default(mIKControl.mNode,'twistType',1)
                 ATTR.set(mIKControl.mNode,'twistType',1)
                 
-                """
-                #...ribbon skinCluster ---------------------------------------------------------------------
-                log.debug("|{0}| >> ribbon skinCluster...".format(_str_func))                
-                mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_skinDrivers],
-                                                                      mSplineCurve.mNode,
-                                                                      tsb=True,
-                                                                      maximumInfluences = 2,
-                                                                      normalizeWeights = 1,dropoffRate=2.5),
-                                                      'cgmNode',
-                                                      setClass=True)
-            
-                mSkinCluster.doStore('cgmName', mSplineCurve)
-                mSkinCluster.doName()    
-                cgmGEN.func_snapShot(vars())"""
                 
                 
             elif _ikSetup == 'ribbon':#===============================================================================

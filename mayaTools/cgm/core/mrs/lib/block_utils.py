@@ -7131,16 +7131,16 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
         if mHandle in [md_handles['start'],md_handles['end']]:
             _lock = []
-            if mHandle == md_handles['start']:
-                _lock.append('rotate')
+            #if mHandle == md_handles['start']:
+            #    _lock.append('rotate')
 
-            #ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
+            ##ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
+            ##ATTR.set_standardFlags( mHandle.mNode, _lock)
+            ##mHandle.doConnectOut('sy',['sx','sz'])
             #ATTR.set_standardFlags( mHandle.mNode, _lock)
-            #mHandle.doConnectOut('sy',['sx','sz'])
-            ATTR.set_standardFlags( mHandle.mNode, _lock)
 
         else:
-            ATTR.set_standardFlags( mHandle.mNode, ['rotate','sz'])
+            ATTR.set_standardFlags( mHandle.mNode, ['sz'])
             ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
 
 

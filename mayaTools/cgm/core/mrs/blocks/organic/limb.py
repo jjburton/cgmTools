@@ -658,6 +658,8 @@ l_attrsStandard = ['side',
                    'visRotatePlane',
                    'visLabels',
                    'visProximityMode',
+                   'visJointHandle',
+                   
                    #'ribbonConnectBy': 'constraint:matrix',
                    'jointRadius',
                    'shapeDirection',
@@ -906,8 +908,6 @@ def define(self):
     _dat['baseSize'] = self.baseSize
     self.baseDat = _dat
     
-    
-    reload(BLOCKSHAPES)
     BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
     
     
@@ -2324,6 +2324,10 @@ def prerig(self):
         targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
         jointHelpers = [mObj.jointHelper.mNode for mObj in ml_handles]
         ml_jointHelpers = [mObj.jointHelper for mObj in ml_handles]
+        
+        for mJointHelper in ml_jointHelpers:
+            self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
+            
         #Name Handles...
         for mHandle in ml_handles:
             #Joint Label ---------------------------------------------------------------------------
