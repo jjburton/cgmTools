@@ -16,6 +16,8 @@ import time
 import pprint
 import os
 import logging
+import json
+
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -74,18 +76,13 @@ class ui(cgmUI.cgmGUI):
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
 
         self._optionDict = {
-            #'mode' : 'position',
-            #'plane' : 'screen',
-            #'planeObject' : None,
             'aimFwd' : 'z+',
             'aimUp' : 'y+',
             'translate' : True,
             'rotate' : True
-            #'loopTime' : False,
-            #'debug' : False,
-            #'postBlendFrames' : 6,
-            #'recordMode' : 'replace'
         }
+        
+        self._actionList = []
 
  
     def build_menus(self):
@@ -212,9 +209,106 @@ def uiFunc_build_post_process_column(self, parentColumn):
     self._postProcessOptionsColumn = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
     #
     # Post Process Options Frame
+    
+    # Actions Frame
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding)        
 
+    mUI.MelSpacer(_row,w=_padding)
+
+    _subColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+
+    self._actionsFrame = mUI.MelFrameLayout(_subColumn, label='Actions', collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+    
+    self._actionsColumn = mUI.MelColumnLayout(self._actionsFrame,useTemplate = 'cgmUIHeaderTemplate') 
+    
+    uiFunc_buildActionsColumn(self)
+    
+    _row.setStretchWidget(_subColumn)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
+    #
+    # End Actions Frame
+    
     uiFunc_setPostAction(self)
- 
+
+def uiFunc_buildActionsColumn(self):
+    self._actionsColumn.clear()
+           
+    for data in self._actionList:
+        mc.setParent(self._actionsColumn)
+        cgmUI.add_LineSubBreak()   
+        
+        _row = mUI.MelHSingleStretchLayout(self._actionsColumn,ut='cgmUISubTemplate',padding = _padding)        
+    
+        mUI.MelSpacer(_row,w=_padding)
+    
+        _subColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+    
+        _frame = mUI.MelFrameLayout(_subColumn, label=data['animFilter'], collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+        
+        _dataColumn = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUIHeaderTemplate') 
+        
+        mc.setParent(_dataColumn)
+        cgmUI.add_LineSubBreak()          
+        
+        for key in data:
+            _datarow = mUI.MelHSingleStretchLayout(_dataColumn,ut='cgmUISubTemplate',padding = 5)
+        
+            mUI.MelSpacer(_datarow,w=_padding)
+            mUI.MelLabel(_datarow,l=key)
+        
+            _datarow.setStretchWidget( mUI.MelLabel(_datarow,ut='cgmUIInstructionsTemplate',l=str(data[key]),
+                                en=True) )
+               
+            mUI.MelSpacer(_datarow,w=_padding)
+        
+            _datarow.layout()
+            
+            mc.setParent(_dataColumn)
+            cgmUI.add_LineSubBreak()                
+        
+        _row.setStretchWidget(_subColumn)
+    
+        mUI.MelSpacer(_row,w=_padding)
+    
+        _row.layout()         
+    
+    mc.setParent(self._actionsColumn)
+    cgmUI.add_LineSubBreak()      
+    
+    _row = mUI.MelHSingleStretchLayout(self._actionsColumn,ut='cgmUISubTemplate',padding = 5)
+    
+    mUI.MelSpacer(_row,w=_padding)
+    
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Run',
+        cgmGEN.Callback(uiFunc_add_action,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Run',h=30) )
+
+    cgmUI.add_Button(_row,'Save',
+        cgmGEN.Callback(uiFunc_bake_dragger,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Save Actions',h=30)
+    
+    cgmUI.add_Button(_row,'Load',
+        cgmGEN.Callback(uiFunc_bake_dragger,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Load Actions',h=30)    
+    
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()    
+    
+    mc.setParent(self._actionsColumn)
+    cgmUI.add_LineSubBreak()  
+
+
+def uiFunc_add_action(self):
+    pass
+
 def uiFunc_setPostAction(self):
     postAction = self.post_actionMenu.getValue()
 
@@ -225,7 +319,7 @@ def uiFunc_setPostAction(self):
     elif postAction == 'Trajectory Aim':
         uiFunc_build_post_trajectory_aim_column(self)
     elif postAction == 'Keys to Motion Curve':
-        uiFunc_build_post_keyframe_to_motion_curve_column(self) 
+        uiFunc_build_post_keyframe_to_motion_curve_column(self)
 
 def uiFunc_build_post_dragger_column(self):
     parentColumn = self._postProcessOptionsColumn
@@ -406,12 +500,20 @@ def uiFunc_build_post_dragger_column(self):
 
     # Bake Dragger Button
     #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
     
-    cgmUI.add_Button(_row,'Bake Dragger',
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Bake Dragger',
         cgmGEN.Callback(uiFunc_bake_dragger,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Dragger',h=30)
+        'Bake Dragger',h=30) )
+
+    cgmUI.add_Button(_row,'Add Action',
+        cgmGEN.Callback(uiFunc_add_dragger_action,self),                         
+        'Add Action',h=30)
+    
+    mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()   
     #
@@ -683,12 +785,20 @@ def uiFunc_build_post_spring_column(self):
 
     # Bake Spring Button
     #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
     
-    cgmUI.add_Button(_row,'Bake Spring',
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Bake Spring',
         cgmGEN.Callback(uiFunc_bake_spring,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Spring',h=30)
+        'Bake Spring',h=30) )
+
+    cgmUI.add_Button(_row,'Add Action',
+        cgmGEN.Callback(uiFunc_add_spring_action,self),                         
+        'Add Action',h=30)
+    
+    mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()   
     #
@@ -781,12 +891,21 @@ def uiFunc_build_post_trajectory_aim_column(self):
 
     # Bake Trajectory Aim Button
     #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
     
-    cgmUI.add_Button(_row,'Bake Trajectory Aim',
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Bake Trajectory Aim',
         cgmGEN.Callback(uiFunc_bake_trajectory_aim,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Trajectory Aim',h=30)
+        'Bake Trajectory Aim',h=30) )
+
+    cgmUI.add_Button(_row,'Add Action',
+        cgmGEN.Callback(uiFunc_add_trajectory_aim_action,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Add Action',h=30)
+    
+    mUI.MelSpacer(_row,w=_padding)
 
     _row.layout()   
     #
@@ -834,19 +953,47 @@ def uiFunc_build_post_keyframe_to_motion_curve_column(self):
 
     # Bake Trajectory Aim Button
     #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
     
-    cgmUI.add_Button(_row,'Bake Keyframes to Motion Curve',
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Bake Keyframes to Motion Curve',
         cgmGEN.Callback(uiFunc_bake_keyframe_to_motion_curve,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Keyframes to Motion Curve',h=30)
+        'Bake Keyframes to Motion Curve',h=30) )
 
-    _row.layout()   
+    cgmUI.add_Button(_row,'Add Action',
+        cgmGEN.Callback(uiFunc_add_keyframe_to_motion_curve_action,self),                         
+        'Add Action',h=30)
+    
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()       
     #
     # End Bake Dragger Button
 
     mc.setParent(parentColumn)
     cgmUI.add_LineSubBreak()  
+
+def uiFunc_get_dragger_data(self):
+    data = {}
+    data['objs'] = mc.ls(sl=True)
+    data['animFilter'] = 'dragger'
+    data['aimFwd'] = self.post_fwdMenu.getValue()
+    data['aimUp'] = self.post_upMenu.getValue()
+    data['damp'] = self.uiFF_post_damp.getValue()
+    data['angularDamp'] = self.uiFF_post_angular_damp.getValue()
+    data['translate']=self._optionDict['translate']
+    data['rotate']=self._optionDict['rotate']
+    data['objectScale']=self.uiFF_post_object_scale.getValue()
+    data['debug']=self.uiCB_post_debug.getValue()
+    data['showBake']=self.uiCB_post_show_bake.getValue()
+    
+    return data
+
+def uiFunc_add_dragger_action(self):
+    self._actionList.append( uiFunc_get_dragger_data(self) )
+    uiFunc_buildActionsColumn(self)
 
 def uiFunc_bake_dragger(self):
     for obj in mc.ls(sl=True):
@@ -854,17 +1001,69 @@ def uiFunc_bake_dragger(self):
         postInstance = DRAGGER.Dragger(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), angularDamp = self.uiFF_post_angular_damp.getValue(), translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
         postInstance.bake()
 
+def uiFunc_get_spring_data(self):
+    data = {}
+    data['objs'] = mc.ls(sl=True)
+    data['animFilter'] = 'spring'   
+    data['aimFwd'] = self.post_fwdMenu.getValue()
+    data['aimUp'] = self.post_upMenu.getValue()
+    data['damp'] = self.uiFF_post_damp.getValue()
+    data['springForce']=self.uiFF_post_spring.getValue()
+    data['angularDamp'] = self.uiFF_post_angular_damp.getValue()
+    data['angularSpringForce'] = self.uiFF_post_angular_spring.getValue()
+    data['angularUpDamp'] = self.uiFF_post_angular_up_damp.getValue()
+    data['angularUpSpringForce'] = self.uiFF_post_angular_up_spring.getValue()
+    data['objectScale']=self.uiFF_post_object_scale.getValue()
+    data['translate']=self._optionDict['translate']
+    data['rotate']=self._optionDict['rotate'],
+    data['debug']=self.uiCB_post_debug.getValue()
+    data['showBake']=self.uiCB_post_show_bake.getValue()
+    
+    return data
+
+def uiFunc_add_spring_action(self):
+    self._actionList.append( uiFunc_get_spring_data(self) )
+    uiFunc_buildActionsColumn(self)
+
 def uiFunc_bake_spring(self):
     for obj in mc.ls(sl=True):
         mc.select(obj)
         postInstance = SPRING.Spring(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), springForce=self.uiFF_post_spring.getValue(), angularDamp = self.uiFF_post_angular_damp.getValue(), angularSpringForce = self.uiFF_post_angular_spring.getValue(), angularUpDamp = self.uiFF_post_angular_up_damp.getValue(), angularUpSpringForce = self.uiFF_post_angular_up_spring.getValue(),objectScale=self.uiFF_post_object_scale.getValue(), translate=self._optionDict['translate'], rotate=self._optionDict['rotate'],debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
         postInstance.bake()
 
+def uiFunc_get_trajectory_aim_data(self):
+    data = {}
+    data['objs'] = mc.ls(sl=True)
+    data['animFilter'] = 'trajectory aim'   
+    data['aimFwd'] = self.post_fwdMenu.getValue()
+    data['aimUp'] = self.post_upMenu.getValue()
+    data['damp'] = self.uiFF_post_damp.getValue()
+    data['showBake']=self.uiCB_post_show_bake.getValue()
+    
+    return data
+
+def uiFunc_add_trajectory_aim_action(self):
+    self._actionList.append( uiFunc_get_trajectory_aim_data(self) )
+    uiFunc_buildActionsColumn(self)
+
 def uiFunc_bake_trajectory_aim(self):
     for obj in mc.ls(sl=True):
         mc.select(obj)
         postInstance = TRAJECTORYAIM.TrajectoryAim(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), showBake=self.uiCB_post_show_bake.getValue())
         postInstance.bake()
+
+def uiFunc_get_keyframe_to_motion_curve_data(self):
+    data = {}
+    data['objs'] = mc.ls(sl=True)
+    data['animFilter'] = 'keyframe to motion curve'   
+    data['debug']=self.uiCB_post_debug.getValue()
+    data['showBake']=self.uiCB_post_show_bake.getValue()
+    
+    return data
+
+def uiFunc_add_keyframe_to_motion_curve_action(self):
+    self._actionList.append( uiFunc_get_keyframe_to_motion_curve_data(self) )
+    uiFunc_buildActionsColumn(self)
 
 def uiFunc_bake_keyframe_to_motion_curve(self):
     for obj in mc.ls(sl=True):
