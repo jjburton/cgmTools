@@ -62,7 +62,7 @@ import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04302019'
+__version__ = cgmGEN.__RELEASE
 __autoForm__ = False
 __component__ = True
 __menuVisible__ = True
