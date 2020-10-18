@@ -1509,7 +1509,7 @@ def mirror(self,mode = 'self'):
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
-    
+@cgmGEN.Timer
 def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
     try:
         _str_func = 'switchMode'    
@@ -1530,7 +1530,17 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
         
         _mode = mode.lower()
         
-        if _mode == 'fkon':
+        if _mode == 'blendsnap':
+            _v =  mSettings.FKIK
+            if _v:
+                switchMode(self, 'fksnap', bypassModuleCheck)
+                mSettings.FKIK = _v
+            else:
+                switchMode(self, 'iksnap', bypassModuleCheck)
+                mSettings.FKIK = _v
+                
+            
+        elif _mode == 'fkon':
             mSettings.FKIK = 0
             
         elif _mode == 'ikon':
