@@ -374,11 +374,31 @@ def uiFunc_run_action(self, idx):
 
 def uiFunc_copy_action(self, idx):
     _str_func = 'uiFunc_copy_action[{0}]'.format(self.__class__.TOOLNAME)            
-    log.info("|{0}| >>...".format(_str_func)) 
+    log.info("|{0}| >>...".format(_str_func))
+
+    self.clipboard = cgmMeta.cgmOptionVar("cgmVar_animFilter_clipboard", varType = "string")
+    self.clipboard.setValue( json.dumps(self._actionList[idx]._optionDict) )
 
 def uiFunc_paste_action(self, idx):
     _str_func = 'uiFunc_paste_action[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func)) 
+
+    ignoreList = ['name', 'filterType']
+
+    action = self._actionList[idx]
+
+    self.clipboard = cgmMeta.cgmOptionVar("cgmVar_animFilter_clipboard", varType = "string")
+
+    clipboard = self.clipboard.getValue()
+    if clipboard:
+        optionDict = json.loads(clipboard)
+
+        for key in optionDict:
+            if key in action._optionDict and key not in ignoreList:
+                action._optionDict[key] = optionDict[key]
+
+        mc.evalDeferred( cgmGEN.Callback(action.build_column,action._parentColumn) )
+
 
 def uiFunc_duplicate_action(self, idx):
     _str_func = 'uiFunc_duplicate_action[{0}]'.format(self.__class__.TOOLNAME)            
@@ -588,6 +608,7 @@ class ui_post_dragger_column(ui_post_filter):
     filterType = 'dragger'
 
     def build_column(self, parentColumn):
+        self._parentColumn = parentColumn
 
         parentColumn.clear()
 
@@ -839,6 +860,7 @@ class ui_post_spring_column(ui_post_filter):
     filterType = 'spring'
 
     def build_column(self, parentColumn):
+        self._parentColumn = parentColumn
 
         parentColumn.clear()
 
@@ -1174,6 +1196,7 @@ class ui_post_trajectory_aim_column(ui_post_filter):
     filterType = 'trajectory aim'
 
     def build_column(self, parentColumn):
+        self._parentColumn = parentColumn
 
         parentColumn.clear()
 
@@ -1318,6 +1341,7 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
     filterType = 'keyframe to motion curve'
 
     def build_column(self, parentColumn):
+        self._parentColumn = parentColumn
 
         parentColumn.clear()
 
