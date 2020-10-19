@@ -96,7 +96,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04302019'
+__version__ = cgmGEN.__RELEASE
 __autoForm__ = False
 __dimensions = [15.2, 23.2, 19.7]#...cm
 __menuVisible__ = True
@@ -658,6 +658,8 @@ l_attrsStandard = ['side',
                    'visRotatePlane',
                    'visLabels',
                    'visProximityMode',
+                   'visJointHandle',
+                   
                    #'ribbonConnectBy': 'constraint:matrix',
                    'jointRadius',
                    'shapeDirection',
@@ -906,8 +908,6 @@ def define(self):
     _dat['baseSize'] = self.baseSize
     self.baseDat = _dat
     
-    
-    reload(BLOCKSHAPES)
     BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
     
     
@@ -2324,6 +2324,10 @@ def prerig(self):
         targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
         jointHelpers = [mObj.jointHelper.mNode for mObj in ml_handles]
         ml_jointHelpers = [mObj.jointHelper for mObj in ml_handles]
+        
+        for mJointHelper in ml_jointHelpers:
+            self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
+            
         #Name Handles...
         for mHandle in ml_handles:
             #Joint Label ---------------------------------------------------------------------------

@@ -75,7 +75,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04302019'
+__version__ = cgmGEN.__RELEASE
 __autoForm__ = False
 __dimensions = __baseSize__ = [15.2, 23.2, 19.7]
 __menuVisible__ = True
@@ -94,10 +94,13 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 
 d_wiring_skeleton = {'msgLinks':[],
                      'msgLists':['moduleJoints','skinJoints']}
-d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull'],
-                   'msgLists':['prerigHandles']}
-d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
-                     'msgLists':['formHandles']}
+d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull','prerigStuff'],
+                   'msgLists':['prerigHandles'],
+                   'optional':['prerigStuff']}
+d_wiring_form = {'msgLinks':['formNull','noTransFormNull','formStuff'],
+                     'msgLists':['formHandles'],
+                     'optional':['formStuff']}
+                     
 
 _d_attrStateOn = {0:[],
                   1:['headRotate'],
@@ -146,6 +149,10 @@ d_build_profiles = {
                 'headNeck':{'neckJoints':1,
                          'neckControls':1}
                    },
+    'unityToon':{'default':{'squashMeasure':'arcLength',
+                            'squash':'both',
+                            'scaleSetup':True,
+                            }},    
     'unityMed':{'default':{'neckJoints':1},
                },
     'unityHigh':{'default':{'neckJoints':3,
@@ -220,15 +227,17 @@ l_attrsStandard = ['side',
                    'ribbonParam',
                    #'ikSetup',
                    #'ikBase',
-                   'buildProfile',
+                   #'buildProfile',
                    'ikOrientToWorld',
                    'numSpacePivots',
                    'scaleSetup',
                    #'offsetMode',
                    'proxyDirect',
                    'proxyGeoRoot',
-                   'spaceSwitch_direct',                   
+                   'spaceSwitch_direct',
                    'settingsDirection',
+                   'visJointHandle',
+                   'jointRadius',
                    'visRotatePlane',
                    'visProximityMode',
                    'visLabels',
@@ -430,140 +439,140 @@ def uiBuilderMenu(self,parent = None):
 #>> Define
 #=============================================================================================================
 def define(self):
-    try:
-        _str_func = 'define'    
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
-        
-        _short = self.mNode
-        
-        for a in 'baseAim','baseSize','baseUp':
-            if ATTR.has_attr(_short,a):
-                ATTR.set_hidden(_short,a,True)            
-        
-        ATTR.set_min(_short, 'neckControls', 1)
-        ATTR.set_min(_short, 'loftSides', 3)
-        ATTR.set_min(_short, 'loftSplit', 1)
-        ATTR.set_min(_short, 'neckShapers', 2)
-        
-        ATTR.set_alias(_short,'sy','blockScale')    
-        self.setAttrFlags(attrs=['sx','sz','sz'])
-        self.doConnectOut('sy',['sx','sz'])            
-        
-        for a in _l_hiddenAttrs:
-            if ATTR.has_attr(_short,a):
-                ATTR.set_hidden(_short,a,True)        
-        
-        _shapes = self.getShapes()
-        if _shapes:
-            log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
-            mc.delete(_shapes)
-            defineNull = self.getMessage('defineNull')
-            if defineNull:
-                log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
-                mc.delete(defineNull)
-            self.verify()
-            
-        
-        _size = self.atUtils('defineSize_get')
-        #_sizeSub = _size / 2.0
-        log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))
-        """
-        _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * 2.0)
+    _str_func = 'define'    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
-        SNAP.go(_crv,self.mNode,)
-        CORERIG.override_color(_crv, 'white')
-        CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-        self.addAttr('cgmColorLock',True,lock=True,visible=False)"""
-        
-        mHandleFactory = self.asHandleFactory()        
-        mDefineNull = self.atUtils('stateNull_verify','define')
-        
-        
-        """
-        #Rotate Group ==================================================================
-        mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
-                                              'cgmObject',setClass=True)
-        mRotateGroup.p_parent = mDefineNull
-        mRotateGroup.doConnectIn('rotate',"{0}.baseAim".format(_short))
-        mRotateGroup.setAttrFlags()
-        """
-        #Bounding box ==================================================================
-        _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
-        mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
-        mBBShape.p_parent = mDefineNull    
-        #mBBShape.ty = .5
-        
-        #CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
-        mBBShape.scale = self.baseSize
-        #self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
-        mHandleFactory.color(mBBShape.mNode,controlType='sub')
-        #mBBShape.setAttrFlags(['scale'])
-        
-        mBBShape.doStore('cgmName', self)
-        mBBShape.doStore('cgmType','bbVisualize')
-        mBBShape.doName()    
-        
-        self.connectChildNode(mBBShape.mNode,'bbHelper')
-        
-        #Aim Controls ==================================================================
-        _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
-              'end':{'color':'white','name':'neckBase','defaults':{'ty':-1}},
-              'start':{'color':'white','name':'neckEnd','defaults':{},'noLock':['translate']},
-              'up':{'color':'greenBright','name':'neckUp','defaults':{'tz':-1}},
-              'rp':{'color':'redBright','name':'neckRP','defaults':{'tz':-2},'parentTag':'end'}}
-        
-        for k,d in _d.iteritems():
-            d['vectorLine'] = False
+    _short = self.mNode
     
-        _l_order = ['aim','end','start','up','rp']
-        
-        _baseDat = self.baseDat or {}
-        
-        _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
-                                                     rotVecControl=True,
-                                                     blockUpVector = _baseDat.get('up',[0,1,0]),
-                                                     startScale=True,)
-                                                     #vectorScaleAttr='neckSize')
-        self.UTILS.define_set_baseSize(self)
-        
-        md_vector = _resDefine['md_vector']
-        md_handles = _resDefine['md_handles']
+    for a in 'baseAim','baseSize','baseUp':
+        if ATTR.has_attr(_short,a):
+            ATTR.set_hidden(_short,a,True)            
     
-                
-        #Rotate Plane ======================================================================
-        mRotatePlane = self.UTILS.create_define_rotatePlane(self, md_handles,md_vector,mStartParent = md_handles['start'])
-        
-        #Neck Build Group ======================================================================
-        mNeckGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
-        mNeckGroup.p_parent = mDefineNull
-        mNeckGroup.rename('neck_ull')
-        mNeckGroup.doConnectIn('visibility',"{0}.neckBuild".format(self.mNode))
+    ATTR.set_min(_short, 'neckControls', 1)
+    ATTR.set_min(_short, 'loftSides', 3)
+    ATTR.set_min(_short, 'loftSplit', 1)
+    ATTR.set_min(_short, 'neckShapers', 2)
     
-        md_handles['end'].p_parent = mNeckGroup
-        md_handles['start'].p_parent = mNeckGroup
-        md_handles['rp'].p_parent = mNeckGroup        
-        self.defineLoftMesh.p_parent = mNeckGroup
-        self.defineLoftMesh.resetAttrs()
-        mRotatePlane.p_parent = mNeckGroup
+    ATTR.set_alias(_short,'sy','blockScale')    
+    self.setAttrFlags(attrs=['sx','sz','sz'])
+    self.doConnectOut('sy',['sx','sz'])            
+    
+    for a in _l_hiddenAttrs:
+        if ATTR.has_attr(_short,a):
+            ATTR.set_hidden(_short,a,True)        
+    
+    _shapes = self.getShapes()
+    if _shapes:
+        log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
+        mc.delete(_shapes)
+        defineNull = self.getMessage('defineNull')
+        if defineNull:
+            log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
+            mc.delete(defineNull)
+        self.verify()
         
-        _end = md_handles['end'].mNode
-        self.doConnectIn('neckSizeX',"{0}.width".format(_end))
-        self.doConnectIn('neckSizeY',"{0}.height".format(_end))
-        self.doConnectIn('neckSizeZ',"{0}.length".format(_end))
-        
-        self.UTILS.rootShape_update(self)        
-        _dat = self.baseDat
-        _dat['baseSize'] = self.baseSize
-        self.baseDat = _dat        
-        
-        self.msgList_append('defineHandles', mBBShape)
-        
-        return    
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    
+    _size = self.atUtils('defineSize_get')
+    #_sizeSub = _size / 2.0
+    log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))
+    """
+    _crv = CURVES.create_fromName(name='locatorForm',
+                                  direction = 'z+', size = _size * 2.0)
 
+    SNAP.go(_crv,self.mNode,)
+    CORERIG.override_color(_crv, 'white')
+    CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+    self.addAttr('cgmColorLock',True,lock=True,visible=False)"""
     
+    mHandleFactory = self.asHandleFactory()        
+    mDefineNull = self.atUtils('stateNull_verify','define')
+    
+    
+    """
+    #Rotate Group ==================================================================
+    mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
+                                          'cgmObject',setClass=True)
+    mRotateGroup.p_parent = mDefineNull
+    mRotateGroup.doConnectIn('rotate',"{0}.baseAim".format(_short))
+    mRotateGroup.setAttrFlags()
+    """
+    #Bounding box ==================================================================
+    _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
+    mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
+    mBBShape.p_parent = mDefineNull    
+    #mBBShape.ty = .5
+    
+    #CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
+    mBBShape.scale = self.baseSize
+    #self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
+    mHandleFactory.color(mBBShape.mNode,controlType='sub')
+    #mBBShape.setAttrFlags(['scale'])
+    
+    mBBShape.doStore('cgmName', self)
+    mBBShape.doStore('cgmType','bbVisualize')
+    mBBShape.doName()    
+    
+    self.connectChildNode(mBBShape.mNode,'bbHelper')
+    
+    #Aim Controls ==================================================================
+    _d = {'aim':{'color':'yellowBright','defaults':{'tz':2}},
+          'end':{'color':'white','name':'neckBase','defaults':{'ty':-1}},
+          'start':{'color':'white','name':'neckEnd','defaults':{},'noLock':['translate']},
+          'up':{'color':'greenBright','name':'neckUp','defaults':{'tz':-1}},
+          'rp':{'color':'redBright','name':'neckRP','defaults':{'tz':-2},'parentTag':'end'}}
+    
+    for k,d in _d.iteritems():
+        d['vectorLine'] = False
+
+    _l_order = ['aim','end','start','up','rp']
+    
+    _baseDat = self.baseDat or {}
+    
+    _resDefine = self.UTILS.create_defineHandles(self, _l_order, _d, _size,
+                                                 rotVecControl=True,
+                                                 blockUpVector = _baseDat.get('up',[0,1,0]),
+                                                 startScale=True,)
+                                                 #vectorScaleAttr='neckSize')
+    self.UTILS.define_set_baseSize(self)
+    
+    md_vector = _resDefine['md_vector']
+    md_handles = _resDefine['md_handles']
+
+            
+    #Rotate Plane ======================================================================
+    mRotatePlane = self.UTILS.create_define_rotatePlane(self, md_handles,md_vector,mStartParent = md_handles['start'])
+    
+    #Neck Build Group ======================================================================
+    mNeckGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
+    mNeckGroup.p_parent = mDefineNull
+    mNeckGroup.rename('neck_ull')
+    mNeckGroup.doConnectIn('visibility',"{0}.neckBuild".format(self.mNode))
+
+    md_handles['end'].p_parent = mNeckGroup
+    md_handles['start'].p_parent = mNeckGroup
+    md_handles['rp'].p_parent = mNeckGroup        
+    self.defineLoftMesh.p_parent = mNeckGroup
+    self.defineLoftMesh.resetAttrs()
+    mRotatePlane.p_parent = mNeckGroup
+    
+    _end = md_handles['end'].mNode
+    self.doConnectIn('neckSizeX',"{0}.width".format(_end))
+    self.doConnectIn('neckSizeY',"{0}.height".format(_end))
+    self.doConnectIn('neckSizeZ',"{0}.length".format(_end))
+    
+    self.UTILS.rootShape_update(self)        
+    _dat = self.baseDat
+    _dat['baseSize'] = self.baseSize
+    self.baseDat = _dat        
+    
+    self.msgList_append('defineHandles', mBBShape)
+    
+    BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+    
+    return    
+
+
     
     
 #=============================================================================================================
@@ -910,11 +919,14 @@ def form(self):
             self.msgList_connect('formHandles',[mHeadHandle]+[mObj.mNode for mObj in ml_handles_chain])
         
             #>>Loft Mesh =========================================================================================
+            ml_loftCurves = []
             if self.neckShapers:
                 targets = [mObj.loftCurve.mNode for mObj in ml_shapers]
+                ml_loftCurves = [mObj.loftCurve for mObj in ml_shapers]
                 self.msgList_connect('shaperHandles',[mObj.mNode for mObj in ml_shapers])
             else:
                 targets = [mObj.loftCurve.mNode for mObj in ml_handles_chain]
+                ml_loftCurves = [mObj.loftCurve for mObj in ml_handles_chain]
                 
         
             mNeckSurf = self.atUtils('create_prerigLoftMesh',
@@ -945,6 +957,14 @@ def form(self):
            
            
             self.UTILS.form_shapeHandlesToDefineMesh(self,ml_handles_chain)
+               
+               
+               
+            self.UTILS.controller_wireHandles(self,ml_handles_chain + ml_loftCurves,'form')
+            self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
+            
+            if ml_loftCurves:
+                self.UTILS.controller_walkChain(self,ml_loftCurves,'form')            
                
                
                 
@@ -1176,10 +1196,11 @@ def prerig(self):
         
             #_sizeUse = self.atUtils('get_shapeOffset')
             mDefineEndObj = self.defineEndHelper    
-            _size_width = mDefineEndObj.width#...x width        
-            _sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
-            _sizeUse2 = self.atUtils('get_shapeOffset') * 2
-            _sizeUse = min([_sizeUse1,_sizeUse2])
+            #_size_width = mDefineEndObj.width#...x width        
+            #_sizeUse1 = _size_width/ 3.0 #self.atUtils('get_shapeOffset')
+            #_sizeUse2 = self.atUtils('get_shapeOffset') * 2
+            #_sizeUse = min([_sizeUse1,_sizeUse2])
+            _sizeUse = self.jointRadius
             _len_set = len(_l_pos)
             
             for i,p in enumerate(_l_pos): #i,mFormHandle in enumerate(ml_formHandles_neck):
@@ -1263,10 +1284,16 @@ def prerig(self):
                                  worldUpType = 'objectRotation' )          
             targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
             
+            ml_jointHandles = [mObj.jointHelper for mObj in ml_handles]
+            for mJointHelper in ml_jointHandles:
+                self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))            
+            
+            
             #Name Handles...
             log.debug("|{0}| >> name handles...".format(_str_func)+'-'*40)                
             for mHandle in ml_handles:
-                mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
+                BLOCKSHAPES.addJointLabel(self,mHandle,mHandle.cgmName)                
+                #mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
             
             self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
             self.atUtils('create_jointLoft',
@@ -1287,6 +1314,15 @@ def prerig(self):
             
             mc.pointConstraint([ml_jointHandles[0].mNode], str_vectorRP,maintainOffset=False)
             ATTR.set_lock(str_vectorRP,'translate',True)            
+            
+            
+            #self.UTILS.controller_wireHandles(self,ml_handles + ml_jointHandles,'prerig')
+            self.UTILS.controller_walkChain(self,ml_handles,'prerig')
+            self.UTILS.controller_walkChain(self,ml_jointHandles,'prerig')
+            
+              
+            
+            
             
             
             #cgmGEN.func_snapShot(vars())

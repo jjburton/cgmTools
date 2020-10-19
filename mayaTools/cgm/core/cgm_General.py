@@ -10,7 +10,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 ================================================================
 """
 __MAYALOCAL = 'cgmGEN'
-__RELEASE = '2020.3.2.alpha'
+__RELEASE = '20.3.2'
 
 import maya.cmds as mc
 import maya.mel as mel

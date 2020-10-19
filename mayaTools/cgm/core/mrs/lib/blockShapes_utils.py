@@ -1559,11 +1559,11 @@ def addJointRadiusVisualizer(self,mParent = False):
     mJointRadius.doSnapTo(self.mNode)
     CORERIG.override_color(mJointRadius.mNode, 'black')
     
-    mJointRadius.tempate = 1
+    mJointRadius.template = 1
     
     mJointRadius.rename("jointRadiusVis")
-    _base = self.atUtils('get_shapeOffset')*4
-    if self.jointRadius < _base:
+    _base = self.atUtils('get_shapeOffset')*2
+    if self.jointRadius < .00001:
         self.jointRadius = _base
     self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
     mJointRadius.dagLock()
