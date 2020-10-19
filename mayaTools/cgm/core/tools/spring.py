@@ -78,7 +78,7 @@ class Spring(PostBake.PostBake):
             self.positionForce = self.positionForce + ((VALID.euclidVector3Arg(self._bakedLoc.p_position) - VALID.euclidVector3Arg(self.previousPosition)) * self.springForce)
             self.positionForce = self.positionForce * (1.0 - self.damp)
             
-            self.obj.p_position = self.obj.p_position + (self.positionForce * deltaTime)
+            self.obj.p_position = self.previousPosition + (self.positionForce * deltaTime)
             
         if self.rotate:
             self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale

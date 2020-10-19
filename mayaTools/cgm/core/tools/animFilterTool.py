@@ -62,7 +62,7 @@ class ui(cgmUI.cgmGUI):
     
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
-        log.info("|{0}| >>...".format(_str_func))        
+        log.info("|{0}| >>...".format(_str_func))
 
         if kws:log.debug("kws: %s"%str(kws))
         if args:log.debug("args: %s"%str(args))
@@ -83,21 +83,35 @@ class ui(cgmUI.cgmGUI):
         }
         
         self._actionList = []
+        self._loadedFile = ""
 
  
     def build_menus(self):
-        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
+        self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
 
-    def buildMenu_first(self):
-        self.uiMenu_FirstMenu.clear()
+    def buildMenu_file(self):
+        self.uiMenu_FileMenu.clear()                      
+
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_actions,self)))
+
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save As",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_as_actions,self)))
+        
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
+
+    def buildMenu_setup(self):
+        self.uiMenu_SetupMenu.clear()
         #>>> Reset Options		                     
 
-        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        mUI.MelMenuItemDiv( self.uiMenu_SetupMenu )
 
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
+        mUI.MelMenuItem( self.uiMenu_SetupMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
 
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+        mUI.MelMenuItem( self.uiMenu_SetupMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
         
     def build_layoutWrapper(self,parent):
@@ -194,7 +208,7 @@ def uiFunc_build_post_process_column(self, parentColumn):
 
     _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    actions = ['Dragger', 'Spring', 'Trajectory Aim', 'Keys to Motion Curve']
+    actions = ['Dragger', 'Spring', 'Trajectory Aim', 'Keyframe to Motion Curve']
 
     self.post_actionMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate') #, changeCommand=cgmGEN.Callback(uiFunc_setPostAction,self)
     for dir in actions:
@@ -209,7 +223,7 @@ def uiFunc_build_post_process_column(self, parentColumn):
     # End Post Process Action
 
 
-    # Bake Trajectory Aim Button
+    # Add Action Button
     #
     _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
@@ -224,7 +238,7 @@ def uiFunc_build_post_process_column(self, parentColumn):
 
     _row.layout()       
     #
-    # End Bake Dragger Button
+    # End Add Action Button
 
     # Post Process Options Frame
     #
@@ -277,6 +291,9 @@ def uiFunc_buildActionsColumn(self):
         
         pum = mUI.MelPopupMenu(_frame)
         mUI.MelMenuItem(pum, label="Rename", command=cgmGEN.Callback(uiFunc_rename_action,self,i) )
+        mUI.MelMenuItem(pum, label="Copy", command=cgmGEN.Callback(uiFunc_copy_action,self,i) )
+        mUI.MelMenuItem(pum, label="Paste", command=cgmGEN.Callback(uiFunc_paste_action,self,i) )
+        mUI.MelMenuItem(pum, label="Duplicate", command=cgmGEN.Callback(uiFunc_duplicate_action,self,i) )
         mUI.MelMenuItem(pum, divider=True )
         mUI.MelMenuItem(pum, label="Move Up", command=cgmGEN.Callback(uiFunc_move_action,self,i,'up') )
         mUI.MelMenuItem(pum, label="Move Down", command=cgmGEN.Callback(uiFunc_move_action,self,i,'down') )
@@ -284,6 +301,8 @@ def uiFunc_buildActionsColumn(self):
         mUI.MelMenuItem(pum, label="Move to Bottom", command=cgmGEN.Callback(uiFunc_move_action,self,i,'bottom') )
         mUI.MelMenuItem(pum, divider=True )
         mUI.MelMenuItem(pum, label="Delete", command=cgmGEN.Callback(uiFunc_remove_action,self,i) )
+        mUI.MelMenuItem(pum, divider=True )
+        mUI.MelMenuItem(pum, label="Run", command=cgmGEN.Callback(uiFunc_run_action,self,i) )
 
         _dataColumn = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUIHeaderTemplate') 
         
@@ -307,17 +326,7 @@ def uiFunc_buildActionsColumn(self):
     _row.setStretchWidget( cgmUI.add_Button(_row,'Run',
         cgmGEN.Callback(uiFunc_run,self),                         
         #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Run',h=30) )
-
-    cgmUI.add_Button(_row,'Save',
-        cgmGEN.Callback(uiFunc_save_actions,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Save Actions',h=30)
-    
-    cgmUI.add_Button(_row,'Load',
-        cgmGEN.Callback(uiFunc_load_actions,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Load Actions',h=30)    
+        'Run',h=30) ) 
     
     mUI.MelSpacer(_row,w=_padding)
 
@@ -333,15 +342,108 @@ def uiFunc_run(self):
     uiFunc_updateActionDicts(self)
 
     for action in self._actionList:
+        mc.select(action._optionDict['objs'])
+        
+        animLayerName = mc.animLayer(action.name)
+        mc.setAttr( '{0}.rotationAccumulationMode'.format(animLayerName), 0)
+        mc.setAttr( '{0}.scaleAccumulationMode'.format(animLayerName), 1)
+        mc.animLayer( animLayerName, e=True, addSelectedObjects=True)
+
+        for layer in mc.ls(type='animLayer'):
+            mc.animLayer(layer, e=True, selected=(layer == animLayerName))
+
         action.run()
+
+def uiFunc_run_action(self, idx):
+    _str_func = 'uiFunc_run_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    action = self._actionList[idx]
+
+    mc.select(action._optionDict['objs'])
+    
+    animLayerName = mc.animLayer(action.name)
+    mc.setAttr( '{0}.rotationAccumulationMode'.format(animLayerName), 0)
+    mc.setAttr( '{0}.scaleAccumulationMode'.format(animLayerName), 1)
+    mc.animLayer( animLayerName, e=True, addSelectedObjects=True)
+
+    for layer in mc.ls(type='animLayer'):
+        mc.animLayer(layer, e=True, selected=(layer == animLayerName))
+
+    action.run()
+
+def uiFunc_copy_action(self, idx):
+    _str_func = 'uiFunc_copy_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+def uiFunc_paste_action(self, idx):
+    _str_func = 'uiFunc_paste_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+def uiFunc_duplicate_action(self, idx):
+    _str_func = 'uiFunc_duplicate_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    uiFunc_updateActionDicts(self)
+
+    action = self._actionList[idx]   
+
+    self._actionList.append( action_class[action._optionDict['filterType']](action._optionDict) )
+
+    mc.evalDeferred( cgmGEN.Callback(uiFunc_buildActionsColumn,self) )
 
 def uiFunc_save_actions(self):
     _str_func = 'uiFunc_save_actions[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func)) 
 
+    if os.path.exists(self._loadedFile):
+        uiFunc_updateActionDicts(self)
+
+        f = open(self._loadedFile, 'w')
+        f.write(json.dumps( [copy.copy(action._optionDict) for action in self._actionList] ))
+        f.close()
+    else:
+        uiFunc_save_as_actions(self)
+
+def uiFunc_save_as_actions(self):
+    _str_func = 'uiFunc_save_actions[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    uiFunc_updateActionDicts(self)
+
+    basicFilter = "*.afs"
+    filename = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fileMode=0)
+
+    f = open(filename[0], 'w')
+    f.write(json.dumps( [copy.copy(action._optionDict) for action in self._actionList] ))
+    f.close()
+
+    self._loadedFile = filename[0]
+
+    mc.window(self, e=True, title="{0} - {1}".format(self.__class__.WINDOW_TITLE, filename[0]))
+
 def uiFunc_load_actions(self):
     _str_func = 'uiFunc_load_actions[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func)) 
+
+    basicFilter = "*.afs"
+    filename = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fileMode=1)
+
+    f = open(filename[0], 'r')
+    actionDicts = json.loads(f.read())
+    f.close()
+
+    self._loadedFile = filename[0]
+
+    mc.window(self, e=True, title="{0} - {1}".format(self.__class__.WINDOW_TITLE, filename[0]))
+
+    self._actionList = []
+
+    for data in actionDicts:
+        if data['filterType'] in action_class:
+            self._actionList.append( action_class[data['filterType']](data) )
+
+    mc.evalDeferred( cgmGEN.Callback(uiFunc_buildActionsColumn,self) )
 
 def uiFunc_rename_action(self, idx):
     _str_func = 'uiFunc_rename_action[{0}]'.format(self.__class__.TOOLNAME)            
@@ -391,36 +493,37 @@ def uiFunc_add_action(self):
     _str_func = 'uiFunc_add_action[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func)) 
 
-    postAction = self.post_actionMenu.getValue()
+    postAction = self.post_actionMenu.getValue().lower()
 
-    if postAction == 'Dragger':
-        action = ui_post_dragger_column(self._optionDict)
-    elif postAction == 'Spring':
-        action = ui_post_spring_column(self._optionDict)
-    elif postAction == 'Trajectory Aim':
-        action = ui_post_trajectory_aim_column(self._optionDict)
-    elif postAction == 'Keys to Motion Curve':
-        action = ui_post_keyframe_to_motion_curve_column(self._optionDict)
+    action = action_class[postAction]()
+    # if postAction == 'dragger':
+    #     action = ui_post_dragger_column(self._optionDict)
+    # elif postAction == 'spring':
+    #     action = ui_post_spring_column(self._optionDict)
+    # elif postAction == 'trajectory aim':
+    #     action = ui_post_trajectory_aim_column(self._optionDict)
+    # elif postAction == 'keyframe to motion curve':
+    #     action = ui_post_keyframe_to_motion_curve_column(self._optionDict)
 
     self._actionList.append(action)
 
     uiFunc_updateActionDicts(self)
     mc.evalDeferred( cgmGEN.Callback(uiFunc_buildActionsColumn,self) )
 
-def uiFunc_setPostAction(self):
-    _str_func = 'uiFunc_setPostAction[{0}]'.format(self.__class__.TOOLNAME)            
-    log.info("|{0}| >>...".format(_str_func)) 
+# def uiFunc_setPostAction(self):
+#     _str_func = 'uiFunc_setPostAction[{0}]'.format(self.__class__.TOOLNAME)            
+#     log.info("|{0}| >>...".format(_str_func)) 
 
-    postAction = self.post_actionMenu.getValue()
+#     postAction = self.post_actionMenu.getValue()
 
-    if postAction == 'Dragger':
-        uiFunc_build_post_dragger_column(self)
-    elif postAction == 'Spring':
-        uiFunc_build_post_spring_column(self)
-    elif postAction == 'Trajectory Aim':
-        uiFunc_build_post_trajectory_aim_column(self)
-    elif postAction == 'Keys to Motion Curve':
-        uiFunc_build_post_keyframe_to_motion_curve_column(self)
+#     if postAction == 'Dragger':
+#         uiFunc_build_post_dragger_column(self)
+#     elif postAction == 'Spring':
+#         uiFunc_build_post_spring_column(self)
+#     elif postAction == 'Trajectory Aim':
+#         uiFunc_build_post_trajectory_aim_column(self)
+#     elif postAction == 'Keys to Motion Curve':
+#         uiFunc_build_post_keyframe_to_motion_curve_column(self)
 
 def uiFunc_updateActionDicts(self):
     _str_func = 'uiFunc_updateActionDicts[{0}]'.format(self.__class__.TOOLNAME)            
@@ -440,7 +543,7 @@ class ui_post_filter(object):
         }):
 
         self._optionDict = copy.copy(optionDict)
-        self.name = None
+        self.name = self._optionDict.get('name', None)
 
     def build_column(self, parentColumn):
         pass
@@ -692,7 +795,8 @@ class ui_post_dragger_column(ui_post_filter):
     def get_data(self):
         self.update_dict()
 
-        order = ['animFilter',
+        order = ['name',
+            'filterType',
             'objs',
             'aimFwd',
             'aimUp',
@@ -709,7 +813,8 @@ class ui_post_dragger_column(ui_post_filter):
         return data
 
     def update_dict(self):
-        self._optionDict['animFilter'] = self.filterType
+        self._optionDict['name'] = self.name
+        self._optionDict['filterType'] = self.filterType
         self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
         self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
         self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
@@ -791,7 +896,7 @@ class ui_post_spring_column(ui_post_filter):
 
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-        self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('spring', 1.0))
+        self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('springForce', 1.0))
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -1017,7 +1122,8 @@ class ui_post_spring_column(ui_post_filter):
     def get_data(self):
         self.update_dict()
 
-        order = ['animFilter',
+        order = ['name',
+                'filterType',
                 'objs',
                 'aimFwd',
                 'aimUp',
@@ -1038,12 +1144,13 @@ class ui_post_spring_column(ui_post_filter):
         return data
 
     def update_dict(self):
-        self._optionDict['animFilter'] = self.filterType
+        self._optionDict['name'] = self.name
+        self._optionDict['filterType'] = self.filterType
         self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
         self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
         self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
         self._optionDict['damp'] = self.uiFF_post_damp.getValue() if hasattr(self, 'uiFF_post_damp') else .3
-        self._optionDict['springForce'] = self.uiFF_post_angular_spring.getValue() if hasattr(self, 'uiFF_post_angular_spring') else 12.0
+        self._optionDict['springForce'] = self.uiFF_post_spring.getValue() if hasattr(self, 'uiFF_post_spring') else 12.0
         self._optionDict['angularDamp'] = self.uiFF_post_angular_damp.getValue() if hasattr(self, 'uiFF_post_angular_damp') else .3
         self._optionDict['angularSpringForce'] = self.uiFF_post_angular_spring.getValue() if hasattr(self, 'uiFF_post_angular_spring') else 12.0
         self._optionDict['angularUpDamp'] = self.uiFF_post_angular_up_damp.getValue() if hasattr(self, 'uiFF_post_angular_up_damp') else .3
@@ -1178,7 +1285,8 @@ class ui_post_trajectory_aim_column(ui_post_filter):
     def get_data(self):
         self.update_dict()
 
-        order = ['animFilter',
+        order = ['name',
+                'filterType',
                 'objs',
                 'aimFwd',
                 'aimUp',
@@ -1190,7 +1298,8 @@ class ui_post_trajectory_aim_column(ui_post_filter):
         return data
 
     def update_dict(self):
-        self._optionDict['animFilter'] = self.filterType
+        self._optionDict['name'] = self.name
+        self._optionDict['filterType'] = self.filterType
         self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
         self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
         self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
@@ -1273,18 +1382,10 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
         cgmUI.add_LineSubBreak()  
 
     def get_data(self):
-        data = []
-        data.append({'kw':'animFilter','val':'keyframe to motion curve'})
-        data.append({'kw':'objs','val':mc.ls(sl=True)})
-        data.append({'kw':'debug','val':self.uiCB_post_debug.getValue()})
-        data.append({'kw':'showBake','val':self.uiCB_post_show_bake.getValue()})
-        
-        return data
-
-    def get_data(self):
         self.update_dict()
 
-        order = ['animFilter',
+        order = ['name',
+                'filterType',
                 'objs',
                 'debug',
                 'showBake']
@@ -1294,7 +1395,8 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
         return data
 
     def update_dict(self):
-        self._optionDict['animFilter'] = self.filterType
+        self._optionDict['name'] = self.name
+        self._optionDict['filterType'] = self.filterType
         self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
         self._optionDict['debug'] = self.uiCB_post_debug.getValue() if hasattr(self, 'uiCB_post_debug') else False
         self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
@@ -1323,3 +1425,10 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
 # def uiFunc_add_keyframe_to_motion_curve_action(self):
 #     self._actionList.append( uiFunc_get_keyframe_to_motion_curve_data(self) )
 #     uiFunc_buildActionsColumn(self)
+
+action_class = {
+    'dragger':ui_post_dragger_column,
+    'spring':ui_post_spring_column,
+    'trajectory aim':ui_post_trajectory_aim_column,
+    'keyframe to motion curve':ui_post_keyframe_to_motion_curve_column
+}
