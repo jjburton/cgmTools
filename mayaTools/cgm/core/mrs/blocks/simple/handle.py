@@ -235,6 +235,7 @@ d_defaultSettings = {'version':__version__,
                      'rotPivotPlace':'jointHelper',
                      'proxy':1,
                      'numShapers':2,
+                     'jointRadius':.1,                     
                      'loftList':['square','circle','square'],
                      'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},
                      'proxyType':1}

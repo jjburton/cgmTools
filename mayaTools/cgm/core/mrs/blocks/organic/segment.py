@@ -424,6 +424,7 @@ d_defaultSettings = {'version':__version__,
                      'spaceSwitch_direct':False,
                      'spaceSwitch_fk':False,
                      'nameList':['',''],
+                     'jointRadius':.1,                     
                      'shapeDirection':'y+',
                      #'blockProfile':'spine',
                      'attachPoint':'base',}

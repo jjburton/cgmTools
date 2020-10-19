@@ -292,6 +292,7 @@ d_defaultSettings = {'version':__version__,
                      'squash':'simple',
                      'squashFactorMax':1.0,
                      'squashFactorMin':1.0,
+                     'jointRadius':.1,
                      
                      'segmentMidIKControl':True,
                      'squash':'both',
