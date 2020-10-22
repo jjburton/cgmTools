@@ -381,7 +381,7 @@ def matchTarget_set(obj = None, target = None):
     _target = VALID.objString(target, noneValid=False, calledFrom = __name__ + _str_func + ">> validate target")
     
     ATTR.set_message(_obj, 'cgmMatchTarget',_target,'cgmMatchDat',0)
-    
+    log.info(cgmGEN.logString_msg(_str_func,"obj: {0} | target: {1}".format(_obj,_target)))
     return True
 
 def matchTarget_clear(obj = None):
