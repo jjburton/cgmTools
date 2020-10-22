@@ -666,6 +666,7 @@ def rigDelete(self):
                 log.debug("|{0}| >> failed...".format(_str_func,mNode))         
         
         
+        mPuppet.masterNull.skeletonGroup.overrideEnabled = 0
         
         return True
         self.v = 1

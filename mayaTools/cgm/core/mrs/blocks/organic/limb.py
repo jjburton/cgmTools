@@ -757,6 +757,7 @@ d_defaultSettings = {'version':__version__,
                      'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
                      'segmentMidIKControl':True,
+                     'jointRadius':.1,
                      'visRotatePlane':False,
                      'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
                      
@@ -2812,7 +2813,7 @@ def rig_prechecks(self):
             
         str_squash = mBlock.getEnumValueString('squash')
         if str_squash in ['simple']:
-            self.l_precheckErrors.append("{0} not ready".format(str_squash))        
+            self.l_precheckErrors.append("'{0}' squash mode not ready. Pick another for now.".format(str_squash))        
             
         if mBlock.numControls < 3 and str_ikEnd != 'default':
             self.l_precheckWarnings.append('With less than 3 controls, using ikEnd of default')
