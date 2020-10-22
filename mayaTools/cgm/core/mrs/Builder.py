@@ -1399,6 +1399,53 @@ class ui_blockEditor(cgmUI.cgmGUI):
                         
                         mUI.MelLabel(_inside,l = "{0} | {1}".format(a, ATTR.get(_short,a)))
                         continue
+                    
+                    """
+                    _datList = mBlock.datList_get(a)
+                    if _datList:
+                        mc.setParent(_inside)
+                        cgmUI.add_LineBreak()
+                        cgmUI.add_Header(a)
+                        
+
+                        mUI.MelLabel(_inside,l = "{0} | {1}".format(len(_datList),
+                                                                    [str(n) for n in _datList]),
+                                    useTemplate = 'cgmUIInstructionsTemplate',
+                                    )
+                        
+                        #Namelist...
+                        _mRow = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate')
+                        mUI.MelSpacer(_mRow,w=_sidePadding)
+                        
+                        mUI.MelLabel(_mRow,l='NameList:')
+                        _mRow.setStretchWidget(mUI.MelSeparator(_mRow,))
+                        
+                        _d_nameList = {
+                                    'Reset':{'ann':'Reset the name list to the profile',
+                                                   'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                          'atUtils','nameList_resetToProfile',
+                                                                          **{})},
+                                    'Edit':{'ann':'Ui Prompt to edit nameList',
+                                                        'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                               'atUtils','nameList_uiPrompt',
+                                                                               **{})},                  
+                                     'Iter baseName':{'ann':'Set nameList values from name attribute',
+                                                      'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                             'atUtils','set_nameListFromName',
+                                                                             **{})}}
+                    
+                        for k2,d2 in _d_nameList.iteritems():
+                            mUI.MelButton(_mRow,
+                                         label=k2,ut='cgmUITemplate',
+                                         ann = d2.get('ann',''),
+                                         c=d2.get('call'))
+                            
+                        mUI.MelSpacer(_mRow,w=_sidePadding)
+                        _mRow.layout()                    """
+
+
+
+
 
                     _hlayout = mUI.MelHSingleStretchLayout(_inside,padding = 10)
 

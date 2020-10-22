@@ -987,7 +987,20 @@ def form(self):
     _ikEnd = self.getEnumValueString('ikEnd')
     _loftSetup = self.getEnumValueString('loftSetup')
             
+
+    #LenSub shapers -------------------------------------------------------------------
+    _cnt = self.numShapers-1
+    if self.addLeverBase:
+        _cnt +=1
         
+    _dat = self.datList_get('numSubShapers')
+    _diff = _cnt - len(_dat)
+    if len(_dat) < _cnt:
+        #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
+        for i in range(0,_diff):
+            self.datList_append('numSubShapers', self.numSubShapers)        
+
+
     #Get base dat =====================================================================================    
     log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
     
@@ -1135,6 +1148,7 @@ def form(self):
         mHandle.doConnectOut('scale', "{0}.scale".format(mTransformedGroup.mNode))
         mc.pointConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=False)
         #mc.scaleConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=True)
+        mHandleFactory.color(mLoftCurve.mNode)            
         
         mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
         
@@ -1207,6 +1221,7 @@ def form(self):
         mHandleFactory = self.asHandleFactory(mHandle.mNode)
     
         CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
+        CORERIG.colorControl(mLeverLoftCurve.mNode,_side,'main',transparent = True)
         
         SNAP.aim(mGroup.mNode, self.mNode,vectorUp=_mVectorLeverUp,mode='vector')
         
@@ -1313,6 +1328,7 @@ def form(self):
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
     
             CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
+            CORERIG.colorControl(mLoftCurve.mNode,_side,'main',transparent = True)
             
         #Push scale back...
         for i,mHandle in enumerate(ml_handles):
@@ -1514,6 +1530,13 @@ def form(self):
     #ml_shapers = copy.copy(ml_handles_chain)
     #>>> shaper handles =======================================================================
     if self.numSubShapers:
+        #Subshaper count -------------------------------------------------------------------------
+        l_numSubShapers =  self.datList_get('numSubShapers')
+        if not l_numSubShapers:
+            l_numSubShapers = [self.numSubShapers for i in xrange(self.numShapers-1)]
+        log.info("|{0}| >> l_numSubShapers: {1}".format(_str_func,l_numSubShapers))         
+        
+        
         _numSubShapers = self.numSubShapers
         ml_shapers = []
         log.debug("|{0}| >> Sub shaper handles: {1}".format(_str_func,_numSubShapers))
@@ -1544,10 +1567,11 @@ def form(self):
             _leverLoftAimMode = False
             
             if i == 0 and self.addLeverBase:
-                _numSubShapers = 1
+                #_numSubShapers = self.numSubShapers
                 _leverLoftAimMode = True
-            else:
-                _numSubShapers = self.numSubShapers
+            #else:
+                #_numSubShapers = self.numSubShapers
+            _numSubShapers = l_numSubShapers[i]
 
             
             _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
@@ -1945,6 +1969,8 @@ def prerig(self):
         _short = self.p_nameShort
         _side = self.atUtils('get_side')        
         self.atUtils('module_verify')
+        
+
     
         #> Get our stored dat =======================================================================
         mHandleFactory = self.asHandleFactory()

@@ -660,6 +660,18 @@ def form(self):
                 
         for a in 'XYZ':ATTR.break_connection(self.mNode,'neckSize'+a)
         
+        
+        
+        #LenSub shapers -------------------------------------------------------------------
+        _cnt = self.numShapers-1
+        _dat = self.datList_get('numSubShapers')
+        _diff = _cnt - len(_dat)
+        if len(_dat) < _cnt:
+            #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
+            for i in range(0,_diff-1):
+                self.datList_append('numSubShapers', self.numSubShapers)        
+        
+        
         #Get base dat =============================================================================
         log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
         md_vectorHandles = {}

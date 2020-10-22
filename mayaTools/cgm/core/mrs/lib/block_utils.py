@@ -6595,7 +6595,7 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         if report:pprint.pprint(l)
         _tmp = []
         for s in l:
-            if s.endswith('List'):
+            if s.endswith('List') or s in ['numSubShapers','numRoll']:
                 if ATTR.datList_exists(_short,s):
                     for s2 in ATTR.datList_getAttrs(_short,s):
                         _tmp.append(s2)
@@ -6744,6 +6744,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     if not _baseName:
         _baseName = self.blockType
     
+    #Loft Shapes...-----------------------------------------------------------------------
     if _loftSetup == 'loftList':
         _l_loftShapes =  ATTR.datList_get(_short,'loftList',enum=True) or []
         if len(_l_loftShapes) != _int_shapers:
@@ -6754,6 +6755,13 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         _l_loftShapes = [_loftShape for i in range(_int_shapers)]
 
     log.debug("|{0}| >> loftShapes: {1}".format(_str_func,_l_loftShapes)) 
+    
+    #Subshaper count -------------------------------------------------------------------------
+    l_numSubShapers =  self.datList_get('numSubShapers')
+    if not l_numSubShapers:
+        l_numSubShapers = [self.numSubShapers for i in xrange(self.numShapers-1)]
+    log.info("|{0}| >> l_numSubShapers: {1}".format(_str_func,l_numSubShapers)) 
+
     
     mHandleFactory = self.asHandleFactory()
     mRootUpHelper = self.vectorUpHelper
@@ -6930,6 +6938,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
 
             CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
+            CORERIG.colorControl(mLoftCurve.mNode,_side,'main',transparent = True)
 
         #Push scale back...
         for i,mHandle in enumerate(ml_handles):
@@ -7150,6 +7159,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         _numSubShapers = _int_sub
         ml_shapers = []
         log.debug("|{0}| >> Sub shaper handles: {1}".format(_str_func,_numSubShapers))
+        
 
         mOrientHelper = mBaseOrientCurve
 
@@ -7166,6 +7176,8 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         for i,mPair in enumerate(ml_pairs):
             log.debug(cgmGEN._str_subLine)
             ml_shapersTmp = []
+            
+            _numSubShapers = l_numSubShapers[i]
 
             _mStart = mPair[0]
             _mEnd = mPair[1]
@@ -7286,7 +7298,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                 #mHandleFactory.rebuildAsLoftTarget('self', None, shapeDirection = 'z+')
                 mHandle.doStore('loftCurve',mHandle)
 
-
+                    
                 CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
                 #LOC.create(position = p)
                 ml_shapers.append(mHandle)
