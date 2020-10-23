@@ -3728,7 +3728,7 @@ def rig_skeleton(self):
                 #if len(ml_drivers) == 1:
                 
                 if not self.b_leverEnd:
-                    if ml_joints[i] == self.mIKEndSkinJnt:#last joint
+                    if ml_joints[i] == self.mIKEndSkinJnt and mBlock.ikSetup:#last joint
                         log.debug("|{0}| >> End joint: {1} ".format(_str_func,mJnt))
                         mJnt.p_parent = ml_blendJoints[self.int_handleEndIdx]
                     else:
@@ -5254,8 +5254,9 @@ def rig_controls(self):
         
         #ControlIK ========================================================================================
         mControlIK = False
+        ml_blend = mRigNull.msgList_get('blendJoints')
+        
         if mRigNull.getMessage('controlIK'):
-            ml_blend = mRigNull.msgList_get('blendJoints')
             mControlIK = mRigNull.controlIK
             log.debug("|{0}| >> Found controlIK : {1}".format(_str_func, mControlIK))
             
@@ -5421,7 +5422,11 @@ def rig_controls(self):
             
             
                 mControlMid = _d['mObj']
-                mControlMid.masterGroup.parent = ml_blend[i]
+                if ml_blend:
+                    mControlMid.masterGroup.parent = ml_blend[i]
+                else:
+                    mControlMid.masterGroup.parent = ml_fkJoints[i]
+                    
                 ml_controlsAll.append(mControlMid)
                 ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.visibility".format(mControlMid.masterGroup.mNode))
                 
@@ -5522,6 +5527,8 @@ def rig_segments(self):
         mRootParent = self.mConstrainNull
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
+        if not ml_blendJoints:
+            ml_blendJoints = mRigNull.msgList_get('fkJoints')
         
         ml_prerigHandleJoints = mPrerigNull.msgList_get('handleJoints')
         _jointOrientation = self.d_orientation['str']

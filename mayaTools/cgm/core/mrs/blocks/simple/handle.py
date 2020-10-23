@@ -785,10 +785,14 @@ def form(self):
         self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
     
         #>>Loft Mesh ==================================================================================
+        ml_curveTargets = []
         if self.numShapers:
             targets = [mObj.loftCurve.mNode for mObj in ml_shapers]
+            ml_curveTargets = [mObj.loftCurve for mObj in ml_shapers]
+            
             self.msgList_connect('shaperHandles',[mObj.mNode for mObj in ml_shapers])
         else:
+            ml_curveTargets = [mObj.loftCurve for mObj in ml_handles_chain]            
             targets = [mObj.loftCurve.mNode for mObj in ml_handles_chain]
     
     
@@ -819,7 +823,11 @@ def form(self):
         
         #mc.pointConstraint(mUpTrans.mNode,
         #                   md_defineHandles['up'].mNode,
-        #                   maintainOffset = True)                    
+        #                   maintainOffset = True)        
+        
+        self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
+        self.UTILS.controller_walkChain(self,ml_curveTargets,'form')
+        
         
     else:
         #Base shape ========================================================================================
@@ -1810,7 +1818,6 @@ def rig_cleanUp(self):
     ml_targetDynParents.extend(ml_endDynParents)
     
     ml_targetDynParents.append(self.md_dynTargetsParent['world'])
-    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
     mRoot = mRigNull.getMessageAsMeta('rigRoot')
     if mRoot:
@@ -1821,7 +1828,9 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
         
         ml_targetDynParents.insert(0,mRoot)
-        
+    
+    #...don't add space pivots till here    
+    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
     #Add our parents
     mDynGroup = mHandle.getMessageAsMeta('dynParentGroup')

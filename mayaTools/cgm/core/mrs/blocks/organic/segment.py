@@ -614,7 +614,7 @@ def form(self):
         _diff = _cnt - len(_dat)
         if len(_dat) < _cnt:
             #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
-            for i in range(0,_diff-1):
+            for i in range(0,_diff):
                 self.datList_append('numSubShapers', self.numSubShapers)
         
         
