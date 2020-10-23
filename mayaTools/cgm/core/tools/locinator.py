@@ -1198,7 +1198,7 @@ class ui(cgmUI.cgmGUI):
                          #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
                          _d_annotations.get('<<<','fix'))
     
-        cgmUI.add_Button(_row_bake,'All',
+        cgmUI.add_Button(_row_bake,'Range',
                          cgmGen.Callback(self.uiFunc_bake,'all'),                         
                          _d_annotations.get('All','fix'))
         
@@ -1207,7 +1207,13 @@ class ui(cgmUI.cgmGUI):
                          cgmGen.Callback(self.uiFunc_bake,'forward'),                         
                          _d_annotations.get('>>>','fix'))    
         
-        _row_bake.layout()         
+        _row_bake.layout()
+        
+        mUI.MelButton(_frame_inside,label = 'Selected Time',
+                      ut='cgmUITemplate',
+                      c = cgmGen.Callback(self.uiFunc_bake,'selectedRange'),                         
+                      ann=_d_annotations.get('Selected','fix'))        
+        
         
     def uiFunc_bake(self,mode='all'):
         _bakeMode = self.var_bakeMode.value
@@ -1219,9 +1225,16 @@ class ui(cgmUI.cgmGUI):
                 log.error("Buffer is empty")
                 return False
             
-        MMCONTEXT.func_process(bake_match, _targets,'all','Bake',False,**{'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,
-                                                                          'boundingBox':False,'keysMode':self.var_keysMode.value,'keysDirection':mode,
-                                                                          'timeMode':'custom','timeRange':[self.uiFieldInt_start(q=True, value = True),self.uiFieldInt_end(q=True, value = True)]})       
+        if mode == 'selectedRange':
+            _kws = {'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,
+                    'boundingBox':False,'keysMode':self.var_keysMode.value,'keysDirection':mode,
+                    'timeMode':'selected'}
+        else:
+            _kws = {'move':self.var_matchModeMove.value,'rotate':self.var_matchModeRotate.value,
+                    'boundingBox':False,'keysMode':self.var_keysMode.value,'keysDirection':mode,
+                    'timeMode':'custom','timeRange':[self.uiFieldInt_start(q=True, value = True),self.uiFieldInt_end(q=True, value = True)]}
+            
+        MMCONTEXT.func_process(bake_match, _targets,'all','Bake',False,**_kws)       
                                                                     
 
         

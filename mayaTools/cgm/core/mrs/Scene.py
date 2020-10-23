@@ -778,9 +778,10 @@ example:
         self.zeroRootOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero root upon export",
                                                        checkBox=self.zeroRoot,
                                                               c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
-        self.useMayaPyOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use MayaPy",
-                                                         checkBox=self.useMayaPy,
-                                                         c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+        self.useMayaPyOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use Maya Standalone",
+                                                 ann="Use Mayapy/Maya stand alone to process",
+                                                 checkBox=self.useMayaPy,
+                                                 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
         self.showDirectoriesOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
                                                                checkBox=self.showDirectories,
                                                          c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
