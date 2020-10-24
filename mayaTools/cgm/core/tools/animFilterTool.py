@@ -339,38 +339,32 @@ def uiFunc_run(self):
     _str_func = 'uiFunc_run[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func)) 
 
-    uiFunc_updateActionDicts(self)
-
-    for action in self._actionList:
-        mc.select(action._optionDict['objs'])
-        
-        animLayerName = mc.animLayer(action.name)
-        mc.setAttr( '{0}.rotationAccumulationMode'.format(animLayerName), 0)
-        mc.setAttr( '{0}.scaleAccumulationMode'.format(animLayerName), 1)
-        mc.animLayer( animLayerName, e=True, addSelectedObjects=True)
-
-        for layer in mc.ls(type='animLayer'):
-            mc.animLayer(layer, e=True, selected=(layer == animLayerName))
-
-        action.run()
+    for i, action in enumerate(self._actionList):
+        uiFunc_run_action(self, i)
 
 def uiFunc_run_action(self, idx):
     _str_func = 'uiFunc_run_action[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func)) 
 
     action = self._actionList[idx]
-
+    
+    action.update_dict()
+    
     mc.select(action._optionDict['objs'])
     
-    animLayerName = mc.animLayer(action.name)
+    animLayerName = mc.animLayer(action.name if action.name else "")
     mc.setAttr( '{0}.rotationAccumulationMode'.format(animLayerName), 0)
     mc.setAttr( '{0}.scaleAccumulationMode'.format(animLayerName), 1)
     mc.animLayer( animLayerName, e=True, addSelectedObjects=True)
 
     for layer in mc.ls(type='animLayer'):
         mc.animLayer(layer, e=True, selected=(layer == animLayerName))
+    
+    mc.animLayer(animLayerName, e=True, preferred=True)
 
     action.run()
+    
+    mc.animLayer(animLayerName, e=True, preferred=False)
 
 def uiFunc_copy_action(self, idx):
     _str_func = 'uiFunc_copy_action[{0}]'.format(self.__class__.TOOLNAME)            
