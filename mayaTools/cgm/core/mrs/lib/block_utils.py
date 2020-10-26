@@ -8220,7 +8220,7 @@ def datList_validate(self,count = None, datList = 'rollCount',checkAttr = 'numCo
         
         if not self.datList_get(datList):
             log.info(cgmGEN.logString_msg(_str_func,"No datList found | tag: {0}".format(datList)))
-            return 
+            #return 
 
         if count is None:
             len_needed = self.getMayaAttr(checkAttr)
