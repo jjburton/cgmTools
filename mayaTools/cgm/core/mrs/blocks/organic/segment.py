@@ -1086,7 +1086,7 @@ def prerig(self):
         mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
         self.connectChildNode(mHandle.mNode,_str)
         
-        mHandle.rename(_str)
+        mHandle.rename("{0}_{1}".format(self.cgmName,_str))
         
         if key == 'mid':
             mHandle.doSnapTo(ml_handles[d_ikHandles['start']['idx']])
@@ -1151,104 +1151,104 @@ def skeleton_check(self):
     return True
 
 def skeleton_build(self, forceNew = True):
-    try:
-        _short = self.mNode
-        _str_func = 'skeleton_build'
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
-        
-        ml_joints = []
-        
-        mModule = self.atUtils('module_verify')
-        
-        mRigNull = mModule.rigNull
-        if not mRigNull:
-            raise ValueError,"No rigNull connected"
-        
-        ml_formHandles = self.msgList_get('formHandles',asMeta = True)
-        if not ml_formHandles:
-            raise ValueError,"No formHandles connected"
-        
-        ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
-        if not ml_jointHelpers:
-            raise ValueError,"No jointHelpers connected"
-        
-        #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
-        _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
-        if _bfr:
-            log.debug("|{0}| >> Joints detected...".format(_str_func))            
-            if forceNew:
-                log.debug("|{0}| >> force new...".format(_str_func))                            
-                mc.delete([mObj.mNode for mObj in _bfr])
-            else:
-                return _bfr
-        
-        #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')    
+    #try:
+    _short = self.mNode
+    _str_func = 'skeleton_build'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
-        log.debug("|{0}| >> creating...".format(_str_func))
-        
-        #_d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
-        
-        if self.numJoints == self.numControls:
-            log.debug("|{0}| >> Control count matches joint ({1})...".format(_str_func,self.numJoints))
-            l_pos = []
-            for mObj in ml_jointHelpers:
-                l_pos.append(mObj.p_position)
+    ml_joints = []
+    
+    mModule = self.atUtils('module_verify')
+    
+    mRigNull = mModule.rigNull
+    if not mRigNull:
+        raise ValueError,"No rigNull connected"
+    
+    ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+    if not ml_formHandles:
+        raise ValueError,"No formHandles connected"
+    
+    ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
+    if not ml_jointHelpers:
+        raise ValueError,"No jointHelpers connected"
+    
+    #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
+    _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
+    if _bfr:
+        log.debug("|{0}| >> Joints detected...".format(_str_func))            
+        if forceNew:
+            log.debug("|{0}| >> force new...".format(_str_func))                            
+            mc.delete([mObj.mNode for mObj in _bfr])
         else:
-            log.debug("|{0}| >> Generating count ({1})...".format(_str_func,self.numJoints))
-            _crv = CURVES.create_fromList(targetList = [mObj.mNode for mObj in ml_jointHelpers])
-            l_pos = CURVES.returnSplitCurveList(_crv,self.numJoints)
-            mc.delete(_crv)        
+            return _bfr
     
-        mOrientHelper = ml_formHandles[0].orientHelper
+    #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')    
 
-        
-        #reload(JOINT)
-        mVecUp = self.atUtils('prerig_get_upVector')
-        
-        ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mVecUp)
-        
-            
-        _l_names = self.atUtils('skeleton_getNameDicts',False)
+    log.debug("|{0}| >> creating...".format(_str_func))
     
-        for i,mJoint in enumerate(ml_joints):
-            for t,tag in _l_names[i].iteritems():
-                mJoint.doStore(t,tag)
-            mJoint.doName()
-            #mJoint.rename(_l_names[i])
-            
-        #End Fixing --------------------------------
-        #if len(ml_handleJoints) > self.numControls:
-            #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
-
-        mEndOrient = self.ikEndHandle
-        mEnd = ml_joints[-1]
-        log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
-        mEnd.jointOrient = 0,0,0
-        SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
-                         vectorUp=mEndOrient.getAxisVector('y+'))
-        JOINT.freezeOrientation(mEnd.mNode) 
-        #-------------------------------------------------------------------------
-            
-        ml_joints[0].parent = False
-        
-        _radius = self.atUtils('get_shapeOffset')
-        #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
-        #MATH.get_space_value(5)
-
-        
-        for mJoint in ml_joints:
-            mJoint.displayLocalAxis = 1
-            mJoint.radius = _radius
+    #_d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
     
-        mRigNull.msgList_connect('moduleJoints', ml_joints)
+    if self.numJoints == self.numControls:
+        log.debug("|{0}| >> Control count matches joint ({1})...".format(_str_func,self.numJoints))
+        l_pos = []
+        for mObj in ml_jointHelpers:
+            l_pos.append(mObj.p_position)
+    else:
+        log.debug("|{0}| >> Generating count ({1})...".format(_str_func,self.numJoints))
+        _crv = CURVES.create_fromList(targetList = [mObj.mNode for mObj in ml_jointHelpers])
+        l_pos = CURVES.returnSplitCurveList(_crv,self.numJoints)
+        mc.delete(_crv)        
+
+    mOrientHelper = ml_formHandles[0].orientHelper
+
+    
+    #reload(JOINT)
+    mVecUp = self.atUtils('prerig_get_upVector')
+    
+    ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mVecUp)
+    
         
-        #cgmGEN.func_snapShot(vars())    
-        self.atBlockUtils('skeleton_connectToParent')
-        for mJnt in ml_joints:mJnt.rotateOrder = 5
+    _l_names = self.atUtils('skeleton_getNameDicts',False)
+
+    for i,mJoint in enumerate(ml_joints):
+        for t,tag in _l_names[i].iteritems():
+            mJoint.doStore(t,tag)
+        mJoint.doName()
+        #mJoint.rename(_l_names[i])
         
-        return ml_joints
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    #End Fixing --------------------------------
+    #if len(ml_handleJoints) > self.numControls:
+        #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+
+    mEndOrient = self.ikEndHandle
+    mEnd = ml_joints[-1]
+    log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+    mEnd.jointOrient = 0,0,0
+    SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
+                     vectorUp=mEndOrient.getAxisVector('y+'))
+    JOINT.freezeOrientation(mEnd.mNode) 
+    #-------------------------------------------------------------------------
+        
+    ml_joints[0].parent = False
+    
+    _radius = self.atUtils('get_shapeOffset')
+    #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
+    #MATH.get_space_value(5)
+
+    
+    for mJoint in ml_joints:
+        mJoint.displayLocalAxis = 1
+        mJoint.radius = _radius
+
+    mRigNull.msgList_connect('moduleJoints', ml_joints)
+    
+    #cgmGEN.func_snapShot(vars())    
+    self.atBlockUtils('skeleton_connectToParent')
+    for mJnt in ml_joints:mJnt.rotateOrder = 5
+    
+    return ml_joints
+    #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 
 #=============================================================================================================

@@ -663,7 +663,7 @@ def form(self):
         
         
         #LenSub shapers -------------------------------------------------------------------
-        _cnt = self.numShapers-1
+        _cnt = self.neckShapers-1
         _dat = self.datList_get('numSubShapers')
         _diff = _cnt - len(_dat)
         if len(_dat) < _cnt:

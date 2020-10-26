@@ -69,17 +69,17 @@ def get_partName(self):
     _str_func = ' get_partName'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
-    try:#Quick select sets ================================================================
-        _d = NAMETOOLS.get_objNameDict(self.mNode,['cgmType'])
-        if not _d.get('cgmName'):
-            _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
-        log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
-        
-        _str= NAMETOOLS.returnCombinedNameFromDict(_d)
-        log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
-        return STRINGS.stripInvalidChars(_str)
+    #try:#Quick select sets ================================================================
+    _d = NAMETOOLS.get_objNameDict(self.mNode,['cgmType'])
+    if not _d.get('cgmName'):
+        _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
+    log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
+    
+    _str= NAMETOOLS.returnCombinedNameFromDict(_d)
+    log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
+    return STRINGS.stripInvalidChars(_str)
 
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def get_dynSwitch(self):
     _str_func = ' get_dynSwitch'

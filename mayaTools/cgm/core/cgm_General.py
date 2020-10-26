@@ -991,6 +991,7 @@ class Callback(object):
                 log.info(a)
                 
             cgmException(Exception,err)
+            #raise Exception,err
         finally:del self
             
 CB = Callback

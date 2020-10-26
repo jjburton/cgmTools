@@ -388,53 +388,51 @@ def verify(self, blockType = None, size = None, side = None, forceReset = False)
     """
     Verify a block
     """
+    _str_func = 'verify'
+    _short = self.mNode
+    
+    log.debug(cgmGEN.logString_start(_str_func))
+
+    if self.isReferenced():
+        raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
+
+    _type = self.getMayaAttr('blockType')
+    if blockType is not None:
+        if _type is not None and _type != blockType:
+            raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
+    else:
+        blockType = _type
+        
+    _mBlockModule = self.query_blockModuleByType(blockType)
+    #reload(_mBlockModule)
+    
+    self.doStore('blockType',blockType)
+    verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule,forceReset=forceReset)
+    
+    _side = side
     try:
-        _str_func = 'verify'
-        _short = self.mNode
+        if _side is not None and self._callKWS.get('side'):
+            log.debug("|{0}| >> side from call kws...".format(_str_func,_side))
+            _side = self._callKWS.get('side')
+    except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
+
+
+    if _side is not None:
+        log.info("|{0}| >> Side: {1}".format(_str_func,_side))                
+        try: ATTR.set(self.mNode,'side',_side)
+        except Exception,err:
+            log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
+
+
+    #>>> Base shapes --------------------------------------------------------------------------------
+    try:self.baseSize = self._callSize
+    except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
+    self.doName()
+    
+    if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
+        ATTR.convert_type(self.mNode,'blockProfile','string')
         
-        log.debug(cgmGEN.logString_start(_str_func))
-
-        if self.isReferenced():
-            raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
-
-        _type = self.getMayaAttr('blockType')
-        if blockType is not None:
-            if _type is not None and _type != blockType:
-                raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
-        else:
-            blockType = _type
-            
-        _mBlockModule = self.query_blockModuleByType(blockType)
-        #reload(_mBlockModule)
-        
-        self.doStore('blockType',blockType)
-        verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule,forceReset=forceReset)
-        
-        _side = side
-        try:
-            if _side is not None and self._callKWS.get('side'):
-                log.debug("|{0}| >> side from call kws...".format(_str_func,_side))
-                _side = self._callKWS.get('side')
-        except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
-
-
-        if _side is not None:
-            log.info("|{0}| >> Side: {1}".format(_str_func,_side))                
-            try: ATTR.set(self.mNode,'side',_side)
-            except Exception,err:
-                log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
-
-
-        #>>> Base shapes --------------------------------------------------------------------------------
-        try:self.baseSize = self._callSize
-        except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
-        self.doName()
-        
-        if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
-            ATTR.convert_type(self.mNode,'blockProfile','string')
-            
-        return True
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    return True
     
 def set_nameListFromName(self):
     try:
@@ -581,8 +579,8 @@ def doName(self):
             continue
             
     if self.hasAttr('blockProfile'):
-        _blockProfile = self.blockProfile
-        if _d['cgmName'] in _blockProfile:
+        _blockProfile = self.getMayaAttr('blockProfile') or ''
+        if _d.get('cgmName','') in _blockProfile:
             _blockProfile = _blockProfile.replace(_d['cgmName'],'')
         _d['cgmNameModifier'] = STR.camelCase(_blockProfile)
 
@@ -4020,6 +4018,14 @@ def blockMirror_settings(blockSource, blockMirror = None,
                     for arg in err.args:
                         log.error(arg)
                         
+                        
+        for s in ['nameList','rollCount','numSubShapers']:
+            _dat = ATTR.datList_get(mSource.mNode,s)
+            if _dat:
+                ATTR.datList_connect(mTarget.mNode, s, _dat)
+                
+            
+        """
         #nameList 
         _nameList = ATTR.datList_get(mSource.mNode,'nameList')
         ATTR.datList_connect(mTarget.mNode, 'nameList', _nameList)
@@ -4028,6 +4034,7 @@ def blockMirror_settings(blockSource, blockMirror = None,
         _rollCount = ATTR.datList_get(mSource.mNode,'rollCount')
         if _rollCount:
             ATTR.datList_connect(mTarget.mNode, 'rollCount', _rollCount)        
+        """
         
         #loftList
         _loftList = ATTR.datList_get(mSource.mNode,'loftList','enum',enum=True)
@@ -6758,8 +6765,10 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     
     #Subshaper count -------------------------------------------------------------------------
     l_numSubShapers =  self.datList_get('numSubShapers')
+    int_shapers = self.getMayaAttr(aShapers)
+    int_sub = self.getMayaAttr(aSubShapers)
     if not l_numSubShapers:
-        l_numSubShapers = [self.numSubShapers for i in xrange(self.numShapers-1)]
+        l_numSubShapers = [int_sub for i in xrange(int_shapers-1)]
     log.info("|{0}| >> l_numSubShapers: {1}".format(_str_func,l_numSubShapers)) 
 
     
@@ -8370,7 +8379,8 @@ def nameList_uiPrompt(self, nameList = 'nameList'):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-
+        
+        
 def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numControls'):
     """
     """

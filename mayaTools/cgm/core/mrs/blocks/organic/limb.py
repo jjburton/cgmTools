@@ -989,18 +989,24 @@ def form(self):
             
 
     #LenSub shapers -------------------------------------------------------------------
-    _cnt = self.numShapers-1
-    if self.addLeverBase:
-        _cnt +=1
+    if self.numSubShapers:
+        _cnt = self.numShapers-1
+        if self.addLeverBase:
+            _cnt +=1
+            
+        self.atUtils('datList_validate',datList='numSubShapers',
+                                count=_cnt,
+                                defaultAttr='numSubShapers',forceEdit=0)
         
+    """
     _dat = self.datList_get('numSubShapers')
     _diff = _cnt - len(_dat)
     if len(_dat) < _cnt:
         #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
         for i in range(0,_diff):
             self.datList_append('numSubShapers', self.numSubShapers)        
-
-
+            """
+                    
     #Get base dat =====================================================================================    
     log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
     

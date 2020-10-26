@@ -97,7 +97,7 @@ _sidePadding = 25
 
 def reloadMRSStuff():
     log.info("reloading...")
-    for m in BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,cgmUI:
+    for m in BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,:
         print m
         reload(m)
     log.info(cgmGEN._str_subLine)

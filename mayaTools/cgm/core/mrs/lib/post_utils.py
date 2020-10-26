@@ -167,8 +167,8 @@ def SDK_wip(ml = [], matchType = False,
             continue
         
         
-        if 'thumb' not in mSib.mNode:
-            ml_fk = ml_fk[1:]
+        #if 'thumb' not in mSib.mNode:
+        #    ml_fk = ml_fk[1:]
             
         
         
