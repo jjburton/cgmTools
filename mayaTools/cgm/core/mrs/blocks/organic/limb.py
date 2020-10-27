@@ -997,7 +997,8 @@ def form(self):
         self.atUtils('datList_validate',datList='numSubShapers',
                                 count=_cnt,
                                 defaultAttr='numSubShapers',forceEdit=0)
-        
+    
+    
     """
     _dat = self.datList_get('numSubShapers')
     _diff = _cnt - len(_dat)
@@ -1599,10 +1600,13 @@ def form(self):
             #_l_clusterParents = [mStartHandle,mEndHandle]
             for ii,cv in enumerate(mLinearCurve.getComponents('cv')):
                 _res = mc.cluster(cv, n = 'seg_{0}_{1}_cluster'.format(mPair[0].p_nameBase,ii))
-                TRANS.parent_set(_res[1], mFormNull)
+                mCluster = cgmMeta.asMeta(_res[1])
+                #_res[1] = TRANS.parent_set(_res[1], mFormNull)
+                mCluster.p_parent = mFormNull
                 mc.pointConstraint(mPair[ii].mNode,#getMessage('loftCurve')[0],
-                                   _res[1],maintainOffset=True)
-                ATTR.set(_res[1],'v',False)                
+                                   mCluster.mNode,maintainOffset=True)
+                mCluster.v = 0
+                #ATTR.set(_res[1],'v',False)                
                 l_clusters.append(_res)
         
         
@@ -2097,9 +2101,12 @@ def prerig(self):
             _res = mc.cluster(cv,
                               n = 'test_{0}_{1}_pre_cluster'.format(ml_formHandlesCurveTargets[i].p_nameBase,i))
             #_res = mc.cluster(cv)
-            TRANS.parent_set( _res[1], ml_formHandlesCurveTargets[i].getMessage('loftCurve')[0])
+            mCluster = cgmMeta.asMeta(_res[1])
+            mCluster.p_parent = ml_formHandlesCurveTargets[i].getMessage('loftCurve')[0]
+            mCluster.v = 0
+            #TRANS.parent_set( _res[1], ml_formHandlesCurveTargets[i].getMessage('loftCurve')[0])
             l_clusters.append(_res)
-            ATTR.set(_res[1],'visibility',False)
+            #ATTR.set(_res[1],'visibility',False)
     
         #mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
         

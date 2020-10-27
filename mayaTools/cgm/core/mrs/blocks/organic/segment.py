@@ -861,9 +861,10 @@ def prerig(self):
     for i,cv in enumerate(mTrackCurve.getComponents('cv')):
         _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_formHandles[i].p_nameBase,i))
         #_res = mc.cluster(cv)
-        TRANS.parent_set( _res[1], ml_formHandles[i].getMessage('loftCurve')[0])
+        mCluster = cgmMeta.asMeta(_res[1])
+        mCluster.v = 0
+        mCluster.p_parent =  ml_formHandles[i].getMessage('loftCurve')[0]
         l_clusters.append(_res)
-        ATTR.set(_res[1],'visibility',False)
             
     mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
     
