@@ -6559,7 +6559,7 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                 'proxySurface':['loftSides','loftDegree','loftSplit'],
                 'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace',
                           'numControls',],
-                'skeleton':['numRoll','hasJoint'],
+                'skeleton':['numRoll','hasJoint','rollCount'],
                 'wiring':['blockMirror','blockParent','moduleTarget'],
                 'rig':['numSpacePivots','axisAim','axisUp','rotPivotPlace',
                        'ribbonAim','ribbonParam','ribbonConnectBy',
@@ -6602,7 +6602,7 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         if report:pprint.pprint(l)
         _tmp = []
         for s in l:
-            if s.endswith('List') or s in ['numSubShapers','numRoll']:
+            if s.endswith('List') or s in ['numSubShapers','rollCount']:
                 if ATTR.datList_exists(_short,s):
                     for s2 in ATTR.datList_getAttrs(_short,s):
                         _tmp.append(s2)
@@ -7218,10 +7218,11 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             l_clusters = []
             for ii,cv in enumerate(mLinearCurve.getComponents('cv')):
                 _res = mc.cluster(cv, n = 'seg_{0}_{1}_cluster'.format(mPair[0].p_nameBase,ii))
-                TRANS.parent_set(_res[1], mFormNull)
+                mCluster = cgmMeta.asMeta(_res[1])
+                mCluster.p_parent = mFormNull
+                mCluster.v = 0
                 mc.pointConstraint(mPair[ii].mNode,
-                                   _res[1],maintainOffset=True)
-                ATTR.set(_res[1],'v',False)                
+                                   mCluster.mNode,maintainOffset=True)
                 l_clusters.append(_res)
 
             mLinearCurve.parent = mNoTransformNull
@@ -8210,17 +8211,21 @@ def getState(self, asString = True, fastCheck=True):
     
 #Profile stuff ==============================================================================================  
 def datList_validate(self,count = None, datList = 'rollCount',checkAttr = 'numControls',
-                     defaultAttr = 'numRoll',
-                     default= 3, datType = int, forceEdit=False):
+                     defaultAttr = 'numRoll', default= 3, datType = int, forceEdit=False):
     """
     """
     try:
         _str_func = 'datList_validate | {0}'.format(datList)
         log.debug(cgmGEN.logString_start(_str_func))
         
-        if not self.datList_get(datList):
+        #pprint.pprint(locals())
+        
+        if not self.datList_get(datList) and not forceEdit:
             log.info(cgmGEN.logString_msg(_str_func,"No datList found | tag: {0}".format(datList)))
-            #return 
+            _default = self.getMayaAttr(defaultAttr)
+            l_subs = [_default for i in xrange(count)]
+            self.datList_connect(datList, l_subs)            
+            return 
 
         if count is None:
             len_needed = self.getMayaAttr(checkAttr)
@@ -9401,9 +9406,10 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType
             l_clusters = []
             for i,cv in enumerate(mCrv.getComponents('cv')):
                 _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_handles[i].p_nameBase,i))
-                TRANS.parent_set( _res[1], ml_handles[i].mNode)
+                mCluster = cgmMeta.asMeta(_res[1])
+                mCluster.p_parent = ml_handles[i].mNode
+                mCluster.v = 0
                 l_clusters.append(_res)
-                ATTR.set(_res[1],'visibility',False)
                 
             if _dtmp.get('rebuild'):
                 _node = mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,
