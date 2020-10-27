@@ -935,6 +935,20 @@ d_wiring_l_hawk = {'modules':
                              
                              }}
 
+d_wiring_r_bat= {'modules':
+                   ['R_index_limb_part',
+                    'R_middle_limb_part',
+                     'R_pinky_limb_part',
+                    ],
+                   'driven':{1:[0,2],
+                             }}
+d_wiring_l_bat= {'modules':
+                   ['L_index_limb_part',
+                    'L_middle_limb_part',
+                    'L_pinky_limb_part',
+                    ],
+                   'driven':{1:[0,2],
+                             }}
 def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
     """
     

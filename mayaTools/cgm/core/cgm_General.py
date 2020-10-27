@@ -10,7 +10,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 ================================================================
 """
 __MAYALOCAL = 'cgmGEN'
-__RELEASE = '2020.3.1.1'
+__RELEASE = '3.3.2.20'
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -991,6 +991,7 @@ class Callback(object):
                 log.info(a)
                 
             cgmException(Exception,err)
+            #raise Exception,err
         finally:del self
             
 CB = Callback

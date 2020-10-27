@@ -225,7 +225,7 @@ def uiMainMenu_add():
         cgmToolbox.uiBuild_cgmMenu(*a)
         
     if not hasattr(maya,'_cgmMenu'):
-        log.info('No _cgmMenu found')
+        log.debug('No _cgmMenu found')
 
         menu = mUI.MelMainMenu(l='CGM', pmc=build, tearOff = True, postMenuCommandOnce=True)
         setattr(maya,'_cgmMenu',menu)
@@ -447,7 +447,10 @@ def uiBuild_cgmMenu( *args ):
     menu = maya._cgmMenu
     menu.clear()
     
-    #reload(UICHUNKS)
+    try:reload(UICHUNKS)
+    except Exception,err:
+        log.error("Failed to reload UICHUNKS: {0}".format(err))
+        
     log.info("|{0}| >> building...".format(_str_func))        
     
     """

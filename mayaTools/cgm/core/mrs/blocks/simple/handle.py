@@ -62,7 +62,7 @@ import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04302019'
+__version__ = cgmGEN.__RELEASE
 __autoForm__ = False
 __component__ = True
 __menuVisible__ = True
@@ -82,6 +82,16 @@ d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},
                     'unityHigh':{'default':{}},
                     'feature':{'default':{}}}
+
+
+d_attrStateMask = {'define':[],
+                   'form':['loftList','basicShape','proxyShape','proxyType','shapersAim'],
+                   'prerig':[],
+                   'skeleton':['hasJoint'],
+                   'proxySurface':['proxy'],
+                   'rig':['rotPivotPlace','scaleSetup'],
+                   'vis':[]}
+
 d_block_profiles = {
     'simple':{
         'basicShape':'cube',
@@ -190,7 +200,9 @@ l_attrsStandard = ['side',
                    'loftDegree',
                    'loftList',
                    'visLabels',
+                   'jointRadius',
                    'spaceSwitch_direct',
+                   'scaleSetup',                   
                    #'buildProfile',
                    'visMeasure',
                    'visProximityMode',
@@ -223,6 +235,7 @@ d_defaultSettings = {'version':__version__,
                      'rotPivotPlace':'jointHelper',
                      'proxy':1,
                      'numShapers':2,
+                     'jointRadius':.1,                     
                      'loftList':['square','circle','square'],
                      'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},
                      'proxyType':1}
@@ -232,9 +245,11 @@ d_defaultSettings = {'version':__version__,
 #=============================================================================================================
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_form = {'msgLinks':['formNull'],
-                 'msgLists':[]}
+                 'msgLists':['formStuff'],
+                 'optional':['formStuff']}
 d_wiring_define = {'msgLinks':['defineNull'],
-                   'msgLists':['defineStuff']}
+                   'msgLists':['defineStuff'],
+                   'optional':['defineStuff']}
 
 
 #=============================================================================================================
@@ -397,7 +412,7 @@ def define(self):
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
         _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * 2.0)
+                                      direction = 'z+', size = _size * .5)
     
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
@@ -483,6 +498,8 @@ def define(self):
                 
                 self.msgList_append('defineStuff',mController)
                 
+        
+        BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
         
         #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
@@ -588,6 +605,16 @@ def form(self):
     for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
     
     
+    #LenSub shapers -------------------------------------------------------------------
+    _cnt = self.numShapers-1
+    _dat = self.datList_get('numSubShapers')
+    _diff = _cnt - len(_dat)
+    if len(_dat) < _cnt:
+        #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
+        for i in range(0,_diff):
+            self.datList_append('numSubShapers', self.numSubShapers)
+            
+    
     _loftSetup = self.getEnumValueString('loftSetup')
 
     if _loftSetup == 'loftList':
@@ -676,6 +703,7 @@ def form(self):
     
     _size = self.baseSize
     _proxyShape = self.getEnumValueString('proxyShape')
+    
     if _proxyShape == 'shapers':
         log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
         
@@ -757,10 +785,14 @@ def form(self):
         self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
     
         #>>Loft Mesh ==================================================================================
+        ml_curveTargets = []
         if self.numShapers:
             targets = [mObj.loftCurve.mNode for mObj in ml_shapers]
+            ml_curveTargets = [mObj.loftCurve for mObj in ml_shapers]
+            
             self.msgList_connect('shaperHandles',[mObj.mNode for mObj in ml_shapers])
         else:
+            ml_curveTargets = [mObj.loftCurve for mObj in ml_handles_chain]            
             targets = [mObj.loftCurve.mNode for mObj in ml_handles_chain]
     
     
@@ -791,7 +823,11 @@ def form(self):
         
         #mc.pointConstraint(mUpTrans.mNode,
         #                   md_defineHandles['up'].mNode,
-        #                   maintainOffset = True)                    
+        #                   maintainOffset = True)        
+        
+        self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
+        self.UTILS.controller_walkChain(self,ml_curveTargets,'form')
+        
         
     else:
         #Base shape ========================================================================================
@@ -921,6 +957,11 @@ def prerig(self):
         _side = self.atUtils('get_side')
         _size = DIST.get_bb_size(self.mNode,True,True)
         
+        if self.hasAttr('jointRadius'):
+            _sizeSub = self.jointRadius * .5
+        else:
+            _sizeSub = _size * .2                
+        
         #Create preRig Null  ==================================================================================
         mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
         
@@ -955,9 +996,7 @@ def prerig(self):
         mHandleFactory =  self.asHandleFactory(self.mNode)
         
 
-        if self.hasJoint:
-            _sizeSub = _size * .2   
-        
+        if self.hasJoint:        
             log.debug("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
         
             #Joint Helper ==========================================================================================
@@ -1008,9 +1047,23 @@ def prerig(self):
             
             
         if self.addCog:
-            mCog = mHandleFactory.addCogHelper()
+            mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection= self.getEnumValueString('shapeDirection'))
+            
+            mShape = mCog.shapeHelper
+            
+            mLoftMesh = self.getMessageAsMeta('prerigLoftMesh')
+            if mLoftMesh:
+                p_bb = TRANS.bbCenter_get(mLoftMesh.mNode)
+                for mObj in mCog,mShape:
+                    mObj.p_position = p_bb
+            
+            mShape.p_parent = mPrerigNull
             mCog.p_parent = mPrerigNull
-            if b_shapers:mCog.p_position = pos_shaperBase
+            
+
+            self.UTILS.controller_walkChain(self,[mCog,mShape],'prerig')
+
+            #if b_shapers:mCog.p_position = pos_shaperBase
             
         if b_shapers:
             mc.parentConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
@@ -1765,7 +1818,6 @@ def rig_cleanUp(self):
     ml_targetDynParents.extend(ml_endDynParents)
     
     ml_targetDynParents.append(self.md_dynTargetsParent['world'])
-    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
     mRoot = mRigNull.getMessageAsMeta('rigRoot')
     if mRoot:
@@ -1776,7 +1828,9 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
         
         ml_targetDynParents.insert(0,mRoot)
-        
+    
+    #...don't add space pivots till here    
+    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
     #Add our parents
     mDynGroup = mHandle.getMessageAsMeta('dynParentGroup')

@@ -73,12 +73,13 @@ def block_getFromSelected():
     _str_func = 'block_getFromSelected'
     _res = []
     
-    mL = cgmMeta.asMeta(sl=1)
+    mL = cgmMeta.asMeta(sl=1,noneValid=True) or []
     for mObj in mL:
         if mObj.getMayaAttr('mClass') == 'cgmRigBlock':
             return mObj
         
         _found = SEARCH.seek_upStream(mObj.mNode,matchAttrValue = {'mClass':'cgmRigBlock'})
+        log.info(_found)
         if _found:
             return cgmMeta.asMeta(_found)
         

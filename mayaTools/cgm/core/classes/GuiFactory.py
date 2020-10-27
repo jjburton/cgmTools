@@ -1221,7 +1221,10 @@ class cgmGUI(mUI.BaseMelWindow):
                            width=self.DEFAULT_SIZE[0], height = self.DEFAULT_SIZE[1])
             mc.window(_dock, edit = True, tlc = [200, 200])
 
-
+    #def show(self, state=True, forceDefaultSize=None):
+    #    if not self.var_Dock.value():
+    #        super(mUI.BaseMelWindow,self).show(state,forceDefaultSize)
+            
     def do_showHelpToggle( self):
         doToggleInstancedUIItemsShowState(self.var_ShowHelp.value,self.l_helpElements)
         self.var_ShowHelp.toggle()

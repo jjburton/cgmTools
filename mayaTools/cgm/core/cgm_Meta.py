@@ -6927,7 +6927,7 @@ def createMetaNode(mType = None, *args, **kws):
         for arg in err.args:
             log.error(arg)            
         cgmGEN.cgmExceptCB(Exception,err)
-    
+        #raise Exception,err
     
     
     
@@ -6957,7 +6957,8 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
     mTypeClass = False
     _r9ClassRegistry = r9Meta.getMClassMetaRegistry()
     _convert = False
-
+    str_type = None
+    
     if mType is not None:
         t1 = time.clock()
         if not type(mType) in [unicode,str]:
@@ -7200,16 +7201,24 @@ def validateObjArg(arg = None, mType = None, noneValid = False,
                 try:_mi_arg =  _r9ClassRegistry.get(default_mType)(_argShort)
                 except Exception,error:
                     raise Exception,"default mType ({1}) initialization fail | {0}".format(error,default_mType)				
-            elif VALID.is_transform(_argShort):
-                log.debug("Transform...")
-                try:_mi_arg = cgmObject(_argShort) 
-                except Exception,error:
-                    raise Exception,"cgmObject initialization fail | {0}".format(error)	
             else:
-                log.debug("Node...")
-                try:_mi_arg = cgmNode(_argShort) 
-                except Exception,error:
-                    raise Exception,"cgmNode initialization fail | {0}".format(error)	
+                if not str_type:str_type = VALID.get_mayaType(_arg)
+                
+                if str_type == 'controller':
+                    log.debug("controller...")
+                    try:_mi_arg = cgmController(_argShort) 
+                    except Exception,error:
+                        raise Exception,"cgmController initialization fail | {0}".format(error)	
+                elif VALID.is_transform(_argShort):
+                    log.debug("Transform...")
+                    try:_mi_arg = cgmObject(_argShort) 
+                    except Exception,error:
+                        raise Exception,"cgmObject initialization fail | {0}".format(error)	
+                else:
+                    log.debug("Node...")
+                    try:_mi_arg = cgmNode(_argShort) 
+                    except Exception,error:
+                        raise Exception,"cgmNode initialization fail | {0}".format(error)	
         log.debug("leaving mType None...")
         t2 = time.clock()
         log.debug("... %0.6f"%(t2-t1))				

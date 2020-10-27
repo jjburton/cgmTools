@@ -115,3 +115,27 @@ def get_driver(driven = None, getPlug = True, select = True):
         mc.select(l_driver)
         pprint.pprint(l_driver)
     return l_driver
+
+def get_animCurve(driverAttribute,drivenObject):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+    ACKNOWLEDGEMENT:
+    Jason Schleifer's AFR Materials.
+
+    DESCRIPTION:
+    Returns the anim curve from a driver to a driven object
+
+    ARGUMENTS:
+    driverAttribute(string)
+    drivenObject(string)
+
+    RETURNS:
+    driverCurves(list)
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    driverFuture = mc.listConnections(driverAttribute,type = 'animCurve')
+    buffer = mc.listConnections(drivenObject,s=True)
+    drivenPast = mc.listHistory(buffer[0])
+    
+    reload(LISTS)
+    return LISTS.get_matchList(driverFuture,drivenPast)

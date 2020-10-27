@@ -430,9 +430,9 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
             ml_curves = []
     
             if ikEnd == 'tipBase':
-                mIKCrv = ml_handleTargets[self.int_handleEndIdx].doCreateAt()
+                mIKCrv = mBlock.ikEndHandle.doCreateAt()#ml_handleTargets[self.int_handleEndIdx]
             elif ikEnd == 'tipMid':
-                mIKCrv = ml_handleTargets[self.int_handleEndIdx].doCreateAt()
+                mIKCrv =  mBlock.ikEndHandle.doCreateAt()
     
                 pos = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
                                                  ml_rigJoints[-1].p_position])
@@ -440,7 +440,7 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
                 mIKCrv.p_position = pos
     
             else:
-                mIKCrv = ml_handleTargets[-1].doCreateAt()
+                mIKCrv =  mBlock.ikEndHandle.doCreateAt()
                 
             if shapeArg is not None:
                 mIK_formHandle = ml_formHandles[ self.int_handleEndIdx] #self.int_handleEndIdx ]
@@ -516,18 +516,18 @@ def ik_base(self,ikBase = None, ml_baseJoints = None, ml_fkShapes = None):
             
         if ikBase in ['hips','simple']:
             if ikBase ==  'hips':
-                mIKBaseCrv = ml_baseJoints[1].doCreateAt(setClass=True)
+                mIKBaseCrv = mBlock.ikStartHandle.doCreateAt(setClass=True)#ml_baseJoints[1]
                 mIKBaseCrv.doCopyNameTagsFromObject(ml_baseJoints[0].mNode,ignore=['cgmType'])                
                 mIKBaseCrv.doStore('cgmName','hips')
             else:
-                mIKBaseCrv = ml_baseJoints[0].doCreateAt(setClass=True)
+                mIKBaseCrv = mBlock.ikStartHandle.doCreateAt(setClass=True)
                 mIKBaseCrv.doCopyNameTagsFromObject(ml_baseJoints[0].mNode,ignore=['cgmType'])
                 
             CORERIG.shapeParent_in_place(mIKBaseCrv.mNode, ml_fkShapes[0].mNode, True)
             
         else:
             log.debug("|{0}| >> default IK base shape...".format(_str_func))
-            mIK_formHandle = ml_formHandles[ 0 ]
+            mIK_formHandle = mBlock.ikStartHandle #ml_formHandles[ 0 ]
             #bb_ik = mHandleFactory.get_axisBox_size(mIK_formHandle.mNode)
             bb_ik = POS.get_bb_size(mIK_formHandle.mNode,True,mode='max')
             

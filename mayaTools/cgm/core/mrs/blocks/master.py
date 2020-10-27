@@ -48,7 +48,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = '1.04302019'
+__version__ = cgmGEN.__RELEASE
 __MAYALOCAL = 'MASTER'
 
 
@@ -666,6 +666,7 @@ def rigDelete(self):
                 log.debug("|{0}| >> failed...".format(_str_func,mNode))         
         
         
+        mPuppet.masterNull.skeletonGroup.overrideEnabled = 0
         
         return True
         self.v = 1

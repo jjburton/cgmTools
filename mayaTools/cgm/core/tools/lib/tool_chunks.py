@@ -811,9 +811,13 @@ def uiSection_mrsTD(parent):
     mUI.MelMenuItemDiv(parent,label='TD')
 
     mc.menuItem(parent = parent,
-                l='mrsBuilder',
+                l='Builder',
                 ann = "MRS Rigging Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsUI())
+    mc.menuItem(parent = parent,
+                l='Block Editor',
+                ann = "MRS Block Editor Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsBlockEditor())
 
     mUI.MelMenuItemDiv(parent,label='Manage')
     mc.menuItem(parent = parent,
@@ -894,9 +898,13 @@ def uiSection_mrs(parent):
     
                 
     mc.menuItem(parent = parent,
-                l='mrsBuilder',
+                l='Builder',
                 ann = "MRS Rigging Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsUI())
+    mc.menuItem(parent = parent,
+                l='Block Edtior',
+                ann = "MRS Block Editor Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsBlockEditor())
     mc.menuItem(parent = parent,
                 l='cgmDynParentTool',
                 ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
