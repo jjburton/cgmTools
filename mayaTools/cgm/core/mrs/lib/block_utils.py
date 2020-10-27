@@ -3793,7 +3793,11 @@ def duplicate(self, uiPrompt = True):
                 log.warning(cgmGEN.logString_msg(_str_func,'resetting baseDat: {0}'.format(_baseDat)))
                 mDup.baseDat = _baseDat """                       
         
-        
+        for a in ['numSubShapers','rollCount']:
+            if ATTR.datList_exists(self.mNode, a):
+                l = self.datList_get(a)
+                mDup.datList_connect(a,l)
+                
         blockDat_load(mDup,redefine=True)
         #log.debug('here...')
         #blockDat_load(mDup)#...investigate why we need two...
