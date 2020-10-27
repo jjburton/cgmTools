@@ -715,8 +715,10 @@ class ui_blockEditor(cgmUI.cgmGUI):
             _call = str(args[0])
             if _call in ['atUtils']:
                 _call = str(args[1])
-
+            
+            #pprint.pprint(locals())
             res = getattr(mBlock,args[0])(*args[1:],**kws) or None
+            
             ml_res.append(res)
             if res:
                 if kws.get('mode') not in ['prechecks']:
@@ -1448,16 +1450,34 @@ class ui_blockEditor(cgmUI.cgmGUI):
 
 
                     _hlayout = mUI.MelHSingleStretchLayout(_inside,padding = 10)
-
+                    
+                   
 
                     #if _type not in ['bool']:#Some labels parts of fields
                     mUI.MelLabel(_hlayout,l="  {0} ".format(a))   
         
                     #mUI.MelSpacer(_hlayout,w=_sidePadding)
             
-                    _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))            
-            
-            
+                    _hlayout.setStretchWidget(mUI.MelSeparator(_hlayout,))
+                    
+                    
+                    d_datLists = {'numSubShapers':{'datList':'numSubShapers',
+                                           'defaultAttr':'numSubShapers'},
+                                  'numRoll':{'datList':'rollCount',
+                                             'defaultAttr':'numRoll'},                                  
+                          }                    
+                    if a in ['numSubShapers','numRoll']:
+
+                        mUI.MelButton(_hlayout,
+                                     label='Edit datList',ut='cgmUITemplate',
+                                     #ann = d2.get('ann',''),
+                                     c=cgmGEN.Callback(self.uiFunc_blockCall,
+                                        'atUtils','datList_validate',
+                                        **{'datList':d_datLists[a].get('datList'),
+                                           'defaultAttr':d_datLists[a].get('defaultAttr'),
+                                           'forceEdit':1}))
+                    
+
                     if _type == 'bool':
                         mUI.MelCheckBox(_hlayout, l="",
                                         #annotation = "Copy values",		                           
@@ -1501,7 +1521,8 @@ class ui_blockEditor(cgmUI.cgmGUI):
                         _optionMenu.setValue(ATTR.get_enumValueString(_short,a))
                     else:
                         mUI.MelLabel(_hlayout,l="{0}({1}):{2}".format(a,_type,ATTR.get(_short,a)))        
-            
+                        
+                        
                     #mUI.MelSpacer(_hlayout,w=_sidePadding)                
                     _hlayout.layout()
                 except Exception,err:
