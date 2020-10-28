@@ -1563,7 +1563,7 @@ def addJointRadiusVisualizer(self,mParent = False):
     
     mJointRadius.rename("jointRadiusVis")
     _base = self.atUtils('get_shapeOffset')*2
-    if self.jointRadius < .00001:
+    if self.jointRadius < .0000000001:
         self.jointRadius = _base
     self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
     mJointRadius.dagLock()
@@ -1739,7 +1739,7 @@ def pivotHelper(self,mHandle=None,
                 pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
                                                    direction = upAxis,
                                                    sizeMode = 'fixed',
-                                                   bakeScale = False,
+                                                   bakeScale = 1,
                                                    size = _sizeSub)
                 mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                 mPivot.addAttr('cgmName',_strName)
@@ -1761,7 +1761,7 @@ def pivotHelper(self,mHandle=None,
                 _inverse = mAxis.inverse.p_string
                 pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',
                                                    direction = _inverse,
-                                                   bakeScale = False,
+                                                   bakeScale = 1,
                                                    sizeMode = 'fixed', size = _sizeSub)
                 mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                 mPivot.addAttr('cgmName',_strName)

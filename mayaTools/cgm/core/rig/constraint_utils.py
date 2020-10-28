@@ -934,6 +934,70 @@ d_wiring_l_hawk = {'modules':
                              4:[3,5],
                              
                              }}
+d_wiring_r_owl = {'modules':
+                  ['R_featherUpr_1_segment_part',#0
+                   'R_featherUpr_2_segment_part',#01
+                   'R_featherUpr_3_segment_part',#02
+                   'R_feather_elbow_segment_part',#03
+                   'R_featherLwr_1_segment_part',#04
+                   'R_featherLwr_2_segment_part',#05
+                   'R_featherLwr_3_segment_part',#06
+                   'R_feather_5_segment_part',#07
+                   'R_feather_4_segment_part',#08
+                   'R_feather_3_segment_part',#09
+                   'R_feather_2_segment_part',#10
+                   'R_feather_1_segment_part'] #11
+,
+                   'driven':{1:[0,3],
+                             2:[0,3],
+                             3:[0,7],
+                             4:[3,7],
+                             5:[3,7],
+                             6:[3,7],
+                             8:[7,11],
+                             9:[7,11],
+                             10:[7,11],
+                             }}
+d_wiring_l_owl = {'modules':
+                  ['L_featherUpr_1_segment_part',#0
+                   'L_featherUpr_2_segment_part',#01
+                   'L_featherUpr_3_segment_part',#02
+                   'L_feather_elbow_segment_part',#03
+                   'L_featherLwr_1_segment_part',#04
+                   'L_featherLwr_2_segment_part',#05
+                   'L_featherLwr_3_segment_part',#06
+                   'L_feather_5_segment_part',#07
+                   'L_feather_4_segment_part',#08
+                   'L_feather_3_segment_part',#09
+                   'L_feather_2_segment_part',#10
+                   'L_feather_1_segment_part'] #11
+,
+                   'driven':{1:[0,3],
+                             2:[0,3],
+                             3:[0,7],
+                             4:[3,7],
+                             5:[3,7],
+                             6:[3,7],
+                             8:[7,11],
+                             9:[7,11],
+                             10:[7,11],
+                             }}
+d_wiring_owlTail= {'modules':
+                  ['L_tailFeather_3_segment_part',#0
+                   'L_tailFeather_2_segment_part',#1
+                   'L_tailFeather_1_segment_part',#2
+                   'CTR_tailFeather_segment_part',#3
+                   'R_tailFeather_1_segment_part',#4
+                   'R_tailFeather_2_segment_part',#5
+                   'R_tailFeather_3_segment_part',#6
+                    ],
+                   'driven':{1:[0,3],
+                             2:[0,3],
+                             3:[0,6],
+                             4:[3,6],
+                             5:[3,6]
+                             }}
+
 
 d_wiring_r_bat= {'modules':
                    ['R_index_limb_part',
@@ -977,8 +1041,7 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
                         ml_joints = ml_test
                         break
             ml_blendDrivers.append(ml_joints[0])
-            
-        pprint.pprint(vars())
+                    
         
         #Generate driver locs...
         for d,s in d_wiring['driven'].iteritems():
@@ -1031,7 +1094,7 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
             _len = len(ATTR.get_enumList(mRoot.mNode,'space'))
             mRoot.space = _len -1
             
-            
+            ATTR.set_default(mRoot.mNode,'space', mRoot.space)
 
         
         return True

@@ -11322,7 +11322,7 @@ def get_orienationDict(self,orienation='zyx'):
         cgmGEN.cgmExceptCB(Exception,err)
 
 
-#@cgmGEN.Timer
+@cgmGEN.Timer
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
                      ballMode = 'asdf',
@@ -11331,6 +11331,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                      extendCastSurface = False,
                      l_values = [],
                      orient = 'zyx',
+                     hardenEdges = False,
                      extendToStart = True,method = 'u'):
     #try:
     _short = self.mNode
@@ -11629,15 +11630,16 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
 
                 _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]"""
                 
-                try:
-                    l_edges = []
-                    for c in _loftCurves[0],_loftCurves[-1],root:
-                        vtxs = GEO.get_vertsFromCurve(_mesh,c)
-                        l_edges.extend(GEO.get_edgeLoopFromVerts(vtxs))
-
-                    mc.polySoftEdge(l_edges, a=0, ch=0)
-                    
-                except Exception,err:print err
+                if hardenEdges:
+                    try:
+                        l_edges = []
+                        for c in _loftCurves[0],_loftCurves[-1],root:
+                            vtxs = GEO.get_vertsFromCurve(_mesh,c)
+                            l_edges.extend(GEO.get_edgeLoopFromVerts(vtxs))
+    
+                        mc.polySoftEdge(l_edges, a=0, ch=0)
+                    except Exception,err:print err
+                
                 mc.select(cl=1)
                 mc.delete([end,mid1,mid2])
                 mc.delete(root)
