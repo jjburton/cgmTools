@@ -6927,7 +6927,7 @@ def createMetaNode(mType = None, *args, **kws):
         for arg in err.args:
             log.error(arg)            
         cgmGEN.cgmExceptCB(Exception,err)
-    
+        #raise Exception,err
     
     
     

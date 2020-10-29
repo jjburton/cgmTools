@@ -388,53 +388,51 @@ def verify(self, blockType = None, size = None, side = None, forceReset = False)
     """
     Verify a block
     """
+    _str_func = 'verify'
+    _short = self.mNode
+    
+    log.debug(cgmGEN.logString_start(_str_func))
+
+    if self.isReferenced():
+        raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
+
+    _type = self.getMayaAttr('blockType')
+    if blockType is not None:
+        if _type is not None and _type != blockType:
+            raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
+    else:
+        blockType = _type
+        
+    _mBlockModule = self.query_blockModuleByType(blockType)
+    #reload(_mBlockModule)
+    
+    self.doStore('blockType',blockType)
+    verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule,forceReset=forceReset)
+    
+    _side = side
     try:
-        _str_func = 'verify'
-        _short = self.mNode
+        if _side is not None and self._callKWS.get('side'):
+            log.debug("|{0}| >> side from call kws...".format(_str_func,_side))
+            _side = self._callKWS.get('side')
+    except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
+
+
+    if _side is not None:
+        log.info("|{0}| >> Side: {1}".format(_str_func,_side))                
+        try: ATTR.set(self.mNode,'side',_side)
+        except Exception,err:
+            log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
+
+
+    #>>> Base shapes --------------------------------------------------------------------------------
+    try:self.baseSize = self._callSize
+    except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
+    self.doName()
+    
+    if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
+        ATTR.convert_type(self.mNode,'blockProfile','string')
         
-        log.debug(cgmGEN.logString_start(_str_func))
-
-        if self.isReferenced():
-            raise StandardError,"|{0}| >> Cannot verify referenced nodes".format(_str_func)
-
-        _type = self.getMayaAttr('blockType')
-        if blockType is not None:
-            if _type is not None and _type != blockType:
-                raise ValueError,"|{0}| >> Conversion necessary. blockType arg: {1} | found: {2}".format(_str_func,blockType,_type)
-        else:
-            blockType = _type
-            
-        _mBlockModule = self.query_blockModuleByType(blockType)
-        #reload(_mBlockModule)
-        
-        self.doStore('blockType',blockType)
-        verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule,forceReset=forceReset)
-        
-        _side = side
-        try:
-            if _side is not None and self._callKWS.get('side'):
-                log.debug("|{0}| >> side from call kws...".format(_str_func,_side))
-                _side = self._callKWS.get('side')
-        except:log.debug("|{0}| >> _callKWS check fail.".format(_str_func))
-
-
-        if _side is not None:
-            log.info("|{0}| >> Side: {1}".format(_str_func,_side))                
-            try: ATTR.set(self.mNode,'side',_side)
-            except Exception,err:
-                log.error("|{0}| >> Failed to set side. {1}".format(_str_func,err))
-
-
-        #>>> Base shapes --------------------------------------------------------------------------------
-        try:self.baseSize = self._callSize
-        except Exception,err:log.debug("|{0}| >> _callSize push fail: {1}.".format(_str_func,err))
-        self.doName()
-        
-        if ATTR.get_type(self.mNode,'blockProfile') == 'enum':
-            ATTR.convert_type(self.mNode,'blockProfile','string')
-            
-        return True
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    return True
     
 def set_nameListFromName(self):
     try:
@@ -581,8 +579,8 @@ def doName(self):
             continue
             
     if self.hasAttr('blockProfile'):
-        _blockProfile = self.blockProfile
-        if _d['cgmName'] in _blockProfile:
+        _blockProfile = self.getMayaAttr('blockProfile') or ''
+        if _d.get('cgmName','') in _blockProfile:
             _blockProfile = _blockProfile.replace(_d['cgmName'],'')
         _d['cgmNameModifier'] = STR.camelCase(_blockProfile)
 
@@ -3795,7 +3793,11 @@ def duplicate(self, uiPrompt = True):
                 log.warning(cgmGEN.logString_msg(_str_func,'resetting baseDat: {0}'.format(_baseDat)))
                 mDup.baseDat = _baseDat """                       
         
-        
+        for a in ['numSubShapers','rollCount']:
+            if ATTR.datList_exists(self.mNode, a):
+                l = self.datList_get(a)
+                mDup.datList_connect(a,l)
+                
         blockDat_load(mDup,redefine=True)
         #log.debug('here...')
         #blockDat_load(mDup)#...investigate why we need two...
@@ -4020,6 +4022,14 @@ def blockMirror_settings(blockSource, blockMirror = None,
                     for arg in err.args:
                         log.error(arg)
                         
+                        
+        for s in ['nameList','rollCount','numSubShapers']:
+            _dat = ATTR.datList_get(mSource.mNode,s)
+            if _dat:
+                ATTR.datList_connect(mTarget.mNode, s, _dat)
+                
+            
+        """
         #nameList 
         _nameList = ATTR.datList_get(mSource.mNode,'nameList')
         ATTR.datList_connect(mTarget.mNode, 'nameList', _nameList)
@@ -4028,6 +4038,7 @@ def blockMirror_settings(blockSource, blockMirror = None,
         _rollCount = ATTR.datList_get(mSource.mNode,'rollCount')
         if _rollCount:
             ATTR.datList_connect(mTarget.mNode, 'rollCount', _rollCount)        
+        """
         
         #loftList
         _loftList = ATTR.datList_get(mSource.mNode,'loftList','enum',enum=True)
@@ -6552,7 +6563,7 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                 'proxySurface':['loftSides','loftDegree','loftSplit'],
                 'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace',
                           'numControls',],
-                'skeleton':['numRoll','hasJoint'],
+                'skeleton':['numRoll','hasJoint','rollCount'],
                 'wiring':['blockMirror','blockParent','moduleTarget'],
                 'rig':['numSpacePivots','axisAim','axisUp','rotPivotPlace',
                        'ribbonAim','ribbonParam','ribbonConnectBy',
@@ -6595,7 +6606,7 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         if report:pprint.pprint(l)
         _tmp = []
         for s in l:
-            if s.endswith('List'):
+            if s.endswith('List') or s in ['numSubShapers','rollCount']:
                 if ATTR.datList_exists(_short,s):
                     for s2 in ATTR.datList_getAttrs(_short,s):
                         _tmp.append(s2)
@@ -6744,6 +6755,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     if not _baseName:
         _baseName = self.blockType
     
+    #Loft Shapes...-----------------------------------------------------------------------
     if _loftSetup == 'loftList':
         _l_loftShapes =  ATTR.datList_get(_short,'loftList',enum=True) or []
         if len(_l_loftShapes) != _int_shapers:
@@ -6754,6 +6766,15 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         _l_loftShapes = [_loftShape for i in range(_int_shapers)]
 
     log.debug("|{0}| >> loftShapes: {1}".format(_str_func,_l_loftShapes)) 
+    
+    #Subshaper count -------------------------------------------------------------------------
+    l_numSubShapers =  self.datList_get('numSubShapers')
+    int_shapers = self.getMayaAttr(aShapers)
+    int_sub = self.getMayaAttr(aSubShapers)
+    if not l_numSubShapers:
+        l_numSubShapers = [int_sub for i in xrange(int_shapers-1)]
+    log.info("|{0}| >> l_numSubShapers: {1}".format(_str_func,l_numSubShapers)) 
+
     
     mHandleFactory = self.asHandleFactory()
     mRootUpHelper = self.vectorUpHelper
@@ -6930,6 +6951,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
 
             CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
+            CORERIG.colorControl(mLoftCurve.mNode,_side,'main',transparent = True)
 
         #Push scale back...
         for i,mHandle in enumerate(ml_handles):
@@ -7150,6 +7172,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         _numSubShapers = _int_sub
         ml_shapers = []
         log.debug("|{0}| >> Sub shaper handles: {1}".format(_str_func,_numSubShapers))
+        
 
         mOrientHelper = mBaseOrientCurve
 
@@ -7166,6 +7189,8 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         for i,mPair in enumerate(ml_pairs):
             log.debug(cgmGEN._str_subLine)
             ml_shapersTmp = []
+            
+            _numSubShapers = l_numSubShapers[i]
 
             _mStart = mPair[0]
             _mEnd = mPair[1]
@@ -7197,10 +7222,11 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             l_clusters = []
             for ii,cv in enumerate(mLinearCurve.getComponents('cv')):
                 _res = mc.cluster(cv, n = 'seg_{0}_{1}_cluster'.format(mPair[0].p_nameBase,ii))
-                TRANS.parent_set(_res[1], mFormNull)
+                mCluster = cgmMeta.asMeta(_res[1])
+                mCluster.p_parent = mFormNull
+                mCluster.v = 0
                 mc.pointConstraint(mPair[ii].mNode,
-                                   _res[1],maintainOffset=True)
-                ATTR.set(_res[1],'v',False)                
+                                   mCluster.mNode,maintainOffset=True)
                 l_clusters.append(_res)
 
             mLinearCurve.parent = mNoTransformNull
@@ -7286,7 +7312,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                 #mHandleFactory.rebuildAsLoftTarget('self', None, shapeDirection = 'z+')
                 mHandle.doStore('loftCurve',mHandle)
 
-
+                    
                 CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)        
                 #LOC.create(position = p)
                 ml_shapers.append(mHandle)
@@ -8189,16 +8215,20 @@ def getState(self, asString = True, fastCheck=True):
     
 #Profile stuff ==============================================================================================  
 def datList_validate(self,count = None, datList = 'rollCount',checkAttr = 'numControls',
-                     defaultAttr = 'numRoll',
-                     default= 3, datType = int, forceEdit=False):
+                     defaultAttr = 'numRoll', default= 3, datType = int, forceEdit=False):
     """
     """
     try:
         _str_func = 'datList_validate | {0}'.format(datList)
         log.debug(cgmGEN.logString_start(_str_func))
         
-        if not self.datList_get(datList):
+        #pprint.pprint(locals())
+        
+        if not self.datList_get(datList) and not forceEdit:
             log.info(cgmGEN.logString_msg(_str_func,"No datList found | tag: {0}".format(datList)))
+            _default = self.getMayaAttr(defaultAttr)
+            l_subs = [_default for i in xrange(count)]
+            self.datList_connect(datList, l_subs)            
             return 
 
         if count is None:
@@ -8358,7 +8388,8 @@ def nameList_uiPrompt(self, nameList = 'nameList'):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-
+        
+        
 def nameList_validate(self,count = None, nameList = 'nameList',checkAttr = 'numControls'):
     """
     """
@@ -9379,9 +9410,10 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType
             l_clusters = []
             for i,cv in enumerate(mCrv.getComponents('cv')):
                 _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_handles[i].p_nameBase,i))
-                TRANS.parent_set( _res[1], ml_handles[i].mNode)
+                mCluster = cgmMeta.asMeta(_res[1])
+                mCluster.p_parent = ml_handles[i].mNode
+                mCluster.v = 0
                 l_clusters.append(_res)
-                ATTR.set(_res[1],'visibility',False)
                 
             if _dtmp.get('rebuild'):
                 _node = mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,
@@ -11290,7 +11322,7 @@ def get_orienationDict(self,orienation='zyx'):
         cgmGEN.cgmExceptCB(Exception,err)
 
 
-#@cgmGEN.Timer
+@cgmGEN.Timer
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
                      ballMode = 'asdf',
@@ -11299,6 +11331,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                      extendCastSurface = False,
                      l_values = [],
                      orient = 'zyx',
+                     hardenEdges = False,
                      extendToStart = True,method = 'u'):
     #try:
     _short = self.mNode
@@ -11597,15 +11630,16 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
 
                 _mesh = mc.polyUnite([_mesh,_meshEnd], ch=False )[0]"""
                 
-                try:
-                    l_edges = []
-                    for c in _loftCurves[0],_loftCurves[-1],root:
-                        vtxs = GEO.get_vertsFromCurve(_mesh,c)
-                        l_edges.extend(GEO.get_edgeLoopFromVerts(vtxs))
-
-                    mc.polySoftEdge(l_edges, a=0, ch=0)
-                    
-                except Exception,err:print err
+                if hardenEdges:
+                    try:
+                        l_edges = []
+                        for c in _loftCurves[0],_loftCurves[-1],root:
+                            vtxs = GEO.get_vertsFromCurve(_mesh,c)
+                            l_edges.extend(GEO.get_edgeLoopFromVerts(vtxs))
+    
+                        mc.polySoftEdge(l_edges, a=0, ch=0)
+                    except Exception,err:print err
+                
                 mc.select(cl=1)
                 mc.delete([end,mid1,mid2])
                 mc.delete(root)

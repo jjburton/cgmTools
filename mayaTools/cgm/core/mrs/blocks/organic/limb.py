@@ -451,6 +451,37 @@ d_block_profiles = {
     'baseDat':{'lever':[1,0,0],'rp':[0,0,-1],'up':[0,1,0]},
     
        },
+'wing':{
+    'numSubShapers':2,
+    'addCog':False,
+    'attachPoint':'end',
+    'cgmName':'wing',
+    'loftShape':'circle',
+    'loftSetup':'default',
+    'settingsPlace':'end',
+    'ikSetup':'rp',
+    'ikEnd':'hand',
+    'numSubShapers':3,
+    'mainRotAxis':'out',
+    'numControls':3,
+    'numShapers':4,    
+    'ikRPAim':'free',
+    'rigSetup':'default',
+    'nameList':['clav','shoulder','elbow','wrist'],
+    'buildEnd':'dag',
+    'ikRollSetup':'control',
+    'addBall':'none',
+    'addToe':'none',
+    'addLeverBase':'joint',
+    'addLeverEnd':'none',
+    'loftList':['circle','widePos','widePos','widePos'],
+    'loftShapeEnd':'wideUp',
+    'shapeDirection':'x-',
+    
+    'baseAim':[-1,0,0],
+    'baseSize':[14,9,76],
+    'baseDat':{'lever':[1,0,0],'rp':[0,-1,0],'up':[0,1,0]},
+       },
 'finger':{'numSubShapers':2,
           'addCog':False,
           'attachPoint':'end',
@@ -697,7 +728,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  #'hasEndJoint':'bool',
                  #'hasBallJoint':'bool',
                  #'ikEndIndex':'int',
-                 'shapersAim':'toEnd:chain',
+                 'shapersAim':'none:toEnd:chain',
                  'loftSetup':'default:loftList',
                  'loftShapeStart':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  'loftShapeEnd':BLOCKSHARE._d_attrsTo_make['loftShape'],
@@ -910,6 +941,7 @@ def define(self):
     self.baseDat = _dat
     
     BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+    self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
     
     
     return
@@ -987,7 +1019,27 @@ def form(self):
     _ikEnd = self.getEnumValueString('ikEnd')
     _loftSetup = self.getEnumValueString('loftSetup')
             
-        
+
+    #LenSub shapers -------------------------------------------------------------------
+    if self.numSubShapers:
+        _cnt = self.numShapers-1
+        if self.addLeverBase:
+            _cnt +=1
+            
+        self.atUtils('datList_validate',datList='numSubShapers',
+                                count=_cnt,
+                                defaultAttr='numSubShapers',forceEdit=0)
+    
+    
+    """
+    _dat = self.datList_get('numSubShapers')
+    _diff = _cnt - len(_dat)
+    if len(_dat) < _cnt:
+        #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
+        for i in range(0,_diff):
+            self.datList_append('numSubShapers', self.numSubShapers)        
+            """
+                    
     #Get base dat =====================================================================================    
     log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
     
@@ -1135,6 +1187,7 @@ def form(self):
         mHandle.doConnectOut('scale', "{0}.scale".format(mTransformedGroup.mNode))
         mc.pointConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=False)
         #mc.scaleConstraint(mHandle.mNode,mTransformedGroup.mNode,maintainOffset=True)
+        mHandleFactory.color(mLoftCurve.mNode)            
         
         mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
         
@@ -1207,6 +1260,7 @@ def form(self):
         mHandleFactory = self.asHandleFactory(mHandle.mNode)
     
         CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
+        CORERIG.colorControl(mLeverLoftCurve.mNode,_side,'main',transparent = True)
         
         SNAP.aim(mGroup.mNode, self.mNode,vectorUp=_mVectorLeverUp,mode='vector')
         
@@ -1313,6 +1367,7 @@ def form(self):
             mHandleFactory = self.asHandleFactory(mHandle.mNode)
     
             CORERIG.colorControl(mHandle.mNode,_side,'main',transparent = True)
+            CORERIG.colorControl(mLoftCurve.mNode,_side,'main',transparent = True)
             
         #Push scale back...
         for i,mHandle in enumerate(ml_handles):
@@ -1336,14 +1391,15 @@ def form(self):
         
         #AimStartHandle ============================================================================
         log.debug("|{0}| >> Aim main handles...".format(_str_func)) 
+        #if self.shapersAim:
         mGroup =  md_handles['start'].doGroup(True,True,asMeta=True,typeModifier = 'aim')            
         _const = mc.aimConstraint(md_handles['end'].mNode, mGroup.mNode,
-                                  maintainOffset = False,
-                                  aimVector = [0,0,1],
-                                  upVector = [0,1,0], 
-                                  worldUpObject = mRootUpHelper.mNode,
-                                  worldUpType = 'objectrotation', 
-                                  worldUpVector = [0,1,0])
+                                    maintainOffset = False,
+                                    aimVector = [0,0,1],
+                                    upVector = [0,1,0], 
+                                    worldUpObject = mRootUpHelper.mNode,
+                                    worldUpType = 'objectrotation', 
+                                    worldUpVector = [0,1,0])
         
         
         
@@ -1372,6 +1428,8 @@ def form(self):
         ml_handles_chain.insert(0,md_handles['lever'])
         
     mVec_up = mBaseOrientCurve.getAxisVector('y+')
+    
+    
     
     for i,mHandle in enumerate(ml_handles_chain):
         if mHandle in [md_handles['lever']]:#,md_handles['end']
@@ -1494,8 +1552,8 @@ def form(self):
             #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
         elif mHandle in [md_handles['start'],md_handles['end']]:
             _lock = []#['sz']
-            if mHandle == md_handles['start']:
-                _lock.append('rotate')
+            #if mHandle == md_handles['start']:
+            #    _lock.append('rotate')
                 
             #ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
             #ATTR.set_standardFlags( mHandle.mNode, _lock)
@@ -1514,6 +1572,13 @@ def form(self):
     #ml_shapers = copy.copy(ml_handles_chain)
     #>>> shaper handles =======================================================================
     if self.numSubShapers:
+        #Subshaper count -------------------------------------------------------------------------
+        l_numSubShapers =  self.datList_get('numSubShapers')
+        if not l_numSubShapers:
+            l_numSubShapers = [self.numSubShapers for i in xrange(self.numShapers-1)]
+        log.info("|{0}| >> l_numSubShapers: {1}".format(_str_func,l_numSubShapers))         
+        
+        
         _numSubShapers = self.numSubShapers
         ml_shapers = []
         log.debug("|{0}| >> Sub shaper handles: {1}".format(_str_func,_numSubShapers))
@@ -1544,10 +1609,11 @@ def form(self):
             _leverLoftAimMode = False
             
             if i == 0 and self.addLeverBase:
-                _numSubShapers = 1
+                #_numSubShapers = self.numSubShapers
                 _leverLoftAimMode = True
-            else:
-                _numSubShapers = self.numSubShapers
+            #else:
+                #_numSubShapers = self.numSubShapers
+            _numSubShapers = l_numSubShapers[i]
 
             
             _vec = MATH.get_vector_of_two_points(_pos_start, _pos_end)
@@ -1569,10 +1635,13 @@ def form(self):
             #_l_clusterParents = [mStartHandle,mEndHandle]
             for ii,cv in enumerate(mLinearCurve.getComponents('cv')):
                 _res = mc.cluster(cv, n = 'seg_{0}_{1}_cluster'.format(mPair[0].p_nameBase,ii))
-                TRANS.parent_set(_res[1], mFormNull)
+                mCluster = cgmMeta.asMeta(_res[1])
+                #_res[1] = TRANS.parent_set(_res[1], mFormNull)
+                mCluster.p_parent = mFormNull
                 mc.pointConstraint(mPair[ii].mNode,#getMessage('loftCurve')[0],
-                                   _res[1],maintainOffset=True)
-                ATTR.set(_res[1],'v',False)                
+                                   mCluster.mNode,maintainOffset=True)
+                mCluster.v = 0
+                #ATTR.set(_res[1],'v',False)                
                 l_clusters.append(_res)
         
         
@@ -1833,11 +1902,12 @@ def form(self):
     
     #Controllers...------------------------------------------------------------------------------------------
     self.UTILS.controller_wireHandles(self,ml_handles_chain + ml_loftCurves,'form')
-    self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
     
     if ml_loftCurves:
-        self.UTILS.controller_walkChain(self,ml_loftCurves,'form')
-    
+        self.UTILS.controller_walkChain(self,ml_handles_chain + ml_loftCurves,'form')
+    else:
+        self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
+        
     
     """
     ml_done = []
@@ -1945,6 +2015,8 @@ def prerig(self):
         _short = self.p_nameShort
         _side = self.atUtils('get_side')        
         self.atUtils('module_verify')
+        
+
     
         #> Get our stored dat =======================================================================
         mHandleFactory = self.asHandleFactory()
@@ -2065,9 +2137,12 @@ def prerig(self):
             _res = mc.cluster(cv,
                               n = 'test_{0}_{1}_pre_cluster'.format(ml_formHandlesCurveTargets[i].p_nameBase,i))
             #_res = mc.cluster(cv)
-            TRANS.parent_set( _res[1], ml_formHandlesCurveTargets[i].getMessage('loftCurve')[0])
+            mCluster = cgmMeta.asMeta(_res[1])
+            mCluster.p_parent = ml_formHandlesCurveTargets[i].getMessage('loftCurve')[0]
+            mCluster.v = 0
+            #TRANS.parent_set( _res[1], ml_formHandlesCurveTargets[i].getMessage('loftCurve')[0])
             l_clusters.append(_res)
-            ATTR.set(_res[1],'visibility',False)
+            #ATTR.set(_res[1],'visibility',False)
     
         #mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
         
@@ -2387,9 +2462,13 @@ def prerig(self):
                 _idx_ball = -1
                 if self.addToe:
                     _idx_ball = -2
-                ml_handles[_idx_ball].p_position = DIST.get_pos_by_axis_dist(ml_handles[_idx_ball],
-                                                                             'y+',
-                                                                             f_topLoft * .5)                
+                    
+                if mFootHelper:
+                    ml_handles[_idx_ball].p_position = DIST.get_pos_by_axis_dist(ml_handles[_idx_ball],
+                                                                                 'y+',
+                                                                                 f_topLoft * .5)
+                else:
+                    ml_handles[_idx_ball].doSnapTo(ml_formHandles[-1])
                 
                 
             
@@ -3702,7 +3781,7 @@ def rig_skeleton(self):
                 #if len(ml_drivers) == 1:
                 
                 if not self.b_leverEnd:
-                    if ml_joints[i] == self.mIKEndSkinJnt:#last joint
+                    if ml_joints[i] == self.mIKEndSkinJnt and mBlock.ikSetup:#last joint
                         log.debug("|{0}| >> End joint: {1} ".format(_str_func,mJnt))
                         mJnt.p_parent = ml_blendJoints[self.int_handleEndIdx]
                     else:
@@ -5228,8 +5307,9 @@ def rig_controls(self):
         
         #ControlIK ========================================================================================
         mControlIK = False
+        ml_blend = mRigNull.msgList_get('blendJoints')
+        
         if mRigNull.getMessage('controlIK'):
-            ml_blend = mRigNull.msgList_get('blendJoints')
             mControlIK = mRigNull.controlIK
             log.debug("|{0}| >> Found controlIK : {1}".format(_str_func, mControlIK))
             
@@ -5395,7 +5475,11 @@ def rig_controls(self):
             
             
                 mControlMid = _d['mObj']
-                mControlMid.masterGroup.parent = ml_blend[i]
+                if ml_blend:
+                    mControlMid.masterGroup.parent = ml_blend[i]
+                else:
+                    mControlMid.masterGroup.parent = ml_fkJoints[i]
+                    
                 ml_controlsAll.append(mControlMid)
                 ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.visibility".format(mControlMid.masterGroup.mNode))
                 
@@ -5496,6 +5580,8 @@ def rig_segments(self):
         mRootParent = self.mConstrainNull
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
+        if not ml_blendJoints:
+            ml_blendJoints = mRigNull.msgList_get('fkJoints')
         
         ml_prerigHandleJoints = mPrerigNull.msgList_get('handleJoints')
         _jointOrientation = self.d_orientation['str']

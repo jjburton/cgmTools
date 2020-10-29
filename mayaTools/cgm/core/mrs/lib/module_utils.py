@@ -69,17 +69,17 @@ def get_partName(self):
     _str_func = ' get_partName'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
     
-    try:#Quick select sets ================================================================
-        _d = NAMETOOLS.get_objNameDict(self.mNode,['cgmType'])
-        if not _d.get('cgmName'):
-            _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
-        log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
-        
-        _str= NAMETOOLS.returnCombinedNameFromDict(_d)
-        log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
-        return STRINGS.stripInvalidChars(_str)
+    #try:#Quick select sets ================================================================
+    _d = NAMETOOLS.get_objNameDict(self.mNode,['cgmType'])
+    if not _d.get('cgmName'):
+        _d['cgmTypeModifier'] = self.getMayaAttr('moduleType')
+    log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
+    
+    _str= NAMETOOLS.returnCombinedNameFromDict(_d)
+    log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
+    return STRINGS.stripInvalidChars(_str)
 
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+    #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 def get_dynSwitch(self):
     _str_func = ' get_dynSwitch'
@@ -1509,8 +1509,8 @@ def mirror(self,mode = 'self'):
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
-    
-def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
+@cgmGEN.Timer
+def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
     try:
         _str_func = 'switchMode'    
         if not bypassModuleCheck:
@@ -1522,7 +1522,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
                 log.debug("|{0}| >> Found swich mode in block module ".format(_str_func))
                 return _blockCall(self,mode)
             
-        log.debug("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
+        log.info("|{0}| >> mode: {1} ".format(_str_func,mode)+ '-'*80)
         log.debug("{0}".format(self))
             
         mRigNull = self.rigNull
@@ -1530,7 +1530,17 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
         
         _mode = mode.lower()
         
-        if _mode == 'fkon':
+        if _mode == 'blendsnap':
+            _v =  mSettings.FKIK
+            if _v >= .5:
+                switchMode(self, 'fksnap', bypassModuleCheck)
+                mSettings.FKIK = _v
+            else:
+                switchMode(self, 'iksnap', bypassModuleCheck)
+                mSettings.FKIK = _v
+                
+            
+        elif _mode == 'fkon':
             mSettings.FKIK = 0
             
         elif _mode == 'ikon':
@@ -1696,19 +1706,21 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False):
                 SNAP.go(md_controls[i].mNode,mLoc.mNode)
                 mLoc.delete()
             
-            for i,v in md_datPostCompare.iteritems():
-                mBlend = ml_blendJoints[i]
-                dNew = {'pos':mBlend.p_position, 'orient':mBlend.p_orient}
+            if distCheck:
                 
-                if DIST.get_distance_between_points(md_datPostCompare[i]['pos'], dNew['pos']) > .05:
-                    log.warning("|{0}| >> [{1}] pos blend dat off... {2}".format(_str_func,i,mBlend))
-                    log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['pos']))
-                    log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['pos']))
+                for i,v in md_datPostCompare.iteritems():
+                    mBlend = ml_blendJoints[i]
+                    dNew = {'pos':mBlend.p_position, 'orient':mBlend.p_orient}
                     
-                if not MATH.is_vector_equivalent(md_datPostCompare[i]['orient'], dNew['orient'], places=2):
-                    log.warning("|{0}| >> [{1}] orient blend dat off... {2}".format(_str_func,i,mBlend))
-                    log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['orient']))
-                    log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['orient']))                
+                    if DIST.get_distance_between_points(md_datPostCompare[i]['pos'], dNew['pos']) > .05:
+                        log.warning("|{0}| >> [{1}] pos blend dat off... {2}".format(_str_func,i,mBlend))
+                        log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['pos']))
+                        log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['pos']))
+                        
+                    if not MATH.is_vector_equivalent(md_datPostCompare[i]['orient'], dNew['orient'], places=2):
+                        log.warning("|{0}| >> [{1}] orient blend dat off... {2}".format(_str_func,i,mBlend))
+                        log.warning("|{0}| >> base: {1}.".format(_str_func,md_datPostCompare[i]['orient']))
+                        log.warning("|{0}| >> base: {1}.".format(_str_func,dNew['orient']))                
                     
     
             #IKsnapAll close========================================================================

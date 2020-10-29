@@ -257,6 +257,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
         self._callSize = _callSize
         #self.UNMANAGED.extend(['kw_name','kw_moduleParent','kw_forceNew','kw_initializeOnly','kw_callNameTags'])	
         #>>> Initialization Procedure ================== 
+
+
         if _doVerify:
             if blockType:
                 _blockModule =  get_blockModule(blockType)
@@ -266,14 +268,17 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 _blockModule = False
             
             kw_blockProfile = kws.get('blockProfile',None)
-            if self.__justCreatedState__:
+            if _justCreated:
                 self.addAttr('blockType', value = blockType,lock=True)
+                if not kw_name:
+                    kw_name = kw_blockProfile or blockType or 'NAMEME'
+                """
                 if kw_blockProfile and kw_name is None:
                     kw_name = kw_blockProfile
                 elif blockType is not None and not kw_name:
                     kw_name = blockType
                 else:
-                    kw_name = 'NAMEME'
+                    kw_name = 'NAMEME'"""
                 self.addAttr('cgmName', kws.get('name', kw_name))
             else:
                 self.addAttr('cgmName',attrType='string')

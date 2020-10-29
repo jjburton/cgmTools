@@ -570,6 +570,7 @@ def define(self):
     self.msgList_append('defineHandles', mBBShape)
     
     BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+    self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
     
     return    
 
@@ -659,6 +660,18 @@ def form(self):
         _loftSetup = self.getEnumValueString('loftSetup')
                 
         for a in 'XYZ':ATTR.break_connection(self.mNode,'neckSize'+a)
+        
+        
+        
+        #LenSub shapers -------------------------------------------------------------------
+        _cnt = self.neckShapers-1
+        _dat = self.datList_get('numSubShapers')
+        _diff = _cnt - len(_dat)
+        if len(_dat) < _cnt:
+            #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
+            for i in range(0,_diff-1):
+                self.datList_append('numSubShapers', self.numSubShapers)        
+        
         
         #Get base dat =============================================================================
         log.debug("|{0}| >> Base dat...".format(_str_func)+ '-'*40)
@@ -962,11 +975,12 @@ def form(self):
                
                
             self.UTILS.controller_wireHandles(self,ml_handles_chain + ml_loftCurves,'form')
-            self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
             
             if ml_loftCurves:
-                self.UTILS.controller_walkChain(self,ml_loftCurves,'form')            
-               
+                self.UTILS.controller_walkChain(self,ml_handles_chain + ml_loftCurves,'form')            
+            else:
+                self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
+                
                
                 
             #self.msgList_connect('formHandles',[mHeadHandle.mNode] + ml_handles)#...just so we have something here. Replaced if we have a neck        
@@ -1183,10 +1197,10 @@ def prerig(self):
             for i,cv in enumerate(mTrackCurve.getComponents('cv')):
                 _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_formHandles_neck[i].p_nameBase,i))
                 #_res = mc.cluster(cv)
-                TRANS.parent_set( _res[1], ml_formHandles_neck[i].getMessage('loftCurve')[0])
+                mCluster = cgmMeta.asMeta(_res[1])
+                mCluster.p_parent = ml_formHandles_neck[i].getMessage('loftCurve')[0]
                 l_clusters.append(_res)
-                ATTR.set(_res[1],'visibility',False)
-        
+                mCluster.v = 0
             #pprint.pprint(l_clusters)
         
             mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")

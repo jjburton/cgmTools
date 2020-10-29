@@ -1606,14 +1606,14 @@ def get_symmetryDict(sourceObj = None, center = 'pivot', axis = 'x',
             'axisVector':_l_axis,            
             'asymmetrical':[ _d_vtxToID[vtx] for vtx in _l_assym ]}
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def normalCheck(mesh,ch=0):
     if is_reversed(mesh):
         mc.polyNormal(mesh, normalMode = 0, userNormalMode=1,ch=ch)
         return True
     return False
 
-@cgmGEN.Timer
+#@cgmGEN.Timer
 def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markHits = False):
     """
     Call to see if a mesh is flipped
@@ -1672,7 +1672,7 @@ def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markH
         
         for i,v in enumerate(l_seed):
             if _hit > _cap:
-                print 'hit cap: {0}'.format(mesh)
+                log.debug( 'hit cap: {0}'.format(mesh))
                 return True
             """
             guiFactory.doUpdateProgressWindow("Checking vtx[{0}]".format(v), i, 
@@ -1784,7 +1784,6 @@ def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markH
 def get_edgeLoopVertsByLoopAndVerts(obj, loopNum, numVerts):
     return ['%s.vtx[%i]' % (obj, x) for x in range(loopNum*numVerts+1, loopNum*numVerts+numVerts+1)]
 
-#@cgmGEN.Timer
 def get_vertsFromCurve(obj,crv,tolerance = .1):
     _dict = VALID.MeshDict(obj)
     _pointDat = {}
