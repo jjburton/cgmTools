@@ -1544,6 +1544,18 @@ def addJointLabel(self,mHandle = None, label = None):
     
     return mJointLabel
 
+def verify_visFormMesh(self):
+    mLoftMesh = self.getMessageAsMeta('prerigLoftMesh')
+    if not mLoftMesh:
+        return False
+    
+    if not self.hasAttr('visFormMesh'):
+        self.addAttr('visFormMesh',attrType='bool',defaultValue=True)
+        
+    self.doConnectOut('visFormMesh',"{0}.template".format(mLoftMesh.mNode))    
+
+    return True
+
 
 def addJointRadiusVisualizer(self,mParent = False):
     
