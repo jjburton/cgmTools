@@ -667,7 +667,6 @@ def parent_set(node = None, parent = False):
     log.debug("|{0}| >> node:{1}".format(_str_func,node))    
     log.debug("|{0}| >> parent:{1}".format(_str_func,parent))
     
-    _parents = mc.listRelatives(node,parent=True,type='transform')
     
     if parent:
         try:
@@ -676,6 +675,7 @@ def parent_set(node = None, parent = False):
             log.debug("|{0}| >> Failed to parent '{1}' to '{2}' | err: {3}".format(_str_func, node,parent, err))    
             return node
     else:
+        _parents = mc.listRelatives(node,parent=True,type='transform')        
         if _parents:
             return mc.parent(node, world = True)[0]
         else:

@@ -80,4 +80,25 @@ def get_listPairs(dataList):
 
     return nestedPairList
 
+def get_matchList(list1,list2):
+    """ 
+    DESCRIPTION:
+    Returns a list of matches
+
+    ARGUMENTS:
+    searchList(list)
+
+    RETURNS:
+    newList(list)
+    """
+    matchList=[]
+    if list1 and list2:
+        for item in list1:
+            if item in list2:
+                matchList.append(item)
+    if matchList:
+        return matchList
+    else:
+        return []
+
 

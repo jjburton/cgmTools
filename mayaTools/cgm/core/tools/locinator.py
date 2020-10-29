@@ -45,6 +45,11 @@ mUI = cgmUI.mUI
 
 from cgm.lib import lists
 
+
+
+global ML_BUFFER
+ML_BUFFER = []
+
 def update_uiCall(mode = 'self'):
     _move = cgmMeta.cgmOptionVar('cgmVar_matchModeMove', defaultValue = 1).getValue()
     _rotate = cgmMeta.cgmOptionVar('cgmVar_matchModeRotate', defaultValue = 1).getValue()
@@ -1162,8 +1167,9 @@ class ui(cgmUI.cgmGUI):
         _row_time.layout()   
         
         
-        #>>>Bake Mode --------------------------------------------------------------------------------------------        
+        #>>>Bake Mode ----------------------------------------------------------------------------------        
         self.create_guiOptionVar('bakeMode',defaultValue = 0)       
+        mc.setParent(_frame_inside)
     
         _rc_keyMode = mUI.MelRadioCollection()
         
@@ -1171,7 +1177,8 @@ class ui(cgmUI.cgmGUI):
         
         #build our sub section options
         _row_bakeModes = mUI.MelHSingleStretchLayout(_frame_inside,ut='cgmUISubTemplate',padding = 5)
-        mUI.MelLabel(_row_bakeModes,l = 'Targets:')
+        mUI.MelSpacer(_row_bakeModes,w=2)        
+        mUI.MelLabel(_row_bakeModes,l = 'Mode:')
         _row_bakeModes.setStretchWidget( mUI.MelSeparator(_row_bakeModes) )
     
         _on = self.var_bakeMode.value

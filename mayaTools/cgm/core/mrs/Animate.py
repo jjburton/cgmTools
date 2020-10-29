@@ -2192,7 +2192,7 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
 
 _l_timeFunctions = ['reset','report',
                     'resetFK','resetIK','resetIKEnd','resetSeg','resetDirect',
-                    'FKon','IKon','FKsnap','IKsnap','IKsnapAll','mirrorPush','mirrorPull','mirrorFlip',
+                    'FKon','IKon','FKsnap','Blendsnap','IKsnap','IKsnapAll','mirrorPush','mirrorPull','mirrorFlip',
                    'aimToFK','aimOn','aimOff','aimToIK','aimSnap',
                    'aimSnap','aimToIK','aimToFK']
 
@@ -2240,7 +2240,8 @@ def uiCB_contextualAction(self,**kws):
             
     if _mode in ['FKsnap','FKon',
                  'IKsnap','IKforce','IKon',
-                 'aimOn','aimOff','aimToFK','aimToIK','aimSnap']:
+                 'blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
+                 ]:
         log.warning('Switch mode override: part')
         d_contextSettings['contextMode'] = 'part'
         
@@ -2587,6 +2588,7 @@ def uiCB_contextualAction(self,**kws):
                         #mc.setKeyframe(o,time = f)
                         
             if _mode in ['FKon','IKon','FKsnap','IKsnap','IKsnapAll',
+                         'blendsnap',
                          'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
                 log.info("Context: {0} | Switch call".format(_context))
                 res = []
@@ -3089,6 +3091,8 @@ def buildFrame_mrsAnim(self,parent):
                         'arg':{'mode':'IKon'}},
                 'IKforce':{'ann':'Snap main ik/direct controls to blend chain for modules in context',
                          'arg':{'mode':'IKsnapAll'}},
+                'Blendsnap':{'ann':'Snap to opposite mode and turn current back on',
+                         'arg':{'mode':'blendsnap'}},
                 
                 'aimOn':{'ann':'Turn aim on contexually',
                          'short':'on',
@@ -3104,10 +3108,11 @@ def buildFrame_mrsAnim(self,parent):
                            'arg':{'mode':'aimToFK'}},
                 'aimSnap':{'ann':'Snap aim controls on in context',
                            'short':'snap',                           
-                           'arg':{'mode':'aimSnap'}},                
+                           'arg':{'mode':'aimSnap'}},
                 }
+                
     
-    l_switch = ['FKsnap','FKon','IKon','IKsnap','IKforce']
+    l_switch = ['FKsnap','FKon','IKon','IKsnap','IKforce','Blendsnap']
     for b in l_switch:
         _d = d_switch.get(b,{})
         _arg = _d.get('arg',{'mode':b})        
@@ -3118,6 +3123,7 @@ def buildFrame_mrsAnim(self,parent):
                   ann = _d.get('ann',b))
     _row.layout()
     
+    """
     #Aim row ---------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
 
@@ -3135,7 +3141,7 @@ def buildFrame_mrsAnim(self,parent):
                   c = self.mmCallback(uiCB_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
     mUI.MelSpacer(_row,w=5)
-    _row.layout()    
+    _row.layout()    """
     
     #>>>Settings ===================================================================================== 
     mc.setParent(_inside)
@@ -3815,7 +3821,8 @@ def buildFrame_mrsSwitch(self,parent):
                 'IKforce':{'ann':'Snap main ik/direct controls to blend chain for modules in context',
                            'short':'force',                           
                            'arg':{'mode':'IKsnapAll'}},
-                
+                'Blendsnap':{'ann':'Snap to opposite mode and turn current back on',
+                         'arg':{'mode':'blendsnap'}},
                 'aimOn':{'ann':'Turn aim on contexually',
                          'short':'on',
                          'arg':{'mode':'aimOn'}},                
@@ -3847,13 +3854,13 @@ def buildFrame_mrsSwitch(self,parent):
     _row.layout()"""
     
     #FK row ---------------------------------------------------------------------
-    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate', )
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate', padding = 5)
 
-    mUI.MelSpacer(_row,w=5)
-    mUI.MelLabel(_row,l='FK:')
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #mUI.MelSpacer(_row,w=5)
+    #mUI.MelLabel(_row,l='FK:')
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
     
-    l_switch = ['FKsnap','FKon']
+    l_switch = ['FKsnap','FKon','Blendsnap']
     for b in l_switch:
         _d = d_switch.get(b,{})
         _arg = _d.get('arg',{'mode':b})        
@@ -3863,7 +3870,7 @@ def buildFrame_mrsSwitch(self,parent):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
-    mUI.MelSpacer(_row,w=5)
+    #mUI.MelSpacer(_row,w=5)
     _row.layout()
     
     mc.setParent(_inside)
@@ -3871,13 +3878,13 @@ def buildFrame_mrsSwitch(self,parent):
     
     
     #IK row ---------------------------------------------------------------------
-    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
 
-    mUI.MelSpacer(_row,w=5)
-    mUI.MelLabel(_row,l='IK:')
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    #mUI.MelSpacer(_row,w=5)
+    #mUI.MelLabel(_row,l='IK:')
+    #_row.setStretchWidget( mUI.MelSeparator(_row) )
     
-    l_switch = ['IKsnap','IKforce','IKon']
+    l_switch = ['IKsnap','IKon','IKforce']
     for b in l_switch:
         _d = d_switch.get(b,{})
         _arg = _d.get('arg',{'mode':b})        
@@ -3887,12 +3894,13 @@ def buildFrame_mrsSwitch(self,parent):
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
-    mUI.MelSpacer(_row,w=5)
+    #mUI.MelSpacer(_row,w=5)
     _row.layout()
     
     mc.setParent(_inside)
     cgmUI.add_LineSubBreak()
     
+    """
     #Aim row ---------------------------------------------------------------------
     _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5, bgc = _subLineBGC)
 
@@ -3910,7 +3918,7 @@ def buildFrame_mrsSwitch(self,parent):
                   c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
                   ann = _d.get('ann',b))
     mUI.MelSpacer(_row,w=5)
-    _row.layout()
+    _row.layout()"""
     
 def buildFrame_mrsSettings(self,parent):
     try:self.var_mrsSettingsFrameCollapse
@@ -5300,8 +5308,8 @@ def mmUI_part(self,parent = None):
     #Switch =============================================================================
     _select = mc.menuItem(p=parent,l="Switch",subMenu=True)
 
-    for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll',
-              'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
+    for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','Blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
+              ]:
         #_d = d_setup[m]
         _d_tmp = {'mode':m,
                   'contextMode':_context,
@@ -5447,8 +5455,8 @@ def mmUI_part(self,parent = None):
         #Switch =============================================================================
         _select = mc.menuItem(p=_sub,l="Switch",subMenu=True)
     
-        for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll',
-                  'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
+        for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','Blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
+                 ]:
             #_d = d_setup[m]
             _d_tmp = {'mode':m,
                       'contextMode':_context,

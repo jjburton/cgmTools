@@ -524,23 +524,25 @@ def define(self):
     md_handles = _resDefine['md_handles']        
     self.UTILS.define_set_baseSize(self)
     
-    if self.hasAttr('jointRadius'):
-        _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
-                                      bakeScale = 1,                                              
-                                      direction = 'z+', size = 1.0)
+    #if self.hasAttr('jointRadius'):
+    """
+    _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
+                                  bakeScale = 1,                                              
+                                  direction = 'z+', size = 1.0)
 
-        mJointRadius = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
-        mJointRadius.p_parent = mDefineNull
-        mJointRadius.doSnapTo(self.mNode)
-        CORERIG.override_color(mJointRadius.mNode, 'black')
+    mJointRadius = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
+    mJointRadius.p_parent = mDefineNull
+    mJointRadius.doSnapTo(self.mNode)
+    CORERIG.override_color(mJointRadius.mNode, 'black')
+    
+    mJointRadius.rename("jointRadiusVis")
+    _base = self.atUtils('get_shapeOffset')*4
+    if self.jointRadius < _base:
+        self.jointRadius = _base
+    self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
+    mJointRadius.dagLock()
+    mJointRadius.connectParentNode(self, 'rigBlock','jointRadiusVisualize') """
         
-        mJointRadius.rename("jointRadiusVis")
-        _base = self.atUtils('get_shapeOffset')*4
-        if self.jointRadius < _base:
-            self.jointRadius = _base
-        self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
-        mJointRadius.dagLock()
-        mJointRadius.connectParentNode(self, 'rigBlock','jointRadiusVisualize') 
         
     #Rotate Plane ======================================================================
     self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)
@@ -553,6 +555,8 @@ def define(self):
     _dat = self.baseDat
     _dat['baseSize'] = self.baseSize
     self.baseDat = _dat
+    BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+    self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
     
     return
     #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -606,6 +610,16 @@ def form(self):
         _str_func = 'form'
         log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
+        
+        
+        #LenSub shapers -------------------------------------------------------------------
+        _cnt = self.numShapers-1
+        _dat = self.datList_get('numSubShapers')
+        _diff = _cnt - len(_dat)
+        if len(_dat) < _cnt:
+            #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
+            for i in range(0,_diff):
+                self.datList_append('numSubShapers', self.numSubShapers)
         
         
         #Initial checks =====================================================================================
@@ -851,9 +865,10 @@ def prerig(self):
     for i,cv in enumerate(mTrackCurve.getComponents('cv')):
         _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_formHandles[i].p_nameBase,i))
         #_res = mc.cluster(cv)
-        TRANS.parent_set( _res[1], ml_formHandles[i].getMessage('loftCurve')[0])
+        mCluster = cgmMeta.asMeta(_res[1])
+        mCluster.v = 0
+        mCluster.p_parent =  ml_formHandles[i].getMessage('loftCurve')[0]
         l_clusters.append(_res)
-        ATTR.set(_res[1],'visibility',False)
             
     mc.rebuildCurve(mTrackCurve.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
     
@@ -947,7 +962,7 @@ def prerig(self):
         mHandleFactory = self.asHandleFactory(mHandle.mNode)
         
         #Convert to loft curve setup ----------------------------------------------------
-        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
+        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse))
 
         mHandleFactory.color(mHandle.mNode,controlType='sub')
     
@@ -1076,7 +1091,7 @@ def prerig(self):
         mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
         self.connectChildNode(mHandle.mNode,_str)
         
-        mHandle.rename(_str)
+        mHandle.rename("{0}_{1}".format(self.cgmName,_str))
         
         if key == 'mid':
             mHandle.doSnapTo(ml_handles[d_ikHandles['start']['idx']])
@@ -1141,104 +1156,104 @@ def skeleton_check(self):
     return True
 
 def skeleton_build(self, forceNew = True):
-    try:
-        _short = self.mNode
-        _str_func = 'skeleton_build'
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
-        
-        ml_joints = []
-        
-        mModule = self.atUtils('module_verify')
-        
-        mRigNull = mModule.rigNull
-        if not mRigNull:
-            raise ValueError,"No rigNull connected"
-        
-        ml_formHandles = self.msgList_get('formHandles',asMeta = True)
-        if not ml_formHandles:
-            raise ValueError,"No formHandles connected"
-        
-        ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
-        if not ml_jointHelpers:
-            raise ValueError,"No jointHelpers connected"
-        
-        #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
-        _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
-        if _bfr:
-            log.debug("|{0}| >> Joints detected...".format(_str_func))            
-            if forceNew:
-                log.debug("|{0}| >> force new...".format(_str_func))                            
-                mc.delete([mObj.mNode for mObj in _bfr])
-            else:
-                return _bfr
-        
-        #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')    
+    #try:
+    _short = self.mNode
+    _str_func = 'skeleton_build'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
-        log.debug("|{0}| >> creating...".format(_str_func))
-        
-        #_d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
-        
-        if self.numJoints == self.numControls:
-            log.debug("|{0}| >> Control count matches joint ({1})...".format(_str_func,self.numJoints))
-            l_pos = []
-            for mObj in ml_jointHelpers:
-                l_pos.append(mObj.p_position)
+    ml_joints = []
+    
+    mModule = self.atUtils('module_verify')
+    
+    mRigNull = mModule.rigNull
+    if not mRigNull:
+        raise ValueError,"No rigNull connected"
+    
+    ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+    if not ml_formHandles:
+        raise ValueError,"No formHandles connected"
+    
+    ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
+    if not ml_jointHelpers:
+        raise ValueError,"No jointHelpers connected"
+    
+    #>> If skeletons there, delete ----------------------------------------------------------------------------------- 
+    _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
+    if _bfr:
+        log.debug("|{0}| >> Joints detected...".format(_str_func))            
+        if forceNew:
+            log.debug("|{0}| >> force new...".format(_str_func))                            
+            mc.delete([mObj.mNode for mObj in _bfr])
         else:
-            log.debug("|{0}| >> Generating count ({1})...".format(_str_func,self.numJoints))
-            _crv = CURVES.create_fromList(targetList = [mObj.mNode for mObj in ml_jointHelpers])
-            l_pos = CURVES.returnSplitCurveList(_crv,self.numJoints)
-            mc.delete(_crv)        
+            return _bfr
     
-        mOrientHelper = ml_formHandles[0].orientHelper
+    #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')    
 
-        
-        #reload(JOINT)
-        mVecUp = self.atUtils('prerig_get_upVector')
-        
-        ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mVecUp)
-        
-            
-        _l_names = self.atUtils('skeleton_getNameDicts',False)
+    log.debug("|{0}| >> creating...".format(_str_func))
     
-        for i,mJoint in enumerate(ml_joints):
-            for t,tag in _l_names[i].iteritems():
-                mJoint.doStore(t,tag)
-            mJoint.doName()
-            #mJoint.rename(_l_names[i])
-            
-        #End Fixing --------------------------------
-        #if len(ml_handleJoints) > self.numControls:
-            #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
-
-        mEndOrient = self.ikEndHandle
-        mEnd = ml_joints[-1]
-        log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
-        mEnd.jointOrient = 0,0,0
-        SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
-                         vectorUp=mEndOrient.getAxisVector('y+'))
-        JOINT.freezeOrientation(mEnd.mNode) 
-        #-------------------------------------------------------------------------
-            
-        ml_joints[0].parent = False
-        
-        _radius = self.atUtils('get_shapeOffset')
-        #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
-        #MATH.get_space_value(5)
-
-        
-        for mJoint in ml_joints:
-            mJoint.displayLocalAxis = 1
-            mJoint.radius = _radius
+    #_d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
     
-        mRigNull.msgList_connect('moduleJoints', ml_joints)
+    if self.numJoints == self.numControls:
+        log.debug("|{0}| >> Control count matches joint ({1})...".format(_str_func,self.numJoints))
+        l_pos = []
+        for mObj in ml_jointHelpers:
+            l_pos.append(mObj.p_position)
+    else:
+        log.debug("|{0}| >> Generating count ({1})...".format(_str_func,self.numJoints))
+        _crv = CURVES.create_fromList(targetList = [mObj.mNode for mObj in ml_jointHelpers])
+        l_pos = CURVES.returnSplitCurveList(_crv,self.numJoints)
+        mc.delete(_crv)        
+
+    mOrientHelper = ml_formHandles[0].orientHelper
+
+    
+    #reload(JOINT)
+    mVecUp = self.atUtils('prerig_get_upVector')
+    
+    ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mVecUp)
+    
         
-        #cgmGEN.func_snapShot(vars())    
-        self.atBlockUtils('skeleton_connectToParent')
-        for mJnt in ml_joints:mJnt.rotateOrder = 5
+    _l_names = self.atUtils('skeleton_getNameDicts',False)
+
+    for i,mJoint in enumerate(ml_joints):
+        for t,tag in _l_names[i].iteritems():
+            mJoint.doStore(t,tag)
+        mJoint.doName()
+        #mJoint.rename(_l_names[i])
         
-        return ml_joints
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    #End Fixing --------------------------------
+    #if len(ml_handleJoints) > self.numControls:
+        #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+
+    mEndOrient = self.ikEndHandle
+    mEnd = ml_joints[-1]
+    log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+    mEnd.jointOrient = 0,0,0
+    SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
+                     vectorUp=mEndOrient.getAxisVector('y+'))
+    JOINT.freezeOrientation(mEnd.mNode) 
+    #-------------------------------------------------------------------------
+        
+    ml_joints[0].parent = False
+    
+    _radius = self.atUtils('get_shapeOffset')
+    #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
+    #MATH.get_space_value(5)
+
+    
+    for mJoint in ml_joints:
+        mJoint.displayLocalAxis = 1
+        mJoint.radius = _radius
+
+    mRigNull.msgList_connect('moduleJoints', ml_joints)
+    
+    #cgmGEN.func_snapShot(vars())    
+    self.atBlockUtils('skeleton_connectToParent')
+    for mJnt in ml_joints:mJnt.rotateOrder = 5
+    
+    return ml_joints
+    #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 
 #=============================================================================================================

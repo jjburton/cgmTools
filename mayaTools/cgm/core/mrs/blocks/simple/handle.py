@@ -500,6 +500,7 @@ def define(self):
                 
         
         BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+        self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
         
         #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
@@ -605,6 +606,16 @@ def form(self):
     for a in 'XYZ':ATTR.break_connection(self.mNode,'baseSize'+a)
     
     
+    #LenSub shapers -------------------------------------------------------------------
+    _cnt = self.numShapers-1
+    _dat = self.datList_get('numSubShapers')
+    _diff = _cnt - len(_dat)
+    if len(_dat) < _cnt:
+        #l_subs = [self.numSubShapers for i in xrange(self.numShapers-1)]
+        for i in range(0,_diff):
+            self.datList_append('numSubShapers', self.numSubShapers)
+            
+    
     _loftSetup = self.getEnumValueString('loftSetup')
 
     if _loftSetup == 'loftList':
@@ -693,6 +704,7 @@ def form(self):
     
     _size = self.baseSize
     _proxyShape = self.getEnumValueString('proxyShape')
+    
     if _proxyShape == 'shapers':
         log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
         
@@ -774,10 +786,14 @@ def form(self):
         self.msgList_connect('formHandles',[mObj.mNode for mObj in ml_handles_chain])
     
         #>>Loft Mesh ==================================================================================
+        ml_curveTargets = []
         if self.numShapers:
             targets = [mObj.loftCurve.mNode for mObj in ml_shapers]
+            ml_curveTargets = [mObj.loftCurve for mObj in ml_shapers]
+            
             self.msgList_connect('shaperHandles',[mObj.mNode for mObj in ml_shapers])
         else:
+            ml_curveTargets = [mObj.loftCurve for mObj in ml_handles_chain]            
             targets = [mObj.loftCurve.mNode for mObj in ml_handles_chain]
     
     
@@ -808,7 +824,11 @@ def form(self):
         
         #mc.pointConstraint(mUpTrans.mNode,
         #                   md_defineHandles['up'].mNode,
-        #                   maintainOffset = True)                    
+        #                   maintainOffset = True)        
+        
+        self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
+        self.UTILS.controller_walkChain(self,ml_curveTargets,'form')
+        
         
     else:
         #Base shape ========================================================================================
@@ -1799,7 +1819,6 @@ def rig_cleanUp(self):
     ml_targetDynParents.extend(ml_endDynParents)
     
     ml_targetDynParents.append(self.md_dynTargetsParent['world'])
-    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
     mRoot = mRigNull.getMessageAsMeta('rigRoot')
     if mRoot:
@@ -1810,7 +1829,9 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
         
         ml_targetDynParents.insert(0,mRoot)
-        
+    
+    #...don't add space pivots till here    
+    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
     
     #Add our parents
     mDynGroup = mHandle.getMessageAsMeta('dynParentGroup')
