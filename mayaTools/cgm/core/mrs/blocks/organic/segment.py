@@ -556,6 +556,7 @@ def define(self):
     _dat['baseSize'] = self.baseSize
     self.baseDat = _dat
     BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+    self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
     
     return
     #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

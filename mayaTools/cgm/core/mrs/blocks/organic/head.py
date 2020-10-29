@@ -570,6 +570,7 @@ def define(self):
     self.msgList_append('defineHandles', mBBShape)
     
     BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+    self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
     
     return    
 
@@ -974,11 +975,12 @@ def form(self):
                
                
             self.UTILS.controller_wireHandles(self,ml_handles_chain + ml_loftCurves,'form')
-            self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
             
             if ml_loftCurves:
-                self.UTILS.controller_walkChain(self,ml_loftCurves,'form')            
-               
+                self.UTILS.controller_walkChain(self,ml_handles_chain + ml_loftCurves,'form')            
+            else:
+                self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
+                
                
                 
             #self.msgList_connect('formHandles',[mHeadHandle.mNode] + ml_handles)#...just so we have something here. Replaced if we have a neck        

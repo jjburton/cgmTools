@@ -451,6 +451,37 @@ d_block_profiles = {
     'baseDat':{'lever':[1,0,0],'rp':[0,0,-1],'up':[0,1,0]},
     
        },
+'wing':{
+    'numSubShapers':2,
+    'addCog':False,
+    'attachPoint':'end',
+    'cgmName':'wing',
+    'loftShape':'circle',
+    'loftSetup':'default',
+    'settingsPlace':'end',
+    'ikSetup':'rp',
+    'ikEnd':'hand',
+    'numSubShapers':3,
+    'mainRotAxis':'out',
+    'numControls':3,
+    'numShapers':4,    
+    'ikRPAim':'free',
+    'rigSetup':'default',
+    'nameList':['clav','shoulder','elbow','wrist'],
+    'buildEnd':'dag',
+    'ikRollSetup':'control',
+    'addBall':'none',
+    'addToe':'none',
+    'addLeverBase':'joint',
+    'addLeverEnd':'none',
+    'loftList':['circle','widePos','widePos','widePos'],
+    'loftShapeEnd':'wideUp',
+    'shapeDirection':'x-',
+    
+    'baseAim':[-1,0,0],
+    'baseSize':[14,9,76],
+    'baseDat':{'lever':[1,0,0],'rp':[0,-1,0],'up':[0,1,0]},
+       },
 'finger':{'numSubShapers':2,
           'addCog':False,
           'attachPoint':'end',
@@ -697,7 +728,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  #'hasEndJoint':'bool',
                  #'hasBallJoint':'bool',
                  #'ikEndIndex':'int',
-                 'shapersAim':'toEnd:chain',
+                 'shapersAim':'none:toEnd:chain',
                  'loftSetup':'default:loftList',
                  'loftShapeStart':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  'loftShapeEnd':BLOCKSHARE._d_attrsTo_make['loftShape'],
@@ -910,6 +941,7 @@ def define(self):
     self.baseDat = _dat
     
     BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+    self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
     
     
     return
@@ -1359,14 +1391,15 @@ def form(self):
         
         #AimStartHandle ============================================================================
         log.debug("|{0}| >> Aim main handles...".format(_str_func)) 
+        #if self.shapersAim:
         mGroup =  md_handles['start'].doGroup(True,True,asMeta=True,typeModifier = 'aim')            
         _const = mc.aimConstraint(md_handles['end'].mNode, mGroup.mNode,
-                                  maintainOffset = False,
-                                  aimVector = [0,0,1],
-                                  upVector = [0,1,0], 
-                                  worldUpObject = mRootUpHelper.mNode,
-                                  worldUpType = 'objectrotation', 
-                                  worldUpVector = [0,1,0])
+                                    maintainOffset = False,
+                                    aimVector = [0,0,1],
+                                    upVector = [0,1,0], 
+                                    worldUpObject = mRootUpHelper.mNode,
+                                    worldUpType = 'objectrotation', 
+                                    worldUpVector = [0,1,0])
         
         
         
@@ -1395,6 +1428,8 @@ def form(self):
         ml_handles_chain.insert(0,md_handles['lever'])
         
     mVec_up = mBaseOrientCurve.getAxisVector('y+')
+    
+    
     
     for i,mHandle in enumerate(ml_handles_chain):
         if mHandle in [md_handles['lever']]:#,md_handles['end']
@@ -1517,8 +1552,8 @@ def form(self):
             #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
         elif mHandle in [md_handles['start'],md_handles['end']]:
             _lock = []#['sz']
-            if mHandle == md_handles['start']:
-                _lock.append('rotate')
+            #if mHandle == md_handles['start']:
+            #    _lock.append('rotate')
                 
             #ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
             #ATTR.set_standardFlags( mHandle.mNode, _lock)
@@ -1867,11 +1902,12 @@ def form(self):
     
     #Controllers...------------------------------------------------------------------------------------------
     self.UTILS.controller_wireHandles(self,ml_handles_chain + ml_loftCurves,'form')
-    self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
     
     if ml_loftCurves:
-        self.UTILS.controller_walkChain(self,ml_loftCurves,'form')
-    
+        self.UTILS.controller_walkChain(self,ml_handles_chain + ml_loftCurves,'form')
+    else:
+        self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
+        
     
     """
     ml_done = []
@@ -2426,9 +2462,13 @@ def prerig(self):
                 _idx_ball = -1
                 if self.addToe:
                     _idx_ball = -2
-                ml_handles[_idx_ball].p_position = DIST.get_pos_by_axis_dist(ml_handles[_idx_ball],
-                                                                             'y+',
-                                                                             f_topLoft * .5)                
+                    
+                if mFootHelper:
+                    ml_handles[_idx_ball].p_position = DIST.get_pos_by_axis_dist(ml_handles[_idx_ball],
+                                                                                 'y+',
+                                                                                 f_topLoft * .5)
+                else:
+                    ml_handles[_idx_ball].doSnapTo(ml_formHandles[-1])
                 
                 
             

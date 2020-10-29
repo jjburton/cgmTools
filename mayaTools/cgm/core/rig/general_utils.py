@@ -40,6 +40,7 @@ import cgm.core.lib.name_utils as NAMES
 import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.position_utils as POS
 from cgm.core.classes import NodeFactory as NODEFAC
+import cgm.core.lib.list_utils as LISTS
 
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import euclid as EUCLID
@@ -959,3 +960,57 @@ def get_planeIntersect(planeSource = None, target = None, planeAxis = 'z+', objA
         LOC.create(position = pos, name = 'pewpew_planeIntersect')
         
     return pos
+
+
+def ratio(nodes = [],mode = 'finger', move = True):
+    if not nodes:
+        nodes = mc.ls(sl=1)
+        
+    mNodes = cgmMeta.asMeta(nodes)
+    
+    if mode == 'finger':
+        assert len(mNodes) == 4, "Need 4 handles"
+        
+        l_finger = [1.618,1,1]
+        s = 3.618
+        
+        #First get our distances...
+        l_dist = []
+        ml_pairs = LISTS.get_listPairs(mNodes)
+        l_vectors = []
+        for mSet in ml_pairs:
+            _p = [mSet[0].p_position, mSet[1].p_position]
+            l_dist.append(DIST.get_between_points(_p[0],_p[1]))
+            l_vectors.append(MATH.get_vector_of_two_points(_p[0],_p[1]))
+        log.info("Distances: {0}".format(l_dist))
+        f_dist = sum(l_dist)
+        f_factor = f_dist/s
+        
+        l_new = [ x*f_factor for x in l_finger]
+        
+        
+        #l_new = MATH.normalizeList(l_finger, f_dist)
+        log.info("New: {0}".format(l_new))
+        
+        #Now move them...
+        if move:
+            for i,mSet in enumerate(ml_pairs):
+                p = mSet[0].p_position
+                p_res = DIST.get_pos_by_vec_dist(p, l_vectors[i], l_new[i])
+                #LOC.create(position= p_res,name="ratio_{0}".format(i))
+                mSet[1].p_position = p_res
+        
+        mc.select(nodes)
+        return
+    
+    raise ValueError, "Unknown Mode: {0}".format(mode)
+        
+    _res = {}
+    mNodes = cgmMeta.asMeta(nodes)
+    for mNode in mNodes:
+        try:
+            _res[mNode.mNode] = {'pos':mNode.p_position, 'orient':mNode.p_orient}
+        except Exception,err:
+            log.error("{0} | {1}".format(mNode,err))
+    pprint.pprint(_res)
+    return _res

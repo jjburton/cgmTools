@@ -125,9 +125,9 @@ def backup(self,ml_handles = None):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     
     
-d_attrs = {'twist':{'d':'rz', '+d':1.0, '-d':-1.0, '+':50, '-':-50},
-           'side':{'d':'ry', '+d':1.0, '-d':-1.0, '+':25, '-':-25},
-           'roll':{'d':'rx', '+d':1.0, '-d':-1.0, '+':70, '-':-30},}
+d_attrs = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50},
+           'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25},
+           'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30},}
 
 def SDK_wip(ml = [], matchType = False,
             d_attrs = d_attrs):
