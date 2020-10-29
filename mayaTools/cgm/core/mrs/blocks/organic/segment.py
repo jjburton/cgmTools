@@ -524,23 +524,25 @@ def define(self):
     md_handles = _resDefine['md_handles']        
     self.UTILS.define_set_baseSize(self)
     
-    if self.hasAttr('jointRadius'):
-        _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
-                                      bakeScale = 1,                                              
-                                      direction = 'z+', size = 1.0)
+    #if self.hasAttr('jointRadius'):
+    """
+    _crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
+                                  bakeScale = 1,                                              
+                                  direction = 'z+', size = 1.0)
 
-        mJointRadius = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
-        mJointRadius.p_parent = mDefineNull
-        mJointRadius.doSnapTo(self.mNode)
-        CORERIG.override_color(mJointRadius.mNode, 'black')
+    mJointRadius = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
+    mJointRadius.p_parent = mDefineNull
+    mJointRadius.doSnapTo(self.mNode)
+    CORERIG.override_color(mJointRadius.mNode, 'black')
+    
+    mJointRadius.rename("jointRadiusVis")
+    _base = self.atUtils('get_shapeOffset')*4
+    if self.jointRadius < _base:
+        self.jointRadius = _base
+    self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
+    mJointRadius.dagLock()
+    mJointRadius.connectParentNode(self, 'rigBlock','jointRadiusVisualize') """
         
-        mJointRadius.rename("jointRadiusVis")
-        _base = self.atUtils('get_shapeOffset')*4
-        if self.jointRadius < _base:
-            self.jointRadius = _base
-        self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
-        mJointRadius.dagLock()
-        mJointRadius.connectParentNode(self, 'rigBlock','jointRadiusVisualize') 
         
     #Rotate Plane ======================================================================
     self.UTILS.create_define_rotatePlane(self, md_handles,md_vector)
@@ -553,6 +555,8 @@ def define(self):
     _dat = self.baseDat
     _dat['baseSize'] = self.baseSize
     self.baseDat = _dat
+    BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+    self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
     
     return
     #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -958,7 +962,7 @@ def prerig(self):
         mHandleFactory = self.asHandleFactory(mHandle.mNode)
         
         #Convert to loft curve setup ----------------------------------------------------
-        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeSub))
+        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse))
 
         mHandleFactory.color(mHandle.mNode,controlType='sub')
     

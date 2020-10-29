@@ -500,6 +500,7 @@ def define(self):
                 
         
         BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
+        self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
         
         #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
