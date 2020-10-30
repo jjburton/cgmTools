@@ -2180,13 +2180,13 @@ def prerig(self):
         mPrerigNull.doStore('handleCount',_count)
         #pprint.pprint(ml_formHandlesCurveTargets)
         
-        if len(ml_formHandlesCurveTargets)>=_count:
-            log.info(cgmGEN.logString_msg(_str_func,'Can use formHandles as targets...'))
-            _l_pos = [mObj.p_position for mObj in ml_formHandlesCurveTargets[:_count]]
-        else:
-            _crvTmp = mc.curve(d=1,p=[mObj.p_position for mObj in ml_formHandlesCurveTargets])
-            _l_pos = CURVES.getUSplitList(_crvTmp,_count,markPoints = 0)
-            mc.delete(_crvTmp)
+        #if len(ml_formHandlesCurveTargets)>=_count:
+        #    log.info(cgmGEN.logString_msg(_str_func,'Can use formHandles as targets...'))
+        #    _l_pos = [mObj.p_position for mObj in ml_formHandlesCurveTargets[:_count]]
+        #else:
+        _crvTmp = mc.curve(d=1,p=[mObj.p_position for mObj in ml_formHandlesCurveTargets])
+        _l_pos = CURVES.getUSplitList(_crvTmp,_count,markPoints = 0)
+        mc.delete(_crvTmp)
             
         for pos in _l_pos:
             ml_prerigTrackers.append(pos)
