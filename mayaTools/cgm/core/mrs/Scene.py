@@ -22,6 +22,7 @@ from cgm.core.mrs.lib import scene_utils as SCENEUTILS
 reload(SCENEUTILS)
 from cgm.core.lib import skinDat as SKINDAT
 reload(SKINDAT)
+import cgm.core.mrs.Builder as BUILDER
 
 import Red9.core.Red9_General as r9General
 
@@ -493,6 +494,8 @@ example:
         pum = mUI.MelPopupMenu(self.variationList['scrollList'])
         mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
+        
+        
 
         self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
 
@@ -524,6 +527,7 @@ example:
         mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
         self.sendToProjectMenu = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )		
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
+        mUI.MelMenuItem( pum, label="Send to Build", command=self.SendToBuild )
 
         self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
@@ -794,6 +798,7 @@ example:
         self.assetMetaData = self.getMetaDataFromFile()
         self.buildDetailsColumn()
         self.StoreCurrentSelection()
+        log.info( self.versionFile )
 
     def buildDetailsColumn(self):
         if not self._detailsColumn(q=True, vis=True):
@@ -1854,7 +1859,17 @@ example:
             item = mUI.MelMenuItem( self.sendToProjectMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
                                                 c = partial(self.SendVersionFileToProject,{'filename':asset,'project':p}))
             self.sendToProjectMenuItemList.append(item)
-
+            
+    def SendToBuild(self,*args):
+        f = self.versionFile
+        if not f:
+            return log.error("SendToBuild: No version file found")
+        
+        log.info ("file: {0}".format(f))
+        mStandAlone = BUILDER.uiStandAlone_get()
+        mStandAlone.l_files = [f]
+        
+        
     def SendVersionFileToProject(self, infoDict, *args):
         newProject = Project.data(filepath=infoDict['project'])
 

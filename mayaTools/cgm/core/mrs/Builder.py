@@ -17,6 +17,9 @@ import copy
 import time
 import pprint
 import os
+import subprocess, os
+import sys
+
 # From Red9 =============================================================
 from Red9.core import Red9_Meta as r9Meta
 from Red9.core import Red9_AnimationUtils as r9Anim
@@ -34,6 +37,8 @@ import maya.cmds as mc
 
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGEN
+import cgm.core.cgmPy.path_Utils as PATHS
+
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
@@ -1985,13 +1990,12 @@ class ui_post(cgmUI.cgmGUI):
         #log.debug(self.__call__(q=True, title=True))
         
         self.__version__ = __version__
-        self.__toolName__ = 'Builder'		
+        #self.__toolName__ = 'Builder'		
         self.WINDOW_TITLE = ui_post.WINDOW_TITLE
         self.DEFAULT_SIZE = ui_post.DEFAULT_SIZE
 
         self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
                                                     defaultValue = 'unityMed')
-                
         
     def build_menus(self):pass
     
@@ -2229,6 +2233,321 @@ class ui_post(cgmUI.cgmGUI):
                   attachNone = [(_button,"top")])
         
         
+        
+import cgm.core.mrs.lib.batch_utils as MRSBATCH
+reload(MRSBATCH)
+_l_post_order = MRSBATCH.l_mrsPost_order
+
+
+_d_post_order = {'Gather Space Drivers':'gatherSpaceDrivers',
+                 'Mirror Verify':'mirrorVerify',
+                 'Delete Blocks':'deleteBlocks',
+                 'isHistoricallyInteresting':'ihi'}
+
+global UISTANDALONE
+UISTANDALONE = None
+
+
+def uiStandAlone_get():
+    global UISTANDALONE
+    if UISTANDALONE:
+        log.info('cached...')
+        #try:
+        UISTANDALONE.show()
+        return UISTANDALONE
+        #except Exception,err:
+        #    log.error(err)
+    return ui_toStandAlone()
+
+class ui_toStandAlone(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'MRS Build'    
+    WINDOW_TITLE = 'MRS Build | {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 200,230
+    
+    def insert_init(self,*args,**kws):
+        self.l_files = []
+        
+        global UISTANDALONE
+        UISTANDALONE = self
+        
+    """
+    def insert_init(self,*args,**kws):
+        _str_func = 'post_win.insert_init'
+        #kws = self.kws
+        #args = self.args
+        if kws:log.debug("kws: %s"%str(kws))
+        if args:log.debug("args: %s"%str(args))
+        #log.debug(self.__call__(q=True, title=True))
+        
+        self.__version__ = __version__
+        self.__toolName__ = 'ui_toStandAlone'		
+        self.WINDOW_TITLE = ui_toStandAlone.WINDOW_TITLE
+        self.DEFAULT_SIZE = ui_toStandAlone.DEFAULT_SIZE
+
+        self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
+                                                     defaultValue = 'unityMed')
+        global UISTANDALONE
+        UISTANDALONE = self"""
+        
+    def build_menus(self):pass
+    
+    def uiFunc_batch(self):
+        ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
+                                         nTypes=['transform','network'],
+                                         mAttrs='blockType=master')
+        
+        l_fails = []
+        ml_fails = []
+        for mMaster in ml_masters:    
+            ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(mMaster,'below',True,False)
+    
+            for mSubBlock in ml_context:
+                l_fails.append(mSubBlock.asRigFactory(**{'mode':'prechecks'}).b_prechecks)
+                if not l_fails[-1]: ml_fails.append(mSubBlock)
+        
+        if False in l_fails:
+            #self.uiScrollList_blocks.selectByObj(ml_fails[0])
+            return (log.warning("Prechecks failed. Check script editor!"))
+        
+        log.info("Batch file creating...")
+    
+        import cgm.core.mrs.lib.batch_utils as MRSBATCH
+        reload(MRSBATCH)
+        
+        MRSBATCH.create_MRS_batchFile(process=True)
+        
+
+    @cgmGEN.Timer
+    def uiFunc_process(self, f=None, blocks = [None],
+                       process = True,
+                       postProcesses = True, deleteAfterProcess = True,
+                       gatherOptionVars = True):
+        
+        _str_func = 'uiFunc_process[{0}]'.format(self.__class__.TOOLNAME)
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
+                                         nTypes=['transform','network'],
+                                         mAttrs='blockType=master')
+        
+        l_fails = []
+        ml_fails = []
+        for mMaster in ml_masters:    
+            ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(mMaster,'below',True,False)
+    
+            for mSubBlock in ml_context:
+                l_fails.append(mSubBlock.asRigFactory(**{'mode':'prechecks'}).b_prechecks)
+                if not l_fails[-1]: ml_fails.append(mSubBlock)
+        
+        if False in l_fails:
+            #self.uiScrollList_blocks.selectByObj(ml_fails[0])
+            return (log.warning("Prechecks failed. Check script editor!"))
+        
+        log.info("Batch file creating...")        
+        log.debug(self.l_files)
+        if not f:
+            f = self.l_files
+        
+        try:
+            
+            
+            """
+            f=None, blocks = [None], process = False,
+                                     postProcesses = True, deleteAfterProcess = False,
+                                     gatherOptionVars = True):
+                                     """
+                
+            l_pre = ['import maya',
+            'from maya import standalone',
+            'standalone.initialize()',
+            
+            'from maya.api import OpenMaya as om2',
+            'om2.MGlobal.displayInfo("Begin")',
+            'import maya.cmds as mc',
+            'mc.loadPlugin("matrixNodes")',      
+            'import cgm.core.mrs.lib.batch_utils as MRSBATCH']
+            
+            l_post = ['except:',
+            '    import msvcrt#...waits for key',
+            '    om2.MGlobal.displayInfo("Hit a key to continue")',
+            '    msvcrt.getch()',
+            'om2.MGlobal.displayInfo("End")',
+            'standalone.uninitialize()'    ]
+            
+            log.debug(cgmGEN.logString_sub(_str_func,"Checks ..."))
+            
+            l_paths = []
+            l_dirs = []
+            l_check = VALID.listArg(f)
+            l_mFiles = []
+            l_batch = []
+            if not l_check:
+                log.info(cgmGEN.logString_msg(_str_func,"No file passed. Using current"))
+                l_check = [mc.file(q=True, sn=True)]
+                
+            
+            for f in l_check:
+                mFile = PATHS.Path(f)
+                if not mFile.exists():
+                    log.error("Invalid file: {0}".format(f))
+                    continue
+                
+                log.debug(cgmGEN.logString_sub(_str_func))
+                
+                _path = mFile.asFriendly()
+                l_paths.append(_path)
+                _name = mFile.name()
+                
+                _d = mFile.up().asFriendly()
+                log.debug(cgmGEN.logString_msg(_str_func,_name))
+                _batchPath = os.path.join(_d,_name+'_MRSbatch.py')
+                log.debug(cgmGEN.logString_msg(_str_func,"batchPath: "+_batchPath))
+                log.debug(cgmGEN.logString_msg(_str_func,"template: "+_path))
+                
+                
+                mTar = PATHS.Path(_batchPath)
+                l_join = ["try:MRSBATCH.process_blocks_rig('{0}',**".format(mFile.asString()),'{','})']
+                if gatherOptionVars:
+                    for k in _l_post_order:
+                        log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
+                        
+                        if self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
+                            l_join.insert(2,"'{0}' : 1 ,".format(k))                    
+                 
+                            """
+                            l_join = ["try:MRSBATCH.process_blocks_rig('{0}'".format(mFile.asString())]
+                            if gatherOptionVars:
+                                for k in _l_post_order:
+                                    log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
+                                    
+                                    if self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
+                                        l_join.insert(1,'{0} = 1'.format(k))"""
+                    
+
+                                        
+                    _l = ''.join(l_join)
+               
+                else:
+                    _l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
+                
+                print _l
+                
+                if mTar.getWritable():
+                    if mTar.exists():
+                        os.remove(mTar)
+                        
+                    log.warning("Writing file: {0}".format(_batchPath))
+         
+                    with open( _batchPath, 'a' ) as TMP:
+                        for l in l_pre + [_l] + l_post:
+                            TMP.write( '{0}\n'.format(l) )
+                            
+                    l_batch.append(mTar)
+                            
+                else:
+                    log.warning("Not writable: {0}".format(_batchPath))
+            
+            
+            if process:
+                log.debug(cgmGEN.logString_sub(_str_func,"Processing ..."))        
+                for f in l_batch:
+                    log.warning("Processing file: {0}".format(f.asFriendly()))            
+                    #subprocess.call([sys.argv[0].replace("maya.exe","mayapy.exe"),f.asFriendly()])
+                    subprocess.Popen([sys.argv[0].replace("maya.exe",
+                                                          "mayapy.exe"),'-i',
+                                      f.asFriendly()],
+                                     creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
+                    
+                    if deleteAfterProcess:
+                        os.remove(f)
+
+            return
+        finally:
+            self.uiStatus(edit=True,vis=False)
+            cgmUI.progressBar_end(self.uiPB_test)
+        
+    
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
+        _inside = mUI.MelColumnLayout(_MainForm)
+
+        self.uiStatus = mUI.MelLabel(_inside,
+                                     vis=False,
+                                     bgc = SHARED._d_gui_state_colors.get('warning'),
+                                     label = '...',
+                                     h=20)        
+        self.uiPB_test=None
+        self.uiPB_test = mc.progressBar(vis=False)
+
+    
+        #SingleChecks======================================================================
+
+        
+        self._dCB_reg = {}
+        for k in _l_post_order:
+            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+            mUI.MelSpacer(_row,w=10)    
+            
+            mUI.MelLabel(_row, label = '{0}:'.format(k))
+            _row.setStretchWidget(mUI.MelSeparator(_row))
+
+            _plug = 'cgmVar_mrsPostProcess_' + _d_post_order.get(k,k)
+            try:self.__dict__[_plug]
+            except:
+                log.debug("{0}:{1}".format(_plug,1))
+                self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 1)
+    
+            l = k
+            _buffer = _d_post_order.get(k)
+            if _buffer:l = _buffer
+            _cb = mUI.MelCheckBox(_row,
+                                  #annotation = 'Create qss set: {0}'.format(k),
+                                  value = self.__dict__[_plug].value,
+                                  onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                                  offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+            self._dCB_reg[k] = _cb
+            mUI.MelSpacer(_row,w=10)    
+            
+            _row.layout()
+
+        
+        
+        _button = mc.button(parent=_MainForm,
+                            l = 'Build',
+                            ut = 'cgmUITemplate',
+                            #c = cgmGEN.Callback(cgmUI.progressBar_test,self.uiPB_test,10000),
+                            c = lambda *a:mc.evalDeferred(self.uiFunc_process),#cgmGEN.Callback(self.uiFunc_process),
+                            ann = 'Build with MRS')
+        
+        mc.setParent(_MainForm)
+ 
+        _MainForm(edit = True,
+                  af = [(_inside,"top",0),
+                        (_inside,"left",0),
+                        (_inside,"right",0),
+                        (_button,"left",0),
+                        (_button,"right",0),
+                        #(self.uiPB_test,"left",0),
+                        #(self.uiPB_test,"right",0),                        
+                        #(_row_cgm,"left",0),
+                        #(_row_cgm,"right",0),
+                        (_button,"bottom",0),
+    
+                        ],
+                  ac = [(_inside,"bottom",0,_button),
+                        #(_button,"bottom",0,_row_cgm),
+                        #(self.uiPB_test,"bottom",0,_row_cgm),
+                        ],
+                  attachNone = [(_button,"top")])
 
         
         
@@ -2870,23 +3189,34 @@ class ui(cgmUI.cgmGUI):
                                 c=d2.get('call'))
 
         #Vis menu -----------------------------------------------------------------------------
-        for a in ['Measure','RotatePlane','Labels','ProximityMode']:
+        for a in ['Measure','RotatePlane','Labels','ProximityMode','FormMesh']:
             _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
                                    label = a,
                                    en=True,)
             if a == 'ProximityMode':
                 _l = ['off','inherit','proximity']
+            elif a == 'FormMesh':
+                _l = ['reg','template']
             else:
                 _l = ['off','on']
                 
             for i,v in enumerate(_l):
-                mUI.MelMenuItem(_sub,
-                                l = v,
-                                ann='Set visibility of: {0} | {1}'.format(a,v),
-                                c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                            'atUtils', 'blockAttr_set',
-                                            **{"vis{0}".format(a):i}))
-                
+                if a =='FormMesh':
+                    mUI.MelMenuItem(_sub,
+                                    l = v,
+                                    ann='Set visibility of: {0} | {1}'.format(a,v),
+                                    c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                'atUtils', 'form_templateMesh',
+                                                **{'arg':i}))                    
+                else:
+                    
+                    mUI.MelMenuItem(_sub,
+                                    l = v,
+                                    ann='Set visibility of: {0} | {1}'.format(a,v),
+                                    c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                'atUtils', 'blockAttr_set',
+                                                **{"vis{0}".format(a):i}))
+                    
                 
                 
         d_shared = {'formNull':{},
@@ -2975,7 +3305,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_advanced.clear()   
         _menu = self.uiMenu_advanced
         d_s = {'Batch':{'Send File To MayaPy':{'ann':"Process the current file. Will be saved at it's current location as _ BUILD.ext",
-                                            'call':cgmGEN.Callback(self.batch_call),}},
+                                            'call':cgmGEN.Callback(uiStandAlone_get),}},
                'Utilities':{
                    'Verify':{'ann':'Check if the block is current (DEV)',
                              'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,

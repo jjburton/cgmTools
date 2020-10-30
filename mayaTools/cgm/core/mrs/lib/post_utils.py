@@ -129,6 +129,17 @@ d_attrs = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50},
            'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25},
            'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30},}
 
+d_attrs_fingers = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}},
+                   'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
+                   'roll':{0:{0:{'d':'rx', '+d':10.0, '-d':-10.0, '+':10, '-':-40}},
+                   'd':'rx', '+d':10.0, '-d':-10.0, '+':80, '-':-40},
+                   'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':1,'-':-1,
+                   0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-40, '-':25}},#thumb
+                   1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':25}},#index
+                   2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':1}},#middle
+                   3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':5, '-':-10}},#ring
+                   4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
+
 def SDK_wip(ml = [], matchType = False,
             d_attrs = d_attrs):
     _str_func = 'siblingSDK_wip'
@@ -166,7 +177,9 @@ def SDK_wip(ml = [], matchType = False,
             log.warning('missing fk. Skippping...')
             continue
         
-        
+        if mSib.rigBlock.blockProfile in ['finger']:
+            ml_fk = ml_fk[1:]
+            
         #if 'thumb' not in mSib.mNode:
         #    ml_fk = ml_fk[1:]
             
@@ -175,7 +188,6 @@ def SDK_wip(ml = [], matchType = False,
         _d['fk'] = ml_fk
         ml_sdk = []
         
-        str_part = mSib.get_partNameBase()
 
         
         for ii,mFK in enumerate(ml_fk):
@@ -198,41 +210,73 @@ def SDK_wip(ml = [], matchType = False,
     #return
     
     for a,d in d_attrs.iteritems():
-        log.info("{0} | ...".format(a))
-        
+        log.info(cgmGEN.logString_sub(_str_func,a))
         for i,mSib in enumerate(mSiblings):
-            d2 = md[mSib]
+            log.info(cgmGEN.logString_sub(_str_func,mSib))  
+            d_sib = copy.deepcopy(d)
+            d_idx = d.get(i,{})
+            if d_idx:
+                _good = True
+                for k in ['d','+d','-d','+','-']:
+                    if not d_idx.get(k):
+                        _good = False
+                        break
+                if _good:
+                    log.info(cgmGEN.logString_msg(_str_func,"Found d_idx on mSib | {0}".format(d_idx))) 
+                    d_use = copy.deepcopy(d_idx)
+            else:d_use = copy.deepcopy(d_sib)
             
-            _aDriver = "{0}_{1}".format(a,i)
-            #_aDriver = "{0}_{1}".format(str_part,a)
+            d2 = md[mSib]
+            str_part = mSib.getMayaAttr('cgmName') or mSib.get_partNameBase()
+            
+            #_aDriver = "{0}_{1}".format(a,i)
+            _aDriver = "{0}_{1}".format(a,str_part)
             if not mParentSettings.hasAttr(_aDriver):
                 ATTR.add(_settings, _aDriver, attrType='float', keyable = True)            
             
-            for mSDK in d2.get('sdk'):
+            log.info(cgmGEN.logString_msg(_str_func,"d_sib | {0}".format(d_sib))) 
+            for ii,mSDK in enumerate(d2.get('sdk')):
                 
+                d_cnt = d_idx.get(ii,{}) 
+                if d_cnt:
+                    log.info(cgmGEN.logString_msg(_str_func,"Found d_cnt on mSib | {0}".format(d_cnt))) 
+                    d_use = copy.deepcopy(d_cnt)
+                else:d_use = copy.deepcopy(d_sib)
+                
+                log.info(cgmGEN.logString_msg(_str_func,"{0}| {1} | {2}".format(i,ii,d_use))) 
+                
+                d_ease = d_use.get('ease',{})
+                v_ease = d_ease.get(ii,None)
 
-                mc.setDrivenKeyframe("{0}.{1}".format(mSDK.mNode, d['d']),
+                mc.setDrivenKeyframe("{0}.{1}".format(mSDK.mNode, d_use['d']),
                                      currentDriver = "{0}.{1}".format(_settings, _aDriver),
                                      itt='linear',ott='linear',                                         
                                      driverValue = 0, value = 0)
                 
                 #+ ------------------------------------------------------------------
-                pos_v = d.get('+')
-                pos_d = d.get('+d', 1.0)
+                pos_v = d_use.get('+')
+                pos_d = d_use.get('+d', 1.0)
+                if v_ease:
+                    pos_v = pos_v * v_ease
+                
+                ATTR.set_max("{0}.{1}".format(_settings, _aDriver),pos_d)
                 
                 if pos_v:
-                    mc.setDrivenKeyframe("{0}.{1}".format(mSDK.mNode, d['d']),
+                    mc.setDrivenKeyframe("{0}.{1}".format(mSDK.mNode, d_use['d']),
                                      currentDriver = "{0}.{1}".format(_settings, _aDriver),
                                      itt='linear',ott='linear',                                         
                                      driverValue = pos_d, value = pos_v)
                 
                 
                 #- ----------------------------------------------------------
-                neg_v = d.get('-')
-                neg_d = d.get('-d', -1.0)
+                neg_v = d_use.get('-')
+                neg_d = d_use.get('-d', -1.0)
+                if v_ease:
+                    neg_v = neg_v * v_ease                
+                ATTR.set_min("{0}.{1}".format(_settings, _aDriver),neg_d)
                     
                 if neg_v:
-                    mc.setDrivenKeyframe("{0}.{1}".format(mSDK.mNode, d['d']),
+                    mc.setDrivenKeyframe("{0}.{1}".format(mSDK.mNode, d_use['d']),
                                      currentDriver = "{0}.{1}".format(_settings, _aDriver),
                                      itt='linear',ott='linear',                                         
                                      driverValue = neg_d, value = neg_v)        

@@ -3604,7 +3604,7 @@ def siblings_pushSubShapers(self,matchType=True,matchProfile=True):
             d[a]= mHandle.getMayaAttr(a)
         l.append(d)
     
-    pprint.pprint(l)
+    #pprint.pprint(l)
     
     for mSib in ml_siblings:
         log.info(cgmGEN.logString_msg(_str_func,mSib))
@@ -4216,6 +4216,45 @@ def MirrorBlockPull( block, reflectionVector = MATH.Vector3(1,0,0) ):
     mirrorBlock = block.GetMirrorBlock()
 
     Block.MirrorBlock(mirrorBlock, block, reflectionVector)
+    
+def blockMirror_subShapers(self,blockMirror=None,mode='push'):
+    _str_func = 'blockMirror_subShapers'
+      
+    if blockMirror is None:
+        log.debug("|{0}| >> Self mirror....".format(_str_func))
+        if self.getMessage('blockMirror'):
+            mMirror = self.blockMirror
+        else:
+            return log.error("|{0}| >> No block mirror found on: {1}".format(_str_func,self))
+        log.debug("|{0}| >> UseMirror. BlockMirror Found: {1}".format(_str_func,mMirror))
+    else:
+        mMirror = blockMirror
+    
+    
+    if mode == 'push':
+        mSource = self
+        mTarget = mMirror
+    else:
+        mSource = mMirror
+        mTarget = self
+        
+    
+    ml_source = form_getSubShapers(mSource)
+    ml_target = form_getSubShapers(mTarget)
+    
+    if not ml_source:
+        return log.warning("|{0}| >> no source".format(_str_func))
+    if not ml_target:
+        return log.warning("|{0}| >> no target".format(_str_func))
+    
+    for i,mCrv in enumerate(ml_source):
+        print mCrv
+        CURVES.mirror_worldSpace(mCrv.mNode, ml_target[i].mNode)
+    
+    
+    
+    
+        
     
     
 #=============================================================================================================
@@ -11331,7 +11370,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                      extendCastSurface = False,
                      l_values = [],
                      orient = 'zyx',
-                     hardenEdges = False,
+                     hardenEdges = True,
                      extendToStart = True,method = 'u'):
     #try:
     _short = self.mNode
@@ -12554,3 +12593,11 @@ def controller_wireHandles(self,ml_handles,state='extra'):
             except Exception,err:
                 log.error(err)
         ATTR.multi_append(self.mNode, '{0}Stuff'.format(state), mObj.mNode)
+        
+        
+def form_templateMesh(self,arg=None):
+    mLoftMesh = self.getMessageAsMeta('prerigLoftMesh')
+    if not mLoftMesh:
+        return False
+    
+    mLoftMesh.template = arg
