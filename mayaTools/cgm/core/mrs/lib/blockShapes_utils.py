@@ -1628,7 +1628,7 @@ def addJointHelper(self,mHandle=None,
 
     if loftHelper:#...loft curve -------------------------------------------------------------------------------------
         #mLoft = self.buildBaseShape('square',_size*.5,'z+')
-        _loft = CURVES.create_controlCurve(mJointCurve.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .5,bakeScale = False)
+        _loft = CURVES.create_controlCurve(mJointCurve.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .25, bakeScale = True)
         mLoft = cgmMeta.validateObjArg(_loft,'cgmObject',setClass=True)
         mLoft.doStore('cgmName',mJointCurve)
         mLoft.doStore('cgmType','loftCurve')

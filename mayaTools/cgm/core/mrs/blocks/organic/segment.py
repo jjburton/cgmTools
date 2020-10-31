@@ -1109,7 +1109,7 @@ def prerig(self):
         
     return True
 
-def create_jointHelpers(self,cnt=None):
+def create_jointHelpers(self,cnt=None, force = False):
     #>>Joint placers ================================================================================    
     _str_func = 'create_jointHelpers'
     mPrerigNull = self.prerigNull
@@ -1117,9 +1117,27 @@ def create_jointHelpers(self,cnt=None):
     #Joint placer aim....
     
     #Clean up
-    old = mPrerigNull.getMessage('jointHelpersGroup')
-    if old:
-        mc.delete(old)
+    ml_jointHelpers = self.msgList_get('jointHelpers')
+    if not force:
+        if cnt and len(ml_jointHelpers) == cnt:
+            return True
+        if self.numJoints == len(ml_jointHelpers):
+            return True
+    
+    for mJointHelper in ml_jointHelpers:
+        bfr = mJointHelper.getMessage('mController')
+        if bfr:
+            log.warning("Deleting controller: {0}".format(bfr))
+            mc.delete(bfr)            
+    for k in ['jointHelpersGroup','jointHelpersNoTransGroup']:
+        old = mPrerigNull.getMessage(k)
+        if old:
+            log.warning("Deleting old: {0}".format(old))
+            mc.delete(old)
+    
+    old_loft = self.getMessage('jointLoftMesh')
+    if old_loft:
+        mc.delete(old_loft)
         
     if cnt:
         self.numJoints = cnt
@@ -1129,40 +1147,55 @@ def create_jointHelpers(self,cnt=None):
     mDriven = self.prerigNull.getMessageAsMeta('drivenCurve')
     mNoTrans = self.noTransPrerigNull
     
+    ml_formHandles = self.msgList_get('formHandles')
+    mStartHandle = ml_formHandles[0]    
+    mEndHandle = ml_formHandles[-1]    
+    mOrientHelper = mStartHandle.orientHelper
+    
+    
     l_pcts = [i*(1.0/(self.numJoints-1)) for i in range(self.numJoints-1)] + [1.0]
     
     #pprint.pprint(l_pcts)
+    _size = self.jointRadius
     
-    mGroup = mNoTrans.doCreateAt('null')
-    mGroup.rename('jointHelpers')
+    mGroupNoTrans = mNoTrans.doCreateAt('null')
+    mGroupNoTrans.rename('jointHelpers_noTransGroup')
+    mPrerigNull.connectChildNode(mGroupNoTrans.mNode,'jointHelpersNoTransGroup')
+    mGroupNoTrans.p_parent = mNoTrans
+    
+    mGroup = mPrerigNull.doCreateAt('null')
+    mGroup.rename('jointHelpersGroup')
     _size = self.jointRadius
     mPrerigNull.connectChildNode(mGroup.mNode,'jointHelpersGroup')
+    mGroup.p_parent = mPrerigNull    
+    
     
     _l_names = self.atUtils('skeleton_getNameDicts',False,cgmType = 'jointHelper')
     
-    pprint.pprint(_l_names)
+    #pprint.pprint(_l_names)
     
     ml_jointHelpers = []
     for i,pct in enumerate(l_pcts):
         """mLoc = cgmMeta.asMeta(LOC.create(position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct),
                                          name = "pct_{0}_loc".format(i)))"""
         
+        
         mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=_l_names[i])
         mJointHelper.p_position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct)
+        mJointHelper.p_parent = mGroup
+        
+        mGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
         
 
-        
-        
-        res_attach = RIGCONSTRAINT.attach_toShape(mJointHelper.mNode,
-                                                  mDriven.mNode)
-        TRANS.parent_set(res_attach[0],mGroup.mNode)
+        res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mDriven.mNode,'conPoint')
+        TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)
         
         ml_jointHelpers.append(mJointHelper)
-
-    #Build
-    return
-    for i,mHandle in enumerate(ml_handles):
-        mJointHelper = mHandle.jointHelper
+        self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
+        
+    #Aim --------------------------------------------------------------------------
+    l_targets = []
+    for i,mJointHelper in enumerate(ml_jointHelpers):
         mLoftCurve = mJointHelper.loftCurve
         
         if not mLoftCurve.getMessage('aimGroup'):
@@ -1170,34 +1203,31 @@ def create_jointHelpers(self,cnt=None):
             
         
         mAimGroup = mLoftCurve.getMessage('aimGroup',asMeta=True)[0]
-    
-        if mHandle == ml_handles[-1]:
-            mc.aimConstraint(ml_handles[-2].mNode, mAimGroup.mNode, maintainOffset = False,
+        
+        l_targets.append(mLoftCurve.mNode)
+        
+        mLoftCurve.v = 0
+        
+        if mJointHelper == ml_jointHelpers[-1]:
+            mc.aimConstraint(ml_jointHelpers[-2].mNode, mAimGroup.mNode, maintainOffset = False,
                              aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
                              worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
         else:
-            mc.aimConstraint(ml_handles[i+1].mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
+            mc.aimConstraint(ml_jointHelpers[i+1].mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
                              aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
-                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
-                             
-    #Joint placer loft....
-    ml_jointHelpers =  [mObj.jointHelper for mObj in ml_handles]
-    for mJointHelper in ml_jointHelpers:
-        self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-    
-    targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
-    
-    self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
-    
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])          
+
+    self.msgList_connect('jointHelpers',ml_jointHelpers)
     self.atUtils('create_jointLoft',
-                 targets,
+                 l_targets,
                  mPrerigNull,
                  'numJoints',
-                 degree = 3,
-                 baseName = self.cgmName )        
+                 degree = 1,
+                 baseName = self.cgmName )
     
-    for t in targets:
-        ATTR.set(t,'v',0)
+    self.UTILS.controller_walkChain(self,ml_jointHelpers,'prerig')
+    return ml_jointHelpers
+
     
     
 def prerigDelete(self):
@@ -1260,6 +1290,9 @@ def skeleton_build(self, forceNew = True):
     
     #_d = self.atBlockUtils('skeleton_getCreateDict', self.numJoints)
     
+    
+    """
+    
     if self.numJoints == self.numControls:
         log.debug("|{0}| >> Control count matches joint ({1})...".format(_str_func,self.numJoints))
         l_pos = []
@@ -1270,21 +1303,25 @@ def skeleton_build(self, forceNew = True):
         _crv = CURVES.create_fromList(targetList = [mObj.mNode for mObj in ml_jointHelpers])
         l_pos = CURVES.returnSplitCurveList(_crv,self.numJoints)
         mc.delete(_crv)        
-
+        """
+    
     mOrientHelper = ml_formHandles[0].orientHelper
 
     
     #reload(JOINT)
     mVecUp = self.atUtils('prerig_get_upVector')
     
-    ml_joints = JOINT.build_chain(l_pos, parent=True, worldUpAxis= mVecUp)
+    ml_joints = JOINT.build_chain([mHelper.p_position for mHelper in ml_jointHelpers], parent=True, worldUpAxis= mVecUp)
     
-        
-    _l_names = self.atUtils('skeleton_getNameDicts',False)
+    
 
     for i,mJoint in enumerate(ml_joints):
-        for t,tag in _l_names[i].iteritems():
-            mJoint.doStore(t,tag)
+        d = ml_jointHelpers[i].getNameDict(ignore = ['cgmType'])
+        d['cgmType'] = 'skinJoint'
+        
+        for t,tag in d.iteritems():
+            if t and tag:
+                mJoint.doStore(t,tag)
         mJoint.doName()
         #mJoint.rename(_l_names[i])
         
@@ -1303,7 +1340,7 @@ def skeleton_build(self, forceNew = True):
         
     ml_joints[0].parent = False
     
-    _radius = self.atUtils('get_shapeOffset')
+    _radius = self.jointRadius #self.atUtils('get_shapeOffset')
     #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 10
     #MATH.get_space_value(5)
 
