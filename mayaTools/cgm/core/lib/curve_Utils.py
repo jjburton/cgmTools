@@ -2076,8 +2076,7 @@ def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
             _pos = POS.get(ep)
             _new =  MATH.list_mult(_pos,_mult)
             POS.set(_l_ep_target[ii], _new)
-            log.debug("|{0}| >> shape: {7} || {1} | {2} > {3} | {4} >> {5} | ?actual: {6}".format(_str_func,ii,ep,_l_ep_target[ii],_pos,_new,  POS.get(_l_ep_target[ii]), s))                                                            
-    
+            log.debug("|{0}| >> shape: {7} || {1} | {2} > {3} | {4} >> {5} | ?actual: {6}".format(_str_func,ii,ep,_l_ep_target[ii],_pos,_new,  POS.get(_l_ep_target[ii]), s))
     mc.reverseCurve(target,constructionHistory=False,replaceOriginal=True)
         
     #pprint.pprint(vars())
