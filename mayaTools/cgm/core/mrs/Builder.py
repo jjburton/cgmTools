@@ -2331,7 +2331,9 @@ class ui_toStandAlone(cgmUI.cgmGUI):
         
         _str_func = 'uiFunc_process[{0}]'.format(self.__class__.TOOLNAME)
         log.debug("|{0}| >>...".format(_str_func))
-        
+        import cgm.core.mrs.lib.batch_utils as MRSBATCH
+        reload(MRSBATCH)
+                
         ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
                                          nTypes=['transform','network'],
                                          mAttrs='blockType=master')
@@ -2352,7 +2354,8 @@ class ui_toStandAlone(cgmUI.cgmGUI):
         log.info("Batch file creating...")        
         log.debug(self.l_files)
         if not f:
-            f = self.l_files
+            f = copy.deepcopy(self.l_files)
+            self.l_files = []#empty this as we're we don't want it staying stored after we've grabbed it
         
         try:
             
@@ -2464,8 +2467,8 @@ class ui_toStandAlone(cgmUI.cgmGUI):
                                       f.asFriendly()],
                                      creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
                     
-                    if deleteAfterProcess:
-                        os.remove(f)
+                    #if deleteAfterProcess:
+                    #    os.remove(f)
 
             return
         finally:
