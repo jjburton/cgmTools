@@ -1584,17 +1584,17 @@ def addJointRadiusVisualizer(self,mParent = False):
     return mJointRadius
 
 def addJointHelper(self,mHandle=None,
-                   baseShape='sphere',
+                   baseShape='locatorForm',
                    size = 1.0,
                    shapeDirection = 'z+',
                    loftHelper = True,
+                   d_nameTags = {},
                    lockChannels = ['rotate','scale']):
     
-    if not mHandle:mHandle = self
+    if mHandle:
     
-
-    _bfr = mHandle.getMessage('jointHelper')
-    if _bfr:mc.delete(_bfr)
+        _bfr = mHandle.getMessage('jointHelper')
+        if _bfr:mc.delete(_bfr)
     
     _size_vector = get_sizeVector(size)
     _size = MATH.average(_size_vector[:1]) #* .5
@@ -1604,29 +1604,31 @@ def addJointHelper(self,mHandle=None,
     #jack
     _jointHelper = CURVES.create_fromName(baseShape,  direction= shapeDirection, size = _size,bakeScale = False,baseSize=1.0)
     mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
-    mJointCurve.doSnapTo(mHandle.mNode)
-    
-    if mHandle.hasAttr('cgmName'):
-        ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
-    mJointCurve.doStore('cgmType','jointHandle')
-    mJointCurve.doName()    
-
-    mJointCurve.p_parent = mHandle
-
     color(self,mJointCurve.mNode)
+    
+    
+    if mHandle:
+        mJointCurve.doSnapTo(mHandle.mNode)
 
-    #CORERIG.match_transform(mJointCurve.mNode, mHandle)
+        if mHandle.hasAttr('cgmName'):
+            ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
+    
+        mJointCurve.doStore('cgmType','jointHandle')
+        mJointCurve.doName()    
 
-    #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
-    #                   etx = (True,True), ety = (True,True), etz = (True,True))        
-
-    mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
+        mJointCurve.p_parent = mHandle
+        mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')
+    else:
+        if d_nameTags:
+            for t,tag in d_nameTags.iteritems():
+                mJointCurve.doStore(t,tag)
+            mJointCurve.doName()                                
 
     mJointCurve.setAttrFlags(lockChannels)
 
     if loftHelper:#...loft curve -------------------------------------------------------------------------------------
         #mLoft = self.buildBaseShape('square',_size*.5,'z+')
-        _loft = CURVES.create_controlCurve(mHandle.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .5,bakeScale = False)
+        _loft = CURVES.create_controlCurve(mJointCurve.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .5,bakeScale = False)
         mLoft = cgmMeta.validateObjArg(_loft,'cgmObject',setClass=True)
         mLoft.doStore('cgmName',mJointCurve)
         mLoft.doStore('cgmType','loftCurve')

@@ -2691,7 +2691,7 @@ def skeleton_getNameDictBase(self):
     return _nameDict
 
     
-def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, **kws):
+def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, cgmType = None, **kws):
     """
     Get a list of name dicts for a given block's rig/skin joints
     
@@ -2746,7 +2746,10 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
     else:
         _nameDict['cgmName'] = self.blockType
         
-    _nameDict['cgmType'] = 'skinJoint'
+    if cgmType:
+        _nameDict['cgmType'] = cgmType
+    else:
+        _nameDict['cgmType'] = 'skinJoint'
     
     
     for a,v in kws.iteritems():

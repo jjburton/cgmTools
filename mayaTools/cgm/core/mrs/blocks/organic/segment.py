@@ -73,7 +73,7 @@ import cgm.core.rig.skin_utils as CORESKIN
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
-
+from cgm.core.lib import locator_utils as LOC
 #for m in RIGSHAPES,CURVES,BUILDUTILS,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
 #    reload(m)
     
@@ -962,7 +962,7 @@ def prerig(self):
         mHandleFactory = self.asHandleFactory(mHandle.mNode)
         
         #Convert to loft curve setup ----------------------------------------------------
-        ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse))
+        #ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse))
 
         mHandleFactory.color(mHandle.mNode,controlType='sub')
     
@@ -974,55 +974,32 @@ def prerig(self):
     #mc.delete(_res_body)
     self.msgList_connect('prerigHandles', ml_handles)                
     self.atUtils('prerigHandles_getNameDat',True)
-    reload(BLOCKSHAPES)
     for mHandle in ml_handles:
-        #mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
         BLOCKSHAPES.addJointLabel(self,mHandle,mHandle.cgmName)
-
-    
-    #>>Joint placers ================================================================================    
-    #Joint placer aim....
-    
-    for i,mHandle in enumerate(ml_handles):
-        mJointHelper = mHandle.jointHelper
-        mLoftCurve = mJointHelper.loftCurve
         
-        if not mLoftCurve.getMessage('aimGroup'):
-            mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
+        
+    #Driven curve ============================================================================
+    log.debug("|{0}| >> TrackCrv...".format(_str_func)+'-'*40) 
+    
+    _trackCurve = mc.curve(d=1,p=[mObj.p_position for mObj in ml_handles])
+    mDrivenCurve = cgmMeta.validateObjArg(_trackCurve,'cgmObject')
+    mDrivenCurve.rename(self.cgmName + 'prerigDriven_crv')
+    mDrivenCurve.parent = mNoTransformNull
+    
+    l_clusters = []
+    #_l_clusterParents = [mStartHandle,mEndHandle]
+    for i,cv in enumerate(mDrivenCurve.getComponents('cv')):
+        _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_handles[i].p_nameBase,i))
+        #_res = mc.cluster(cv)
+        mCluster = cgmMeta.asMeta(_res[1])
+        mCluster.v = 0
+        mCluster.p_parent =  ml_handles[i]
+        l_clusters.append(_res)
             
-        
-        mAimGroup = mLoftCurve.getMessage('aimGroup',asMeta=True)[0]
+    mc.rebuildCurve(mDrivenCurve.mNode, d=2, keepControlPoints=False,ch=1,n="reparamRebuild") 
+    mPrerigNull.connectChildNode(mDrivenCurve.mNode,'drivenCurve', )
     
-        if mHandle == ml_handles[-1]:
-            mc.aimConstraint(ml_handles[-2].mNode, mAimGroup.mNode, maintainOffset = False,
-                             aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
-                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
-        else:
-            mc.aimConstraint(ml_handles[i+1].mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
-                             aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
-                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
-                             
-    #Joint placer loft....
-    ml_jointHelpers =  [mObj.jointHelper for mObj in ml_handles]
-    for mJointHelper in ml_jointHelpers:
-        self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-    
-    targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
-    
-    self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
-    
-    self.atUtils('create_jointLoft',
-                 targets,
-                 mPrerigNull,
-                 'numJoints',
-                 degree = 3,
-                 baseName = self.cgmName )        
-    
-    for t in targets:
-        ATTR.set(t,'v',0)
-    
-    
-    
+
     #...pivot -----------------------------------------------------------------------------
     if self.addPivot:
         _size_pivot = _size
@@ -1055,7 +1032,7 @@ def prerig(self):
     str_vectorRP = mVectorRP.mNode
     ATTR.set_lock(str_vectorRP,'translate',False)
     
-    mc.pointConstraint([ml_jointHandles[0].mNode], str_vectorRP,maintainOffset=False)
+    mc.pointConstraint([ml_handles[0].mNode], str_vectorRP,maintainOffset=False)
     ATTR.set_lock(str_vectorRP,'translate',True)
     
     #Move start and end... ------------------------------------------------------------------------
@@ -1131,7 +1108,96 @@ def prerig(self):
         #mFormLoft.v = False        
         
     return True
+
+def create_jointHelpers(self,cnt=None):
+    #>>Joint placers ================================================================================    
+    _str_func = 'create_jointHelpers'
+    mPrerigNull = self.prerigNull
     
+    #Joint placer aim....
+    
+    #Clean up
+    old = mPrerigNull.getMessage('jointHelpersGroup')
+    if old:
+        mc.delete(old)
+        
+    if cnt:
+        self.numJoints = cnt
+    
+    #data
+    ml_handles = self.msgList_get('prerigHandles')
+    mDriven = self.prerigNull.getMessageAsMeta('drivenCurve')
+    mNoTrans = self.noTransPrerigNull
+    
+    l_pcts = [i*(1.0/(self.numJoints-1)) for i in range(self.numJoints-1)] + [1.0]
+    
+    #pprint.pprint(l_pcts)
+    
+    mGroup = mNoTrans.doCreateAt('null')
+    mGroup.rename('jointHelpers')
+    _size = self.jointRadius
+    mPrerigNull.connectChildNode(mGroup.mNode,'jointHelpersGroup')
+    
+    _l_names = self.atUtils('skeleton_getNameDicts',False,cgmType = 'jointHelper')
+    
+    pprint.pprint(_l_names)
+    
+    ml_jointHelpers = []
+    for i,pct in enumerate(l_pcts):
+        """mLoc = cgmMeta.asMeta(LOC.create(position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct),
+                                         name = "pct_{0}_loc".format(i)))"""
+        
+        mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=_l_names[i])
+        mJointHelper.p_position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct)
+        
+
+        
+        
+        res_attach = RIGCONSTRAINT.attach_toShape(mJointHelper.mNode,
+                                                  mDriven.mNode)
+        TRANS.parent_set(res_attach[0],mGroup.mNode)
+        
+        ml_jointHelpers.append(mJointHelper)
+
+    #Build
+    return
+    for i,mHandle in enumerate(ml_handles):
+        mJointHelper = mHandle.jointHelper
+        mLoftCurve = mJointHelper.loftCurve
+        
+        if not mLoftCurve.getMessage('aimGroup'):
+            mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
+            
+        
+        mAimGroup = mLoftCurve.getMessage('aimGroup',asMeta=True)[0]
+    
+        if mHandle == ml_handles[-1]:
+            mc.aimConstraint(ml_handles[-2].mNode, mAimGroup.mNode, maintainOffset = False,
+                             aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
+        else:
+            mc.aimConstraint(ml_handles[i+1].mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
+                             aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
+                             
+    #Joint placer loft....
+    ml_jointHelpers =  [mObj.jointHelper for mObj in ml_handles]
+    for mJointHelper in ml_jointHelpers:
+        self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
+    
+    targets = [mObj.jointHelper.loftCurve.mNode for mObj in ml_handles]
+    
+    self.msgList_connect('jointHelpers',[mObj.jointHelper.mNode for mObj in ml_handles])
+    
+    self.atUtils('create_jointLoft',
+                 targets,
+                 mPrerigNull,
+                 'numJoints',
+                 degree = 3,
+                 baseName = self.cgmName )        
+    
+    for t in targets:
+        ATTR.set(t,'v',0)
     
     
 def prerigDelete(self):
