@@ -747,6 +747,23 @@ class ui_post_dragger_column(ui_post_filter):
         #
         # End Angular Damp
 
+        # Post Angular Up Damp
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Angular Up Damp:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_angular_up_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('angularUpDamp', 7.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Angular Damp
+
         mc.setParent(self.uiCL_rotate)
         cgmUI.add_LineSubBreak()  
 
@@ -817,6 +834,7 @@ class ui_post_dragger_column(ui_post_filter):
             'aimUp',
             'damp',
             'angularDamp',
+            'angularUpDamp',
             'translate',
             'rotate',
             'objectScale',
@@ -835,6 +853,7 @@ class ui_post_dragger_column(ui_post_filter):
         self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
         self._optionDict['damp'] = self.uiFF_post_damp.getValue() if hasattr(self, 'uiFF_post_damp') else 7.0
         self._optionDict['angularDamp'] = self.uiFF_post_angular_damp.getValue() if hasattr(self, 'uiFF_post_angular_damp') else 7.0
+        self._optionDict['angularUpDamp'] = self.uiFF_post_angular_up_damp.getValue() if hasattr(self, 'uiFF_post_angular_up_damp') else 7.0
         self._optionDict['translate'] = self.uiFF_translate.getValue() if hasattr(self, 'uiFF_translate') else True
         self._optionDict['rotate'] = self.uiFF_rotate.getValue() if hasattr(self, 'uiFF_rotate') else True
         self._optionDict['objectScale'] = self.uiFF_post_object_scale.getValue() if hasattr(self, 'uiFF_post_object_scale') else 10.0
@@ -846,7 +865,7 @@ class ui_post_dragger_column(ui_post_filter):
 
         for obj in self._optionDict['objs']:
             mc.select(obj)
-            postInstance = DRAGGER.Dragger(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], angularDamp = self._optionDict['angularDamp'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self._optionDict['objectScale'], debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
+            postInstance = DRAGGER.Dragger(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], angularDamp = self._optionDict['angularDamp'], angularUpDamp = self._optionDict['angularUpDamp'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self._optionDict['objectScale'], debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
             postInstance.bake()
 
 
@@ -1427,22 +1446,6 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
             mc.select(obj)
             postInstance = K2MC.KeyframeToMotionCurve(debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
             postInstance.bake()
-
-# def uiFunc_add_dragger_action(self):
-#     self._actionList.append( uiFunc_get_dragger_data(self) )
-#     uiFunc_buildActionsColumn(self)
-
-# def uiFunc_add_spring_action(self):
-#     self._actionList.append( uiFunc_get_spring_data(self) )
-#     uiFunc_buildActionsColumn(self)
-
-# def uiFunc_add_trajectory_aim_action(self):
-#     self._actionList.append( uiFunc_get_trajectory_aim_data(self) )
-#     uiFunc_buildActionsColumn(self)
-
-# def uiFunc_add_keyframe_to_motion_curve_action(self):
-#     self._actionList.append( uiFunc_get_keyframe_to_motion_curve_data(self) )
-#     uiFunc_buildActionsColumn(self)
 
 action_class = {
     'dragger':ui_post_dragger_column,
