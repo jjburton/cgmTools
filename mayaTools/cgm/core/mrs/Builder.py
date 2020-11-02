@@ -3308,7 +3308,8 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_advanced.clear()   
         _menu = self.uiMenu_advanced
         d_s = {'Batch':{'Send File To MayaPy':{'ann':"Process the current file. Will be saved at it's current location as _ BUILD.ext",
-                                            'call':cgmGEN.Callback(uiStandAlone_get),}},
+                                            'call':cgmGEN.Callback(uiStandAlone_get),},
+                        'Old Method':{'ann':"Process the current file. Will be saved at it's current location as _ BUILD.ext",'call':cgmGEN.Callback(self.batch_call),}},
                'Utilities':{
                    'Verify':{'ann':'Check if the block is current (DEV)',
                              'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
