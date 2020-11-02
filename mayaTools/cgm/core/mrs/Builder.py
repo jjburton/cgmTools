@@ -61,6 +61,8 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 from cgm.core.mrs.lib import block_utils as BLOCKUTILS
 from cgm.core.mrs.lib import blockShapes_utils as BLOCKSHAPES
+from cgm.core.mrs.lib import ModuleControlFactory as MODULECONTROLFACTORY
+from cgm.core.mrs.lib import ModuleShapeCaster as MODULESHAPECASTER
 
 from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
 import cgm.core.lib.string_utils as CORESTRINGS
@@ -73,6 +75,7 @@ import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.snapTools as SNAPTOOLS
 import cgm.core.lib.list_utils as LISTS
 from cgm.core.lib import nameTools as NAMETOOLS
+import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 
 #for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
     #reload(m)
@@ -102,7 +105,9 @@ _sidePadding = 25
 
 def reloadMRSStuff():
     log.info("reloading...")
-    for m in BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,:
+    for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,
+              BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,
+              MODULECONTROLFACTORY,MODULESHAPECASTER]:
         print m
         reload(m)
     log.info(cgmGEN._str_subLine)
