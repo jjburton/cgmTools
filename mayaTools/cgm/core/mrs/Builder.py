@@ -969,7 +969,14 @@ class ui_blockEditor(cgmUI.cgmGUI):
             for a in ATTR.datList_getAttrs(obj,'loftList'):
                 ATTR.set(obj,a,_v)
             mc.evalDeferred(self.uiFunc_updateBlock,lp=True)
-            
+        
+        if attr in ['numJoints','neckJoints']:
+            log.info("")            
+            try:
+                self.mBlock.atBlockModule('create_jointHelpers')
+                log.info("Updated jointHelpers")            
+                
+            except:pass
         
         log.info("Set: {0} | {1} | {2}".format(obj,attr,_v))
     

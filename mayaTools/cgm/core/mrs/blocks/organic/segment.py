@@ -424,7 +424,8 @@ d_defaultSettings = {'version':__version__,
                      'spaceSwitch_direct':False,
                      'spaceSwitch_fk':False,
                      'nameList':['',''],
-                     'jointRadius':.1,                     
+                     'jointRadius':.1,
+                     'visJointHandle':1,
                      'shapeDirection':'y+',
                      #'blockProfile':'spine',
                      'attachPoint':'base',}
@@ -997,7 +998,7 @@ def prerig(self):
         l_clusters.append(_res)
             
     mc.rebuildCurve(mDrivenCurve.mNode, d=2, keepControlPoints=False,ch=1,n="reparamRebuild") 
-    mPrerigNull.connectChildNode(mDrivenCurve.mNode,'drivenCurve', )
+    mPrerigNull.connectChildNode(mDrivenCurve.mNode,'drivenCurve')
     
 
     #...pivot -----------------------------------------------------------------------------
@@ -1081,6 +1082,7 @@ def prerig(self):
         
         self.msgList_append('prerigHandles', mHandle)
         
+    create_jointHelpers(self,force=True)
     
     #...cog -----------------------------------------------------------------------------
     mCog = False
@@ -1097,7 +1099,7 @@ def prerig(self):
         
         self.UTILS.controller_walkChain(self,[mCog,mShape],'prerig')
 
-
+    
     
     #Close out =======================================================================================
     mNoTransformNull.v = False
@@ -1121,8 +1123,14 @@ def create_jointHelpers(self,cnt=None, force = False):
     if not force:
         if cnt and len(ml_jointHelpers) == cnt:
             return True
-        if self.numJoints == len(ml_jointHelpers):
-            return True
+        if not cnt:
+            if self.numJoints == len(ml_jointHelpers):
+                return True
+    
+    #If we have existing, we want to save that result so we can try to match those changes 
+    _targetCurve = None
+    if ml_jointHelpers:
+        _targetCurve = CORERIG.create_at(None, 'curveLinear',l_pos = [mObj.p_position for mObj in ml_jointHelpers])
     
     for mJointHelper in ml_jointHelpers:
         bfr = mJointHelper.getMessage('mController')
@@ -1181,6 +1189,8 @@ def create_jointHelpers(self,cnt=None, force = False):
         
         
         mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=_l_names[i])
+        
+
         mJointHelper.p_position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct)
         mJointHelper.p_parent = mGroup
         
@@ -1190,9 +1200,13 @@ def create_jointHelpers(self,cnt=None, force = False):
         res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mDriven.mNode,'conPoint')
         TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)
         
+        if _targetCurve:
+            mJointHelper.p_position = CURVES.getPercentPointOnCurve(_targetCurve, pct)
+        
+        
         ml_jointHelpers.append(mJointHelper)
         self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-        
+        ATTR.set_standardFlags(mJointHelper.mNode,['v'])
     #Aim --------------------------------------------------------------------------
     l_targets = []
     for i,mJointHelper in enumerate(ml_jointHelpers):
@@ -1226,6 +1240,10 @@ def create_jointHelpers(self,cnt=None, force = False):
                  baseName = self.cgmName )
     
     self.UTILS.controller_walkChain(self,ml_jointHelpers,'prerig')
+    
+    
+    if _targetCurve:
+        mc.delete(_targetCurve)
     return ml_jointHelpers
 
     
@@ -1313,12 +1331,10 @@ def skeleton_build(self, forceNew = True):
     
     ml_joints = JOINT.build_chain([mHelper.p_position for mHelper in ml_jointHelpers], parent=True, worldUpAxis= mVecUp)
     
-    
 
     for i,mJoint in enumerate(ml_joints):
         d = ml_jointHelpers[i].getNameDict(ignore = ['cgmType'])
         d['cgmType'] = 'skinJoint'
-        
         for t,tag in d.iteritems():
             if t and tag:
                 mJoint.doStore(t,tag)
