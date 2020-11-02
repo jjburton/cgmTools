@@ -279,10 +279,7 @@ def create_MRS_batchFile(f=None, blocks = [None], process = False,
         
         
         mTar = PATHS.Path(_batchPath)
-        if gatherOptionVars:
-            pass
-        else:
-            _l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
+        _l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
         
         if mTar.getWritable():
             if mTar.exists():
@@ -428,34 +425,34 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                 mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
 
                 if postProcesses:
-                    if kws.get('mirrorVerify'):
+                    if kws.get('mirrorVerify',1):
                         log.info('mirror_verify...')
-                        mPuppet.atUtils('mirror_verify')
-                    if kws.get('gatherSpaceDrivers'):
+                        mPuppet.atUtils('mirror_verify',1)
+                    if kws.get('gatherSpaceDrivers',1):
                         log.info('collect worldSpace...')
                         mPuppet.atUtils('collect_worldSpaceObjects')
-                    if kws.get('qss'):
+                    if kws.get('qss',1):
                         log.info('qss...')
                         mPuppet.atUtils('qss_verify',puppetSet=1,bakeSet=1,deleteSet=1,exportSet=1)
-                    if kws.get('proxyMesh'):
+                    if kws.get('proxyMesh',1):
                         log.info('proxyMesh...')
-                        mPuppet.atUtils('proxyMesh_verify')
-                    if kws.get('ihi'):
+                        mPuppet.atUtils('proxyMesh_verify',1)
+                    if kws.get('ihi',1):
                         log.info('ihi...')
                         mPuppet.atUtils('rigNodes_setAttr','ihi',0)
-                    if kws.get('connectRig'):
+                    if kws.get('connectRig',1):
                         log.info('rig connect...')
                         mPuppet.atUtils('rig_connectAll')
                         
                     log.info('...')
                     
-                    if kws.get('controllerVerify'):
+                    if kws.get('controllerVerify',1):
                         if cgmGEN.__mayaVersion__ >= 2018:
                             log.info('controller_verify...')
                             mPuppet.atUtils('controller_verify')
                             log.info('...')
                     
-                    if kws.get('blocksGather'):
+                    if kws.get('blocksGather',1):
                         BUILDERUTILS.gather_rigBlocks()
                         
 
