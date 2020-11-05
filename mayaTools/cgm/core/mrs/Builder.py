@@ -975,7 +975,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
                 ATTR.set(obj,a,_v)
             mc.evalDeferred(self.uiFunc_updateBlock,lp=True)
         
-        if attr in ['numJoints','neckJoints']:
+        if attr in ['numJoints','neckJoints'] or attr.startswith('rollCount'):
             log.info("")            
             try:
                 self.mBlock.atBlockModule('create_jointHelpers')

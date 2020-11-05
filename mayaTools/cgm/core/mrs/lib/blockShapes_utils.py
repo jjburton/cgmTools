@@ -1078,8 +1078,8 @@ class handleFactory(object):
                 mBlock.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
                 mBlock.doConnectOut('addCog',"{0}.v".format(mTrans.mNode))
             
-            mBlock.msgList_append('prerigHandles',mTrans.mNode)
-            mBlock.msgList_append('prerigHandles',mCurve.mNode)
+            #mBlock.msgList_append('prerigHandles',mTrans.mNode)
+            #mBlock.msgList_append('prerigHandles',mCurve.mNode)
             
             return mTrans
         except Exception,err:

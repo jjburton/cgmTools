@@ -1062,7 +1062,7 @@ def prerig(self):
         #mNoTransformNull = self.atUtils('noTransformNull_verify')
         mNoTransformNull = self.UTILS.noTransformNull_verify(self,'prerig')
         ml_formHandles = self.msgList_get('formHandles')
-        _sizeSub = self.atUtils('get_shapeOffset')*2#_size * .2
+        _sizeSub = self.jointRadius #self.atUtils('get_shapeOffset')*2#_size * .2
         
         #>>New handles =====================================================================================
         mHandleFactory = self.asHandleFactory(self.mNode)   

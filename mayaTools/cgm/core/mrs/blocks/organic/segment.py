@@ -1080,7 +1080,8 @@ def prerig(self):
             mHandle.doSnapTo(ml_handles[dat.get('idx',0)])
             mHandle.p_parent = ml_handles[dat.get('idx',0)]
         
-        self.msgList_append('prerigHandles', mHandle)
+        #Need to resolve this better
+        #self.msgList_append('prerigHandles', mHandle)
         
     create_jointHelpers(self,force=True)
     
@@ -1693,7 +1694,7 @@ def rig_skeleton(self):
         ml_jointsToHide.extend(ml_fkJoints)
     
         
-        #...fk chain -----------------------------------------------------------------------------------------------
+        #...fk chain ------------------------------------------------------------------------------------
         if mBlock.ikSetup:
             log.debug("|{0}| >> ikSetup on. Building blend and IK chains...".format(_str_func))  
             ml_blendJoints = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'blend','blendJoints')

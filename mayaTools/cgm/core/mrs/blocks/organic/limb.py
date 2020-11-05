@@ -2007,8 +2007,8 @@ def prerig(self):
         log.debug("{0}".format(self))
         #log.debug("|{0}| >> [{1}] | side: {2}".format(_str_func,_short, _side))
         
-        l_rolls = [self.numRoll for i in xrange(self.numControls-1)]
-        self.datList_connect('rollCount',l_rolls)
+        #l_rolls = [self.numRoll for i in xrange(self.numControls-1)]
+        #self.datList_connect('rollCount',l_rolls)
 
         sanityChecks(self)
         
@@ -2492,6 +2492,14 @@ def prerig(self):
         
         #Close out ==========================================================================================
         mNoTransformNull.v = False
+        
+        _baseCount = self.prerigNull.handleCount - 1 #self.numControls - 1        
+        if self.numControls > 1:
+            if not self.atUtils('datList_validate',datList='rollCount',
+                                count=_baseCount,
+                                defaultAttr='numRoll',forceEdit=0):
+                return False          
+        
         #cgmGEN.func_snapShot(vars())
         create_jointHelpers(self,force=True)
         
@@ -2795,15 +2803,9 @@ def skeleton_build(self, forceNew = True):
         ml_joints = []
         
         #Get our roll section count
-        _baseCount = self.prerigNull.handleCount - 1 #self.numControls - 1
         #if self.addLeverEnd == 2:
             #_baseCount +=1
-            
-        if self.numControls > 1:
-            if not self.atUtils('datList_validate',datList='rollCount',
-                                count=_baseCount,
-                                defaultAttr='numRoll',forceEdit=0):
-                return False                
+                      
         
         mPrerigNull = self.prerigNull
         self.atUtils('module_verify')
