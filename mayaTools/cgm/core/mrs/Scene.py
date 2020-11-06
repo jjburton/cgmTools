@@ -22,6 +22,7 @@ from cgm.core.mrs.lib import scene_utils as SCENEUTILS
 reload(SCENEUTILS)
 from cgm.core.lib import skinDat as SKINDAT
 reload(SKINDAT)
+import cgm.core.mrs.Builder as BUILDER
 
 import Red9.core.Red9_General as r9General
 
@@ -493,6 +494,8 @@ example:
         pum = mUI.MelPopupMenu(self.variationList['scrollList'])
         mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
+        
+        
 
         self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
 
@@ -524,6 +527,7 @@ example:
         mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
         self.sendToProjectMenu = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )		
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
+        mUI.MelMenuItem( pum, label="Send to Build", command=self.SendToBuild )
 
         self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
@@ -794,6 +798,7 @@ example:
         self.assetMetaData = self.getMetaDataFromFile()
         self.buildDetailsColumn()
         self.StoreCurrentSelection()
+        log.info( self.versionFile )
 
     def buildDetailsColumn(self):
         if not self._detailsColumn(q=True, vis=True):
@@ -1504,12 +1509,15 @@ example:
         createPrompt = mc.confirmDialog(
                     title='Create?',
                         message='Save Current File Here?',
-                        button=['Yes', 'No'],
+                        button=['Yes', 'No', 'Make New File'],
                                                 defaultButton='No',
                                                         cancelButton='No',
                                                         dismissString='No')
 
         if createPrompt == "Yes":
+            self.SaveVersion()
+        elif createPrompt == 'Make New File':
+            mc.file(new=True, f=True)
             self.SaveVersion()
 
     def CreateVariation(self, *args):
@@ -1562,16 +1570,19 @@ example:
                 baseName = "%s_%02d" % (wantedBasename, 1)
 
             noVersionName = '_'.join(baseName.split('_')[:-1])
-            version = int(baseName.split('_')[-1])
-
+            versionString = baseName.split('_')[-1]
+            versionNumString = re.findall('[0-9]+', versionString)[0]
+            versionPrefix = versionString[:versionString.find(versionNumString)]
+            version = int(versionNumString)
+            
             versionFiles = []
             versions = []
             for item in existingFiles:
-                matchString = "^(%s_)[0-9]+\.m." % noVersionName
+                matchString = "^(%s_%s)[0-9]+\.m." % (noVersionName, versionPrefix)
                 pattern = re.compile(matchString)
                 if pattern.match(item):
                     versionFiles.append(item)
-                    versions.append( int(item.split('.')[0].split('_')[-1]) )
+                    versions.append( int(item.split('.')[0].split('_')[-1].replace(versionPrefix, '')) )
 
             versions.sort()
 
@@ -1580,7 +1591,7 @@ example:
             else:
                 newVersion = 1
 
-            wantedName = "%s_%02d.%s" % (noVersionName, newVersion, ext)
+            wantedName = "%s_%s%02d.%s" % (noVersionName, versionPrefix, newVersion, ext)
 
         saveLocation = os.path.join(self.assetDirectory, self.subType)
         if self.hasSub:
@@ -1854,7 +1865,17 @@ example:
             item = mUI.MelMenuItem( self.sendToProjectMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
                                                 c = partial(self.SendVersionFileToProject,{'filename':asset,'project':p}))
             self.sendToProjectMenuItemList.append(item)
-
+            
+    def SendToBuild(self,*args):
+        f = self.versionFile
+        if not f:
+            return log.error("SendToBuild: No version file found")
+        
+        log.info ("file: {0}".format(f))
+        mStandAlone = BUILDER.uiStandAlone_get()
+        mStandAlone.l_files = [f]
+        
+        
     def SendVersionFileToProject(self, infoDict, *args):
         newProject = Project.data(filepath=infoDict['project'])
 
@@ -2124,7 +2145,7 @@ example:
             exportSetName = self.exportSet.getValue()             
 
             d = {
-                            'file':mc.file(q=True, sn=True),
+                        'file':mc.file(q=True, sn=True),
                         'objs':mc.ls(sl=1),
                         'mode':args[0],
                         'exportName':self.exportFileName,
@@ -2438,25 +2459,25 @@ def ExportScene(mode = -1,
     # make the relevant directories if they dont exist
     #categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, self.category))
 
-    log.info("category path...")
-    if not os.path.exists(categoryExportPath):
-        os.mkdir(categoryExportPath)
+    #log.info("category path...")
+    #if not os.path.exists(categoryExportPath):
+    #    os.mkdir(categoryExportPath)
     #exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList['scrollList'].getSelectedItem()))
 
-    log.info("asset path...")
+    #log.info("asset path...")
 
-    if not os.path.exists(exportAssetPath):
-        os.mkdir(exportAssetPath)
+    #if not os.path.exists(exportAssetPath):
+    #    os.mkdir(exportAssetPath)
     exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
 
-    if not os.path.exists(exportAnimPath):
-        log.info("making export anim path...")
+    #if not os.path.exists(exportAnimPath):
+        #log.info("making export anim path...")
 
-        os.mkdir(exportAnimPath)
-        # create empty file so folders are checked into source control
-        f = open(os.path.join(exportAnimPath, "filler.txt"),"w")
-        f.write("filler file")
-        f.close()
+        #os.mkdir(exportAnimPath)
+        ## create empty file so folders are checked into source control
+        #f = open(os.path.join(exportAnimPath, "filler.txt"),"w")
+        #f.write("filler file")
+        #f.close()
 
     if exportAsCutscene:
         log.info("export as cutscene...")
@@ -2540,6 +2561,15 @@ def ExportScene(mode = -1,
                 log.info( cgmGEN.logString_msg(_str_func, "shot..."))
                 log.info(shot)
                 mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
+            
+            exportDir = os.path.split(exportFile)[0]
+            if not os.path.exists(exportDir):
+                log.info("making export dir... {0}".format(exportDir))
+                os.mkdirs(exportDir)
+                # create empty file so folders are checked into source control
+                #f = open(os.path.join(exportAnimPath, "filler.txt"),"w")
+                #f.write("filler file")
+                #f.close()
 
             #mc.file(exportFile, force=True, options="v=0;", exportSelected=True, pr=True, type="FBX export")
             log.info('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))

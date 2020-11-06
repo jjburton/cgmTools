@@ -953,7 +953,10 @@ def pivotShapes(self, mPivotHelper = None):
         if mPivotHelper.getMessage(str_a):
             log.debug("|{0}| >> Found: {1}".format(_str_func,str_a))
             mPivotOrig = mPivotHelper.getMessage(str_a,asMeta=True)[0]
-            mPivot = mPivotOrig.doDuplicate(po=False)
+            mPivot = mPivotOrig.doDuplicate(po=False,ic=False)
+            l_const = mPivot.getConstraintsTo(fullPath=1)
+            if l_const:
+                mc.delete(l_const)
             mRigNull.connectChildNode(mPivot,str_a,'rigNull')#Connect
             _nameSet = NAMETOOLS.combineDict( mPivotOrig.getNameDict(ignore=['cgmType','cgmTypeModifier','cgmDirection']))
             mPivot.parent = False            

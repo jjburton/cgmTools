@@ -30,6 +30,9 @@ from cgm.core.classes import NodeFactory as NodeF
 from cgm.core.lib import rayCaster as RayCast
 from cgm.core.rigger.lib import rig_Utils as rUtils
 import cgm.core.rigger.lib.spacePivot_utils as SPACEPIVOTS
+import cgm.core.rig.constraint_utils as RIGCONSTRAINT
+from cgm.core.lib import constraint_utils as CONSTRAINTS
+
 """
 from cgm.lib import (attributes,
                      cgmMath,
@@ -288,6 +291,9 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
     
         #Freeze ============================================================================================
         if not shapeParentTo and noFreeze is not True:
+            l_cons = CONSTRAINTS.get_constraintsTo(mi_control.mNode)
+            if l_cons:
+                mc.delete(l_cons)
             if not freezeAll:
                 if mi_control.getAttr('cgmName') == 'cog' or controlType in __l_fullFreezeTypes__:
                     mc.makeIdentity(mi_control.mNode, apply=True,t=1,r=1,s=1,n=0)	

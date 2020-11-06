@@ -37,6 +37,7 @@ import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.mrs.RigBlocks as RIGBLOCKS
 import cgm.core.mrs.lib.general_utils as BLOCKGEN
 from cgm.core.tools import Project as PROJECT
+import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -223,9 +224,9 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = True,
             if deleteAfterProcess:
                 os.remove(f)
 
-
 def create_MRS_batchFile(f=None, blocks = [None], process = False,
-                         postProcesses = True, deleteAfterProcess = False):
+                         postProcesses = True, deleteAfterProcess = False,
+                         gatherOptionVars = True):
     _str_func = 'create_MRS_batchFile'
     cgmGEN.log_start(_str_func)
     
@@ -348,7 +349,19 @@ def create_MRS_batchFile(f=None, blocks = [None], process = False,
                 else:
                     raise self.AutoSetupError( "%s isn't writeable - aborting auto setup!" % pyUserSetup ) '''   
 
-def process_blocks_rig(f = None, blocks = None, postProcesses = False):
+
+
+
+l_mrsPost_order = ['mirrorVerify',
+                   'gatherSpaceDrivers',
+                   'connectRig',
+                   'proxyMesh',
+                   'isHistoricallyInteresting',
+                   'controllerVerify',
+                   'blocksGather',
+                   'blocksDelete']
+
+def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
     _str_func = 'process_blocks_rig'
     #cgmGEN.log_start(_str_func)
     
@@ -410,27 +423,37 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = False):
         
                 '''
                 mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
-                
+
                 if postProcesses:
-                    log.info('mirror_verify...')
-                    mPuppet.atUtils('mirror_verify')
-                    log.info('collect worldSpace...')
-                    mPuppet.atUtils('collect_worldSpaceObjects')
-                    log.info('qss...')
-                    mPuppet.atUtils('qss_verify',puppetSet=1,bakeSet=1,deleteSet=1,exportSet=1)
-                    log.info('proxyMesh...')
-                    mPuppet.atUtils('proxyMesh_verify')
-                    log.info('ihi...')
-                    mPuppet.atUtils('rigNodes_setAttr','ihi',0)
-                    log.info('rig connect...')
-                    mPuppet.atUtils('rig_connectAll')
+                    if kws.get('mirrorVerify',1):
+                        log.info('mirror_verify...')
+                        mPuppet.atUtils('mirror_verify',1)
+                    if kws.get('gatherSpaceDrivers',1):
+                        log.info('collect worldSpace...')
+                        mPuppet.atUtils('collect_worldSpaceObjects')
+                    if kws.get('qss',1):
+                        log.info('qss...')
+                        mPuppet.atUtils('qss_verify',puppetSet=1,bakeSet=1,deleteSet=1,exportSet=1)
+                    if kws.get('proxyMesh',1):
+                        log.info('proxyMesh...')
+                        mPuppet.atUtils('proxyMesh_verify',1)
+                    if kws.get('ihi',1):
+                        log.info('ihi...')
+                        mPuppet.atUtils('rigNodes_setAttr','ihi',0)
+                    if kws.get('connectRig',1):
+                        log.info('rig connect...')
+                        mPuppet.atUtils('rig_connectAll')
+                        
                     log.info('...')
                     
-                    if cgmGEN.__mayaVersion__ >= 2018:
-                        log.info('controller_verify...')
-                        mPuppet.atUtils('controller_verify')
-                        log.info('...')
-                        
+                    if kws.get('controllerVerify',1):
+                        if cgmGEN.__mayaVersion__ >= 2018:
+                            log.info('controller_verify...')
+                            mPuppet.atUtils('controller_verify')
+                            log.info('...')
+                    
+                    if kws.get('blocksGather',1):
+                        BUILDERUTILS.gather_rigBlocks()
                         
 
     except Exception,err:
