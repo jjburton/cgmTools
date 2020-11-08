@@ -2722,6 +2722,9 @@ def create_jointHelpers(self, force = True):
             md_helperRolls[mHelperSet[0]].append(mJointHelper)
             ml_roll.append(mJointHelper)
             
+            
+            
+            
         mPrerigNull.msgList_connect('rollHelpers_{0}'.format(i), ml_roll)
         pprint.pprint(ml_roll)
             
@@ -2767,6 +2770,7 @@ def create_jointHelpers(self, force = True):
         
         
         
+        
         # Loft curve --------------------------------------------------------------------------------
         mLoftCurve = mJointHelper.loftCurve
         
@@ -2775,18 +2779,49 @@ def create_jointHelpers(self, force = True):
             
         mAimGroup = mLoftCurve.getMessage('aimGroup',asMeta=True)[0]
         
-        l_targets.append(mLoftCurve.mNode)
         
         mLoftCurve.v = 0
         
+        #if not mJointHelper.getMessage('aimGroup'):
+        #    mJointHelper.doGroup(True,asMeta=True,typeModifier = 'aim',setClass='cgmObject')
+        #mJointAim = mJointHelper.getMessage('aimGroup',asMeta=True)[0]
+            
+            
         if mJointHelper == ml_jointHelpers[-1]:
             mc.aimConstraint(ml_jointHelpers[-2].mNode, mAimGroup.mNode, maintainOffset = False,
                              aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
-                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])            
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])
+            
+            
+            """
+            if ml_jointHelpers[-2].getMessage('trackGroup'):
+                mTarget = ml_jointHelpers[-2].trackGroup
+            else:
+                mTarget = ml_jointHelpers[-2].aimGroup
+                
+            mc.aimConstraint(mTarget.mNode, mJointAim.mNode,
+                             maintainOffset = False,
+                             aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])"""
+            
         else:
             mc.aimConstraint(ml_jointHelpers[i+1].mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
                              aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
-                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])          
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])
+            
+            """
+            if ml_jointHelpers[i+1].getMessage('trackGroup'):
+                mTarget = ml_jointHelpers[i+1].trackGroup
+            else:
+                mTarget = ml_jointHelpers[i+1]
+                
+            mc.aimConstraint(mTarget.mNode, mJointAim.mNode,
+                             maintainOffset = False, #skip = 'z',
+                             aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])"""
+        
+        
+        l_targets.append(mLoftCurve.mNode)
 
         
     self.msgList_connect('jointHelpers',ml_jointHelpers)

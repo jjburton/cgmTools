@@ -1267,7 +1267,7 @@ class handleFactory(object):
         
         return mJointLabel
         
-    def addJointHelper(self,baseShape='locatorForm', baseSize = None,
+    def addJointHelper(self,baseShape='sphere', baseSize = None,
                        shapeDirection = 'z+', loftHelper = True,
                        lockChannels = ['rotate','scale']):
         try:
@@ -1584,7 +1584,7 @@ def addJointRadiusVisualizer(self,mParent = False):
     return mJointRadius
 
 def addJointHelper(self,mHandle=None,
-                   baseShape='locatorForm',
+                   baseShape='sphere',#'locatorForm',
                    size = 1.0,
                    shapeDirection = 'z+',
                    loftHelper = True,
