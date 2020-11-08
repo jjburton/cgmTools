@@ -394,23 +394,23 @@ def buildColumn_main(self,parent, asScroll = False):
               ann="Contextual radius editing")
     mc.button(parent = _row_radius,
               ut = 'cgmUITemplate',                                                                                                
-              l=' - 10',
-              c=lambda *a: radius_modify(self,'-',10),
+              l=' - .5',
+              c=lambda *a: radius_modify(self,'-',.5),
               ann="Contextual radius editing")
     mc.button(parent = _row_radius,
               ut = 'cgmUITemplate',                                                                                                
-              l='- 1',
-              c=lambda *a: radius_modify(self,'-',1),
+              l='- .01',
+              c=lambda *a: radius_modify(self,'-',.01),
               ann="Contextual radius editing")
     mc.button(parent = _row_radius,
               ut = 'cgmUITemplate',                                                                                                
-              l='+ 1',
-              c=lambda *a: radius_modify(self,'+',1),
+              l='+ .01',
+              c=lambda *a: radius_modify(self,'+',.01),
               ann="Contextual radius editing")
     mc.button(parent = _row_radius,
               ut = 'cgmUITemplate',                                                                                                
-              l='+10',
-              c=lambda *a: radius_modify(self,'+',10),
+              l='+ .5',
+              c=lambda *a: radius_modify(self,'+',.5),
               ann="Contextual radius editing")
     mc.button(parent = _row_radius,
               ut = 'cgmUITemplate',                                                                                                
@@ -473,11 +473,11 @@ def radius_modify(self,mode='+',factor=10):
         if mode == '+':
             _r = _r + factor
         elif mode == '-':
-            _r = _r - factor
+            _r = MATH.Clamp(_r - factor,.001)
         elif mode == '*':
             _r = _r * factor
         elif mode == '/':
-            _r = _r / factor
+            _r = MATH.Clamp(_r / factor,.0001)
             
         ATTR.set(j,'radius',_r)
         

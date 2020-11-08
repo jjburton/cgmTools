@@ -186,7 +186,7 @@ d_block_profiles = {
     'ikRPAim':'default',
     'rigSetup':'default',
     'mainRotAxis':'out',
-    'nameList':['clav','shoulder','knee','wrist','ball','end'],
+    'nameList':['clav','shoulder','elbow','wrist','ball','end'],
     'formEndAim':'block',
     'proxyLoft':3,
     #'hasEndJoint':True,
@@ -255,7 +255,7 @@ d_block_profiles = {
     'ikRPAim':'default',
     'rigSetup':'default',
     'mainRotAxis':'out',
-    'nameList':['clav','shoulder','knee','wrist','ball','end'],
+    'nameList':['clav','shoulder','elbow','wrist','ball','end'],
     'formEndAim':'block',
     'proxyLoft':3,
     
@@ -380,7 +380,41 @@ d_block_profiles = {
     'baseUp':[0,0,1],
     'baseSize':[11.6,13,70],
     'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0], 'baseSize':[11.6,13,70]},    
-
+       },
+'leg plantigrade front':{
+    'numSubShapers':2,
+    'addCog':False,
+    'cgmName':'leg',
+    'loftShape':'circle',
+    'loftSetup':'default',
+    'settingsPlace':'end',
+    'settingsDirection':'down',
+    'ikSetup':'rp',
+    'ikEnd':'foot',
+    'ikRPAim':'default',    
+    'numControls':3,
+    'numShapers':3,    
+    'numSubShapers':3,
+    'numSubShapersDatList':[1,3,3,4],
+    'rigSetup':'default',
+    'mainRotAxis':'out',
+    'nameList':['clav','shoulder','elbow','wrist','pad'],
+    'formEndAim':'block',
+    'attachPoint':'end',
+    'buildEnd':'dag',
+    'ikRollSetup':'control',
+    'addBall':'joint',
+    'addToe':'none',
+    'addLeverBase':'joint',
+    'addLeverEnd':'none',
+    'loftList':['wideNeg','wideDown','circle'],
+    'loftShapeEnd':'wideUp',
+    'shapeDirection':'y-',
+    
+    'baseAim':[0,-1,0],
+    'baseUp':[0,0,1],
+    'baseSize':[11.6,13,70],
+    'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0], 'baseSize':[11.6,13,70]},    
        },
 
 'leg unigrade':{
@@ -2495,9 +2529,7 @@ def prerig(self):
         
         _baseCount = self.prerigNull.handleCount - 1 #self.numControls - 1        
         if self.numControls > 1:
-            if not self.atUtils('datList_validate',datList='rollCount',
-                                count=_baseCount,
-                                defaultAttr='numRoll',forceEdit=0):
+            if not self.atUtils('datList_validate',datList='rollCount',count=_baseCount,defaultAttr='numRoll',forceEdit=0):
                 return False          
         
         #cgmGEN.func_snapShot(vars())
@@ -2848,7 +2880,7 @@ def skeleton_build(self, forceNew = True):
         _d_base = self.atBlockUtils('skeleton_getNameDictBase')
         #_l_names = ATTR.datList_get(self.mNode,'nameList')
         
-        
+
         #pprint.pprint([_d_base,_l_names,ml_jointHelpers])
         
         #Deal with Lever joint or not --------------------------------------------------
@@ -2861,7 +2893,7 @@ def skeleton_build(self, forceNew = True):
             else:
                 log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
                 _b_lever = True
-        
+
         """
         _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
         log.debug("|{0}| >> rollCount: {1}".format(_str_func,_rollCounts))
@@ -2896,16 +2928,16 @@ def skeleton_build(self, forceNew = True):
             
         if self.numControls == 2 and self.buildEnd == 0:
             if len(ml_handleHelpers) > 1:
-                log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                                            
+                log.info(cgmGEN.logString_msg(_str_func,' 2 controls | Pulling endJoint'))                                            
                 mEndAim = ml_handleHelpers.pop(-1)
                 
             
         if not _specialEndHandling and self.buildEnd != 1:
             if len(ml_handleHelpers) > 1:
-                log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
-                ml_handleHelpers.pop(-1)
+                log.info(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
+                ml_handleHelpers.pop(-1)#...changed from handle helpers
                 
-
+ 
         for mObj in ml_handleHelpers:
             l_pos.append(mObj.p_position)
                 
@@ -2915,11 +2947,12 @@ def skeleton_build(self, forceNew = True):
         mVecUp = self.atUtils('prerig_get_upVector')
         
         ml_handleJoints = JOINT.build_chain(l_pos, parent=True,
-                                            worldUpAxis= mVecUp, orient= False)
+                                            worldUpAxis= mVecUp, orient= True)
         
         _d_orient = {'worldUpAxis':mVecUp,
                      'relativeOrient':False}
-     
+        
+        
         if len(ml_handleJoints) == 1:
             if mEndAim:
                 mJoint = ml_handleJoints[0]
@@ -3002,7 +3035,7 @@ def skeleton_build(self, forceNew = True):
 
                 d_rolls[i] = ml_rolls
                 
-                
+        
     
         ml_joints[0].parent = False
         
@@ -3022,6 +3055,7 @@ def skeleton_build(self, forceNew = True):
                 mJnt.radius = _radius / 2
         self.atBlockUtils('skeleton_connectToParent')
         
+        
         #reload(JOINT)
         #PivotHelper -------------------------------------------------------------------------------------
         if ml_formHandles[-1].getMessage('pivotHelper'):
@@ -3036,18 +3070,28 @@ def skeleton_build(self, forceNew = True):
                 try:mEnd = ml_handleJoints[(cnt_lever + self.numControls) - 1]
                 except:mEnd=False
                 
+                
                 if mEnd:
-                    log.debug("|{0}| >> non quad end: {1}".format(_str_func,mEnd))                    
-                    ml_children = mEnd.getChildren(asMeta=True)
-                    for mChild in ml_children:
+                    log.info("|{0}| >> non quad end: {1}".format(_str_func,mEnd))
+                    idx_end = ml_joints.index(mEnd)
+                    
+                    #ml_children = mEnd.getChildren(asMeta=True)
+                    ml_childrenToDo = ml_joints[idx_end+1:]
+                    ml_childrenHelpers = ml_jointHelpers[idx_end+1:]
+                    
+                    for i,mChild in enumerate(ml_childrenToDo):
+                        print mChild
                         mChild.parent = False
-                        JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
-                                          worldUpAxis= ml_formHandles[-1].pivotHelper.getAxisVector('y+') )
+                        mChild.doSnapTo(ml_childrenHelpers[i])
+                        JOINT.freezeOrientation(mChild.mNode)
+                        
+                        #JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
+                        #                  worldUpAxis= ml_jointHelpers[-1].getAxisVector('y+') )
                 
                     mEnd.jointOrient = 0,0,0
                 
-                    for mChild in ml_children:
-                        mChild.parent = mEnd    
+                    ml_childrenToDo[0].p_parent = mEnd
+                    #mChild.parent = mEnd   
         """
         if len(ml_handleJoints) > self.numControls:
             log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
@@ -3091,8 +3135,9 @@ def skeleton_build(self, forceNew = True):
         
         
         if ml_children:
+            log.info('Children')
             ml_children[0].p_parent = mEnd
-            JOINT.freezeOrientation(ml_children[0].mNode)
+            #JOINT.freezeOrientation(ml_children[0].mNode)
                 
  
                     
