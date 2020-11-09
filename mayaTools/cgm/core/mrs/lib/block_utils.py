@@ -2691,7 +2691,7 @@ def skeleton_getNameDictBase(self):
     return _nameDict
 
     
-def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, **kws):
+def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, cgmType = None, **kws):
     """
     Get a list of name dicts for a given block's rig/skin joints
     
@@ -2746,7 +2746,10 @@ def skeleton_getNameDicts(self, combined = False, count = None, iterName= None, 
     else:
         _nameDict['cgmName'] = self.blockType
         
-    _nameDict['cgmType'] = 'skinJoint'
+    if cgmType:
+        _nameDict['cgmType'] = cgmType
+    else:
+        _nameDict['cgmType'] = 'skinJoint'
     
     
     for a,v in kws.iteritems():
@@ -3287,15 +3290,8 @@ def skeleton_getHandleChain(self, typeModifier = None, jointHelpers = True, mOri
         #_d = skeleton_getCreateDict(self)
         #pprint.pprint(_d)
         l_pos = []
-        if jointHelpers:
-            ml_jointHandles = self.msgList_get('jointHelpers',asMeta = True)
-            if not ml_jointHandles:
-                raise ValueError,"No jointHelpers connected"            
-            for mObj in ml_jointHandles:
-                l_pos.append(mObj.p_position)
-        else:
-            for mObj in ml_prerigHandles:
-                l_pos.append(mObj.p_position)
+        for mObj in ml_prerigHandles:
+            l_pos.append(mObj.p_position)
             
         ml_fkJoints = COREJOINTS.build_chain(posList = l_pos,
                                              axisAim='z+',
@@ -7207,7 +7203,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
     ml_shapers = copy.copy(ml_handles_chain)
     #>>> shaper handles =======================================================================
-    if _int_sub:
+    if _int_sub or l_numSubShapers:
         _numSubShapers = _int_sub
         ml_shapers = []
         log.debug("|{0}| >> Sub shaper handles: {1}".format(_str_func,_numSubShapers))
@@ -8268,7 +8264,7 @@ def datList_validate(self,count = None, datList = 'rollCount',checkAttr = 'numCo
             _default = self.getMayaAttr(defaultAttr)
             l_subs = [_default for i in xrange(count)]
             self.datList_connect(datList, l_subs)            
-            return 
+            return  True
 
         if count is None:
             len_needed = self.getMayaAttr(checkAttr)
@@ -8610,18 +8606,27 @@ def blockProfile_load(self, arg):
             log.debug("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
             _done = False
             _typeDat = type(v)
-            if issubclass(_typeDat,list):
-                if self.datList_exists(a):
-                    log.debug("|{0}| datList...".format(_str_func))
-                    if a == 'loftList':
-                        ATTR.datList_connect(_short, a, v, 
-                                             mode='enum',enum= BLOCKSHARE._d_attrsTo_make['loftShape'])
-                    else:
-                        mc.select(cl=True)
-                        ATTR.datList_connect(_short, a, v, mode='string')
-                    _done = True
+            _datList = False
+            if a.endswith('DatList'):
+                log.info("|{0}| datList attr | {1}".format(_str_func,a))
+                a = a.replace('DatList','')
+                _datList  = True
+                
+            if issubclass(_typeDat,list) or _datList:
+                log.debug("|{0}| datList...".format(_str_func))
+                if a == 'loftList':
+                    ATTR.datList_connect(_short, a, v, 
+                                         mode='enum',enum= BLOCKSHARE._d_attrsTo_make['loftShape'])
                 else:
-                    log.debug("|{0}| Missing datList >> '{1}' | v: {2}.".format(_str_func,a,v))
+                    mc.select(cl=True)
+                    if VALID.stringArg(v[0]):
+                        ATTR.datList_connect(_short, a, v, mode='string')
+                    else:
+                        ATTR.datList_connect(_short, a, v, mode='int')
+                        
+                _done = True
+                #else:
+                    #log.debug("|{0}| Missing datList >> '{1}' | v: {2}.".format(_str_func,a,v))
             if issubclass(_typeDat,dict):
                 log.debug("|{0}| dict...".format(_str_func))                                     
                 #self.__dict__['a'] = v

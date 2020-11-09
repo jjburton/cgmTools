@@ -1078,8 +1078,8 @@ class handleFactory(object):
                 mBlock.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
                 mBlock.doConnectOut('addCog',"{0}.v".format(mTrans.mNode))
             
-            mBlock.msgList_append('prerigHandles',mTrans.mNode)
-            mBlock.msgList_append('prerigHandles',mCurve.mNode)
+            #mBlock.msgList_append('prerigHandles',mTrans.mNode)
+            #mBlock.msgList_append('prerigHandles',mCurve.mNode)
             
             return mTrans
         except Exception,err:
@@ -1267,7 +1267,7 @@ class handleFactory(object):
         
         return mJointLabel
         
-    def addJointHelper(self,baseShape='locatorForm', baseSize = None,
+    def addJointHelper(self,baseShape='sphere', baseSize = None,
                        shapeDirection = 'z+', loftHelper = True,
                        lockChannels = ['rotate','scale']):
         try:
@@ -1575,7 +1575,7 @@ def addJointRadiusVisualizer(self,mParent = False):
     
     mJointRadius.rename("jointRadiusVis")
     _base = self.atUtils('get_shapeOffset')*2
-    if self.jointRadius < .0000000001:
+    if self.jointRadius < .1:
         self.jointRadius = _base
     self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
     mJointRadius.dagLock()
@@ -1584,17 +1584,17 @@ def addJointRadiusVisualizer(self,mParent = False):
     return mJointRadius
 
 def addJointHelper(self,mHandle=None,
-                   baseShape='sphere',
+                   baseShape='sphere',#'locatorForm',
                    size = 1.0,
                    shapeDirection = 'z+',
                    loftHelper = True,
+                   d_nameTags = {},
                    lockChannels = ['rotate','scale']):
     
-    if not mHandle:mHandle = self
+    if mHandle:
     
-
-    _bfr = mHandle.getMessage('jointHelper')
-    if _bfr:mc.delete(_bfr)
+        _bfr = mHandle.getMessage('jointHelper')
+        if _bfr:mc.delete(_bfr)
     
     _size_vector = get_sizeVector(size)
     _size = MATH.average(_size_vector[:1]) #* .5
@@ -1604,29 +1604,31 @@ def addJointHelper(self,mHandle=None,
     #jack
     _jointHelper = CURVES.create_fromName(baseShape,  direction= shapeDirection, size = _size,bakeScale = False,baseSize=1.0)
     mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
-    mJointCurve.doSnapTo(mHandle.mNode)
-    
-    if mHandle.hasAttr('cgmName'):
-        ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
-    mJointCurve.doStore('cgmType','jointHandle')
-    mJointCurve.doName()    
-
-    mJointCurve.p_parent = mHandle
-
     color(self,mJointCurve.mNode)
+    
+    
+    if mHandle:
+        mJointCurve.doSnapTo(mHandle.mNode)
 
-    #CORERIG.match_transform(mJointCurve.mNode, mHandle)
+        if mHandle.hasAttr('cgmName'):
+            ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
+    
+        mJointCurve.doStore('cgmType','jointHandle')
+        mJointCurve.doName()    
 
-    #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
-    #                   etx = (True,True), ety = (True,True), etz = (True,True))        
-
-    mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
+        mJointCurve.p_parent = mHandle
+        mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')
+    else:
+        if d_nameTags:
+            for t,tag in d_nameTags.iteritems():
+                mJointCurve.doStore(t,tag)
+            mJointCurve.doName()                                
 
     mJointCurve.setAttrFlags(lockChannels)
 
     if loftHelper:#...loft curve -------------------------------------------------------------------------------------
         #mLoft = self.buildBaseShape('square',_size*.5,'z+')
-        _loft = CURVES.create_controlCurve(mHandle.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .5,bakeScale = False)
+        _loft = CURVES.create_controlCurve(mJointCurve.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .25, bakeScale = True)
         mLoft = cgmMeta.validateObjArg(_loft,'cgmObject',setClass=True)
         mLoft.doStore('cgmName',mJointCurve)
         mLoft.doStore('cgmType','loftCurve')
