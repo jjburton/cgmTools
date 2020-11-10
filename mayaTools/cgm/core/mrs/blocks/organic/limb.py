@@ -539,7 +539,6 @@ d_block_profiles = {
           'ikRollSetup':'control',
           'addBall':'none',
           'addToe':'none',
-          'buildEnd':'dag',
           'addLeverBase':'joint',
           'addLeverEnd':'none',
           'loftList':['wideDown','wideDown','wideDown','digit'],                            
@@ -640,7 +639,6 @@ d_block_profiles = {
        'ikRPAim':'default',
        'rigSetup':'digit',
        'mainRotAxis':'out',
-       'buildEnd':'dag',
        #'hasEndJoint':False,
        'followParentBank':True,           
        'nameList':['nub'],
@@ -653,6 +651,40 @@ d_block_profiles = {
        'addLeverEnd':'none',
        'shapeDirection':'z+',
        
+       'baseAim':[0,0,1],
+       'baseUp':[0,1,0],
+       'baseSize':[10,10,20],
+       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
+       },
+'wingFrame':{'numSubShapers':2,
+       'addCog':False,
+       'attachPoint':'closest',
+       'cgmName':'wingFrame',
+       'loftShapeStart':'squircleDiamond',
+       'loftShapeEnd':'squircleDiamond',
+       'loftShape':'squircleDiamond',
+       'loftSetup':'default',
+       'settingsPlace':'end',
+       'ikSetup':'rp',
+       'ikEnd':'tipEnd',
+       'numControls':2,
+       'numShapers':4,
+       'numSubShapers':1,
+       'numRoll':0,
+       'ikRPAim':'default',
+       'rigSetup':'digit',
+       'mainRotAxis':'out',
+       'loftList':['squircleDiamond','squircleDiamond','squircleDiamond','squircleDiamond'],
+       'followParentBank':True,           
+       'nameList':['nub'],
+       'scaleSetup':False,
+       'buildEnd':'joint',
+       'ikRollSetup':'control',
+       'addBall':'none',
+       'addToe':'none',
+       'addLeverBase':'none',
+       'addLeverEnd':'none',
+       'shapeDirection':'z+',
        'baseAim':[0,0,1],
        'baseUp':[0,1,0],
        'baseSize':[10,10,20],
@@ -2515,7 +2547,7 @@ def prerig(self):
         
         
         #Settings =======================================================================================
-        mSettings = BLOCKSHAPES.settings(self,mPrerigNull = mPrerigNull)
+        mSettings = BLOCKSHAPES.settings(self,ml_targets = ml_handles,mPrerigNull = mPrerigNull)
 
         
         self.msgList_connect('prerigHandles', ml_handles)

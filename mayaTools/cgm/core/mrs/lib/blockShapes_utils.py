@@ -2340,7 +2340,7 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
         log.debug("|{0}| >> settings: {1}...".format(_str_func,settingsPlace))
         
         if not ml_targets:
-            ml_targets = self.msgList_get('formHandles')
+            ml_targets = self.msgList_get('prerigHandles')
         
         mBlock = self
         
@@ -2370,7 +2370,7 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             if settingsPlace == 'start':
                 _mTar = ml_targets[idx_start]
             else:
-                _mTar = self.msgList_get('formHandles')[-1]
+                _mTar = ml_targets[idx_end]#self.msgList_get('formHandles')[-1]
                 """
                 mIKOrientHandle = self.getMessageAsMeta('ikOrientHandle')
                 if mIKOrientHandle:
@@ -2390,17 +2390,20 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,v_offset * 3)
             
-            _settingsSize = v_offset * 1.5
+            _settingsSize = v_offset * 2.0
             
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
                                                                            '{0}+'.format(_jointOrientation[2]),
                                                                            baseSize=1.0),'cgmObject',setClass=True)
 
+            mSettings = _mTar.doCreateAt(setClass= 'cgmObject')
             
             mSettingsShape.doSnapTo(_mTar.mNode)
             
             
             mSettingsShape.p_position = newPos
+            mSettings.p_position = newPos
+            
             mMesh_tmp.delete()
             
             SNAP.aim_atPoint(mSettingsShape.mNode,
@@ -2410,8 +2413,9 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
                              vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
             
             #mSettingsShape.parent = _mTar
-            mSettings = mSettingsShape
-            CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+            #CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+            
+            CORERIG.shapeParent_in_place(mSettings.mNode, mSettingsShape.mNode, False)
             
             mSettings.doStore('cgmName',self.p_nameBase)
             mSettings.doStore('cgmTypeModifier','settings')            
