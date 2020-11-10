@@ -732,6 +732,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    'proxyGeoRoot',
                    'proxyDirect',
+                   'proxyBuild',
                    'numSubShapers',#...with limb this is the sub shaper count as you must have one per handle
                    #'buildProfile',
                    'moduleTarget']
@@ -807,6 +808,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSplit':1,
                      'loftDegree':'linear',
                      'numRoll':0,
+                     'proxyBuild':True,
                      'ribbonParam':'blend',
                      'proxyDirect':True,
                      'nameList':['',''],
@@ -8875,6 +8877,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mc.delete([mObj.mNode for mObj in _bfr])
                 else:
                     return _bfr
+            if not mBlock.proxyBuild:
+                return 
             
         #Figure out our rig joints --------------------------------------------------------
         _str_rigSetup = mBlock.getEnumValueString('rigSetup')

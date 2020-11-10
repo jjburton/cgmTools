@@ -1191,7 +1191,6 @@ def uiSection_createFromSel(parent, selection = None):
                 l = 'Locator',
                 ann='Create a locator at the selected component or transform',                                
                 c = cgmGEN.Callback(MMCONTEXT.func_process, LOC.create, None,'each','Create Loc'))
-    
     _locSub = mc.menuItem(parent=parent,subMenu=True,tearOff =True, 
                           l = 'Loc - Special')
 
@@ -1248,10 +1247,26 @@ def uiSection_createFromSel(parent, selection = None):
                 l = 'Curve [ Linear ]',
                 ann='Create a linear curve from eps of the selected components or transforms',                                
                 c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Curve',**{'create':'curveLinear'}))
+    
+    mc.menuItem(parent=parent,
+                l = 'Curve [ Linear Track]',
+                ann='Create a linear track curve from eps of the selected components or transforms',                                
+                c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Linear Track Curve',**{'create':'linearTrack'}))
+    mc.menuItem(parent=parent,
+                l = 'Curve [ Cubic Track ]',
+                ann='Create a cubic track curve from eps of the selected components or transforms',                                
+                c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGING.create_at, None,'all','Create Cubic Track Curve',**{'create':'cubicTrack'}))
+    
+    
+    
+    
     mc.menuItem(parent=parent,
                 l = 'Axis Box',
                 ann='Create an axis box proxy from selected',                                
                 c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGING.create_axisProxy, None,'each','Create axix Proxy'))
+    
+    
+    
     
 def uiSection_riggingUtils(parent, selection = None):
     _str_func = 'uiSection_riggingUtils'  
@@ -1353,6 +1368,7 @@ def uiSection_riggingUtils(parent, selection = None):
     l_modes = ['parent',
                'parentGroup',
                'conPointGroup',
+               'conPoint',
                'conPointOrientGroup',
                'conParentGroup']
     for m in l_modes:
