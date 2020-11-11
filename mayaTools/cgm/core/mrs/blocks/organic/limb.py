@@ -539,7 +539,6 @@ d_block_profiles = {
           'ikRollSetup':'control',
           'addBall':'none',
           'addToe':'none',
-          'buildEnd':'dag',
           'addLeverBase':'joint',
           'addLeverEnd':'none',
           'loftList':['wideDown','wideDown','wideDown','digit'],                            
@@ -640,7 +639,6 @@ d_block_profiles = {
        'ikRPAim':'default',
        'rigSetup':'digit',
        'mainRotAxis':'out',
-       'buildEnd':'dag',
        #'hasEndJoint':False,
        'followParentBank':True,           
        'nameList':['nub'],
@@ -653,6 +651,40 @@ d_block_profiles = {
        'addLeverEnd':'none',
        'shapeDirection':'z+',
        
+       'baseAim':[0,0,1],
+       'baseUp':[0,1,0],
+       'baseSize':[10,10,20],
+       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
+       },
+'wingFrame':{'numSubShapers':2,
+       'addCog':False,
+       'attachPoint':'closest',
+       'cgmName':'wingFrame',
+       'loftShapeStart':'squircleDiamond',
+       'loftShapeEnd':'squircleDiamond',
+       'loftShape':'squircleDiamond',
+       'loftSetup':'default',
+       'settingsPlace':'end',
+       'ikSetup':'rp',
+       'ikEnd':'tipEnd',
+       'numControls':2,
+       'numShapers':4,
+       'numSubShapers':1,
+       'numRoll':0,
+       'ikRPAim':'default',
+       'rigSetup':'digit',
+       'mainRotAxis':'out',
+       'loftList':['squircleDiamond','squircleDiamond','squircleDiamond','squircleDiamond'],
+       'followParentBank':True,           
+       'nameList':['nub'],
+       'scaleSetup':False,
+       'buildEnd':'joint',
+       'ikRollSetup':'control',
+       'addBall':'none',
+       'addToe':'none',
+       'addLeverBase':'none',
+       'addLeverEnd':'none',
+       'shapeDirection':'z+',
        'baseAim':[0,0,1],
        'baseUp':[0,1,0],
        'baseSize':[10,10,20],
@@ -732,6 +764,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    'proxyGeoRoot',
                    'proxyDirect',
+                   'proxyBuild',
                    'numSubShapers',#...with limb this is the sub shaper count as you must have one per handle
                    #'buildProfile',
                    'moduleTarget']
@@ -807,6 +840,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSplit':1,
                      'loftDegree':'linear',
                      'numRoll':0,
+                     'proxyBuild':True,
                      'ribbonParam':'blend',
                      'proxyDirect':True,
                      'nameList':['',''],
@@ -2513,7 +2547,7 @@ def prerig(self):
         
         
         #Settings =======================================================================================
-        mSettings = BLOCKSHAPES.settings(self,mPrerigNull = mPrerigNull)
+        mSettings = BLOCKSHAPES.settings(self,ml_targets = ml_handles,mPrerigNull = mPrerigNull)
 
         
         self.msgList_connect('prerigHandles', ml_handles)
@@ -8875,6 +8909,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mc.delete([mObj.mNode for mObj in _bfr])
                 else:
                     return _bfr
+            if not mBlock.proxyBuild:
+                return 
             
         #Figure out our rig joints --------------------------------------------------------
         _str_rigSetup = mBlock.getEnumValueString('rigSetup')

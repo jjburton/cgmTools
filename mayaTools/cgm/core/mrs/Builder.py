@@ -1308,10 +1308,10 @@ class ui_blockEditor(cgmUI.cgmGUI):
                 log.debug("|{0}| >> profile...".format(_str_func))
                 
                 d_profileDat = {'block':{'options':RIGBLOCKS.get_blockProfile_options(mBlock.blockType),
-                                         'current':str(mBlock.blockProfile),
+                                         'current':str(mBlock.getMayaAttr('blockProfile')),
                                          },
                                 'build':{'options':BLOCKSHARE._l_buildProfiles,
-                                         'current':str(mBlock.buildProfile)}}
+                                         'current':str(mBlock.getMayaAttr('buildProfile'))}}
                 
                 
                 for k2,d2 in d_profileDat.iteritems():

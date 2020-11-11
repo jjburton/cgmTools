@@ -224,7 +224,7 @@ def blockParent_getAttachPoint(self, mode = 'end',noneValid = True):
             raise ValueError,_msg
         return mTarget
 
-def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = True, extraAttrs = None, mBlockModule = None):
+def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = True, extraAttrs = None, mBlockModule = None, skipBlockAttrs = False):
     """
     Verify the attributes of a given block type
     
@@ -250,10 +250,11 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         try:d_defaultSettings.update(mBlockModule.d_defaultSettings)
         except:pass
         
-        try:d_defaultSettings.update(mBlockModule.d_block_profiles[self.blockProfile])
-        except Exception,err:
-            log.debug(cgmGEN.logString_msg(_str_func,'Failed to query blockProfile defaults | {0}'.format(err)))
-            pass        
+        if not skipBlockAttrs:
+            try:d_defaultSettings.update(mBlockModule.d_block_profiles[self.blockProfile])
+            except Exception,err:
+                log.debug(cgmGEN.logString_msg(_str_func,'Failed to query blockProfile defaults | {0}'.format(err)))
+                pass        
     
         try:_l_msgLinks = mBlockModule._l_controlLinks
         except:_l_msgLinks = []

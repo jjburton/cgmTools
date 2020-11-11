@@ -45,8 +45,9 @@ import cgm.core.lib.shape_utils as SHAPES
 import cgm.core.lib.node_utils as NODES
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.list_utils as LISTS
+from cgm.core.lib import rigging_utils as CORERIG
 
-def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver = None):
+def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver = None, parentTo = None):
     """
     :parameters:
         obj - transform to attach
@@ -102,6 +103,10 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver 
             else:
                 i_follicleShape.parameterU = d_closest['normalizedU']
                 i_follicleShape.parameterV = d_closest['normalizedV']
+                
+            if parentTo:
+                i_follicleTrans.p_parent = parentTo
+                
             _res = [i_follicleTrans.mNode, i_follicleShape.mNode]
             
             md_res['mFollicle'] = i_follicleTrans
@@ -118,14 +123,21 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver 
             mTrack.doStore('cgmName',mObj)
             mTrack.doStore('cgmType','surfaceTrack')
             mTrack.doName()
-
+            
+            if parentTo:
+                mTrack.p_parent = parentTo
+                
             _trackTransform = mTrack.mNode
 
             mc.connectAttr("%s.position"%mPOCI.mNode,"%s.t"%_trackTransform)
             mPOCI.doStore('cgmName',mObj)            
-            mPOCI.doName()            
+            mPOCI.doName()
+            
+
+                
             _res = [mTrack.mNode, mPOCI.mNode]
             
+
 
         if mDriver:
             if d_closest['type'] in ['nurbsSurface']:
@@ -934,7 +946,63 @@ d_wiring_l_hawk = {'modules':
                              4:[3,5],
                              
                              }}
-d_wiring_r_owl = {'modules':
+#limbFrameCurve
+d_wiring_r_owlWingFrame2 = {'mode':'limbFrameCurve',
+                           'orientOnly':True,
+                           'name':'wingFrame',
+                           'modules':
+                           ['R_wing_1_limb_part',
+                            'R_wing_2_limb_part',],
+'curveDrivers':['R_wingBase_limb_part','R_wingEnd_limb_part'],
+'driven':{0:[0,1],
+          1:[0,1],
+          }}
+
+#limbFrameCurve
+d_wiring_r_owlWingFrame = {'mode':'default',
+                           'name':'wingFrame',
+                           'modules':
+                           ['R_wingBase_limb_part',
+                            'R_wing_1_limb_part',
+                            'R_wing_2_limb_part',
+                            'R_wingEnd_limb_part'],
+'driven':{1:[0,3],
+          2:[0,3],
+          }}
+
+d_wiring_r_owl = {'mode':'limbFrameCurve',
+                  'modules':
+                  ['R_featherUpr_1_segment_part',#0
+                   'R_featherUpr_2_segment_part',#01
+                   'R_featherUpr_3_segment_part',#02
+                   'R_feather_elbow_segment_part',#03
+                   'R_featherLwr_1_segment_part',#04
+                   'R_featherLwr_2_segment_part',#05
+                   'R_featherLwr_3_segment_part',#06
+                   'R_feather_1_segment_part',#07
+                   'R_feather_2_segment_part',#08
+                   'R_feather_3_segment_part',#09
+                   'R_feather_4_segment_part',#10
+                   'R_feather_5_segment_part'], #11
+'color':range(12),
+'name':'r_feathersFrame',
+'curveDrivers':['R_wingBase_limb_part', 'R_wing_1_limb_part', 'R_wing_2_limb_part', 'R_wingEnd_limb_part'],
+'driven':{0:[0],
+          1:[0,1],
+          2:[0,1],
+          3:[1],#[0,7],
+          4:[1,2],
+          5:[1,2],
+          6:[1,2],
+          7:[2,3],
+          8:[2,3],
+          9:[2,3],
+          10:[2,3],
+          11:[3]
+          }}
+
+#curveAttach
+d_wiring_r_owlCurve1 = {'modules':
                   ['R_featherUpr_1_segment_part',#0
                    'R_featherUpr_2_segment_part',#01
                    'R_featherUpr_3_segment_part',#02
@@ -949,16 +1017,51 @@ d_wiring_r_owl = {'modules':
                    'R_feather_5_segment_part'] #11
 ,
 'color':[1,2,4,5,6,8,9,10],
-'driven':{1:[0,3],
+'curveDrivers':['R_shoulder_seg_anim', 'R_shoulder_segMid_0_ik_anim', 'R_elbow_seg_anim', 'R_elbow_segMid_1_ik_anim', 'R_wrist_seg_anim', 'R_feather_5_root_anim|R_start_fk_anim_master_grp|R_start_fk_anim_dynParentGroup|R_start_fk_anim'],
+'driven':{0:[],
+          1:[0,3],
           2:[0,3],
-          3:[0,7],
+          3:[],#[0,7],
           4:[3,7],
           5:[3,7],
           6:[3,7],
+          7:[],
           8:[7,11],
           9:[7,11],
           10:[7,11],
           }}
+
+#curveHandles
+d_wiring_r_owl2 = {'modules':
+                  ['R_featherUpr_1_segment_part',#0
+                   'R_featherUpr_2_segment_part',#01
+                   'R_featherUpr_3_segment_part',#02
+                   'R_feather_elbow_segment_part',#03
+                   'R_featherLwr_1_segment_part',#04
+                   'R_featherLwr_2_segment_part',#05
+                   'R_featherLwr_3_segment_part',#06
+                   'R_feather_1_segment_part',#07
+                   'R_feather_2_segment_part',#08
+                   'R_feather_3_segment_part',#09
+                   'R_feather_4_segment_part',#10
+                   'R_feather_5_segment_part'] #11
+,
+'color':[1,2,4,5,6,8,9,10],
+'curveDrivers':['joint1', 'joint2', 'joint3', 'joint4'],
+'driven':{0:[0],
+          1:[0,1],
+          2:[0,1],
+          3:[1],#[0,7],
+          4:[1,2],
+          5:[1,2],
+          6:[1,2],
+          7:[2,3],
+          8:[2,3],
+          9:[2,3],
+          10:[2,3],
+          11:[3]
+          }}
+
 
 d_wiring_l_owl = {'modules':
                   ['L_featherUpr_1_segment_part',#0
@@ -984,6 +1087,15 @@ d_wiring_l_owl = {'modules':
           9:[7,11],
           10:[7,11],
           }}
+
+d_wiring_owlTailFrame = {'mode':'default',
+                           #'orientOnly':True,
+                           'name':'tailFrame',
+                           'modules':
+                           ['L_tail_limb_part', 'CTR_tail_limb_part', 'R_tail_limb_part'],
+'driven':{1:[0,2],
+          }}
+
 d_wiring_owlTail= {'modules':
                   ['L_tailFeather_3_segment_part',#0
                    'L_tailFeather_2_segment_part',#1
@@ -993,13 +1105,17 @@ d_wiring_owlTail= {'modules':
                    'R_tailFeather_2_segment_part',#5
                    'R_tailFeather_3_segment_part',#6
                     ],
-                   'color':[1,2,4,5],
-                   
-                   'driven':{1:[0,3],
-                             2:[0,3],
-                             3:[0,6],
-                             4:[3,6],
-                             5:[3,6]
+                   'mode':'limbFrameCurve',
+                   'name':'tailFeathersFrame',
+                   'color':[0,1,2,4,5,6],
+                   'curveDrivers':['L_tail_limb_part', 'CTR_tail_limb_part', 'R_tail_limb_part'],
+                   'driven':{0:[0],
+                             1:[0,1],
+                             2:[0,1],
+                             3:[1],
+                             4:[1,2],
+                             5:[1,2],
+                             6:[2],
                              }}
 
 
@@ -1017,9 +1133,14 @@ d_wiring_l_bat= {'modules':
                     ],
                    'driven':{1:[0,2],
                              }}
-def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
+def wing_temp(d_wiring=d_wiring_r, mode = 'limbFrameCurve'):
     """
-    
+    mode
+        default
+        slidingPosition
+        driverCurve
+        frameCurve
+        limbFrameCurve -- expects two joint limb drivers
     """
     try:
         _str_func = 'wing_temp'
@@ -1029,8 +1150,14 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
         ml_parts = []
         ml_rigNulls = []
         ml_blendDrivers = []
+        ml_fkEnds = []
+        ml_fkStarts = []
         md_toColor = {}
         l_toColor = d_wiring.get('color',[])
+        
+        name = d_wiring.get('name','NAMEME')
+        mode = d_wiring.get('mode',mode)
+        
         
         for i,part in enumerate(d_wiring['modules']):
             mPart = cgmMeta.asMeta(part)
@@ -1046,6 +1173,8 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
                         ml_joints = ml_test
                         break
             ml_blendDrivers.append(ml_joints[0])
+            ml_fkEnds.append(ml_joints[-1])
+            ml_fkStarts.append(ml_joints[0])
             if i in l_toColor:
                 print 'Color'
                 mHandleFactory =  mPart.rigBlock.asHandleFactory()
@@ -1053,8 +1182,80 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
                 for mJnt in ml_fkJoints:
                     mHandleFactory.color(mJnt.mNode, controlType = 'sub')                
                     
-                
+                    
+        #Let's make our curve...
+        _driverCurve = None
+        mEndCrv = None
         
+        if mode in ['driverCurve','frameCurve','limbFrameCurve']:
+            mGroup = cgmMeta.cgmObject(name="{0}_{1}_grp".format(name,mode))
+            
+            if mode == 'limbFrameCurve':
+                ml_handles = []
+                ml_endHandles = []
+                for part in d_wiring['curveDrivers']:
+                    mPart = cgmMeta.asMeta(part)
+                    mRigNull = mPart.rigNull
+                    ml_rigJoints = mRigNull.msgList_get('rigJoints')
+                    ml_handles.append(ml_rigJoints[0])
+                    ml_endHandles.append(ml_rigJoints[-1])
+                    
+                l_handles = [mObj.mNode for mObj in ml_handles]
+                    
+            else:
+                l_handles = d_wiring['curveDrivers']
+                ml_handles = cgmMeta.asMeta(l_handles)
+            
+            
+            if mode in 'frameCurve':
+                _trackCurve,l_clusters = CORERIG.create_at(l_handles, 'linearTrack',baseName = name)
+                mCrv = cgmMeta.asMeta(_trackCurve)
+                
+                #crv = CORERIG.create_at([mObj.mNode for mObj in ml_blendDrivers],'curveLinear')
+                #mCrv = cgmMeta.asMeta(crv)
+                ml_blendDrivers = cgmMeta.asMeta(d_wiring['curveDrivers']) #suplant the drivers
+                
+                #End curve
+                _trackCurve,l_clusters = CORERIG.create_at([mObj.getChildren()[0] for mObj in ml_handles], 'linearTrack',baseName = name)
+                mEndCrv = cgmMeta.asMeta(_trackCurve)
+                
+                mCrv.p_parent = mGroup
+                mEndCrv.p_parent = mGroup
+
+                
+            elif mode == 'limbFrameCurve':
+                _trackCurve,l_clusters = CORERIG.create_at([mObj.mNode for mObj in ml_handles], 'linearTrack', baseName = name)
+                mCrv = cgmMeta.asMeta(_trackCurve)
+                
+                _trackCurve,l_clusters = CORERIG.create_at([mObj.mNode for mObj in ml_endHandles], 'linearTrack',baseName = name)
+                mEndCrv = cgmMeta.asMeta(_trackCurve)
+                
+                
+                mCrv.p_parent = mGroup
+                mEndCrv.p_parent = mGroup                
+            else:
+            
+                _trackCurve,l_clusters = CORERIG.create_at(l_handles, 'linearTrack',baseName = name)
+                mCrv = cgmMeta.asMeta(_trackCurve)
+                
+                
+                _node = mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,
+                                        ch=1,s=len(l_handles),
+                                        n="{0}_reparamRebuild".format(mCrv.p_nameBase))
+                mc.rename(_node[1],"{0}_reparamRebuild".format(mCrv.p_nameBase))
+                
+                
+                mCrv.p_parent = mGroup
+                
+            _driverCurve = mCrv.mNode
+            
+            """
+            if mEndCrv:
+                _node = mc.rebuildCurve(mEndCrv.mNode, d=3, keepControlPoints=False,
+                                        ch=1,s=len(l_handles),
+                                        n="{0}_end_reparamRebuild".format(name))  """              
+            
+            
         #Generate driver locs...
         for d,s in d_wiring['driven'].iteritems():
             mPart = ml_parts[d]
@@ -1070,7 +1271,10 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
             if mLoc:
                 mLoc.delete()
                 
-            mLoc = ml_roots[d].doLoc()
+            if mode  == 'frameCurve':
+                mLoc = ml_fkStarts[d].doLoc()
+            else:
+                mLoc = ml_roots[d].doLoc()
             mLoc.rename("{0}_featherLoc".format(mPart.p_nameBase))
             mLoc.p_parent = mRoot.masterGroup.p_parent
             mLoc.v=False
@@ -1079,24 +1283,59 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
             mRoot.connectChildNode(mLoc.mNode,'featherDriver','mPart')
             
             #...drivers ------------------------------------------------------------
-            ml_drivers = [ml_blendDrivers[v] for v in s]
-            l_drivers = [mObj.mNode for mObj in ml_drivers]
-            _vList = DIST.get_normalizedWeightsByDistance(mLoc.mNode,
-                                                          l_drivers)
             
-            
-            _orient = mc.orientConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
-            l_constraints = [_orient]
-            if mode == 'slidingPosition':
-                _point = mc.pointConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
-                l_constraints.append(_point)
-            else:
-                _point = mc.pointConstraint(mAttach.mNode, mLoc.mNode, maintainOffset = 1)
-            
-            for c in l_constraints:
-                CONSTRAINT.set_weightsByDistance(c[0],_vList)
+            if s:
+                ml_drivers = [ml_blendDrivers[v] for v in s]
+                l_drivers = [mObj.mNode for mObj in ml_drivers]
+                _vList = DIST.get_normalizedWeightsByDistance(mLoc.mNode,
+                                                              l_drivers)
                 
-            ATTR.set(_orient[0],'interpType',2)
+                print ml_drivers
+                print l_drivers
+                
+                if mode  in ['frameCurve','limbFrameCurve']:
+                    if not d_wiring.get('orientOnly'):
+                        attach_toShape(mLoc.mNode, _driverCurve,'conPoint',parentTo=mGroup)
+                    
+                    #Aim at and end point
+                    mEnd = ml_fkEnds[d]
+                    mEndLoc = mRigNull.settings.doLoc()
+                    mEndLoc.rename("{0}_EndfeatherLoc".format(mPart.p_nameBase))
+                    mEndLoc.p_parent = mRoot.masterGroup.p_parent
+                    mEndLoc.v=False
+                    mEndLoc.doStore('cgmAlias','featherEnd')
+                    
+                    mEndLoc.p_position = DIST.get_closest_point(mEndLoc.mNode, mEndCrv.mNode)[0]
+                    
+                    attach_toShape(mEndLoc.mNode, mEndCrv.mNode,'conPoint',parentTo=mGroup)
+                    _closest = DIST.get_closestTarget(mLoc.mNode, l_handles)
+                    
+                    mc.aimConstraint(mEndLoc.mNode, mLoc.mNode,maintainOffset = 0,
+                                     aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = _closest,
+                                     worldUpType = 'objectrotation', worldUpVector = [0,1,0])
+                    
+                    
+                else:
+                    _orient = mc.orientConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
+                    l_constraints = [_orient]
+                    if mode == 'slidingPosition':
+                        _point = mc.pointConstraint(l_drivers, mLoc.mNode, maintainOffset = 0)
+                        l_constraints.append(_point)
+                    elif _driverCurve:
+                        attach_toShape(mLoc.mNode, _driverCurve,'conPoint',parentTo=mGroup)
+                    else:
+                        _point = mc.pointConstraint(mAttach.mNode, mLoc.mNode, maintainOffset = 1)
+                    
+                    if len(l_constraints) >1 :
+                        for c in l_constraints:
+                            CONSTRAINT.set_weightsByDistance(c[0],_vList)
+                    
+                    ATTR.set(_orient[0],'interpType',2)
+            elif _driverCurve:
+                attach_toShape(mLoc.mNode, _driverCurve,'conPoint',parentTo=mGroup)
+                _closest = DIST.get_closestTarget(mLoc.mNode, l_handles)
+                mc.orientConstraint(_closest, mLoc.mNode, maintainOffset=1)
+            
             mLoc.dagLock()
             
             mDynGroup = mRoot.dynParentGroup
@@ -1107,7 +1346,11 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'slidingPosition'):
             mRoot.space = _len -1
             
             ATTR.set_default(mRoot.mNode,'space', mRoot.space)
-
+            
+        #if mode == 'frameCurve':
+        #    mc.rebuildCurve(mEndCrv.mNode, d=3, keepControlPoints=False,
+        #                    ch=1,s=len(ml_blendDrivers),
+        #                    n="{0}_reparamRebuild".format(mEndCrv.p_nameBase))                
         
         return True
     except Exception,err:cgmGEN.cgmException(Exception,err)
