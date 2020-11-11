@@ -2233,7 +2233,7 @@ class data(object):
                     d_pathsUse[k]=v
         else:
             d_pathsUse = self.d_pathsProject
-            log.warning("Using project paths dat!")
+            log.debug("Using project paths dat!")
             
         return d_pathsUse
         
@@ -2805,7 +2805,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             mUI.MelMenuItem(_popUp,
                             ann = "Save Maya file to: {0}".format(_path),
                             c= cgmGEN.Callback(self.uiPath_MayaSaveTo,_path),
-                            label = 'Save Maya here')            
+                            label = 'Save Maya here')
             
             mUI.MelMenuItem(_popUp,
                             ann = "Add sub dir to: {0}".format(_path),

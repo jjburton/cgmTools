@@ -40,6 +40,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
+_d_ann = SCENEUTILS.d_annotations
 
 
 #>>> Root settings =============================================================
@@ -76,6 +77,7 @@ example:
     WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
 
     def insert_init(self,*args,**kws):
+        
         self.categoryList                = ["Character", "Environment", "Props"]
         self.categoryIndex               = 0
 
@@ -121,11 +123,15 @@ example:
         self.categoryMenu                = None
         self.categoryMenuItemList        = []
         self.subTypeMenuItemList         = []
-        self.sendToProjectMenuItemList   = []
+        self.uList_sendToProject_version   = []
+        self.uList_sendToProject_variant   = []
+        self.d_subPops = {}
         self.assetRigMenuItemList        = []
         self.assetReferenceRigMenuItemList  = []
-        self.sendToProjectMenu           = None
-
+        self.uiPop_sendToProject_version = None
+        self.uiPop_sendToProject_variant = None
+        self.uiPop_sendToProject_sub = None
+        
         self.project                     = None
         self.assetMetaData               = {}
 
@@ -201,6 +207,16 @@ example:
     @property
     def variationDirectory(self):
         return os.path.normpath(os.path.join( self.subTypeDirectory, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
+    
+    @property
+    def versionDirectory(self):
+        if self.hasSub:
+            if self.hasVariant:
+                return os.path.normpath(os.path.join( self.variationDirectory))
+            else:
+                return os.path.normpath(os.path.join( self.subTypeDirectory))
+        else:
+            return os.path.normpath(os.path.join( self.subTypeDirectory))   
 
     @property
     def selectedVersion(self):
@@ -447,7 +463,7 @@ example:
                                       (self.assetList['formLayout'], 'bottom', 0, self.assetButton)] )
 
 
-        # SubTypes
+        # SubTypes ======================================================================================
         _animForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
         self.subTypeBtn = mUI.MelButton( _animForm,
                                                  label=self.subType,ut='cgmUITemplate',
@@ -461,11 +477,43 @@ example:
 
 
         self.subTypeSearchList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
-
-        pum = mUI.MelPopupMenu(self.subTypeSearchList['scrollList'])
-        mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenSubTypeDirectory )
+        
+        #JOSH HERE
+        pum = mUI.MelPopupMenu(self.subTypeSearchList['scrollList'],
+                               pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_sub))        
+        
+        mUI.MelMenuItem( pum, label='        Subtype', en=False )
+        
+        mUI.MelMenuItemDiv( pum, label='Selected' )
+        
+        self._referenceSubTypePUM = mUI.MelMenuItem(pum,label="Reference",
+                                                    ann = _d_ann.get('reference'),
+                                                    command=self.ReferenceFile,en=False )
+        self._importSubTypePUM = mUI.MelMenuItem(pum,label="Import",
+                                                 ann = _d_ann.get('import'),
+                                                 command=self.ImportFile,en=False )
+        self._importSubTypePUM = mUI.MelMenuItem(pum,label="Replace",
+                                                 ann=_d_ann.get('replace','Replace'),
+                                                 command=self.file_replace,en=False )
+        
+        self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=False)
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
-        self._referenceSubTypePUM = mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile, en=False )
+        
+
+        mUI.MelMenuItemDiv( pum, label='Directory' )
+        mUI.MelMenuItem(pum, label="Explorer", command=self.OpenSubTypeDirectory )
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Open Maya file",
+                        c= lambda *a:self.uiPath_mayaOpen_subType(),
+                        label = 'Open Maya here')
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Save Maya file",
+                        c= lambda *a:self.uiPath_mayaSaveTo_subType(),
+                        label = 'Save Maya here')
+        mUI.MelMenuItem(pum, label="Refresh", command=lambda *a:self.LoadSubTypeList() )
+        
 
         self.subTypeButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateSubAsset)
 
@@ -483,20 +531,55 @@ example:
                                (self.subTypeSearchList['formLayout'], 'top', 0, self.subTypeBtn),
                                        (self.subTypeSearchList['formLayout'], 'bottom', 0, self.subTypeButton)] )
 
-        # Variation
+        # Variation ======================================================================================
         _variationForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
         _variationBtn = mUI.MelButton(_variationForm,
                                               label='Variation',ut='cgmUITemplate',
                                               ann='Select the asset variation', en=False)
 
         self.variationList = self.build_searchable_list(_variationForm, sc=self.LoadVersionList)
+        
+   
+        pum = mUI.MelPopupMenu(self.variationList['scrollList'],
+                               pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_variant))
+        
+        
 
-        pum = mUI.MelPopupMenu(self.variationList['scrollList'])
-        mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
+        #------------------------------------------------------------------------------
+        mUI.MelMenuItem( pum, label='        Variant', en=False )
+        mUI.MelMenuItemDiv( pum, label='Selected' )
+        
+        mUI.MelMenuItem(pum, label="Reference File",
+                        ann = _d_ann.get('reference'),
+                        command=self.ReferenceFile )
+        mUI.MelMenuItem(pum,label="Import",
+                        ann = _d_ann.get('import'),
+                        command=self.ImportFile)        
+        mUI.MelMenuItem(pum,label="Replace",
+                        ann=_d_ann.get('replace','Replace'),
+                        command=self.file_replace)        
+
+        self.uiPop_sendToProject_variant = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
+
+        mUI.MelMenuItemDiv( pum, label='Directory' )
+        mUI.MelMenuItem(pum, label="Explorer", command=self.OpenVariationDirectory )
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Open Maya file",
+                        c= lambda *a:self.uiPath_mayaOpen_variant(),
+                        label = 'Open Maya here')
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Save Maya file",
+                        c= lambda *a:self.uiPath_mayaSaveTo_variant(),
+                        label = 'Save Maya here')
+        mUI.MelMenuItem(pum, label="Refresh", command=lambda *a:self.LoadVariationList() )        
         
 
+        #---------------------------------------------------------------------------------------
+        
         self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
 
         _variationForm( edit=True, 
@@ -514,7 +597,7 @@ example:
                                             (self.variationList['formLayout'], 'bottom', 0, self.variationButton)] )
 
 
-        # Version
+        # Version ======================================================================================
         _versionForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
         _versionBtn = mUI.MelButton(_versionForm,
                                             label='Version',ut='cgmUITemplate',
@@ -522,12 +605,41 @@ example:
 
         self.versionList = self.build_searchable_list(_versionForm, sc=self.uiFunc_selectVersionList)
 
-        pum = mUI.MelPopupMenu(self.versionList['scrollList'], pmc=self.UpdateVersionTSLPopup)
-        mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
-        mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
-        self.sendToProjectMenu = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )		
+        pum = mUI.MelPopupMenu(self.versionList['scrollList'],
+                               pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_version))
+        
+        
+
+        #------------------------------------------------------------------------------
+        mUI.MelMenuItem( pum, label='        Version', en=False )
+        mUI.MelMenuItemDiv( pum, label='Selected' )
+        
+        mUI.MelMenuItem(pum, label="Reference File",
+                        ann = _d_ann.get('reference'),
+                        command=self.ReferenceFile )
+        mUI.MelMenuItem(pum,label="Import",
+                        ann = _d_ann.get('import'),
+                        command=self.ImportFile)        
+        mUI.MelMenuItem(pum,label="Replace",
+                        ann=_d_ann.get('replace','Replace'),
+                        command=self.file_replace)        
+
+        self.uiPop_sendToProject_version = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
-        mUI.MelMenuItem( pum, label="Send to Build", command=self.SendToBuild )
+        
+
+        mUI.MelMenuItemDiv( pum, label='Directory' )
+        mUI.MelMenuItem(pum, label="Explorer", command=self.OpenVersionDirectory )
+        
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Save Maya file",
+                        c= lambda *a:self.uiPath_mayaSaveTo_version(),
+                        label = 'Save Maya here')
+        mUI.MelMenuItem(pum, label="Refresh", command=lambda *a:self.LoadVersionList() )
+                
+        
+
 
         self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
@@ -1750,6 +1862,47 @@ example:
         if _res:
             log.warning("Opening: {0}".format(_res[0]))
             mc.file(_res[0], o=True, f=True, pr=True)
+            
+    def uiPath_mayaSaveTo(self,path=None):
+        _res = mc.fileDialog2(fileMode=0,dialogStyle=2,dir=path)
+        #fileFilter = 'Maya Files (*.ma *.mb)'
+        if _res:
+            log.warning("Saving: {0}".format(_res[0]))
+            newFile = mc.file(rename = _res[0])
+            mc.file(save = 1)        
+            
+    def uiPath_mayaOpen_subType(self):
+        _path = os.path.normpath(os.path.join(self.assetDirectory, self.subType) )
+        if os.path.exists(_path):
+            self.uiPath_mayaOpen( _path)
+        else:
+            log.warning("SubType path doesn't exist")
+            
+    def uiPath_mayaSaveTo_subType(self):
+        _path = os.path.normpath(os.path.join(self.assetDirectory, self.subType) )        
+        if _path:
+            self.uiPath_mayaSaveTo( _path )
+        else:
+            log.warning("SubType path doesn't exist")
+            
+    def uiPath_mayaOpen_variant(self):
+        
+        if self.variationDirectory:
+            self.uiPath_mayaOpen( self.variationDirectory )
+        else:
+            log.warning("Variation path doesn't exist")
+            
+    def uiPath_mayaSaveTo_variant(self):
+        if self.variationDirectory:
+            self.uiPath_mayaSaveTo( self.variationDirectory)
+        else:
+            log.warning("Variation path doesn't exist")
+            
+    def uiPath_mayaSaveTo_version(self):
+        if self.versionDirectory:
+            self.uiPath_mayaSaveTo( self.versionDirectory)
+        else:
+            log.warning("Version path doesn't exist")
 
     def OpenSubTypeDirectory(self, *args):
         if self.assetDirectory:
@@ -1761,7 +1914,7 @@ example:
         self.OpenDirectory(self.subTypeDirectory)
 
     def OpenVersionDirectory(self, *args):
-        self.OpenDirectory(self.variationDirectory)
+        self.OpenDirectory(self.versionDirectory)
 
     def ReferenceFile(self, *args):
         #if not self.assetList['scrollList'].getSelectedItem():
@@ -1775,11 +1928,34 @@ example:
             #return
 
         filePath = self.versionFile
-        if os.path.exists(self.versionFile):
+        if self.versionFile and os.path.exists(self.versionFile):
             mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
         else:
             log.info( "Version file doesn't exist" )
-
+            
+    def ImportFile(self, *args):
+        filePath = self.versionFile
+        if self.versionFile and os.path.exists(self.versionFile):
+            mc.file(filePath, i=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
+        else:
+            log.info( "Version file doesn't exist" )
+    def file_replace(self, *args):
+        filePath = self.versionFile
+        if self.versionFile and os.path.exists(self.versionFile):
+            result = mc.confirmDialog(title='Confirm',
+                                      message= "Replacing : {0}".format(self.versionFile),
+                                      button=['OK', 'Cancel'],
+                                      defaultButton='OK',
+                                      cancelButton='Cancel',
+                                      dismissString='Cancel')
+            if result != 'OK':
+                log.error(">> Replacing Cancelled | {0}".format(filePath))
+                return False
+            mc.file(rn=filePath)
+            mc.file(s=True)
+        else:
+            log.info( "Version file doesn't exist" )
+            
     def UpdateAssetTSLPopup(self, *args):
         self.assetTSLpum.clear()
 
@@ -1804,7 +1980,9 @@ example:
             if self.HasSub(self.category, subType):
                 continue
 
-            subDir = os.path.join(self.assetDirectory, subType)
+            try:subDir = os.path.join(self.assetDirectory, subType)
+            except:
+                continue
             if not os.path.exists(subDir):
                 continue
 
@@ -1843,11 +2021,11 @@ example:
 
         self.refreshAssetListMB = mUI.MelMenuItem(self.assetTSLpum, label="Refresh", command=self.LoadCategoryList )
 
-    def UpdateVersionTSLPopup(self, *args):	
-        for item in self.sendToProjectMenuItemList:
+    def UpdateVersionTSLPopup(self, mMenu = None,  *args):	
+        for item in self.d_subPops.get(mMenu,[]):
             mc.deleteUI(item, menuItem=True)
 
-        self.sendToProjectMenuItemList = []
+        self.d_subPops[mMenu] = []
 
         asset = self.versionFile
 
@@ -1855,16 +2033,17 @@ example:
 
         project_names = []
         for i,p in enumerate(mPathList.mOptionVar.value):
-            proj = Project.data(filepath=p)
-            name = proj.d_project['name']
+            mProj = Project.data(filepath=p)
+            name = mProj.d_project['name']
             project_names.append(name)
 
-            if self.project.userPaths_get()['content'] == proj.userPaths_get()['content']:
+            if self.project.userPaths_get()['content'] == mProj.userPaths_get()['content']:
                 continue
 
-            item = mUI.MelMenuItem( self.sendToProjectMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
+            item = mUI.MelMenuItem( mMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
                                                 c = partial(self.SendVersionFileToProject,{'filename':asset,'project':p}))
-            self.sendToProjectMenuItemList.append(item)
+            self.d_subPops[mMenu].append(item)
+            #mMenu.append(item)
             
     def SendToBuild(self,*args):
         f = self.versionFile
@@ -1877,9 +2056,13 @@ example:
         
         
     def SendVersionFileToProject(self, infoDict, *args):
+        _str_func = 'ui.SendVersionFileToProject'
         newProject = Project.data(filepath=infoDict['project'])
-
-        newFilename = os.path.normpath(infoDict['filename']).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+        _file = infoDict['filename']
+        newFilename = os.path.normpath(_file).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+        
+        log.info( cgmGEN.logString_msg(_str_func,"Selected: {0}".format(_file)))            
+        log.info( cgmGEN.logString_msg(_str_func,"New: {0}".format(newFilename)))            
 
         if os.path.exists(newFilename):
             result = mc.confirmDialog(
@@ -1894,47 +2077,53 @@ example:
                 return False
 
         if not os.path.exists(os.path.dirname(newFilename)):
+            log.info( cgmGEN.logString_msg(_str_func,"Creating path : {0}".format(newFilename)))            
             os.makedirs(os.path.dirname(newFilename))
 
-        copyfile(infoDict['filename'], newFilename)
+        copyfile(_file, newFilename)
 
-        if os.path.exists(newFilename) and os.path.normpath(mc.file(q=True, loc=True)) == os.path.normpath(infoDict['filename']):
-            result = 'Cancel'
-            if not self.alwaysSendReferenceFiles.getValue():
-                result = mc.confirmDialog(
-                                    title='Send Missing References?',
-                                    message='Copy missing references as well?',
-                                    button=['Yes', 'Yes and Stop Asking', 'Cancel'],
-                                                    defaultButton='Yes',
-                                                                cancelButton='No',
-                                                                dismissString='No')
-
-            if result == 'Yes and Stop Asking':
-                self.alwaysSendReferenceFiles.setValue(1)
-
-            if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
-                for refFile in mc.file(query=True, reference=True):
-                    if not os.path.exists(refFile):
-                        continue
-
-                    newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
-
-                    if not os.path.exists(newRefFilename):
-                        if not os.path.exists(os.path.dirname(newRefFilename)):
-                            os.makedirs(os.path.dirname(newRefFilename))
-                        copyfile(refFile, newRefFilename)
-
+        #if os.path.exists(newFilename) and os.path.normpath(mc.file(q=True, loc=True)) == os.path.normpath(infoDict['filename']):
+        result = 'Cancel'
+        if not self.alwaysSendReferenceFiles.getValue():
             result = mc.confirmDialog(
-                            title='Change Project?',
-                            message='Change to the new project?',
-                            button=['Yes', 'No'],
-                                        defaultButton='Yes',
-                                                    cancelButton='No',
-                                                    dismissString='No')
+                                title='Send Missing References?',
+                                message='Copy missing references as well?',
+                                button=['Yes', 'Yes and Stop Asking', 'Cancel'],
+                                                defaultButton='Yes',
+                                                            cancelButton='No',
+                                                            dismissString='No')
 
-            if result == 'Yes':
-                if self.LoadProject(infoDict['project']):
-                    self.LoadOptions()
+        if result == 'Yes and Stop Asking':
+            self.alwaysSendReferenceFiles.setValue(1)
+
+        if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
+            log.info( cgmGEN.logString_msg(_str_func,"Trying References..."))
+            for refFile in mc.file(_file,query=True, reference=True):
+                if not os.path.exists(refFile):
+                    continue
+
+                newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+                print newRefFilename
+                if not os.path.exists(newRefFilename):
+                    if not os.path.exists(os.path.dirname(newRefFilename)):
+                        os.makedirs(os.path.dirname(newRefFilename))
+                    copyfile(refFile, newRefFilename)
+
+        result = mc.confirmDialog(
+                        title='Change Project?',
+                        message='Change to the new project?',
+                        button=['Yes', 'No'],
+                                    defaultButton='Yes',
+                                                cancelButton='No',
+                                                dismissString='No')
+
+        if result == 'Yes':
+            if self.LoadProject(infoDict['project']):
+                self.LoadOptions()
+        #else:
+        #    log.info( cgmGEN.logString_msg(_str_func,"Path mismatch, no ref possible"))
+            
+        log.info( cgmGEN.logString_msg(_str_func,"Done"))
 
     def SendLatestRigToProject():
         pass

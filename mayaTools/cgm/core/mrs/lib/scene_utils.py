@@ -72,7 +72,16 @@ import cgm.core.mrs.lib.general_utils as BLOCKGEN
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
 import cgm.core.rig.general_utils as RIGGEN
 """
+d_annotations = {
+'replace':'Replace existing file',
+'rename':'Rename file',
+'import':'Import selected',
+'reference':'Reference selected',
+'explorer':'Open OS explorer here',
+'openHere':'Open maya dialog to open file here',
+'saveHere':'Open maya dialog to open file here',
 
+}
 
 #=============================================================================================================
 #>> Queries
