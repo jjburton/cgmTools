@@ -98,6 +98,8 @@ example:
         self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
         self.showDirectoriesStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
         self.displayDetailsStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
+        self.displayProjectStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_project", defaultValue = 1)
+        
         self.bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
         self.deleteSet                   = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet')
         self.exportSet                   = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet') 
@@ -286,6 +288,7 @@ example:
         self.useMayaPy       = bool(self.useMayaPyStore.getValue())
         self.showDirectories = bool(self.showDirectoriesStore.getValue())
         self.displayDetails  = bool(self.displayDetailsStore.getValue())
+        self.displayProject  = bool(self.displayProjectStore.getValue())
 
         if self.showAllFilesOption:
             self.showAllFilesOption(e=True, checkBox = self.showAllFiles)
@@ -300,6 +303,7 @@ example:
         self.LoadPreviousSelection()
         self.uiFunc_showDirectories(self.showDirectories)	
         self.uiFunc_displayDetails(self.displayDetails)
+        self.uiFunc_displayProject( self.displayProject )
 
         self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
 
@@ -318,12 +322,14 @@ example:
         self.useMayaPyStore.setValue(self.useMayaPy)
         self.showDirectoriesStore.setValue(self.showDirectories)
         self.displayDetailsStore.setValue(self.displayDetails)
+        self.displayProjectStore.setValue(self.displayProject)
 
         # self.optionVarExportDirStore.setValue( self.exportDirectory )
         self.categoryStore.setValue( self.categoryIndex )
         self.subTypeStore.setValue( self.subTypeIndex )
         self.uiFunc_showDirectories( self.showDirectories )
         self.uiFunc_displayDetails( self.displayDetails )
+        self.uiFunc_displayProject( self.displayProject )
 
     def UpdateToLatestRig(self, *args):
         for obj in mc.ls(sl=True):
@@ -388,6 +394,7 @@ example:
         imageRow.layout()
 
         self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=294)
+        self._projectForm = mUI.MelFormLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
 
         _MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
@@ -396,7 +403,11 @@ example:
         ##############################
 
         self._detailsToggleBtn = mUI.MelButton(_MainForm, ut = 'cgmUITemplate', label="<", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True))	
-
+        
+        self._projectToggleBtn = mUI.MelButton(_MainForm,
+                                               ut = 'cgmUITemplate',
+                                               label="<", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleProjectColumn,lp=True))	
+        
         _directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate')
 
         self._uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn)
@@ -424,6 +435,93 @@ example:
 
         self._uiRow_export(e=True, vis=self.showDirectories)
         self._uiRow_dir(e=True, vis=self.showDirectories)
+        
+        
+        #======================================
+        # Projects Column
+        _projectColumnTop = mUI.MelColumn(self._projectForm)
+        mUI.MelLabel(_projectColumnTop,l='Content', h=15, ut = 'cgmUIHeaderTemplate')
+        
+        _inside = _projectColumnTop
+        
+        #Utils -------------------------------------------------------------------------------------------
+        """
+        _row = mUI.MelHLayout(_inside,padding=3,)
+        button_refresh = mUI.MelButton(_row,
+                                       label='Refresh',ut='cgmUITemplate',
+                                        c=lambda *a: self.uiScrollList_dirContent.rebuild( self.directory),
+                                        ann='Force the scroll list to update')
+        
+        button_add= mUI.MelButton(_row,
+                                  label='Add',ut='cgmUITemplate',
+                                   ann='Add a subdir to the path root')    
+        
+        button_verify = mUI.MelButton(_row,
+                                       label='Verify Dir',ut='cgmUITemplate',
+                                        ann='Verify the directories from the project Type')"""  
+        """
+        mUI.MelButton(_row,
+                      label='Query',ut='cgmUITemplate',
+                       c=lambda *a: SCENEUTILS.find_tmpFiles( self. self.directory),
+                       ann='Query trash files')    
+        mUI.MelButton(_row,
+                      label='Clean',ut='cgmUITemplate',
+                       c=lambda *a: SCENEUTILS.find_tmpFiles( self.directory,cleanFiles=1),
+                       ann='Clean trash files')
+        _row.layout()"""
+        #--------------------------------------------------------------------------------------------
+        
+        mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+        
+        _textField = mUI.MelTextField(_inside,
+                                      ann='Filter',
+                                      w=50,
+                                      bgc = [.3,.3,.3],
+                                      en=True,
+                                      text = '')    
+        
+        
+        #Scroll list
+        mScrollList = Project.cgmProjectDirList(self._projectForm, ut='cgmUISubTemplate',
+                                        allowMultiSelection=0,en=True,
+                                        ebg=0,
+                                        bgc = [.2,.2,.2],
+                                        w = 50)
+        
+        
+        #Connect the functions to the buttons after we add the scroll list...
+        """
+        button_verify(edit=True,
+                      c=lambda *a:Project.uiProject_verifyDir(self,'content',None,mScrollList),)
+        button_add(edit=True,
+                   c=lambda *a:Project.uiProject_addDir(self,'content',mScrollList),
+                   )"""
+        
+        try:mScrollList(edit=True,hlc = [.5,.5,.5])
+        except:pass
+        
+        mScrollList.set_filterObj(_textField)
+        _textField(edit=True,
+                   tcc = lambda *a: mScrollList.update_display())    
+       
+        #mScrollList.set_selCallBack(mrsPoseDirSelect,mScrollList,self)
+        
+        self.uiScrollList_dirContent = mScrollList        
+                
+        self._projectForm( edit=True, 
+                           attachForm=[
+                               (_projectColumnTop, 'top', 0), 
+                               (_projectColumnTop, 'left', 0), 
+                               (_projectColumnTop, 'right', 0),
+                               (mScrollList, 'left', 0), 
+                               (mScrollList, 'right', 0),                               
+                               (mScrollList, 'bottom', 0)], 
+                           attachControl=[
+                               (mScrollList, 'top', 0, _projectColumnTop)] )
+        
+        
+        
+        #--------------------------------------
 
         ##############################
         # Main Asset Lists 
@@ -637,25 +735,23 @@ example:
                         c= lambda *a:self.uiPath_mayaSaveTo_version(),
                         label = 'Save Maya here')
         mUI.MelMenuItem(pum, label="Refresh", command=lambda *a:self.LoadVersionList() )
-                
-        
 
 
         self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
         _versionForm( edit=True, 
-                              attachForm=[
-                                  (_versionBtn, 'top', 0), 
-                                  (_versionBtn, 'left', 0), 
-                                          (_versionBtn, 'right', 0), 
-                                    (self.versionList['formLayout'], 'left', 0),
-                                        (self.versionList['formLayout'], 'right', 0),
-                                        (self.versionButton, 'bottom', 0), 
-                                        (self.versionButton, 'right', 0), 
-                                        (self.versionButton, 'left', 0)], 
-                              attachControl=[
-                                  (self.versionList['formLayout'], 'top', 0, _versionBtn),
-                                          (self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
+                      attachForm=[
+                          (_versionBtn, 'top', 0), 
+                          (_versionBtn, 'left', 0), 
+                                  (_versionBtn, 'right', 0), 
+                            (self.versionList['formLayout'], 'left', 0),
+                                (self.versionList['formLayout'], 'right', 0),
+                                (self.versionButton, 'bottom', 0), 
+                                (self.versionButton, 'right', 0), 
+                                (self.versionButton, 'left', 0)], 
+                      attachControl=[
+                          (self.versionList['formLayout'], 'top', 0, _versionBtn),
+                                  (self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
 
 
         self._subForms = [_catForm,_animForm,_variationForm,_versionForm]
@@ -752,36 +848,49 @@ example:
         _MainForm( edit=True, 
                            attachForm=[
                                (_directoryColumn, 'top', 0), 
-                                        (_directoryColumn, 'left', 0), 
+                                        #(_directoryColumn, 'left', 0), 
                                         (_bottomColumn, 'left', 0),
                                         (_bottomColumn, 'bottom', 0),
                                                                 (self._assetsForm, 'left', 0),
+                                                                
 
+                                        (self._projectToggleBtn, 'top', 0),
+                                        (self._projectToggleBtn, 'bottom', 0),
+                                        (self._projectToggleBtn, 'left', 0),
+                                        
                                         (self._detailsToggleBtn, 'right', 0),
-                                                                (self._detailsToggleBtn, 'top', 0),
-                                                                (self._detailsToggleBtn, 'bottom', 0)], 
+                                        (self._detailsToggleBtn, 'top', 0),
+                                        (self._detailsToggleBtn, 'bottom', 0)], 
                            attachControl=[
                                (self._assetsForm, 'top', 0, _directoryColumn),
                                         (self._assetsForm, 'bottom', 0, _bottomColumn),
+                                        
+                                        (self._assetsForm, 'left', 0, self._projectToggleBtn),
+                                        (_bottomColumn, 'left', 0, self._projectToggleBtn),
+                                        (_directoryColumn, 'left', 0, self._projectToggleBtn),                                        
                                         (self._assetsForm, 'right', 0, self._detailsToggleBtn),
-                                                                (_bottomColumn, 'right', 0, self._detailsToggleBtn),
-                                                                (_directoryColumn, 'right', 0, self._detailsToggleBtn)])
+                                         (_bottomColumn, 'right', 0, self._detailsToggleBtn),
+                                         (_directoryColumn, 'right', 0, self._detailsToggleBtn)])
 
         _ParentForm( edit=True,
                              attachForm=[						 
-                                             (_headerColumn, 'left', 0),
+                                        (_headerColumn, 'left', 0),
                                         (_headerColumn, 'right', 0),
                                         (_headerColumn, 'top', 0),
                                         (self._detailsColumn, 'right', 0),
-                                                                (_MainForm, 'left', 0),
-                                                                (_footer, 'left', 0),
-                                                        (_footer, 'right', 0),
+                                        (self._projectForm, 'left', 0),                                        
+                                         #(_MainForm, 'left', 0),
+                                        (_footer, 'left', 0),
+                                          (_footer, 'right', 0),
                                         (_footer, 'bottom', 0)],
                                          attachControl=[(_MainForm, 'top', 0, _headerColumn),
                                                         (_MainForm, 'bottom', 0, _footer),
-                                                                        (_MainForm, 'right', 0, self._detailsColumn),
-                                                                        (self._detailsColumn, 'top', 0, _headerColumn),
-                                                                        (self._detailsColumn, 'bottom', 1, _footer)])
+                                                        (_MainForm, 'left', 0, self._projectForm),
+                                                         (_MainForm, 'right', 0, self._detailsColumn),
+                                                         (self._projectForm, 'top', 0, _headerColumn),
+                                                          (self._projectForm, 'bottom', 1, _footer),
+                                                         (self._detailsColumn, 'top', 0, _headerColumn),
+                                                          (self._detailsColumn, 'bottom', 1, _footer)])
     def show( self ):		
         self.setVisibility( True )
         self.buildMenu_options()
@@ -911,7 +1020,93 @@ example:
         self.buildDetailsColumn()
         self.StoreCurrentSelection()
         log.info( self.versionFile )
+        
+    def buildProjectColumn(self):
+        if not self._projectForm(q=True, vis=True):
+            log.info("Project column isn't visible")
+            return
+        
+        log.info("Project column...")
+        
+        self._projectForm.clear()
+        
+        #self._projectForm(e=1, vis=1)
+        mc.setParent(self._projectForm)
 
+        mUI.MelLabel(self._projectForm,l='Project', h=15, ut = 'cgmUIHeaderTemplate')
+        
+        _inside = self._projectForm
+        #Utils -------------------------------------------------------------------------------------------
+        _row = mUI.MelHLayout(_inside,padding=3,)
+        button_refresh = mUI.MelButton(_row,
+                                       label='Refresh',ut='cgmUITemplate',
+                                        c=lambda *a: self.uiScrollList_dirContent.rebuild( self.directory),
+                                        ann='Force the scroll list to update')
+        
+        button_add= mUI.MelButton(_row,
+                                  label='Add',ut='cgmUITemplate',
+                                   ann='Add a subdir to the path root')    
+        
+        button_verify = mUI.MelButton(_row,
+                                       label='Verify Dir',ut='cgmUITemplate',
+                                        ann='Verify the directories from the project Type')  
+        
+        mUI.MelButton(_row,
+                      label='Query',ut='cgmUITemplate',
+                       c=lambda *a: SCENEUTILS.find_tmpFiles( self. self.directory),
+                       ann='Query trash files')    
+        mUI.MelButton(_row,
+                      label='Clean',ut='cgmUITemplate',
+                       c=lambda *a: SCENEUTILS.find_tmpFiles( self.directory,cleanFiles=1),
+                       ann='Clean trash files')
+        _row.layout()
+        #--------------------------------------------------------------------------------------------
+        
+        mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+        
+        
+        _textField = mUI.MelTextField(_inside,
+                                      ann='Filter',
+                                      w=50,
+                                      bgc = [.3,.3,.3],
+                                      en=True,
+                                      text = '')    
+        
+        
+        
+        #Scroll list
+        mScrollList = Project.cgmProjectDirList(_inside, ut='cgmUISubTemplate',
+                                        allowMultiSelection=0,en=True,
+                                        ebg=0,
+                                        h=600,
+                                        bgc = [.2,.2,.2],
+                                        w = 50)
+        
+        mScrollList.mDat = self.mDat
+        
+        #Connect the functions to the buttons after we add the scroll list...
+        button_verify(edit=True,
+                      c=lambda *a:Project.uiProject_verifyDir(self,'content',None,mScrollList),)
+        button_add(edit=True,
+                   c=lambda *a:Project.uiProject_addDir(self,'content',mScrollList),
+                   )
+        
+        try:mScrollList(edit=True,hlc = [.5,.5,.5])
+        except:pass
+        
+        mScrollList.set_filterObj(_textField)
+        _textField(edit=True,
+                   tcc = lambda *a: mScrollList.update_display())    
+       
+        #mScrollList.set_selCallBack(mrsPoseDirSelect,mScrollList,self)
+        
+        self.uiScrollList_dirContent = mScrollList        
+        
+        self.uiScrollList_dirContent.mDat = self.mDat
+        
+        
+
+        
     def buildDetailsColumn(self):
         if not self._detailsColumn(q=True, vis=True):
             log.info("details column isn't visible")
@@ -1146,13 +1341,26 @@ example:
     def uiFunc_toggleDisplayInfo(self):
         self.displayDetails = not self.displayDetails
         self.SaveOptions()
-
+        
+    def uiFunc_toggleProjectColumn(self):
+        self.displayProject = not self.displayProject
+        self.uiFunc_displayProject(self.displayProject)
+        #self.SaveOptions()
+        
     def uiFunc_displayDetails(self, val):
         self._detailsColumn(e=True, vis=val)
         self._detailsToggleBtn(e=True, label='>' if val else '<')
 
         if val:
             self.buildDetailsColumn()
+    def uiFunc_displayProject(self,val):
+        self._projectForm(e=True, vis=val)
+        self._projectToggleBtn(e=True, label='>' if val else '<')
+
+        if val:
+            self.uiScrollList_dirContent.mDat = self.mDat
+            self.uiScrollList_dirContent.rebuild( self.directory)
+            #self.buildProjectColumn()        
 
     def buildMenu_tools( self, *args):
         self.uiMenu_ToolsMenu.clear()
@@ -1747,9 +1955,16 @@ example:
             log.warning("Failed to set bgc: {0} | {1}".format(_bgColor,err))
 
         try:
-            self._detailsToggleBtn(edit=True, bgc=[MATH.Clamp(1.8 * v,None,1.0) for v in _bgColor])
+            v = [MATH.Clamp(1.8 * v,None,1.0) for v in _bgColor]
+            vLite = [MATH.Clamp(1.8 * v, .8, 1.0) for v in _bgColor]
+            self._detailsToggleBtn(edit=True, bgc=v)
+            self._projectToggleBtn(edit=True, bgc=v)
+            #self.uiScrollList_dirContent(edit=True, hlc = vLite)
+            #self.uiScrollList_dirContent.v_hlc = vLite
         except:
             self._detailsToggleBtn(edit=True, bgc=(1.0, .445, .08))
+            self._projectToggleBtn(edit=True, bgc=(1.0, .445, .08))
+            #self.uiScrollList_dirContent(edit=True, hlc = (1.0, .445, .08))
 
 
         d_userPaths = self.project.userPaths_get()

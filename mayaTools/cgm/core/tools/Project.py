@@ -56,6 +56,7 @@ import cgm.core.classes.GuiFactory as cgmUI
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
 #reload(COREPATHS)
+import cgm.core.lib.math_utils as COREMATH
 import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.tools.lib.project_utils as PU
@@ -2597,7 +2598,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self._d_itc =  {}
         self.filterField = None
         self.b_selCommandOn = True
-        
+        self.v_hlc = [.5,.5,.5]
         self._l_uiKeys = []
         self._l_uiStrings = []
         self._l_paths = []
@@ -2632,7 +2633,8 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         _indices = []
         for i in _res:
-            _indices.append(int(str(i).split('L')[0]))
+            _indices.append(int(i))
+            #_indices.append(int(str(i).split('L')[0]))
         return _indices
     def selectByIdx( self, idx ):
         self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
@@ -2770,81 +2772,82 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
     #@cgmGEN.Timer
     def select_popup(self): 
-        try:
-            _str_func = 'uiScrollList_select'  
-            log.debug(cgmGEN.logString_start(_str_func))
+        #try:
+        _str_func = 'uiScrollList_select'  
+        log.debug(cgmGEN.logString_start(_str_func))
 
-            if self.uiPopUpMenu:
-                self.uiPopUpMenu.clear()
-                self.uiPopUpMenu.delete()
-                self.uiPopUpMenu = None
-                
+        if self.uiPopUpMenu:
+            self.uiPopUpMenu.clear()
+            self.uiPopUpMenu.delete()
+            self.uiPopUpMenu = None
             
-            dat = self.getSelectedDirDat()
-            _mPath = dat['mPath']
-            _path = _mPath.asFriendly()
+        
+        dat = self.getSelectedDirDat()
+        _mPath = dat['mPath']
+        _path = _mPath.asFriendly()
 
-            #pprint.pprint(dat)
+        #pprint.pprint(dat)
+        
+        self.uiPopUpMenu = mUI.MelPopupMenu(self,button = 3)
+        _popUp = self.uiPopUpMenu
+        
+        mUI.MelMenuItemDiv(_popUp, label=_mPath.asTruncate())
+
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Open Path to: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_openDir,_path),
+                        label = 'Open Dir')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Open Maya file in: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_mayaOpen,_path),
+                        label = 'Open Maya file')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Save Maya file to: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_MayaSaveTo,_path),
+                        label = 'Save Maya here')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Add sub dir to: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_addDir,_path),
+                        label = 'Add Sub Dir')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Remove dir: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_removeDir,_path),
+                        label = 'Delete Dir')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Log dat: {0}".format(_path),
+                        c= lambda *a:pprint.pprint(dat),
+                        label = 'Log Dat')
+        
+        return
+        if self.mDat:
+            mUI.MelMenuItemDiv(_popUp,label = 'Add Asset Dirs')
+            """d_toDo = {'char':'character',
+                      'prop':'prop',
+                      'env':'enviornment',
+                      'sub':'sub project'}"""
             
-            self.uiPopUpMenu = mUI.MelPopupMenu(self,button = 3)
-            _popUp = self.uiPopUpMenu
-            
-            mUI.MelMenuItemDiv(_popUp, label=_mPath.asTruncate())
+            l_types = self.mDat.assetType_getTypeDict().keys() #self.uiAssetTypeOptions.getMenuItems()
 
             
-            mUI.MelMenuItem(_popUp,
-                            ann = "Open Path to: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_openDir,_path),
-                            label = 'Open Dir')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Open Maya file in: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_mayaOpen,_path),
-                            label = 'Open Maya file')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Save Maya file to: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_MayaSaveTo,_path),
-                            label = 'Save Maya here')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Add sub dir to: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_addDir,_path),
-                            label = 'Add Sub Dir')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Remove dir: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_removeDir,_path),
-                            label = 'Delete Dir')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Log dat: {0}".format(_path),
-                            c= lambda *a:pprint.pprint(dat),
-                            label = 'Log Dat')
-            
-            if self.mDat:
-                mUI.MelMenuItemDiv(_popUp,label = 'Add Asset Dirs')
-                """d_toDo = {'char':'character',
-                          'prop':'prop',
-                          'env':'enviornment',
-                          'sub':'sub project'}"""
-                
-                l_types = self.mDat.assetType_getTypeDict().keys() #self.uiAssetTypeOptions.getMenuItems()
+            for t in l_types: #['char','prop','env','sub']:
+                _t = CORESTRINGS.byMode(t,'capitalize')
+                #print '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))
+                mUI.MelMenuItem(_popUp,
+                                ann = "Add {0} asset to path: {1}".format(_t,_path),
+                                c= cgmGEN.Callback(self.uiPath_addAsset,
+                                                   _path,
+                                                   t,
+                                                   t),
+                                #c= lambda *a:self.uiPath_addAsset(_path,'content','{0}Content'.format(t)),
+                                label = _t)
 
-                
-                for t in l_types: #['char','prop','env','sub']:
-                    _t = CORESTRINGS.byMode(t,'capitalize')
-                    #print '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))
-                    mUI.MelMenuItem(_popUp,
-                                    ann = "Add {0} asset to path: {1}".format(_t,_path),
-                                    c= cgmGEN.Callback(self.uiPath_addAsset,
-                                                       _path,
-                                                       t,
-                                                       t),
-                                    #c= lambda *a:self.uiPath_addAsset(_path,'content','{0}Content'.format(t)),
-                                    label = _t)
-
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     def setHLC(self,arg=None):
         log.debug(cgmGEN.logString_start('setHLC'))        
@@ -2858,7 +2861,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             except Exception,err:
                 log.error(err)
                 
-            try:self(e =1, hlc = [.5,.5,.5])
+            try:self(e =1, hlc = self.v_bgc)
             except:pass
             
     def getSelectedDirDat( self):
@@ -2883,6 +2886,8 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         #self.getSelectedDir()
         if l_indices:
             self.setHLC(self._l_str_loaded[l_indices[0]])
+            
+        if not self.b_selCommandOn:return
         """
         mBlock = self.getSelectedBlocks()
         if mBlock:
@@ -2890,8 +2895,9 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             pprint.pprint(mBlock)
             self.mDat._ml_listNodes = mBlock"""
         log.debug(cgmGEN.logString_start('cmd_select | {0}'.format(self.cmd_select)))            
+        log.debug(cgmGEN.logString_start('b_selCommandOn | {0}'.format(self.b_selCommandOn)))            
         
-        if self.b_selCommandOn and self.cmd_select:
+        if self.cmd_select:
             if len(l_indices)<=1:
                 return self.cmd_select(*self.selArgs,**self.selkws)
         return False
@@ -2931,14 +2937,23 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             return False        
  
         
-        
+        _buffer = self.b_selCommandOn 
         self.b_selCommandOn = False
         #ml_sel = self.getSelectedBlocks()
         
         self( e=True, ra=True )
         
-        try:self(e =1, hlc = [.5,.5,.5])
-        except:pass                
+        
+        #try:_bgColor = self.mDat.d_colors['project']
+        #except:
+        #    print 'failsafe color'
+        #    _bgColor = [1,.5,0]
+        #self.v_hlc = _bgColor
+        
+        #_bgColor = [COREMATH.Clamp(3*v,.25,1.0) for v in _bgColor]
+        
+        #try:self(e = 1, hlc = _bgColor)
+        #except:pass                
         
         
         _d_dir, _d_levels, l_keys = COREPATHS.walk_below_dir(path,
@@ -2959,7 +2974,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         
         for i,k in enumerate(l_keys):
-            _color = [1,.5,0]#d_colors.get(d_colors['center'])
+            _color = [.7,.7,.7]#d_colors.get(d_colors['center']) self.v_hlc  [1,.5,0]
             self._l_itc.append(_color)            
             self._d_itc[k] = _color
             
@@ -2974,7 +2989,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             try:self.selectByBlock(ml_sel)
             except Exception,err:
                 print err"""
-        self.b_selCommandOn = True
+        if _buffer:self.b_selCommandOn = True
 
     def clear( self ):
         log.debug(cgmGEN.logString_start('clear')) 
@@ -3000,8 +3015,9 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         if self.filterField is not None:
             searchFilter = self.filterField.getValue()
-        
         self.clear()
+        _buffer = self.b_selCommandOn
+        self.b_selCommandOn = False
         try:
             for i,str_entry in enumerate(r9Core.filterListByString(self._l_strings,
                                                                   searchFilter,
@@ -3028,7 +3044,9 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             log.error("|{0}| >> err: {1}".format(_str_func, err))  
             for a in err:
                 log.error(a)
-
+        finally:
+            if _buffer:
+                self.b_selCommandOn = _buffer
     def selectCallBack(self,func=None,*args,**kws):
         pprint.pprint( self.getSelectedDirDat() )
 
