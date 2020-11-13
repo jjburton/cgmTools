@@ -2611,6 +2611,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self.uiPopUpMenu = None
         self.str_structureMode = 'content'
         self.set_selCallBack(self.select_popup)
+        self.mScene = None
         
     def __getitem__( self, idx ):
         return self.getItems()[ idx ]
@@ -2781,15 +2782,39 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             self.uiPopUpMenu.delete()
             self.uiPopUpMenu = None
             
-        
         dat = self.getSelectedDirDat()
         _mPath = dat['mPath']
         _path = _mPath.asFriendly()
 
         #pprint.pprint(dat)
+        """
+        ['D:',
+           'Dropbox',
+           'cgmMRS',
+           'maya',
+           'Assets',
+           'character',
+           'dragon',
+           'animation',
+           'walk']
+        """
+        if self.mScene:
+            self.mScene.mContentListDat = dat
         
+        """
+        if self.mDat:#Adding the ability to load to Scene
+            for i,d in enumerate(self.mDat.assetDat):
+                k = d.get('n')
+                if k in dat['split']:
+                    idx_split = dat['split'].index(k)
+                    l_temp = dat['split'][idx_split:]
+                    print 'Found: {0} | {1}'.format(k,l_temp)
+                    """
+                    
+                    
         self.uiPopUpMenu = mUI.MelPopupMenu(self,button = 3)
         _popUp = self.uiPopUpMenu
+        
         
         mUI.MelMenuItemDiv(_popUp, label=_mPath.asTruncate())
 

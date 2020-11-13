@@ -34,6 +34,16 @@ import cgm.images as cgmImages
 
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
+global UI
+UI = None
+def ui_get():
+    global UI
+    if UI:
+        log.info('cached...')
+        UI.show()
+        return UI
+    return ui()
+
 #>>>======================================================================
 import logging
 logging.basicConfig()
@@ -159,7 +169,9 @@ example:
         self.exportDirectory             = None
 
         self.v_bgc                       = [.6,.3,.3]
-
+        
+        global UI
+        UI = self
 
     def post_init(self,*args,**kws):
         if self.optionVarProjectStore.getValue():
@@ -377,6 +389,33 @@ example:
         log.info( "Setting geo set to: %s" % exportSet )
         self.exportSet.setValue(exportSet)
 
+    def uiFunc_contentDir_loadSelect(self):
+        try:_dat = self.mContentListDat
+        except:
+            log.warning("No self.mContentListDat")
+            return
+            
+        
+        if self.mDat:#Adding the ability to load to Scene
+            select_idx = self.uiScrollList_dirContent.getSelectedIdxs(False)
+            
+            for i,d in enumerate(self.mDat.assetDat):
+                k = d.get('n')
+                if k in _dat['split']:
+                    idx_split = _dat['split'].index(k)
+                    l_temp = _dat['split'][idx_split:]
+                    print 'Found: {0} | {1}'.format(k,l_temp)
+                    
+                    #if self.mScene:
+                    self.categoryStore.value = i
+                    self.LoadOptions()
+                    
+                    if select_idx:
+                        self.uiScrollList_dirContent.selectByIdx(select_idx[0])
+                    return
+                        
+                    
+                    
     def build_layoutWrapper(self,parent):
 
         _ParentForm = mUI.MelFormLayout(self,ut='cgmUISubTemplate')
@@ -486,7 +525,8 @@ example:
                                         allowMultiSelection=0,en=True,
                                         ebg=0,
                                         bgc = [.2,.2,.2],
-                                        w = 50)
+                                        w = 50,
+                                        dcc = cgmGEN.Callback(self.uiFunc_contentDir_loadSelect))
         
         
         #Connect the functions to the buttons after we add the scroll list...
@@ -507,7 +547,8 @@ example:
         #mScrollList.set_selCallBack(mrsPoseDirSelect,mScrollList,self)
         
         self.uiScrollList_dirContent = mScrollList        
-                
+        mScrollList.mScene = self
+        
         self._projectForm( edit=True, 
                            attachForm=[
                                (_projectColumnTop, 'top', 0), 
