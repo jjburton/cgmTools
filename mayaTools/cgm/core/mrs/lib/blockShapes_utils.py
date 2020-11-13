@@ -1078,8 +1078,8 @@ class handleFactory(object):
                 mBlock.doConnectOut('addCog',"{0}.v".format(mCurve.mNode))
                 mBlock.doConnectOut('addCog',"{0}.v".format(mTrans.mNode))
             
-            mBlock.msgList_append('prerigHandles',mTrans.mNode)
-            mBlock.msgList_append('prerigHandles',mCurve.mNode)
+            #mBlock.msgList_append('prerigHandles',mTrans.mNode)
+            #mBlock.msgList_append('prerigHandles',mCurve.mNode)
             
             return mTrans
         except Exception,err:
@@ -1267,7 +1267,7 @@ class handleFactory(object):
         
         return mJointLabel
         
-    def addJointHelper(self,baseShape='locatorForm', baseSize = None,
+    def addJointHelper(self,baseShape='sphere', baseSize = None,
                        shapeDirection = 'z+', loftHelper = True,
                        lockChannels = ['rotate','scale']):
         try:
@@ -1575,7 +1575,7 @@ def addJointRadiusVisualizer(self,mParent = False):
     
     mJointRadius.rename("jointRadiusVis")
     _base = self.atUtils('get_shapeOffset')*2
-    if self.jointRadius < .0000000001:
+    if self.jointRadius < .1:
         self.jointRadius = _base
     self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
     mJointRadius.dagLock()
@@ -1584,17 +1584,17 @@ def addJointRadiusVisualizer(self,mParent = False):
     return mJointRadius
 
 def addJointHelper(self,mHandle=None,
-                   baseShape='sphere',
+                   baseShape='sphere',#'locatorForm',
                    size = 1.0,
                    shapeDirection = 'z+',
                    loftHelper = True,
+                   d_nameTags = {},
                    lockChannels = ['rotate','scale']):
     
-    if not mHandle:mHandle = self
+    if mHandle:
     
-
-    _bfr = mHandle.getMessage('jointHelper')
-    if _bfr:mc.delete(_bfr)
+        _bfr = mHandle.getMessage('jointHelper')
+        if _bfr:mc.delete(_bfr)
     
     _size_vector = get_sizeVector(size)
     _size = MATH.average(_size_vector[:1]) #* .5
@@ -1604,29 +1604,31 @@ def addJointHelper(self,mHandle=None,
     #jack
     _jointHelper = CURVES.create_fromName(baseShape,  direction= shapeDirection, size = _size,bakeScale = False,baseSize=1.0)
     mJointCurve = cgmMeta.validateObjArg(_jointHelper, mType = 'cgmObject',setClass=True)
-    mJointCurve.doSnapTo(mHandle.mNode)
-    
-    if mHandle.hasAttr('cgmName'):
-        ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
-    mJointCurve.doStore('cgmType','jointHandle')
-    mJointCurve.doName()    
-
-    mJointCurve.p_parent = mHandle
-
     color(self,mJointCurve.mNode)
+    
+    
+    if mHandle:
+        mJointCurve.doSnapTo(mHandle.mNode)
 
-    #CORERIG.match_transform(mJointCurve.mNode, mHandle)
+        if mHandle.hasAttr('cgmName'):
+            ATTR.copy_to(mHandle.mNode,'cgmName',mJointCurve.mNode,driven='target')
+    
+        mJointCurve.doStore('cgmType','jointHandle')
+        mJointCurve.doName()    
 
-    #mc.transformLimits(mJointCurve.mNode, tx = (-.5,.5), ty = (-.5,.5), tz = (-.5,.5),
-    #                   etx = (True,True), ety = (True,True), etz = (True,True))        
-
-    mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')   
+        mJointCurve.p_parent = mHandle
+        mJointCurve.connectParentNode(mHandle.mNode,'handle','jointHelper')
+    else:
+        if d_nameTags:
+            for t,tag in d_nameTags.iteritems():
+                mJointCurve.doStore(t,tag)
+            mJointCurve.doName()                                
 
     mJointCurve.setAttrFlags(lockChannels)
 
     if loftHelper:#...loft curve -------------------------------------------------------------------------------------
         #mLoft = self.buildBaseShape('square',_size*.5,'z+')
-        _loft = CURVES.create_controlCurve(mHandle.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .5,bakeScale = False)
+        _loft = CURVES.create_controlCurve(mJointCurve.mNode,'square',  direction= shapeDirection, sizeMode = 'fixed', size = _size * .25, bakeScale = True)
         mLoft = cgmMeta.validateObjArg(_loft,'cgmObject',setClass=True)
         mLoft.doStore('cgmName',mJointCurve)
         mLoft.doStore('cgmType','loftCurve')
@@ -2338,7 +2340,7 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
         log.debug("|{0}| >> settings: {1}...".format(_str_func,settingsPlace))
         
         if not ml_targets:
-            ml_targets = self.msgList_get('formHandles')
+            ml_targets = self.msgList_get('prerigHandles')
         
         mBlock = self
         
@@ -2368,7 +2370,7 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             if settingsPlace == 'start':
                 _mTar = ml_targets[idx_start]
             else:
-                _mTar = self.msgList_get('formHandles')[-1]
+                _mTar = ml_targets[idx_end]#self.msgList_get('formHandles')[-1]
                 """
                 mIKOrientHandle = self.getMessageAsMeta('ikOrientHandle')
                 if mIKOrientHandle:
@@ -2388,17 +2390,20 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             vec = MATH.get_vector_of_two_points(_mTar.p_position, pos)
             newPos = DIST.get_pos_by_vec_dist(pos,vec,v_offset * 3)
             
-            _settingsSize = v_offset * 1.5
+            _settingsSize = v_offset * 2.0
             
             mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
                                                                            '{0}+'.format(_jointOrientation[2]),
                                                                            baseSize=1.0),'cgmObject',setClass=True)
 
+            mSettings = _mTar.doCreateAt(setClass= 'cgmObject')
             
             mSettingsShape.doSnapTo(_mTar.mNode)
             
             
             mSettingsShape.p_position = newPos
+            mSettings.p_position = newPos
+            
             mMesh_tmp.delete()
             
             SNAP.aim_atPoint(mSettingsShape.mNode,
@@ -2408,8 +2413,9 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
                              vectorUp= _mTar.getAxisVector(_jointOrientation[0]+'-'))
             
             #mSettingsShape.parent = _mTar
-            mSettings = mSettingsShape
-            CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+            #CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
+            
+            CORERIG.shapeParent_in_place(mSettings.mNode, mSettingsShape.mNode, False)
             
             mSettings.doStore('cgmName',self.p_nameBase)
             mSettings.doStore('cgmTypeModifier','settings')            

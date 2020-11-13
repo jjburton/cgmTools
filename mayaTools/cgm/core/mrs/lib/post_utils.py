@@ -125,9 +125,9 @@ def backup(self,ml_handles = None):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     
     
-d_attrs = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50},
-           'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25},
-           'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30},}
+d_attrs = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50, 'ease':{0:.25, 1:.5}},
+           'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
+           'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30,'ease':{0:.25, 1:.5}},}
 
 d_attrs_fingers = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}},
                    'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
@@ -149,8 +149,6 @@ def SDK_wip(ml = [], matchType = False,
         ml = cgmMeta.asMeta(sl=1)
     else:
         ml = cgmMeta.asMeta(ml)
-        
-    
     
     #mParent -----------------------------------------------------------------------------
     mParent = ml[0].moduleParent

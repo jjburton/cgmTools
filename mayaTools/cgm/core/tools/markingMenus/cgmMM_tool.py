@@ -585,7 +585,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
 
         
     def bUI_menuBottom_anim(self,parent):
-        DYNPARENTTOOL.uiMenu_changeSpace(self,parent)             
+        DYNPARENTTOOL.uiMenu_changeSpace(self,parent,False)
         
         uiUtils= mc.menuItem(parent = parent, l='Utilities', subMenu=True)
         

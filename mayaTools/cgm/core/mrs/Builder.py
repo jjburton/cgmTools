@@ -61,6 +61,8 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
 from cgm.core.mrs.lib import block_utils as BLOCKUTILS
 from cgm.core.mrs.lib import blockShapes_utils as BLOCKSHAPES
+from cgm.core.mrs.lib import ModuleControlFactory as MODULECONTROLFACTORY
+from cgm.core.mrs.lib import ModuleShapeCaster as MODULESHAPECASTER
 
 from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
 import cgm.core.lib.string_utils as CORESTRINGS
@@ -73,6 +75,7 @@ import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
 import cgm.core.tools.snapTools as SNAPTOOLS
 import cgm.core.lib.list_utils as LISTS
 from cgm.core.lib import nameTools as NAMETOOLS
+import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 
 #for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
     #reload(m)
@@ -102,7 +105,9 @@ _sidePadding = 25
 
 def reloadMRSStuff():
     log.info("reloading...")
-    for m in BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,:
+    for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,
+              BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,
+              MODULECONTROLFACTORY,MODULESHAPECASTER]:
         print m
         reload(m)
     log.info(cgmGEN._str_subLine)
@@ -969,7 +974,14 @@ class ui_blockEditor(cgmUI.cgmGUI):
             for a in ATTR.datList_getAttrs(obj,'loftList'):
                 ATTR.set(obj,a,_v)
             mc.evalDeferred(self.uiFunc_updateBlock,lp=True)
-            
+        
+        if attr in ['numJoints','neckJoints'] or attr.startswith('rollCount'):
+            log.info("")            
+            try:
+                self.mBlock.atBlockModule('create_jointHelpers')
+                log.info("Updated jointHelpers")            
+                
+            except:pass
         
         log.info("Set: {0} | {1} | {2}".format(obj,attr,_v))
     
@@ -1296,10 +1308,10 @@ class ui_blockEditor(cgmUI.cgmGUI):
                 log.debug("|{0}| >> profile...".format(_str_func))
                 
                 d_profileDat = {'block':{'options':RIGBLOCKS.get_blockProfile_options(mBlock.blockType),
-                                         'current':str(mBlock.blockProfile),
+                                         'current':str(mBlock.getMayaAttr('blockProfile')),
                                          },
                                 'build':{'options':BLOCKSHARE._l_buildProfiles,
-                                         'current':str(mBlock.buildProfile)}}
+                                         'current':str(mBlock.getMayaAttr('buildProfile'))}}
                 
                 
                 for k2,d2 in d_profileDat.iteritems():
@@ -3308,7 +3320,8 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_advanced.clear()   
         _menu = self.uiMenu_advanced
         d_s = {'Batch':{'Send File To MayaPy':{'ann':"Process the current file. Will be saved at it's current location as _ BUILD.ext",
-                                            'call':cgmGEN.Callback(uiStandAlone_get),}},
+                                            'call':cgmGEN.Callback(uiStandAlone_get),},
+                        'Old Method':{'ann':"Process the current file. Will be saved at it's current location as _ BUILD.ext",'call':cgmGEN.Callback(self.batch_call),}},
                'Utilities':{
                    'Verify':{'ann':'Check if the block is current (DEV)',
                              'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,

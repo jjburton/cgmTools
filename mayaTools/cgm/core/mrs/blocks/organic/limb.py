@@ -186,7 +186,7 @@ d_block_profiles = {
     'ikRPAim':'default',
     'rigSetup':'default',
     'mainRotAxis':'out',
-    'nameList':['clav','shoulder','knee','wrist','ball','end'],
+    'nameList':['clav','shoulder','elbow','wrist','ball','end'],
     'formEndAim':'block',
     'proxyLoft':3,
     #'hasEndJoint':True,
@@ -255,7 +255,7 @@ d_block_profiles = {
     'ikRPAim':'default',
     'rigSetup':'default',
     'mainRotAxis':'out',
-    'nameList':['clav','shoulder','knee','wrist','ball','end'],
+    'nameList':['clav','shoulder','elbow','wrist','ball','end'],
     'formEndAim':'block',
     'proxyLoft':3,
     
@@ -380,7 +380,41 @@ d_block_profiles = {
     'baseUp':[0,0,1],
     'baseSize':[11.6,13,70],
     'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0], 'baseSize':[11.6,13,70]},    
-
+       },
+'leg plantigrade front':{
+    'numSubShapers':2,
+    'addCog':False,
+    'cgmName':'leg',
+    'loftShape':'circle',
+    'loftSetup':'default',
+    'settingsPlace':'end',
+    'settingsDirection':'down',
+    'ikSetup':'rp',
+    'ikEnd':'foot',
+    'ikRPAim':'default',    
+    'numControls':3,
+    'numShapers':3,    
+    'numSubShapers':3,
+    'numSubShapersDatList':[1,3,3,4],
+    'rigSetup':'default',
+    'mainRotAxis':'out',
+    'nameList':['clav','shoulder','elbow','wrist','pad'],
+    'formEndAim':'block',
+    'attachPoint':'end',
+    'buildEnd':'dag',
+    'ikRollSetup':'control',
+    'addBall':'joint',
+    'addToe':'none',
+    'addLeverBase':'joint',
+    'addLeverEnd':'none',
+    'loftList':['wideNeg','wideDown','circle'],
+    'loftShapeEnd':'wideUp',
+    'shapeDirection':'y-',
+    
+    'baseAim':[0,-1,0],
+    'baseUp':[0,0,1],
+    'baseSize':[11.6,13,70],
+    'baseDat':{'rp':[0,0,1],'up':[0,0,1],'lever':[1,0,0], 'baseSize':[11.6,13,70]},    
        },
 
 'leg unigrade':{
@@ -505,7 +539,6 @@ d_block_profiles = {
           'ikRollSetup':'control',
           'addBall':'none',
           'addToe':'none',
-          'buildEnd':'dag',
           'addLeverBase':'joint',
           'addLeverEnd':'none',
           'loftList':['wideDown','wideDown','wideDown','digit'],                            
@@ -606,7 +639,6 @@ d_block_profiles = {
        'ikRPAim':'default',
        'rigSetup':'digit',
        'mainRotAxis':'out',
-       'buildEnd':'dag',
        #'hasEndJoint':False,
        'followParentBank':True,           
        'nameList':['nub'],
@@ -619,6 +651,40 @@ d_block_profiles = {
        'addLeverEnd':'none',
        'shapeDirection':'z+',
        
+       'baseAim':[0,0,1],
+       'baseUp':[0,1,0],
+       'baseSize':[10,10,20],
+       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
+       },
+'wingFrame':{'numSubShapers':2,
+       'addCog':False,
+       'attachPoint':'closest',
+       'cgmName':'wingFrame',
+       'loftShapeStart':'squircleDiamond',
+       'loftShapeEnd':'squircleDiamond',
+       'loftShape':'squircleDiamond',
+       'loftSetup':'default',
+       'settingsPlace':'end',
+       'ikSetup':'rp',
+       'ikEnd':'tipEnd',
+       'numControls':2,
+       'numShapers':4,
+       'numSubShapers':1,
+       'numRoll':0,
+       'ikRPAim':'default',
+       'rigSetup':'digit',
+       'mainRotAxis':'out',
+       'loftList':['squircleDiamond','squircleDiamond','squircleDiamond','squircleDiamond'],
+       'followParentBank':True,           
+       'nameList':['nub'],
+       'scaleSetup':False,
+       'buildEnd':'joint',
+       'ikRollSetup':'control',
+       'addBall':'none',
+       'addToe':'none',
+       'addLeverBase':'none',
+       'addLeverEnd':'none',
+       'shapeDirection':'z+',
        'baseAim':[0,0,1],
        'baseUp':[0,1,0],
        'baseSize':[10,10,20],
@@ -698,6 +764,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    'proxyGeoRoot',
                    'proxyDirect',
+                   'proxyBuild',
                    'numSubShapers',#...with limb this is the sub shaper count as you must have one per handle
                    #'buildProfile',
                    'moduleTarget']
@@ -755,7 +822,7 @@ d_defaultSettings = {'version':__version__,
                      'followParentBank':True,                     
                      'ikEnd':'tipEnd',
                      'ikRPAim':'default',
-                     
+                     'visJointHandle':1,
                      'buildEnd':'dag',
                      'addBall':'joint',
                      'addToe':'joint',
@@ -773,6 +840,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSplit':1,
                      'loftDegree':'linear',
                      'numRoll':0,
+                     'proxyBuild':True,
                      'ribbonParam':'blend',
                      'proxyDirect':True,
                      'nameList':['',''],
@@ -2007,8 +2075,8 @@ def prerig(self):
         log.debug("{0}".format(self))
         #log.debug("|{0}| >> [{1}] | side: {2}".format(_str_func,_short, _side))
         
-        l_rolls = [self.numRoll for i in xrange(self.numControls-1)]
-        self.datList_connect('rollCount',l_rolls)
+        #l_rolls = [self.numRoll for i in xrange(self.numControls-1)]
+        #self.datList_connect('rollCount',l_rolls)
 
         sanityChecks(self)
         
@@ -2371,7 +2439,7 @@ def prerig(self):
             
             #Convert to loft curve setup ----------------------------------------------------
             mHandleFactory.setHandle(mHandle)
-            ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse ))
+            #ml_jointHandles.append(mHandleFactory.addJointHelper(baseSize = _sizeUse ))
             #CORERIG.colorControl(mHandle.mNode,_side,'sub',transparent = True)
         
             try:mFormHandle.connectChildNode(mHandle.mNode,'prerigHandle')
@@ -2384,6 +2452,7 @@ def prerig(self):
         #self.UTILS.prerigHandles_getNameDat(self,True)
 
         #Joint placer loft....
+        """
         for i,mObj in enumerate(ml_handles[:-1]):
             mLoft = mObj.jointHelper.loftCurve
             mAimGroup = mLoft.doGroup(True,True,asMeta=True)
@@ -2403,35 +2472,29 @@ def prerig(self):
         
         for mJointHelper in ml_jointHelpers:
             self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-            
+        """
         #Name Handles...
         for mHandle in ml_handles:
             #Joint Label ---------------------------------------------------------------------------
             #mHandleFactory.addJointLabel(mHandle,mHandle.cgmName)
             BLOCKSHAPES.addJointLabel(self,mHandle,mHandle.cgmName)
             
-        self.msgList_connect('jointHelpers',jointHelpers)
-        
+        #self.msgList_connect('jointHelpers',jointHelpers)
+        """
         self.atUtils('create_jointLoft',
                      targets,
                      mPrerigNull,
                      baseCount = self.numRoll * self.numControls,
                      baseName = self.cgmName,
                      simpleMode = True)        
-        
         """
-        BLOCKUTILS.create_jointLoft(self,targets,
-                                    mPrerigNull,'neckJoints',
-                                    baseName = _l_baseNames[1] )
+        
         """
         for t in targets:
             ATTR.set(t,'v',0)
             #ATTR.set_standardFlags(t,[v])
-            
-        
+        """
 
-    
-        
         #if self.addScalePivot:
             #mHandleFactory.addScalePivotHelper().p_parent = mPrerigNull      
         
@@ -2471,20 +2534,20 @@ def prerig(self):
                     ml_handles[_idx_ball].doSnapTo(ml_formHandles[-1])
                 
                 
-            
+        
         #Point Contrain the rpHandle -------------------------------------------------------------------------
         mVectorRP = self.getMessageAsMeta('vectorRpHelper')
         str_vectorRP = mVectorRP.mNode
         ATTR.set_lock(str_vectorRP,'translate',False)
         idx_start,idx_end = get_handleIndices(self)
         
-        mc.pointConstraint([ml_jointHandles[idx_start].mNode], str_vectorRP,maintainOffset=False)
+        mc.pointConstraint([ml_handles[idx_start].mNode], str_vectorRP,maintainOffset=False)
         ATTR.set_lock(str_vectorRP,'translate',True)
         
         
         
         #Settings =======================================================================================
-        mSettings = BLOCKSHAPES.settings(self,mPrerigNull = mPrerigNull)
+        mSettings = BLOCKSHAPES.settings(self,ml_targets = ml_handles,mPrerigNull = mPrerigNull)
 
         
         self.msgList_connect('prerigHandles', ml_handles)
@@ -2493,19 +2556,325 @@ def prerig(self):
         #Controllers...------------------------------------------------------------------------------------------
         #self.UTILS.controller_wireHandles(self,ml_handles + ml_jointHelpers,'prerig')
         self.UTILS.controller_walkChain(self,ml_handles,'prerig')
-        self.UTILS.controller_walkChain(self,ml_jointHelpers,'prerig')
-        
-
+        #self.UTILS.controller_walkChain(self,ml_jointHelpers,'prerig')
         
         #Close out ==========================================================================================
         mNoTransformNull.v = False
+        
+        _baseCount = self.prerigNull.handleCount - 1 #self.numControls - 1        
+        if self.numControls > 1:
+            if not self.atUtils('datList_validate',datList='rollCount',count=_baseCount,defaultAttr='numRoll',forceEdit=0):
+                return False          
+        
         #cgmGEN.func_snapShot(vars())
+        create_jointHelpers(self,force=True)
         
         self.blockState = 'prerig'
-            
         return True
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    
+def create_jointHelpers(self, force = True):
+    #>>Joint placers ================================================================================    
+    _str_func = 'create_jointHelpers'
+    mPrerigNull = self.prerigNull
+    
+    #Joint placer aim....
+    
+    #Clean up
+    ml_jointHelpers = self.msgList_get('jointHelpers')
+    if not force:
+        return True
+
+    
+    #If we have existing, we want to save that result so we can try to match those changes 
+    _targetCurve = None
+    if ml_jointHelpers:
+        _targetCurve = CORERIG.create_at(None, 'curveLinear',
+                                         l_pos = [mObj.p_position for mObj in ml_jointHelpers])
+        
+    
+    for mJointHelper in ml_jointHelpers:
+        bfr = mJointHelper.getMessage('mController')
+        if bfr:
+            log.warning("Deleting controller: {0}".format(bfr))
+            mc.delete(bfr)
+        mJointHelper.delete()
+        
+    for k in ['jointHelpersGroup','jointHelpersNoTransGroup']:
+        old = mPrerigNull.getMessage(k)
+        if old:
+            log.warning("Deleting old: {0}".format(old))
+            mc.delete(old)
+    
+    old_loft = self.getMessage('jointLoftMesh')
+    if old_loft:
+        mc.delete(old_loft)
+        
+    
+    ml_handles = self.msgList_get('prerigHandles')
+    mNoTrans = self.noTransPrerigNull
+    
+    #ml_formHandles = self.msgList_get('formHandles')    
+    #mStartHandle = ml_formHandles[0]    
+    #mEndHandle = ml_formHandles[-1]    
+    mOrientHelper = self.orientHelper
+    
+    _size = self.jointRadius
+    
+    
+    ml_sets = LISTS.get_listPairs(ml_handles)
+    
+    #Name dat -----------------------------------------------------------------------
+    _d_base = self.atBlockUtils('skeleton_getNameDictBase')
+    _d_base['cgmType'] = 'jointHandle'
+    _l_names = ATTR.datList_get(self.mNode,'nameList')
+    
+    #Deal with Lever joint or not --------------------------------------------------
+    _b_lever = False
+    if self.addLeverBase:
+        if self.addLeverBase == 1:
+            log.debug(cgmGEN.logString_msg(_str_func,'lever Base helper cull'))                
+            _l_names = _l_names[1:]
+        else:
+            log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
+            _b_lever = True
+    
+    
+    _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
+    log.debug("|{0}| >> rollCount: {1}".format(_str_func,_rollCounts))
+    _int_rollStart = 0
+    
+    if self.addLeverBase:
+        _int_rollStart = 1
+    _d_rollCounts = {i+_int_rollStart:v for i,v in enumerate(_rollCounts)}
+    
+    
+    if len(_l_names) < len(ml_handles):
+        log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_handles)))
+        return False    
+    
+    #Groups ------------------------------------------------------------------------------
+    mGroupNoTrans = mNoTrans.doCreateAt('null')
+    mGroupNoTrans.rename('jointHelpers_noTransGroup')
+    mPrerigNull.connectChildNode(mGroupNoTrans.mNode,'jointHelpersNoTransGroup')
+    mGroupNoTrans.p_parent = mNoTrans
+    
+    mGroup = mPrerigNull.doCreateAt('null')
+    mGroup.rename('jointHelpersGroup')
+    mPrerigNull.connectChildNode(mGroup.mNode,'jointHelpersGroup')
+    mGroup.p_parent = mPrerigNull        
+    
+    
+    ml_mainHelpers = []
+    md_helperRolls = {}
+    mHandleFactory = self.asHandleFactory()
+    md_handleHelper = {}
+    ml_jointHelpers = []
+    
+    #First let's process our main handles =======================================================
+    for i,mHandle in enumerate(ml_handles):
+        mHandleFactory.setHandle(mHandle)
+        
+        mJointHelper = mHandleFactory.addJointHelper(baseSize = _size )
+    
+
+    
+        ml_mainHelpers.append(mJointHelper)
+        md_helperRolls[mJointHelper] = []
+        md_handleHelper[mHandle] = mJointHelper
+        self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
+        ATTR.set_standardFlags(mJointHelper.mNode,['v'])        
+        
+    
+    #Let's do the meat ========================================================================
+    if self.addLeverBase:
+        ml_jointHelpers.append(ml_mainHelpers[0])
+    
+    d_rolls = {}
+    _mVectorUp =  self.atUtils('prerig_get_upVector')
+    _worldUpVector = [_mVectorUp.x,_mVectorUp.y,_mVectorUp.z]
+    
+    for i,mSet in enumerate(ml_sets):
+        _roll = _d_rollCounts.get(i)
+        if not _roll:
+            continue
+            
+        log.info(cgmGEN.logString_sub(_str_func,"Set: {0}".format(i)))
+        mHelperSet = [md_handleHelper[mSet[0]], md_handleHelper[mSet[1]]]
+        
+        #Make a tracker perset -----------------------------------------------------------------------------
+        trackcrv,clusters = CORERIG.create_at([mHelperSet[0].mNode,
+                                               mHelperSet[1].mNode],#ml_handleJoints[1]],
+                                              'linearTrack',
+                                              baseName = '{0}_to_{1}_track'.format(mHelperSet[0].p_nameBase,
+                                                                                   mHelperSet[1].p_nameBase))
+    
+        mTrackCrv = cgmMeta.asMeta(trackcrv)
+        mTrackCrv.p_parent = mGroupNoTrans
+        mHandleFactory.color(mTrackCrv.mNode, controlType = 'sub')
+        
+        if _roll == 1:
+            l_pcts = [.5]
+        else:
+            l_pcts = [ii*(1.0/(_roll+1)) for ii in range(_roll+1)] + [1.0]
+            l_pcts = l_pcts[1:-1]
+        
+        pprint.pprint([l_pcts,_roll])
+        
+        ml_jointHelpers.append(md_handleHelper[mSet[0]])
+        dRoll = mHelperSet[0].getNameDict()
+        ml_roll = []
+        for ii,pct in enumerate(l_pcts):
+            log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))            
+            #mLoc = cgmMeta.asMeta(LOC.create(position = CURVES.getPercentPointOnCurve(mTrackCrv.mNode, pct),
+            #                                 name = "pct_{0}_loc".format(i)))
+            
+            
+            dRoll['cgmNameModifier'] = 'roll'
+            dRoll['cgmIterator'] = ii
+            
+            mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=dRoll)
+        
+        
+            mJointHelper.p_position = CURVES.getPercentPointOnCurve(mTrackCrv.mNode, pct)
+            mJointHelper.p_parent = mGroup
+        
+            mGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+        
+        
+            res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mTrackCrv.mNode,'conPoint')
+            TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)
+        
+           
+        
+        
+            ml_jointHelpers.append(mJointHelper)
+            #self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
+            ATTR.set_standardFlags(mJointHelper.mNode,['v'])            
+        
+            md_helperRolls[mHelperSet[0]].append(mJointHelper)
+            ml_roll.append(mJointHelper)
+            
+            
+            
+            
+        mPrerigNull.msgList_connect('rollHelpers_{0}'.format(i), ml_roll)
+        pprint.pprint(ml_roll)
+            
+        #pprint.pprint([md_helperRolls[mHelperSet[0]], mHelperSet])
+        _upVector =  MATH.get_obj_vector(mHelperSet[0].mNode,'y+')
+        
+        if len(md_helperRolls[mHelperSet[0]]) >= 3:
+            
+            for ii,mJointHelper in enumerate(md_helperRolls[mHelperSet[0]]):
+                
+                if mJointHelper == md_helperRolls[mHelperSet[0]][-1]:
+                    SNAP.aim_atPoint(mJointHelper.trackGroup.mNode,
+                                     mHelperSet[1].p_position,
+                                     aimAxis='z+',mode = 'vector',vectorUp=_upVector)
+                else:
+                    SNAP.aim_atPoint(mJointHelper.trackGroup.mNode,
+                                     md_helperRolls[mHelperSet[0]][ii+1].p_position,
+                                     aimAxis='z+',mode = 'vector',vectorUp=_upVector)
+                    
+                if _targetCurve:
+                    mJointHelper.p_position = DIST.get_closest_point(mJointHelper.mNode,_targetCurve,)[0]                
+    
+    
+    #pprint.pprint(ml_jointHelpers)
+    #pprint.pprint(md_helperRolls)
+    log.info(cgmGEN.logString_sub(_str_func,"Rebuild list"))
+    
+    for mObj in ml_mainHelpers:
+        if mObj not in ml_jointHelpers:
+            ml_jointHelpers.append(mObj)
+            
+
+    
+    #Aim --------------------------------------------------------------------------
+    
+    log.info(cgmGEN.logString_sub(_str_func,"Aim"))
+    
+    l_targets = []
+
+    
+    for i,mJointHelper in enumerate(ml_jointHelpers):
+        log.info(cgmGEN.logString_sub(_str_func,"idx: {0} | {1}".format(i,mJointHelper)))
+        
+        
+        
+        
+        # Loft curve --------------------------------------------------------------------------------
+        mLoftCurve = mJointHelper.loftCurve
+        
+        if not mLoftCurve.getMessage('aimGroup'):
+            mLoftCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
+            
+        mAimGroup = mLoftCurve.getMessage('aimGroup',asMeta=True)[0]
+        
+        
+        mLoftCurve.v = 0
+        
+        #if not mJointHelper.getMessage('aimGroup'):
+        #    mJointHelper.doGroup(True,asMeta=True,typeModifier = 'aim',setClass='cgmObject')
+        #mJointAim = mJointHelper.getMessage('aimGroup',asMeta=True)[0]
+            
+            
+        if mJointHelper == ml_jointHelpers[-1]:
+            mc.aimConstraint(ml_jointHelpers[-2].mNode, mAimGroup.mNode, maintainOffset = False,
+                             aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])
+            
+            
+            """
+            if ml_jointHelpers[-2].getMessage('trackGroup'):
+                mTarget = ml_jointHelpers[-2].trackGroup
+            else:
+                mTarget = ml_jointHelpers[-2].aimGroup
+                
+            mc.aimConstraint(mTarget.mNode, mJointAim.mNode,
+                             maintainOffset = False,
+                             aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])"""
+            
+        else:
+            mc.aimConstraint(ml_jointHelpers[i+1].mNode, mAimGroup.mNode, maintainOffset = False, #skip = 'z',
+                             aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])
+            
+            """
+            if ml_jointHelpers[i+1].getMessage('trackGroup'):
+                mTarget = ml_jointHelpers[i+1].trackGroup
+            else:
+                mTarget = ml_jointHelpers[i+1]
+                
+            mc.aimConstraint(mTarget.mNode, mJointAim.mNode,
+                             maintainOffset = False, #skip = 'z',
+                             aimVector = [0,0,1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode,
+                             worldUpType = 'objectrotation', worldUpVector = [0,1,0])"""
+        
+        
+        l_targets.append(mLoftCurve.mNode)
+
+        
+    self.msgList_connect('jointHelpers',ml_jointHelpers)
+    self.atUtils('create_jointLoft',
+                 l_targets,
+                 mPrerigNull,
+                 'numJoints',
+                 degree = 1,
+                 baseName = self.cgmName )
+    
+    self.UTILS.controller_walkChain(self,ml_jointHelpers,'prerig')
+    
+    
+    if _targetCurve:
+        mc.delete(_targetCurve)
+        
+    
+
+    return ml_jointHelpers
     
 def prerigDelete(self):
     log.info('prerigDelete...')
@@ -2535,15 +2904,9 @@ def skeleton_build(self, forceNew = True):
         ml_joints = []
         
         #Get our roll section count
-        _baseCount = self.prerigNull.handleCount - 1 #self.numControls - 1
         #if self.addLeverEnd == 2:
             #_baseCount +=1
-            
-        if self.numControls > 1:
-            if not self.atUtils('datList_validate',datList='rollCount',
-                                count=_baseCount,
-                                defaultAttr='numRoll',forceEdit=0):
-                return False                
+                      
         
         mPrerigNull = self.prerigNull
         self.atUtils('module_verify')
@@ -2562,6 +2925,11 @@ def skeleton_build(self, forceNew = True):
         if not ml_prerigHandles:
             raise ValueError,"No prerig connected"
         
+        ml_handleHelpers = [mHandle.jointHelper for mHandle in ml_prerigHandles]
+        if len(ml_handleHelpers) != len(ml_prerigHandles):
+            raise ValueError,"Must have matching handleHelper length to prerig."
+            
+        
         ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
         if not ml_jointHelpers:
             raise ValueError,"No jointHelpers connected"
@@ -2579,9 +2947,9 @@ def skeleton_build(self, forceNew = True):
         #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
         
         _d_base = self.atBlockUtils('skeleton_getNameDictBase')
-        _l_names = ATTR.datList_get(self.mNode,'nameList')
+        #_l_names = ATTR.datList_get(self.mNode,'nameList')
         
-        
+
         #pprint.pprint([_d_base,_l_names,ml_jointHelpers])
         
         #Deal with Lever joint or not --------------------------------------------------
@@ -2589,13 +2957,13 @@ def skeleton_build(self, forceNew = True):
         if self.addLeverBase:
             if self.addLeverBase == 1:
                 log.debug(cgmGEN.logString_msg(_str_func,'lever Base helper cull'))                
-                _l_names = _l_names[1:]
-                ml_jointHelpers = ml_jointHelpers[1:]
+                #_l_names = _l_names[1:]
+                ml_handleHelpers = ml_handleHelpers[1:]
             else:
                 log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
                 _b_lever = True
-        
-        
+
+        """
         _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
         log.debug("|{0}| >> rollCount: {1}".format(_str_func,_rollCounts))
         _int_rollStart = 0
@@ -2607,7 +2975,7 @@ def skeleton_build(self, forceNew = True):
         if len(_l_names) < len(ml_jointHelpers):
             log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_jointHelpers)))
             return False
-
+            """
         _d_base['cgmType'] = 'skinJoint'
         _buildBall = self.addBall
         _buildToe = self.addToe
@@ -2619,55 +2987,45 @@ def skeleton_build(self, forceNew = True):
         mEndAim = False
         
         if _buildToe == 1:
-            ml_jointHelpers.pop(-1)
+            ml_handleHelpers.pop(-1)
         if _buildBall == 1:
-            ml_jointHelpers.pop(-1)
+            ml_handleHelpers.pop(-1)
             
         if _buildBall == 2 or _buildToe == 2 or _buildLeverEnd == 2:
             log.debug(cgmGEN.logString_msg(_str_func,'Special end handling'))
             _specialEndHandling=True
             
         if self.numControls == 2 and self.buildEnd == 0:
-            if len(ml_jointHelpers) > 1:
-                log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                                            
-                mEndAim = ml_jointHelpers.pop(-1)
+            if len(ml_handleHelpers) > 1:
+                log.info(cgmGEN.logString_msg(_str_func,' 2 controls | Pulling endJoint'))                                            
+                mEndAim = ml_handleHelpers.pop(-1)
                 
             
         if not _specialEndHandling and self.buildEnd != 1:
-            if len(ml_jointHelpers) > 1:
-                log.debug(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
-                ml_jointHelpers.pop(-1)
+            if len(ml_handleHelpers) > 1:
+                log.info(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
+                ml_handleHelpers.pop(-1)#...changed from handle helpers
                 
-        #pprint.pprint(ml_jointHelpers)
-        
-        """
-        if self.addLeverEnd:
-            if not self.hasEndJoint and not _buildBall:
-                if len(ml_jointHelpers) > (self.numControls + int(self.hasLeverJoint)):
-                    log.debug("|{0}| >> No end joint, culling...".format(_str_func,_rollCounts))
-                    ml_jointHelpers = ml_jointHelpers[:-1]
-        elif not self.hasEndJoint and _buildBall:
-            log.debug("|{0}| >> No end joint, culling...".format(_str_func,_rollCounts))
-            ml_jointHelpers = ml_jointHelpers[:-1]"""
-        
-        for mObj in ml_jointHelpers:
+ 
+        for mObj in ml_handleHelpers:
             l_pos.append(mObj.p_position)
                 
         #pprint.pprint(l_pos)
         mOrientHelper = self.orientHelper
         
         mVecUp = self.atUtils('prerig_get_upVector')
-        #mOrientHelper.getAxisVector('y+')
+        
         ml_handleJoints = JOINT.build_chain(l_pos, parent=True,
-                                            worldUpAxis= mVecUp, orient= False)
+                                            worldUpAxis= mVecUp, orient= True)
         
         _d_orient = {'worldUpAxis':mVecUp,
                      'relativeOrient':False}
         
+        
         if len(ml_handleJoints) == 1:
             if mEndAim:
                 mJoint = ml_handleJoints[0]
-                _vec =  ml_jointHelpers[0].getAxisVector('y+')
+                _vec =  ml_handleHelpers[0].getAxisVector('y+')
                 SNAP.aim(mJoint.mNode, mEndAim.mNode, 'z+','y+','vector',
                          _vec)
                 JOINT.freezeOrientation(mJoint.mNode)
@@ -2679,8 +3037,8 @@ def skeleton_build(self, forceNew = True):
                 ml_handleJoints[1].p_parent = False
                 #Lever...
                 mLever = ml_handleJoints[0]
-                log.debug("|{0}| >> lever helper: {1}".format(_str_func,ml_jointHelpers[0]))                        
-                _vec =  ml_jointHelpers[0].getAxisVector('y+')
+                log.debug("|{0}| >> lever helper: {1}".format(_str_func,ml_handleHelpers[0]))                        
+                _vec =  ml_handleHelpers[0].getAxisVector('y+')
                 log.debug("|{0}| >> lever vector: {1}".format(_str_func,_vec))            
                 
                 SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',
@@ -2697,57 +3055,60 @@ def skeleton_build(self, forceNew = True):
                 JOINT.orientChain(ml_handleJoints,
                                   **_d_orient)        
         
-    
+        
         ml_joints = []
         d_rolls = {}
         
-        for i,mJnt in enumerate(ml_handleJoints):
-            d=copy.copy(_d_base)
-            d['cgmName'] = _l_names[i]
-            #mJnt.rename(NAMETOOLS.returnCombinedNameFromDict(d))
+        def nameJoint(mJnt,mHelper):
+            d = mHelper.getNameDict()
+            d['cgmType'] = 'skinJoint'
             for t,v in d.iteritems():
-                mJnt.doStore(t,v)
+                if v not in [False,None]:
+                    mJnt.doStore(t,v)
             mJnt.doName()
+            
+        for i,mJnt in enumerate(ml_handleJoints):
+            log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
+            nameJoint(mJnt, ml_handleHelpers[i])
+            
             ml_joints.append(mJnt)
-            if mJnt != ml_handleJoints[-1]:
-                if _d_rollCounts.get(i):
-                    log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,_d_rollCounts.get(i)))
-                    _roll = _d_rollCounts.get(i)
-                    _p_start = l_pos[i]
-                    _p_end = l_pos[i+1]
+            ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
+            
+            if ml_rollHelpers:
+                log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))
+               
+                mJnt.select()
+                ml_rolls = []
+                
+                for ii,mHelper in enumerate(ml_rollHelpers):
+                    mRoll = mHelper.doCreateAt('joint')
+                    nameJoint(mRoll,mHelper)
                     
-                    if _roll != 1:
-                        _l_pos = BUILDUTILS.get_posList_fromStartEnd(_p_start,_p_end,_roll+2)[1:-1]
+                    if  ii:
+                        mRoll.p_parent = ml_rolls[-1]
                     else:
-                        _l_pos = BUILDUTILS.get_posList_fromStartEnd(_p_start,_p_end,_roll)
+                        mRoll.p_parent = mJnt
                         
-                    log.debug("|{0}| >> {1}".format(_str_func,_l_pos))
-                    ml_rolls = []
+                    ml_rolls.append(mRoll)
+                    ml_joints.append(mRoll)
                     
-                    ml_handleJoints[i].select()
-                    
-                    for ii,p in enumerate(_l_pos):
-                        mRoll = cgmMeta.validateObjArg( mc.joint (p=(p[0],p[1],p[2])))
-                        dRoll=copy.copy(d)
-                        
-                        dRoll['cgmNameModifier'] = 'roll'
-                        dRoll['cgmIterator'] = ii
-                        
-                        mRoll.rename(NAMETOOLS.returnCombinedNameFromDict(dRoll))
-                        for t,v in dRoll.iteritems():
-                            mRoll.doStore(t,v)                    
-                        #mRoll.jointOrient = mJnt.jointOrient
-                        mRoll.rotate = mJnt.rotate
-                        ml_rolls.append(mRoll)
-                        ml_joints.append(mRoll)
-                    d_rolls[i] = ml_rolls
+                JOINT.orientChain(ml_rolls,
+                                 worldUpAxis=mVecUp,
+                                 relativeOrient=True)
+                
+                
+                SNAP.aim_atPoint(ml_rolls[-1].mNode,
+                                 ml_handleJoints[i+1].p_position,
+                                 aimAxis='z+',mode = 'vector',vectorUp=mVecUp)                
+                JOINT.freezeOrientation(ml_rolls[-1].mNode)
+
+                d_rolls[i] = ml_rolls
+                
+        
     
         ml_joints[0].parent = False
         
-        _radius = self.atUtils('get_shapeOffset') or DIST.get_distance_between_points(ml_joints[0].p_position, 
-                                                                                      ml_joints[-1].p_position)/ 20
-        #_radius = DIST.get_distance_between_points(ml_joints[0].p_position, ml_joints[-1].p_position)/ 20
-        #MATH.get_space_value(5)
+        _radius = self.jointRadius
         
         for mJoint in ml_joints:
             mJoint.displayLocalAxis = 1
@@ -2763,14 +3124,13 @@ def skeleton_build(self, forceNew = True):
                 mJnt.radius = _radius / 2
         self.atBlockUtils('skeleton_connectToParent')
         
+        
         #reload(JOINT)
         #PivotHelper -------------------------------------------------------------------------------------
         if ml_formHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot helper found".format(_str_func))
-            if len(ml_joints) < len(ml_formHandles):
-                log.debug("|{0}| >> No extra ball/toe joints detected...".format(_str_func))
-                
-            elif not self.addLeverEnd:
+
+            if not self.addLeverEnd:
                 cnt_lever = 0
                 if _b_lever:cnt_lever = 1
                 log.debug("|{0}| >> Non quad setup finding end...".format(_str_func))
@@ -2779,18 +3139,28 @@ def skeleton_build(self, forceNew = True):
                 try:mEnd = ml_handleJoints[(cnt_lever + self.numControls) - 1]
                 except:mEnd=False
                 
+                
                 if mEnd:
-                    log.debug("|{0}| >> non quad end: {1}".format(_str_func,mEnd))                    
-                    ml_children = mEnd.getChildren(asMeta=True)
-                    for mChild in ml_children:
+                    log.info("|{0}| >> non quad end: {1}".format(_str_func,mEnd))
+                    idx_end = ml_joints.index(mEnd)
+                    
+                    #ml_children = mEnd.getChildren(asMeta=True)
+                    ml_childrenToDo = ml_joints[idx_end+1:]
+                    ml_childrenHelpers = ml_jointHelpers[idx_end+1:]
+                    
+                    for i,mChild in enumerate(ml_childrenToDo):
+                        print mChild
                         mChild.parent = False
-                        JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
-                                          worldUpAxis= ml_formHandles[-1].pivotHelper.getAxisVector('y+') )
+                        mChild.doSnapTo(ml_childrenHelpers[i])
+                        JOINT.freezeOrientation(mChild.mNode)
+                        
+                        #JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
+                        #                  worldUpAxis= ml_jointHelpers[-1].getAxisVector('y+') )
                 
                     mEnd.jointOrient = 0,0,0
                 
-                    for mChild in ml_children:
-                        mChild.parent = mEnd    
+                    ml_childrenToDo[0].p_parent = mEnd
+                    #mChild.parent = mEnd   
         """
         if len(ml_handleJoints) > self.numControls:
             log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
@@ -2834,8 +3204,9 @@ def skeleton_build(self, forceNew = True):
         
         
         if ml_children:
+            log.info('Children')
             ml_children[0].p_parent = mEnd
-            JOINT.freezeOrientation(ml_children[0].mNode)
+            #JOINT.freezeOrientation(ml_children[0].mNode)
                 
  
                     
@@ -8538,6 +8909,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     mc.delete([mObj.mNode for mObj in _bfr])
                 else:
                     return _bfr
+            if not mBlock.proxyBuild:
+                return 
             
         #Figure out our rig joints --------------------------------------------------------
         _str_rigSetup = mBlock.getEnumValueString('rigSetup')

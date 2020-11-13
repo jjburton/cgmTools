@@ -233,6 +233,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSides': 10,
                      'loftSplit':1,
                      'rotPivotPlace':'jointHelper',
+                     'visJointHandle':1,
                      'proxy':1,
                      'numShapers':2,
                      'jointRadius':.1,                     
@@ -479,6 +480,9 @@ def define(self):
             #md_vector['aim'].p_parent = mAimGroup
             
             _end = md_handles['end'].mNode
+            
+            self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
+            
         
         self.UTILS.rootShape_update(self)        
         _dat = self.baseDat
@@ -500,7 +504,6 @@ def define(self):
                 
         
         BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
-        self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
         
         #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))

@@ -1245,9 +1245,9 @@ def getControlShader(direction = 'center', controlType = 'main',
             ATTR.set(_node,'colorB',_rgb[2])
             ATTR.set(_node,'diffuse',.497)
             
-            ATTR.set(_node,'ambientColorR',_rgb[0]*.5)
-            ATTR.set(_node,'ambientColorG',_rgb[1]*.5)
-            ATTR.set(_node,'ambientColorB',_rgb[2]*.5)
+            ATTR.set(_node,'ambientColorR',_rgb[0]*.1)
+            ATTR.set(_node,'ambientColorG',_rgb[1]*.1)
+            ATTR.set(_node,'ambientColorB',_rgb[2]*.1)
             
             ATTR.set(_node,'specularColorR',.25)
             ATTR.set(_node,'specularColorG',.25)
