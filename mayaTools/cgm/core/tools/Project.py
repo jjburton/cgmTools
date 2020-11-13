@@ -2598,7 +2598,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self._d_itc =  {}
         self.filterField = None
         self.b_selCommandOn = True
-        self.v_hlc = [.5,.5,.5]
+        self.v_hlc = [1,.5,0]
         self._l_uiKeys = []
         self._l_uiStrings = []
         self._l_paths = []
@@ -2853,9 +2853,10 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         log.debug(cgmGEN.logString_start('setHLC'))        
         if arg:
             try:
-                _color = self._d_itc[arg]
+                #_color = self._d_itc[arg]
+                _color = self.v_hlc
                 log.debug("{0} | {1}".format(arg,_color))
-                _color = [v*.7 for v in _color]
+                _color = [v*.5 for v in _color]
                 self(e =1, hlc = _color)
                 return
             except Exception,err:
@@ -2974,7 +2975,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         
         for i,k in enumerate(l_keys):
-            _color = [.7,.7,.7]#d_colors.get(d_colors['center']) self.v_hlc  [1,.5,0]
+            _color = [1,1,1]#d_colors.get(d_colors['center']) self.v_hlc  [1,.5,0]
             self._l_itc.append(_color)            
             self._d_itc[k] = _color
             

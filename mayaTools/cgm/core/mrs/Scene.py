@@ -1111,7 +1111,9 @@ example:
         if not self._detailsColumn(q=True, vis=True):
             log.info("details column isn't visible")
             return
-
+        _spacer = 2
+        _bgc = .8,.8,.8
+        
         self._detailsColumn.clear()
 
         mc.setParent(self._detailsColumn)
@@ -1136,17 +1138,43 @@ example:
 
         mc.setParent(self._detailsColumn)
         cgmUI.add_LineSubBreak()
-
-        mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=15, label="Refresh MetaData", c=cgmGEN.Callback(self.refreshMetaData) )
-
+        
+        _row = mUI.MelHLayout(self._detailsColumn)
+        
+        mUI.MelButton(_row, ut = 'cgmUITemplate', h=15, label="Refresh Data",
+                      c=cgmGEN.Callback(self.refreshMetaData) )
+        mUI.MelButton(_row, ut = 'cgmUITemplate', h=15, label="Report Data",
+                      c=cgmGEN.Callback(self.metaData_print) )        
+        _row.layout()
+        
+        
         mc.setParent(self._detailsColumn)
         cgmUI.add_LineSubBreak()	
-
+        
+        _d = {'Asset':self.assetMetaData.get('asset', None),
+              'Type':self.assetMetaData.get('type', None),
+              'SubAsset':self.assetMetaData.get('subTypeAsset', None),
+              'Variation':self.assetMetaData.get('variation', None),
+              'User':self.assetMetaData.get('user', None)}
+        
+        for k in ['Asset','Type','SubAsset','Variation','User']:
+            _dat = _d.get(k)
+            if _dat is not None:
+                _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+                mUI.MelLabel(_row,l=k, w=70)
+                _row.setStretchWidget(mUI.MelTextField(_row, text=_dat, ann=_dat,
+                                                       editable = False, bgc=_bgc))	
+                mUI.MelSpacer(_row,w=_spacer)
+    
+                _row.layout()	
+                
+                
+        """
         _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
 
         mUI.MelLabel(_row,l='Asset', w=70)
         _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('asset', ""), editable = False, bgc=(.8,.8,.8)))	
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
 
         _row.layout()
 
@@ -1154,7 +1182,7 @@ example:
 
         mUI.MelLabel(_row,l='Type', w=70)
         _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('type', ""), editable = False, bgc=(.8,.8,.8)))	
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
 
         _row.layout()
 
@@ -1162,7 +1190,7 @@ example:
 
         mUI.MelLabel(_row,l='SubType', w=70)
         _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('subType', ""), editable = False, bgc=(.8,.8,.8)))	
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
 
         _row.layout()
 
@@ -1171,7 +1199,7 @@ example:
 
             mUI.MelLabel(_row,l='SubAsset', w=70)
             _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('subTypeAsset', ""), editable = False, bgc=(.8,.8,.8)))	
-            mUI.MelSpacer(_row,w=5)
+            mUI.MelSpacer(_row,w=_spacer)
 
             _row.layout()	
 
@@ -1180,7 +1208,7 @@ example:
 
             mUI.MelLabel(_row,l='Variation', w=70)
             _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('variation', ""), editable = False, bgc=(.8,.8,.8)))	
-            mUI.MelSpacer(_row,w=5)
+            mUI.MelSpacer(_row,w=_spacer)
 
             _row.layout()	
 
@@ -1188,18 +1216,18 @@ example:
 
         mUI.MelLabel(_row,l='User', w=70)
         _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('user', ""), editable = False, bgc=(.8,.8,.8)))	
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
 
         _row.layout()	
-
+        """
         mUI.MelLabel(self._detailsColumn,l='Notes', w=70)
 
         _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
-        mUI.MelSpacer(_row,w=5)		
+        mUI.MelSpacer(_row,w=_spacer)		
         noteField = mUI.MelScrollField(_row, h=150, text=self.assetMetaData.get('notes', ""), wordWrap=True, editable=True, bgc=(.8,.8,.8))
         noteField(e=True, changeCommand=cgmGEN.Callback( self.saveMetaNote,noteField ) )
         _row.setStretchWidget(noteField)
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
         _row.layout()
 
         if self.assetMetaData.get('references', None):
@@ -1207,9 +1235,9 @@ example:
 
             for ref in self.assetMetaData.get('references', []):
                 _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
-                mUI.MelSpacer(_row,w=5)		
+                mUI.MelSpacer(_row,w=_spacer)		
                 _row.setStretchWidget(mUI.MelTextField(_row, text=ref, editable = False, bgc=(.8,.8,.8)))
-                mUI.MelSpacer(_row,w=5)
+                mUI.MelSpacer(_row,w=_spacer)
                 _row.layout()			
 
         if self.assetMetaData.get('shots', None):
@@ -1217,13 +1245,37 @@ example:
 
             for shot in self.assetMetaData.get('shots', []):
                 _row = mUI.MelHRowLayout(self._detailsColumn, w=150)
-                mUI.MelSpacer(_row,w=5)
-                mUI.MelTextField(_row, text=shot[0], editable = False, bgc=(.8,.8,.8), w = 80)
-                mUI.MelTextField(_row, text=shot[1][0], editable = False, bgc=(.8,.8,.8), w=40)
-                mUI.MelTextField(_row, text=shot[1][1], editable = False, bgc=(.8,.8,.8), w=40)
-                mUI.MelTextField(_row, text=shot[1][2], editable = False, bgc=(.8,.8,.8), w=40)
-                mUI.MelSpacer(_row,w=5)
+                _ann = "{0} | start: {1} | end: {2} | length: {3}".format(shot[0],shot[1][0],shot[1][1],shot[1][2])
+                mUI.MelSpacer(_row,w=_spacer)
+                mUI.MelTextField(_row, text=shot[0], ann = _ann,
+                                 editable = False, bgc=(.8,.8,.8), w = 120)
+                mUI.MelTextField(_row, text=shot[1][0], editable = False, ann = _ann,
+                                 bgc=(.8,.8,.8), w=40)
+                mUI.MelTextField(_row, text=shot[1][1], editable = False, ann = _ann,
+                                 bgc=(.8,.8,.8), w=40)
+                mUI.MelTextField(_row, text=shot[1][2], editable = False, ann = _ann,
+                                 bgc=(.8,.8,.8), w=40)
+                mUI.MelSpacer(_row,w=_spacer)
                 _row.layout()
+                
+                
+        mUI.MelLabel(self._detailsColumn,l='File', w=50)
+        for k in ['size','dateModified','dateAccess','file']:
+            if self.assetMetaData.get(k, None) is not None:
+                _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+                _dat = self.assetMetaData.get(k, "")
+                mUI.MelLabel(_row,l=k, w=70)
+                _row.setStretchWidget(mUI.MelTextField(_row, text=_dat, ann=_dat,
+                                                       editable = False, bgc=(_bgc)))	
+                mUI.MelSpacer(_row,w=_spacer)
+            
+                _row.layout()                
+        """
+        ata['size'] = os.path.getsize(self.versionFile)
+        data['dateModified'] = time.ctime(os.path.getmtime(self.versionFile))
+        data['dateAccess'] = time.ctime(os.path.getctime(self.versionFile))
+        data['file']
+        """
 
     def makeThumbnail(self):
         if self.versionFile:
@@ -1251,7 +1303,10 @@ example:
                 thumbFile = None
 
         return thumbFile
-
+    
+    def metaData_print(self):
+        pprint.pprint( self.getMetaDataFromCurrent() )
+        
     def getMetaDataFromCurrent(self):
         from cgm.core.mrs.Shots import AnimList
         import getpass
@@ -1267,6 +1322,11 @@ example:
         data['subTypeAsset'] = self.subTypeSearchList['scrollList'].getSelectedItem() if self.hasSub else ""
         data['variation'] = self.variationList['scrollList'].getSelectedItem() if self.hasVariant else ""
         data['user'] = getpass.getuser()
+        
+        data['size'] = os.path.getsize(self.versionFile)
+        data['dateModified'] = time.ctime(os.path.getmtime(self.versionFile))
+        data['dateAccess'] = time.ctime(os.path.getctime(self.versionFile))
+        data['file'] = self.versionFile
 
         data['saved'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
         data['notes'] = ""
@@ -1955,16 +2015,20 @@ example:
             log.warning("Failed to set bgc: {0} | {1}".format(_bgColor,err))
 
         try:
-            v = [MATH.Clamp(1.8 * v,None,1.0) for v in _bgColor]
-            vLite = [MATH.Clamp(1.8 * v, .8, 1.0) for v in _bgColor]
-            self._detailsToggleBtn(edit=True, bgc=v)
-            self._projectToggleBtn(edit=True, bgc=v)
-            #self.uiScrollList_dirContent(edit=True, hlc = vLite)
-            #self.uiScrollList_dirContent.v_hlc = vLite
-        except:
+            vTmp = [MATH.Clamp(1.5 * v,None,2.0) for v in _bgColor]
+            vLite = [MATH.Clamp(1.7 * v, .5, 1.0) for v in _bgColor]
+
+            
+            self._detailsToggleBtn(edit=True, bgc=vTmp)
+            self._projectToggleBtn(edit=True, bgc=vTmp)
+            #self.uiScrollList_dirContent(edit=True, bgc = vLite)
+            self.uiScrollList_dirContent.v_hlc = vLite
+        except Exception,err:
+            log.error("Load project color set error | {0}".format(err))
+            
             self._detailsToggleBtn(edit=True, bgc=(1.0, .445, .08))
             self._projectToggleBtn(edit=True, bgc=(1.0, .445, .08))
-            #self.uiScrollList_dirContent(edit=True, hlc = (1.0, .445, .08))
+            self.uiScrollList_dirContent(edit=True, hlc = (1.0, .445, .08))
 
 
         d_userPaths = self.project.userPaths_get()
