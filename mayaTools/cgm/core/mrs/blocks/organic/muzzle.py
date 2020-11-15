@@ -6098,6 +6098,10 @@ def rig_frame(self):
                 
             for mHandle in mLeftCorner,mRightCorner:
                 log.debug("|{0}| >> lip handles | {1}".format(_str_func,mHandle))
+                if mHandle == mLeftCorner:
+                    str_side = 'left'
+                else:
+                    str_side = 'right'
                 if mJaw:
                     mHandle.masterGroup.p_parent = mFollowBase
                     
@@ -6113,13 +6117,41 @@ def rig_frame(self):
                     mJawTrack.doName()
                     mJawTrack.p_parent = mJawSpaceMouth
                     
-                    mc.parentConstraint([mMainTrack.mNode,mJawTrack.mNode],
+                    const = mc.parentConstraint([mMainTrack.mNode,mJawTrack.mNode],
                                         mHandle.masterGroup.mNode,
-                                        maintainOffset=True)
+                                        maintainOffset=True)[0]
+
+
+                    #Create Reverse Nodes
+                    d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mJaw.mNode,
+                                                                          'cornerPin_{0}'.format(str_side,mHandle)],
+                                                                         [mMainTrack.mNode,'CornerPin_Left'],
+                                                                         [mMainTrack.mNode,'CornerPin_Right'],
+                                                                         keyable=True)
+
+                    targetWeights = mc.parentConstraint(const,q=True,
+                                                        weightAliasList=True,
+                                                        maintainOffset=True)
+
+                    #Connetct output of switch attribute to input of W1 of parentConstraint
+                    d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+                    d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+                    d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+                    d_blendReturn['d_result2']['mi_plug'].p_hidden = True
+
+                    #Set a deafult value of 0.5 so that the corners are weighted evenly
+                    ATTR.set_default(mJaw.mNode, 'cornerPin_{0}'.format(str_side, mHandle), 0.5)
+
+                    mJaw.setMayaAttr('cornerPin_{0}'.format(str_side, mHandle), .5)
+
+                    
                 else:
                     mHandle.masterGroup.p_parent = mMouth
-                    
-                
+            
+            #Adding an attribute of Open Jaw to the jaw controller.
+            #Benn Garnish added for his SDK setup
+            cgmMeta.cgmAttr(mJaw, 'OpenJaw', attrType='float', min = 0, max = 1,defaultValue = 0,keyable = True,lock=False,hidden=False)
+                      
                 
             mUprCenter.masterGroup.p_parent = mMouth
             if mJaw:
