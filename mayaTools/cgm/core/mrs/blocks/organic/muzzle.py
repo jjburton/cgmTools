@@ -6150,7 +6150,7 @@ def rig_frame(self):
             
             #Adding an attribute of Open Jaw to the jaw controller.
             #Benn Garnish added for his SDK setup
-            cgmMeta.cgmAttr(mJaw, 'OpenJaw', attrType='float', min = 0, max = 1,defaultValue = 0,keyable = True,lock=False,hidden=False)
+            #cgmMeta.cgmAttr(mJaw, 'OpenJaw', attrType='float', min = 0, max = 1,defaultValue = 0,keyable = True,lock=False,hidden=False)
                       
                 
             mUprCenter.masterGroup.p_parent = mMouth
