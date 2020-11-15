@@ -1576,7 +1576,8 @@ def addJointRadiusVisualizer(self,mParent = False):
     mJointRadius.rename("jointRadiusVis")
     _base = self.atUtils('get_shapeOffset')*2
     if self.jointRadius < .1:
-        self.jointRadius = _base
+        self.jointRadius = self.atUtils('get_shapeOffset')
+        
     self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
     mJointRadius.dagLock()
     mJointRadius.connectParentNode(self, 'rigBlock','jointRadiusVisualize')
@@ -1666,7 +1667,7 @@ def pivotHelper(self,mHandle=None,
         #_size = MATH.average(_bbsize)
         _size = baseSize
         if self.hasAttr('jointRadius'):
-            _sizeSub = self.jointRadius * .5
+            _sizeSub = self.jointRadius
         else:
             _sizeSub = _size * .2        
             

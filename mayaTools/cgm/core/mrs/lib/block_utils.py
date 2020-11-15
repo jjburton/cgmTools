@@ -1949,7 +1949,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
 
     log.debug("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
-    _d = {'format':1,#fit, 2 - #General
+    _d = {'format':3,#1,#fit, 2 - #General
           'polygonType':1,#'quads',
           'uNumber': baseCount + len(targets)}
 
@@ -2676,7 +2676,7 @@ def skeleton_getNameDictBase(self):
     
     
     for s in 'cgmDirection','cgmPosition':
-        _val = mModule.getMayaAttr(s)
+        _val = self.getMayaAttr(s)
         if _val and _val not in ['none','None','False']:
             _nameDict[s] = _val
     """
