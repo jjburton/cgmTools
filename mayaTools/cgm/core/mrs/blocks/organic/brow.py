@@ -107,17 +107,30 @@ d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
-_d_attrStateOn = {0:[],
-                  1:[],
-                  2:[],
-                  3:[],
-                  4:[]}
 
-_d_attrStateOff = {0:[],
-                   1:[],
-                   2:['blockScale','sy'],
-                   3:[],
-                   4:[]}
+d_attrStateMask = {'define':['addEyeSqueeze',
+                             'browSetup',
+                             'browType',
+                             'buildCenter',
+                             'controlTemple',
+                             'jointDepth',
+    ],
+                   'form':[ 'formBrowNum',
+                            'formForeheadNum',
+                            'numSplit_u',
+                            'numSplit_v',
+                       ],
+                   'prerig':[
+                    'conDirectOffset',
+                    'controlOffset',
+                    'numBrowControl',
+                             ],
+                   'skeleton':[ 'numBrowJoints',
+                    ],
+                   'rig':[
+                   ]}
+
+
 #>>>Profiles ==============================================================================================
 d_build_profiles = {}
 

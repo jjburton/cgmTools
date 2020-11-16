@@ -114,6 +114,66 @@ d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
                      }
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
+
+d_attrStateMask = {'define':[
+    'baseSizeX',
+    'baseSizeY',
+    'baseSizeZ',
+    'bridgeSetup',
+    'cheekSetup',
+    'cheekUprSetup',
+    'chinSetup',
+    'faceType',
+    'jawSetup',
+    'lipSetup',
+     'muzzleSetup',
+     'noseSetup',
+     'nostrilSetup',
+     'numBridgeSplit',
+     'smileSetup',
+     'sneerSetup',
+     'teethLwrSetup',
+     'teethUprSetup',
+     'tongueSetup',
+     'uprJawSetup'     
+    ],
+                   'form':[ 'numLipOverSplit',
+                            'numLipShapersLwr',
+                            'numLipShapersUpr',
+                            'numLipUnderSplit',
+                            'numLoftBag_u',
+                            'numLoftBridge_u',
+                            'numLoftBridge_v',
+                            'numLoftJaw_u',
+                            'numLoftJaw_v',
+                            'numLoftLipOver_u',
+                            'numLoftLipUnder_u',
+                            'numLoftLip_u',
+                            'numLoftLip_v',
+                            'numLoftNose_u',
+                            'numLoftNose_v',                            
+                       ],
+                   'prerig':[ 'jointDepthLip',
+                              'numConLips',
+                              'paramLwrStart',
+                              'paramUprStart',
+                              'preLipStartSplit',
+
+
+                       ],
+                   'skeleton':[
+                       'numJointsLipLwr',
+                       'numJointsLipUpr',
+                       'numJointsNoseTip',
+                       'numJointsNostril',
+                       'numJointsTongue',
+                       ],
+                   'rig':[
+                   ]}
+
+
+
+
 #>>>Profiles ==============================================================================================
 d_build_profiles = {}
 

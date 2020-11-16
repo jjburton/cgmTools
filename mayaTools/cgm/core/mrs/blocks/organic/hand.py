@@ -83,6 +83,26 @@ _d_attrStateOff = {0:[],
                    3:[],
                    4:[]}
 
+d_attrStateMask = {'define':[
+    'baseSizeX',
+    'baseSizeY',
+    'baseSizeZ',  
+    'definePose',
+    'fingerProfile',
+    'numFinger',
+    'numThumbInner',
+    'numThumbOuter',
+
+    ],
+                   'form':[
+                       ],
+                   'prerig':[
+                             ],
+                   'skeleton':[
+                    ],
+                   'rig':[
+                   ]}
+
 #>>>Profiles ===================================================================================================
 d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},

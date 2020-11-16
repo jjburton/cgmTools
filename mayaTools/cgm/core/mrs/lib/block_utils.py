@@ -705,9 +705,45 @@ def color(self):
                 elif mShape.overrideEnabled:
                     log.debug("|{0}| >> shape: {1}".format(_str_func,mShape))
                     mHandleFactory.color(mShape.mNode)
-            
+
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
+        
+def color_outliner(self,mNodes = None, arg = 'main', stateLinks = True):
+    _short = self.p_nameShort
+    _str_func = 'color'
+    log.debug(cgmGEN.logString_start(_str_func))
+
+    reload(BLOCKSHARE)
+    
+    d_color = BLOCKSHARE.d_outlinerColors.get(self.blockType)
+    if not d_color:
+        return log.warning(cgmGEN.logString_msg(_str_func,"No color data found"))
+    
+    if not mNodes:
+        mNodes = [self]
+        
+    def color(mArg,arg):
+        mArgs = VALID.listArg(mArg)
+        for mO in mArgs:
+            log.info(cgmGEN.logString_msg(_str_func, "Coloring: {0}".format(mO)))            
+            mO.useOutlinerColor = 1
+            mO.outlinerColor = d_color.get(arg)
+        
+    
+    for mNode in mNodes:
+        color(mNode,arg)
+        
+        if stateLinks:
+            for s in BLOCKSHARE._l_blockStates[:mNode.blockState+1]:
+                d_stateLinks = get_stateLinks(mNode,s)
+                for lnk in d_stateLinks.get('msgLinks',[]):
+                    mObj = mNode.getMessageAsMeta(lnk)
+                    #print mObj
+                    if mObj: color(mObj,'sub')
+            
+        
+        
 
 
 def test(self):
@@ -1184,7 +1220,7 @@ def get_stateLinks(self, mode = 'form' ):
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
         d_wiring = {}
         try:
-            d_wiring.update(getattr(mBlockModule,'d_wiring_{0}'.format(mode)))
+            d_wiring = CGMDICT.blendDat(d_wiring, getattr(mBlockModule,'d_wiring_{0}'.format(mode)))
             log.debug("|{0}| >>  Found {1} wiring dat in BlockModule".format(_str_func,mode))
         except Exception,err:
             log.debug("|{0}| >>  No {1} wiring dat in BlockModule. error: {2}".format(_str_func,mode,err))
@@ -1194,6 +1230,11 @@ def get_stateLinks(self, mode = 'form' ):
         if _noTrans not in d_wiring and self.getMessage(_noTrans):
             if not d_wiring.get('msgLinks'):d_wiring['msgLinks'] = []            
             d_wiring['msgLinks'].append(_noTrans)
+            
+            
+        for k,l in d_wiring.iteritems():
+            d_wiring[k] = LISTS.get_noDuplicates(l)
+            
         return d_wiring
         
     except Exception,err:
@@ -6664,7 +6705,7 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         _tmp = []
         for a in self.getAttrs(ud=True):
             if a not in _done:
-                _tmp.append(a)
+                _tmp.append(str(a))
         _tmp.sort()
         log.info(cgmGEN.logString_sub(_str_func,'Unknown...'))
         pprint.pprint(_tmp) 
