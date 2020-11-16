@@ -404,15 +404,51 @@ example:
                 if k in _dat['split']:
                     idx_split = _dat['split'].index(k)
                     l_temp = _dat['split'][idx_split:]
-                    print 'Found: {0} | {1}'.format(k,l_temp)
+                    print ('Found: {0} | {1}'.format(k,l_temp))
+
+                    numItemsFound = len(l_temp)   
                     
+                    if numItemsFound > 0:
+                        if l_temp[0] in self.categoryList:
+                            idx = self.categoryList.index(l_temp[0])
+                            self.SetCategory(idx)
+                        else:
+                            log.warning('{0} not found in category list'.format(l_temp[0]) )
+                            return
+                    
+                    if numItemsFound > 1:
+                        self.assetList['scrollList'].clearSelection()
+                        self.assetList['scrollList'].selectByValue(l_temp[1])
+                    
+                    if numItemsFound > 2:
+                        if l_temp[2] in self.subTypes:
+                            self.SetSubType(self.subTypes.index(l_temp[2]))
+                        else:
+                            log.warning('{0} not found in subType list'.format(l_temp[2]) )
+                            return
+                    
+                    if numItemsFound > 3:
+                        self.subTypeSearchList['scrollList'].clearSelection()
+                        self.subTypeSearchList['scrollList'].selectByValue(l_temp[3])
+                        self.LoadVariationList()
+                        
+                    if numItemsFound > 4:                  
+                        if self.hasVariant:
+                            self.variationList['scrollList'].clearSelection()
+                            self.variationList['scrollList'].selectByValue(l_temp[4])
+                            self.LoadVersionList()
+                            if numItemsFound > 5:   
+                                self.versionList['scrollList'].selectByValue(l_temp[5])
+                        else:
+                            self.versionList['scrollList'].selectByValue(l_temp[4])
+
                     #if self.mScene:
-                    self.categoryStore.value = i
-                    self.LoadOptions()
+                    #self.categoryStore.value = i
+                    #self.LoadOptions()
                     
-                    if select_idx:
-                        self.uiScrollList_dirContent.selectByIdx(select_idx[0])
-                    return
+                    #if select_idx:
+                        #self.uiScrollList_dirContent.selectByIdx(select_idx[0])
+                    #return
                         
                     
                     
@@ -445,7 +481,7 @@ example:
         
         self._projectToggleBtn = mUI.MelButton(_MainForm,
                                                ut = 'cgmUITemplate',
-                                               label="<", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleProjectColumn,lp=True))	
+                                               label=">", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleProjectColumn,lp=True))	
         
         _directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate')
 
@@ -1456,7 +1492,7 @@ example:
             self.buildDetailsColumn()
     def uiFunc_displayProject(self,val):
         self._projectForm(e=True, vis=val)
-        self._projectToggleBtn(e=True, label='>' if val else '<')
+        self._projectToggleBtn(e=True, label='<' if val else '>')
 
         if val:
             self.uiScrollList_dirContent.mDat = self.mDat
