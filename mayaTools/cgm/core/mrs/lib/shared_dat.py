@@ -13,6 +13,18 @@ __MAYALOCAL = 'BLOCKSHARE'
 
 import cgm.core.lib.shared_data as CORESHARE
 
+d_outlinerColors = {'master':{'main':CORESHARE._d_colors_to_RGB['yellowLight']},
+                    'face':{'main':CORESHARE._d_colors_to_RGB['greenWhite']},
+                    'limb':{'main':CORESHARE._d_colors_to_RGB['blueSkyWhite']},
+                    'head':{'main':CORESHARE._d_colors_to_RGB['redWhite']},
+                    'segment':{'main':CORESHARE._d_colors_to_RGB['orange']},
+                    'handle':{'main':CORESHARE._d_colors_to_RGB['purpleWhite']}}
+for k,d in d_outlinerColors.iteritems():
+    d['sub'] = [v * .8 for v in d['main']]
+    
+for k in ['eye','brow','muzzle']:
+    d_outlinerColors[k] = d_outlinerColors['face']
+
 d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockType':'string',
                 #'moduleTarget':'messageSimple',

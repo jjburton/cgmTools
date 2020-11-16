@@ -136,7 +136,8 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver 
 
                 
             _res = [mTrack.mNode, mPOCI.mNode]
-            
+            #md_res['mTrack'] = mTrack
+            #md_res['mPoci'] = mPOCI            
 
 
         if mDriver:
@@ -1354,3 +1355,30 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'limbFrameCurve'):
         
         return True
     except Exception,err:cgmGEN.cgmException(Exception,err)
+    
+    
+    
+    
+
+
+d_wiring_r_dragonWingFrame = {'mode':'default',
+                              'name':'R wingFrame',
+                              'modules':
+                              ['R_UPR_ring_limb_part',
+                               'R_UPR_middle_limb_part',
+                               'R_UPR_index_limb_part'],
+'color':[1],
+
+'driven':{1:[0,2],
+          }}
+
+d_wiring_l_dragonWingFrame = {'mode':'default',
+                              'name':'L wingFrame',
+                              'modules':
+                              ['L_UPR_ring_limb_part',
+                               'L_UPR_middle_limb_part',
+                               'L_UPR_index_limb_part'],
+'color':[1],
+
+'driven':{1:[0,2],
+          }}

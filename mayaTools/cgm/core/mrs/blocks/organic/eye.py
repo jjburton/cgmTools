@@ -114,6 +114,19 @@ d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
 
+
+d_attrStateMask = {'define':[
+    ],
+                   'form':[
+                       ],
+                   'prerig':[
+                             ],
+                   'skeleton':[
+                    ],
+                   'rig':[
+                   ]}
+
+
 #>>>Profiles ==============================================================================================
 d_build_profiles = {}
 

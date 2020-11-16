@@ -78,7 +78,7 @@ d_defaultSettings = {'version':__version__,
                      'numSpacePivots':1,
                      'attachPoint':'end'}
 
-d_wiring_prerig = {'msgLinks':['moduleTarget']}
+d_wiring_prerig = {'msgLinks':['prerigNull','moduleTarget']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
 
 _d_attrStateMasks = {0:[],

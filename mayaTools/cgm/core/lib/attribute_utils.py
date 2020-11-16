@@ -2972,7 +2972,8 @@ def datList_exists(node = None, attr = None, mode = None, dataAttr = None):
     else:
         _str_dataAttr = "{0}_datdict".format(attr)
         """
-    for i,k in enumerate(d_attrs.keys()):
+    l_keys = d_attrs.keys()
+    for i in l_keys:
         str_attr = d_attrs[i]
         if mode == 'message':
             if get_message(node,str_attr,dataAttr):
