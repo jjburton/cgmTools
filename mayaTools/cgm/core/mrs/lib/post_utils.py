@@ -129,7 +129,7 @@ def backup(self,ml_handles = None):
 
 
 def SDK_wip(ml = [], matchType = False,
-            d_attrs = d_attrs_toes, skipLever = True, skipFKBase = []):
+            d_attrs = {}, skipLever = True, skipFKBase = []):
     _str_func = 'siblingSDK_wip'
     log.info(cgmGEN.logString_start(_str_func))
     
