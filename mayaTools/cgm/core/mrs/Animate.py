@@ -2192,7 +2192,7 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
 
 _l_timeFunctions = ['reset','report',
                     'resetFK','resetIK','resetIKEnd','resetSeg','resetDirect',
-                    'FKon','IKon','FKsnap','Blendsnap','IKsnap','IKsnapAll','mirrorPush','mirrorPull','mirrorFlip',
+                    'FKon','IKon','FKsnap','blendsnap','IKsnap','IKsnapAll','mirrorPush','mirrorPull','mirrorFlip',
                    'aimToFK','aimOn','aimOff','aimToIK','aimSnap',
                    'aimSnap','aimToIK','aimToFK']
 
@@ -5307,11 +5307,12 @@ def mmUI_part(self,parent = None):
     
     #Switch =============================================================================
     _select = mc.menuItem(p=parent,l="Switch",subMenu=True)
-
+    d_modes = {'BlendSnap':'blendsnap'}
+    
     for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','Blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
               ]:
         #_d = d_setup[m]
-        _d_tmp = {'mode':m,
+        _d_tmp = {'mode':d_modes.get(m,m),
                   'contextMode':_context,
                   'contextTime':_contextTime,                  
                   'contextMirror':False,
@@ -5455,7 +5456,7 @@ def mmUI_part(self,parent = None):
         #Switch =============================================================================
         _select = mc.menuItem(p=_sub,l="Switch",subMenu=True)
     
-        for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','Blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
+        for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
                  ]:
             #_d = d_setup[m]
             _d_tmp = {'mode':m,
