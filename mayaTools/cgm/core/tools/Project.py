@@ -2770,6 +2770,119 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                 log.warning("Dir doesn't exists: {0}".format(mPath))
 
 
+    def uiFunc_sendDirToProject(self, path, toProjectPath):
+        _str_func = 'ui.uiFunc_sendToProject'
+        from shutil import copyfile
+        
+        log.info( cgmGEN.logString_msg(_str_func,"Selected: {0}".format(path)))            
+        log.info( cgmGEN.logString_msg(_str_func,"to: {0}".format(toProjectPath)))            
+        
+        newProject = data(filepath=toProjectPath)
+        newPath = os.path.normpath(path).replace(os.path.normpath(self.mDat.userPaths_get()['content']),
+                                                 os.path.normpath(newProject.userPaths_get()['content']))
+        
+        log.info( cgmGEN.logString_msg(_str_func,"New: {0}".format(newPath)))            
+
+        if os.path.exists(newPath):
+            result = mc.confirmDialog(
+                            title='Destination file exists!',
+                            message='The destination file already exists. Would you like to overwrite it?',
+                            button=['Yes', 'Cancel'],
+                                        defaultButton='Yes',
+                                                    cancelButton='Cancel',
+                                                    dismissString='Cancel')
+
+            if result != 'Yes':
+                return False
+
+        if not os.path.exists(os.path.dirname(newPath)):
+            _createPath = os.path.join(newPath,'')            
+            log.info( cgmGEN.logString_msg(_str_func,"Creating path : {0}".format(_createPath)))            
+            os.makedirs(os.path.dirname(_createPath))
+            
+            
+            
+        for f in os.listdir(path):
+            _fileSource = os.path.join(path,f)            
+            if os.path.isfile(_fileSource):
+                _fileTarget = os.path.join(newPath,f)
+                log.info('From: {0}'.format(_fileSource))
+                log.info('To: {0}'.format(_fileTarget))
+
+                copyfile(_fileSource, _fileTarget)
+                
+                if f.endswith('.ma') or f.endswith('.mb'):
+                    log.info('checking ref...')
+                    
+                    for refFile in mc.file(_fileSource,query=True, reference=True):
+                        if not os.path.exists(refFile):
+                            continue
+                        log.info('Ref found: {0}'.format(refFile))
+                        log.info(self.mDat.userPaths_get()['content'])
+                        log.info(newProject.userPaths_get()['content'])
+                        
+                        if os.path.normpath(self.mDat.userPaths_get()['content']) not in os.path.normpath(refFile):
+                            log.warning("Ref outside of known content: {0}".format(refFile))
+                            continue
+                
+                        newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.mDat.userPaths_get()['content']),os.path.normpath(newProject.userPaths_get()['content']))
+                        log.info('To: {0}'.format(newRefFilename))
+                        
+                        if not os.path.exists(newRefFilename):
+                            if not os.path.exists(os.path.dirname(newRefFilename)):
+                                os.makedirs(os.path.dirname(newRefFilename))
+                            copyfile(refFile, newRefFilename)                    
+                    
+            
+        return
+        copyfile(path, newPath)
+        
+        
+        return
+        #if os.path.exists(newFilename) and os.path.normpath(mc.file(q=True, loc=True)) == os.path.normpath(infoDict['filename']):
+        result = 'Cancel'
+        if not self.alwaysSendReferenceFiles.getValue():
+            result = mc.confirmDialog(
+                                title='Send Missing References?',
+                                message='Copy missing references as well?',
+                                button=['Yes', 'Yes and Stop Asking', 'Cancel'],
+                                                defaultButton='Yes',
+                                                            cancelButton='No',
+                                                            dismissString='No')
+
+        if result == 'Yes and Stop Asking':
+            self.alwaysSendReferenceFiles.setValue(1)
+
+        if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
+            log.info( cgmGEN.logString_msg(_str_func,"Trying References..."))
+            for refFile in mc.file(_file,query=True, reference=True):
+                if not os.path.exists(refFile):
+                    continue
+
+                newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+                print newRefFilename
+                if not os.path.exists(newRefFilename):
+                    if not os.path.exists(os.path.dirname(newRefFilename)):
+                        os.makedirs(os.path.dirname(newRefFilename))
+                    copyfile(refFile, newRefFilename)
+
+        """
+        result = mc.confirmDialog(
+                        title='Change Project?',
+                        message='Change to the new project?',
+                        button=['Yes', 'No'],
+                                    defaultButton='Yes',
+                                                cancelButton='No',
+                                                dismissString='No')
+
+        if result == 'Yes':
+            if self.LoadProject(infoDict['project']):
+                self.LoadOptions()"""
+        #else:
+        #    log.info( cgmGEN.logString_msg(_str_func,"Path mismatch, no ref possible"))
+            
+        log.info( cgmGEN.logString_msg(_str_func,"Done"))
+        
         
     #@cgmGEN.Timer
     def select_popup(self): 
@@ -2848,6 +2961,33 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                         ann = "Log dat: {0}".format(_path),
                         c= lambda *a:pprint.pprint(dat),
                         label = 'Log Dat')
+        
+        
+        #Send to Project =================================================================
+        _send = mUI.MelMenuItem(_popUp, l="Send To Project:",subMenu=True)
+
+        mPathList = cgmMeta.pathList('cgmProjectPaths')
+
+        project_names = []
+        from functools import partial
+        
+        for i,p in enumerate(mPathList.mOptionVar.value):
+            mProj = data(filepath=p)
+            name = mProj.d_project['name']
+            project_names.append(name)
+
+            if self.mDat.userPaths_get()['content'] == mProj.userPaths_get()['content']:
+                continue
+
+            mUI.MelMenuItem( _send,
+                             l=name if project_names.count(name) == 1 else '%s {%i}' % (name,
+                                                                                        project_names.count(name)-1),
+                                                c = cgmGEN.Callback(self.uiFunc_sendDirToProject,_path,p))
+            #self.d_subPops[mMenu].append(item)        
+        
+        
+        
+        
         
         return
         if self.mDat:

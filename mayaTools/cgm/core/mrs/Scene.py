@@ -451,7 +451,9 @@ example:
                     #return
                         
                     
-                    
+    def uiFunc_reloadContentBrowswer(self):
+        self.uiScrollList_dirContent.rebuild( self.directory)
+        
     def build_layoutWrapper(self,parent):
 
         _ParentForm = mUI.MelFormLayout(self,ut='cgmUISubTemplate')
@@ -515,7 +517,9 @@ example:
         #======================================
         # Projects Column
         _projectColumnTop = mUI.MelColumn(self._projectForm)
-        mUI.MelLabel(_projectColumnTop,l='Content', h=15, ut = 'cgmUIHeaderTemplate')
+        mUI.MelButton(_projectColumnTop,l='Content', h=15, ut = 'cgmUITemplate',
+                      c=lambda *a:self.uiFunc_reloadContentBrowswer())
+        
         
         _inside = _projectColumnTop
         
@@ -735,6 +739,7 @@ example:
                         command=self.file_replace)        
 
         self.uiPop_sendToProject_variant = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
+        
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
 
@@ -1494,9 +1499,9 @@ example:
         self._projectForm(e=True, vis=val)
         self._projectToggleBtn(e=True, label='<' if val else '>')
 
-        if val:
-            self.uiScrollList_dirContent.mDat = self.mDat
-            self.uiScrollList_dirContent.rebuild( self.directory)
+        #if val:
+            #self.uiScrollList_dirContent.mDat = self.mDat
+            #self.uiScrollList_dirContent.rebuild( self.directory)
             #self.buildProjectColumn()        
 
     def buildMenu_tools( self, *args):
@@ -2150,6 +2155,11 @@ example:
             self.LoadOptions()
         else:
             mel.eval('error "Project path does not exist"')
+            
+            
+        self.uiScrollList_dirContent.mDat = self.mDat
+        self.uiScrollList_dirContent.rebuild( self.directory)
+            
         return True
 
     def RenameAsset(self, *args):
