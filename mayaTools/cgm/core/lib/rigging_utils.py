@@ -1238,20 +1238,21 @@ def getControlShader(direction = 'center', controlType = 'main',
                 _hsv[2] = .8                
                 #_hsv = [v * .5]
                 _rgb = get_RGB_fromHSV(_hsv[0],_hsv[1],_hsv[2])
-                ATTR.set(_node,'diffuse',.1)
+                ATTR.set(_node,'diffuse',.8)
+            else:
+                ATTR.set(_node,'diffuse',.497)
                 
             ATTR.set(_node,'colorR',_rgb[0])
             ATTR.set(_node,'colorG',_rgb[1])
             ATTR.set(_node,'colorB',_rgb[2])
-            ATTR.set(_node,'diffuse',.497)
             
             ATTR.set(_node,'ambientColorR',_rgb[0]*.1)
             ATTR.set(_node,'ambientColorG',_rgb[1]*.1)
             ATTR.set(_node,'ambientColorB',_rgb[2]*.1)
             
-            ATTR.set(_node,'specularColorR',.25)
-            ATTR.set(_node,'specularColorG',.25)
-            ATTR.set(_node,'specularColorB',.25)
+            ATTR.set(_node,'specularColorR',.16)
+            ATTR.set(_node,'specularColorG',.16)
+            ATTR.set(_node,'specularColorB',.16)
             
             if transparent:
                 _d = {'transparency':.6,
@@ -1270,8 +1271,7 @@ def getControlShader(direction = 'center', controlType = 'main',
                     except Exception,err:
                         log.error(cgmGEN.logString_msg(_str_func, "Failed to set: {0} | {1} | {2}".format(a,v,err)))
 
-                
-                
+
             if controlType in ['pupil']:
                 ATTR.set(_node,'diffuse',0)
                 ATTR.set(_node,'specularColorR',0)

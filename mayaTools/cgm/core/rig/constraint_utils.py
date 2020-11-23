@@ -961,14 +961,12 @@ d_wiring_r_owlWingFrame2 = {'mode':'limbFrameCurve',
 
 #limbFrameCurve
 d_wiring_r_owlWingFrame = {'mode':'default',
-                           'name':'wingFrame',
+                           'name':'R_feathersFrame',
                            'modules':
                            ['R_wingBase_limb_part',
                             'R_wing_1_limb_part',
-                            'R_wing_2_limb_part',
-                            'R_wingEnd_limb_part'],
-'driven':{1:[0,3],
-          2:[0,3],
+                            'R_wing_2_limb_part'],
+'driven':{1:[0,2],
           }}
 
 d_wiring_r_owl = {'mode':'limbFrameCurve',
@@ -986,7 +984,7 @@ d_wiring_r_owl = {'mode':'limbFrameCurve',
                    'R_feather_4_segment_part',#10
                    'R_feather_5_segment_part'], #11
 'color':range(12),
-'name':'r_feathersFrame',
+'name':'R_feathersFrame',
 'curveDrivers':['R_wingBase_limb_part', 'R_wing_1_limb_part', 'R_wing_2_limb_part', 'R_wingEnd_limb_part'],
 'driven':{0:[0],
           1:[0,1],
@@ -1001,6 +999,49 @@ d_wiring_r_owl = {'mode':'limbFrameCurve',
           10:[2,3],
           11:[3]
           }}
+
+d_wiring_l_owlWingFrame = {'mode':'default',
+                           'name':'L_wingFrame',
+                           'modules':
+                           ['L_wingBase_limb_part',
+                            'L_wing_1_limb_part',
+                            'L_wing_2_limb_part'],
+                            #'L_wingEnd_limb_part'],
+'driven':{1:[0,2],#[0,3]
+          #2:[0,3],
+          }}
+
+d_wiring_l_owl = {'mode':'limbFrameCurve',
+                  'modules':
+                  ['L_featherUpr_1_segment_part',#0
+                   'L_featherUpr_2_segment_part',#01
+                   'L_featherUpr_3_segment_part',#02
+                   'L_feather_elbow_segment_part',#03
+                   'L_featherLwr_1_segment_part',#04
+                   'L_featherLwr_2_segment_part',#05
+                   'L_featherLwr_3_segment_part',#06
+                   'L_feather_1_segment_part',#07
+                   'L_feather_2_segment_part',#08
+                   'L_feather_3_segment_part',#09
+                   'L_feather_4_segment_part',#10
+                   'L_feather_5_segment_part'], #11
+'color':range(12),
+'name':'L_feathersFrame',
+'curveDrivers':['L_wingBase_limb_part', 'L_wing_1_limb_part', 'L_wing_2_limb_part', 'L_wingEnd_limb_part'],
+'driven':{0:[0],
+          1:[0,1],
+          2:[0,1],
+          3:[1],#[0,7],
+          4:[1,2],
+          5:[1,2],
+          6:[1,2],
+          7:[2,3],
+          8:[2,3],
+          9:[2,3],
+          10:[2,3],
+          11:[3]
+          }}
+
 
 #curveAttach
 d_wiring_r_owlCurve1 = {'modules':
@@ -1063,31 +1104,6 @@ d_wiring_r_owl2 = {'modules':
           11:[3]
           }}
 
-
-d_wiring_l_owl = {'modules':
-                  ['L_featherUpr_1_segment_part',#0
-                   'L_featherUpr_2_segment_part',#01
-                   'L_featherUpr_3_segment_part',#02
-                   'L_feather_elbow_segment_part',#03
-                   'L_featherLwr_1_segment_part',#04
-                   'L_featherLwr_2_segment_part',#05
-                   'L_featherLwr_3_segment_part',#06
-                   'L_feather_5_segment_part',#07
-                   'L_feather_4_segment_part',#08
-                   'L_feather_3_segment_part',#09
-                   'L_feather_2_segment_part',#10
-                   'L_feather_1_segment_part'] #11
-,
-'driven':{1:[0,3],
-          2:[0,3],
-          3:[0,7],
-          4:[3,7],
-          5:[3,7],
-          6:[3,7],
-          8:[7,11],
-          9:[7,11],
-          10:[7,11],
-          }}
 
 d_wiring_owlTailFrame = {'mode':'default',
                            #'orientOnly':True,

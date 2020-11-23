@@ -3621,7 +3621,7 @@ def siblings_get(self,matchType = False, matchProfile = False, excludeSelf = Tru
     if excludeSelf:
         ml_match.remove(self)
     
-    pprint.pprint(ml_match)
+    #pprint.pprint(ml_match)
     return ml_match
 
 def siblings_pushSubShapers(self,matchType=True,matchProfile=True):
@@ -3669,7 +3669,7 @@ def siblings_pushFormHandles(self,matchType=True,matchProfile=True):
             d[a]= mHandle.getMayaAttr(a)
         l.append(d)
     
-    pprint.pprint(l)
+    #pprint.pprint(l)
     
     for mSib in ml_siblings:
         log.info(cgmGEN.logString_msg(_str_func,mSib))
@@ -3696,7 +3696,7 @@ def siblings_pushPrerigHandles(self,matchType=True,matchProfile=True):
             d[a]= mHandle.getMayaAttr(a)
         l.append(d)
     
-    pprint.pprint(l)
+    #pprint.pprint(l)
     
     for mSib in ml_siblings:
         log.info(cgmGEN.logString_msg(_str_func,mSib))
@@ -3897,7 +3897,7 @@ def blockMirror_create(self, forceNew = False):
 
         
         log.debug("|{0}| >> Block settings...".format(_str_func, self.mNode))                    
-        pprint.pprint(_d)
+        #pprint.pprint(_d)
         
         mMirror = cgmMeta.createMetaNode('cgmRigBlock',
                                          **_d)
@@ -6656,7 +6656,7 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                 'advanced':['baseDat'],
                 'squashStretch':['squash','squashExtraControl','squashFactorMin','squashFactorMax',
                                  'squashMeasure'],
-                'vis':[ 'visLabels','visMeasure','visProximityMode'],
+                'vis':[ 'visLabels','visMeasure','visProximityMode','visJointHandle','visRotatePlane'],
                 'data':['version','blockType','blockProfile'],
                 'post':['proxyLoft','proxyGeoRoot','proxyType']}
 
@@ -9033,6 +9033,11 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 continue
             log.debug("|{0}| >> Meshing... {1}".format(_str_func,mBlock))
             
+    
+            if mBlock.getMayaAttr('meshBuild') in [False,0]:
+                log.error("|{0}| >> meshBuild off: {1}".format(_str_func,mBlock))
+                continue
+            
             if proxy:
                 _res = mBlock.verify_proxyMesh(puppetMeshMode=True)
                 if _res:ml_mesh.extend(_res)
@@ -9040,6 +9045,12 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             else:
                 _res = create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,)
                 if _res:ml_mesh.extend(_res)
+                
+                _side = get_side(mBlock)
+                
+            for mObj in _res:
+                CORERIG.colorControl(mObj.mNode,_side,'main',transparent=False,proxy=True)
+            
             
             """
             if skin:
@@ -9106,8 +9117,8 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
         if skin or proxy:
             mPuppet.msgList_connect('puppetMesh',ml_mesh)
             
-        for mGeo in ml_mesh:
-            CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
+        #for mGeo in ml_mesh:
+        #    CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
             
         return ml_mesh
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

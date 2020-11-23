@@ -497,9 +497,9 @@ class ui_blockEditor(cgmUI.cgmGUI):
         log.info("Setting Profile: {0} | {1}".format(mode,_profile))
         
         if mode == 'build':
-            self.uiFunc_blockCall('atUtils','buildProfile_load',_profile)
+            uiFunc_blockCall(self,'atUtils','buildProfile_load',_profile)
         elif mode == 'block':
-            self.uiFunc_blockCall('atUtils','blockProfile_load',_profile)
+            uiFunc_blockCall(self,'atUtils','blockProfile_load',_profile)
         else:
             return log.error("Unknown Profile mode: {0}".format(mode))
 
@@ -2269,7 +2269,7 @@ _d_post_order = {'Gather Space Drivers':'gatherSpaceDrivers',
                  'Mirror Verify':'mirrorVerify',
                  'Delete Blocks':'deleteBlocks',
                  'isHistoricallyInteresting':'ihi'}
-
+"""
 global UISTANDALONE
 UISTANDALONE = None
 
@@ -2284,23 +2284,26 @@ def uiStandAlone_get():
         #except Exception,err:
         #    log.error(err)
     return ui_toStandAlone()
+"""
+
+
 
 class ui_toStandAlone(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
-    WINDOW_NAME = 'MRS Build'    
+    WINDOW_NAME = 'MRSBuildSTANDALONE'    
     WINDOW_TITLE = 'MRS Build | {0}'.format(__version__)
     DEFAULT_MENU = None
     RETAIN = True
     MIN_BUTTON = False
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 200,230
+    DEFAULT_SIZE = 200,300
     
     def insert_init(self,*args,**kws):
         self.l_files = []
         
-        global UISTANDALONE
-        UISTANDALONE = self
+        #global UISTANDALONE
+        #UISTANDALONE = self
         
     """
     def insert_init(self,*args,**kws):
@@ -2345,9 +2348,7 @@ class ui_toStandAlone(cgmUI.cgmGUI):
     
         import cgm.core.mrs.lib.batch_utils as MRSBATCH
         reload(MRSBATCH)
-        
         MRSBATCH.create_MRS_batchFile(process=True)
-        
 
     @cgmGEN.Timer
     def uiFunc_process(self, f=None, blocks = [None],
@@ -2383,131 +2384,123 @@ class ui_toStandAlone(cgmUI.cgmGUI):
             f = copy.deepcopy(self.l_files)
             self.l_files = []#empty this as we're we don't want it staying stored after we've grabbed it
         
-        try:
+        #try:
+        
+        
+        """
+        f=None, blocks = [None], process = False,
+                                 postProcesses = True, deleteAfterProcess = False,
+                                 gatherOptionVars = True):
+                                 """
+            
+        l_pre = ['import maya',
+        'from maya import standalone',
+        'standalone.initialize()',
+        
+        'from maya.api import OpenMaya as om2',
+        'om2.MGlobal.displayInfo("Begin")',
+        'import maya.cmds as mc',
+        'mc.loadPlugin("matrixNodes")',      
+        'import cgm.core.mrs.lib.batch_utils as MRSBATCH']
+        
+        l_post = ['except:',
+        '    import msvcrt#...waits for key',
+        '    om2.MGlobal.displayInfo("Hit a key to continue")',
+        '    msvcrt.getch()',
+        'om2.MGlobal.displayInfo("End")',
+        'standalone.uninitialize()'    ]
+        
+        log.debug(cgmGEN.logString_sub(_str_func,"Checks ..."))
+        
+        l_paths = []
+        l_dirs = []
+        l_check = VALID.listArg(f)
+        l_mFiles = []
+        l_batch = []
+        if not l_check:
+            log.info(cgmGEN.logString_msg(_str_func,"No file passed. Using current"))
+            l_check = [mc.file(q=True, sn=True)]
+            
+        
+        for f in l_check:
+            mFile = PATHS.Path(f)
+            if not mFile.exists():
+                log.error("Invalid file: {0}".format(f))
+                continue
+            
+            log.debug(cgmGEN.logString_sub(_str_func))
+            
+            _path = mFile.asFriendly()
+            l_paths.append(_path)
+            _name = mFile.name()
+            
+            _d = mFile.up().asFriendly()
+            log.debug(cgmGEN.logString_msg(_str_func,_name))
+            _batchPath = os.path.join(_d,_name+'_MRSbatch.py')
+            log.debug(cgmGEN.logString_msg(_str_func,"batchPath: "+_batchPath))
+            log.debug(cgmGEN.logString_msg(_str_func,"template: "+_path))
             
             
-            """
-            f=None, blocks = [None], process = False,
-                                     postProcesses = True, deleteAfterProcess = False,
-                                     gatherOptionVars = True):
-                                     """
-                
-            l_pre = ['import maya',
-            'from maya import standalone',
-            'standalone.initialize()',
-            
-            'from maya.api import OpenMaya as om2',
-            'om2.MGlobal.displayInfo("Begin")',
-            'import maya.cmds as mc',
-            'mc.loadPlugin("matrixNodes")',      
-            'import cgm.core.mrs.lib.batch_utils as MRSBATCH']
-            
-            l_post = ['except:',
-            '    import msvcrt#...waits for key',
-            '    om2.MGlobal.displayInfo("Hit a key to continue")',
-            '    msvcrt.getch()',
-            'om2.MGlobal.displayInfo("End")',
-            'standalone.uninitialize()'    ]
-            
-            log.debug(cgmGEN.logString_sub(_str_func,"Checks ..."))
-            
-            l_paths = []
-            l_dirs = []
-            l_check = VALID.listArg(f)
-            l_mFiles = []
-            l_batch = []
-            if not l_check:
-                log.info(cgmGEN.logString_msg(_str_func,"No file passed. Using current"))
-                l_check = [mc.file(q=True, sn=True)]
-                
-            
-            for f in l_check:
-                mFile = PATHS.Path(f)
-                if not mFile.exists():
-                    log.error("Invalid file: {0}".format(f))
-                    continue
-                
-                log.debug(cgmGEN.logString_sub(_str_func))
-                
-                _path = mFile.asFriendly()
-                l_paths.append(_path)
-                _name = mFile.name()
-                
-                _d = mFile.up().asFriendly()
-                log.debug(cgmGEN.logString_msg(_str_func,_name))
-                _batchPath = os.path.join(_d,_name+'_MRSbatch.py')
-                log.debug(cgmGEN.logString_msg(_str_func,"batchPath: "+_batchPath))
-                log.debug(cgmGEN.logString_msg(_str_func,"template: "+_path))
-                
-                
-                mTar = PATHS.Path(_batchPath)
-                l_join = ["try:MRSBATCH.process_blocks_rig('{0}',**".format(mFile.asString()),'{','})']
-                if gatherOptionVars:
-                    for k in _l_post_order:
+            mTar = PATHS.Path(_batchPath)
+            l_join = ["try:MRSBATCH.process_blocks_rig('{0}',**".format(mFile.asString()),'{','})']
+            if gatherOptionVars:
+                for d,l in MRSBATCH.d_mrsPost_calls.iteritems():
+                    for k in l:# _l_post_order:
                         log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
                         
-                        if self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
-                            l_join.insert(2,"'{0}' : 1 ,".format(k))                    
-                 
-                            """
-                            l_join = ["try:MRSBATCH.process_blocks_rig('{0}'".format(mFile.asString())]
-                            if gatherOptionVars:
-                                for k in _l_post_order:
-                                    log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
+                        #self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
+                        l_join.insert(2,"'{0}' : {1} ,".format(k,int(self._dCB_reg[k].getValue())))
+
                                     
-                                    if self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
-                                        l_join.insert(1,'{0} = 1'.format(k))"""
+                _l = ''.join(l_join)
+           
+            else:
+                _l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
+            
+            print _l
+            
+            if mTar.getWritable():
+                if mTar.exists():
+                    os.remove(mTar)
                     
-
-                                        
-                    _l = ''.join(l_join)
-               
-                else:
-                    _l = "try:MRSBATCH.process_blocks_rig('{0}',postProcesses = {1})".format(mFile.asString(),postProcesses)
-                
-                print _l
-                
-                if mTar.getWritable():
-                    if mTar.exists():
-                        os.remove(mTar)
+                log.warning("Writing file: {0}".format(_batchPath))
+     
+                with open( _batchPath, 'a' ) as TMP:
+                    for l in l_pre + [_l] + l_post:
+                        TMP.write( '{0}\n'.format(l) )
                         
-                    log.warning("Writing file: {0}".format(_batchPath))
-         
-                    with open( _batchPath, 'a' ) as TMP:
-                        for l in l_pre + [_l] + l_post:
-                            TMP.write( '{0}\n'.format(l) )
-                            
-                    l_batch.append(mTar)
-                            
-                else:
-                    log.warning("Not writable: {0}".format(_batchPath))
-            
-            
-            if process:
-                log.debug(cgmGEN.logString_sub(_str_func,"Processing ..."))        
-                for f in l_batch:
-                    log.warning("Processing file: {0}".format(f.asFriendly()))            
-                    #subprocess.call([sys.argv[0].replace("maya.exe","mayapy.exe"),f.asFriendly()])
-                    subprocess.Popen([sys.argv[0].replace("maya.exe",
-                                                          "mayapy.exe"),'-i',
-                                      f.asFriendly()],
-                                     creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
-                    
-                    #if deleteAfterProcess:
-                    #    os.remove(f)
-
-            return
-        finally:
-            self.uiStatus(edit=True,vis=False)
-            cgmUI.progressBar_end(self.uiPB_test)
+                l_batch.append(mTar)
+                        
+            else:
+                log.warning("Not writable: {0}".format(_batchPath))
         
+        self.Close()
+        
+        if process:
+            log.debug(cgmGEN.logString_sub(_str_func,"Processing ..."))        
+            for f in l_batch:
+                log.warning("Processing file: {0}".format(f.asFriendly()))            
+                #subprocess.call([sys.argv[0].replace("maya.exe","mayapy.exe"),f.asFriendly()])
+                subprocess.Popen([sys.argv[0].replace("maya.exe",
+                                                      "mayapy.exe"),'-i',
+                                  f.asFriendly()],
+                                 creationflags = subprocess.CREATE_NEW_CONSOLE)# env=my_env
+                
+                #if deleteAfterProcess:
+                #    os.remove(f)
+
+        return
+        #finally:
+            #self.uiStatus(edit=True,vis=False)
+            #cgmUI.progressBar_end(self.uiPB_test)
+            #del self
     
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
         
         _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
-        _inside = mUI.MelColumnLayout(_MainForm)
+        _inside = mUI.MelScrollLayout(_MainForm)
 
         self.uiStatus = mUI.MelLabel(_inside,
                                      vis=False,
@@ -2522,31 +2515,36 @@ class ui_toStandAlone(cgmUI.cgmGUI):
 
         
         self._dCB_reg = {}
-        for k in _l_post_order:
-            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-            mUI.MelSpacer(_row,w=10)    
-            
-            mUI.MelLabel(_row, label = '{0}:'.format(k))
-            _row.setStretchWidget(mUI.MelSeparator(_row))
-
-            _plug = 'cgmVar_mrsPostProcess_' + _d_post_order.get(k,k)
-            try:self.__dict__[_plug]
-            except:
-                log.debug("{0}:{1}".format(_plug,1))
-                self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 1)
+        for d,l in MRSBATCH.d_mrsPost_calls.iteritems():
+            mUI.MelLabel(_inside, label = '{0}'.format(d.upper()), h = 13, 
+                         ut='cgmUIHeaderTemplate',align = 'center')
+            #mc.setParent(_inside)
+            #cgmUI.add_Header(d)
+            for k in l:
+                _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+                mUI.MelSpacer(_row,w=10)    
+                
+                mUI.MelLabel(_row, label = '{0}:'.format(k))
+                _row.setStretchWidget(mUI.MelSeparator(_row))
     
-            l = k
-            _buffer = _d_post_order.get(k)
-            if _buffer:l = _buffer
-            _cb = mUI.MelCheckBox(_row,
-                                  #annotation = 'Create qss set: {0}'.format(k),
-                                  value = self.__dict__[_plug].value,
-                                  onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
-                                  offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
-            self._dCB_reg[k] = _cb
-            mUI.MelSpacer(_row,w=10)    
-            
-            _row.layout()
+                _plug = 'cgmVar_mrsPostProcess_' + _d_post_order.get(k,k)
+                try:self.__dict__[_plug]
+                except:
+                    log.debug("{0}:{1}".format(_plug,1))
+                    self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 1)
+        
+                l = k
+                _buffer = _d_post_order.get(k)
+                if _buffer:l = _buffer
+                _cb = mUI.MelCheckBox(_row,
+                                      #annotation = 'Create qss set: {0}'.format(k),
+                                      value = self.__dict__[_plug].value,
+                                      onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                                      offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+                self._dCB_reg[k] = _cb
+                mUI.MelSpacer(_row,w=10)    
+                
+                _row.layout()
 
         
         
@@ -2578,7 +2576,91 @@ class ui_toStandAlone(cgmUI.cgmGUI):
                         ],
                   attachNone = [(_button,"top")])
 
+def uiFunc_blockCall(self,*args,**kws):
+    try:
+        if not self.mBlock:
+            return
+        mBlock = self.mBlock
         
+        b_update = kws.pop('updateUI',True)
+        
+        mc.refresh(su=1)
+        _sel = mc.ls(sl=1)
+        if _sel:
+            mc.select(cl=1)
+
+        _str_func = ''
+        log.info(cgmGEN._str_hardBreak)
+        
+        _mode = kws.get('mode')
+
+        if _mode == 'setParentToSelected':
+            mSelectedBlock = BLOCKGEN.block_getFromSelected()
+            if not mSelectedBlock:
+                return log.error("|{0}| >> mode: {1} requires selected block".format(_str_func,_mode)) 
+            kws['parent'] = mSelectedBlock
+            kws.pop('mode')
+                
+            
+        #elif  _mode == 'clearParentBlock':
+        #else:
+            #raise ValueError,"Mode not setup: {0}".format(_mode)            
+        b_devMode = False
+        b_dupMode = False
+        b_changeState = False
+        b_rootMode = False
+        if args[0] == 'changeState':
+            kws['forceNew'] = True
+            kws['checkDependency'] = True
+
+
+        if args[0] == 'VISUALIZEHEIRARCHY':
+            BLOCKGEN.get_rigBlock_heirarchy_context(mBlock,_contextMode,False,True)
+            return True
+        elif args[0]== 'focus':
+            log.debug("|{0}| >> Focus call".format(_str_func))
+            #ml_root = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,'root',True,False)
+            #for mBlock in ml_blocks:
+            log.info("|{0}| >> Focus call | {1}".format(_str_func,mBlock))                    
+            mBlock.UTILS.focus(mBlock,args[1],args[2],ml_focus=[])
+            return
+        
+        #Now parse to sets of data
+        if args[0] == 'select':
+            #log.info('select...')
+            return mc.select(mBlock.mNode)
+
+        ml_res = []
+        md_dat = {}
+        md_datRev = {}
+        
+        _short = mBlock.p_nameShort
+        _call = str(args[0])
+        if _call in ['atUtils']:
+            _call = str(args[1])
+        
+        #pprint.pprint(locals())
+        res = getattr(mBlock,args[0])(*args[1:],**kws) or None
+        
+        ml_res.append(res)
+        if res:
+            if kws.get('mode') not in ['prechecks']:
+                pprint.pprint(res)
+                
+        if b_update:
+            self.uiFunc_updateStatus()
+            
+            if self.mUI_builder:
+                self.mUI_builder.uiScrollList_blocks.rebuild()
+
+        if _sel:
+            try:mc.select(_sel)
+            except:pass
+            
+    #except Exception,err:
+    #    cgmGEN.cgmExceptCB(Exception,err)
+    finally:
+        mc.refresh(su=0)
         
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -3117,9 +3199,9 @@ class ui(cgmUI.cgmGUI):
                                },
                'Mirror':{
                 'order':['Build','Rebuild','Push','Pull','Self','Left', 'Right',
-                         'Settings',' Push',' Pull'],
+                         'Settings',' Push',' Pull','SubShapes','   Push', '   Pull'],
                 'divTags':[],
-                'headerTags':['Self','Settings'],
+                'headerTags':['Self','Settings','SubShapes'],
                 'Build':{'ann':'Build Mirror block',
                          'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                              'atUtils','blockMirror_create',
@@ -3153,8 +3235,16 @@ class ui(cgmUI.cgmGUI):
                                    'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                   'atUtils','blockMirror_settings',
                                   **{'updateUI':True,'mode':'pull'})},                   
-
-                               },                              
+               '   Push':{'ann':'Mirror block settings in context | push',
+                                  'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                 'atUtils','blockMirror_subShapers',
+                                 **{'updateUI':True,'mode':'push'})},
+               '   Pull':{'ann':'Mirror block settings in context | push',
+                                  'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                 'atUtils','blockMirror_subShapers',
+                                 **{'updateUI':True,'mode':'pull'})},
+               },
+               
                }
 
       
@@ -3443,7 +3533,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_advanced.clear()   
         _menu = self.uiMenu_advanced
         d_s = {'Batch':{'Send File To MayaPy':{'ann':"Process the current file. Will be saved at it's current location as _ BUILD.ext",
-                                            'call':cgmGEN.Callback(uiStandAlone_get),},
+                                            'call':cgmGEN.Callback(ui_toStandAlone),},
                         'Old Method':{'ann':"Process the current file. Will be saved at it's current location as _ BUILD.ext",'call':cgmGEN.Callback(self.batch_call),}},
                'Utilities':{
                    'Verify':{'ann':'Check if the block is current (DEV)',
@@ -7127,9 +7217,9 @@ def uiFunc_profileSet(self,mode = 'build',**kws):
     log.info("Setting Profile: {0} | {1}".format(mode,_profile))
     
     if mode == 'build':
-        self.uiFunc_blockCall('atUtils','buildProfile_load',_profile)
+        uiFunc_blockCall(self,'atUtils','buildProfile_load',_profile)
     elif mode == 'block':
-        self.uiFunc_blockCall('atUtils','blockProfile_load',_profile)
+        uiFunc_blockCall(self,'atUtils','blockProfile_load',_profile)
     else:
         return log.error("Unknown Profile mode: {0}".format(mode))
 
@@ -7207,10 +7297,11 @@ def uiFunc_blockCall(self,*args,**kws):
                 pprint.pprint(res)
                 
         if b_update:
-            self.uiFunc_updateStatus()
+            try:self.uiFunc_updateStatus()
+            except:pass
             
-            if self.mUI_builder:
-                self.mUI_builder.uiScrollList_blocks.rebuild()
+            if UI:
+                UI.uiScrollList_blocks.rebuild()
 
         if _sel:
             try:mc.select(_sel)

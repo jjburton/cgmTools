@@ -2105,6 +2105,22 @@ def match(base=None, target = None, autoRebuild = True, keepOriginal = True, spa
         
     return True
 
+def distribute(target=None,comp='ep',closed= True, rebuild = 1):
+    _l_shapes_target = mc.listRelatives(target,shapes=True,fullPath=True)
+    
+    for i,s in enumerate(_l_shapes_target):
+        _l_ep_source = mc.ls("{0}.{1}[*]".format(s,comp),flatten=True)    
+        
+        if closed:
+            _l_split = getUSplitList(target,len(_l_ep_source)+1,rebuild=rebuild, rebuildSpans=20)
+        else:
+            _l_split = getUSplitList(target,len(_l_ep_source),rebuild=rebuild, rebuildSpans=20)
+            
+        for ii,ep in enumerate(_l_ep_source):
+            #if ep == _l_ep_source[-1]:
+            #    POS.set(ep, _l_split[0])
+            #else:
+            POS.set(ep, _l_split[ii])
 
     
     

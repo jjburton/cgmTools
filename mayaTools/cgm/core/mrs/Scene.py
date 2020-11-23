@@ -667,15 +667,15 @@ example:
         
         self._referenceSubTypePUM = mUI.MelMenuItem(pum,label="Reference",
                                                     ann = _d_ann.get('reference'),
-                                                    command=self.ReferenceFile,en=False )
+                                                    command=self.ReferenceFile,en=1 )
         self._importSubTypePUM = mUI.MelMenuItem(pum,label="Import",
                                                  ann = _d_ann.get('import'),
-                                                 command=self.ImportFile,en=False )
+                                                 command=self.ImportFile,en=1 )
         self._importSubTypePUM = mUI.MelMenuItem(pum,label="Replace",
                                                  ann=_d_ann.get('replace','Replace'),
-                                                 command=self.file_replace,en=False )
+                                                 command=self.file_replace,en=1 )
         
-        self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=False)
+        self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=1)
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
 
@@ -2302,7 +2302,11 @@ example:
     def ImportFile(self, *args):
         filePath = self.versionFile
         if self.versionFile and os.path.exists(self.versionFile):
-            mc.file(filePath, i=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
+            #file -import -type "mayaBinary"  -ignoreVersion -mergeNamespacesOnClash false -rpr #"wing_birdBase_03" -options "v=0;"  -pr  -importTimeRange "combine" "D:/Dropbox/mrsMakers_share/content/Demo/wing/scenes/birdBase/wing_birdBase_03.mb";
+
+            mc.file(filePath, i=True, ignoreVersion=True,
+                    mergeNamespacesOnClash=False,
+                    importTimeRange = 'combine')
         else:
             log.info( "Version file doesn't exist" )
     def file_replace(self, *args):

@@ -127,9 +127,12 @@ def backup(self,ml_handles = None):
     
 
 
+d_default = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50, 'ease':{0:.25, 1:.5}},
+           'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
+           'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30,'ease':{0:.25, 1:.5}},}
 
 def SDK_wip(ml = [], matchType = False,
-            d_attrs = {}, skipLever = True, skipFKBase = []):
+            d_attrs = d_default, skipLever = True, skipFKBase = []):
     _str_func = 'siblingSDK_wip'
     log.info(cgmGEN.logString_start(_str_func))
     
@@ -234,8 +237,13 @@ def SDK_wip(ml = [], matchType = False,
                 
                 log.info(cgmGEN.logString_msg(_str_func,"{0}| {1} | {2}".format(i,ii,d_use))) 
                 
+                if d_use.get('skip'):
+                    continue                
+                
                 d_ease = d_use.get('ease',{})
                 v_ease = d_ease.get(ii,None)
+                
+                l_rev = d_sib.get('reverse',[])
                 
                 if  issubclass( type(d_use['d']), dict):
                     d_do = d_use.get('d')
@@ -244,6 +252,9 @@ def SDK_wip(ml = [], matchType = False,
                     
                     
                 for k,d3 in d_do.iteritems():
+                    
+                    if d3.get('skip'):
+                        continue
 
                     mc.setDrivenKeyframe("{0}.{1}".format(mSDK.mNode, k),
                                          currentDriver = "{0}.{1}".format(_settings, _aDriver),
@@ -255,6 +266,10 @@ def SDK_wip(ml = [], matchType = False,
                     pos_d = d_use.get('+d', 1.0)
                     if v_ease is not None:
                         pos_v = pos_v * v_ease
+                    
+                    if i in l_rev:
+                        print("...rev pos")
+                        pos_v*=-1
                     
                     ATTR.set_max("{0}.{1}".format(_settings, _aDriver),pos_d)
                     
@@ -270,6 +285,11 @@ def SDK_wip(ml = [], matchType = False,
                     neg_d = d_use.get('-d', -1.0)
                     if v_ease is not None:
                         neg_v = neg_v * v_ease                
+                    
+                    if i in l_rev:
+                        print("...rev neg")                        
+                        neg_v*=-1
+                            
                     ATTR.set_min("{0}.{1}".format(_settings, _aDriver),neg_d)
                         
                     if neg_v:
@@ -279,9 +299,7 @@ def SDK_wip(ml = [], matchType = False,
                                          driverValue = neg_d, value = neg_v)        
      
 
-d_attrs = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50, 'ease':{0:.25, 1:.5}},
-           'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
-           'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30,'ease':{0:.25, 1:.5}},}
+
 
 #bear...
 d_toeClaws = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50, 'ease':{0:.25, 1:.5, 3:0}},
@@ -388,24 +406,44 @@ d_pawBack = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{
                4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
 
 
-d_attrs_bat= {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}},
-              'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
-              'roll':{0:{0:{'d':'rx', '+d':10.0, '-d':-10.0, '+':10, '-':-40}},
-              'd':'rx', '+d':10.0, '-d':-10.0, '+':80, '-':-40},
-              'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':1,'-':-1,
-              0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':10}},#inner
-              1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-20, '-':25}},#main
-              2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':-10}},#mid
-              3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':40, '-':-30}},#end
+d_talons = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}, 'reverse':[0]},
+              'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}, 'reverse':[0]},
+              'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':100, '-':-40, 'ease':{1:.5, 2:.5}},
+              'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':0,'-':-0,
+              0:{'skip':True},#thumb
+              1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-20, '-':25}},#index
+              2:{0:{'d':'ry', '+d':10.0, '-d':-10.0,'+':0, '-':0}},#middle
+              3:{0:{'d':'ry',  '+d':10.0, '-d':-10.0, '+':20, '-':-25}},#ring
               4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
 
+d_dragonFront = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}},
+                 'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
+                 'roll':{0:{0:{'d':'rx', '+d':10.0, '-d':-10.0, '+':10, '-':-40}},
+                 'd':'rx', '+d':10.0, '-d':-10.0, '+':80, '-':-40},
+                 'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':1,'-':-1,
+                 0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':10}},#inner
+                 1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-20, '-':25}},#main
+                 2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':-10}},#mid
+                 3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':40, '-':-30}},#end
+                 4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
 
-
-
+d_tailFan7 = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}, 'reverse':[0,1,2]},
+              'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':50, '-':-50,'ease':{0:.25, 1:.5}, 'reverse':[0,1,2]},
+              'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':100, '-':-40, 'ease':{0:.25, 1:.5, 2:.5}},
+              'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':0,'-':-0,
+              0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':90, '-':-50}},
+              1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':60, '-':-30}},
+              2:{0:{'d':'ry', '+d':10.0, '-d':-10.0,'+':30, '-':-20}},
+              3:{'skip':True},#---middle
+              4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':30, '-':-20}},
+              5:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':60, '-':-30}},
+              6:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':90, '-':-50}},
+              
+              }}#pinky
 
 
 def siblingSDK_wip(mTarget = 'L_ring_limb_part',matchType = False,
-                   d_attrs = d_attrs):
+                   d_attrs = d_default):
     _str_func = 'siblingSDK_wip'
     log.info(cgmGEN.logString_start(_str_func))
     

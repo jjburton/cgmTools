@@ -688,7 +688,8 @@ d_block_profiles = {
        'baseAim':[0,0,1],
        'baseUp':[0,1,0],
        'baseSize':[10,10,20],
-       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
+       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},
+       'meshBuild':False,
        },    
 
    }
@@ -756,7 +757,7 @@ l_attrsStandard = ['side',
                    'visLabels',
                    'visProximityMode',
                    'visJointHandle',
-                   
+                   'meshBuild',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'jointRadius',
                    'shapeDirection',
@@ -827,6 +828,7 @@ d_defaultSettings = {'version':__version__,
                      'addBall':'joint',
                      'addToe':'joint',
                      'addLeverBase':'none',
+                     'meshBuild':True,
                      'addLeverEnd':'none',                     
                      'visLabels':True,
                      'settingsDirection':'up',
@@ -8942,6 +8944,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
       
         _start = time.clock()
         mBlock = self
+        
+        if not mBlock.meshBuild:
+            log.error("|{0}| >> meshBuild off".format(_str_func))                        
+            return False
+        
         mModule = self.moduleTarget
         mRigNull = mModule.rigNull
         mSettings = mRigNull.settings

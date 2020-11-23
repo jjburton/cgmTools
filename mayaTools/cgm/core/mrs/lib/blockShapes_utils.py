@@ -2393,21 +2393,21 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             
             _settingsSize = v_offset * 2.0
             
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
-                                                                           '{0}+'.format(_jointOrientation[2]),
-                                                                           baseSize=1.0),'cgmObject',setClass=True)
+            mSettings = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_settingsSize,
+                                                                      '{0}+'.format(_jointOrientation[2]),
+                                                                      baseSize=1.0),'cgmObject',setClass=True)
 
-            mSettings = _mTar.doCreateAt(setClass= 'cgmObject')
+            #mSettings = _mTar.doCreateAt(setClass= 'cgmObject')
             
-            mSettingsShape.doSnapTo(_mTar.mNode)
+            mSettings.doSnapTo(_mTar.mNode)
             
             
-            mSettingsShape.p_position = newPos
+            #mSettingsShape.p_position = newPos
             mSettings.p_position = newPos
             
             mMesh_tmp.delete()
             
-            SNAP.aim_atPoint(mSettingsShape.mNode,
+            SNAP.aim_atPoint(mSettings.mNode,
                              _mTar.p_position,
                              aimAxis=_jointOrientation[0]+'+',
                              mode = 'vector',
@@ -2416,7 +2416,7 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
             #mSettingsShape.parent = _mTar
             #CORERIG.match_orientation(mSettings.mNode, _mTar.mNode)
             
-            CORERIG.shapeParent_in_place(mSettings.mNode, mSettingsShape.mNode, False)
+            #CORERIG.shapeParent_in_place(mSettings.mNode, mSettingsShape.mNode, False)
             
             mSettings.doStore('cgmName',self.p_nameBase)
             mSettings.doStore('cgmTypeModifier','settings')            

@@ -356,10 +356,16 @@ l_mrsPost_order = ['mirrorVerify',
                    'gatherSpaceDrivers',
                    'connectRig',
                    'proxyMesh',
+                   'puppetMesh',
                    'isHistoricallyInteresting',
                    'controllerVerify',
                    'blocksGather',
                    'blocksDelete']
+
+d_mrsPost_calls = {"recommended":['mirrorVerify','connectRig','controllerVerify'],
+                   "cleanup":['gatherSpaceDrivers','blocksGather',],
+                   'mesh':['proxyMesh','puppetMesh',],
+                   'experimental':['isHistoricallyInteresting','blocksDelete']}
 
 def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
     _str_func = 'process_blocks_rig'
@@ -437,6 +443,10 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                     if kws.get('proxyMesh',1):
                         log.info('proxyMesh...')
                         mPuppet.atUtils('proxyMesh_verify',1)
+                    if kws.get('puppetMesh',1):
+                        log.info('puppetMesh...')
+                        mPuppet.atUtils('puppetMesh_create', **{'unified':True,'skin':False})
+                        
                     if kws.get('ihi',1):
                         log.info('ihi...')
                         mPuppet.atUtils('rigNodes_setAttr','ihi',0)

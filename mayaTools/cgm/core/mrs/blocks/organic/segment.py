@@ -355,6 +355,7 @@ l_attrsStandard = ['side',
                    'ribbonParam',
                    'proxyDirect',
                    'proxyGeoRoot',
+                   'meshBuild',
                    'shapeDirection',
                    #'settingsPlace',
                    'spaceSwitch_direct',
@@ -415,7 +416,8 @@ d_defaultSettings = {'version':__version__,
                      'loftSplit':1,
                      'loftDegree':'linear',
                      'numSpacePivots':2,
-                     'proxyGeoRoot':1,                     
+                     'proxyGeoRoot':1,
+                     'meshBuild':True,
                      'ikBase':'cube',
                      'ikEnd':'cube',
                      'ikOrientToWorld':True,
@@ -1185,30 +1187,42 @@ def create_jointHelpers(self,cnt=None, force = False):
     #pprint.pprint(_l_names)
     
     ml_jointHelpers = []
-    for i,pct in enumerate(l_pcts):
-        """mLoc = cgmMeta.asMeta(LOC.create(position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct),
-                                         name = "pct_{0}_loc".format(i)))"""
-        
-        
-        mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=_l_names[i])
-        
-
-        mJointHelper.p_position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct)
-        mJointHelper.p_parent = mGroup
-        
-        mGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
-        
-
-        res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mDriven.mNode,'conPoint')
-        TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)
-        
-        if _targetCurve:
-            mJointHelper.p_position = CURVES.getPercentPointOnCurve(_targetCurve, pct)
-        
-        
-        ml_jointHelpers.append(mJointHelper)
-        self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-        ATTR.set_standardFlags(mJointHelper.mNode,['v'])
+    
+    
+    if self.numJoints == len(ml_handles):
+        for mHandle in ml_handles:
+            mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=_l_names[i])
+            mJointHelper.p_parent = mHandle
+            mJointHelper.resetAttrs(['tx','ty','tz','rx','ry','rz'])
+            
+            ml_jointHelpers.append(mJointHelper)
+            self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
+            ATTR.set_standardFlags(mJointHelper.mNode,['v'])            
+    else:
+        for i,pct in enumerate(l_pcts):
+            """mLoc = cgmMeta.asMeta(LOC.create(position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct),
+                                             name = "pct_{0}_loc".format(i)))"""
+            
+            
+            mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=_l_names[i])
+            
+    
+            mJointHelper.p_position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct)
+            mJointHelper.p_parent = mGroup
+            
+            mGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+            
+    
+            res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mDriven.mNode,'conPoint')
+            TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)
+            
+            if _targetCurve:
+                mJointHelper.p_position = CURVES.getPercentPointOnCurve(_targetCurve, pct)
+            
+            
+            ml_jointHelpers.append(mJointHelper)
+            self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
+            ATTR.set_standardFlags(mJointHelper.mNode,['v'])
     #Aim --------------------------------------------------------------------------
     l_targets = []
     for i,mJointHelper in enumerate(ml_jointHelpers):
@@ -1414,9 +1428,9 @@ def rig_prechecks(self):
             self.l_precheckErrors.append('More controls ({0}) than joints ({1})'.format(mBlock.numControls, mBlock.numJoints))
         
         
-        ml = mBlock.moduleTarget.rigNull.msgList_get('moduleJoints',cull=True)
-        if len(ml) != mBlock.numJoints:
-            self.l_precheckErrors.append('Joint len ({0}) != numJoints setting ({1})'.format(len(ml), mBlock.numJoints))
+        #ml = mBlock.moduleTarget.rigNull.msgList_get('moduleJoints',cull=True)
+        #if len(ml) != mBlock.numJoints:
+        #    self.l_precheckErrors.append('Joint len ({0}) != numJoints setting ({1})'.format(len(ml), mBlock.numJoints))
             
         
             #raise NotImplementedError,"scaleSetup not ready."
@@ -3276,6 +3290,8 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
     
         _start = time.clock()
         mBlock = self
+        
+        
         mModule = self.moduleTarget
         mRigNull = mModule.rigNull
         mSettings = mRigNull.settings
@@ -3312,7 +3328,10 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
                     mc.delete([mObj.mNode for mObj in _bfr])
                 else:
                     return _bfr
-            
+
+        if not mBlock.meshBuild:
+            log.error("|{0}| >> meshBuild off".format(_str_func))                        
+            return False        
         # Create ---------------------------------------------------------------------------
         #ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints,firstToStart=True),'cgmObject')
         
