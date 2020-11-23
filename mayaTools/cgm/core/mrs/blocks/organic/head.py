@@ -240,6 +240,7 @@ l_attrsStandard = ['side',
                    'jointRadius',
                    'visRotatePlane',
                    'visProximityMode',
+                   'meshBuild',                   
                    'visLabels',
                    'moduleTarget',]
 
@@ -301,6 +302,7 @@ d_defaultSettings = {'version':__version__,
                      'ikOrientToWorld':True,
                      'proxyShape':'cube',
                      'proxyGeoRoot':1,
+                     'meshBuild':True,                     
                      'loftList':['wideUp','circle'],
                      'nameList':['neck','head'],#...our datList values
                      'proxyType':'geo'}
@@ -4253,6 +4255,10 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     
         _start = time.clock()
         mBlock = self
+        if not mBlock.meshBuild:
+            log.error("|{0}| >> meshBuild off".format(_str_func))                        
+            return False
+        
         mModule = self.moduleTarget
         mRigNull = mModule.rigNull
         mSettings = mRigNull.settings
