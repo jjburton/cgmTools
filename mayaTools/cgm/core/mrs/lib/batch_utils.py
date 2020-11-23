@@ -445,7 +445,7 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                         mPuppet.atUtils('proxyMesh_verify',1)
                     if kws.get('puppetMesh',1):
                         log.info('puppetMesh...')
-                        mPuppet.atUtils('puppetMesh_create', **{'unified':True,'skin':False})
+                        mPuppet.atUtils('puppetMesh_create', **{'unified':True,'skin':True})
                         
                     if kws.get('ihi',1):
                         log.info('ihi...')
