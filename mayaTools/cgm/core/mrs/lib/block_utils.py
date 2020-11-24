@@ -9084,7 +9084,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 #mMesh = mMeshBase.doDuplicate(po=False,ic=False)
                 mMesh.rename('{0}_unified_geo'.format(mPuppet.p_nameBase))
                 mMesh.p_parent = mParent
-                cgmGEN.func_snapShot(vars())
+                #cgmGEN.func_snapShot(vars())
                 
                 #now copy weights
                 #CORESKIN.transfer_fromTo(mMeshBase.mNode, [mMesh.mNode])

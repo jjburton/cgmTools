@@ -2881,9 +2881,11 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
         print 'progressBar !!!! | {0}'.format(_progressBar)
         int_len = len(_l_context)
         
+    l_timeReports = []
     try:
         for i,mBlock in enumerate(_l_context):
             try:
+                t1 = time.clock()                
                 _short = mBlock.getShortName()
                 if _progressBar:
                     cgmUI.progressBar_start(_progressBar)
@@ -2896,6 +2898,10 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
                                                                _kwString,))
                 if res not in [True,None,False]:print(res)
                 _res.append(res)
+                t2 = time.clock()
+                
+                l_timeReports.append([_short, cgmGEN.get_timeString(t2-t1)])
+                
             except Exception,err:
                 raise Exception,err
                 cgmGEN.cgmExceptCB(Exception,err)
@@ -2915,8 +2921,22 @@ def contextual_rigBlock_method_call(mBlock, context = 'self', func = 'getShortNa
                     log.error(a)
                 _res.append('ERROR')
                 log.error(cgmGEN._str_subLine)
+                l_timeReports.append([_short,'Fail'])
     finally:
         if _progressBar:cgmUI.progressBar_end(_progressBar)
+        
+        if l_timeReports:
+            print(cgmGEN._str_hardBreak)            
+            log.info(cgmGEN.logString_sub("contextual rigBlock call",'Times'))
+            for i,pair_time in enumerate(l_timeReports):
+                print(" [{0} | '{1}'] : {2} ".format(i,pair_time[0],pair_time[1]))
+            print(cgmGEN._str_hardBreak)
+            print(cgmGEN._str_hardBreak)
+            print(cgmGEN._str_hardBreak)
+                
+            
+        
+        
     return _res
 
 def contextual_module_method_call(mBlock, context = 'self', func = 'getShortName',*args,**kws):
