@@ -1147,6 +1147,17 @@ def uiSection_dev(parent):
                 l='On',
                 c=lambda *a: CGMPROJECTS.setup_forCapture(1))
     
+    #BG ------------------------------------------
+    _bgColor = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
+                           l='BG Gradiant')
+    for k in CGMPROJECTS.d_bg_presets.keys():
+        mc.menuItem(parent = _bgColor,
+                    l='{0}'.format(k),
+                    c=cgmGEN.Callback(CGMPROJECTS.setup_bgColor,k))
+        mc.menuItem(parent = _bgColor,
+                    l='{0} Reverse'.format(k),
+                    c=cgmGEN.Callback(CGMPROJECTS.setup_bgColor,k,True))
+    
 def ut_cgmTestCall(*args,**kws):
     import cgm.core.tests.cgmTests as cgmTests
     reload(cgmTests)

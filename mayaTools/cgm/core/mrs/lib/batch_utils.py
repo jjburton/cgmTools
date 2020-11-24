@@ -38,7 +38,7 @@ import cgm.core.mrs.RigBlocks as RIGBLOCKS
 import cgm.core.mrs.lib.general_utils as BLOCKGEN
 from cgm.core.tools import Project as PROJECT
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
-
+import cgm.core.mrs.lib.post_utils as MRSPOST
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
 
@@ -360,12 +360,34 @@ l_mrsPost_order = ['mirrorVerify',
                    'isHistoricallyInteresting',
                    'controllerVerify',
                    'blocksGather',
+                   'hideJointAxis','deleteUnusedShaders','deleteUnusedLayers',
                    'blocksDelete']
 
-d_mrsPost_calls = {"recommended":['mirrorVerify','connectRig','controllerVerify'],
-                   "cleanup":['gatherSpaceDrivers','blocksGather',],
+d_mrsPost_calls = {"recommended":['mirrorVerify','connectRig','controllerVerify','qss'],
+                   "cleanup":['gatherSpaceDrivers','blocksGather', 'worldGather',
+                              'hideJointAxis'],
+                   'delete':['deleteUnusedShaders','deleteUnusedLayers','removeRefs'],
                    'mesh':['proxyMesh','puppetMesh',],
                    'experimental':['isHistoricallyInteresting','blocksDelete']}
+
+d_dat = {'qss':{'ann':"Setup expected qss sets", 'label':'Add Qss Sets'},
+         'mirrorVerify':{'ann':"Wire for mirroring", 'label':'Mirror Verify'},
+         'connectRig':{'ann':"Connect bind joints to rig joints", 'label':'Connect Rig'},
+         'controllerVerify':{'ann':"Setup maya controller tags", 'label':'Controller Verify'},
+         'gatherSpaceDrivers':{'ann':"Gather space drivers from dynParent setups",
+                               'label':'Gather Space Drivers'},
+         'blocksGather':{'ann':"Gather rigBlocks to a single group", 'label':'Gather Blocks'},
+         'worldGather':{'ann':"Try to gather loose dags parented to world", 'label':'Gather World Dags'},
+         'removeRefs':{'ann':"Remove references", 'label':'Remove References'},
+         'hideJointAxis':{'ann':"Hide all joint axis displays", 'label':'Hide Joint Axis'},
+         'deleteUnusedShaders':{'ann':"Delete unused shaders", 'label':'Unused Shaders'},
+         'deleteUnusedLayers':{'ann':"Delete unused layers", 'label':'Unused Layers'},
+         'proxyMesh':{'ann':"Build proxy mesh and direct proxy controls", 'label':'Proxy Mesh'},
+         'puppetMesh':{'ann':"Build puppet mesh", 'label':'Puppet Mesh'},
+         'isHistoricallyInteresting':{'ann':"Turn off isHistoricallyInteresting", 'label':'IHI'},
+         'blocksDelete':{'ann':"blocksDelete", 'label':'Blocks delete'},
+         
+         }
 
 def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
     _str_func = 'process_blocks_rig'
@@ -431,40 +453,121 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                 mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
 
                 if postProcesses:
+                    l_timeReports = []
+                    
                     if kws.get('mirrorVerify',1):
                         log.info('mirror_verify...')
+                        t1 = time.clock()
                         mPuppet.atUtils('mirror_verify',1)
+                        t2 = time.clock()
+                        l_timeReports.append(['mirrorVerify', "%0.3f"%(t2-t1)])
+                        
                     if kws.get('gatherSpaceDrivers',1):
                         log.info('collect worldSpace...')
+                        t1 = time.clock()                                                
                         mPuppet.atUtils('collect_worldSpaceObjects')
+                        t2 = time.clock()
+                        l_timeReports.append(['gatherSpaceDrivers', "%0.3f"%(t2-t1)])
+                        
                     if kws.get('qss',1):
                         log.info('qss...')
+                        t1 = time.clock()                                                
                         mPuppet.atUtils('qss_verify',puppetSet=1,bakeSet=1,deleteSet=1,exportSet=1)
+                        t2 = time.clock()
+                        l_timeReports.append(['qss', "%0.3f"%(t2-t1)])
+                        
+                    if kws.get('deleteUnusedShaders'):
+                        log.info('Delete unused shaders...')
+                        t1 = time.clock()
+                        MRSPOST.shaders_getUnused(delete=True)
+                        t2 = time.clock()
+                        l_timeReports.append(['deleteUnusedShaders', "%0.3f"%(t2-t1)])                        
+                        
                     if kws.get('proxyMesh',1):
                         log.info('proxyMesh...')
+                        t1 = time.clock()                        
                         mPuppet.atUtils('proxyMesh_verify',1)
+                        t2 = time.clock()
+                        l_timeReports.append(['proxyMesh', "%0.3f"%(t2-t1)])
+                        
                     if kws.get('puppetMesh',1):
                         log.info('puppetMesh...')
+                        t1 = time.clock()                                                
                         mPuppet.atUtils('puppetMesh_create', **{'unified':True,'skin':True})
+                        t2 = time.clock()
+                        l_timeReports.append(['puppetMesh', "%0.3f"%(t2-t1)])
                         
+                    if kws.get('hideJointAxis'):
+                        log.info('Hide axis on all joints...')   
+                        t1 = time.clock()
+                        
+                        for mObj in cgmMeta.asMeta(mc.ls(type='joint')):
+                            mObj.displayLocalAxis = 0
+                        t2 = time.clock()
+                        l_timeReports.append(['hideJointAxis', "%0.3f"%(t2-t1)])
+                        
+                    if kws.get('removeRefs'):
+                        log.info('Remove Refs...')
+                        t1 = time.clock()
+                        
+                        MRSPOST.refs_remove()
+                            
+                        t2 = time.clock()
+                        l_timeReports.append(['removeRefs', "%0.3f"%(t2-t1)])                    
                     if kws.get('ihi',1):
                         log.info('ihi...')
+                        t1 = time.clock()
+                        
                         mPuppet.atUtils('rigNodes_setAttr','ihi',0)
+                        
+                        t2 = time.clock()
+                        l_timeReports.append(['ihi', "%0.3f"%(t2-t1)])                        
                     if kws.get('connectRig',1):
                         log.info('rig connect...')
+                        t1 = time.clock()
+                        
                         mPuppet.atUtils('rig_connectAll')
                         
+                        t2 = time.clock()
+                        l_timeReports.append(['connectRig', "%0.3f"%(t2-t1)])                        
                     log.info('...')
                     
                     if kws.get('controllerVerify',1):
                         if cgmGEN.__mayaVersion__ >= 2018:
                             log.info('controller_verify...')
+                            t1 = time.clock()
+                            
                             mPuppet.atUtils('controller_verify')
                             log.info('...')
+                            
+                            t2 = time.clock()
+                            l_timeReports.append(['controllerVerify', "%0.3f"%(t2-t1)])                            
                     
                     if kws.get('blocksGather',1):
-                        BUILDERUTILS.gather_rigBlocks()
+                        t1 = time.clock()
                         
+                        BUILDERUTILS.gather_rigBlocks()
+                        t2 = time.clock()
+                        l_timeReports.append(['blocksGather', "%0.3f"%(t2-t1)])
+                        
+                    if kws.get('worldGather'):
+                        log.info('Gathering world dags...')
+                        t1 = time.clock()
+                        
+                        MRSPOST.gather_worldStuff()
+                        t2 = time.clock()
+                        l_timeReports.append(['worldGather', "%0.3f"%(t2-t1)])                    
+                    
+                    if kws.get('deleteUnusedLayers'):
+                        log.info('Deleting Unused Layers...')
+                        t1 = time.clock()
+                        
+                        MRSPOST.layers_getUnused(delete=True)
+                        t2 = time.clock()
+                        l_timeReports.append(['deleteUnusedLayers', "%0.3f"%(t2-t1)])
+                        
+                    for pair_time in l_timeReports:
+                        log.info(" [TIME] -- Step: '{0}' >>  {1} ".format(pair_time[0],pair_time[1]))
 
     except Exception,err:
         log.error(err)

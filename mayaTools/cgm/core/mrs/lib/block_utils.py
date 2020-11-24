@@ -9127,7 +9127,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
     
 
 def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNormal = None,
-                      deleteHistory=False,loftMode = 'evenCubic'):
+                      deleteHistory=False,loftMode = None ):#'evenCubic'
     """
     Main call for creating a skinned or single mesh from a rigBlock
     """
@@ -9170,6 +9170,13 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNo
         ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mParent,deleteHistory=deleteHistory)
     
     else:#Create ======================================================================================
+        if not loftMode:
+            if self.getEnumValueString('loftDegree') == 'cubic':
+                loftMode = 'evenCubic'
+            else:
+                loftMode = 'evenLinear'
+            
+            
         ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory,loftMode=loftMode)
     
         

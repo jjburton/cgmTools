@@ -676,6 +676,10 @@ example:
                                                  command=self.file_replace,en=1 )
         
         self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=1)
+        
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        
+        
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
 
@@ -739,6 +743,7 @@ example:
                         command=self.file_replace)        
 
         self.uiPop_sendToProject_variant = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
         
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
@@ -805,6 +810,8 @@ example:
                         command=self.file_replace)        
 
         self.uiPop_sendToProject_version = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
 
@@ -2421,7 +2428,7 @@ example:
             return log.error("SendToBuild: No version file found")
         
         log.info ("file: {0}".format(f))
-        mStandAlone = BUILDER.uiStandAlone_get()
+        mStandAlone = BUILDER.ui_toStandAlone()
         mStandAlone.l_files = [f]
         
         

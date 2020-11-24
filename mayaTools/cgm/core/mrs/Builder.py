@@ -76,6 +76,7 @@ import cgm.core.tools.snapTools as SNAPTOOLS
 import cgm.core.lib.list_utils as LISTS
 from cgm.core.lib import nameTools as NAMETOOLS
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
+import cgm.core.mrs.lib.post_utils as MRSPOST
 
 #for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
     #reload(m)
@@ -120,7 +121,7 @@ _sidePadding = 25
 def reloadMRSStuff():
     log.info("reloading...")
     for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,
-              BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,
+              BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,MRSPOST,
               MODULECONTROLFACTORY,MODULESHAPECASTER]:
         print m
         reload(m)
@@ -2301,7 +2302,8 @@ class ui_toStandAlone(cgmUI.cgmGUI):
     
     def insert_init(self,*args,**kws):
         self.l_files = []
-        
+        import cgm.core.mrs.lib.batch_utils as MRSBATCH
+        reload(MRSBATCH)        
         #global UISTANDALONE
         #UISTANDALONE = self
         
@@ -2358,7 +2360,6 @@ class ui_toStandAlone(cgmUI.cgmGUI):
         
         _str_func = 'uiFunc_process[{0}]'.format(self.__class__.TOOLNAME)
         log.debug("|{0}| >>...".format(_str_func))
-        import cgm.core.mrs.lib.batch_utils as MRSBATCH
         reload(MRSBATCH)
                 
         ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
@@ -2521,10 +2522,12 @@ class ui_toStandAlone(cgmUI.cgmGUI):
             #mc.setParent(_inside)
             #cgmUI.add_Header(d)
             for k in l:
+                d_dat = MRSBATCH.d_dat.get(k,{})
+                
                 _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
                 mUI.MelSpacer(_row,w=10)    
                 
-                mUI.MelLabel(_row, label = '{0}:'.format(k))
+                mUI.MelLabel(_row, label = '{0}:'.format( d_dat.get('label',k) ))
                 _row.setStretchWidget(mUI.MelSeparator(_row))
     
                 _plug = 'cgmVar_mrsPostProcess_' + _d_post_order.get(k,k)
@@ -2537,7 +2540,7 @@ class ui_toStandAlone(cgmUI.cgmGUI):
                 _buffer = _d_post_order.get(k)
                 if _buffer:l = _buffer
                 _cb = mUI.MelCheckBox(_row,
-                                      #annotation = 'Create qss set: {0}'.format(k),
+                                      annotation = d_dat.get('ann',k),
                                       value = self.__dict__[_plug].value,
                                       onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
                                       offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))

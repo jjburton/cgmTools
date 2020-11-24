@@ -53,6 +53,7 @@ import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.position_utils as POS
 import cgm.core.rig.joint_utils as JOINT
+import cgm.core.lib.search_utils as SEARCH
 import cgm.core.rig.ik_utils as IK
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.lib.shapeCaster as SHAPECASTER
@@ -76,7 +77,7 @@ def skin_mesh(mMesh,ml_joints,**kws):
         log_start(_str_func)
         l_joints = [mObj.mNode for mObj in ml_joints]
         _mesh = mMesh.mNode
-        
+        """
         try:
             kws_heat = copy.copy(kws)
             _defaults = {'heatmapFalloff' : 1,
@@ -93,17 +94,19 @@ def skin_mesh(mMesh,ml_joints,**kws):
                                    bm=2,
                                    wd=0,
                                    **kws)
-        except Exception,err:
-            log.warning("|{0}| >> heat map fail | {1}".format(_str_func,err))
-            skin = mc.skinCluster (l_joints,
-                                   mMesh.mNode,
-                                   tsb=True,
-                                   bm=0,
-                                   maximumInfluences = 2,
-                                   wd=0,
-                                   normalizeWeights = 1,dropoffRate=10)
-            """ """
-        skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))    
+        except Exception,err:"""
+        #log.warning("|{0}| >> heat map fail | {1}".format(_str_func,err))
+        skin = mc.skinCluster (l_joints,
+                               mMesh.mNode,
+                               tsb=True,
+                               bm=0,#0
+                               maximumInfluences = 3,
+                               wd=0,
+                               normalizeWeights = 1,dropoffRate=5)
+        """ """
+        skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))
+        #mc.geomBind( skin, bindMethod=3, mi=3 )
+        
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
@@ -534,3 +537,92 @@ def siblingSDK_wip(mTarget = 'L_ring_limb_part',matchType = False,
         _d['sdk'] = ml_sdk
         md[mSib] = _d
         
+
+
+
+#
+def gather_worldStuff(groupTo = 'worldStuff',parent=True):
+    ml = []
+    for mObj in cgmMeta.asMeta(mc.ls('|*', type = 'transform')):
+        if mObj.p_nameBase in ['cgmLightGroup','master','main','cgmRigBlocksGroup']:
+            continue
+        
+        _type =  mObj.getMayaType()
+        if _type in ['camera']:
+            continue
+        
+        if mObj.isReferenced():
+            continue
+        
+        print mObj
+        print _type
+        ml.append(mObj)
+        
+        
+    if ml and parent:
+        if not mc.objExists(groupTo):
+            mGroup = cgmMeta.asMeta(mc.group(em=True))
+            mGroup.rename(groupTo)
+        else:
+            mGroup = cgmMeta.asMeta(groupTo)
+            
+        for mObj in ml:
+            log.info("Parenting to {0} | {1} | {2}".format(groupTo, mObj.p_nameShort, mObj.getMayaType()))
+            mObj.p_parent = mGroup
+    
+    pprint.pprint(ml)
+    return ml
+        
+def layers_getUnused(delete=False):
+    ml = []
+    for mObj in cgmMeta.asMeta(mc.ls(type = 'displayLayer')):
+        if not mc.editDisplayLayerMembers(mObj.mNode, q=True):
+            ml.append(mObj)
+    
+    if delete:
+        for mObj in ml:
+            if not mObj.isReferenced():
+                log.info("Deleting  empty layer {0} ".format(mObj))
+                mObj.delete()
+        return True
+    return ml
+
+def shaders_getUnused(delete=False):
+    ml = []
+    for _type in ['lambert','blinn','phong','phongE']:
+        for mObj in cgmMeta.asMeta(mc.ls(type = _type),noneValid=True) or []:
+            if mObj in ml:
+                continue
+            log.info(cgmGEN.logString_sub("shaders_getUnused", mObj))
+            
+            if mObj.p_nameBase is '{0}1'.format(_type):
+                log.info("default shader {0}".format(mObj))                
+                continue
+            
+            try:
+                for o in ATTR.get_driven("{0}.outColor".format(mObj.mNode),getNode=1):
+                    if VALID.get_mayaType(o) == 'shadingEngine':
+                        l = mc.sets(o, q=True) 
+                        if not l:
+                            log.info("Unused shader | {0}".format(mObj))
+                            ml.append(mObj)
+            except Exception,err:
+                print err
+            #if not mc.editDisplayLayerMembers(mObj.mNode, q=True):
+                #ml.append(mObj)
+    
+    if delete:
+        for mObj in ml:
+            if not mObj.isReferenced():
+                log.info("Deleting  empty layer | {0} ".format(mObj))
+                mObj.delete()
+        return True
+    return ml
+
+
+def refs_remove():
+    for refFile in mc.file(query=True, reference=True):
+        log.info("Removing | {0}".format(refFile))
+        mc.file( refFile, removeReference=True )
+
+    
