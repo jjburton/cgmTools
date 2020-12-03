@@ -5190,7 +5190,7 @@ class ui(cgmUI.cgmGUI):
                                 c=d2.get('call'))
 
         #Vis menu -----------------------------------------------------------------------------
-        for a in ['Measure','RotatePlane','Labels','ProximityMode','FormMesh']:
+        for a in ['Measure','RotatePlane','JointHandle','Labels','ProximityMode','FormMesh']:
             _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
                                    label = a,
                                    en=True,)

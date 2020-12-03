@@ -908,6 +908,8 @@ def stateNull_verify(self,state='define'):
         #mNull.rename(_strPlug)
         mNull.p_parent = self
         mNull.setAttrFlags()
+        
+        mNull.doStore('cgmRelease',cgmGEN.__RELEASE)
     else:
         mNull = self.getMessageAsMeta(_strPlug)
     return mNull
