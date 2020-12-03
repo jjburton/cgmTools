@@ -1590,7 +1590,7 @@ def addJointHelper(self,mHandle=None,
                    shapeDirection = 'z+',
                    loftHelper = True,
                    d_nameTags = {},
-                   lockChannels = ['rotate','scale']):
+                   lockChannels = ['scale']):
     
     if mHandle:
     
@@ -1622,7 +1622,8 @@ def addJointHelper(self,mHandle=None,
     else:
         if d_nameTags:
             for t,tag in d_nameTags.iteritems():
-                mJointCurve.doStore(t,tag)
+                if tag not in [None,False]:
+                    mJointCurve.doStore(t,tag)
             mJointCurve.doName()                                
 
     mJointCurve.setAttrFlags(lockChannels)
@@ -2437,3 +2438,45 @@ def settings(self,settingsPlace = None,ml_targets = None, mPrerigNull = None):
         
         return mSettings
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
+
+#...for tracking to a curve
+def attachHandleToCurve(mHandle,mCrv,mShape = None,parentTo=None,pct = None, blend = True):
+    if not mHandle.getMessage('trackGroup'):
+        mHandle.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+        
+    mTrackGroup = mHandle.trackGroup
+    for mConst in mTrackGroup.getConstraintsTo(asMeta=1):
+        mConst.delete()
+
+    if not pct:
+        
+        param = CURVES.getUParamOnCurve(mHandle.mNode, mCrv.mNode)
+        
+        if not mShape:
+            mShape = mCrv.getShapes(asMeta=1)[0]
+        _minU = mShape.minValue
+        _maxU = mShape.maxValue
+        pct = MATH.get_normalized_parameter(_minU,_maxU,param)        
+
+    mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,turnOnPercentage=1))
+    
+    
+    if blend:
+        mPlug = cgmMeta.cgmAttr(mHandle.mNode, 'param', attrType = 'float',
+                                minValue = 0.0, maxValue = 1.0,#len(ml_jointHelpers)-1, 
+                                #defaultValue = .5, initialValue = .5,
+                                keyable = True, hidden = False)
+        mPlug.value = pct
+        mPlug.p_defaultValue = pct
+                
+        mPointOnCurve.doConnectIn('parameter',mPlug.p_combinedName)
+    else:
+        mPointOnCurve.parameter = pct
+        
+    mTrackLoc = mHandle.doLoc()
+    mPointOnCurve.doConnectOut('position',"{0}.translate".format(mTrackLoc.mNode))
+
+    mTrackLoc.p_parent = parentTo
+    mTrackLoc.v=False
+    mc.pointConstraint(mTrackLoc.mNode,mHandle.trackGroup.mNode,maintainOffset = False)           

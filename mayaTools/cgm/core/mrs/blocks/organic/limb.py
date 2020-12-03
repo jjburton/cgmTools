@@ -2058,7 +2058,10 @@ def uiBuilderMenu(self,parent = None):
     mc.menuItem(ann = '[{0}] Edit rollCount'.format(_short),
                 c = cgmGEN.Callback(uiCall_edit_rollCount,self),
                 label = "Edit rollCount")
-
+    mc.menuItem(ann = '[{0}] create joint helpers'.format(_short),
+                c = cgmGEN.Callback(create_jointHelpers,self,**{'force':1}),
+                label = "Create Joint Helpers")
+    
 def uiCall_edit_rollCount(self):
     if not self.atUtils('datList_validate',datList='rollCount',
                         count=self.numControls - 1,
@@ -2596,17 +2599,19 @@ def create_jointHelpers(self, force = True):
     
     #If we have existing, we want to save that result so we can try to match those changes 
     _targetCurve = None
+ 
     if ml_jointHelpers:
         _targetCurve = CORERIG.create_at(None, 'curveLinear',
-                                         l_pos = [mObj.p_position for mObj in ml_jointHelpers])
-        
-    
-    for mJointHelper in ml_jointHelpers:
-        bfr = mJointHelper.getMessage('mController')
-        if bfr:
-            log.warning("Deleting controller: {0}".format(bfr))
-            mc.delete(bfr)
-        mJointHelper.delete()
+                                                 l_pos = [mObj.p_position for mObj in ml_jointHelpers])
+        for mJointHelper in ml_jointHelpers:
+            try:mJointHelper
+            except:continue
+            bfr = mJointHelper.getMessage('mController')
+            if bfr:
+                log.warning("Deleting controller: {0}".format(bfr))
+                mc.delete(bfr)        
+
+        mc.delete([mObj.mNode for mObj in ml_jointHelpers])
         
     for k in ['jointHelpersGroup','jointHelpersNoTransGroup']:
         old = mPrerigNull.getMessage(k)
@@ -2689,7 +2694,7 @@ def create_jointHelpers(self, force = True):
         md_helperRolls[mJointHelper] = []
         md_handleHelper[mHandle] = mJointHelper
         self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-        ATTR.set_standardFlags(mJointHelper.mNode,['v'])        
+        ATTR.set_standardFlags(mJointHelper.mNode,['v'])
         
     
     
@@ -2742,23 +2747,19 @@ def create_jointHelpers(self, force = True):
             dRoll['cgmIterator'] = ii
             
             mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=dRoll)
-        
-        
+            
             mJointHelper.p_position = CURVES.getPercentPointOnCurve(mTrackCrv.mNode, pct)
             mJointHelper.p_parent = mGroup
         
             mGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
-        
-        
+            
             res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mTrackCrv.mNode,'conPoint')
             TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)
         
-           
-        
-        
+
             ml_jointHelpers.append(mJointHelper)
             #self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-            ATTR.set_standardFlags(mJointHelper.mNode,['v'])            
+            #ATTR.set_standardFlags(mJointHelper.mNode,['v'])            
         
             md_helperRolls[mHelperSet[0]].append(mJointHelper)
             ml_roll.append(mJointHelper)
@@ -2809,9 +2810,7 @@ def create_jointHelpers(self, force = True):
     for i,mJointHelper in enumerate(ml_jointHelpers):
         log.info(cgmGEN.logString_sub(_str_func,"idx: {0} | {1}".format(i,mJointHelper)))
         
-        
-        
-        
+
         # Loft curve --------------------------------------------------------------------------------
         mLoftCurve = mJointHelper.loftCurve
         
@@ -2863,6 +2862,14 @@ def create_jointHelpers(self, force = True):
         
         
         l_targets.append(mLoftCurve.mNode)
+
+    
+    for mMain,l in md_helperRolls.iteritems():
+        
+        for mObj in l:
+            mc.orientConstraint(mMain.loftCurve.mNode, mObj.mNode)
+            ATTR.set_standardFlags(mObj.mNode,['rotate','v'])
+    
 
         
     self.msgList_connect('jointHelpers',ml_jointHelpers)

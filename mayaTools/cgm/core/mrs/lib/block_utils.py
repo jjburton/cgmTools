@@ -72,7 +72,8 @@ import cgm.core.lib.string_utils as STR
 import cgm.core.mrs.lib.post_utils as MRSPOST
 from cgm.core.classes import GuiFactory as CGMUI
 from cgm.core.cgmPy import dict_utils as CGMDICT
-
+import cgm.core.classes.GuiFactory as cgmUI
+mUI = cgmUI.mUI
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
@@ -4026,7 +4027,7 @@ def blockMirror_settings(blockSource, blockMirror = None,
                 _l_done.append(k)"""
         
                 
-        _mask = ['side','version','blockState','baseAim','baseAimY']
+        _mask = ['side','version','blockState','baseAim','baseAimY','cgmDirection']
         for a,v in _ud.iteritems():
             if a in _mask or a in _l_done:
                 continue
@@ -12322,8 +12323,8 @@ def blockScale_bake(self,sizeMethod = 'axisSize',force=False,):
 def uiStatePickerMenu(self,parent = None):
     _short = self.p_nameShort
     ml_done = []
-    try:mc.setParent(parent)
-    except:pass
+    #mc.setParent(parent)
+    
     """
     mc.menuItem(en=True,divider = True,
                 label = "Utilities")
@@ -12333,9 +12334,10 @@ def uiStatePickerMenu(self,parent = None):
 
     _state = self.blockState
     #Define ----------------------------------------------------------------------------
-    mc.menuItem(label = 'Root',
-                ann = 'select root',
-                c = cgmGEN.Callback(self.select),)
+    mUI.MelMenuItem(parent,
+                    label = 'Root',
+                    ann = 'select root',
+                    c = cgmGEN.Callback(self.select),)
     ml_done.append(self)
     
     
@@ -12366,9 +12368,9 @@ def uiStatePickerMenu(self,parent = None):
     
                 
     if d_define:
-        mc.menuItem(en=True,divider = True, label = "Define")
+        mUI.MelMenuItem(parent,en=True,divider = True, label = "Define")
         for d in d_define:
-            mc.menuItem(**d)
+            mUI.MelMenuItem(parent,**d)
         
     #Form ------------------------------------------------------------------------------
     def addPivotHelper(mPivotHelper,i,l):
@@ -12423,22 +12425,22 @@ def uiStatePickerMenu(self,parent = None):
         
 
         if d_form:
-            mc.menuItem(en=True,divider = True,
+            mUI.MelMenuItem(parent,en=True,divider = True,
                         label = "Form")
             for d in d_form:
-                mc.menuItem(**d)                        
+                mUI.MelMenuItem(parent,**d)                        
             
             if ml_lofts:
                 mc.menuItem(en=False,divider = True,
                             label = "--- [Shapers]")
                 for i,mSub in enumerate(ml_lofts):
-                    mc.menuItem(ann='[{0}] Loft Handles [{1}]'.format(mSub.mNode,i),
+                    mUI.MelMenuItem(parent,ann='[{0}] Loft Handles [{1}]'.format(mSub.mNode,i),
                                 label=' '*i + "{0} | {1}".format(i,mSub.p_nameBase),
                                 c=cgmGEN.Callback(mSub.select))
 
             
-            try:mc.setParent(parent)
-            except:pass            
+            #try:mc.setParent(parent)
+            #except:pass            
     #Prerig ------------------------------------------------------------------------------
     if _state > 1:
         d_pre = []
@@ -12480,14 +12482,14 @@ def uiStatePickerMenu(self,parent = None):
                               'label':' '*i + "{0} | {1}".format(i,_name)})
                 ml_done.append(mObj)
             
-            try:mc.setParent(parent)
-            except:pass
+            #try:mc.setParent(parent)
+            #except:pass
             
         if d_pre:
-            mc.menuItem(en=True,divider = True,
+            mUI.MelMenuItem(parent,en=True,divider = True,
                         label = "Prerig")            
             for d in d_pre:
-                mc.menuItem(**d)
+                mUI.MelMenuItem(parent,**d)
                 
                 
 

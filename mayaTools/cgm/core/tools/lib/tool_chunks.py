@@ -815,6 +815,10 @@ def uiSection_mrsTD(parent):
                 ann = "MRS Rigging Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsUI())
     mc.menuItem(parent = parent,
+                l='Block Picker',
+                ann = "MRS Block Picker Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsBlockPicker())    
+    mc.menuItem(parent = parent,
                 l='Block Editor',
                 ann = "MRS Block Editor Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsBlockEditor())

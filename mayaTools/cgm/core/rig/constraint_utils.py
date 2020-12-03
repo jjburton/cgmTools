@@ -1372,8 +1372,102 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'limbFrameCurve'):
         return True
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
+
+def baseTalon_tmp(mPart):
+    mPart = cgmMeta.asMeta(mPart)
+    mBlock = mPart.rigBlock
+
+    
+    mRigNull = mPart.rigNull
+    mRoot = mRigNull.rigRoot
+    
+    ml_joints = mRigNull.msgList_get('blendJoints')
+    if not ml_joints:
+        for plug in 'fkAttachJoints','fkJoints':
+            ml_test = mRigNull.msgList_get(plug)
+            if ml_test:
+                ml_joints = ml_test
+                break
+    #ml_blendDrivers.append(ml_joints[0])
+    #ml_fkEnds.append(ml_joints[-1])
+    #ml_fkStarts.append(ml_joints[0])
+    
+    #Find our drivers = 
+    mParent = mBlock.blockParent
+    mParentModule = mParent.moduleTarget
+
+    ml_targetJoints = mParentModule.rigNull.msgList_get('blendJoints',asMeta = True, cull = True)
+    if not ml_targetJoints:
+        raise ValueError,"mParentModule has no blend joints."
+    
+    _attachPoint = ATTR.get_enumValueString(mBlock.mNode,'attachPoint')
+    if _attachPoint == 'end':
+        mTargets = ml_targetJoints[-2:]
+    elif _attachPoint in ['base','closest']:
+        raise ValueError,"can't do base"
+    #elif _attachPoint == 'closest':
+    #    jnt = DIST.get_closestTarget(ml_targetJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
+    #    mTargetJoint = cgmMeta.asMeta(jnt)
+    elif _attachPoint == 'index':
+        idx = mBlock.attachIndex
+        mTargets = ml_targetJoints[idx-1:index]   
+        
+    #Make our loc ------------------------------------------------------------------
+    mLoc = mRoot.doLoc()
+    mLoc.rename("{0}_driverLoc".format(mPart.p_nameBase))
+    mLoc.p_parent = mTargets[-1]
+    mLoc.v=False
+    mLoc.doStore('cgmAlias','blendDriver')
+    mRoot.connectChildNode(mLoc.mNode,'blendDriver','mPart')
+    
+    mDriver1 = mLoc.doDuplicate(po=False)
+    mDriver2 = mLoc.doDuplicate(po=False)
+    
+    mDriver1.p_parent = mTargets[0]
+    mDriver2.p_parent = mTargets[1]
     
     
+    #Constrain and wire --------------------------------------------------------------
+    const = mc.orientConstraint([mDriver1.mNode, mDriver2.mNode],
+                                mLoc.mNode,
+                                maintainOffset=True)[0]
+    mConst = cgmMeta.asMeta(const)
+    mConst.interpType = 2
+    
+    mHandle = mRigNull.settings
+    #Create Reverse Nodes
+    d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mHandle.mNode,
+                                                          'blendTrack'],
+                                                         [mLoc.mNode,'blendTrack_base'],
+                                                         [mLoc.mNode,'blendTrack_end'],
+                                                         keyable=True)
+
+    targetWeights = mc.orientConstraint(const,q=True,
+                                        weightAliasList=True,
+                                        maintainOffset=True)
+
+    #Connetct output of switch attribute to input of W1 of parentConstraint
+    d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+    d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+    d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+    d_blendReturn['d_result2']['mi_plug'].p_hidden = True
+
+    #Set a deafult value of 0.5 so that the corners are weighted evenly
+    ATTR.set_default(mHandle.mNode, 'blendTrack', 0.5)
+    mHandle.setMayaAttr('blendTrack', .5)    
+    
+    #Wire to dynParent Group ------------------------------------------------
+
+    mDynGroup = mRoot.dynParentGroup
+    mDynGroup.addDynParent(mLoc)
+    mDynGroup.dynMode=2
+    mDynGroup.rebuild()
+    
+    _len = len(ATTR.get_enumList(mRoot.mNode,'orientTo'))
+    mRoot.orientTo = _len -1
+    
+    ATTR.set_default(mRoot.mNode,'orientTo', mRoot.orientTo)
+        
     
 
 

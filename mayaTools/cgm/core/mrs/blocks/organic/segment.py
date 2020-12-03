@@ -984,23 +984,13 @@ def prerig(self):
         
     #Driven curve ============================================================================
     log.debug("|{0}| >> TrackCrv...".format(_str_func)+'-'*40) 
-    
-    _trackCurve = mc.curve(d=1,p=[mObj.p_position for mObj in ml_handles])
-    mDrivenCurve = cgmMeta.validateObjArg(_trackCurve,'cgmObject')
+    _trackCurve,l_clusters = CORERIG.create_at([mObj.mNode for mObj in ml_handles], 'cubicTrack',
+                                               baseName = self.p_nameBase)
+    mDrivenCurve = cgmMeta.asMeta(_trackCurve)
     mDrivenCurve.rename(self.cgmName + 'prerigDriven_crv')
     mDrivenCurve.parent = mNoTransformNull
-    
-    l_clusters = []
-    #_l_clusterParents = [mStartHandle,mEndHandle]
-    for i,cv in enumerate(mDrivenCurve.getComponents('cv')):
-        _res = mc.cluster(cv, n = 'test_{0}_{1}_pre_cluster'.format(ml_handles[i].p_nameBase,i))
-        #_res = mc.cluster(cv)
-        mCluster = cgmMeta.asMeta(_res[1])
-        mCluster.v = 0
-        mCluster.p_parent =  ml_handles[i]
-        l_clusters.append(_res)
-            
-    mc.rebuildCurve(mDrivenCurve.mNode, d=2, keepControlPoints=False,ch=1,n="reparamRebuild") 
+
+    mc.rebuildCurve(mDrivenCurve.mNode, d=2, keepControlPoints=0,ch=1,n="reparamRebuild")
     mPrerigNull.connectChildNode(mDrivenCurve.mNode,'drivenCurve')
     
 
@@ -1048,7 +1038,7 @@ def prerig(self):
 
     self.UTILS.controller_walkChain(self,ml_handles,'prerig')
     
-    #IK handles....
+    #IK handles....------------------------------------------------------------------------------
     d_ikHandles = {'start':{'idx':0},
                    'end':{'idx':-1}}
     
@@ -1061,10 +1051,9 @@ def prerig(self):
         d_ikHandles['end']['idx'] = -2
         
     if self.segmentMidIKControl:
-        d_ikHandles['mid'] = {'pos':DIST.get_average_position([ml_handles[d_ikHandles['start']['idx']].p_position,
-                                                              ml_handles[d_ikHandles['end']['idx']].p_position
-                                                              ])}
+        d_ikHandles['mid'] = {'pos': CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .5)}
     
+    ml_ikHandles = []
     for key,dat in d_ikHandles.iteritems():
         _str = 'ik{0}Handle'.format(CORESTRING.capFirst(key))
         crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
@@ -1077,16 +1066,30 @@ def prerig(self):
         if key == 'mid':
             mHandle.doSnapTo(ml_handles[d_ikHandles['start']['idx']])
             mHandle.p_position = dat['pos']
-            mHandle.p_parent = self
+            mHandle.p_parent = mPrerigNull
+                        
+    
+            #res_attach = RIGCONSTRAINT.attach_toShape(mTrackGroup.mNode,mTrackCurve.mNode,'conPoint')
+            #TRANS.parent_set(res_attach[0],mNoTransformNull.mNode)            
+            
             
         else:
             mHandle.doSnapTo(ml_handles[dat.get('idx',0)])
-            mHandle.p_parent = ml_handles[dat.get('idx',0)]
+            mHandle.p_parent = mPrerigNull# ml_handles[dat.get('idx',0)]
+            
+        mTrackGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
         
         #Need to resolve this better
         #self.msgList_append('prerigHandles', mHandle)
+        if key == 'start':
+            ml_ikHandles.insert(0,mHandle)
+        elif key == 'end':
+            ml_ikHandles.append(mHandle)
+        else:
+            ml_ikHandles.insert(1,mHandle)
         
-    create_jointHelpers(self,force=True)
+    self.UTILS.controller_walkChain(self,ml_ikHandles,'prerig')
+        
     
     #...cog -----------------------------------------------------------------------------
     mCog = False
@@ -1102,9 +1105,10 @@ def prerig(self):
             mObj.p_position = ml_handles[d_ikHandles['start']['idx']].p_position
         
         self.UTILS.controller_walkChain(self,[mCog,mShape],'prerig')
+        
+    create_jointHelpers(self,force=True)
 
-    
-    
+
     #Close out =======================================================================================
     mNoTransformNull.v = False
     #cgmGEN.func_snapShot(vars())
@@ -1114,6 +1118,47 @@ def prerig(self):
         #mFormLoft.v = False        
         
     return True
+
+
+def attachToCurve(mHandle,mCrv,mShape = None,parentTo=None,pct = None, blend = True):
+    if not mHandle.getMessage('trackGroup'):
+        mHandle.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+        
+    mTrackGroup = mHandle.trackGroup
+    for mConst in mTrackGroup.getConstraintsTo(asMeta=1):
+        mConst.delete()
+
+    if not pct:
+        
+        param = CURVES.getUParamOnCurve(mHandle.mNode, mCrv.mNode)
+        
+        if not mShape:
+            mShape = mCrv.getShapes(asMeta=1)[0]
+        _minU = mShape.minValue
+        _maxU = mShape.maxValue
+        pct = MATH.get_normalized_parameter(_minU,_maxU,param)        
+
+    mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,turnOnPercentage=1))
+    
+    
+    if blend:
+        mPlug = cgmMeta.cgmAttr(mHandle.mNode, 'param', attrType = 'float',
+                                minValue = 0.0, maxValue = 1.0,#len(ml_jointHelpers)-1, 
+                                #defaultValue = .5, initialValue = .5,
+                                keyable = True, hidden = False)
+        mPlug.value = pct
+        mPlug.p_defaultValue = pct
+                
+        mPointOnCurve.doConnectIn('parameter',mPlug.p_combinedName)
+    else:
+        mPointOnCurve.parameter = pct
+        
+    mTrackLoc = mHandle.doLoc()
+    mPointOnCurve.doConnectOut('position',"{0}.translate".format(mTrackLoc.mNode))
+
+    mTrackLoc.p_parent = parentTo
+    mTrackLoc.v=False
+    mc.pointConstraint(mTrackLoc.mNode,mHandle.trackGroup.mNode,maintainOffset = False)           
 
 def create_jointHelpers(self,cnt=None, force = False):
     #>>Joint placers ================================================================================    
@@ -1140,7 +1185,9 @@ def create_jointHelpers(self,cnt=None, force = False):
         bfr = mJointHelper.getMessage('mController')
         if bfr:
             log.warning("Deleting controller: {0}".format(bfr))
-            mc.delete(bfr)            
+            mc.delete(bfr)
+        mJointHelper.delete()
+            
     for k in ['jointHelpersGroup','jointHelpersNoTransGroup']:
         old = mPrerigNull.getMessage(k)
         if old:
@@ -1191,8 +1238,13 @@ def create_jointHelpers(self,cnt=None, force = False):
     
     if self.numJoints == len(ml_handles):
         for mHandle in ml_handles:
-            mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=_l_names[i])
-            mJointHelper.p_parent = mHandle
+            mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size,
+                                                      d_nameTags= mHandle.getNameDict(ignore=['cgmType']))
+            mJointHelper.p_parent = mGroup
+            
+            mTrackGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+            mc.pointConstraint(mHandle.mNode, mTrackGroup.mNode)
+            
             mJointHelper.resetAttrs(['tx','ty','tz','rx','ry','rz'])
             
             ml_jointHelpers.append(mJointHelper)
@@ -1209,12 +1261,14 @@ def create_jointHelpers(self,cnt=None, force = False):
     
             mJointHelper.p_position = CURVES.getPercentPointOnCurve(mDriven.mNode, pct)
             mJointHelper.p_parent = mGroup
+            mTrackGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
             
-            mGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
             
-    
-            res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mDriven.mNode,'conPoint')
-            TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)
+            attachToCurve(mJointHelper,mDriven,None,mGroupNoTrans,pct,False)
+            
+            """
+            res_attach = RIGCONSTRAINT.attach_toShape(mTrackGroup.mNode,mDriven.mNode,'conPoint')
+            TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)"""
             
             if _targetCurve:
                 mJointHelper.p_position = CURVES.getPercentPointOnCurve(_targetCurve, pct)
@@ -1223,6 +1277,8 @@ def create_jointHelpers(self,cnt=None, force = False):
             ml_jointHelpers.append(mJointHelper)
             self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
             ATTR.set_standardFlags(mJointHelper.mNode,['v'])
+            
+    #mc.rebuildCurve(mDriven.mNode, d=1, keepControlPoints=0,ch=1,n="reparamRebuild")
     #Aim --------------------------------------------------------------------------
     l_targets = []
     for i,mJointHelper in enumerate(ml_jointHelpers):
@@ -1257,6 +1313,41 @@ def create_jointHelpers(self,cnt=None, force = False):
     
     self.UTILS.controller_walkChain(self,ml_jointHelpers,'prerig')
     
+    #IKMid Handle ---------------------------------------------------------------------
+    _trackCurve,l_clusters = CORERIG.create_at([mObj.mNode for mObj in ml_jointHelpers],'linearTrack',baseName = "{0}_drivenCrv".format(self.p_nameBase))
+    mCrv = cgmMeta.asMeta(_trackCurve)
+    mShape = cgmMeta.asMeta(mCrv.getShapes()[0])
+    _shape = mShape.mNode
+    
+    """
+    _node = mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,
+                            ch=1,s=len(ml_jointHelpers),
+                            n="{0}_reparamRebuild".format(mCrv.p_nameBase))
+    mc.rename(_node[1],"{0}_reparamRebuild".format(mCrv.p_nameBase))
+    """
+    mCrv.p_parent = mGroupNoTrans
+     
+    
+    for k in ['start','end','mid']:
+        
+        _str = 'ik{0}Handle'.format(CORESTRING.capFirst(k))    
+        mHandle = self.getMessageAsMeta(_str)
+        if mHandle:
+            log.info("MidHandle: {0}".format(_str))
+                  
+
+            #res_attach = RIGCONSTRAINT.attach_toShape(mHandle.trackGroup.mNode,mCrv.mNode,'conPoint',
+                                                      #driver=)
+            #TRANS.parent_set(res_attach[0],mNoTrans.mNode)
+            attachToCurve(mHandle,mCrv,mShape,mGroupNoTrans)
+        
+    #Cog
+    mHandle = self.getMessageAsMeta('cogHelper')
+    if mHandle:
+        log.info("cogHelper")    
+        attachToCurve(mHandle,mCrv,mShape,mGroupNoTrans)
+    
+        
     
     if _targetCurve:
         mc.delete(_targetCurve)
@@ -3465,7 +3556,15 @@ def controller_getDat(self):
     return md
     
     
+def uiBuilderMenu(self,parent = None):
+    #uiMenu = mc.menuItem( parent = parent, l='Head:', subMenu=True)
+    _short = self.p_nameShort
     
+    mc.menuItem(en=False,
+                label = "Segment")    
+    mc.menuItem(ann = '[{0}] create joint helpers'.format(_short),
+                c = cgmGEN.Callback(create_jointHelpers,self,**{'force':1}),
+                label = "Create Joint Helpers")
     
     
     

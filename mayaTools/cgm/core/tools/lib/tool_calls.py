@@ -39,10 +39,11 @@ def mrsUI():
         
 def mrsBlockEditor():
     import cgm.core.mrs.Builder as MRSBUILDER
-    #MRSBUILDER.ui()
     MRSBUILDER.blockEditor_get()
 
-        
+def mrsBlockPicker():
+    import cgm.core.mrs.Builder as MRSBUILDER
+    MRSBUILDER.blockPicker_get()        
     
 def mrsANIMATE():
     import cgm.core.mrs.Animate as MRSANIMATE
