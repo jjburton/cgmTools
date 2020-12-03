@@ -1136,20 +1136,6 @@ d_wiring_owlTail= {'modules':
                              }}
 
 
-d_wiring_r_bat= {'modules':
-                   ['R_index_limb_part',
-                    'R_middle_limb_part',
-                     'R_pinky_limb_part',
-                    ],
-                   'driven':{1:[0,2],
-                             }}
-d_wiring_l_bat= {'modules':
-                   ['L_index_limb_part',
-                    'L_middle_limb_part',
-                    'L_pinky_limb_part',
-                    ],
-                   'driven':{1:[0,2],
-                             }}
 def wing_temp(d_wiring=d_wiring_r, mode = 'limbFrameCurve'):
     """
     mode
@@ -1373,7 +1359,7 @@ def wing_temp(d_wiring=d_wiring_r, mode = 'limbFrameCurve'):
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
 
-def baseTalon_tmp(mPart):
+def baseTalon_tmp(mPart,indices = None):
     mPart = cgmMeta.asMeta(mPart)
     mBlock = mPart.rigBlock
 
@@ -1400,17 +1386,22 @@ def baseTalon_tmp(mPart):
     if not ml_targetJoints:
         raise ValueError,"mParentModule has no blend joints."
     
-    _attachPoint = ATTR.get_enumValueString(mBlock.mNode,'attachPoint')
-    if _attachPoint == 'end':
-        mTargets = ml_targetJoints[-2:]
-    elif _attachPoint in ['base','closest']:
-        raise ValueError,"can't do base"
-    #elif _attachPoint == 'closest':
-    #    jnt = DIST.get_closestTarget(ml_targetJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
-    #    mTargetJoint = cgmMeta.asMeta(jnt)
-    elif _attachPoint == 'index':
-        idx = mBlock.attachIndex
-        mTargets = ml_targetJoints[idx-1:index]   
+    if indices:
+        mTargets = []
+        for i in indices:
+            mTargets.append(ml_targetJoints[i])
+    else:
+        _attachPoint = ATTR.get_enumValueString(mBlock.mNode,'attachPoint')
+        if _attachPoint == 'end':
+            mTargets = ml_targetJoints[-2:]
+        elif _attachPoint in ['base','closest']:
+            raise ValueError,"can't do base"
+        #elif _attachPoint == 'closest':
+        #    jnt = DIST.get_closestTarget(ml_targetJoints[0].mNode, [mObj.mNode for mObj in ml_targetJoints])
+        #    mTargetJoint = cgmMeta.asMeta(jnt)
+        elif _attachPoint == 'index':
+            idx = mBlock.attachIndex
+            mTargets = ml_targetJoints[idx-1:index]   
         
     #Make our loc ------------------------------------------------------------------
     mLoc = mRoot.doLoc()
@@ -1492,3 +1483,25 @@ d_wiring_l_dragonWingFrame = {'mode':'default',
 
 'driven':{1:[0,2],
           }}
+
+
+
+
+d_wiring_r_bat= {'mode':'default',
+                 'modules':
+                   ['R_index_limb_part',
+                    'R_middle_limb_part',
+                     'R_pinky_limb_part',
+                    ],
+                 'color':[1],
+                   'driven':{1:[0,2],
+                             }}
+d_wiring_l_bat= {'mode':'default',
+                 'modules':
+                   ['L_index_limb_part',
+                    'L_middle_limb_part',
+                    'L_pinky_limb_part',
+                    ],
+                 'color':[1],
+                   'driven':{1:[0,2],
+                             }}
