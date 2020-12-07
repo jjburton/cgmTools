@@ -279,7 +279,7 @@ d_attrsToMake = {'visMeasure':'bool',
 
 d_defaultSettings = {'version':__version__,
                      'baseSize':MATH.get_space_value(__dimensions[1]),
-                     'headAim':True,
+                     'headAim':False,
                      'neckBuild':True,
                      'neckControls': 1,
                      'neckShapers':0,

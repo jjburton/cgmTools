@@ -6498,14 +6498,23 @@ def rig_segments(self):
                 
                 idx = ml_handleJoints.index(mHandle)
                 
-                _d_aim = {'worldUpType' : 'objectrotation',
-                          'upVector':self.v_twistUp,#[0,1,0],
-                          'aimVector':[0,0,1],
-                          'worldUpObject':mHandle.mNode,
-                          'worldUpVector' : self.v_twistUp}                    
+                try:
+                    mTarget = ml_handleJoints[idx+1]
                 
+                    _d_aim = {'worldUpType' : 'objectrotation',
+                              'upVector':self.v_twistUp,#[0,1,0],
+                              'aimVector':[0,0,1],
+                              'worldUpObject':mHandle.mNode,
+                              'worldUpVector' : self.v_twistUp}                    
+                except:
+                    mTarget = ml_handleJoints[idx-1]
+                    _d_aim = {'worldUpType' : 'objectrotation',
+                              'upVector':self.v_twistUp,#[0,1,0],
+                              'aimVector':[0,0,-1],
+                              'worldUpObject':mHandle.mNode,
+                              'worldUpVector' : self.v_twistUp}                          
                 
-                mc.aimConstraint(ml_handleJoints[idx+1].mNode,
+                mc.aimConstraint(mTarget.mNode,
                                  mRigJoint.masterGroup.mNode,
                                  maintainOffset = True,**_d_aim)                                 
                 mc.pointConstraint(mHandle.mNode,
