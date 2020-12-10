@@ -4509,8 +4509,16 @@ class ui(cgmUI.cgmGUI):
                         c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
                               'atUtils','get_tagMessage',
                               **{'selectResult':1,'updateUI':0,'msgList':'formHandles'}))
-
         
+        
+        mSub = mUI.MelMenuItem(_menu, l="Indice",tearOff=False,
+                               subMenu = True)        
+        for idx in [0,-1]:
+            mUI.MelMenuItem(mSub, l="{0}".format(idx),
+                            ann='Select  Form Handles',
+                            c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                  'atUtils','get_tagMessage',
+                                  **{'selectResult':1,'updateUI':0,'msgList':'formHandles','idx':idx}))
         
         mUI.MelMenuItemDiv( self.uiMenu_select, label = 'Prerig')
         mUI.MelMenuItem(_menu, l="Handles",
@@ -4518,6 +4526,17 @@ class ui(cgmUI.cgmGUI):
                         c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
                               'atUtils','get_tagMessage',
                               **{'selectResult':1,'updateUI':0,'msgList':'prerigHandles'}))
+        
+        mSub = mUI.MelMenuItem(_menu, l="Indice",tearOff=False,
+                               subMenu = True)        
+        for idx in [0,-1]:
+            mUI.MelMenuItem(mSub, l="{0}".format(idx),
+                            ann='Select  Prerig Handles',
+                            c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                  'atUtils','get_tagMessage',
+                                  **{'selectResult':1,'updateUI':0,'msgList':'prerigHandles','idx':idx}))        
+        
+        
         mUI.MelMenuItem(_menu, l="Joint Helpers",
                         ann='Select Joint Handles',
                         c=cgmGEN.Callback(self.uiFunc_contextBlockCall,

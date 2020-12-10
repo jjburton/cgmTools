@@ -10384,8 +10384,8 @@ def prerig_snapRPtoOrientHelper(self):
     
         mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
 
-def get_tagMessage(self,selfKey=None, msgList = None):
-    _str_func = 'get_handleCall'
+def get_tagMessage(self,selfKey=None, msgList = None, idx = None):
+    _str_func = 'get_tagMessage'
     log.debug(cgmGEN.logString_start(_str_func))    
     
     if selfKey:
@@ -10393,7 +10393,13 @@ def get_tagMessage(self,selfKey=None, msgList = None):
     
     if msgList:
         if msgList:
-            return self.msgList_get(msgList)
+            _res = self.msgList_get(msgList)
+            
+            
+            
+    if idx is not None:
+        return _res[idx]
+    return _res
 
 
 
