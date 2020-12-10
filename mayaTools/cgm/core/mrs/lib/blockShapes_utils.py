@@ -1575,7 +1575,7 @@ def addJointRadiusVisualizer(self,mParent = False):
     
     mJointRadius.rename("jointRadiusVis")
     _base = self.atUtils('get_shapeOffset')*2
-    if self.jointRadius < .1:
+    if self.jointRadius < .3:
         self.jointRadius = self.atUtils('get_shapeOffset')
         
     self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    

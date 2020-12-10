@@ -4447,7 +4447,7 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_options = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)                        
         self.uiMenu_add = mUI.MelMenu(l='Add', tearOff=1) 
         self.buildMenu_add(False)
-        #self.uiMenu_select = mUI.MelMenu( l='Select',pmc=self.buildMenu_select, tearOff=1)
+        self.uiMenu_select = mUI.MelMenu( l='Select',pmc=self.buildMenu_select, tearOff=1)
         #self.uiMenu_picker = mUI.MelMenu( l='Picker',pmc=self.buildMenu_picker, tearOff=1)
         self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1, tearOff=1)
         self.uiMenu_vis = mUI.MelMenu( l='Vis', tearOff=1)
@@ -4486,6 +4486,67 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_select.clear()
         _menu = self.uiMenu_select
         
+        mUI.MelMenuItem(_menu, l="Roots",
+                        ann='Select Roots',
+                        c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                              'select',
+                              **{'updateUI':0}))        
+        
+        mUI.MelMenuItem(_menu, l="Settings",
+                        ann='Select Roots',
+                        c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                              'atUtils','get_tagMessage','settingsHelper',
+                              **{'selectResult':1,'updateUI':0}))
+        
+        mUI.MelMenuItemDiv( self.uiMenu_select, label = 'Form')
+        mUI.MelMenuItem(_menu, l="Orient Helper",
+                        ann='Select Orient Helper',
+                        c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                              'atUtils','get_tagMessage','orientHelper',
+                              **{'selectResult':1,'updateUI':0}))                
+        mUI.MelMenuItem(_menu, l="Handles",
+                        ann='Select  Form Handles',
+                        c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                              'atUtils','get_tagMessage',
+                              **{'selectResult':1,'updateUI':0,'msgList':'formHandles'}))
+        
+        
+        mSub = mUI.MelMenuItem(_menu, l="Indice",tearOff=False,
+                               subMenu = True)        
+        for idx in [0,-1]:
+            mUI.MelMenuItem(mSub, l="{0}".format(idx),
+                            ann='Select  Form Handles',
+                            c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                  'atUtils','get_tagMessage',
+                                  **{'selectResult':1,'updateUI':0,'msgList':'formHandles','idx':idx}))
+        
+        mUI.MelMenuItemDiv( self.uiMenu_select, label = 'Prerig')
+        mUI.MelMenuItem(_menu, l="Handles",
+                        ann='Select  Prerig Handles',
+                        c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                              'atUtils','get_tagMessage',
+                              **{'selectResult':1,'updateUI':0,'msgList':'prerigHandles'}))
+        
+        mSub = mUI.MelMenuItem(_menu, l="Indice",tearOff=False,
+                               subMenu = True)        
+        for idx in [0,-1]:
+            mUI.MelMenuItem(mSub, l="{0}".format(idx),
+                            ann='Select  Prerig Handles',
+                            c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                  'atUtils','get_tagMessage',
+                                  **{'selectResult':1,'updateUI':0,'msgList':'prerigHandles','idx':idx}))        
+        
+        
+        mUI.MelMenuItem(_menu, l="Joint Helpers",
+                        ann='Select Joint Handles',
+                        c=cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                              'atUtils','get_tagMessage',
+                              **{'selectResult':1,'updateUI':0,'msgList':'jointHelpers'}))        
+        
+        
+        
+        
+        return 
         def buildPicker(self,mBlock):
             _key = mBlock.UTILS.get_uiString(mBlock)
             mSub = self.md_BlockPickers.get(_key)
@@ -5786,7 +5847,10 @@ class ui(cgmUI.cgmGUI):
             _reverseContext = kws.pop('reverseContext',False)
             _startMode = self.var_contextStartMode.value   
             _contextMode = kws.pop('contextMode', self._l_contextModes[self.var_contextMode.value])
-            _b_confirm = False            
+            _b_confirm = False
+            _selectRes = kws.pop('selectResult',False)
+            
+            
             #_contextMode = self._l_contextModes[self.var_contextMode.value]
             log.debug("|{0}| >> Update ui: {1}".format(_str_func,_updateUI))
             _mode = kws.get('mode')
@@ -5817,7 +5881,7 @@ class ui(cgmUI.cgmGUI):
                 kws.pop('mode')
                 
                 
-            if _sel:
+            if _sel or _selectRes:
                 mc.select(cl=1)
                 
             #elif  _mode == 'clearParentBlock':
@@ -5956,7 +6020,11 @@ class ui(cgmUI.cgmGUI):
                 #                      progress=i+i_add, vis=True)
                 log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock)+'-'*40)
                 res = getattr(mBlock,args[0])(*args[1:],**kws) or None
-                ml_res.append(res)
+                if VALID.isListArg(res):
+                    ml_res.extend(res)
+                else:
+                    ml_res.append(res)
+                    
                 if res:
                     if _call == 'rebuild':
                         mBlock = res
@@ -5974,6 +6042,8 @@ class ui(cgmUI.cgmGUI):
                     
             #if _mActiveBlock and b_changeState:
                 #self.uiUpdate_blockDat()
+            if _selectRes:
+                mc.select([mObj.mNode for mObj in ml_res])
                 
             if b_dupMode and len(ml_res) > 1:
                 log.info(cgmGEN.logString_msg(_str_func,"mDup post process..."))
@@ -6001,7 +6071,7 @@ class ui(cgmUI.cgmGUI):
                 pass
             if _sel and args:
                 try:
-                    if args[1] not in ['skeleton_getBind']:
+                    if args[1] not in ['skeleton_getBind'] and _selectRes not in [1,True]:
                         mc.select(_sel)
                 except:pass
             return ml_context

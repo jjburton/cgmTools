@@ -650,6 +650,8 @@ def form(self):
         mDefineEndObj = self.defineEndHelper
         mDefineUpObj = self.defineUpHelper
         mDefineStartObj = self.defineStartHelper
+        
+        self.atUtils('jointRadius_guess',mDefineStartObj.mNode)#...size our jointRadius
     
         _v_range = DIST.get_distance_between_points(self.p_position,
                                                     mDefineEndObj.p_position)
@@ -831,6 +833,7 @@ def prerig(self):
     mStartHandle = ml_formHandles[0]    
     mEndHandle = ml_formHandles[-1]    
     mOrientHelper = mStartHandle.orientHelper
+    
     
     ml_handles = []
     ml_jointHandles = []

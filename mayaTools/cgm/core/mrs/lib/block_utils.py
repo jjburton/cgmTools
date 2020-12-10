@@ -7461,6 +7461,29 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     return md_handles,ml_handles,ml_shapers,ml_handles_chain
 
 
+def jointRadius_guess(self,sizeTarget = None):
+    _str_func = 'jointRadius_guess'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    _initial = self.jointRadius
+    _done = False
+    if sizeTarget:
+        _size = TRANS.bbSize_get(sizeTarget,True)
+        print _size
+        print MATH.average(_size[0],_size[1])
+        _v = (MATH.average(_size[0],_size[1]) * .25)
+        if self.jointRadius < _v:
+            log.info("|{0}| >> changing from sizeTarget | {1} | {2}".format(_str_func,_v,sizeTarget))
+            self.jointRadius = _v
+            _done = True
+    else:
+        _base = get_shapeOffset(self) * 2
+        if self.jointRadius < _base:
+            self.jointRadius = _base   
+
+    log.info("|{0}| >> Initial: {1} | Now: {2}".format(_str_func,_initial,self.jointRadius))
+    return self.jointRadius
+
+
     
 def form(self):
     _str_func = 'form'
@@ -10360,6 +10383,25 @@ def prerig_snapRPtoOrientHelper(self):
         vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
     
         mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
+
+def get_tagMessage(self,selfKey=None, msgList = None, idx = None):
+    _str_func = 'get_tagMessage'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    
+    if selfKey:
+        return self.getMessageAsMeta(selfKey)
+    
+    if msgList:
+        if msgList:
+            _res = self.msgList_get(msgList)
+            
+            
+            
+    if idx is not None:
+        return _res[idx]
+    return _res
+
+
 
 
 def get_handleIndices(self):

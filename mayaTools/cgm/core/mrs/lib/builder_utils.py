@@ -315,8 +315,8 @@ def gather_rigBlocks(progressBar=False):
                 except Exception,err:
                     log.error("{0} | {1}".format(link,err))
                     
-        
-        return log.info("|{0}| >> Gathered {1} dags".format(_str_func,len(ml_gathered)))
+        log.info("|{0}| >> Gathered {1} dags".format(_str_func,len(ml_gathered)))
+        return mGroup
     except Exception,err:
         raise Exception,err
     finally:

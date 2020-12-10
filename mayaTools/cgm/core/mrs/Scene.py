@@ -3131,7 +3131,7 @@ def ExportScene(mode = -1,
             exportDir = os.path.split(exportFile)[0]
             if not os.path.exists(exportDir):
                 log.info("making export dir... {0}".format(exportDir))
-                os.mkdir(exportDir)
+                os.makedirs(exportDir)
                 # create empty file so folders are checked into source control
                 #f = open(os.path.join(exportAnimPath, "filler.txt"),"w")
                 #f.write("filler file")
