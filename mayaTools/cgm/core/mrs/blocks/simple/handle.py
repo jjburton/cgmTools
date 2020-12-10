@@ -692,6 +692,9 @@ def form(self):
             #if k in ['up']:
                 #mHandle.v=False
 
+    self.atUtils('jointRadius_guess',md_defineHandles['start'].mNode)#...size our jointRadius
+                
+
     mDefineLoftMesh = self.defineLoftMesh
     _v_range = DIST.get_distance_between_points(self.p_position,
                                                 mDefineEndObj.p_position)

@@ -362,13 +362,15 @@ l_mrsPost_order = ['mirrorVerify',
                    'isHistoricallyInteresting',
                    'controllerVerify',
                    'blocksGather',
+                   'blocksParent',
+                   'deleteCGMLightGroup',
                    'hideJointAxis','deleteUnusedShaders','deleteUnusedLayers',
                    'blocksDelete']
 
 d_mrsPost_calls = {"recommended":['mirrorVerify','connectRig','controllerVerify','qss'],
-                   "cleanup":['gatherSpaceDrivers','blocksGather', 'worldGather',
+                   "cleanup":['gatherSpaceDrivers','blocksGather','blocksParent','worldGather',
                               'hideJointAxis'],
-                   'delete':['deleteUnusedShaders','deleteUnusedLayers','removeRefs'],
+                   'delete':['deleteUnusedShaders','deleteUnusedLayers','removeRefs','deleteCGMLightGroup'],
                    'mesh':['proxyMesh','puppetMesh',],
                    'experimental':['isHistoricallyInteresting','blocksDelete']}
 
@@ -378,6 +380,9 @@ d_dat = {'qss':{'ann':"Setup expected qss sets", 'label':'Add Qss Sets'},
          'controllerVerify':{'ann':"Setup maya controller tags", 'label':'Controller Verify'},
          'gatherSpaceDrivers':{'ann':"Gather space drivers from dynParent setups",
                                'label':'Gather Space Drivers'},
+         'deleteCGMLightGroup':{'ann':"Delete cgm Light Group", 'label':'Delete cgmLightGroup'},
+         'blocksParent':{'ann':"Parent and hide Block Group", 'label':'Parent Block Group'},
+         
          'blocksGather':{'ann':"Gather rigBlocks to a single group", 'label':'Gather Blocks'},
          'worldGather':{'ann':"Try to gather loose dags parented to world", 'label':'Gather World Dags'},
          'removeRefs':{'ann':"Remove references", 'label':'Remove References'},
@@ -491,8 +496,16 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                         t1 = time.clock()
                         MRSPOST.shaders_getUnused(delete=True)
                         t2 = time.clock()
-                        l_timeReports.append(['deleteUnusedShaders', get_time(t2-t1)
-])                        
+                        l_timeReports.append(['deleteUnusedShaders', get_time(t2-t1)])
+                                              
+                    if kws.get('deleteCGMLightGroup'):
+                        log.info('Delete cgm shaders...')
+                        t1 = time.clock()
+                        try:mc.delete('cgmLightGroup')
+                        except:pass
+                        
+                        t2 = time.clock()
+                        l_timeReports.append(['deleteUnusedShaders', get_time(t2-t1)])
                         
                     if kws.get('proxyMesh',1):
                         log.info('proxyMesh...')
@@ -563,11 +576,16 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                     
                     if kws.get('blocksGather',1):
                         t1 = time.clock()
+                        mGrp = BUILDERUTILS.gather_rigBlocks()
                         
-                        BUILDERUTILS.gather_rigBlocks()
+                        if kws.get('blocksParent',1):
+                            mGrp.p_parent = mPuppet                        
+                            mGrp.v = False
                         t2 = time.clock()
-                        l_timeReports.append(['blocksGather', get_time(t2-t1)
-])
+                        l_timeReports.append(['blocksGather', get_time(t2-t1)])
+                                              
+
+
                         
                     if kws.get('worldGather'):
                         log.info('Gathering world dags...')

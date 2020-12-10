@@ -2046,7 +2046,24 @@ def mirrorCurve(*args, **kws):
 
     return fncWrap(*args, **kws).go()
 
-
+def snapToSurface(base=None, target=None):
+    _str_func = 'snapToSurface'    
+    sel = mc.ls(sl=True)
+    if base is None:
+        if sel:
+            base = sel[0]
+    if target is None:
+        if sel:
+            target = sel[-1]
+            
+    _l_shapes_source = mc.listRelatives(base,shapes=True,fullPath=True)
+    for i,s in enumerate(_l_shapes_source):
+        _l_ep_source = mc.ls("{0}.cv[*]".format(s),flatten=True)
+        for ii,ep in enumerate(_l_ep_source):
+            SNAP.go(_l_ep_source[ii],target,pivot='closestPoint',rotation=0)
+            #_pos = DIST.get_closest_point(_l_ep_source[ii], target)
+            #POS.set(_l_ep_source[ii], _pos)    
+    
 def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
     _str_func = 'mirror_worldSpace'    
     sel = mc.ls(sl=True)
