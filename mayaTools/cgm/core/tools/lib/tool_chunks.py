@@ -46,7 +46,7 @@ import cgm.core.tools.lib.tool_calls as TOOLCALLS
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.projects.CGM as CGMPROJECTS
 from cgm.core.tools import attrTools as ATTRTOOLS
-
+from cgm.core.rig import general_utils as RIGGEN
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
@@ -1570,7 +1570,16 @@ def uiSection_snap(parent, selection = None ):
               l = '3[Spaced]',
               ut = 'cgmUITemplate',
               c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicRebuild','spans':3}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))
+    
+    mUI.MelMenuItemDiv(_arrange)        
+    mc.menuItem(parent=_arrange,
+              l = 'Ratio | Finger',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGEN.ratio, None,'all', 'ratioFinger',noSelect = 0, **{'mode':'finger'}),
               ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))    
+    
+    
     #cgmUI.mUI.MelSeparator(parent)
     mc.menuItem(parent=parent,
                 l = 'Snap UI',

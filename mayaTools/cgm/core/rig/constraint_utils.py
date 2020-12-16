@@ -978,16 +978,17 @@ d_wiring_r_griffon = {'mode':'limbFrameSurface',#'mode':'limbFrameCurve',
                        'R_featherUpr_1_segment_part',#0
                        'R_featherUpr_2_segment_part',#01
                        'R_featherUpr_3_segment_part',#02
-                       'R_feather_elbow_segment_part',#03
+                       'R_featherLwr_0_segment_part',#03
                        'R_featherLwr_1_segment_part',#04
                        'R_featherLwr_2_segment_part',#05
                        'R_featherLwr_3_segment_part',#06
-                       'R_feather_1_segment_part',#07
-                       'R_feather_2_segment_part',#08
-                       'R_feather_3_segment_part',#09
-                       'R_feather_4_segment_part',#10
-                       'R_feather_5_segment_part'], #11
-'color':range(12),
+                       'R_featherLwr_4_segment_part',#07                       
+                       'R_feather_1_segment_part',#08
+                       'R_feather_2_segment_part',#09
+                       'R_feather_3_segment_part',#10
+                       'R_feather_4_segment_part',#11
+                       'R_feather_5_segment_part'], #12
+'color':range(13),
 'name':'R_feathersFrame',
 'curveDrivers':['R_wingClav_limb_part',
                 'R_wingBase_limb_part',
@@ -1000,13 +1001,61 @@ d_wiring_r_griffon = {'mode':'limbFrameSurface',#'mode':'limbFrameCurve',
           5:[1,2],
           6:[1,2],
           7:[1,2],
-          8:[2,3],
+          8:[1,2],
           9:[2,3],
           10:[2,3],
           11:[2,3],
-          12:[3]
+          12:[2,3],
+          13:[3]
           }}
 
+d_wiring_l_griffonWingFrame = {'mode':'default',
+                           'name':'L_feathersFrame',
+                           'modules':
+                           ['L_wingClav_limb_part',
+                            'L_wingBase_limb_part',
+                            'L_wing_1_limb_part',
+                            'L_wing_2_limb_part'],
+'driven':{1:[0,3],
+          2:[0,3]
+          }}
+
+d_wiring_l_griffon = {'mode':'limbFrameSurface',#'mode':'limbFrameCurve',
+                      'modules':
+                      ['L_featherUpr_0_segment_part',
+                       'L_featherUpr_1_segment_part',#0
+                       'L_featherUpr_2_segment_part',#01
+                       'L_featherUpr_3_segment_part',#02
+                       'L_featherLwr_0_segment_part',#03
+                       'L_featherLwr_1_segment_part',#04
+                       'L_featherLwr_2_segment_part',#05
+                       'L_featherLwr_3_segment_part',#06
+                       'L_featherLwr_4_segment_part',#07                       
+                       'L_feather_1_segment_part',#08
+                       'L_feather_2_segment_part',#09
+                       'L_feather_3_segment_part',#10
+                       'L_feather_4_segment_part',#11
+                       'L_feather_5_segment_part'], #12
+'color':range(13),
+'name':'L_feathersFrame',
+'curveDrivers':['L_wingClav_limb_part',
+                'L_wingBase_limb_part',
+                'L_wing_1_limb_part', 'L_wing_2_limb_part', 'L_wingEnd_limb_part'],
+'driven':{0:[],
+          1:[0],
+          2:[0,1],
+          3:[0,1],
+          4:[1],#[0,7],
+          5:[1,2],
+          6:[1,2],
+          7:[1,2],
+          8:[1,2],
+          9:[2,3],
+          10:[2,3],
+          11:[2,3],
+          12:[2,3],
+          13:[3]
+          }}
 
 #limbFrameCurve=====================================================================================
 d_wiring_r_owlWingFrame = {'mode':'default',

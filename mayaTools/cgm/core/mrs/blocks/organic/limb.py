@@ -6724,7 +6724,7 @@ def rig_frame(self):
                              maintainOffset = True, weight = 1,
                              aimVector = self.d_orientation['vectorAim'],
                              upVector = self.d_orientation['vectorUp'],
-                             worldUpVector = self.d_orientation['vectorOut'],
+                             worldUpVector = self.d_orientation['vectorUp'],
                              worldUpObject = mLeverFK.mNode,
                              worldUpType = 'objectRotation' )
             
