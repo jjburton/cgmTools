@@ -6719,7 +6719,12 @@ def rig_frame(self):
                 
             mOrientGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'orient')
             
-            mc.aimConstraint(ml_blendJoints[0].mNode,
+            if ml_blendJoints:
+                mLeverTarget = ml_blendJoints[0]
+            else:
+                mLeverTarget = ml_fkJoints[0]
+                
+            mc.aimConstraint(mLeverTarget.mNode,
                              mAimLoc.mNode,
                              maintainOffset = True, weight = 1,
                              aimVector = self.d_orientation['vectorAim'],
