@@ -1262,6 +1262,10 @@ def byDistance(mDriven = None,
     mDriven = cgmMeta.asMeta(mDriven)
     mTargets = cgmMeta.asMeta(mTargets)
     
+    if len(mTargets) == 1:
+        return constraint([mObj.mNode for mObj in mTargets],mDriven.mNode, **kws)
+        
+    
     l_dat = DIST.get_targetsOrderedByDist(mDriven.mNode,[mObj.mNode for mObj in mTargets])
     if maxUse != None and len(l_dat) > maxUse:
         l_dat = l_dat[:maxUse]
@@ -1272,16 +1276,16 @@ def byDistance(mDriven = None,
         l_objs.append(s[0])
         l_dist.append(s[1])
         if l_dist[-1] <= threshold:
-            log.info(cgmGEN.logString_msg(_str_func,"Threshold hit: {0}".format(threshold)))
+            log.debug(cgmGEN.logString_msg(_str_func,"Threshold hit: {0}".format(threshold)))
             break
         
     if len(l_objs) > 1:
         vList = MATHUTILS.normalizeListToSum(l_dist,1.0)
-        log.info("|{0}| >> targets: {1} ".format(_str_func,l_objs))                     
-        log.info("|{0}| >> raw: {1} ".format(_str_func,l_dist))             
-        log.info("|{0}| >> normalize: {1} ".format(_str_func,vList))  
+        log.debug("|{0}| >> targets: {1} ".format(_str_func,l_objs))                     
+        log.debug("|{0}| >> raw: {1} ".format(_str_func,l_dist))             
+        log.debug("|{0}| >> normalize: {1} ".format(_str_func,vList))  
         vList = [1.0 - v for v in vList]
-        log.info("|{0}| >> normal: {1} ".format(_str_func,vList))
+        log.debug("|{0}| >> normal: {1} ".format(_str_func,vList))
         const = constraint(l_objs,mDriven.mNode, **kws)
         
         CONSTRAINT.set_weightsByDistance(const[0],vList)                
@@ -1289,7 +1293,7 @@ def byDistance(mDriven = None,
     else:
         return constraint(l_objs,mDriven.mNode, **kws)
     
-    pprint.pprint(l_dist)
+    #pprint.pprint(l_dist)
     
     
 def wing_temp(d_wiring=d_wiring_r, mode = 'limbFrameCurve'):

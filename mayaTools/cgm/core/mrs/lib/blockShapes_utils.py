@@ -1233,7 +1233,7 @@ class handleFactory(object):
         #Joint Label ---------------------------------------------------------------------------
         mJointLabel = cgmMeta.validateObjArg(mc.joint(),'cgmObject',setClass=True)
     
-        mJointLabel.p_parent = mHandle
+        if mJointLabel.getParent(asMeta=1) != mHandle: mJointLabel.p_parent = mHandle
         mJointLabel.resetAttrs()
         
         mParent = mJointLabel.getParent(asMeta=1)

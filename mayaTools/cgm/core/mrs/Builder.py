@@ -77,6 +77,7 @@ import cgm.core.lib.list_utils as LISTS
 from cgm.core.lib import nameTools as NAMETOOLS
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.post_utils as MRSPOST
+import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 
 #for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
     #reload(m)
@@ -120,7 +121,7 @@ _sidePadding = 25
 
 def reloadMRSStuff():
     log.info("reloading...")
-    for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,
+    for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,RIGCONSTRAINT,
               BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,MRSPOST,
               MODULECONTROLFACTORY,MODULESHAPECASTER]:
         print m

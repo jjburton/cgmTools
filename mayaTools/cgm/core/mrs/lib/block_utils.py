@@ -9652,12 +9652,13 @@ def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 @cgmGEN.Timer
-def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, statePlug ='define',vectorScaleAttr = 'baseSize',startScale=False, forceSize = False):
+def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, statePlug ='define',vectorScaleAttr = 'baseSize',startScale=False, forceSize = False, mProgressBar = None):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineHandles'
         log.debug("|{0}| >>...".format(_str_func)+ '-'*80)
         log.debug(self)
+        _startedProgress = False
         
         md_handles = {}
         ml_handles = []
@@ -9672,8 +9673,19 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
             mParentNull = self.atUtils('stateNull_verify',statePlug)
         mHandleFactory = self.asHandleFactory()
         
+        if not mProgressBar:
+            mProgressBar = cgmUI.progressBar_start()    
+            _startedProgress = True
         
-        for k in l_order:
+        int_len = len(l_order)
+        
+        for i,k in enumerate(l_order):
+            
+            cgmUI.progressBar_set(mProgressBar,
+                                  status = "On " + k,
+                                  minValue = 0,
+                                  maxValue=int_len,
+                                  progress=i, vis=True)            
             
             _dtmp = d_definitions.get(k,False)
             if not _dtmp:
@@ -10241,14 +10253,17 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     if self.hasAttr('jointRadius'):
                         mHandle.doConnectIn('scale', "{0}.jointRadius".format(self.mNode),pushToChildren=True)                
                         ATTR.set_standardFlags(mHandle.mNode, ['sx','sy','sz'])
-
+            
         return {'md_handles':md_handles,
                 'ml_handles':ml_handles,
                 'md_vector':md_vector,
                 'md_jointLabels':md_jointLabels}
  
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-    
+    finally:
+        if mProgressBar and _startedProgress:
+            cgmUI.progressBar_end(mProgressBar)
+            
     
 def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [0,0,1]):
     _str_func = 'define_set_baseSize'
@@ -12539,7 +12554,7 @@ def uiStatePickerMenu(self,parent = None):
                 
                 
 
-def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None, skip = 'left'):
+def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None, skip = 'L_'):
     """
     """
     _str_func = 'get_handleScaleSpace'
