@@ -3034,7 +3034,7 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(uiFunc_aimPreHandles,self),
                 label = "Aim Pre Handles")
     
-    
+    """
     mc.menuItem(en=True,divider = True,
                 label = "Utilities")
     
@@ -3042,7 +3042,7 @@ def uiBuilderMenu(self,parent = None):
                        label = "State Picker")
     
     self.atUtils('uiStatePickerMenu',parent)
-    
+    """
     #self.UTILS.uiBuilderMenu(self,parent)
     
     return

@@ -9651,6 +9651,7 @@ def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
         return mPlane
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
+@cgmGEN.Timer
 def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0], vecControlLiveScale = False, statePlug ='define',vectorScaleAttr = 'baseSize',startScale=False, forceSize = False):
     try:
         _short = self.p_nameShort
@@ -9670,6 +9671,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         if mParentNull == None:
             mParentNull = self.atUtils('stateNull_verify',statePlug)
         mHandleFactory = self.asHandleFactory()
+        
         
         for k in l_order:
             
@@ -9719,35 +9721,18 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 else:
                     mHandle.doStore('cgmName',self)
                     mHandle.doStore('cgmTypeModifier',k)
-                    
-                    #mHandle.doStore('cgmTypeModifier',str_name)
-                    #mHandle.doStore('cgmName',str_name)
-                    
+
                 mHandle.doStore('cgmType','defineHandle')
                 mHandle.doName()
                 mHandle.doStore('handleTag',k,attrType='string')
                 mHandle.doStore('handleType','vector')            
                 
                 SNAP.aim_atPoint(mHandle.mNode,mEnd.p_position, 'z+')
-            
-                #mc.aimConstraint(mHandle.mNode, mAim.mNode, maintainOffset = False,
-                                 #aimVector = [0,0,1], upVector = [0,0,0], 
-                                 #worldUpType = 'none')
+
                                  
                 self.connectChildNode(mHandle.mNode,'vector{0}Helper'.format(STR.capFirst(k)),'block')
                 md_vector[k] = mHandle
-                """
-                _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
-                                                direction = 'z+', size = _sizeSub)
-            
-                mArrow = cgmMeta.cgmObject(_arrow)
-                mArrow.p_parent = mParent
-                mArrow.resetAttrs()
-                mArrow.ty = _size*2
-            
-                SNAP.aim_atPoint(mArrow.mNode,mHandle.p_position, 'z-')
-                
-                CORERIG.shapeParent_in_place(mHandle.mNode,mArrow.mNode,False)"""
+
                 
                 CORERIG.override_color(mHandle.mNode, _dtmp['color'])
                 
@@ -9762,17 +9747,29 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                         if _dtmp.get('jointScale') != True:#We want spherical face shapes
                             _useSize = [_useSize,_useSize,_useSize*.5]
                     
-                _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
-                                              bakeScale = 1,                                              
-                                              direction = 'z+', size = _useSize)
-                #CORERIG.shapeParent_in_place(_crv,_circle,False)
-            
-                #_crv = CURVES.create_fromName(name='sphere',#'arrowsAxis', 
-                #                              direction = 'z+', size = _sizeSub)
-                mHandle = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
+                if _shape == 'defineAnchor':
+                    _crv = CURVES.create_fromName(name='circle',#'arrowsAxis', 
+                                                  bakeScale = 1,                                              
+                                                  direction = 'z+', size = _useSize)
+                    
+                    POS.set(_crv, self.getPositionByAxisDistance(_dtmp.get('anchorDir','z+'), _useSize * 2))
+                    
+                    mHandle = cgmMeta.validateObjArg(self.doCreateAt(),'cgmControl',setClass = True)
+                    SNAP.aim(_crv,mHandle.mNode)
+                    
+                    CORERIG.shapeParent_in_place(mHandle.mNode, _crv,
+                                                 False)
+                    
+                    
+                else:
+                    _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
+                                                  bakeScale = 1,                                              
+                                                  direction = 'z+', size = _useSize)
+                    mHandle = cgmMeta.validateObjArg(_crv,'cgmControl',setClass = True)
+                    mHandle.doSnapTo(self.mNode)
+                
                 mHandle.p_parent = mParentNull
-                mHandle.doSnapTo(self.mNode)
-                CORERIG.override_color(_crv, _dtmp['color'])
+                CORERIG.override_color(mHandle.mNode, _dtmp['color'])
             
                 if k not in ['end','start']:
                     mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
@@ -9803,7 +9800,12 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     
                     mLoc.translate = [v*.5 for v in _dtmp['scaleSpace']]
                     mHandle.p_position = mLoc.p_position
-                    mLoc.delete()
+                    
+                    mLoc.v = False
+                    mGroup = mHandle.doGroup(True,True,True,'track',True)
+                    mc.pointConstraint(mLoc.mNode, mGroup.mNode)
+                    
+                    #mLoc.delete()
                 elif _pos:
                     mHandle.p_position = _pos
                 else:
@@ -12537,7 +12539,7 @@ def uiStatePickerMenu(self,parent = None):
                 
                 
 
-def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None):
+def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None, skip = 'left'):
     """
     """
     _str_func = 'get_handleScaleSpace'
@@ -12554,6 +12556,14 @@ def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None):
         
     _res = {}
     for mObj in ml_objs:
+        _tag = mObj.getMayaAttr('handleTag')
+        
+        if not _tag:
+            _tag = mObj.p_nameBase.split('_')[0]
+        else:
+            if skip and skip in _tag:
+                continue
+            
         mLoc = mObj.doLoc()
         mLoc.p_parent = mBBHelper
         
@@ -12563,9 +12573,7 @@ def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None):
             if v:_l_v.append(2*v)
             else:_l_v.append(0)
             
-        _tag = mObj.getMayaAttr('handleTag')
-        if not _tag:
-            _tag = mObj.p_nameBase.split('_')[0]
+
             
         _res[str(_tag)] = _l_v
         mLoc.delete()
