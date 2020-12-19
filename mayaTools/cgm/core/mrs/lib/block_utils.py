@@ -12566,8 +12566,7 @@ def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None, skip = 'L_'):
         
     _sel = None
     if not ml_objs:
-        _sel = mc.ls(sl=1)
-        ml_objs = cgmMeta.validateObjListArg(_sel,'cgmObject')
+        ml_objs = cgmMeta.asMeta(sl=1)
         
     _res = {}
     for mObj in ml_objs:
@@ -12578,6 +12577,7 @@ def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None, skip = 'L_'):
         else:
             if skip and skip in _tag:
                 continue
+            
             
         mLoc = mObj.doLoc()
         mLoc.p_parent = mBBHelper

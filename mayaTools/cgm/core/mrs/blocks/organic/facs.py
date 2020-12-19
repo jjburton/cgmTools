@@ -71,6 +71,7 @@ import cgm.core.lib.string_utils as STR
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.mrs.lib.post_utils as MRSPOST
 import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
+import cgm.core.mrs.lib.facs_utils as FACSUTILS
 #reload(BLOCKSHAPES)
 #for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT,RIGGEN:
 #    reload(m)
@@ -133,7 +134,7 @@ d_attrStateMask = {'define':['addEyeSqueeze',
 d_build_profiles = {}
 
 
-d_block_profiles = {'default':{'baseSize':[17.6,7.2,8.4],},
+d_block_profiles = {'default':{'baseSize':[13.5,16.3,8.8],},
                     }
 
 #>>>Attrs =================================================================================================
@@ -158,6 +159,8 @@ d_attrsToMake = {'formForeheadNum':'int',
                  'formBrowNum':'int',
                  'numBrowJoints':'int',
                  'eyeSize':'float3',
+                 'irisDepth':'float',
+                 'pupilDepth':'float',
 }
 
 d_defaultSettings = {'version':__version__,
@@ -171,7 +174,9 @@ d_defaultSettings = {'version':__version__,
                      'jointDepth':-.01,
                      'jointRadius':1.0,
                      'controlOffset':1,
-                     'eyeSize':[2.5,2.5,2.5],
+                     'eyeSize':[3.4,3.4,3.4],
+                     'pupilDepth':-.059,
+                     'irisDepth':-.028,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -225,8 +230,387 @@ def create_defineHelpers(self, force = True):
 
 
 
+
 @cgmGEN.Timer
 def define(self):
+
+    _str_func = 'define'    
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    _short = self.mNode
+    
+    #Attributes =========================================================
+    ATTR.set_alias(_short,'sy','blockScale')    
+    self.setAttrFlags(attrs=['sx','sz'])
+    self.doConnectOut('sy',['sx','sz'])
+
+    ATTR.set_min(_short, 'loftSplit', 1)
+    
+    
+    #Cleaning =========================================================        
+    _shapes = self.getShapes()
+    if _shapes:
+        log.debug("|{0}| >>  Removing old shapes...".format(_str_func))        
+        mc.delete(_shapes)
+        defineNull = self.getMessage('defineNull')
+        if defineNull:
+            log.debug("|{0}| >>  Removing old defineNull...".format(_str_func))
+            mc.delete(defineNull)
+    
+    ml_handles = []
+    
+    #Make our handles creation data =======================================================
+    d_pairs = {}
+    d_creation = {}
+    l_order = []
+    d_curves = {}
+    d_curveCreation = {}
+    d_toParent = {}    
+    
+    #rigBlock Handle ===========================================================
+    log.debug("|{0}| >>  RigBlock Handle...".format(_str_func))            
+    _size = MATH.average(self.baseSize[1:])
+    _crv = CURVES.create_fromName(name='locatorForm',#'axis3d',#'arrowsAxis', 
+                                  direction = 'z+', size = _size/4)
+    
+    if self.jointRadius > _size/4:
+        log.warning("|{0}| >> jointRadius too small. Reset".format(_str_func))   
+        self.jointRadius = _size/4
+        
+        
+    SNAP.go(_crv,self.mNode,)
+    CORERIG.override_color(_crv, 'white')        
+    CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+    mHandleFactory = self.asHandleFactory()
+    self.addAttr('cgmColorLock',True,lock=True, hidden=True)
+    mDefineNull = self.atUtils('stateNull_verify','define')
+    
+    mNoTransformNull = self.atUtils('noTransformNull_verify','define',forceNew=True,mVisLink=self)
+    
+    #Bounding Cube ==================================================================
+    _bb_shape = CURVES.create_controlCurve(self.mNode,'cubeOpen', size = 1.0, sizeMode='fixed')
+    mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
+    mBBShape.p_parent = mDefineNull    
+    mBBShape.tz = -.5
+    mBBShape.ty = .5
+    
+    
+    CORERIG.copy_pivot(mBBShape.mNode,self.mNode)
+    self.doConnectOut('baseSize', "{0}.scale".format(mBBShape.mNode))
+    mHandleFactory.color(mBBShape.mNode,controlType='sub')
+    mBBShape.setAttrFlags()
+    
+    mBBShape.doStore('cgmName', self)
+    mBBShape.doStore('cgmType','bbVisualize')
+    mBBShape.doName()    
+    
+    self.connectChildNode(mBBShape.mNode,'bbHelper')
+    
+    _d_pairs = {}
+    _d = {}    
+    _d_base = {'color':'yellowWhite','tagOnly':1,'arrow':0,'vectorLine':0}
+    
+    l_sideKeys = ['sideUprAnchor','eyeAnchor','jawCornerAnchor','nostrilAnchor',
+                  'orbitFrontAnchor','cheekAnchor','lipAnchor'
+                  ]
+
+    for k in l_sideKeys:
+        _d_pairs['L_'+k] = 'R_'+k
+
+    d_pairs.update(_d_pairs)
+    
+
+    for k in 'top','brow','nose','mouth','bottom','chin','noseTop':
+        _d[k+'Anchor'] = copy.copy(_d_base)
+    
+    #...build base dicts
+    for k in l_sideKeys:
+        _d['L_'+k] =  {'color':'blueWhite','tagOnly':1,'arrow':0,'vectorLine':0}
+        _d['R_'+k] =  {'color':'redWhite','tagOnly':1,'arrow':0,'vectorLine':0}
+        
+    
+    #We need to get our anchors for some processing help later
+    l_anchors = _d.keys()
+    #pprint.pprint(l_anchors)
+
+    #Get poses
+    _str_pose = 'default'
+
+    
+    _tmp = [.01,0,0]
+    size_locForm = self.jointRadius * 2.0
+    
+    reload(FACSUTILS)
+    d_defineScaleSpace = FACSUTILS.d_defineScaleSpace
+    
+    for k,d in _d.iteritems():
+        if 'Anchor' in k:
+            _d[k]['shape'] = 'defineAnchor'
+            #_d[k]['size'] = size_locForm
+        else:
+            _d[k]['jointScale'] = 1
+            _d[k]['jointLabel'] = 1
+            #_d[k]['size'] = size_locForm
+            
+        if 'eye' in k:
+            _d[k]['jointScale'] = False
+        #else:
+            #_d[k]['jointScale'] = 1
+            
+        _v = None
+        if 'L_' in k:
+            k_use = str(k).replace('L_','R_')
+            _v = copy.copy(d_defineScaleSpace[_str_pose].get(k_use))
+            if _v:
+                _v[0] = -1 * _v[0]
+        else:
+            _v = d_defineScaleSpace[_str_pose].get(k)
+            
+        if _v is not None:
+            _d[k]['scaleSpace'] = _v
+        else:
+            _d[k]['scaleSpace'] = _tmp
+            _tmp = [v * 1.1 for v in _tmp]
+            
+    #Set directions for our anchor casts....................
+    _d['L_jawCornerAnchor']['anchorDir'] = 'x+'
+    _d['R_jawCornerAnchor']['anchorDir'] = 'x-'
+    _d['R_sideUprAnchor']['anchorDir'] = 'x-'
+    _d['L_sideUprAnchor']['anchorDir'] = 'x+'
+    
+    
+    _keys = _d.keys()
+    _keys.sort()
+    l_order.extend(_keys)
+    d_creation.update(_d)
+
+        
+        
+    #make em...============================================================
+    log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))
+
+    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape,
+                                             forceSize=1)
+
+    md_handles = md_res['md_handles']
+    ml_handles = md_res['ml_handles']
+    
+    
+    for k,p in d_toParent.iteritems():
+        md_handles[k].p_parent = md_handles[p]
+        
+
+    
+    #Parent setup.....=============================================================================
+    #                  'lidInnerOut','lidInner','lidUpr','lidUprOut','lidOuter','lidOuterOut','lidLwr','lidLwrOut',
+"""
+    d_contraints = {'L_nostrilAnchor':['noseAnchor'],
+                    'L_cheekAnchor':['L_lipAnchor','L_jawCornerAnchor'],
+                    'L_lipAnchor':['mouthAnchor'],
+                    'L_orbitFrontAnchor':['noseAnchor','L_sideUprAnchor'],
+                    }"""
+    
+    d_contraints = {}
+    
+    for k,l in d_contraints.iteritems():
+        if k.startswith('L_'):
+            k_use = str(k).replace('L_','R_')
+            l_use = []
+            for i,k2 in enumerate(l):
+                if k2.startswith('L'):
+                    l_use.append(str(k2).replace('L_','R_'))
+                else:
+                    l_use.append(k2)
+                    
+            mGroup = md_handles[k_use].doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+            RIGCONSTRAINT.byDistance(mGroup,[md_handles[n] for n in l_use],
+                                     mc.parentConstraint,maxUse=3,maintainOffset=1)            
+            #after the other side, do the original
+            k_use = k
+            l_use = l
+        else:
+            k_use = k
+            l_use = l            
+            
+        mGroup = md_handles[k_use].doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+        RIGCONSTRAINT.byDistance(mGroup,[md_handles[n] for n in l_use],
+                                 mc.parentConstraint,maxUse=3,maintainOffset=1)
+    
+        
+
+    #Eye orbs -------------------------------------------------------------
+    ml_l_eyeBits = BLOCKSHAPES.eyeOrb(self,md_handles['L_eyeAnchor'],mDefineNull, 'left') 
+    ml_r_eyeBits = BLOCKSHAPES.eyeOrb(self,md_handles['R_eyeAnchor'],mDefineNull, 'right') 
+    
+    
+    #Tag for mirror
+    for i,mObj in enumerate(ml_l_eyeBits):
+        l_tag = mObj.handleTag
+        r_tag = ml_r_eyeBits[i].handleTag
+        md_handles[l_tag] = mObj
+        md_handles[r_tag] = ml_r_eyeBits[i]
+        
+        d_pairs[l_tag] = r_tag
+        
+        
+        ml_handles.extend([mObj,  ml_r_eyeBits[i]])
+
+
+    #Mirror setup...
+    idx_ctr = 0
+    idx_side = 0
+    d = {}
+        
+    for tag,mHandle in md_handles.iteritems():
+        mHandle._verifyMirrorable()
+        _center = True
+        for p1,p2 in d_pairs.iteritems():
+            if p1 == tag or p2 == tag:
+                _center = False
+                break
+        if _center:
+            log.debug("|{0}| >>  Center: {1}".format(_str_func,tag))    
+            mHandle.mirrorSide = 0
+            mHandle.mirrorIndex = idx_ctr
+            idx_ctr +=1
+        mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
+
+    #Self mirror wiring -------------------------------------------------------
+    for k,m in d_pairs.iteritems():
+        md_handles[k].mirrorSide = 1
+        md_handles[m].mirrorSide = 2
+        md_handles[k].mirrorIndex = idx_side
+        md_handles[m].mirrorIndex = idx_side
+        md_handles[k].doStore('mirrorHandle',md_handles[m])
+        md_handles[m].doStore('mirrorHandle',md_handles[k])
+        idx_side +=1
+        
+    
+    #Curves -------------------------------------------------------------------------
+    log.debug("|{0}| >>  Make the curves...".format(_str_func))    
+    md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
+    self.msgList_connect('defineHandles',ml_handles)#Connect    
+    #self.msgList_connect('defineSubHandles',ml_handles)#Connect
+    self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect    
+    
+    md_curves = md_resCurves['md_curves']
+
+    self.atUtils('controller_wireHandles',ml_handles,'define')
+    return    
+    
+    
+@cgmGEN.Timer
+def defineBAK(self):
+    d_defineScaleSpace = {'default':
+                          {'R_browPeak_1': [-0.6713813499168115, 0.9811429697261111, 0.7239851128566311],
+                           'R_browPeak_2': [-0.975582829228154,
+                                            0.9292462342880228,
+                                            -0.06630732811499518],
+                           'R_brow_1': [-0.296678964755179, 0.6238101968178427, 1.2374333510236672],
+                           'R_brow_2': [-0.6746586671748838, 0.6913925936975538, 0.9779912439843487],
+                           'R_brow_3': [-0.8558618735550918, 0.6319769257756214, 0.6039768744968966],
+                           'R_cheek': [-0.7937258239312499, -0.44134881404749393, 0.022774813563396945],
+                           'R_cheekBack': [-1.08435503422675, 0.43200252871429257, -0.6647092625142361],
+                           'R_cheekBone': [-0.9143956999602136,
+                                           0.24937447365068266,
+                                           0.19019182674534496],
+                           'R_cheekFront': [-0.5800084295648364,
+                                            0.05741114299616967,
+                                            0.8169812818855758],
+                           'R_cheekStart': [-0.6368880779821756,
+                                            -0.5427476846630199,
+                                            0.4622318304333529],
+                           'R_chin': [-0.25934176974826384, -0.8201580995359059, 0.9731667681946202],
+                           'R_earBottom': [-1.0783174987359372,
+                                           -0.08624026718275957,
+                                           -1.1995763804639146],
+                           'R_earTop': [-1.1444148995425054, 0.3383959382276842, -1.0766615134510857],
+                           'R_eyeAnchor': [-0.4664454973461831, 0.47394849201335276, 0.7477437370602481],
+                           'R_jawCorner': [-0.9464050575538916,
+                                           -0.3362372832936451,
+                                           -1.0808767755983735],
+                           'R_jawCornerAnchor': [-0.9464050575538916,
+                                                 -0.3362372832936522,
+                                                 -1.0808767755983735],
+                           'R_jawFront': [-0.22414094211339675, -0.9932620486371135, 0.9227802213301418],
+                           'R_jawUnder_1': [-0.6084799628382235,
+                                            -0.8575730265172474,
+                                            -0.5922238117367802],
+                           'R_jawUnder_2': [-0.8602593133718259,
+                                            -0.5542119790345517,
+                                            -0.9519401543910275],
+                           'R_jaw_1': [-0.5129767929405813, -0.799138414526972, 0.44464076618810855],
+                           'R_jaw_2': [-0.7583590591562204, -0.6851224906224651, -0.15981019430820897],
+                           'R_lidInner': [-0.3029570402922454, 0.4379300536754265, 0.6502626218897133],
+                           'R_lidInnerOut': [-0.17672672978153947,
+                                             0.4010449717869733,
+                                             0.8413789507551926],
+                           'R_lidLwr': [-0.528255603931568, 0.3865406964004521, 0.761007182505414],
+                           'R_lidLwrOut': [-0.5361562658239293, 0.29866878972810085, 0.7135321923428891],
+                           'R_lidOuter': [-0.6834834063494648, 0.45642595357777793, 0.6259167259566035],
+                           'R_lidOuterOut': [-0.8220553927951387,
+                                             0.4474897322766367,
+                                             0.44154265761781863],
+                           'R_lidUpr': [-0.48907145747431974, 0.5309936933601627, 0.8057133744200101],
+                           'R_lidUprOut': [-0.4616043302747938, 0.6001000969734065, 0.8295343160021503],
+                           'R_lipCorner': [-0.4074539939729345,
+                                           -0.44691686813288456,
+                                           0.8986685174598822],
+                           'R_lipLwr': [-0.1939219722041378, -0.4840284915627855, 1.156996808696518],
+                           'R_lipLwrBow': [-0.20427816885489, -0.6463295919508738, 1.0599307551557264],
+                           'R_lipUpr': [-0.2116789641203703, -0.3935036149378277, 1.2114921421406075],
+                           'R_neckCorner': [-0.8920030947084769,
+                                            -0.7911289540772977,
+                                            -1.4124202221274262],
+                           'R_neckMid': [-0.6323231569209775, -1.181091197933835, -0.7744271466924437],
+                           'R_noseBase': [-0.1407631922818084, -0.12837699389620028, 1.1843442536774735],
+                           'R_noseBulb': [-0.13180994104456017, 0.00568692030633855, 1.5574745561698498],
+                           'R_noseTop': [-0.09675033004195596, 0.42509394782153365, 1.1257566062097903],
+                           'R_nostril': [-0.2709846143369321, -0.019148398268864497, 1.013497870905451],
+                           'R_orbitOuter': [-0.9255948718732344,
+                                            0.5201796111822112,
+                                            0.09738985697345848],
+                           'R_sideUprAnchor': [-1.1426325694896555,
+                                               0.696103159964828,
+                                               -0.9285849108478661],
+                           'R_smileEnd': [-0.21037468867734357, 0.13608123598588762, 1.0490191715774957],
+                           'R_smilePeak': [-0.41305022550414827,
+                                           -0.017416572435340782,
+                                           0.949934146203799],
+                           'R_smileStart': [-0.5377998777885903,
+                                            -0.4949121747497003,
+                                            0.7585009932005266],
+                           'R_sneer': [-0.24955410427517394, 0.2848984340461591, 0.9255073287535355],
+                           'R_temple': [-1.1636325694896543, 0.6961031599648067, -0.9285849108478661],
+                           'bottomAnchor': [-2.697495005143935e-16,
+                                            -1.3264335108621275,
+                                            -0.1506813856165703],
+                           'browAnchor': [5.117434254131581e-17, 0.5699139046335482, 1.2618197021681716],
+                           'browLwr': [5.204170427930421e-17, 0.5699139046335446, 1.2618197021681716],
+                           'browPeak': [5.204170427930421e-18, 0.9749907754676599, 1.1631904897590082],
+                           'chinAnchor': [2.6107588313450947e-16,
+                                          -1.0324481185790013,
+                                          0.9537196153513007],
+                           'mouthAnchor': [1.5005358067199381e-16,
+                                           -0.4269899985046166,
+                                           1.145336506112777],
+                           'neckJawMeet': [-2.714842239903703e-16,
+                                           -1.014360367900128,
+                                           -0.04835207949806697],
+                           'neckLwr': [-2.706168622523819e-16, -1.3264335108621168, -0.1506813856165703],
+                           'noseAnchor': [1.3530843112619095e-16,
+                                          -0.1508926019765262,
+                                          1.229154623585953],
+                           'noseTip': [0.0042287310131365755, 0.001197278848103167, 1.6898677076170099],
+                           'noseTopAnchor': [5.117434254131581e-17,
+                                             0.3999999999999986,
+                                             1.2618197021681716],
+                           'topAnchor': [4.336808689942018e-18, 0.9749907754676599, 1.1631904897590046]}
+                     
+                     
+                     }
+
+    
     _str_func = 'define'    
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
@@ -306,16 +690,22 @@ def define(self):
     
     l_sideKeys = ['sideUprAnchor','eyeAnchor','jawCornerAnchor',
                   'browPeak_1','browPeak_2',
-                  'brow_1','brow_2',
+                  'brow_1','brow_2','brow_3',
+                  'orbitOuter',
                   'temple',
-                  'noseTop','noseBulb','nostril','sneer',
+                  'noseTop','noseBulb','nostril','sneer','noseBase',
                   
                   'lidInnerOut','lidInner','lidUpr','lidUprOut','lidOuter','lidOuterOut','lidLwr','lidLwrOut',
                   
                   'lipLwrBow','lipLwr','lipCorner','lipUpr',
                   
-                  'cheekFront','cheekBone','cheekBack','cheek','smileStart','chin','jawCorner','jawMid','neckMid','neckCorner'
+                  'smileStart','smilePeak','smileEnd',
+                  'cheek','cheekFront','cheekBone','cheekBack','cheekStart','chin','jawCorner','jaw_1','jaw_2','neckMid','neckCorner',
                   
+                  'jawUnder_1','jawUnder_2',
+                  
+                  'earTop','earBottom',
+                  'jawFront',
                   ]
 
     for k in l_sideKeys:
@@ -325,125 +715,10 @@ def define(self):
     
     
     
-    """
-
-    
-    l_sideKeys = ['browPeak_1','browPeak_2',
-                  'brow_1','brow_2',
-                  'temple',
-                  'noseTop','noseBulb','nostril','sneer',
-                  'lidInnerOut','lidInner','lidUpr','lidUprOut','lidOuter','lidOuterOut','lidLwr','lidLwrOut',
-                  'cheekFront','cheekBone','cheekBack','cheek','smileStart','chin',
-                  'lipLwrBow',
-                  'lipLwr','lipCorner',
-                  'lipUpr',
-                  'jawCorner','jawMid',
-                  'neckMid','neckCorner'
-                  
-                  ]
-
-    for k in l_sideKeys:
-        _d_pairs[k+'_left'] = k+'_right'
-
-    d_pairs.update(_d_pairs)
-    
-    #Going to just store the right values and then just flip the 
-    _d_scaleSpace = {
-        'default':
-        {'browLwr': [5.1988552961864005e-17, 0.5699139046335517, 1.2618197021681734],
-         'browPeak': [5.037910310984437e-18, 0.9749907754676634, 1.1631904897590069],
-         'R_browPeak_1': [-0.6713813499168113,
-                              0.9811429697260969,
-                              0.7239851128566298],
-         'R_browPeak_2': [-0.9755828292281539,
-                              0.9292462342880157,
-                              -0.06630732811499529],
-         'R_brow_1': [-0.6704299361617476, 0.6913925936975645, 0.9785131963430115],
-         'R_brow_2': [-0.9423661408600981, 0.5201796111822219, 0.0979118093321204],
-         'R_cheekBack': [-1.140186168529369,
-                             0.3383959382277091,
-                             -1.0761395610924238],
-         'cheekBone': [-0.9353956999602141,
-                             0.24937447365068266,
-                             0.19019182674534607],
-         'R_cheekFront': [-0.6030222574869791,
-                              -0.05883997412973585,
-                              0.7984155986160509],
-         'R_cheek': [-0.7894970929181134,
-                         -0.4413488140474797,
-                         0.02329676592205865],
-         'chin': [2.60703063151355e-16, -1.032448118578987, 0.9537196153513007],
-         'R_chin': [-0.2593417697482639, -0.8201580995359237, 0.9731667681946211],
-         'R_jawCorner': [-0.9464050575538917,
-                             -0.3362372832936451,
-                             -1.0808767755983733],
-         'R_jawMid': [-0.6797286139594184,
-                          -0.7812640996805555,
-                          -0.4277636494529482],
-         'R_lidInnerOut': [-0.1767267297815393,
-                               0.40104497178697684,
-                               0.8413789507551911],
-         'R_lidInner': [-0.30295704029224535,
-                            0.4379300536754265,
-                            0.6502626218897135],
-         'R_lidLwrOut': [-0.5361562658239294,
-                               0.2986687897280902,
-                               0.7135321923428898],
-         'R_lidLwr': [-0.5282556039315682,
-                            0.3865406964004592,
-                            0.7610071825054142],
-         'R_lidOuterOut': [-0.8220553927951388,
-                               0.4474897322766367,
-                               0.4415426576178204],
-         'R_lidOuter': [-0.6834834063494647,
-                            0.4564259535777708,
-                            0.6259167259566033],
-         'R_lidUprOut': [-0.4616043302747938,
-                               0.6001000969734136,
-                               0.829534316002151],
-         'R_lidUpr': [-0.48907145747432, 0.5309936933601698, 0.8057133744200119],
-         'R_lipCorner': [-0.40322526295979816,
-                             -0.4469168681328668,
-                             0.8991904698185441],
-         'R_lipLwrBow': [-0.20427816885489003,
-                             -0.6463295919508774,
-                             1.059930755155726],
-         'R_lipLwr': [-0.19392197220413773,
-                          -0.4840284915627855,
-                          1.156996808696518],
-         'R_lipUpr': [-0.21167896412037035,
-                          -0.39350361493782415,
-                          1.211492142140608],
-         'R_neckCorner': [-0.8920030947084779,
-                              -0.7911289540772977,
-                              -1.412420222127427],
-         'R_neckMid': [-0.6280944259078414,
-                           -1.1810911979338208,
-                           -0.7739051943337818],
-         'noseBase': [1.35107307858604e-16, -0.150892601976512, 1.2291546235859534],
-         'R_noseBulb': [-0.13180994104456017,
-                            0.005686920306349208,
-                            1.5574745561698502],
-         'R_noseTop': [-0.09675033004195602,
-                           0.4250939478215514,
-                           1.1257566062097908],
-         'R_nostril': [-0.2709846143369321,
-                           -0.019148398268864497,
-                           1.013497870905451],
-         'R_smileStart': [-0.49032988371672453,
-                              -0.46463391447114333,
-                              0.7866927740798751],
-         'R_sneer': [-0.2495541042751736, 0.28489843404616266, 0.9255073287535348],
-         'R_temple': [-1.1636325694896557, 0.696103159964828, -0.9285849108478659]}
-        ,}
-        
-    for k in 'browLwr','browPeak','noseBase','chin','neckLwr','neckJawMeet':
-        _d[k] = copy.copy(_d_base)
-    """
-    for k in 'top','brow','nose','mouth','bottom','chin':
+    for k in 'top','brow','nose','mouth','bottom','chin','noseTop':
         _d[k+'Anchor'] = copy.copy(_d_base)
         
-    for k in 'browLwr','browPeak','noseBase','chin','neckLwr','neckJawMeet':
+    for k in 'browLwr','browPeak','neckLwr','neckJawMeet','noseTip':
         _d[k] = copy.copy(_d_base)    
     
     #...build base dicts
@@ -454,95 +729,14 @@ def define(self):
     
     #We need to get our anchors for some processing help later
     l_anchors = _d.keys()
-    pprint.pprint(l_anchors)
+    #pprint.pprint(l_anchors)
 
 
     #Get poses
     _str_pose = 'default'
-    _d_scaleSpace = {'default':
-                     {'R_browPeak_1': [-0.6713813499168114, 0.9811429697261005, 0.72398511285663],
-                      'R_browPeak_2': [-0.975582829228154,
-                                       0.9292462342880157,
-                                       -0.06630732811499529],
-                      'R_brow_1': [-0.6704299361617476, 0.6913925936975609, 0.9785131963430124],
-                      'R_brow_2': [-0.9423661408600981, 0.5201796111822219, 0.09791180933212085],
-                      'R_cheek': [-0.7894970929181135, -0.4413488140474797, 0.02329676592205865],
-                      'R_cheekBack': [-1.140186168529369, 0.3383959382277091, -1.0761395610924238],
-                      'R_cheekBone': [-0.9143956999602141,
-                                      0.24937447365068266,
-                                      0.19019182674534607],
-                      'R_cheekFront': [-0.603022257486979, -0.0588399741297394, 0.7984155986160507],
-                      'R_chin': [-0.2593417697482638, -0.8201580995359237, 0.9731667681946216],
-                      'R_eyeAnchor': [-0.4664454973461831, 0.47394849201335276, 0.7477437370602483],
-                      'R_jawCorner': [-0.9464050575538916,
-                                      -0.3362372832936451,
-                                      -1.0808767755983733],
-                      'R_jawCornerAnchor': [-0.9464050575538916,
-                                            -0.3362372832936522,
-                                            -1.0808767755983733],
-                      'R_jawMid': [-0.6797286139594184, -0.7812640996805591, -0.42776364945294765],
-                      'R_lidInner': [-0.30295704029224535, 0.4379300536754265, 0.6502626218897137],
-                      'R_lidInnerOut': [-0.1767267297815393,
-                                        0.40104497178696974,
-                                        0.8413789507551915],
-                      'R_lidLwr': [-0.5282556039315682, 0.38654069640045563, 0.7610071825054149],
-                      'R_lidLwrOut': [-0.5361562658239294, 0.2986687897280902, 0.7135321923428902],
-                      'R_lidOuter': [-0.6834834063494647, 0.4564259535777744, 0.6259167259566035],
-                      'R_lidOuterOut': [-0.8220553927951387,
-                                        0.44748973227663313,
-                                        0.4415426576178211],
-                      'R_lidUpr': [-0.48907145747432007, 0.5309936933601662, 0.8057133744200123],
-                      'R_lidUprOut': [-0.4616043302747938, 0.6001000969734065, 0.8295343160021514],
-                      'R_lipCorner': [-0.40322526295979816,
-                                      -0.44691686813287035,
-                                      0.8991904698185441],
-                      'R_lipLwr': [-0.19392197220413776, -0.4840284915627855, 1.1569968086965186],
-                      'R_lipLwrBow': [-0.20427816885489003, -0.6463295919508774, 1.059930755155726],
-                      'R_lipUpr': [-0.2116789641203703, -0.3935036149378277, 1.211492142140608],
-                      'R_neckCorner': [-0.8920030947084777,
-                                       -0.7911289540772977,
-                                       -1.4124202221274265],
-                      'R_neckMid': [-0.6280944259078414, -1.1810911979338208, -0.7739051943337818],
-                      'R_noseBulb': [-0.13180994104456017,
-                                     0.005686920306345655,
-                                     1.5574745561698498],
-                      'R_noseTop': [-0.096750330041956, 0.4250939478215514, 1.1257566062097912],
-                      'R_nostril': [-0.2709846143369321, -0.019148398268864497, 1.0134978709054514],
-                      'R_sideUprAnchor': [-1.1426325694896555,
-                                          0.696103159964828,
-                                          -0.9285849108478659],
-                      'R_smileStart': [-0.49032988371672453,
-                                       -0.4646339144711469,
-                                       0.7866927740798751],
-                      'R_sneer': [-0.24955410427517363, 0.28489843404616266, 0.9255073287535348],
-                      'R_temple': [-1.1636325694896557, 0.6961031599648244, -0.9285849108478659],
-                      'bottomAnchor': [-2.693318818998064e-16,
-                                       -1.3264335108621275,
-                                       -0.15068138561657018],
-                      'browAnchor': [5.139921410301649e-17, 0.5699139046335482, 1.2618197021681734],
-                      'browLwr': [5.1988552961864005e-17, 0.5699139046335446, 1.2618197021681734],
-                      'browPeak': [5.037910310984437e-18, 0.9749907754676599, 1.1631904897590082],
-                      'chin': [2.60703063151355e-16, -1.0324481185789907, 0.9537196153513007],
-                      'chinAnchor': [2.6110800764332383e-16,
-                                     -1.0324481185790013,
-                                     0.9537196153513007],
-                      'mouthAnchor': [1.500857051808082e-16,
-                                      -0.4269899985046166,
-                                      1.1453365061127787],
-                      'neckJawMeet': [-2.7138785046392713e-16,
-                                      -1.014360367900128,
-                                      -0.04835207949806686],
-                      'neckLwr': [-2.693318818998064e-16,
-                                  -1.3264335108621168,
-                                  -0.15068138561657018],
-                      'noseAnchor': [1.3569392523196356e-16,
-                                     -0.1508926019765262,
-                                     1.2291546235859534],
-                      'noseBase': [1.3510730785860397e-16,
-                                   -0.15089260197651555,
-                                   1.2291546235859534],
-                      'topAnchor': [4.11193712824132e-18, 0.9749907754676599, 1.1631904897590069]}
-                     }
+
+    
+    
     _tmp = [.01,0,0]
     size_locForm = self.jointRadius * 2.0
     
@@ -563,11 +757,11 @@ def define(self):
         _v = None
         if 'L_' in k:
             k_use = str(k).replace('L_','R_')
-            _v = copy.copy(_d_scaleSpace[_str_pose].get(k_use))
+            _v = copy.copy(d_defineScaleSpace[_str_pose].get(k_use))
             if _v:
                 _v[0] = -1 * _v[0]
         else:
-            _v = _d_scaleSpace[_str_pose].get(k)
+            _v = d_defineScaleSpace[_str_pose].get(k)
             
         if _v is not None:
             _d[k]['scaleSpace'] = _v
@@ -590,53 +784,68 @@ def define(self):
     #pprint.pprint(d_creation)
     
     #'asdf':{'keys':[],'rebuild':0},
-
+    
     _d_curveCreation = {
-        'browLine':{'keys':['R_cheekBack', 'R_brow_2', 'R_brow_1', 'browLwr', 'L_brow_1', 'L_brow_2', 'L_cheekBack'],'rebuild':0},
+        'browLine':{'keys':['R_orbitOuter', 'R_brow_3', 'R_brow_2', 'R_brow_1', 'browLwr', 'L_brow_1', 'L_brow_2', 'L_brow_3', 'L_orbitOuter']
+,'rebuild':0},
         'peakLine':{'keys':['R_temple', 'R_browPeak_2', 'R_browPeak_1', 'browPeak', 'L_browPeak_1', 'L_browPeak_2', 'L_temple'],'rebuild':0},
         
         'cheekLine':{'keys':['R_cheekBack', 'R_cheekBone', 'R_cheekFront', 'R_sneer', 'R_noseTop', 'L_noseTop', 'L_sneer', 'L_cheekFront', 'L_cheekBone', 'L_cheekBack']
 ,
                      'rebuild':0},
-        'jaw':{'keys':['R_jawCorner', 'R_jawMid', 'chin', 'L_jawMid', 'L_jawCorner'],'rebuild':0},
-        'uprLip':{'keys':['R_jawCorner', 'R_cheek', 'R_smileStart', 'R_lipCorner', 'R_lipUpr', 'L_lipUpr', 'L_lipCorner', 'L_smileStart', 'L_cheek', 'L_jawCorner']
-,'rebuild':0},
-        'lwrLip':{'keys':['R_chin', 'R_lipCorner', 'R_lipLwr', 'L_lipLwr', 'L_lipCorner', 'L_chin']
-,'rebuild':0},
-        'noseUnder':{'keys':['R_nostril', 'noseBase', 'L_nostril'],'rebuild':0},
-        'neckUnder':{'keys':['chin', 'neckJawMeet', 'neckLwr'],'rebuild':0},
         
-        'smileLine':{'keys':['R_lidInnerOut', 'R_sneer', 'R_nostril', 'R_smileStart', 'R_chin',
-                             'L_chin', 'L_smileStart', 'L_nostril', 'L_sneer', 'L_lidInnerOut']
+        
+        'jaw':{'keys':['R_earBottom', 'R_jawCorner', 'R_jaw_2', 'R_jaw_1', 'R_jawFront',
+                       'L_jawFront', 'L_jaw_1', 'L_jaw_2', 'L_jawCorner','L_earBottom',]
+               ,'rebuild':0},
+        'jawUnder':{'keys':['R_earBottom', 'R_jawUnder_2', 'R_jawUnder_1', 'neckJawMeet',
+                            'L_jawUnder_1', 'L_jawUnder_2', 'L_earBottom']
+
+               ,'rebuild':0},        
+        
+        
+        
+        
+        'uprLip':{'keys':['R_earBottom', 'R_cheek','R_cheekStart', 'R_smileStart', 'R_lipCorner', 'R_lipUpr', 'L_lipUpr', 'L_lipCorner', 'L_smileStart', 'L_cheekStart', 'L_cheek','L_earBottom']
 ,'rebuild':0},
-        'noseLine':{'keys':['R_noseTop', 'R_noseBulb','noseBase', 'R_lipUpr', 'R_lipLwr', 'R_lipLwrBow', 'R_chin',
-                            'chin',
-                            'L_chin', 'L_lipLwrBow', 'L_lipLwr', 'L_lipUpr','noseBase','L_noseBulb', 'L_noseTop']
+        'lwrLip':{'keys':['R_lipCorner', 'R_lipLwr', 'L_lipLwr', 'L_lipCorner']
 
 ,'rebuild':0},
-        'mouthTrace':{'keys':['R_nostril','R_lipCorner', 'R_lipLwrBow',
-                              'L_lipLwrBow', 'L_lipCorner', 'L_nostril']
+        'noseUnder':{'keys':['R_nostril', 'R_noseBase','noseAnchor','L_noseBase', 'L_nostril'],'rebuild':0},
+        
+        'smileLine':{'keys':['R_smileEnd', 'R_smilePeak', 'R_smileStart', 'R_chin', 'L_chin', 'L_smileStart', 'L_smilePeak', 'L_smileEnd']
+,
+                     'rebuild':0},
+
+        'noseOver':{'keys':['R_nostril', 'R_smileEnd', 'R_noseBulb', 'noseTip', 'L_noseBulb', 'L_smileEnd', 'L_nostril']
+,'rebuild':0},
+        'mouthTrace':{'keys':['R_sneer', 'R_smileEnd', 'R_nostril', 'R_lipCorner', 'R_lipLwrBow', 'L_lipLwrBow', 'L_lipCorner', 'L_nostril', 'L_smileEnd', 'L_sneer']
+
+,'rebuild':0},
+        'faceTrace':{'keys':['R_temple', 'R_earTop', 'R_earBottom', 'R_neckCorner', 'R_neckMid', 'neckLwr', 'L_neckMid', 'L_neckCorner', 'L_earBottom', 'L_earTop', 'L_temple']
+
 ,'rebuild':0},
         
-        
-        
-        'L_uprLid':{'keys':['browLwr', 'L_lidInnerOut', 'L_lidUprOut', 'L_lidOuterOut', 'L_brow_2', 'L_temple']
+        'neckLwrLidTrace':{'keys':['R_neckMid', 'R_jawUnder_1', 'R_jaw_2', 'R_cheek', 'R_cheekBone', 'R_lidOuterOut', 'R_lidLwrOut', 'R_lidInnerOut', 'R_noseTop', 'L_noseTop', 'L_lidInnerOut', 'L_lidLwrOut', 'L_lidOuterOut','L_cheekBone','L_cheek', 'L_jaw_2', 'L_jawUnder_1', 'L_neckMid']
 ,'rebuild':0},
-        'L_lwrLid':{'keys':['L_lidInnerOut', 'L_lidLwrOut', 'L_lidOuterOut', 'L_cheekBone']
+        
+        'L_noseLine':{'keys':['L_brow_1', 'L_noseTop', 'L_noseBulb', 'L_noseBase', 'L_lipUpr', 'L_lipLwr', 'L_lipLwrBow']
+
 ,'rebuild':0},
+
         'L_lid':{'keys':['L_lidInner','L_lidUpr', 'L_lidOuter', 'L_lidLwr', 'L_lidInner'],'rebuild':0},
-        'L_eyeToNeck':{'keys':['L_lidLwr', 'L_lidLwrOut', 'L_cheekFront', 'L_cheek', 'L_jawMid', 'L_neckMid']
+        'L_eyeToNeck':{'keys':['L_lidLwr', 'L_lidLwrOut', 'L_cheekFront', 'L_cheekStart', 'L_jaw_1', 'L_jawFront']
 ,'rebuild':0},
         
         
         
-        'R_uprLid':{'keys':['browLwr', 'R_lidInnerOut', 'R_lidUprOut', 'R_lidOuterOut', 'R_brow_2', 'R_temple']
+        'R_noseLine':{'keys':['R_brow_1', 'R_noseTop', 'R_noseBulb', 'R_noseBase', 'R_lipUpr', 'R_lipLwr', 'R_lipLwrBow']
+
 ,'rebuild':0},
-        'R_lwrLid':{'keys':['R_lidInnerOut', 'R_lidLwrOut', 'R_lidOuterOut', 'R_cheekBone']
-,'rebuild':0},
+
         'R_lid':{'keys':['R_lidInner','R_lidUpr', 'R_lidOuter', 'R_lidLwr', 'R_lidInner'],'rebuild':0},
-        'R_eyeToNeck':{'keys':['R_lidLwr', 'R_lidLwrOut', 'R_cheekFront', 'R_cheek', 'R_jawMid', 'R_neckMid']
-,'rebuild':0},        
+        'R_eyeToNeck':{'keys':['R_lidLwr', 'R_lidLwrOut', 'R_cheekFront', 'R_cheekStart', 'R_jaw_1', 'R_jawFront']
+,'rebuild':0},
         
         }
     d_curveCreation.update(_d_curveCreation)
@@ -675,22 +884,31 @@ def define(self):
                     'L_browPeak_1':['topAnchor','L_sideUprAnchor'],
                     'L_browPeak_2':['topAnchor','L_sideUprAnchor'],
                     'L_temple':['L_sideUprAnchor'],
-                    'browLwr':['browAnchor'],
-                    'L_brow_1':['browAnchor','L_eyeAnchor'],
-                    'L_brow_2':['browAnchor','L_sideUprAnchor','L_eyeAnchor'],
                     
-                    'L_noseTop':['browAnchor'],
-                    'L_sneer':['browAnchor','L_eyeAnchor'],
+                    'browLwr':['browAnchor'],
+                    'L_brow_1':['browAnchor'],
+                    'L_brow_2':['browAnchor','L_sideUprAnchor','L_eyeAnchor'],
+                    'L_brow_3':['browAnchor','L_sideUprAnchor','L_eyeAnchor'],
+                    'L_orbitOuter':['browAnchor','L_sideUprAnchor','L_eyeAnchor'],
+                    
+                    'L_noseTop':['noseTopAnchor'],
+                    'L_sneer':['noseTopAnchor','L_eyeAnchor'],
                     
                     'L_noseBulb':['noseAnchor'],
                     'L_nostril':['noseAnchor'],
                     
-                    'noseBase':['noseAnchor'],
+                    'L_noseBase':['noseAnchor'],
+                    'noseTip':['noseAnchor'],
+                    
+                    'L_earTop':['L_sideUprAnchor','L_jawCornerAnchor'],
+                    'L_earBottom':['L_jawCornerAnchor'],
                     
                     
                     'neckJawMeet':['bottomAnchor','chinAnchor'],
+                    'L_jawUnder_1':['bottomAnchor','chinAnchor'],
+                    'L_jawUnder_2':['bottomAnchor','L_jawCornerAnchor'],
                     
-                    'L_lidInnerOut':['L_eyeAnchor', 'browAnchor'],
+                    'L_lidInnerOut':['L_eyeAnchor', 'noseTopAnchor'],
                     'L_lidInner':['L_eyeAnchor'],
                     'L_lidUpr':['L_eyeAnchor'],
                     'L_lidUprOut':['L_eyeAnchor'],
@@ -707,17 +925,23 @@ def define(self):
 
 
                     'neckLwr':['bottomAnchor'],
-                    'chin':['chinAnchor'],
+                    'L_jawFront':['chinAnchor'],
                     
                     
                     'L_cheekFront':['mouthAnchor','noseAnchor','L_jawCornerAnchor'],
                     'L_cheekBone':['L_eyeAnchor','L_sideUprAnchor'],
                     'L_cheekBack':['L_sideUprAnchor','L_jawCornerAnchor'],
+                    'L_cheekStart':['mouthAnchor','L_jawCornerAnchor'],
                     'L_cheek':['mouthAnchor','L_jawCornerAnchor'],
+                    
                     'L_smileStart':['mouthAnchor'],
+                    'L_smilePeak':['mouthAnchor','noseAnchor',],
+                    'L_smileEnd':['noseAnchor'],
+                    
                     'L_chin':['chinAnchor'],
                     'L_jawCorner':['L_jawCornerAnchor'],
-                    'L_jawMid':['L_jawCornerAnchor','chinAnchor'],
+                    'L_jaw_1':['L_jawCornerAnchor','chinAnchor'],
+                    'L_jaw_2':['L_jawCornerAnchor','chinAnchor'],
                     'L_neckMid':['L_jawCornerAnchor','bottomAnchor'],
                     'L_neckCorner':['L_jawCornerAnchor']                    
                     
@@ -793,190 +1017,6 @@ def define(self):
     return    
     
     
-    
-    
-    
-    
-    return
-    
-    #...
-    _browType = self.getEnumValueString('browType')
-    
-    if _browType in ['full','split']:
-        log.debug("|{0}| >>  full brow setup...".format(_str_func))
-        _d_pairs = {}
-        _d = {}
-        l_sideKeys = ['peak_1','peak_2','peak_3',
-                      'brow_1','brow_2','brow_3','brow_4',
-                      'base_1','base_2','base_3','base_4'
-                      ]
-        for k in l_sideKeys:
-            _d_pairs[k+'_left'] = k+'_right'
-  
-        d_pairs.update(_d_pairs)
-        
-        #Going to just store the right values and then just flip the 
-        _d_scaleSpace = {
-            'human':{'base':[0,-1.1,1],
-                     'brow':[0,-.5,1],
-                     'peak':[0,1,.6],
-                     'base_1_right':[-.2,-1.1,1],
-                     'base_2_right':[-.55,-1.1,.8],
-                     'base_3_right':[-.8,-1.1,.5],
-                     'base_4_right':[-1,-1,-1],
-                     
-                     'brow_1_right':[-.2,-.5,1],
-                     'brow_2_right':[-.55,-.5,.8],
-                     'brow_3_right':[-.8,-.5,.5],
-                     'brow_4_right':[-1,-.7,-1],
-                     
-                     'peak_1_right':[-.2,1,.6],
-                     'peak_2_right':[-.55,1,.25],
-                     'peak_3_right':[-.8,1,-.5],
-                     
-
-                    },}
-    
-        _d['brow'] = {'color':'yellowWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
-        _d['peak'] = copy.copy(_d['brow'])
-        _d['base'] = copy.copy(_d['brow'])
-
-        
-        for k in l_sideKeys:
-            _d[k+'_left'] =  {'color':'blueWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
-            _d[k+'_right'] =  {'color':'redWhite','tagOnly':1,'arrow':0,'jointLabel':1,'vectorLine':0}
-
-        _str_pose = 'human'
-        
-        for k,d in _d.iteritems():
-            if 'left' in k:
-                k_use = str(k).replace('left','right')
-                _v = copy.copy(_d_scaleSpace[_str_pose].get(k_use))
-                if _v:
-                    _v[0] = -1 * _v[0]
-            else:
-                _v = _d_scaleSpace[_str_pose].get(k)
-                
-            if _v is not None:
-                _d[k]['scaleSpace'] = _v
-        
-        _keys = _d.keys()
-        _keys.sort()
-        l_order.extend(_keys)
-        d_creation.update(_d)
-        #pprint.pprint(_d)
-        #pprint.pprint(_d_scaleSpace)
-        _d_curveCreation = {
-            'browLine':{'keys':['brow_4_right','brow_3_right','brow_2_right','brow_1_right',
-                                'brow',
-                                'brow_1_left','brow_2_left','brow_3_left','brow_4_left'],'rebuild':0},
-            'peakLine':{'keys':['peak_3_right','peak_2_right','peak_1_right',
-                                'peak',
-                                'peak_1_left','peak_2_left','peak_3_left'],'rebuild':0},
-            'baseLine':{'keys':['base_4_right','base_3_right','base_2_right','base_1_right',
-                                'base',
-                                'base_1_left','base_2_left','base_3_left','base_4_left'],'rebuild':0},
-            
-            'browCenter':{'keys':['base','brow','peak',],'rebuild':0},
-            'browStartRight':{'keys':['base_1_right','brow_1_right'],'rebuild':0},
-            'browMidRight':{'keys':['base_2_right','brow_2_right','peak_1_right',],'rebuild':0},
-            'browEdgeRight':{'keys':['base_3_right','brow_3_right','peak_2_right',],'rebuild':0},
-            'browEndRight':{'keys':['base_4_right','brow_4_right','peak_3_right',],'rebuild':0},
-            
-            'browStartLeft':{'keys':['base_1_left','brow_1_left'],'rebuild':0},
-            'browMidLeft':{'keys':['base_2_left','brow_2_left','peak_1_left',],'rebuild':0},
-            'browEdgeLeft':{'keys':['base_3_left','brow_3_left','peak_2_left',],'rebuild':0},
-            'browEndLeft':{'keys':['base_4_left','brow_4_left','peak_3_left',],'rebuild':0},            
-            
-            }
-        
-        d_curveCreation.update(_d_curveCreation)
-        #pprint.pprint(vars())
-        
-        
-    #make em...============================================================
-    log.debug(cgmGEN.logString_sub(_str_func,'Make handles'))
-    for tag,d in d_creation.iteritems():
-        d_creation[tag]['jointScale'] = True    
-    
-    #self,l_order,d_definitions,baseSize,mParentNull = None, mScaleSpace = None, rotVecControl = False,blockUpVector = [0,1,0] 
-    md_res = self.UTILS.create_defineHandles(self, l_order, d_creation, self.jointRadius, mDefineNull, mBBShape,
-                                             forceSize=1)
-
-    md_handles = md_res['md_handles']
-    ml_handles = md_res['ml_handles']
-    
-    
-    for k,p in d_toParent.iteritems():
-        md_handles[k].p_parent = md_handles[p]
-        
-
-    
-    #Mirror setup...
-    idx_ctr = 0
-    idx_side = 0
-    d = {}
-        
-    for tag,mHandle in md_handles.iteritems():
-        mHandle._verifyMirrorable()
-        _center = True
-        for p1,p2 in d_pairs.iteritems():
-            if p1 == tag or p2 == tag:
-                _center = False
-                break
-        if _center:
-            log.debug("|{0}| >>  Center: {1}".format(_str_func,tag))    
-            mHandle.mirrorSide = 0
-            mHandle.mirrorIndex = idx_ctr
-            idx_ctr +=1
-        mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
-
-    #Self mirror wiring -------------------------------------------------------
-    for k,m in d_pairs.iteritems():
-        md_handles[k].mirrorSide = 1
-        md_handles[m].mirrorSide = 2
-        md_handles[k].mirrorIndex = idx_side
-        md_handles[m].mirrorIndex = idx_side
-        md_handles[k].doStore('mirrorHandle',md_handles[m])
-        md_handles[m].doStore('mirrorHandle',md_handles[k])
-        idx_side +=1
-
-    #Curves -------------------------------------------------------------------------
-    log.debug("|{0}| >>  Make the curves...".format(_str_func))    
-    md_resCurves = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull)
-    self.msgList_connect('defineHandles',ml_handles)#Connect    
-    self.msgList_connect('defineSubHandles',ml_handles)#Connect
-    self.msgList_connect('defineCurves',md_resCurves['ml_curves'])#Connect    
-    
-    md_curves = md_resCurves['md_curves']
-    
-    """
-    mSurf = self.UTILS.create_simpleFormLoftMesh(self,
-                                                 [mObj.mNode for mObj in [md_curves['upperLine'],
-                                                                          md_curves['browLine'],
-                                                                          md_curves['baseLine']]],
-                                                 mDefineNull,
-                                                 polyType = 'bezier',
-                                                 d_rebuild = d.get('rebuild',{}),
-                                                 baseName = 'brow',
-                                                 transparent = 1,
-                                                 #vDriver = "{0}.numLidSplit_v".format(_short),
-                                                 #uDriver = "{0}.numLidSplit_u".format(_short),
-                                                 **d.get('kws',{}))"""
-    
-    
-    #Mid track curve
-    
-    self.atUtils('controller_wireHandles',ml_handles,'define')
-    
-    
-    return
-
-        
-    
-    self.msgList_connect('defineSubHandles',ml_handles)#Connect
-    
-    
  
  
 
@@ -988,7 +1028,7 @@ def mirror_self(self,primeAxis = 'Left'):
     _idx_state = self.blockState
     
     log.debug("|{0}| >> define...".format(_str_func)+ '-'*80)
-    ml_mirrorHandles = self.msgList_get('defineSubHandles')
+    ml_mirrorHandles = self.msgList_get('defineHandles')
     r9Anim.MirrorHierarchy().makeSymmetrical([mObj.mNode for mObj in ml_mirrorHandles],
                                              mode = '',primeAxis = primeAxis.capitalize() )        
 
