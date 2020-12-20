@@ -2641,13 +2641,13 @@ def eyeOrb(self, mTarget, mStateNull, side='left'):
         
         
         if k == 'pupil':
-            _sizeUse = _size_width * .05
+            _sizeUse = _size_width * .03
             self.doConnectOut('pupilDepth', "{0}.tz".format(mHelper.mNode))
             
             #mHelper.p_position = mTarget.getPositionByAxisDistance('z-', _size_width * .01)        
             
         else:
-            _sizeUse = _size_width * .08
+            _sizeUse = _size_width * .05
             self.doConnectOut('irisDepth', "{0}.tz".format(mHelper.mNode))
         
         mHelper.setAttrFlags(['rotate','translate','sz'])
@@ -2657,11 +2657,15 @@ def eyeOrb(self, mTarget, mStateNull, side='left'):
 
         self.connectChildNode(mHelper.mNode,'{0}Helper'.format(k))
 
-        
-        _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
-                             name = "{0}_approx".format(k))
-        mc.reverseSurface(_surf[0])
-        mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
+        if k == 'pupil':
+            _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
+                                 name = "{0}_approx".format(k))
+            mc.reverseSurface(_surf[0])
+            mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
+        else:
+            _surf =  mc.loft([mHelper.mNode,_res[-2].mNode], o = True, d = 3, po = 0,ch=1,
+                             name = "{0}_approx".format(k))            
+            mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
         
         if k == 'iris':
             CORERIG.colorControl(mSurf.mNode,side,'sub',transparent = True)

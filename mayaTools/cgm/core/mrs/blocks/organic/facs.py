@@ -311,7 +311,8 @@ def define(self):
     _d_base = {'color':'yellowWhite','tagOnly':1,'arrow':0,'vectorLine':0}
     
     l_sideKeys = ['sideUprAnchor','eyeAnchor','jawCornerAnchor','nostrilAnchor',
-                  'orbitFrontAnchor','cheekAnchor','lipAnchor'
+                  'orbitFrontAnchor','cheekAnchor','lipAnchor','browInAnchor','browMidAnchor','browOutAnchor',
+                  'orbitOutAnchor','skullFrontAnchor',
                   ]
 
     for k in l_sideKeys:
@@ -320,7 +321,7 @@ def define(self):
     d_pairs.update(_d_pairs)
     
 
-    for k in 'top','brow','nose','mouth','bottom','chin','noseTop':
+    for k in 'top','brow','nose','mouth','bottom','chin','noseTop','teeth','mouthBack':
         _d[k+'Anchor'] = copy.copy(_d_base)
     
     #...build base dicts
@@ -346,7 +347,7 @@ def define(self):
     for k,d in _d.iteritems():
         if 'Anchor' in k:
             _d[k]['shape'] = 'defineAnchor'
-            #_d[k]['size'] = size_locForm
+            _d[k]['size'] = size_locForm
         else:
             _d[k]['jointScale'] = 1
             _d[k]['jointLabel'] = 1
@@ -377,13 +378,52 @@ def define(self):
     _d['R_jawCornerAnchor']['anchorDir'] = 'x-'
     _d['R_sideUprAnchor']['anchorDir'] = 'x-'
     _d['L_sideUprAnchor']['anchorDir'] = 'x+'
+    _d['mouthBackAnchor']['anchorDir'] = 'z-'
     
+    
+    _sizeSmall = size_locForm * .7
+    for k in ['teeth','L_nostril','R_nostril','L_lip','R_lip','noseTop',
+              'L_browIn','L_browOut','R_browIn','R_browOut',
+              'L_orbitOut','R_orbitOut',
+              'L_skullFront','R_skullFront',
+              'L_cheek','R_cheek']:
+        _d[k+'Anchor']['size'] = _sizeSmall
     
     _keys = _d.keys()
     _keys.sort()
     l_order.extend(_keys)
     d_creation.update(_d)
+    
+    #'dfasdf':{'keys':[]},
+    #Curves ---------------------------------------
+    d_curveCreation = {
+        'faceTrace':{'keys':['topAnchor', 'L_skullFrontAnchor','L_sideUprAnchor', 'L_jawCornerAnchor',
+                         'bottomAnchor', 'R_jawCornerAnchor', 'R_sideUprAnchor','R_skullFrontAnchor','topAnchor']
+},
+        'brow':{'keys':['R_sideUprAnchor', 'R_browOutAnchor', 'R_browMidAnchor','R_browInAnchor', 'browAnchor', 'L_browInAnchor', 'L_browMidAnchor','L_browOutAnchor', 'L_sideUprAnchor']},
+        'L_nose':{'keys':['topAnchor', 'L_browInAnchor', 'noseTopAnchor', 'L_nostrilAnchor', 'L_lipAnchor']
+},
+        'R_nose':{'keys':['topAnchor','R_browInAnchor', 'noseTopAnchor', 'R_nostrilAnchor', 'R_lipAnchor']
+},
+        'frontEdge':{'keys':['R_browOutAnchor', 'R_orbitOutAnchor', 'R_orbitFrontAnchor', 'R_nostrilAnchor', 'noseAnchor', 'L_nostrilAnchor', 'L_orbitFrontAnchor', 'L_orbitOutAnchor', 'L_browOutAnchor']
+},
+        'mouthLine':{'keys':['R_jawCornerAnchor', 'R_cheekAnchor', 'R_lipAnchor', 'mouthAnchor', 'L_lipAnchor', 'L_cheekAnchor', 'L_jawCornerAnchor']
+},
+        'chinLine':{'keys':['R_orbitFrontAnchor', 'R_cheekAnchor', 'chinAnchor', 'L_cheekAnchor', 'L_orbitFrontAnchor']
+},
+        'backLine':{'keys':['R_jawCornerAnchor', 'mouthBackAnchor', 'L_jawCornerAnchor']
+},
+        'backTop':{'keys':['noseAnchor', 'mouthBackAnchor', 'teethAnchor']
+},
+        'L_browUp':{'keys':['L_skullFrontAnchor', 'L_browMidAnchor']
+},
+        'R_browUp':{'keys':['R_skullFrontAnchor', 'R_browMidAnchor']
+},
+        'centerLine':{'keys':['topAnchor', 'browAnchor', 'noseTopAnchor', 'noseAnchor', 'mouthAnchor', 'chinAnchor']
 
+
+},        
+        }
         
         
     #make em...============================================================
@@ -403,14 +443,19 @@ def define(self):
     
     #Parent setup.....=============================================================================
     #                  'lidInnerOut','lidInner','lidUpr','lidUprOut','lidOuter','lidOuterOut','lidLwr','lidLwrOut',
-"""
-    d_contraints = {'L_nostrilAnchor':['noseAnchor'],
-                    'L_cheekAnchor':['L_lipAnchor','L_jawCornerAnchor'],
-                    'L_lipAnchor':['mouthAnchor'],
-                    'L_orbitFrontAnchor':['noseAnchor','L_sideUprAnchor'],
-                    }"""
+    _sizeSmall = size_locForm * .7
     
-    d_contraints = {}
+    d_contraints = {'L_nostrilAnchor':['noseAnchor'],
+                    'L_cheekAnchor':['mouthAnchor','L_jawCornerAnchor'],
+                    'L_lipAnchor':['mouthAnchor'],
+                    'L_browInAnchor':['browAnchor'],
+                    'L_browMidAnchor':['browAnchor'],                    
+                    'L_browOutAnchor':['browAnchor'],
+                    'L_skullFrontAnchor':['topAnchor','L_sideUprAnchor'],
+                    'teethAnchor':['mouthAnchor'],
+                    }
+    
+    #d_contraints = {}
     
     for k,l in d_contraints.iteritems():
         if k.startswith('L_'):
@@ -422,6 +467,8 @@ def define(self):
                 else:
                     l_use.append(k2)
                     
+            #d_creation[k_use]['size'] = _sizeSmall
+            
             mGroup = md_handles[k_use].doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
             RIGCONSTRAINT.byDistance(mGroup,[md_handles[n] for n in l_use],
                                      mc.parentConstraint,maxUse=3,maintainOffset=1)            
@@ -432,6 +479,7 @@ def define(self):
             k_use = k
             l_use = l            
             
+        #d_creation[k_use]['size'] = _sizeSmall        
         mGroup = md_handles[k_use].doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
         RIGCONSTRAINT.byDistance(mGroup,[md_handles[n] for n in l_use],
                                  mc.parentConstraint,maxUse=3,maintainOffset=1)
