@@ -9759,11 +9759,16 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                         if _dtmp.get('jointScale') != True:#We want spherical face shapes
                             _useSize = [_useSize,_useSize,_useSize*.5]
                     
-                if _shape == 'defineAnchor':
-                    _crv = CURVES.create_fromName(name='circle',#'arrowsAxis', 
-                                                  bakeScale = 1,                                              
-                                                  direction = 'z+', size = _useSize)
-                    
+                if _shape in ['defineAnchor','defineAnchorSub']:
+                    if _shape == 'defineAnchor':
+                        _crv = CURVES.create_fromName(name='squircle',#'arrowsAxis', 
+                                                      bakeScale = 1,
+                                                      direction = 'z+', size = _useSize)
+                    else:
+                        _crv = CURVES.create_fromName(name='circle',#'arrowsAxis', 
+                                                      bakeScale = 1,
+                                                      direction = 'z+', size = _useSize*.5)
+                        
                     POS.set(_crv, self.getPositionByAxisDistance(_dtmp.get('anchorDir','z+'), _useSize * 2))
                     
                     mHandle = cgmMeta.validateObjArg(self.doCreateAt(),'cgmControl',setClass = True)
@@ -9942,7 +9947,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         
             self.connectChildNode(mHandle.mNode,'{0}{1}Helper'.format(statePlug,STR.capFirst(k)),'block')
         
-        self.msgList_connect('{0}Handles'.format(statePlug), ml_handles)
+        #self.msgList_connect('{0}Handles'.format(statePlug), ml_handles)
         
         #Parent the tags
         for k in l_order:
@@ -12554,7 +12559,7 @@ def uiStatePickerMenu(self,parent = None):
                 
                 
 
-def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None, skip = 'L_'):
+def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None, skip = 'L_',zeroCenter=False):
     """
     """
     _str_func = 'get_handleScaleSpace'
@@ -12588,6 +12593,12 @@ def get_handleScaleSpace(self,ml_objs = [], mBBHelper = None, skip = 'L_'):
             if v:_l_v.append(2*v)
             else:_l_v.append(0)
             
+        str().startswith
+        if zeroCenter:
+            if _tag.startswith('L_') or _tag.startswith('R_'):
+                pass
+            else:
+                _l_v[0] = 0
 
             
         _res[str(_tag)] = _l_v
