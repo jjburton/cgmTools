@@ -9489,7 +9489,7 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         mCrv = getCurve(uValue,l_newCurves)
         
 
-def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType='defineCurve'):
+def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType='defineCurve',mProgressBar = None):
     try:
         _short = self.p_nameShort
         _str_func = 'create_defineCurve'
@@ -9503,8 +9503,23 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType
             mParentNull = self.atUtils('stateNull_verify','define')
             
         mHandleFactory = self.asHandleFactory()
-        for k in d_definitions.keys():
-            log.debug("|{0}| >>  curve: {1}...".format(_str_func,k))            
+        
+        
+        if not mProgressBar:
+            mProgressBar = cgmUI.progressBar_start()    
+            _startedProgress = True
+            
+        _keys = d_definitions.keys()        
+        int_len = len(_keys)
+        
+        for i,k in enumerate(_keys):
+            log.debug("|{0}| >>  curve: {1}...".format(_str_func,k))    
+            cgmUI.progressBar_set(mProgressBar,
+                                  status = "On " + k,
+                                  minValue = 0,
+                                  maxValue=int_len,
+                                  progress=i, vis=True)                
+            
             _dtmp = d_definitions[k]
             
             str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
@@ -9555,7 +9570,9 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType
         return {'md_curves':md_defineCurves,
                 'ml_curves':ml_defineCurves}
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-    finally:pass
+    finally:
+        if mProgressBar and _startedProgress:
+            cgmUI.progressBar_end(mProgressBar)    
 
 def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
     try:
@@ -9680,7 +9697,6 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
         int_len = len(l_order)
         
         for i,k in enumerate(l_order):
-            
             cgmUI.progressBar_set(mProgressBar,
                                   status = "On " + k,
                                   minValue = 0,
@@ -9767,7 +9783,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                     else:
                         _crv = CURVES.create_fromName(name='circle',#'arrowsAxis', 
                                                       bakeScale = 1,
-                                                      direction = 'z+', size = _useSize*.5)
+                                                      direction = 'z+', size = _useSize*.8)
                         
                     POS.set(_crv, self.getPositionByAxisDistance(_dtmp.get('anchorDir','z+'), _useSize * 2))
                     
