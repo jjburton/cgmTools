@@ -5784,24 +5784,33 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
         #if self.getMessage('orientHelper'):
             #ml_controls.append(self.orientHelper)
         if define:
-            ml_handles = self.msgList_get('defineHandles',asMeta=True)
+            try:ml_handles = self.defineNull.handles
+            except:ml_handles = self.msgList_get('defineHandles',asMeta=True)
+
+                
             if ml_handles:
                 log.debug("|{0}| >> define dat found...".format(_str_func))            
                 for mObj in ml_handles:
                     addMObj(mObj,'define')
             
         if form:
-            log.debug("|{0}| >> form pass...".format(_str_func))            
-            ml_handles = self.msgList_get('formHandles',asMeta = True)
+            log.debug("|{0}| >> form pass...".format(_str_func))
+            try:ml_handles = self.formNull.handles
+            except:ml_handles = self.msgList_get('formHandles',asMeta = True)
+            
             for mObj in ml_handles:
                 addMObj(mObj,'form')
             for mObj in ml_handles:#.second loop to push this tothe back
                 if mObj.getMessage('pivotHelper'):addPivotHelper(mObj.pivotHelper,'form')
                 
         if prerig:
-            log.debug("|{0}| >> Prerig pass...".format(_str_func))                        
-            ml_handles = self.msgList_get('prerigHandles',asMeta = True)
-            ml_jointHandles = self.msgList_get('jointHelpers',asMeta=1)
+            log.debug("|{0}| >> Prerig pass...".format(_str_func))
+            try:ml_handles = self.prerigNull.handles
+            except:ml_handles = self.msgList_get('prerigHandles',asMeta = True)
+                
+            try:ml_jointHandles = self.prerigNull.jointHelpers
+            except:ml_jointHandles = self.msgList_get('jointHelpers',asMeta=1)
+            
             if ml_jointHandles:
                 ml_handles.extend(ml_jointHandles)
             for mObj in ml_handles:

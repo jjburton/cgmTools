@@ -8645,12 +8645,11 @@ def uiFunc_updateBlock(self):
         _l_report.insert(0,"Referenced!")
     
     mUI.MelLabel(self.uiBlock_edit, l = ' | '.join(_l_report))
-    
 
-    
     _d = self.mBlock.atUtils('uiQuery_getStateAttrDict',0,0)
     
     self._d_attrFields = {}
+    
     
     
     _keys = _d.keys()
@@ -8673,6 +8672,12 @@ def uiFunc_updateBlock(self):
             _keys.append(k)        
     
     
+    mBlockModule = mBlock.p_blockModule
+    if mBlockModule.__dict__.get('uiEditorMenu'):
+        _keys.insert(0,'moduleUtils')
+    
+    
+    
     d_keyColors = {'profile':'define',
                    'basic':'define',
                    'name':'define',
@@ -8684,7 +8689,7 @@ def uiFunc_updateBlock(self):
         log.debug(cgmGEN.logString_sub(_str_func,k))                
         
         l = _d.get(k)
-        if not l:
+        if not l and k not in ['moduleUtils']:
             log.debug("|{0}| >> No attrs in : {1}".format(_str_func,k))                
             continue
         
@@ -8747,6 +8752,9 @@ def uiFunc_updateBlock(self):
         mUI.MelSpacer(_inside,h=5)
 
         
+        if k == 'moduleUtils':
+            mBlock.atBlockModule('uiEditorMenu', _inside, mBlock, buttonColor = _clr_button)
+            continue
         if k == 'name':#Name section....-------------------------------------------------
             log.debug("|{0}| >> Name...".format(_str_func))
             _nameIter = mBlock.hasAttr('nameIter')
