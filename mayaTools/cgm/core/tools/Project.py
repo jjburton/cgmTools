@@ -105,6 +105,9 @@ def uiAsset_add(self):
         uiAsset_rebuildOptionMenu(self)
         self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
+        
+        self.uiProject_save()
+        
         #mUI.MelOptionMenu
         
 def uiAsset_addSub(self):
@@ -134,6 +137,7 @@ def uiAsset_addSub(self):
         #uiAsset_rebuildOptionMenu(self)
         #self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
+        self.uiProject_save()
         
 def uiAsset_remove(self):
     _str_func = 'uiAsset_remove'
@@ -144,6 +148,7 @@ def uiAsset_remove(self):
     self.mDat.assetType_remove(idx=_value)
     uiAsset_rebuildOptionMenu(self)
     uiAsset_rebuildSub(self)
+    self.uiProject_save()
     
     #self.uiAssetTypeOptions.remove(_value)
     
@@ -173,6 +178,7 @@ def uiAsset_editName(self):
         uiAsset_rebuildSub(self)
         
         self.uiAssetTypeOptions.selectByValue(_name)
+        self.uiProject_save()
 
 def uiAsset_duplicate(self):
     _str_func = 'uiAsset_duplicate'
@@ -206,6 +212,7 @@ def uiAsset_duplicate(self):
         self.uiAssetTypeOptions.selectByValue(_name)
         
         uiAsset_rebuildSub(self)
+        self.uiProject_save()
         
 
 
