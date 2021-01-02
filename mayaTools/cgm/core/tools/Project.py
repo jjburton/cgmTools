@@ -200,7 +200,6 @@ def uiAsset_duplicate(self):
     if result == 'OK':
         _name = str(mc.promptDialog(query=True, text=True))
         
-        
         if _name == _currentName:
             raise ValueError,"Same name given as exists. Pick a new name"
     

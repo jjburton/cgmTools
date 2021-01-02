@@ -303,13 +303,14 @@ else:
 l_thanksIntervals = [10, 25, 50, 100, 500, 1000]
 
 def uiWindow_thanks(achieve = True):
+    _release = cgmGEN.get_releaseString()
     if achieve:
         _title = 'Thanks!'
         
-        msg = "Achievement Unlocked! \n You've opened a cgm tool [{0}] times  \n since maya last lost its prefs. \n ... \n  Knock on wood. \n ... \n Here's a link to the docs if you've forgotten. \n Please consider supporting us :) \n Build: {1}".format(cgmMeta.cgmOptionVar('cgmVar_loadCount').value, cgmGEN.__RELEASE)
+        msg = "Achievement Unlocked! \n You've opened a cgm tool [{0}] times  \n since maya last lost its prefs. \n ... \n  Knock on wood. \n ... \n Here's a link to the docs if you've forgotten. \n Please consider supporting us :) \n Build: {1}".format(cgmMeta.cgmOptionVar('cgmVar_loadCount').value, _release)
     else:
         _title = 'CGM'
-        msg = "You've opened a cgm tool [{0}] times  \n since maya last lost its prefs. \n ... \n Build: {1}".format(cgmMeta.cgmOptionVar('cgmVar_loadCount').value, cgmGEN.__RELEASE)
+        msg = "You've opened a cgm tool [{0}] times  \n since maya last lost its prefs. \n ... \n Build: {1}".format(cgmMeta.cgmOptionVar('cgmVar_loadCount').value, _release)
     
     window = mc.window( title=_title, iconName='About', ut = 'cgmUITemplate',resizeToFitChildren=True)
     column = mUI.MelColumnLayout( window , ut = 'cgmUISubTemplate')
