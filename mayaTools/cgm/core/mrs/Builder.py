@@ -5251,7 +5251,7 @@ class ui(cgmUI.cgmGUI):
                                 c=d2.get('call'))
 
         #Vis menu -----------------------------------------------------------------------------
-        for a in ['Measure','RotatePlane','JointHandle','Labels','ProximityMode','FormMesh']:
+        for a in ['Measure','RotatePlane','JointHandle','Labels','ProximityMode','FormMesh','FormHandles']:
             _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
                                    label = a,
                                    en=True,)
@@ -5446,6 +5446,13 @@ class ui(cgmUI.cgmGUI):
                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                        'getModuleStatus',
                                                        **{'updateUI':0})},
+                  'Get Missing Attr Mask':{'ann':'Get missing attrs for the attrMask',
+                                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                    'atUtils','uiQuery_getStateAttrDict',
+                                                                    **{'updateUI':0})},
+                  
+                  
+                  
                   'blockProfile Valid?':{'ann':'Check if blockProfile setting is valid',
                                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                                     'atUtils','blockProfile_valid',

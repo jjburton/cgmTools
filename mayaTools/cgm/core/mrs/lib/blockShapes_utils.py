@@ -1938,9 +1938,9 @@ def create_face_anchor(self, pos, mSurface,tag,k,side=None,controlType = 'main',
                             worldUpType = 'objectrotation', 
                             worldUpVector = [0,1,0]))
     
-    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',(size) * 4)
+    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',(size) * 3)
     
-    mBall = cgmMeta.validateObjArg( CURVES.create_fromName('semiSphere', size = size), 
+    mBall = cgmMeta.validateObjArg( CURVES.create_fromName('circle', size = size), 
                                       'cgmControl',setClass=1)
     mBall.doSnapTo(mHandle)
     mBall.p_position = pBall
@@ -2036,7 +2036,7 @@ def create_face_handle(self, pos, tag, k, side,
     color(self, mHandle.mNode,side = side, controlType=controlType)
     mStateNull.connectChildNode(mHandle, _key+STR.capFirst(plugShape),'block')
     
-    if mSurface and not orientToDriver and orientToNormal:
+    if mSurface and orientToNormal: #and not orientToDriver
         mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
                                 aimVector = [0,0,1], upVector = [0,1,0],
                                 worldUpObject = self.mNode,
@@ -2142,7 +2142,7 @@ def create_face_handle(self, pos, tag, k, side,
                 mTrack.p_position = md['mFollicle'].p_position
                 mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
                 if not orientToDriver:
-                    mc.orientConstraint(mFollicle.mNode, mTrack.mNode,maintainOffset = False)                
+                    mc.orientConstraint(mFollicle.mNode, mTrack.mNode,maintainOffset = True)                
                 
             mDepth = mTrack.doCreateAt(setClass=1)
             mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))

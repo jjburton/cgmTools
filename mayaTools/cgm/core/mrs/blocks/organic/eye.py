@@ -115,15 +115,41 @@ d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
 
 
-d_attrStateMask = {'define':[
+d_attrStateMask = {'define':['eyeType',
+                             'irisDepth',
+                             'irisBuild',
+                             'lidDepth',
+                             'pupilBuild',                             
+                             
     ],
                    'form':[
+                       'numLidLwrShapers',
+                       'numLidUprShapers',
                        ],
+                   'proxySurface':[
+                       'numLidSplit_u',
+                       'numLidSplit_v',],
                    'prerig':[
-                             ],
+                       'highlightSetup',
+                       'controlOffset',
+                       'lidJointDepth',
+                       'numConLids',
+
+                       'paramMidLwr',
+                       'paramMidUpr',                       
+                       
+                       'conDirectOffset',],
                    'skeleton':[
+                       'numLidLwrJoints',
+                       'numLidUprJoints',
+                       
                     ],
-                   'rig':[
+                   'rig':['buildSDK',
+                          'irisAttach',
+                          'pupilAttach',                          
+                          'lidFanLwr',
+                          'lidFanUpr',                          
+                          
                    ]}
 
 
@@ -196,7 +222,8 @@ l_attrsStandard = ['side',
                    'conDirectOffset',
                    'proxyDirect',
                    'moduleTarget',
-                   'visProximityMode',                   
+                   'visProximityMode',
+                   'visFormHandles',                   
                    'scaleSetup']
 
 d_attrsToMake = {'eyeType':'sphere:nonsphere',
@@ -257,6 +284,7 @@ d_defaultSettings = {'version':__version__,
                      'numLidLwrShapers':5,
                      'numLidUprShapers':5,
                      'preLidStartSplit':.05,
+                     'visFormHandles':True,                     
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -836,8 +864,8 @@ def formDelete(self):
     ml_defSubHandles = self.msgList_get('defineSubHandles')
     for mObj in ml_defSubHandles:
         mObj.template = False    
-        mObj.v=1
-        
+        try:mObj.v=1
+        except:pass
     for mObj in self.msgList_get('defineCurves'):
         mObj.template=0
         mObj.v=1
@@ -1071,6 +1099,10 @@ def form(self):
             ml_subHandles.extend(md_res['ml_handles'])
             md_handles.update(md_res['md_handles'])
             
+            for k,mHandle in md_handles.iteritems():
+                mHandle.doConnectIn('v', "{0}.visFormHandles".format(_short))
+                mHandle.setAttrFlags('v')                
+            
             
             #Setting up contact line tracking...
             for tag in l_tags:
@@ -1095,6 +1127,7 @@ def form(self):
                     for k in ['mDriverLoc','mFollicle']:
                         md[k].p_parent = mNoTransformNull
                         md[k].v = False
+                        
                         
 
             md_res = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull,'formCurve')
