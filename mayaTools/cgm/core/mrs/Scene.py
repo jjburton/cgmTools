@@ -2414,7 +2414,7 @@ example:
             name = mProj.d_project['name']
             project_names.append(name)
 
-            if self.project.userPaths_get()['content'] == mProj.userPaths_get()['content']:
+            if self.project.userPaths_get().get('content') == mProj.userPaths_get().get('content'):
                 continue
 
             item = mUI.MelMenuItem( mMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
