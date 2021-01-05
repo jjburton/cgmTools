@@ -235,6 +235,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'pupilBuild':'none:shape:joint:blendshape',
                  'irisBuild':'none:shape:joint:blendshape',
                  'irisDepth':'float',
+                 'pupilDepth':'float',
                  'lidAttach':'aimJoint:surfaceSlide',
                  'irisAttach':'parent:surfaceSlide',
                  'pupilAttach':'parent:surfaceSlide',
@@ -473,6 +474,8 @@ def define(self):
     mNoTransformNull = self.atUtils('noTransformNull_verify','define',mVisLink=self)
     ml_handles = []
     
+    
+    
     """
     #Rotate Group ==================================================================
     mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
@@ -484,6 +487,13 @@ def define(self):
     _size_width = self.baseSize[0]#...x width
     _size_base = _size_width * .25
     
+    
+    
+    BLOCKSHAPES.eyeOrb(self,self,None, _side, 'baseSize')
+    
+    mBBShape = self.bbHelper
+    mMidDriver = mBBShape
+    """
     #Bounding sphere ==================================================================
     log.debug(cgmGEN.logString_msg(_str_func,'blockVolume...'))
     mBlockVolume = self.doCreateAt(setClass=1)
@@ -512,29 +522,7 @@ def define(self):
     self.connectChildNode(mMidGroup.mNode,'midDrivenDag','module')
 
     CORERIG.copy_pivot(mBlockVolume.mNode,self.mNode)
-    
-    
-    #Create Pivot =====================================================================================
-    """
-    log.debug(cgmGEN.logString_msg(_str_func,'pivot...'))    
-    
-    crv = CURVES.create_fromName('sphere', size = _size_base/5)
-    mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-    mHandleFactory.color(mHandleRoot.mNode)
 
-    #_shortHandle = mHandleRoot.mNode
-
-    #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
-    mHandleRoot.doStore('cgmType','formHandle')
-    mHandleRoot.rename('eyeRoot_formHandle')
-
-    mHandleRoot.p_parent = mMidGroup
-    mHandleRoot.resetAttrs()
-    #mHandleRoot.doGroup(True,True,asMeta=True,typeModifier = 'center')
-
-    self.connectChildNode(mHandleRoot.mNode,'rootHelper','module')
-    ml_handles.append('rootHelper')"""
-    
     #Create Pivot =====================================================================================
     log.debug(cgmGEN.logString_msg(_str_func,'pivot...'))
     _irisPosHelper = CURVES.create_fromName('sphere', size = _size_base/3)
@@ -551,9 +539,7 @@ def define(self):
     mIrisPosHelper.p_position = mShape.p_position
     
     CORERIG.shapeParent_in_place(mIrisPosHelper.mNode, mShape.mNode,False)
-    
-    
-    
+
     mPupilTrackDriver = mIrisPosHelper.doCreateAt(setClass=1)
     mPupilTrackDriver.rename('eyeTrackDriver')
     
@@ -610,7 +596,7 @@ def define(self):
         #for mShape in mCrv.getShapes(asMeta=1):
             #mShape.overrideEnabled = 1
             #mShape.overrideDisplayType = 2
-        mCrv.dagLock()
+        mCrv.dagLock()"""
         
     #SurfaceTrackSphere ==========================================================
     log.debug(cgmGEN.logString_msg(_str_func,'surface...'))
@@ -620,7 +606,7 @@ def define(self):
     
     self.connectChildNode(mSurface.mNode,'trackSurface')
         
-        
+    """
     #Pupil/Iris =====================================================================
     log.debug(cgmGEN.logString_msg(_str_func,'Iris/pupil...'))
     
@@ -710,10 +696,10 @@ def define(self):
         
         
         self.irisDepth = -_size_width * .04
-        
+        """
     #...no connect scale
-    self.doConnectOut('baseSize', "{0}.scale".format(mBlockVolume.mNode))
-
+    #self.doConnectOut('baseSize', "{0}.scale".format(mBlockVolume.mNode))
+    
     #Lid stuff ======================================================================
     _sideMult = 1
     _axisOuter = 'x+'
@@ -1277,10 +1263,12 @@ def prerig(self):
             if k == 'iris':
                 _size_use = _size_use * 2.0
                 
+                
+            mDriver = self.getMessageAsMeta(k+'Helper')
             mShape, mDag = BLOCKSHAPES.create_face_handle(self,
                                                           self.p_position,
                                                           _tag ,None, 'center',
-                                                          mDriver = mIrisPos,
+                                                          mDriver = mDriver,#mIrisPos,
                                                           mSurface = mBBHelper,#mLidLoft,
                                                           mAttachCrv = None,
                                                           mainShape='semiSphere',
@@ -1315,8 +1303,7 @@ def prerig(self):
     
         mShape.doSnapTo(self.mNode)
         mShape.p_parent = self
-    
-        mShape.tz = DIST.get_distance_between_points(self.p_position,mIrisPos.p_position) - (_size_base)
+        mShape.p_position = self.irisHelper.getPositionByAxisDistance('z+', _size_base * 4)#DIST.get_distance_between_points(self.p_position,mIrisPos.p_position) - (_size_base)
         mShape.rz = 90
                 
         
@@ -1344,34 +1331,18 @@ def prerig(self):
             if md_shapes.get(k):
                 mOrientHelper.p_parent = md_shapes[k].p_parent
                 break
-        
+        """
         mAimGroup = mOrientHelper.doGroup(True,True,asMeta=True,typeModifier = 'aim',setClass='cgmObject')
         
         mc.aimConstraint(mIrisPos.mNode, mAimGroup.mNode, maintainOffset = False,
                          aimVector = [0,0,1], upVector = [0,1,0], 
                          worldUpObject = self.mNode,
                          worldUpType = 'objectrotation', 
-                         worldUpVector = [0,1,0])
+                         worldUpVector = [0,1,0])"""
+        
         
         if self.buildEyeOrb:
             pass
-            """
-                log.debug("|{0}| >> Eye orb setup...".format(_str_func))
-    
-                crv = CURVES.create_fromName('circle', size = [self.baseSizeX, self.baseSizeY, None])
-                mHandleOrb = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-                mHandleFactory.color(mHandleOrb.mNode)
-    
-                #_shortHandle = mHandleRoot.mNode
-                mHandleOrb.doSnapTo(self.mNode)
-                mHandleOrb.p_parent = mStateNull
-    
-                #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
-                mHandleOrb.doStore('cgmName','eyeOrb')    
-                mHandleOrb.doStore('cgmType','formHandle')
-                mHandleOrb.doName()
-    
-                self.connectChildNode(mHandleOrb.mNode,'eyeOrbHelper','module')"""
     
         
         
@@ -1382,7 +1353,7 @@ def prerig(self):
             _size_bb = mHandleFactory.get_axisBox_size(self.getMessage('bbHelper'))
             _size = MATH.average(_size_bb)
             
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size_base * .5,
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size_base,
                                                                            'z+'),'cgmObject',setClass=True)
             
             mSettingsShape.doSnapTo(mHandleRoot.mNode)
@@ -1660,6 +1631,8 @@ def prerig(self):
                 
                 mLidSurf = self.attachLidsFormLoft#self.bbHelper
                 
+                size_anchor = self.lidDepth * 2.0
+                
                 for section,sectionDat in d_anchorDat.iteritems():
                     md_anchors[section] = {}
                     
@@ -1713,7 +1686,7 @@ def prerig(self):
                                                                      _side,
                                                                      nameDict=_dUse,
                                                                      mStateNull=mStateNull,
-                                                                     size= _size_sub/2)
+                                                                     size= size_anchor)
                             #mAnchor.p_position = p
                             
                             #mAnchor.rotate = 0,0,0
@@ -1828,6 +1801,7 @@ def prerig(self):
                 
                 _d = {'cgmName':''}
                 
+                size_handles = self.jointRadius * 2.0
                 #...get our driverSetup
                 for section,sectionDat in md_anchors.iteritems():
                     log.debug(cgmGEN.logString_sub(section))
@@ -1869,7 +1843,7 @@ def prerig(self):
                                                                           None,
                                                                           _side,
                                                                           mDriver=mAnchor,
-                                                                          size= self.jointRadius,#self.lidDepth,
+                                                                          size= size_handles,#self.lidDepth,
                                                                           
                                                                           mSurface=mLidSurf,#mLidLoft,
                                                                           #mAttachCrv=mDriverCrv,
@@ -1926,7 +1900,7 @@ def prerig(self):
                                                                               mainShape=_shapeUse,
                                                                               jointShape='locatorForm',
                                                                               depthAttr = 'lidJointDepth',
-                                                                              size= _size_sub,
+                                                                              size= size_handles,#self.lidDepth,
                                                                               controlType=_controlType,
                                                                               mode='handle',
                                                                               plugDag= 'preDag',
@@ -2028,7 +2002,7 @@ def prerig(self):
                 _d = {'cgmName':'lid',
                       'cgmType':'preAnchor'}
                 
-                _sizeDirect = _size_sub * .4
+                _sizeDirect = self.jointRadius#_size_sub * .4
                 
                 md_lidJoints = {}
                 for section,sectionDat in d_lidDrivenDat.iteritems():
@@ -5899,7 +5873,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         mHelper = mBlock.getMessageAsMeta('{0}Helper'.format(k))
         if not mHelper:
             continue
-        mDup = mHelper.doDuplicate(po=False)
+        mDup = mHelper.doDuplicate(po=False,ic=False)
         mDup.dagLock(False)
         mDup.p_parent = False
         l_crvs.append(mDup.mNode)
@@ -5908,9 +5882,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         mDup.rz = _r
         
         if k == 'iris' and not mBlock.getMessage('pupilHelper'):
-            mDup2 = mHelper.doDuplicate(po=False)
+            mDup2 = mHelper.doDuplicate(po=False,ic=False)
+            mDup2.dagLock(False)
             mDup2.rz = _r
-            
             mDup2.dagLock(False)
             mDup2.p_parent = mDup
             pos_bb = TRANS.bbCenter_get(mDup2.mNode)
@@ -5925,9 +5899,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             b_noPupil = True
 
         if k == 'pupil':
-            mDup2 = mHelper.doDuplicate(po=False)
+            mDup2 = mHelper.doDuplicate(po=False,ic=False)
             mDup2.rz = _r
-            
             mDup2.dagLock(False)
             mDup2.p_parent = mDup
             d = DIST.get_bb_size(mDup.mNode,mode='max')

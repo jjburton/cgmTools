@@ -6704,57 +6704,58 @@ def rig_frame(self):
             #mLeverRigJnt = mRigNull.getMessage('leverRig',asMeta=True)[0]
             mLeverFK = mRigNull.leverFK
             mLeverFK.masterGroup.p_parent = mRoot#mRootParent
-            mLeverDirect = mRigNull.leverDirect
+            mLeverDirect = mRigNull.getMessageAsMeta('leverDirect')
             
-            log.debug("|{0}| >> Lever rig aim".format(_str_func))
-            
-            mBaseLoc = mLeverDirect.doLoc()
-            mAimLoc = mLeverDirect.doLoc()
-            _str_tmp = mLeverDirect.p_nameBase
-            mBaseLoc.rename("{0}_baseLoc".format(_str_tmp))
-            mAimLoc.rename("{0}_aimLoc".format(_str_tmp))
-            
-            for mLoc in mBaseLoc,mAimLoc:
-                mLoc.p_parent = mLeverDirect.masterGroup
+            if mLeverDirect:
+                log.debug("|{0}| >> Lever rig aim".format(_str_func))
                 
-            mOrientGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'orient')
-            
-            if ml_blendJoints:
-                mLeverTarget = ml_blendJoints[0]
-            else:
-                mLeverTarget = ml_fkJoints[0]
+                mBaseLoc = mLeverDirect.doLoc()
+                mAimLoc = mLeverDirect.doLoc()
+                _str_tmp = mLeverDirect.p_nameBase
+                mBaseLoc.rename("{0}_baseLoc".format(_str_tmp))
+                mAimLoc.rename("{0}_aimLoc".format(_str_tmp))
                 
-            mc.aimConstraint(mLeverTarget.mNode,
-                             mAimLoc.mNode,
-                             maintainOffset = True, weight = 1,
-                             aimVector = self.d_orientation['vectorAim'],
-                             upVector = self.d_orientation['vectorUp'],
-                             worldUpVector = self.d_orientation['vectorUp'],
-                             worldUpObject = mLeverFK.mNode,
-                             worldUpType = 'objectRotation' )
+                for mLoc in mBaseLoc,mAimLoc:
+                    mLoc.p_parent = mLeverDirect.masterGroup
+                    
+                mOrientGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'orient')
+                
+                if ml_blendJoints:
+                    mLeverTarget = ml_blendJoints[0]
+                else:
+                    mLeverTarget = ml_fkJoints[0]
+                    
+                mc.aimConstraint(mLeverTarget.mNode,
+                                 mAimLoc.mNode,
+                                 maintainOffset = True, weight = 1,
+                                 aimVector = self.d_orientation['vectorAim'],
+                                 upVector = self.d_orientation['vectorUp'],
+                                 worldUpVector = self.d_orientation['vectorUp'],
+                                 worldUpObject = mLeverFK.mNode,
+                                 worldUpType = 'objectRotation' )
+                
+                #Attribute ----------------------
+                const = mc.orientConstraint([mAimLoc.mNode,mBaseLoc.mNode],
+                                            mOrientGroup.mNode, maintainOffset = True)[0]
             
-            #Attribute ----------------------
-            const = mc.orientConstraint([mAimLoc.mNode,mBaseLoc.mNode],
-                                        mOrientGroup.mNode, maintainOffset = True)[0]
-        
-        
-            d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mLeverFK.mNode,'aim'],
-                                                                 [mLeverFK.mNode,'resultRootFollow'],
-                                                                 [mLeverFK.mNode,'resultAimFollow'],
-                                                                 keyable=True)
-        
-            targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
-        
-            #Connect                                  
-            d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
-            d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
-            d_blendReturn['d_result1']['mi_plug'].p_hidden = True
-            d_blendReturn['d_result2']['mi_plug'].p_hidden = True            
             
-            ATTR.set_default(mLeverFK.mNode, 'aim', 1.0)
-            mLeverFK.aim = 1.0
-            #mLeverFK.aim = .5        
+                d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mLeverFK.mNode,'aim'],
+                                                                     [mLeverFK.mNode,'resultRootFollow'],
+                                                                     [mLeverFK.mNode,'resultAimFollow'],
+                                                                     keyable=True)
             
+                targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
+            
+                #Connect                                  
+                d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+                d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+                d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+                d_blendReturn['d_result2']['mi_plug'].p_hidden = True            
+                
+                ATTR.set_default(mLeverFK.mNode, 'aim', 1.0)
+                mLeverFK.aim = 1.0
+                #mLeverFK.aim = .5        
+                
         
             log.debug("|{0}| >> Lever setup | LimbRoot".format(_str_func))            
             if not mRigNull.getMessage('limbRoot'):

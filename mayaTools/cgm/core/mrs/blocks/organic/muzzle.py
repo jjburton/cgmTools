@@ -6352,11 +6352,11 @@ def rig_frame(self):
             if not mMuzzle:
                 mFollowParent = mJaw
                 
-        mUprTeeth = mRigNull.getMessageAsMeta('controlUprTeeth')
+        mUprTeeth = mRigNull.getMessageAsMeta('controlTeethUpr')
         if mUprTeeth:
             log.debug("|{0}| >> uprTeeth setup...".format(_str_func))
             mUprTeeth.masterGroup.p_parent = mFollowParent
-            
+        
         mTongue = mRigNull.getMessageAsMeta('controlTongue')
         if mTongue:
             log.debug("|{0}| >> tongue setup...".format(_str_func))
