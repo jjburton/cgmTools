@@ -396,7 +396,7 @@ def __getitem__( self, idx ):
 
 #MPlug.__getattr__ = __getattr__
 #MPlug.__getitem__ = __getitem__
-MPlug.asMObject = MPlug.attribute
+#MPlug.asMObject = MPlug.attribute
 
 
 def _set( self, value ):
