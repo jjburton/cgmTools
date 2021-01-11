@@ -19,10 +19,9 @@ from cgm.core.mrs.lib import batch_utils as BATCH
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.lib import math_utils as MATH
 from cgm.core.mrs.lib import scene_utils as SCENEUTILS
-reload(SCENEUTILS)
 from cgm.core.lib import skinDat as SKINDAT
-reload(SKINDAT)
 import cgm.core.mrs.Builder as BUILDER
+import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 
 import Red9.core.Red9_General as r9General
 
@@ -85,6 +84,7 @@ example:
 
     TOOLNAME = 'cgmScene'
     WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
+    reload(SCENEUTILS)
 
     def insert_init(self,*args,**kws):
         
@@ -1525,6 +1525,9 @@ example:
 
         mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Verify Asset Dirs",
                                  c = cgmGEN.Callback(self.VerifyAssetDirs) )
+        
+        mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Clean Scene",
+                                 c = lambda *a:mc.evalDeferred(MAYABEODD.cleanFile,lp=1) )        
         
         mUI_skinDat = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='SkinDat',subMenu=True)
         SKINDAT.uiBuildMenu(mUI_skinDat)

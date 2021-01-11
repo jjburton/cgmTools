@@ -1636,6 +1636,8 @@ def prerig(self):
                 for section,sectionDat in d_anchorDat.iteritems():
                     md_anchors[section] = {}
                     
+                    ml_sectionAnchors = []
+                    
                     _base = 0
                     if section == 'lwr':
                         _base = 1
@@ -1693,9 +1695,13 @@ def prerig(self):
                             d_tmp['tags'].append(tag)
                             d_tmp['ml'].append(mAnchor)
                             ml_handles.append(mAnchor)
-                            
+                            ml_sectionAnchors.append(mAnchor)
                             md_mirrorDat[_d_mirrorKey.get(side,side)].append(mAnchor)#...this will need to map eventually on the mirror call
-                            
+                    
+                    self.UTILS.controller_walkChain(self,ml_sectionAnchors,'prerig')
+                    #self.UTILS.controller_walkChain(self,ml_sectionDag,'prerig')
+                    #self.UTILS.controller_walkChain(self,ml_sectionShape,'prerig')
+                    
     
                 
                 #...get my anchors in lists...-----------------------------------------------------------------
@@ -1803,9 +1809,12 @@ def prerig(self):
                 
                 size_handles = self.jointRadius * 2.0
                 #...get our driverSetup
+                ml_handleShapes = []
+                ml_handleDags = []
+                
                 for section,sectionDat in md_anchors.iteritems():
                     log.debug(cgmGEN.logString_sub(section))
-                    
+
                     #md_handles[section] = {}
                     md_prerigDags[section] = {}
                     md_jointHelpers[section] = {}
@@ -1915,12 +1924,20 @@ def prerig(self):
                                 
                                 
                                 
+
       
                         mStateNull.msgList_connect('{0}PrerigShapes'.format(tag),_ml_shapes)
                         mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),_ml_prerigDags)
                         md_mirrorDat[_d_mirrorKey.get(side,side)].extend(_ml_shapes + _ml_prerigDags)
                         md_prerigDags[section][side] = _ml_prerigDags
                         ml_handles.extend(_ml_shapes + _ml_prerigDags)
+                        
+                        ml_handleShapes.extend(_ml_shapes)
+                        ml_handleDags.extend(_ml_prerigDags)
+                
+                self.UTILS.controller_walkChain(self,ml_handleShapes,'prerig')
+                self.UTILS.controller_walkChain(self,ml_handleDags,'prerig')
+                        
                 
                 
                 #...get joint handles...-----------------------------------------------------------------
@@ -2005,6 +2022,8 @@ def prerig(self):
                 _sizeDirect = self.jointRadius#_size_sub * .4
                 
                 md_lidJoints = {}
+                ml_jointDags = []
+                ml_jointShapes = []
                 for section,sectionDat in d_lidDrivenDat.iteritems():
                     mDriverCrv = md_resCurves[section+'Driver']
                     mDriverCrv.v = 0
@@ -2118,6 +2137,11 @@ def prerig(self):
                         md_mirrorDat[_d_mirrorKey.get(side,side)].extend(_ml_jointShapes + _ml_jointHelpers)
                         md_lidDrivers[section][side] = _ml_lidDrivers
                         
+                        ml_jointDags.extend(_ml_jointHelpers)
+                        ml_jointShapes.extend(_ml_jointShapes)
+                        
+                self.UTILS.controller_walkChain(self,ml_jointDags,'prerig')
+                self.UTILS.controller_walkChain(self,ml_jointShapes,'prerig')
                 
                 #Aim our lid drivers...------------------------------------------------------------------
                 if self.prerigJointOrient:
@@ -2215,7 +2239,7 @@ def prerig(self):
                     mScalePivot = mHandleFactory.addScalePivotHelper(self)
                     ml_handles.append(mScalePivot)
                     
-                    mScalePivot.p_position = self.midDrivenDag.p_position
+                    mScalePivot.p_position = self.bbHelper.p_position
                 
                 #Mirror setup --------------------------------
                 log.debug(cgmGEN.logString_sub('mirror'))

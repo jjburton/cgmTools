@@ -1867,6 +1867,11 @@ def rig_prechecks(self):
         if mBlock.neckIK not in [0,3]:
             self.l_precheckErrors.append("Haven't setup neck mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'neckIK')))
             
+                
+        for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
+            if not mObj.p_parent:
+                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+            
         #Checking our data points
         ml_pre = mBlock.msgList_get('prerigHandles')
         if mBlock.neckBuild and len(ml_pre) != mBlock.neckControls +1:

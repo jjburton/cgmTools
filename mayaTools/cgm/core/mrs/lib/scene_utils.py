@@ -40,6 +40,7 @@ mUI = cgmUI.mUI
 
 import cgm.core.lib.mayaSettings_utils as MAYASET
 import cgm.core.tools.lib.project_utils as PU
+import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 
 
 """

@@ -3144,6 +3144,7 @@ def skeleton_build(self, forceNew = True):
         
         
         #reload(JOINT)
+        ml_children = []
         #PivotHelper -------------------------------------------------------------------------------------
         if ml_formHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot helper found".format(_str_func))
@@ -3164,7 +3165,7 @@ def skeleton_build(self, forceNew = True):
                     #ml_children = mEnd.getChildren(asMeta=True)
                     ml_childrenToDo = ml_joints[idx_end+1:]
                     ml_childrenHelpers = ml_prerigHandles[_idx+1:]
-                    
+                    mFirstChild = None
                     #pprint.pprint(ml_childrenToDo)
                     #pprint.pprint(ml_childrenHelpers)
                     for i,mChild in enumerate(ml_childrenToDo):
@@ -3179,9 +3180,14 @@ def skeleton_build(self, forceNew = True):
                         
                         if i:
                             mChild.p_parent = ml_childrenToDo[i-1]
+                        else:
+                            mFirstChild = mChild
+                            
                     mEnd.jointOrient = 0,0,0
-                
-                    ml_childrenToDo[0].p_parent = mEnd
+                    
+                    if mFirstChild:
+                        mFirstChild.p_parent = mEnd
+                    #if ml_childrenToDo:ml_childrenToDo[0].p_parent = mEnd
                     #mChild.parent = mEnd   
         """
         if len(ml_handleJoints) > self.numControls:
@@ -3295,6 +3301,11 @@ def rig_prechecks(self):
             if mBlock.addBall:
                 self.l_precheckErrors.append("default ikEnd and hasBallJoint on. | Fix this setting. If you have a ball, you should probably be a pad or foot")
             
+            
+        for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
+            if not mObj.p_parent:
+                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+                
         #str_ikEnd = mBlock.getEnumValueString('ikEnd')
         #ml_formHandles = mBlock.msgList_get('formHandles')
         #if not mBlock.ikEnd and ml_formHandles[-1].getMessage('pivotHelper')

@@ -1521,7 +1521,11 @@ def rig_prechecks(self):
         if mBlock.numControls > mBlock.numJoints:
             self.l_precheckErrors.append('More controls ({0}) than joints ({1})'.format(mBlock.numControls, mBlock.numJoints))
         
-        
+                
+        for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
+            if not mObj.p_parent:
+                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+                
         #ml = mBlock.moduleTarget.rigNull.msgList_get('moduleJoints',cull=True)
         #if len(ml) != mBlock.numJoints:
         #    self.l_precheckErrors.append('Joint len ({0}) != numJoints setting ({1})'.format(len(ml), mBlock.numJoints))

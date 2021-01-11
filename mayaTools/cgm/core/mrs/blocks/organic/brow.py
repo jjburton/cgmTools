@@ -1175,6 +1175,8 @@ def prerig(self):
                     d_use = copy.copy(_d)
                     d_use['cgmName'] = tag
                     d_use['cgmIterator'] = 0
+                    d_use['cgmDirection'] = side
+                    
                     mAnchor = md_anchorsLists[section][side][0]
                     p = mAnchor.p_position
                     
@@ -1235,6 +1237,7 @@ def prerig(self):
                    #     mCrv.v=False
                     d_use = copy.copy(_d)
                     d_use['cgmName'] = tag
+                    d_use['cgmDirection'] = side
 
                     for i,mAnchor in enumerate(md_anchorsLists[section][side]):
                         d_use['cgmIterator'] = i
@@ -1821,6 +1824,7 @@ def skeleton_build(self, forceNew = True):
                 for mObj in ml_base:
                     mJnt = mObj.doCreateAt('joint')
                     mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                    mJnt.doStore('cgmName','brow')
                     mJnt.doStore('cgmType','skinJoint')
                     mJnt.doName()
                     ml_new.append(mJnt)
@@ -1837,6 +1841,7 @@ def skeleton_build(self, forceNew = True):
                 for mObj in ml_base:
                     mJnt = mObj.doCreateAt('joint')
                     mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                    mJnt.doStore('cgmName','brow')                    
                     mJnt.doStore('cgmType','skinJoint')
                     mJnt.doName()
                     ml_new.append(mJnt)
