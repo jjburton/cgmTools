@@ -3960,7 +3960,7 @@ def blockMirror_create(self, forceNew = False):
         return mMirror
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def blockMirror_go(self, mode = 'push',autoCreate = False):
+def blockMirror_go(self, mode = 'push',autoCreate = False,define=True,form = True, prerig= True):
     """
     Call to duplicate a block module and load data
     """
@@ -3973,10 +3973,12 @@ def blockMirror_go(self, mode = 'push',autoCreate = False):
         
         mMirror = self.blockMirror
         
+        kws = {'define':True,'form':True, "prerig":True,}
+        
         if mode == 'push':
-            controls_mirror(self,mMirror)
+            controls_mirror(self,mMirror,**kws)
         else:
-            controls_mirror(mMirror,self)
+            controls_mirror(mMirror,self,**kws)
 
         return mMirror
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
