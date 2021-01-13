@@ -1727,6 +1727,8 @@ def skeleton_build(self, forceNew = True):
             raise ValueError,"No jointHelpers connected"        
         
         
+        
+        
         #>> If skeletons there, delete -------------------------------------------------------------------------- 
         _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
         if _bfr:
@@ -1743,6 +1745,12 @@ def skeleton_build(self, forceNew = True):
                                      iterName = _l_baseNames[0])     
         """
             
+        #Check out
+        if self.neckBuild:
+            _expected = self.neckJoints + 1
+            if len(ml_jointHelpers) != _expected:
+                return log.error("Joint helper count not found: {0} (1 + self.neckJoints) != expected: {1}. Recreate your joint helpers.".format(len(ml_jointHelpers),_expected))
+        
         #>> Head ===================================================================================
         log.debug("|{0}| >> Head...".format(_str_func))
         if self.neckBuild:

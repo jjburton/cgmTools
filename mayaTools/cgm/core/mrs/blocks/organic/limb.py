@@ -2771,7 +2771,7 @@ def create_jointHelpers(self, force = True):
             
             
         mPrerigNull.msgList_connect('rollHelpers_{0}'.format(i), ml_roll)
-        pprint.pprint(ml_roll)
+        #pprint.pprint(ml_roll)
             
         #pprint.pprint([md_helperRolls[mHelperSet[0]], mHelperSet])
         _upVector =  MATH.get_obj_vector(mHelperSet[0].mNode,'y+')
@@ -2947,10 +2947,13 @@ def skeleton_build(self, forceNew = True):
         if len(ml_handleHelpers) != len(ml_prerigHandles):
             raise ValueError,"Must have matching handleHelper length to prerig."
             
-        
         ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
         if not ml_jointHelpers:
             raise ValueError,"No jointHelpers connected"
+        
+        
+          
+        
         
         #>> If skeletons there, delete ------------------------------------------------------------------- 
         _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
@@ -2980,6 +2983,15 @@ def skeleton_build(self, forceNew = True):
             else:
                 log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
                 _b_lever = True
+                
+        #Before building things, 
+        for i,mJnt in enumerate(ml_handleHelpers):
+            log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
+            ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
+            _expected = self.getMayaAttr('rollCount_{0}'.format(i))
+            if len(ml_rollHelpers) != _expected:
+                return log.error("RollCount of section {0} | len: {1} != expected: {2}. Recreate your joint helpers.".format(i,len(ml_rollHelpers),_expected))
+                
 
         """
         _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
@@ -3091,6 +3103,7 @@ def skeleton_build(self, forceNew = True):
             
             ml_joints.append(mJnt)
             ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
+            
             
             if ml_rollHelpers:
                 log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))

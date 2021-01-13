@@ -1412,6 +1412,14 @@ def skeleton_build(self, forceNew = True):
         else:
             return _bfr
     
+    
+            
+    _expected = self.numJoints
+    if len(ml_jointHelpers) != _expected:
+        return log.error("Joint helper count not found: {0} != expected: {1}. Recreate your joint helpers.".format(len(ml_jointHelpers),_expected))    
+    
+    
+    
     #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')    
 
     log.debug("|{0}| >> creating...".format(_str_func))
