@@ -5469,7 +5469,9 @@ class ui(cgmUI.cgmGUI):
                                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                                     'atUtils','uiQuery_getStateAttrDict',
                                                                     **{'updateUI':0})},
-                  
+                  'Find orphaned rigModules':{'ann':'Get missing attrs for the attrMask',
+                                              'call':cgmGEN.Callback(BLOCKGEN.get_orphanedRigModules,
+                                                                    **{'select':1})},                  
                   
                   
                   'blockProfile Valid?':{'ann':'Check if blockProfile setting is valid',

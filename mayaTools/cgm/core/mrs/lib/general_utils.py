@@ -69,6 +69,30 @@ def verify_sceneBlocks():
         mBlock.atUtils('verify_blockAttrs',queryMode=False)
         
 
+def get_orphanedRigModules(select = True, delete=False):
+    """
+    Find all rigModules that have no rigBlock connected
+
+    :parameters:
+
+    :returns
+        metalist(list)
+    """
+    ml = []
+    for mObj in r9Meta.getMetaNodes(mTypes = 'cgmRigModule',nTypes=['transform','network']):
+        if not mObj.getMessageAsMeta('rigBlock'):
+            ml.append(mObj) 
+            
+    if select and ml:
+        mc.select([mObj.mNode for mObj in ml])
+
+    if delete and ml:
+        mc.delete([mObj.mNode for mObj in ml])
+    
+        
+    return ml or log.warning("No orphaned rigModules  found.")
+
+
 def block_getFromSelected():
     _str_func = 'block_getFromSelected'
     _res = []
