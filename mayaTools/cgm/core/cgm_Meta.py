@@ -3163,7 +3163,7 @@ class cgmObject(cgmNode):
             return mGrp
         return buffer
     
-    def doCreateAt(self, create = 'null', copyAttrs = False, asMeta = True, setClass=False):
+    def doCreateAt(self, create = 'null', copyAttrs = False, connectAs= None, asMeta = True, setClass=False):
         mCreated = validateObjArg( RIGGING.create_at(self.mNode, create), 'cgmObject', setClass=setClass)
         
         if copyAttrs:
@@ -3177,6 +3177,9 @@ class cgmObject(cgmNode):
             mCreated.doName()
         elif self.hasAttr('cgmName'):
             mc.rename(mCreated.mNode, self.p_nameBase+'_Transform')
+            
+        if connectAs:
+            self.connectChildNode(mCreated.mNode,connectAs,'source')
             
         if not asMeta:
             return mCreated.mNode
