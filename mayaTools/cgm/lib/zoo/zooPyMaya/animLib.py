@@ -4,9 +4,9 @@ import cPickle
 from maya import OpenMaya, OpenMayaUI, mel
 from maya import cmds as cmd
 
-from zooPy import presets
-from zooPy.strUtils import Mapping
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy import presets
+from cgm.lib.zoo.zooPy.strUtils import Mapping
+from cgm.lib.zoo.zooPy.path import Path
 
 import animClip
 

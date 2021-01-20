@@ -18,7 +18,7 @@
 
 
 global proc zooXferAnim() {
-	python( "from zooPyMaya import xferAnimUI; xferAnimUI.load()" );
+	python( "from cgm.lib.zoo.zooPyMaya import xferAnimUI; xferAnimUI.load()" );
 	}
 
 

@@ -1,6 +1,6 @@
 
-from zooPy import presets
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy import presets
+from cgm.lib.zoo.zooPy.path import Path
 
 from baseMelUI import *
 

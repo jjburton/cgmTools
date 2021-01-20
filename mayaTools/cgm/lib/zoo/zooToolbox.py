@@ -14,9 +14,9 @@ except ImportError: pass
 import maya
 from maya.mel import eval as evalMel
 
-from zooPy.path import Path, findFirstInEnv, findInPyPath
-from zooPyMaya.baseMelUI import *
-from zooPyMaya.melUtils import printErrorStr
+from cgm.lib.zoo.zooPy.path import Path, findFirstInEnv, findInPyPath
+from cgm.lib.zoo.zooPyMaya.baseMelUI import *
+from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
 
 
 def setupZooScriptPaths():
@@ -72,7 +72,7 @@ def setupDagProcMenu():
 		fStream.write( '\n/// ZOO TOOLBOX MODS ########################\n' )
 		fStream.write( '\tsetParent -m $parent;\n' )
 		fStream.write( '\tmenuItem -d 1;\n' )
-		fStream.write( '\tpython( "from zooPyMaya import triggeredUI" );\n' )
+		fStream.write( '\tpython( "from cgm.lib.zoo.zooPyMaya import triggeredUI" );\n' )
 		fStream.write( """\tint $killState = python( "triggeredUI.buildMenuItems( '"+ %s +"', '"+ %s +"' )" );\n""" % (parentVarStr, objectVarStr) )
 		fStream.write( '\tif( $killState ) return;\n' )
 		fStream.write( '/// END ZOO TOOLBOX MODS ####################\n\n' )
@@ -244,42 +244,42 @@ def loadZooPlugin( pluginName ):
 
 
 def loadSkeletonBuilderUI( *a ):
-	from zooPyMaya import skeletonBuilderUI
+	from cgm.lib.zoo.zooPyMaya import skeletonBuilderUI
 	skeletonBuilderUI.SkeletonBuilderWindow()
 
 
 def loadSpaceSwitching( *a ):
-	from zooPyMaya import spaceSwitchingUI
+	from cgm.lib.zoo.zooPyMaya import spaceSwitchingUI
 	spaceSwitchingUI.SpaceSwitchingWindow()
 
 
 def loadWeightSave( *a ):
-	from zooPyMaya import skinWeightsUI
+	from cgm.lib.zoo.zooPyMaya import skinWeightsUI
 	skinWeightsUI.SkinWeightsWindow()
 
 
 def loadPoseSym( *a ):
-	from zooPyMaya import poseSymUI
+	from cgm.lib.zoo.zooPyMaya import poseSymUI
 	poseSymUI.PoseSymWindow()
 
 
 def loadSkinPropagation( *a ):
-	from zooPyMaya import refPropagation
+	from cgm.lib.zoo.zooPyMaya import refPropagation
 	refPropagation.propagateWeightChangesToModel_confirm()
 
 
 def loadPicker( *a ):
-	from zooPyMaya import picker
+	from cgm.lib.zoo.zooPyMaya import picker
 	picker.PickerWindow()
 
 
 def loadAnimLib( *a ):
-	from zooPyMaya import animLibUI
+	from cgm.lib.zoo.zooPyMaya import animLibUI
 	animLibUI.AnimLibWindow()
 
 
 def loadXferAnim( *a ):
-	from zooPyMaya import xferAnimUI
+	from cgm.lib.zoo.zooPyMaya import xferAnimUI
 	xferAnimUI.XferAnimWindow()
 
 
@@ -358,7 +358,7 @@ TOOL_CATS = ( ('animation', (('Animation Library', 'Animation library tool', loa
 
                            ('Reset Selected',
                             'Resets keyable attribute values to their defaults for all selected nodes',
-                            ToolCB( "zooHotkeyer zooResetAttrs \"python( \\\"from zooPyMaya import resetAttrs; resetAttrs.resetAttrsForSelection()\\\" );\" \"\" \"-default s -enableMods 1 -alt 1 -ann resets keyable attributes for selection\";" )),
+                            ToolCB( "zooHotkeyer zooResetAttrs \"python( \\\"from cgm.lib.zoo.zooPyMaya import resetAttrs; resetAttrs.resetAttrsForSelection()\\\" );\" \"\" \"-default s -enableMods 1 -alt 1 -ann resets keyable attributes for selection\";" )),
 
                            ('Set Menu - selection set menu',
                             'zooSetMenu us a marking menu that lets you quickly interact with all quick selection sets in your scene.',

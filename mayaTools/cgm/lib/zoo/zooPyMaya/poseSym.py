@@ -1,5 +1,5 @@
 
-from zooPy.vectors import Vector, Matrix, Axis, AX_X, AX_Y, AX_Z
+from cgm.lib.zoo.zooPy.vectors import Vector, Matrix, Axis, AX_X, AX_Y, AX_Z
 
 from rigUtils import MATRIX_ROTATION_ORDER_CONVERSIONS_FROM, MATRIX_ROTATION_ORDER_CONVERSIONS_TO
 from mayaDecorators import d_unifyUndo

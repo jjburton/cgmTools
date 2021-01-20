@@ -1,7 +1,7 @@
 
 from maya.cmds import *
 
-from zooPy.misc import removeDupes
+from cgm.lib.zoo.zooPy.misc import removeDupes
 
 from baseMelUI import *
 from melUtils import printWarningStr

@@ -1,9 +1,9 @@
 
 from maya.cmds import *
 
-from zooPy.misc import removeDupes
-from zooPy.binarySearchTree import BinarySearchTree
-from zooPy import presets
+from cgm.lib.zoo.zooPy.misc import removeDupes
+from cgm.lib.zoo.zooPy.binarySearchTree import BinarySearchTree
+from cgm.lib.zoo.zooPy import presets
 
 from skinWeightsBase import *
 from mayaDecorators import d_unifyUndo, d_progress, d_showWaitCursor

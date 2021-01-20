@@ -23,7 +23,7 @@ import maya.cmds as mc
 import copy
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
-from zooPyMaya import apiExtensions
+from cgm.lib.zoo.zooPyMaya import apiExtensions
 
 from cgm.lib import (locators,
                      geo,

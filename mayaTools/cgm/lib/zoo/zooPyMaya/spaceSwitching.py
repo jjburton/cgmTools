@@ -1,8 +1,8 @@
 
 import re
 
-from zooPy.misc import removeDupes
-from zooPy.names import camelCaseToNice
+from cgm.lib.zoo.zooPy.misc import removeDupes
+from cgm.lib.zoo.zooPy.names import camelCaseToNice
 
 from triggered import Trigger
 from control import getNiceName

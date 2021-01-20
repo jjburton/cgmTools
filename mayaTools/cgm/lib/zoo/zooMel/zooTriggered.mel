@@ -163,8 +163,8 @@ global proc zooBuildTrigCmdPopup( string $parent ) {
 	menuItem -d 1;
 	menuItem -d 1;
 	menuItem -d 1;
-	menuItem -en $enable -l "scrub this cmd" -ann "removes all references to dead connects from the menu cmd string" -c( "python(\"from zooPyMaya import triggered; triggered.Trigger('"+ $obj +"').scrubMenuCmd("+ $slot +");\"); zooTriggeredWindowFunctions -updateCmd;" );
-	menuItem -en $enable -l "scrub all cmds" -ann "does a scrub on ALL menu items" -c( "python(\"from zooPyMaya import triggered; triggered.Trigger('"+ $obj +"').scrubMenuCmds();\"); zooTriggeredWindowFunctions -updateCmd;" );
+	menuItem -en $enable -l "scrub this cmd" -ann "removes all references to dead connects from the menu cmd string" -c( "python(\"from cgm.lib.zoo.zooPyMaya import triggered; triggered.Trigger('"+ $obj +"').scrubMenuCmd("+ $slot +");\"); zooTriggeredWindowFunctions -updateCmd;" );
+	menuItem -en $enable -l "scrub all cmds" -ann "does a scrub on ALL menu items" -c( "python(\"from cgm.lib.zoo.zooPyMaya import triggered; triggered.Trigger('"+ $obj +"').scrubMenuCmds();\"); zooTriggeredWindowFunctions -updateCmd;" );
 	menuItem -d 1;
 	menuItem -d 1;
 	menuItem -d 1;
@@ -175,7 +175,7 @@ global proc zooBuildTrigCmdPopup( string $parent ) {
 
 
 global proc zooTriggeredWindowFunctions( string $function ) {
-	python("from zooPyMaya import triggered");
+	python("from cgm.lib.zoo.zooPyMaya import triggered");
 
 	global int $zooTriggered;
 	string $windowName = "zooTriggeredWindow";

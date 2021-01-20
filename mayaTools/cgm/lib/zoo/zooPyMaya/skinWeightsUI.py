@@ -2,9 +2,9 @@
 import time
 import maya.cmds as cmd
 
-from zooPy.path import Path
-from zooPy.misc import removeDupes, Callback
-from zooPy.names import getCommonPrefix
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy.misc import removeDupes, Callback
+from cgm.lib.zoo.zooPy.names import getCommonPrefix
 
 from melUtils import mel
 from baseMelUI import *

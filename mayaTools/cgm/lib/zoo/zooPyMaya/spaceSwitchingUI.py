@@ -3,7 +3,7 @@ from maya.cmds import *
 from maya import cmds as cmd
 from baseMelUI import *
 
-from zooPy import names
+from cgm.lib.zoo.zooPy import names
 
 import control
 import baseMelUI

@@ -3,8 +3,8 @@ from maya.cmds import *
 
 import devTest_base
 
-from zooPy import strUtils
-from zooPy import vectors
+from cgm.lib.zoo.zooPy import strUtils
+from cgm.lib.zoo.zooPy import vectors
 
 import mayaDecorators
 import animClip

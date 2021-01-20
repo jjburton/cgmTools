@@ -7,9 +7,9 @@ import inspect
 from maya.cmds import *
 import maya.cmds as cmd
 
-from zooPy.path import Path
-from zooPy.presets import PresetManager, Preset, LOCAL, GLOBAL
-from zooPy.names import camelCaseToNice
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy.presets import PresetManager, Preset, LOCAL, GLOBAL
+from cgm.lib.zoo.zooPy.names import camelCaseToNice
 
 import apiExtensions
 
