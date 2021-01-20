@@ -2622,6 +2622,8 @@ class mrsPoseDirList(mUI.BaseMelWidget):
             path = self.path
         else:
             self.path = path
+            
+
 
         log.debug(cgmGEN.logString_start(_str_func))
         self.b_selCommandOn = False
@@ -2643,6 +2645,10 @@ class mrsPoseDirList(mUI.BaseMelWidget):
         
         if not path:
             return False
+        
+        if not PATHS.Path(self.path).exists():
+            log.warning("This path no longer exists: {0}".format(self.path))
+            return False        
         
         _d_dir, _d_levels, _l_uiStrings, _d_uiStrings = walk_below_dir(path,
                                                                        uiStrings = 1,

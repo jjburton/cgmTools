@@ -2989,7 +2989,9 @@ def skeleton_build(self, forceNew = True):
             log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
             ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
             _expected = self.getMayaAttr('rollCount_{0}'.format(i))
-            if len(ml_rollHelpers) != _expected:
+            if _expected and len(ml_rollHelpers) != _expected:
+                if self.addLeverBase:
+                    continue
                 return log.error("RollCount of section {0} | len: {1} != expected: {2}. Recreate your joint helpers.".format(i,len(ml_rollHelpers),_expected))
                 
 

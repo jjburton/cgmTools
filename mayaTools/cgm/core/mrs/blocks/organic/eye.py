@@ -999,7 +999,7 @@ def form(self):
                     #Get percentage list
                     l_v = MATH.get_splitValueList(points = _cnt)
                     
-                    _crv = CORERIG.create_at(create='curve',l_pos= l_pos)
+                    _crv = CORERIG.create_at(create='curveLinear',l_pos= l_pos)
                     
                     if crvToDo in ['contact','line']:
                         _crvShape = TRANS.shapes_get(_crv)[0]
@@ -1086,6 +1086,8 @@ def form(self):
             md_handles.update(md_res['md_handles'])
             
             for k,mHandle in md_handles.iteritems():
+                if mHandle in ml_defineHandles:
+                    continue
                 mHandle.doConnectIn('v', "{0}.visFormHandles".format(_short))
                 mHandle.setAttrFlags('v')                
             

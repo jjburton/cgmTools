@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////////
 // TITLE: seShapeTaper
-// VERSION: 2.0
+// VERSION: 2.1
 // AUTHOR: Scott Englert - scott@scottenglert.com
 // DATE: Nov 14, 2008
 //
@@ -39,6 +39,7 @@
 //    shapes.
 //
 // HISTORY:
+// 01.18.2020 - comment out linkes 277,306 to adjust to new methods
 // 11/14/2008	Complete recode with many added features
 //
 // 5/11/2006	First release
@@ -274,7 +275,7 @@ global proc seST_splitShape(string $driverObjTF,string $attrListTSL,string $jNam
 		// get some curve information (pre/post infinity, tangent, weighted tangent, curve type)
 		int $cPreInf = `getAttr ($sCurve + ".pre")`;
 		int $cPstInf = `getAttr ($sCurve + ".pst")`;
-		int $cTan = `getAttr ($sCurve + ".tan")`;
+		//int $cTan = `getAttr ($sCurve + ".tan")`;
 		int $cWTan[] = `keyTangent -q -wt $sCurve`;
 		string $cType = `nodeType $sCurve`;
 
@@ -303,7 +304,7 @@ global proc seST_splitShape(string $driverObjTF,string $attrListTSL,string $jNam
 						$nCurves[$n] = `createNode $cType -n ("ac_" + $capDestObjName + $destAttrSN[0] + "_" + $jName + $jointAttrSN[0])`;
 						setAttr ($nCurves[$n] + ".pre") $cPreInf;
 						setAttr ($nCurves[$n] + ".pst") $cPstInf;
-						setAttr ($nCurves[$n] + ".tan") $cTan;
+						//setAttr ($nCurves[$n] + ".tan") $cTan;
 						$attr = $ltSideAttr;
 					}
 		
@@ -505,7 +506,7 @@ global proc seST_loadShape(string $upAxisOM,string $fwdAxisOM,string $driverObjT
 	seST_deleteColChildren({$jNameColAdj,$leftPerColAdj,$rightPerColAdj});
 	
 	// get the list of driven joints
-	string $drivenJointList[] = seST_seekDownstream(($driverObj+"."+$attrDriver[0]),"joint",0,4);
+	string $drivenJointList[] = seST_seekDownstream(($driverObj+"."+$attrDriver[0]),"group",0,4);//'joint'
 	$drivenJointList = stringArrayRemoveDuplicates($drivenJointList);
 	// if there are no driven joints then we can't do anything
 	if(! `size $drivenJointList`) error "No driven joints found. Can not load shape.";
