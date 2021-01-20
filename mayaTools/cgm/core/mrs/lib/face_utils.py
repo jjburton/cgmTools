@@ -36,7 +36,7 @@ from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.classes import GuiFactory as CGMUI
 import cgm.core.lib.string_utils as STR
 from cgm.core.lib import attribute_utils as ATTR
-
+from cgm.core.rig import joint_utils as RIGJOINTS
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import search_utils as SEARCH
 
@@ -132,7 +132,7 @@ _d_faceBufferAttributes = {
                             'sideAttrs':['up','dn']}}}
 
 
-def push_toSDKGroup(nodes = []):
+def SDKGroups_pushTo(nodes = []):
     if nodes:
         ml = cgmMeta.asMeta(nodes)
     else:
@@ -170,8 +170,57 @@ def SDKGroups_select(nodes=[]):
     ml_sdks = []
     for mObj in ml:
         ml_sdks.append(mObj.getMessage('sdkGroup')[0])
-    mc.select(ml_sdks)    
+    
+    if ml_sdks:mc.select(ml_sdks)    
     return ml_sdks
+
+def SDKGroups_verify(nodes =[]):
+    """
+    We need joints
+    """
+    if nodes:
+        ml = cgmMeta.asMeta(nodes)
+    else:
+        ml = cgmMeta.asMeta(sl=1)
+        
+    ml_sdks = []
+    for mObj in ml:
+        _create = True
+        _cleanOld = False
+        mDag = mObj.getMessageAsMeta('sdkGroup')
+        if mDag:
+            if mDag.getMayaType() != 'joint':
+                log.error("Not a joint: {0}".format(mDag))
+                _cleanOld = True
+            else:
+                mSDK = mDag
+                _create = False
+                
+        if _create:
+            mSDK = mObj.doCreateAt('joint', connectAs = 'sdkGroup', setClass = 'cgmObject')
+            mSDK.p_parent = mDag.p_parent
+            
+            RIGJOINTS.freezeOrientation(mSDK)
+            
+            mObj.p_parent = mSDK
+            
+            if _cleanOld:
+                mDag.delete()
+            else:
+                mSDK.p_parent = mObj.p_parent
+                
+        mSDK.doStore('cgmName', mObj.p_nameBase)            
+        mSDK.doStore('cgmType', 'sdkJoint')
+        mSDK.doName()
+            
+
+                      
+            
+        ml_sdks.append(mSDK)
+        
+    if ml_sdks:
+        mc.select([mObj.mNode for mObj in ml_sdks])    
+    return ml_sdks    
 
 class poseBuffer():
     attrDat = None

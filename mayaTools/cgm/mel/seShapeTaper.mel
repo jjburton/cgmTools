@@ -506,7 +506,7 @@ global proc seST_loadShape(string $upAxisOM,string $fwdAxisOM,string $driverObjT
 	seST_deleteColChildren({$jNameColAdj,$leftPerColAdj,$rightPerColAdj});
 	
 	// get the list of driven joints
-	string $drivenJointList[] = seST_seekDownstream(($driverObj+"."+$attrDriver[0]),"group",0,4);//'joint'
+	string $drivenJointList[] = seST_seekDownstream(($driverObj+"."+$attrDriver[0]),"joint",0,4);//'joint'
 	$drivenJointList = stringArrayRemoveDuplicates($drivenJointList);
 	// if there are no driven joints then we can't do anything
 	if(! `size $drivenJointList`) error "No driven joints found. Can not load shape.";
