@@ -84,6 +84,24 @@ _d_faceBufferAttributes = {
                "lipCntr_lwr":{'attrs':['fwd','back','up','dn','rollIn','rollOut'],
                        'sideAttrs':['up','dn','rollIn','rollOut']},            
                },
+    
+    'FACS_1':{"jaw":{'attrs':['open','left','right','fwd','back']},
+            "lips":{'attrs':['smile','dimpler','frown','funnel','uprRollIn','lwrRollIn',
+                             'pucker','presser','pullDownWide','pullDown','ooo'],
+                    'sideAttrs':['smile','dimpler','frown','presser','pullDownWide','pullDown']},
+            "sneer":{'attrs':['up'],
+                    'sideAttrs':'*'},
+            "mouth":{'attrs':['left','right','up','dn','close','sticky']},
+            "eyeLids":{'attrs':['blink','wide','squint','compress',
+                                'lookDn','lookUp','lookLeft','lookRight'],
+                    'sideAttrs':['blink','wide','squint','compress']},
+            "nose":{'attrs':['sneer'],
+                    'sideAttrs':'*'},
+            "cheek":{'attrs':['raise','puff','suck'],
+                    'sideAttrs':'*'},            
+            "brow":{'attrs':['innrUp','innrDn','outrUp','outrDn','squeeze'],
+                    'sideAttrs':['innrUp','innrDn','outrUp','outrDn']},
+            },
 
     
     'toon':{"nose":{'attrs':['out','in','sneer_up','sneer_dn',
@@ -223,6 +241,126 @@ def SDKGroups_verify(nodes =[]):
         mc.select([mObj.mNode for mObj in ml_sdks])    
     return ml_sdks    
 
+
+
+m_jawOpen_BLS
+m_jawLeft_BLS
+m_jawRight_BLS
+m_jawForward_BLS
+m_jawBackward_BLS
+l_smile_BLS
+r_smile_BLS
+l_frown_BLS
+r_frown_BLS
+l_dimpler_BLS
+r_dimpler_BLS
+l_sneer_BLS
+r_sneer_BLS
+l_pullDown_BLS
+r_pullDown_BLS
+l_presser_BLS
+r_presser_BLS
+l_pullDownWide_BLS
+r_pullDownWide_BLS
+m_upperLipRollIn_BLS
+m_lowerLipRollIn_BLS
+m_mouthLeft_BLS
+m_mouthRight_BLS
+m_mouthUp_BLS
+m_mouthDn_BLS
+m_funnel_BLS
+m_pucker_BLS
+m_mouthClose_BLS
+m_mouthSticky_BLS
+m_lipsOo_BLS
+l_eyeBlink_BLS
+r_eyeBlink_BLS
+l_eyeWide_BLS
+r_eyeWide_BLS
+l_eyeSquint_BLS
+r_eyeSquint_BLS
+m_eyelidsLookDn_BLS
+m_eyelidsLookUp_BLS
+m_eyelidsLookLeft_BLS
+m_eyelidsLookRight_BLS
+l_eyeCompress_BLS
+r_eyeCompress_BLS
+l_noseSneer_BLS
+r_noseSneer_BLS
+
+
+
+
+
+
+
+
+
+_d_bufferToAttrs = {
+    'FACS_1':{
+'Rest':None, 
+'brow_innrDn_left':'l_browInnerDn_BLS', 
+'brow_innrDn_right':'r_browInnerDn_BLS', 
+'brow_innrUp_left':'l_browInnerUp_BLS', 
+'brow_innrUp_right':'r_browInnerUp_BLS', 
+'brow_outrDn_left':'l_browOuterDn_BLS', 
+'brow_outrDn_right':'r_browOuterDn_BLS', 
+'brow_outrUp_left':'l_browOuterUp_BLS', 
+'brow_outrUp_right':'r_browOuterUp_BLS', 
+'brow_squeeze':'m_browSqueeze_BLS', 
+'cheek_puff_left':'l_cheekPuff_BLS', 
+'cheek_puff_right':'r_cheekPuff_BLS', 
+'cheek_raise_left':'l_cheekRaiser_BLS', 
+'cheek_raise_right':'r_cheekRaiser_BLS', 
+'cheek_suck_left':None, 
+'cheek_suck_right':'r_cheekSuck_BLS', 
+'eyeLids_blink_left':None, 
+'eyeLids_blink_right':None, 
+'eyeLids_compress_left':None, 
+'eyeLids_compress_right':None, 
+'eyeLids_lookDn':None, 
+'eyeLids_lookLeft':None, 
+'eyeLids_lookRight':None, 
+'eyeLids_lookUp':None, 
+'eyeLids_squint_left':None, 
+'eyeLids_squint_right':None, 
+'eyeLids_wide_left':None, 
+'eyeLids_wide_right':None, 
+'jaw_back':None, 
+'jaw_fwd':None, 
+'jaw_left':None, 
+'jaw_open':None, 
+'jaw_right':None, 
+'lips_dimpler_left':None, 
+'lips_dimpler_right':None, 
+'lips_frown_left':None, 
+'lips_frown_right':None, 
+'lips_funnel':None, 
+'lips_lwrRollIn':None, 
+'lips_ooo':None, 
+'lips_presser_left':None, 
+'lips_presser_right':None, 
+'lips_pucker':None, 
+'lips_pullDown_left':None, 
+'lips_pullDown_right':None, 
+'lips_pullDownWide_left':None, 
+'lips_pullDownWide_right':None, 
+'lips_smile_left':None, 
+'lips_smile_right':None, 
+'lips_uprRollIn':None, 
+'mouth_close':None, 
+'mouth_dn':None, 
+'mouth_left':None, 
+'mouth_right':None, 
+'mouth_sticky':None, 
+'mouth_up':None, 
+'nose_sneer_left':None, 
+'nose_sneer_right':None, 
+'sneer_up_left':None, 
+'sneer_up_right':None, 
+}}
+
+
 class poseBuffer():
     attrDat = None
     attrMask = ['cgmName','cgmType','mClass','mNodeID','mClassGrp','mSystemRoot']
@@ -278,7 +416,7 @@ class poseBuffer():
         self.buffer_purge()
         self.buffer_verify()
         
-    def buffer_verify(self, addNonSplits = True, maxValue = 10.0, minValue = 0):
+    def buffer_verify(self, addNonSplits = False, maxValue = 10.0, minValue = 0):
         """
         addNonSplits | add a lips_smile for example for splitting to L/R
         """
@@ -375,6 +513,17 @@ class poseBuffer():
                 continue
             print a
             
+    def log_wireDictTemplate(self):
+        mBuffer = self.mBuffer
+        
+        print "{" +  "'{0}':".format(mBuffer.cgmName) + "{"
+        for a in mBuffer.getAttrs(ud=True):
+            if a in poseBuffer.attrMask:
+                continue
+            if 'XXX' in a:
+                continue
+            print "'{0}':None, ".format(a)        
+        print "}}"
         #pprint.pprint(self.attrDat)
 
 
