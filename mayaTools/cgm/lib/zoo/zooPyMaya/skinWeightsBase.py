@@ -1,7 +1,7 @@
 
-from zooPy.vectors import *
-from zooPy.path import Path
-from zooPy import names
+from cgm.lib.zoo.zooPy.vectors import *
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy import names
 
 import time
 import datetime

@@ -108,7 +108,7 @@ global proc string zooPopulateCmdStr( string $trigger, string $cmdStr, string $o
 //------
 global proc string zooPopulateCmdStrRaw( string $trigger, string $cmdStr, string $optionalStrings[] ) {
 	string $optionalAsStr = "[r'''"+ `zooArrayToStr_str $optionalStrings "''',r'''"` +"''']";
-	python( "from zooPyMaya import triggered;" );
+	python( "from cgm.lib.zoo.zooPyMaya import triggered;" );
 	$cmdStr = python( "triggered.Trigger('"+ $trigger +"').resolve('''"+ encodeString($cmdStr) +"''',"+ $optionalAsStr +")" );
 
 	return $cmdStr;
@@ -308,7 +308,7 @@ global proc int zooAddConnectTo( string $trigger, string $connect, int $forceSlo
 //goes through all connects and makes sure objects are actually connected
 //------
 global proc zooValidateConnects( string $trigger ) {
-	python("from zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').validateConnects();");
+	python("from cgm.lib.zoo.zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').validateConnects();");
 	}
 
 
@@ -338,7 +338,7 @@ global proc zooCacheConnectName( string $trigger, int $slot ) {
 //removes a connected object from a trigger
 //------
 global proc zooRemoveConnect( string $trigger, string $connect ) {
-	python("from zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').disconnect('"+ $connect +"');");
+	python("from cgm.lib.zoo.zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').disconnect('"+ $connect +"');");
 	}
 
 
@@ -347,7 +347,7 @@ global proc zooRemoveConnect( string $trigger, string $connect ) {
 //------
 global proc int[] zooGetConnectSlots( string $trigger, string $connect ) {
 	int $slots[] = {};  //this needs to be declared first because maya doesn't know how to convert an empty list to an int array...
-	catchQuiet( $slots = python("from zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').getConnectSlots('"+ $connect +"');") );
+	catchQuiet( $slots = python("from cgm.lib.zoo.zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').getConnectSlots('"+ $connect +"');") );
 	return $slots;
 	}
 
@@ -413,7 +413,7 @@ global proc string zooGetConnectObject( string $trigger, int $connect ) {
 //deletes a slot from a trigger
 //------
 global proc zooRemoveTriggerSlots( string $trigger, int $slot ) {
-	python("from zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').disconnect("+ $slot +");");
+	python("from cgm.lib.zoo.zooPyMaya import triggered; triggered.Trigger('"+ $trigger +"').disconnect("+ $slot +");");
 	}
 
 

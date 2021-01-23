@@ -1,5 +1,5 @@
 
-from zooPy.misc import Callback
+from cgm.lib.zoo.zooPy.misc import Callback
 
 import maya.cmds as cmd
 

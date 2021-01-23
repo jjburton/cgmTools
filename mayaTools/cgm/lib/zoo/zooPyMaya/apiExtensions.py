@@ -1,6 +1,6 @@
 
 from maya.OpenMaya import *
-from zooPy.vectors import Vector, Matrix
+from cgm.lib.zoo.zooPy.vectors import Vector, Matrix
 
 import sys
 import maya.cmds as cmd

@@ -1,5 +1,5 @@
 
-from zooPy import strUtils
+from cgm.lib.zoo.zooPy import strUtils
 from apiExtensions import *
 
 

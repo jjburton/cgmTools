@@ -4,8 +4,8 @@ from maya.cmds import *
 import re
 import maya.cmds as cmd
 
-from zooPy import events
-from zooPy import typeFactories
+from cgm.lib.zoo.zooPy import events
+from cgm.lib.zoo.zooPy import typeFactories
 
 import melUtils
 import apiExtensions

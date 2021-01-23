@@ -215,11 +215,11 @@ def loadZooToolbox( *a ):
     zooToolbox.ToolboxWindow()
 
 def loadSkinPropagation( *a ):
-    from zooPyMaya import refPropagation
+    from cgm.lib.zoo.zooPyMaya import refPropagation
     refPropagation.propagateWeightChangesToModel_confirm()
 
 def loadXferAnim( *a ):
-    from zooPyMaya import xferAnimUI
+    from cgm.lib.zoo.zooPyMaya import xferAnimUI
     xferAnimUI.XferAnimWindow()
     
     

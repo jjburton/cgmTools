@@ -1,11 +1,11 @@
 
 import maya.cmds as cmd
 
-from zooPy import sobject
-from zooPy import presets
+from cgm.lib.zoo.zooPy import sobject
+from cgm.lib.zoo.zooPy import presets
 
-from zooPyMaya import triggered
-from zooPyMaya import mappingUtils
+from cgm.lib.zoo.zooPyMaya import triggered
+from cgm.lib.zoo.zooPyMaya import mappingUtils
 
 TOOL_NAME = presets.DEFAULT_TOOL
 XTN = 'trigger'

@@ -1966,7 +1966,7 @@ class MelTreeView(BaseMelWidget):
 
         #construct the mel proc
         melCmd = """global proc %s( string $str, int $index ) {
-		python( "from zooPyMaya import baseMelUI; baseMelUI.BaseMelUI.FromStr( '%s' )._executePressCB( %d, '"+ $str +"', "+ $index +" );" );
+		python( "from cgm.lib.zoo.zooPyMaya import baseMelUI; baseMelUI.BaseMelUI.FromStr( '%s' )._executePressCB( %d, '"+ $str +"', "+ $index +" );" );
 		}""" % (melCmdName, self, buttonIndex)
 
         #execute the proc we just constructed

@@ -20,7 +20,7 @@ zooSpaceSwitching;
 //added
 //------
 global proc int zooObjMenu( string $parent, string $obj ) {
-	python( "from zooPyMaya import triggeredUI" );
+	python( "from cgm.lib.zoo.zooPyMaya import triggeredUI" );
 	return python( "triggeredUI.buildMenuItems( '"+ $parent +"', '"+ $obj +"' )" );
 	}
 

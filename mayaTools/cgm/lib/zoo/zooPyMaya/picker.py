@@ -6,12 +6,12 @@ import re
 from maya import mel
 from maya.cmds import *
 
-from zooPy import names
-from zooPy import colours
+from cgm.lib.zoo.zooPy import names
+from cgm.lib.zoo.zooPy import colours
 
-from zooPy import presets
-from zooPy.path import Path
-from zooPy.vectors import Vector, Colour
+from cgm.lib.zoo.zooPy import presets
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy.vectors import Vector, Colour
 
 from baseMelUI import *
 from melUtils import printErrorStr, printWarningStr

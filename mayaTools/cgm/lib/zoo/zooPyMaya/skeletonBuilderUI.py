@@ -4,10 +4,10 @@ import os
 from maya.cmds import *
 from maya import cmds as cmd
 
-from zooPy import names
-from zooPy import presets
-from zooPy.path import Path
-from zooPy.misc import Callback
+from cgm.lib.zoo.zooPy import names
+from cgm.lib.zoo.zooPy import presets
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy.misc import Callback
 
 from baseMelUI import *
 from melUtils import mel

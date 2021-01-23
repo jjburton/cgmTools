@@ -76,7 +76,7 @@ _l_core_order = ['cgm_General',
 
 _l_ignoreTags = ['cgm.core.examples',
                  'cgm.lib.gigs',
-                 #'cgm.lib.zoo',
+                 'cgm.lib.zoo',
                  'cgm.projects',
                  'cgm.core.rigger',
                  'cgmMeta_test']
@@ -153,7 +153,7 @@ def _reload(stepConfirm=False):
         _k = 'cgm.core.' + m
         for t in _l_ignoreTags:
             if t in _k:
-                #log.debug("|{0}| >> Skipping {1} | contain ignore tag".format(_str_func,m))                
+                log.debug("|{0}| >> Skipping {1} | contain ignore tag".format(_str_func,m))                
                 _l_skip.append(m)        
     
     for m in _l_pycd:
