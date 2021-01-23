@@ -242,60 +242,6 @@ def SDKGroups_verify(nodes =[]):
     return ml_sdks    
 
 
-
-m_jawOpen_BLS
-m_jawLeft_BLS
-m_jawRight_BLS
-m_jawForward_BLS
-m_jawBackward_BLS
-l_smile_BLS
-r_smile_BLS
-l_frown_BLS
-r_frown_BLS
-l_dimpler_BLS
-r_dimpler_BLS
-l_sneer_BLS
-r_sneer_BLS
-l_pullDown_BLS
-r_pullDown_BLS
-l_presser_BLS
-r_presser_BLS
-l_pullDownWide_BLS
-r_pullDownWide_BLS
-m_upperLipRollIn_BLS
-m_lowerLipRollIn_BLS
-m_mouthLeft_BLS
-m_mouthRight_BLS
-m_mouthUp_BLS
-m_mouthDn_BLS
-m_funnel_BLS
-m_pucker_BLS
-m_mouthClose_BLS
-m_mouthSticky_BLS
-m_lipsOo_BLS
-l_eyeBlink_BLS
-r_eyeBlink_BLS
-l_eyeWide_BLS
-r_eyeWide_BLS
-l_eyeSquint_BLS
-r_eyeSquint_BLS
-m_eyelidsLookDn_BLS
-m_eyelidsLookUp_BLS
-m_eyelidsLookLeft_BLS
-m_eyelidsLookRight_BLS
-l_eyeCompress_BLS
-r_eyeCompress_BLS
-l_noseSneer_BLS
-r_noseSneer_BLS
-
-
-
-
-
-
-
-
-
 _d_bufferToAttrs = {
     'FACS_1':{
 'Rest':None, 
@@ -312,52 +258,52 @@ _d_bufferToAttrs = {
 'cheek_puff_right':'r_cheekPuff_BLS', 
 'cheek_raise_left':'l_cheekRaiser_BLS', 
 'cheek_raise_right':'r_cheekRaiser_BLS', 
-'cheek_suck_left':None, 
+'cheek_suck_left':'l_cheekSuck_BLS', 
 'cheek_suck_right':'r_cheekSuck_BLS', 
-'eyeLids_blink_left':None, 
-'eyeLids_blink_right':None, 
-'eyeLids_compress_left':None, 
-'eyeLids_compress_right':None, 
-'eyeLids_lookDn':None, 
-'eyeLids_lookLeft':None, 
-'eyeLids_lookRight':None, 
-'eyeLids_lookUp':None, 
-'eyeLids_squint_left':None, 
-'eyeLids_squint_right':None, 
-'eyeLids_wide_left':None, 
-'eyeLids_wide_right':None, 
-'jaw_back':None, 
-'jaw_fwd':None, 
-'jaw_left':None, 
-'jaw_open':None, 
-'jaw_right':None, 
-'lips_dimpler_left':None, 
-'lips_dimpler_right':None, 
-'lips_frown_left':None, 
-'lips_frown_right':None, 
-'lips_funnel':None, 
-'lips_lwrRollIn':None, 
-'lips_ooo':None, 
-'lips_presser_left':None, 
-'lips_presser_right':None, 
-'lips_pucker':None, 
-'lips_pullDown_left':None, 
-'lips_pullDown_right':None, 
-'lips_pullDownWide_left':None, 
-'lips_pullDownWide_right':None, 
-'lips_smile_left':None, 
-'lips_smile_right':None, 
-'lips_uprRollIn':None, 
-'mouth_close':None, 
-'mouth_dn':None, 
-'mouth_left':None, 
-'mouth_right':None, 
-'mouth_sticky':None, 
-'mouth_up':None, 
-'nose_sneer_left':None, 
-'nose_sneer_right':None, 
-'sneer_up_left':None, 
-'sneer_up_right':None, 
+'eyeLids_blink_left':'l_eyeBlink_BLS', 
+'eyeLids_blink_right':'r_eyeBlink_BLS', 
+'eyeLids_compress_left':'l_eyeCompress_BLS', 
+'eyeLids_compress_right':'r_eyeCompress_BLS', 
+'eyeLids_lookDn':'m_eyelidsLookDn_BLS', 
+'eyeLids_lookLeft':'m_eyelidsLookLeft_BLS', 
+'eyeLids_lookRight':'m_eyelidsLookRight_BLS', 
+'eyeLids_lookUp':'m_eyelidsLookUp_BLS', 
+'eyeLids_squint_left':'l_eyeSquint_BLS', 
+'eyeLids_squint_right':'r_eyeSquint_BLS', 
+'eyeLids_wide_left':'l_eyeWide_BLS', 
+'eyeLids_wide_right':'r_eyeWide_BLS', 
+'jaw_back':'m_jawBackward_BLS', 
+'jaw_fwd':'m_jawForward_BLS', 
+'jaw_left':'m_jawLeft_BLS', 
+'jaw_open':'m_jawOpen_BLS', 
+'jaw_right':'m_jawRight_BLS', 
+'lips_dimpler_left':'l_dimpler_BLS', 
+'lips_dimpler_right':'r_dimpler_BLS', 
+'lips_frown_left':'l_frown_BLS', 
+'lips_frown_right':'r_frown_BLS', 
+'lips_funnel':'m_funnel_BLS', 
+'lips_lwrRollIn':'m_lowerLipRollIn_BLS', 
+'lips_ooo':'m_lipsOo_BLS', 
+'lips_presser_left':'l_presser_BLS', 
+'lips_presser_right':'r_presser_BLS', 
+'lips_pucker':'m_pucker_BLS', 
+'lips_pullDown_left':'l_pullDown_BLS', 
+'lips_pullDown_right':'r_pullDown_BLS', 
+'lips_pullDownWide_left':'l_pullDownWide_BLS', 
+'lips_pullDownWide_right':'r_pullDownWide_BLS', 
+'lips_smile_left':'l_smile_BLS', 
+'lips_smile_right':'r_smile_BLS', 
+'lips_uprRollIn':'m_upperLipRollIn_BLS', 
+'mouth_close':'m_mouthClose_BLS', 
+'mouth_dn':'m_mouthDn_BLS', 
+'mouth_left':'m_mouthLeft_BLS', 
+'mouth_right':'m_mouthRight_BLS', 
+'mouth_sticky':'m_mouthSticky_BLS', 
+'mouth_up':'m_mouthUp_BLS', 
+'nose_sneer_left':'l_noseSneer_BLS', 
+'nose_sneer_right':'r_noseSneer_BLS', 
+'sneer_up_left':'l_sneer_BLS', 
+'sneer_up_right':'r_sneer_BLS', 
 }}
 
 
@@ -463,11 +409,17 @@ class poseBuffer():
                     log.info( cgmGEN.logString_msg(_str_func, n))
                     mBuffer.addAttr("_".join(n),attrType = 'float',hidden = False, maxValue = maxValue, minValue = minValue)
                     
-    def connect_to_controls(self):
+    def connect_to_controls(self,d_type = None):
         _str_func = 'connect_to_controls'
         mBuffer = self.mBuffer
+        reload(NODEF)
         
-        d_type = _d_faceControlsToConnect.get(mBuffer.cgmName)
+        if not d_type:
+            d_type = _d_faceControlsToConnect.get(mBuffer.cgmName)
+            
+        if not d_type:
+            raise ValueError, cgmGEN.logString_msg(_str_func,"Must have wiring dict")
+        
         for key,_d_control in d_type.iteritems():
             try:
                 control = _d_control['control']
@@ -489,6 +441,9 @@ class poseBuffer():
                 elif _l_simpleArgs:
                         for arg in _l_simpleArgs:
                             log.info( cgmGEN.logString_msg(_str_func,"On arg: {0}".format(arg)))
+                            if "{0}" in arg:
+                                arg = arg.format(mBuffer.mNode)
+                                
                             try:
                                 NODEF.argsToNodes(arg).doBuild()			
                             except Exception,error:
@@ -501,8 +456,42 @@ class poseBuffer():
                 #self._d_controls[key] = cgmMeta.cgmObject(control)
 
             except Exception,error:
-                raise Exception,"Control '{0}' fail | error: {1}".format(key,error)                        
+                raise Exception,"Control '{0}' fail | error: {1}".format(key,error)
+            
+    def connect_to_bsNode(self, targetNode = None, d_connect = None):
+        _str_func = 'connect_to_blendshapeNode'
         
+        if not targetNode:
+            raise ValueError, cgmGEN.logString_msg(_str_func,"Must have targetNode")
+        
+        mTarget = cgmMeta.validateObjArg(targetNode)
+            
+        mBuffer = self.mBuffer
+        
+        if not d_connect:
+            d_connect = _d_bufferToAttrs.get(mBuffer.cgmName)
+            
+        l_missingDrivers = []
+        l_missingDriven = []
+        
+        for driver,driven in d_connect.iteritems():
+            log.info(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(driver,driven)))
+            
+            if mBuffer.hasAttr(driver):
+                try:
+                    mBuffer.doConnectOut(driver,"{0}.{1}".format(mTarget.mNode,driven))
+                except Exception,error:
+                    log.error("----------------- {0}".format(error))                            
+            else:
+                log.warning(msg)
+                self.log_info("Missing attr: '{0}'".format(a))            
+        
+        if l_missingDrivers:
+            log.info(cgmGEN.logString_sub(_str_func,"Missing attrs {0}".format(len(l_missingDrivers))) )
+            for a in l_missingDrivers:
+                print a
+                                
+
     def report(self):
         mBuffer = self.mBuffer
         
@@ -528,8 +517,19 @@ class poseBuffer():
 
 
 
-__attrHolder = 'default_faceBuffer'
 _d_faceControlsToConnect = {
+'FACS_1':{
+'mouth':{'control':'mouth_anim',
+         'wiringDict':{'mouth_up':{'driverAttr':'ty'},
+                       'mouth_dn':{'driverAttr':'-ty'},
+                       'mouth_left':{'driverAttr':'tx'},
+                       'mouth_right':{'driverAttr':'-tx'}}},
+'browCenter':{'control':'center_brow_anim',
+              'wiringDict':{'brow_squeeze':{'driverAttr':'-ty'},
+                            }},
+                  },
+
+    
 'default':{
 'browCenter':{'control':'center_brow_anim',
               'wiringDict':{'brow_center_up':{'driverAttr':'ty'},
@@ -580,16 +580,16 @@ _d_faceControlsToConnect = {
                            'nose_out_left':{'driverAttr':'tx'},
                            'nose_sneer_up_left':{'driverAttr':'ty'},
                            'nose_sneer_dn_left':{'driverAttr':'-ty'}},
-             'simpleArgs':['{0}.nose_seal_up_cntr_left = {0}.nose_sneer_up_left * {0}.seal_center'.format(__attrHolder),
-                           '{0}.nose_seal_up_outr_left = {0}.nose_sneer_up_left * {0}.seal_left'.format(__attrHolder)
+             'simpleArgs':['{0}.nose_seal_up_cntr_left = {0}.nose_sneer_up_left * {0}.seal_center',
+                           '{0}.nose_seal_up_outr_left = {0}.nose_sneer_up_left * {0}.seal_left'
                            ]},
 'nose_right':{'control':'r_nose_anim',
              'wiringDict':{'nose_in_right':{'driverAttr':'-tx'},
                            'nose_out_right':{'driverAttr':'tx'},
                            'nose_sneer_up_right':{'driverAttr':'ty'},
                            'nose_sneer_dn_right':{'driverAttr':'-ty'}},
-             'simpleArgs':['{0}.nose_seal_up_cntr_right = {0}.nose_sneer_up_right * {0}.seal_center'.format(__attrHolder),
-                           '{0}.nose_seal_up_outr_right = {0}.nose_sneer_up_right * {0}.seal_right'.format(__attrHolder)
+             'simpleArgs':['{0}.nose_seal_up_cntr_right = {0}.nose_sneer_up_right * {0}.seal_center',
+                           '{0}.nose_seal_up_outr_right = {0}.nose_sneer_up_right * {0}.seal_right',
                            ]},                            
 
 'lipCorner_left':{'control':'l_lipCorner_anim',
@@ -644,54 +644,55 @@ _d_faceControlsToConnect = {
 
 'uprLip_left':{'control':'l_uprLip_anim',
               'wiringDict':{'lipUpr_rollIn_left':{'driverAttr':'tx'},
-                            'lipUpr_rollOut_left':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_left'.format(__attrHolder),'mode':'negVNeg'},
+                            'lipUpr_rollOut_left':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_left',
+                                                   'mode':'negVNeg'},
                             'lipUpr_up_left':{'driverAttr':'ty'},
                             'lipUpr_moreOut_left':{'driverAttr':'roll'},
                             'lipUpr_moreIn_left':{'driverAttr':'-roll'},
                             },
-              'simpleArgs':['{0}.lipUpr_upSeal_outr_left = {0}.seal_left * {0}.lipUpr_up_left'.format(__attrHolder),
-                            '{0}.lipUpr_upSeal_cntr_left = {0}.seal_center * {0}.lipUpr_up_left'.format(__attrHolder),
-                            '{0}.lipUpr_seal_out_cntr_left = {0}.seal_left * {0}.lipUpr_rollOut_left'.format(__attrHolder),
-                            '{0}.lipUpr_seal_out_outr_left = {0}.seal_center * {0}.lipUpr_rollOut_left'.format(__attrHolder)                                                        
+              'simpleArgs':['{0}.lipUpr_upSeal_outr_left = {0}.seal_left * {0}.lipUpr_up_left',
+                            '{0}.lipUpr_upSeal_cntr_left = {0}.seal_center * {0}.lipUpr_up_left',
+                            '{0}.lipUpr_seal_out_cntr_left = {0}.seal_left * {0}.lipUpr_rollOut_left',
+                            '{0}.lipUpr_seal_out_outr_left = {0}.seal_center * {0}.lipUpr_rollOut_left'
                             ]}, 
 'uprLip_right':{'control':'r_uprLip_anim',
                'wiringDict':{'lipUpr_rollIn_right':{'driverAttr':'tx'},
-                             'lipUpr_rollOut_right':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_right'.format(__attrHolder),'mode':'negVNeg'},
+                             'lipUpr_rollOut_right':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_right',
+                                                     'mode':'negVNeg'},
                              'lipUpr_up_right':{'driverAttr':'ty'},
                              'lipUpr_moreOut_right':{'driverAttr':'roll'},
                              'lipUpr_moreIn_right':{'driverAttr':'-roll'},
                              },
-               'simpleArgs':['{0}.lipUpr_upSeal_outr_right = {0}.seal_right * {0}.lipUpr_up_right'.format(__attrHolder),
-                             '{0}.lipUpr_upSeal_cntr_right = {0}.seal_center * {0}.lipUpr_up_right'.format(__attrHolder),
-                             '{0}.lipUpr_seal_out_cntr_right = {0}.seal_right * {0}.lipUpr_rollOut_right'.format(__attrHolder),
-                             '{0}.lipUpr_seal_out_outr_right = {0}.seal_center * {0}.lipUpr_rollOut_right'.format(__attrHolder)                                                        
+               'simpleArgs':['{0}.lipUpr_upSeal_outr_right = {0}.seal_right * {0}.lipUpr_up_right',
+                             '{0}.lipUpr_upSeal_cntr_right = {0}.seal_center * {0}.lipUpr_up_right',
+                             '{0}.lipUpr_seal_out_cntr_right = {0}.seal_right * {0}.lipUpr_rollOut_right',
+                             '{0}.lipUpr_seal_out_outr_right = {0}.seal_center * {0}.lipUpr_rollOut_right',
                              ]},
 'lwrLip_left':{'control':'l_lwrLip_anim',
                'wiringDict':{'lipLwr_rollIn_left':{'driverAttr':'tx'},
-                             'lipLwr_rollOut_left':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_left'.format(__attrHolder),'mode':'negVNeg'},
+                             'lipLwr_rollOut_left':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_left',
+                                                    'mode':'negVNeg'},
                              'lipLwr_dn_left':{'driverAttr':'ty'},
                              'lipLwr_moreOut_left':{'driverAttr':'roll'},
                              'lipLwr_moreIn_left':{'driverAttr':'-roll'},
                              },
-               'simpleArgs':['{0}.lipLwr_dnSeal_outr_left = {0}.seal_left * {0}.lipLwr_dn_left'.format(__attrHolder),
-                             '{0}.lipLwr_dnSeal_cntr_left = {0}.seal_center * {0}.lipLwr_dn_left'.format(__attrHolder),
-                             '{0}.lipLwr_seal_out_cntr_left = {0}.seal_left * {0}.lipLwr_rollOut_left'.format(__attrHolder),
-                             '{0}.lipLwr_seal_out_outr_left = {0}.seal_center * {0}.lipLwr_rollOut_left'.format(__attrHolder)                                                        
+               'simpleArgs':['{0}.lipLwr_dnSeal_outr_left = {0}.seal_left * {0}.lipLwr_dn_left',
+                             '{0}.lipLwr_dnSeal_cntr_left = {0}.seal_center * {0}.lipLwr_dn_left',
+                             '{0}.lipLwr_seal_out_cntr_left = {0}.seal_left * {0}.lipLwr_rollOut_left',
+                             '{0}.lipLwr_seal_out_outr_left = {0}.seal_center * {0}.lipLwr_rollOut_left'
                              ]}, 
 'lwrLip_right':{'control':'r_lwrLip_anim',
                 'wiringDict':{'lipLwr_rollIn_right':{'driverAttr':'tx'},
-                              'lipLwr_rollOut_right':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_right'.format(__attrHolder),'mode':'negVNeg'},
+                              'lipLwr_rollOut_right':{'driverAttr':'-tx','driverAttr2':'{0}.lips_wide_right','mode':'negVNeg'},
                               'lipLwr_dn_right':{'driverAttr':'ty'},
                               'lipLwr_moreOut_right':{'driverAttr':'roll'},
                               'lipLwr_moreIn_right':{'driverAttr':'-roll'},
                               },
-                'simpleArgs':['{0}.lipLwr_dnSeal_outr_right = {0}.seal_right * {0}.lipLwr_dn_right'.format(__attrHolder),
-                              '{0}.lipLwr_dnSeal_cntr_right = {0}.seal_center * {0}.lipLwr_dn_right'.format(__attrHolder),
-                              '{0}.lipLwr_seal_out_cntr_right = {0}.seal_right * {0}.lipLwr_rollOut_right'.format(__attrHolder),
-                              '{0}.lipLwr_seal_out_outr_right = {0}.seal_center * {0}.lipLwr_rollOut_right'.format(__attrHolder)                                                        
+                'simpleArgs':['{0}.lipLwr_dnSeal_outr_right = {0}.seal_right * {0}.lipLwr_dn_right',
+                              '{0}.lipLwr_dnSeal_cntr_right = {0}.seal_center * {0}.lipLwr_dn_right',
+                              '{0}.lipLwr_seal_out_cntr_right = {0}.seal_right * {0}.lipLwr_rollOut_right',
+                              '{0}.lipLwr_seal_out_outr_right = {0}.seal_center * {0}.lipLwr_rollOut_right'
                               ]},                             
-
-
 
 'jaw':{'control':'jaw_anim',
        'wiringDict':{'jaw_fwd':{'driverAttr':'fwdBack'},
@@ -700,47 +701,47 @@ _d_faceControlsToConnect = {
                      'jaw_dn':{'driverAttr':'-ty'},
                      'jaw_left':{'driverAttr':'tx'},
                      'jaw_right':{'driverAttr':'-tx'},
-                     'jDiff_dn_smile_left':{'driverAttr':'{0}.lips_smile_left'.format(__attrHolder),
-                                            'driverAttr2':'{0}.jaw_dn'.format(__attrHolder),
-                                            'driverAttr3':'{0}.driver_smile_dn_pull'.format(__attrHolder),
-                                            'driverAttr4':'{0}.seal_left'.format(__attrHolder),
+                     'jDiff_dn_smile_left':{'driverAttr':'{0}.lips_smile_left',
+                                            'driverAttr2':'{0}.jaw_dn',
+                                            'driverAttr3':'{0}.driver_smile_dn_pull',
+                                            'driverAttr4':'{0}.seal_left',
                                             'mode':'multMinusFactoredValue'},
-                     'jDiff_dn_smile_right':{'driverAttr':'{0}.lips_smile_right'.format(__attrHolder),
-                                             'driverAttr2':'{0}.jaw_dn'.format(__attrHolder),
-                                             'driverAttr3':'{0}.driver_smile_dn_pull'.format(__attrHolder),
-                                             'driverAttr4':'{0}.seal_right'.format(__attrHolder),
+                     'jDiff_dn_smile_right':{'driverAttr':'{0}.lips_smile_right',
+                                             'driverAttr2':'{0}.jaw_dn',
+                                             'driverAttr3':'{0}.driver_smile_dn_pull',
+                                             'driverAttr4':'{0}.seal_right',
                                              'mode':'multMinusFactoredValue'},
-                     'jDiff_dn_frown_left':{'driverAttr':'{0}.lips_frown_left'.format(__attrHolder),
-                                            'driverAttr2':'{0}.jaw_dn'.format(__attrHolder),
-                                            'driverAttr3':'{0}.driver_frown_dn_pull'.format(__attrHolder),
-                                            'driverAttr4':'{0}.seal_left'.format(__attrHolder),
+                     'jDiff_dn_frown_left':{'driverAttr':'{0}.lips_frown_left',
+                                            'driverAttr2':'{0}.jaw_dn',
+                                            'driverAttr3':'{0}.driver_frown_dn_pull',
+                                            'driverAttr4':'{0}.seal_left',
                                             'mode':'multMinusFactoredValue'},
-                     'jDiff_dn_frown_right':{'driverAttr':'{0}.lips_frown_right'.format(__attrHolder),
-                                             'driverAttr2':'{0}.jaw_dn'.format(__attrHolder),
-                                             'driverAttr3':'{0}.driver_frown_dn_pull'.format(__attrHolder),
-                                             'driverAttr4':'{0}.seal_right'.format(__attrHolder),
+                     'jDiff_dn_frown_right':{'driverAttr':'{0}.lips_frown_right',
+                                             'driverAttr2':'{0}.jaw_dn',
+                                             'driverAttr3':'{0}.driver_frown_dn_pull',
+                                             'driverAttr4':'{0}.seal_right',
                                              'mode':'multMinusFactoredValue'},                                                  
                      },
-       'simpleArgs':['{0}.jDiff_fwd_seal_cntr_left = {0}.seal_center * {0}.jaw_fwd'.format(__attrHolder),
-                     '{0}.jDiff_fwd_seal_cntr_right = {0}.seal_center * {0}.jaw_fwd'.format(__attrHolder),
-                     '{0}.jDiff_fwd_seal_outr_left = {0}.seal_left * {0}.jaw_fwd'.format(__attrHolder),
-                     '{0}.jDiff_fwd_seal_outr_right = {0}.seal_right * {0}.jaw_fwd'.format(__attrHolder),
-                     '{0}.jDiff_back_seal_cntr_left = {0}.seal_center * {0}.jaw_back'.format(__attrHolder),
-                     '{0}.jDiff_back_seal_cntr_right = {0}.seal_center * {0}.jaw_back'.format(__attrHolder),
-                     '{0}.jDiff_back_seal_outr_left = {0}.seal_left * {0}.jaw_back'.format(__attrHolder),
-                     '{0}.jDiff_back_seal_outr_right = {0}.seal_right * {0}.jaw_back'.format(__attrHolder),
-                     '{0}.jDiff_dn_seal_cntr_left = {0}.seal_center * {0}.jaw_dn'.format(__attrHolder),
-                     '{0}.jDiff_dn_seal_cntr_right = {0}.seal_center * {0}.jaw_dn'.format(__attrHolder),
-                     '{0}.jDiff_dn_seal_outr_left = {0}.seal_left * {0}.jaw_dn'.format(__attrHolder),
-                     '{0}.jDiff_dn_seal_outr_right = {0}.seal_right * {0}.jaw_dn'.format(__attrHolder),
-                     '{0}.jDiff_left_seal_cntr_left = {0}.seal_center * {0}.jaw_left'.format(__attrHolder),
-                     '{0}.jDiff_left_seal_cntr_right = {0}.seal_center * {0}.jaw_left'.format(__attrHolder),
-                     '{0}.jDiff_left_seal_outr_left = {0}.seal_left * {0}.jaw_left'.format(__attrHolder),
-                     '{0}.jDiff_left_seal_outr_right = {0}.seal_right * {0}.jaw_left'.format(__attrHolder),
-                     '{0}.jDiff_right_seal_cntr_left = {0}.seal_center * {0}.jaw_right'.format(__attrHolder),
-                     '{0}.jDiff_right_seal_cntr_right = {0}.seal_center * {0}.jaw_right'.format(__attrHolder),
-                     '{0}.jDiff_right_seal_outr_left = {0}.seal_left * {0}.jaw_right'.format(__attrHolder),
-                     '{0}.jDiff_right_seal_outr_right = {0}.seal_right * {0}.jaw_right'.format(__attrHolder),                                                 
+       'simpleArgs':['{0}.jDiff_fwd_seal_cntr_left = {0}.seal_center * {0}.jaw_fwd',
+                     '{0}.jDiff_fwd_seal_cntr_right = {0}.seal_center * {0}.jaw_fwd',
+                     '{0}.jDiff_fwd_seal_outr_left = {0}.seal_left * {0}.jaw_fwd',
+                     '{0}.jDiff_fwd_seal_outr_right = {0}.seal_right * {0}.jaw_fwd',
+                     '{0}.jDiff_back_seal_cntr_left = {0}.seal_center * {0}.jaw_back',
+                     '{0}.jDiff_back_seal_cntr_right = {0}.seal_center * {0}.jaw_back',
+                     '{0}.jDiff_back_seal_outr_left = {0}.seal_left * {0}.jaw_back',
+                     '{0}.jDiff_back_seal_outr_right = {0}.seal_right * {0}.jaw_back',
+                     '{0}.jDiff_dn_seal_cntr_left = {0}.seal_center * {0}.jaw_dn',
+                     '{0}.jDiff_dn_seal_cntr_right = {0}.seal_center * {0}.jaw_dn',
+                     '{0}.jDiff_dn_seal_outr_left = {0}.seal_left * {0}.jaw_dn',
+                     '{0}.jDiff_dn_seal_outr_right = {0}.seal_right * {0}.jaw_dn',
+                     '{0}.jDiff_left_seal_cntr_left = {0}.seal_center * {0}.jaw_left',
+                     '{0}.jDiff_left_seal_cntr_right = {0}.seal_center * {0}.jaw_left',
+                     '{0}.jDiff_left_seal_outr_left = {0}.seal_left * {0}.jaw_left',
+                     '{0}.jDiff_left_seal_outr_right = {0}.seal_right * {0}.jaw_left',
+                     '{0}.jDiff_right_seal_cntr_left = {0}.seal_center * {0}.jaw_right',
+                     '{0}.jDiff_right_seal_cntr_right = {0}.seal_center * {0}.jaw_right',
+                     '{0}.jDiff_right_seal_outr_left = {0}.seal_left * {0}.jaw_right',
+                     '{0}.jDiff_right_seal_outr_right = {0}.seal_right * {0}.jaw_right',
                      ]},
 
                   

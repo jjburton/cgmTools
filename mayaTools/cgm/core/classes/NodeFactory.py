@@ -335,8 +335,11 @@ def connect_controlWiring(*args, **kws):
             self.log_infoNestedDict('d_drivenToDriverKeys')
             if self._l_simpleArgs:
                 self.log_info("Simple args...")
-                for arg in self._l_simpleArgs:
+                for i,arg in enumerate(self._l_simpleArgs):
                     self.log_info(arg)
+                    if "{0}" in arg:
+                        arg = arg.format(self.mi_targetObject.mNode)
+                        self._l_simpleArgs[i] = arg
 
         def add_negative_mdNode(self):
             mNode = cgmMeta.cgmNode(nodeType='multiplyDivide')
