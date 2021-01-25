@@ -801,7 +801,7 @@ _d_faceControlsToConnect = {
 }}
 
 
-
+__attrHolder = 'cat'
 _d_faceControlsToConnectBAK = {
 'default':{
 'browCenter':{'control':'center_brow_anim',
