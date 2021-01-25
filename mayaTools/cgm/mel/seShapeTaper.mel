@@ -484,8 +484,8 @@ global proc seST_setOutput(string $driverObjTF,string $attrListTSL, string $outp
 	// get the attribute driver, convert the first letter to uppercase, and put it in the left and right text fields with "left" and "right" in front
 	string $attrDriver[] = `textScrollList -q -si $attrListTSL`;
 	string $baseAttrName = capitalizeString($attrDriver[0]);
-	textField -e -tx ("right" + $baseAttrName) $rtSideAttrTF;
-	textField -e -tx ("left" + $baseAttrName) $ltSideAttrTF;
+	textField -e -tx ($baseAttrName+"_right") $rtSideAttrTF;
+	textField -e -tx ($baseAttrName+"_left") $ltSideAttrTF;
 }
 //////////////////////////////////////////////////////////////////////////
 // Procedure to load the joints in the list, create and calculate the mask

@@ -151,7 +151,7 @@ _d_faceBufferAttributes = {
                             'sideAttrs':['up','dn']}}}
 
 
-def SDKGroups_pushTo(nodes = []):
+def SDKGroups_pushTo(nodes = [],position=True):
     if nodes:
         ml = cgmMeta.asMeta(nodes)
     else:
@@ -165,20 +165,29 @@ def SDKGroups_pushTo(nodes = []):
             log.warning("Missing sdkGroup: {0}".format(mGrp))
             continue
         
-        d[mObj] = {'t': mObj.translate,
-                   'r': mObj.rotate,
+        d[mObj] = {'t':mObj.translate,
+                   'p':mObj.p_position,
+                   'o':mObj.p_orient,
+                   'r':mObj.rotate,
                    's':mObj.scale,
                    'mGrp':mGrp}
         
+    for mObj,_d in d.iteritems():
         mObj.resetAttrs(['t','r','s'])
         
-    
-    for mObj,_d in d.iteritems():
-        _d['mGrp'].translate = _d['t']
-        _d['mGrp'].rotate = _d['r']
-        _d['mGrp'].scale = _d['s']
+    for i in range(8):
+        for mObj,_d in d.iteritems():
+            if position:
+                _d['mGrp'].p_position = _d['p']
+                _d['mGrp'].p_orient = _d['o']
+                
+            else:
+                _d['mGrp'].translate = _d['t']
+                _d['mGrp'].rotate = _d['r']
+                
+            _d['mGrp'].scale = _d['s']
         
-    pprint.pprint(d)
+    #pprint.pprint(d)
 
 def SDKGroups_select(nodes=[]):
     if nodes:
@@ -516,7 +525,51 @@ class poseBuffer():
         #pprint.pprint(self.attrDat)
 
 
+d_wireTMP = {
+'inner_brow_left':{'control':'l_inner_brow_anim',
+                   'wiringDict':{'brow_inr_up_left':{'driverAttr':'ty'},
+                                 'brow_inr_dn_left':{'driverAttr':'-ty'},
+                                 }},                             
+'mid_brow_left':{'control':'l_mid_brow_anim',
+                 'wiringDict':{'brow_mid_up_left':{'driverAttr':'ty'},
+                               'brow_mid_dn_left':{'driverAttr':'-ty'}}}, 
+'outer_brow_left':{'control':'l_outer_brow_anim',
+                   'wiringDict':{'brow_outr_up_left':{'driverAttr':'ty'},
+                                 'brow_outr_dn_left':{'driverAttr':'-ty'}}},
+'inner_brow_right':{'control':'r_inner_brow_anim',
+                   'wiringDict':{'brow_inr_up_right':{'driverAttr':'ty'},
+                                 'brow_inr_dn_right':{'driverAttr':'-ty'},
+                                 }},                             
+'mid_brow_right':{'control':'r_mid_brow_anim',
+                 'wiringDict':{'brow_mid_up_right':{'driverAttr':'ty'},
+                               'brow_mid_dn_right':{'driverAttr':'-ty'}}}, 
+'outer_brow_right':{'control':'r_outer_brow_anim',
+                   'wiringDict':{'brow_outr_up_right':{'driverAttr':'ty'},
+                                 'brow_outr_dn_right':{'driverAttr':'-ty'}}},
 
+'center_brow':{'control':'center_brow_anim',
+               'wiringDict':{'brow_squeeze':{'driverAttr':'-ty'},
+                             }},
+
+'mouth':{'control':'mouth_anim',
+         'wiringDict':{'mouth_up':{'driverAttr':'ty'},
+                       'mouth_dn':{'driverAttr':'-ty'},
+                       'mouth_left':{'driverAttr':'tx'},
+                       'mouth_right':{'driverAttr':'-tx'}}},
+
+
+'jaw':{'control':'jaw_anim',
+       'wiringDict':{'jaw_clench':{'driverAttr':'ty'},
+                     'jaw_dn':{'driverAttr':'-ty'},
+                     'jaw_left':{'driverAttr':'tx'},
+                     'jaw_right':{'driverAttr':'-tx'}}},
+'jawFWDBCK':{'control':'jaw_fwdBck_anim',
+       'wiringDict':{'jaw_fwd':{'driverAttr':'tx'},
+                     'jaw_back':{'driverAttr':'-tx'},
+                     }},
+}
+        
+        
 _d_faceControlsToConnect = {
 'FACS_1':{
 'mouth':{'control':'mouth_anim',
