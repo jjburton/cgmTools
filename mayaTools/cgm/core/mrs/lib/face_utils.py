@@ -567,6 +567,46 @@ d_wireTMP = {
        'wiringDict':{'jaw_fwd':{'driverAttr':'tx'},
                      'jaw_back':{'driverAttr':'-tx'},
                      }},
+"""    
+    'eyeSqueeze_left':{'control':'l_eye_squeeze_anim',
+                       'wiringDict':{'eyeSqueeze_up_left':{'driverAttr':'ty'},
+                                     'eyeSqueeze_dn_left':{'driverAttr':'-ty'}}}, 
+    'eyeSqueeze_right':{'control':'r_eye_squeeze_anim',
+                       'wiringDict':{'eyeSqueeze_up_right':{'driverAttr':'ty'},
+                                     'eyeSqueeze_dn_right':{'driverAttr':'-ty'}}}, 
+"""
+
+'cheekUpr_left':{'control':'l_uprCheek_anim',
+              'wiringDict':{'cheek_up_left':{'driverAttr':'ty'},}},
+'cheekUpr_right':{'control':'r_uprCheek_anim',
+              'wiringDict':{'cheek_up_right':{'driverAttr':'ty'}}},   
+
+'cheek_left':{'control':'l_cheek_anim',
+              'wiringDict':{'cheek_blow_left':{'driverAttr':'tx'},
+                            'cheek_suck_left':{'driverAttr':'-tx'}}},
+'cheek_right':{'control':'r_cheek_anim',
+              'wiringDict':{'cheek_blow_right':{'driverAttr':'tx'},
+                            'cheek_suck_right':{'driverAttr':'-tx'}}},   
+
+'sneer_left':{'control':'l_sneer_anim',
+              'wiringDict':{'sneer_up_left':{'driverAttr':'ty'},}},
+'sneer_right':{'control':'r_sneer_anim',
+              'wiringDict':{'sneer_up_right':{'driverAttr':'ty'}}},   
+
+'l_nostril':{'control':'l_nostril_anim',
+             'wiringDict':{'nostril_in_left':{'driverAttr':'tx'},
+                           'nostril_flare_left':{'driverAttr':'-tx'},
+                           'nostril_up_left':{'driverAttr':'ty'}},
+             },
+'r_nostril':{'control':'r_nostril_anim',
+             'wiringDict':{'nostril_in_right':{'driverAttr':'tx'},
+                           'nostril_flare_right':{'driverAttr':'-tx'},
+                           'nostril_up_right':{'driverAttr':'ty'}},
+             },
+
+
+
+
 }
         
         
@@ -580,6 +620,45 @@ _d_faceControlsToConnect = {
 'browCenter':{'control':'center_brow_anim',
               'wiringDict':{'brow_squeeze':{'driverAttr':'-ty'},
                             }},
+
+'eyeSqueeze_left':{'control':'l_eyeSqueeze_anim',
+                   'wiringDict':{'eyeSqueeze_up_left':{'driverAttr':'ty'},
+                                 'eyeSqueeze_dn_left':{'driverAttr':'-ty'}}}, 
+'eyeSqueeze_right':{'control':'r_eyeSqueeze_anim',
+                   'wiringDict':{'eyeSqueeze_up_right':{'driverAttr':'ty'},
+                                 'eyeSqueeze_dn_right':{'driverAttr':'-ty'}}}, 
+
+
+'cheekUpr_left':{'control':'l_uprCheek_anim',
+              'wiringDict':{'cheek_up_left':{'driverAttr':'ty'},}},
+'cheekUpr_right':{'control':'r_uprCheek_anim',
+              'wiringDict':{'cheek_up_right':{'driverAttr':'ty'}}},   
+
+'cheek_left':{'control':'l_uprCheek_anim',
+              'wiringDict':{'cheek_blow_left':{'driverAttr':'tx'},
+                            'cheek_suck_left':{'driverAttr':'-tx'}}},
+'cheek_right':{'control':'r_uprCheek_anim',
+              'wiringDict':{'cheek_blow_right':{'driverAttr':'tx'},
+                            'cheek_suck_right':{'driverAttr':'-tx'}}},   
+
+'sneer_left':{'control':'l_sneer_anim',
+              'wiringDict':{'sneer_left':{'driverAttr':'ty'},}},
+'sneer_right':{'control':'r_sneer_anim',
+              'wiringDict':{'sneer_right':{'driverAttr':'ty'}}},   
+
+'l_nostril':{'control':'l_nostril_anim',
+             'wiringDict':{'nostril_in_left':{'driverAttr':'-tx'},
+                           'nostril_out_left':{'driverAttr':'tx'},
+                           'nostril_up_left':{'driverAttr':'ty'},
+                           'nose_sneer_dn_left':{'driverAttr':'-ty'}},
+             },
+'r_nostril':{'control':'r_nostril_anim',
+             'wiringDict':{'nostril_in_right':{'driverAttr':'-tx'},
+                           'nostril_out_right':{'driverAttr':'tx'},
+                           'nostril_up_right':{'driverAttr':'ty'},
+                           'nose_sneer_dn_right':{'driverAttr':'-ty'}},
+             },
+
                   },
 
     
@@ -643,7 +722,7 @@ _d_faceControlsToConnect = {
                            'nose_sneer_dn_right':{'driverAttr':'-ty'}},
              'simpleArgs':['{0}.nose_seal_up_cntr_right = {0}.nose_sneer_up_right * {0}.seal_center',
                            '{0}.nose_seal_up_outr_right = {0}.nose_sneer_up_right * {0}.seal_right',
-                           ]},                            
+                           ]},
 
 'lipCorner_left':{'control':'l_lipCorner_anim',
                   'wiringDict':{'lips_purse_left':{'driverAttr':'purse'},
