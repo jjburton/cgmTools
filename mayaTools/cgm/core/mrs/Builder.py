@@ -4050,6 +4050,12 @@ class ui_toStandAlone(cgmUI.cgmGUI):
         
         if False in l_fails:
             #self.uiScrollList_blocks.selectByObj(ml_fails[0])
+            result = mc.confirmDialog(title="Prechecks Failed",
+                                      message= "{0} Blocks failed prechecks. \n Check scriptEditor".format(len(ml_fails)),
+                                      button=['OK'],
+                                      defaultButton='OK',
+                                      #cancelButton='Cancel',
+                                      dismissString='OK')            
             return (log.warning("Prechecks failed. Check script editor!"))
         
         log.info("Batch file creating...")
@@ -4083,6 +4089,16 @@ class ui_toStandAlone(cgmUI.cgmGUI):
         
         if False in l_fails:
             #self.uiScrollList_blocks.selectByObj(ml_fails[0])
+            result = mc.confirmDialog(title="Prchecks failed. Verify",
+                                      message= "{0} Blocks failed prechecks. \n Check scriptEditor".format(len(ml_fails)),
+                                      button=['OK'],
+                                      defaultButton='OK',
+                                      #cancelButton='Cancel',
+                                      dismissString='OK')
+            
+            #if result != 'OK':
+            #    log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
+            #    return False            
             return (log.warning("Prechecks failed. Check script editor!"))
         
         log.info("Batch file creating...")        
