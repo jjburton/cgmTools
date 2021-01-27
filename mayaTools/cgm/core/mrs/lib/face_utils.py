@@ -68,7 +68,8 @@ _d_faceBufferAttributes = {
                
                "seal":{'attrs':['left','right','centerOut']},
                
-               "lips":{'attrs':['smile','wide','narrow','purse','twistUp','twistDn','out','frown'],
+               "lips":{'attrs':['smile','wide','narrow','purse','twistUp','twistDn','out','frown','presser',
+                                'funnel','ooo'],
                        'sideAttrs':'*'},
                
                "lipUpr":{'attrs':['up','in','out','fwd'],
@@ -76,7 +77,7 @@ _d_faceBufferAttributes = {
                "lipLwr":{'attrs':['up','in','out','fwd'],
                        'sideAttrs':'*'},                           
 
-               "lips":{'attrs':['smile','wide','narrow','purse','twistUp','twistDn','out','frown'],
+               "lips":{'attrs':['smile','wide','narrow','purse','twistUp','twistDn','out','frown','dimpler'],
                        'sideAttrs':'*'},
                
                "lipCntr_upr":{'attrs':['fwd','back','up','dn','rollIn','rollOut'],
@@ -604,6 +605,61 @@ d_wireTMP = {
                            'nostril_up_right':{'driverAttr':'ty'}},
              },
 
+'lipCorner_left':{'control':'l_lipCorner_anim',
+                  'wiringDict':{#'lips_purse_left':{'driverAttr':'purse'},
+                                #'lips_out_left':{'driverAttr':'out'},
+                                #'lips_twistUp_left':{'driverAttr':'twist'},
+                                #'lips_twistDn_left':{'driverAttr':'-twist'},
+                                'lips_smile_left':{'driverAttr':'ty'},
+                                'lips_frown_left':{'driverAttr':'-ty'},
+                                'lips_narrow_left':{'driverAttr':'-tx'},
+                                'lips_wide_left':{'driverAttr':'tx'}}},
+'lipCorner_right':{'control':'r_lipCorner_anim',
+                  'wiringDict':{#'lips_purse_right':{'driverAttr':'purse'},
+                                #'lips_out_right':{'driverAttr':'out'},
+                                #'lips_twistUp_right':{'driverAttr':'twist'},
+                                #'lips_twistDn_right':{'driverAttr':'-twist'},
+                                'lips_smile_right':{'driverAttr':'ty'},
+                                'lips_frown_right':{'driverAttr':'-ty'},
+                                'lips_narrow_right':{'driverAttr':'-tx'},
+                                'lips_wide_right':{'driverAttr':'tx'}}},
+
+'dimpler_left':{'control':'l_dimpler_anim',
+              'wiringDict':{'lips_dimpler_left':{'driverAttr':'ty'},}},
+'dimpler_right':{'control':'r_dimpler_anim',
+              'wiringDict':{'lips_dimpler_right':{'driverAttr':'ty'}}},   
+
+'lipCenter_upr':{'control':'upper_lipCenter_anim',
+                 'wiringDict':{#'lipCntr_upr_fwd':{'driverAttr':'fwdBack'},
+                               #'lipCntr_upr_back':{'driverAttr':'-fwdBack'},
+                               'lipUpr_up_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                               'lipUpr_up_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                               'lipUpr_rollIn_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'},
+                               'lipUpr_rollIn_right':{'driverAttr':'-tx','driverAttr2':'-ty','mode':'cornerBlend'},                                                           
+                               }},     
+'lipCenter_lwr':{'control':'lower_lipCenter_anim',
+                 'wiringDict':{#'lipCntr_lwr_fwd':{'driverAttr':'fwdBack'},
+                               #'lipCntr_lwr_back':{'driverAttr':'-fwdBack'},
+                               'lipLwr_rollIn_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                               'lipLwr_rollIn_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                               'lipLwr_dn_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'},
+                               'lipLwr_dn_right':{'driverAttr':'-tx','driverAttr2':'-ty','mode':'cornerBlend'},                                                           
+                               }},      
+
+'uprLip_left':{'control':'l_uprLip_anim',
+              'wiringDict':{
+                            'lips_ooo_left':{'driverAttr':'-tx'},
+                            'lips_funnel_left':{'driverAttr':'ty'},
+                            #'lipUpr_moreOut_left':{'driverAttr':'roll'},
+                            #'lipUpr_moreIn_left':{'driverAttr':'-roll'},
+                            }}, 
+'uprLip_right':{'control':'r_uprLip_anim',
+               'wiringDict':{#'lips_ooo_right':{'driverAttr':'tx'},
+                             'lips_ooo_right':{'driverAttr':'-tx',},
+                             'lips_funnel_right':{'driverAttr':'ty'},
+                             #'lipUpr_moreOut_right':{'driverAttr':'roll'},
+                             #'lipUpr_moreIn_right':{'driverAttr':'-roll'},
+                             }},
 
 
 
