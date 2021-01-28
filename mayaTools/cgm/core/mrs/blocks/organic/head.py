@@ -1600,7 +1600,8 @@ def create_jointHelpers(self,cnt=None, force = False):
     ATTR.set_lock(str_vectorRP,'translate',False)
     
     mc.pointConstraint([ml_jointHelpers[0].mNode], str_vectorRP,maintainOffset=False)
-    ATTR.set_lock(str_vectorRP,'translate',True)            
+    ATTR.set_lock(str_vectorRP,'translate',True)            
+
     #IKMid Handle ---------------------------------------------------------------------
     _trackCurve,l_clusters = CORERIG.create_at([mObj.mNode for mObj in ml_jointHelpers],'linearTrack',baseName = "{0}_drivenCrv".format(self.p_nameBase))
     mCrv = cgmMeta.asMeta(_trackCurve)
@@ -2241,7 +2242,7 @@ def rig_shapes(self):
             log.debug("|{0}| >> Head aim...".format(_str_func))  
             
             _ikPos =DIST.get_pos_by_vec_dist(ml_prerigHandles[-1].p_position,
-                                             MATH.get_obj_vector(ml_rigJoints[-1].mNode,'y-'),
+                                             MATH.get_obj_vector(ml_rigJoints[-1].mNode,'z+'),
                                              _size * 1.5)
             
             ikCurve = CURVES.create_fromName('sphere2',_size/3)
@@ -3107,9 +3108,9 @@ def rig_frame(self):
             #Setup Aim Main -------------------------------------------------------------------------------------
             mc.aimConstraint(mHeadLookAt.mNode,
                              mHeadAimJoint.mNode,
-                             maintainOffset = False, weight = 1,
-                             aimVector = self.d_orientation['vectorUpNeg'],
-                             upVector = self.d_orientation['vectorAim'],
+                             maintainOffset = True, weight = 1,
+                             aimVector = self.d_orientation['vectorAim'],
+                             upVector = self.d_orientation['vectorUp'],
                              worldUpVector = self.d_orientation['vectorUp'],
                              worldUpObject = mHeadLookAt.mNode,#mHeadIK.mNode,#mHeadIK.masterGroup.mNode
                              worldUpType = 'objectRotation' )
