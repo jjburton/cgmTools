@@ -6,10 +6,10 @@ import inspect
 from maya.cmds import *
 import maya.cmds as cmd
 
-from zooPy.path import Path
-from zooPy.misc import removeDupes
-from zooPy.vectors import Vector
-from zooPy import colours
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy.misc import removeDupes
+from cgm.lib.zoo.zooPy.vectors import Vector
+from cgm.lib.zoo.zooPy import colours
 
 import rigUtils
 import triggered

@@ -4,7 +4,7 @@ import os
 import maya.cmds as cmd
 
 from baseMelUI import *
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy.path import Path
 
 import poseSym
 import mayaDecorators

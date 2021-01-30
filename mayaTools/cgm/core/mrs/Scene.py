@@ -178,8 +178,8 @@ example:
             self.LoadProject(self.optionVarProjectStore.getValue())
         else:
             mPathList = cgmMeta.pathList('cgmProjectPaths')
-            self.LoadProject(mPathList.mOptionVar.value[0])
-
+            try:self.LoadProject(mPathList.mOptionVar.value[0])
+            except:pass
     @property
     def directory(self):
         return self.directoryTF.getValue()

@@ -9,8 +9,8 @@ import maya.cmds as cmd
 from maya.cmds import *
 from maya import OpenMaya
 
-from zooPy.vectors import *
-from zooPy import vectors
+from cgm.lib.zoo.zooPy.vectors import *
+from cgm.lib.zoo.zooPy import vectors
 
 from melUtils import mel
 
