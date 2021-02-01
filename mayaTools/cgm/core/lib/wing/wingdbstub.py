@@ -40,7 +40,14 @@ else:
 # the full path of the Wing application bundle, for example 
 # /Applications/WingPro.app.  When set to None, the environment variable 
 # WINGHOME is used instead.  
-WINGHOME = r"C:\Program Files (x86)\Wing Pro 7.0"
+_path = None
+for v in ['7.2','7.1','7.0']:
+  _path = "C:\Program Files (x86)\Wing Pro {0}".format(v)
+  if os.path.exists(_path):
+    print "Path Found: {0}".format(v)
+    break
+
+WINGHOME = r"{0}".format(_path)
 
 #------------------------------------------------------------------------
 # Optional configuration values:  The named environment variables, if set, 

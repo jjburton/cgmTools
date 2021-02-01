@@ -6008,7 +6008,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         
         str_lidBuild = mBlock.getEnumValueString('lidBuild')
         #>>Lid setup ================================================
-        if str_lidBuild == 'clam':
+        if str_lidBuild in ['clam']:
             #Need to make our lid roots and orient
             for k in 'upr','lwr':
                 log.debug("|{0}| >> {1}...".format(_str_func,k))
@@ -6077,6 +6077,51 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 log.debug("|{0}| loft node: {1}".format(_str_func,_loftNode))             
     
                 ml_proxy.append(mLoftSurface)
+                
+        elif str_lidBuild in ['clamSimple']:
+            _baseSize = [v * 1.4 for v in mBlock.baseSize]
+            
+
+            for k in 'upr','lwr':
+                log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
+                _key = '{0}LidHandle'.format(k)
+                mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(k))
+                
+                _d_create = {"ax":[1,0,0], 'ch':0}
+                if k == 'upr':
+                    _color = 'main'
+                    _d_create['ssw'] = 180
+                    _d_create['esw'] = 360
+                    _d_create['r'] = _baseSize[0] /2 * .9
+                else:
+                    _color = 'sub'
+                    _d_create['ssw'] = 0
+                    _d_create['esw'] = 180
+                    _d_create['r'] = _baseSize[0]/2 * .8                    
+                    
+                _sphere = mc.sphere(**_d_create)
+                mShapeSource = cgmMeta.asMeta(_sphere[0])
+                
+                #mShapeSource.scale = _baseSize
+                
+                mShapeSource.doSnapTo(mLidSkin)            
+                CORERIG.colorControl(mShapeSource.mNode,_side,_color,transparent=False,proxy=True)
+            
+            
+                mShapeSource.overrideEnabled = 1
+                mShapeSource.overrideDisplayType = 2
+            
+                mShapeSource.p_parent = mLidSkin.rigJoint#mModule
+                #mShapeSource.resetAttrs()
+            
+                mShapeSource.doStore('cgmName',"{0}_{1}Lid".format(str_partName,k),attrType='string')
+                mShapeSource.doStore('cgmType','proxy')
+                mShapeSource.doName()
+    
+                ml_proxy.append(mShapeSource)               
+            
+            
+            
         else:
             log.debug("|{0}| >> ...".format(_str_func))
             ml_proxyJoints = []
