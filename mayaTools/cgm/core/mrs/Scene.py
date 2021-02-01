@@ -2554,10 +2554,12 @@ example:
     def RemoveFromQueue(self, *args):
         if args[0] == 0:
             idxes = self.queueTSL.getSelectedIdxs()
+            print idxes
             idxes.reverse()
 
             for idx in idxes:
-                del self.batchExportItems[idx-1]
+                #del self.batchExportItems[idx-1]
+                self.batchExportItems.remove( self.batchExportItems[idx] )
         elif args[0] == 1:
             self.batchExportItems = []
 

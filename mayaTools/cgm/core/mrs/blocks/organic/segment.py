@@ -3041,7 +3041,7 @@ def rig_cleanUp(self):
             #self.mConstrainNull.addAttr('cgmAlias','{0}_rootNull'.format(self.d_module['partName']))
         
         mAttachDriver = self.md_dynTargetsParent['attachDriver']
-        if not mAttachDriver.hasAttr('cgmAlias'):
+        if mAttachDriver and not mAttachDriver.hasAttr('cgmAlias'):
             mAttachDriver.addAttr('cgmAlias','{0}_rootDriver'.format(self.d_module['partName']))    
         
         #>>  DynParentGroups - Register parents for various controls ============================================

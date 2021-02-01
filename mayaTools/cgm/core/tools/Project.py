@@ -897,7 +897,7 @@ class ui(cgmUI.cgmGUI):
                         
                     else:
                         if v is not None:
-                            if k in ['lock','mayaVersion']:
+                            if k in ['lock','mayaVersion','mayaFilePref']:
                                 self.d_tf[dType][k].setValue(str(v),executeChangeCB=False)
                             else:
                                 self.d_tf[dType][k].setValue(v,executeChangeCB=False)
@@ -1615,6 +1615,11 @@ class ui(cgmUI.cgmGUI):
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in PU.l_mayaVersions:
                     _d[key].append(t)
+            
+            elif key == 'mayaFilePref':
+                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                for t in PU.l_mayaFileType:
+                    _d[key].append(t)                
                     
             elif key == 'projectPathMode':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
@@ -1623,11 +1628,9 @@ class ui(cgmUI.cgmGUI):
                 _d[key] =   mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in ['False','True']:
                     _d[key].append(t)
-                    
                 if key == 'lock':
                     _d[key](edit=True, cc = lambda *a:self.uiProject_lock())
 
-                    
             else:
                 #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
                 _d[key] =  mUI.MelTextField(_row,
