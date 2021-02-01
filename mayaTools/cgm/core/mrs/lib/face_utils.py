@@ -746,15 +746,86 @@ d_wireTMP = {
 
 }
         
-        
+
+
 _d_faceControlsToConnect = {
 'FACS_1':{
-'mouth':{'control':'mouth_anim',
+'mouth':{'control':'m_mouth_CTRL',
          'wiringDict':{'mouth_up':{'driverAttr':'ty'},
                        'mouth_dn':{'driverAttr':'-ty'},
                        'mouth_left':{'driverAttr':'tx'},
                        'mouth_right':{'driverAttr':'-tx'}}},
-'browCenter':{'control':'center_brow_anim',
+######### JAW SIDE #########################################                       
+'jawMain':{'control':'m_jaw_CTRL',
+         'wiringDict':{'jaw_open':{'driverAttr':'-ty'},
+                       'jaw_right':{'driverAttr':'-tx'},
+                       'jaw_left':{'driverAttr':'tx'},
+                       'lips_presser_left':{'driverAttr':'ty'},
+                       'lips_presser_right':{'driverAttr':'ty'}}},
+
+'jawDepth':{'control':'m_jawForwardBackward_CTRL',
+         'wiringDict':{'jaw_back':{'driverAttr':'-ty'},
+                       'jaw_fwd':{'driverAttr':'ty'}}},
+
+'mouthClose':{'control':'m_mouthClose_CTRL',
+         'wiringDict':{'mouth_close':{'driverAttr':'ty'}}},
+
+'upperLipRollIn':{'control':'m_upperLipRollIn_CTRL',
+         'wiringDict':{'lips_uprRollIn':{'driverAttr':'ty'}}},
+
+'lowerLipRollIn':{'control':'m_lowerLipRollIn_CTRL',
+         'wiringDict':{'lips_lwrRollIn':{'driverAttr':'ty'}}},
+
+'pucker':{'control':'m_pucker_CTRL',
+         'wiringDict':{'lips_pucker':{'driverAttr':'ty'}}},
+
+######### MUZZLE LEFT SIDE ####################################
+'Smile_left':{'control':'l_smile_CTRL',
+         'wiringDict':{'lips_smile_left':{'driverAttr':'ty'}}},
+
+'Frown_left':{'control':'l_frown_CTRL',
+         'wiringDict':{'lips_frown_left':{'driverAttr':'ty'}}},
+
+'Presser_left':{'control':'l_presser_CTRL',
+         'wiringDict':{'lips_presser_left':{'driverAttr':'ty'}}},
+
+'Sneer_left':{'control':'l_sneer_CTRL',
+         'wiringDict':{'sneer_up_left':{'driverAttr':'ty'}}},
+'noseSneer_left' :{'control':'l_noseSneer_CTRL',
+         'wiringDict':{'nose_sneer_left':{'driverAttr':'ty'}}},
+
+'CheekRaise_L':{'control':'l_cheekRaiser_CTRL',
+         'wiringDict':{'cheek_raise_left':{'driverAttr':'ty'}}},
+'CheekPuffSuck_L':{'control':'l_cheekPuffSuck_CTRL',
+         'wiringDict':{'cheek_puff_left':{'driverAttr':'-ty'},
+                        'cheek_suck_left':{'driverAttr':'ty'}}},
+
+######### MUZZLE RIGHT SIDE ####################################
+'Smile_right':{'control':'r_smile_CTRL',
+         'wiringDict':{'lips_smile_right':{'driverAttr':'ty'}}},
+
+'Frown_right':{'control':'r_frown_CTRL',
+         'wiringDict':{'lips_frown_right':{'driverAttr':'ty'}}},
+
+'Presser_right':{'control':'r_presser_CTRL',
+         'wiringDict':{'lips_presser_right':{'driverAttr':'ty'}}},
+
+'Sneer_right':{'control':'r_sneer_CTRL',
+         'wiringDict':{'sneer_up_right':{'driverAttr':'ty'}}},
+'noseSneer_right':{'control':'r_noseSneer_CTRL',
+         'wiringDict':{'nose_sneer_right':{'driverAttr':'ty'}}},
+
+'CheekRaise_R':{'control':'r_cheekRaiser_CTRL',
+         'wiringDict':{'cheek_raise_right':{'driverAttr':'ty'}}},
+
+'CheekPuffSuck_R':{'control':'r_cheekPuffSuck_CTRL',
+         'wiringDict':{'cheek_puff_right':{'driverAttr':'ty'},
+                        'cheek_suck_right':{'driverAttr':'-ty'}}},
+
+
+######### BROW CENTER SIDE ####################################
+
+'browCenter':{'control':'m_browSqueeze_CTRL',
               'wiringDict':{'brow_squeeze':{'driverAttr':'-ty'},
                             }},
 
@@ -798,7 +869,40 @@ _d_faceControlsToConnect = {
 
                   },
 
-    
+######### BROW LEFT SIDE ####################################
+'browUpDnInner_left':{'control':'l_browUpDnInner_CTRL',
+              'wiringDict':{'brow_innrUp_left':{'driverAttr':'ty'},
+                            'brow_innrDn_left':{'driverAttr':'-ty'},
+                            }},
+'browUpDnOuter_left':{'control':'l_browUpDnOuter_CTRL',
+              'wiringDict':{'brow_outrUp_left':{'driverAttr':'ty'},
+                            'brow_outrDn_left':{'driverAttr':'-ty'},
+                            }},
+
+######### BROW RIGHT SIDE ####################################
+'browUpDnInner_right':{'control':'r_browUpDnInner_CTRL',
+              'wiringDict':{'brow_innrUp_right':{'driverAttr':'ty'},
+                            'brow_innrDn_right':{'driverAttr':'-ty'},
+                            }},
+'browUpDnOuter_right':{'control':'r_browUpDnOuter_CTRL',
+              'wiringDict':{'brow_outrUp_right':{'driverAttr':'ty'},
+                            'brow_outrDn_right':{'driverAttr':'-ty'},
+                            }},
+
+######### EYE LEFT SIDE ####################################
+'eyeBlink_left':{'control':'l_eyeBlinkWide_CTRL',
+              'wiringDict':{'eyeLids_wide_left':{'driverAttr':'ty'},
+                            'eyeLids_blink_left':{'driverAttr':'-ty'},
+                            }},
+
+######### EYE RIGHT SIDE ####################################
+'eyeBlink_right':{'control':'r_eyeBlinkWide_CTRL',
+              'wiringDict':{'eyeLids_wide_right':{'driverAttr':'ty'},
+                            'eyeLids_blink_right':{'driverAttr':'-ty'},
+                            }},
+
+######### END FACS DICTIONARY #################################
+                  
 'default':{
 'browCenter':{'control':'center_brow_anim',
               'wiringDict':{'brow_center_up':{'driverAttr':'ty'},
@@ -1015,6 +1119,8 @@ _d_faceControlsToConnect = {
 
                   
 }}
+
+
 
 
 __attrHolder = 'cat'
