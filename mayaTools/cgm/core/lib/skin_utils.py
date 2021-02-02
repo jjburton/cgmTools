@@ -75,12 +75,16 @@ def transfer_fromTo(source = None, targets = None):
         except Exception,err:
             log.error("|{0}| >> Target failure: {1} |  {2}".format(_str_func,obj,err))
 
-def get_influences_fromSelected(*args):
+def get_influences_fromSelected(nodes = []):
     skinJoints = []
-    for obj in mc.ls(sl=True):
-        shapes = mc.listRelatives(obj, shapes=True)
-        for shape in shapes if shapes else []:
-            for skinCluster in mc.listConnections(type='skinCluster'):
+    if not nodes:
+        nodes = mc.ls(sl=1)
+    nodes = VALID.listArg(nodes)
+    for obj in nodes:
+        shapes = mc.listRelatives(obj, shapes=True) or []
+        for shape in shapes:
+            _clusters =  mc.listConnections(shape, type='skinCluster') or []
+            for skinCluster in _clusters:
                 for joint in get_influences_fromCluster(skinCluster):
                     if joint not in skinJoints:
                         skinJoints.append(joint)
