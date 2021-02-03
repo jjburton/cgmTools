@@ -11,9 +11,9 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.4.1.0'
+__RELEASE = '21.4.1.01'
 
-__BRANCH = 'Pipeline'
+__BRANCH = 'MRSDEV'
 
 import maya.cmds as mc
 import maya.mel as mel

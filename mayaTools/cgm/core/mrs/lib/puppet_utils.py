@@ -56,6 +56,9 @@ import cgm.core.rig.joint_utils as COREJOINTS
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.ml_tools.ml_resetChannels as ml_resetChannels
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+from cgm.core.lib import geo_Utils as COREGEO
+from cgm.core.lib import skin_utils as CORESKIN
+
 #reload(BLOCKSHARE)
 import cgm.core.mrs.lib.general_utils as BLOCKGEN
 
@@ -1583,14 +1586,45 @@ def get_report(self):
     for d,v in d_dat.iteritems():
         print "   [{0}] : {1}".format(d,v)
         
-        
-        
+
     print('\n')
 
     BLOCKGEN.get_rigBlock_heirarchy_context(self.rigBlock,'below',False,True)
     
-
     print(cgmGEN._str_hardBreak)
+    
+
+def get_report_asset(self,csv=False):
+    _str_func = 'get_report_asset'
+    
+    _res = []
+    _res.append("Puppet: '{0}' | {1}".format(self.cgmName, self.p_nameBase))    
+    
+    
+    _file = os.path.normpath(mc.file(q=True, loc=True))
+    _res.append(_file)
+    #_file = PATH.Path(mc.file(q=True, loc=True))
+    #_res.append(_file._splits)
+    
+    mExportSet = self.getMessageAsMeta('exportSet')
+    for mObj in mExportSet.getMetaList():
+        _type = mObj.getMayaType()
+        if _type == 'joint':
+            print "joint " + mObj.mNode
+        elif _type in ['mesh']:
+            _d = {'mesh':mObj.mNode,
+                  'verts':mc.polyEvaluate(mObj.getShapes()[0], vertex=True)}
+            _joints = CORESKIN.get_influences_fromSelected(mObj.mNode)
+            if _joints:
+                _d['joints'] = len(_joints)
+            _res.append(_d)
+        else:
+            log.warning( cgmGEN.logString_msg(_str_func, "Unhandled type: {0} | {1}".format(_type,mObj.mNode)))
+    
+
+    pprint.pprint(_res)
+    return _res
+
 
 def get_uiString(self,showSide=True):
     """

@@ -4689,7 +4689,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_menu, l="Report",
                         ann = "Report rig data",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'get_report'),
-                        )                
+                        )
+        mUI.MelMenuItem(_menu, l="Report | CSV",
+                        ann = "Report rig data as csv",
+                        c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'get_report_asset'),
+                        )                        
         mUI.MelMenuItem( _menu, l="Gather Blocks",
                          c = self.uiCallback(self,BUILDERUTILS.gather_rigBlocks,self.uiPB_mrs))
                          #c=lambda *a: BUILDERUTILS.gather_rigBlocks(self.uiPB_mrs) )

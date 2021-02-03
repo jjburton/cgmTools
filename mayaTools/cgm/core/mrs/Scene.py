@@ -1394,7 +1394,49 @@ example:
         return thumbFile
     
     def metaData_print(self):
-        pprint.pprint( self.getMetaDataFromCurrent() )
+        
+        _d = self.getMetaDataFromCurrent() 
+        _type = _d.get('type')
+        _subType =_d.get('subType')
+        _subTypeAsset = _d.get('subTypeAsset')
+        _asset = _d.get('asset')
+        
+        _l = []
+        for k in _type,_asset,_subType,_subTypeAsset:
+            if k:
+                _l.append(k)
+        
+        _name = '.'.join(_l)
+        
+        print ''
+        _l_asset = [_name,_d.get('file')]
+        print ','.join(_l_asset)
+        print ''
+        
+        #Shots
+        if _d.get('shots'):
+            _shots = _d.get('shots')
+            _total = 0
+            _lows = []
+            _highs = []
+            
+            _l_shots = []
+            
+            for s in _shots:
+                _total += s[1][2]
+                _l = [s[0], s[1][0], s[1][1], s[1][2]] 
+                _l = [str(v) for v in _l]
+                _l_shots.append( _l )
+                _lows.append(s[1][0])
+                _highs.append(s[1][1])
+                
+            
+            print ','.join(['clip','start','end',str(_total), "{0}".format(max(_highs) - min(_lows))])
+            print ''
+            for s in _l_shots:
+                print ','.join(s)
+        
+        #pprint.pprint( self.getMetaDataFromCurrent() )
         
     def getMetaDataFromCurrent(self):
         from cgm.core.mrs.Shots import AnimList
