@@ -42,6 +42,16 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.classes import NodeFactory as NODEF
 
 
+def controls_wireRightToLeft(nodes = None):
+    if not nodes:
+        nodes = mc.ls(sl=1)
+    
+    ml = cgmMeta.asMeta(nodes)
+    ml[0].connectChildNode(ml[1],'mirrorControl','mirrorControl')
+    ml[0].mirrorSide = 'Right'
+    ml[1].mirrorSide = 'Left'
+    
+
 _d_faceBufferAttributes = {
     'default':{"jaw":{'attrs':['dn','clench','left','right','fwd','back']},
                "eye":{'attrs':['squeeze','blink','upr_up','upr_dn',
