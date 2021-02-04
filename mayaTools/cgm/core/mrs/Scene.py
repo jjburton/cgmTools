@@ -1395,7 +1395,9 @@ example:
     
     def metaData_print(self):
         
-        _d = self.getMetaDataFromCurrent() 
+        _d = self.getMetaDataFromFile() 
+        pprint.pprint(_d)
+        
         _type = _d.get('type')
         _subType =_d.get('subType')
         _subTypeAsset = _d.get('subTypeAsset')
@@ -1409,7 +1411,9 @@ example:
         _name = '.'.join(_l)
         
         print ''
-        _l_asset = [_name,_d.get('file')]
+        _d.get('file')
+        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.project.userPaths_get()['content']), '')
+        _l_asset = [_name,_file]
         print ','.join(_l_asset)
         print ''
         
@@ -1435,6 +1439,9 @@ example:
             print ''
             for s in _l_shots:
                 print ','.join(s)
+                
+        print 'Notes'
+        print _d.get('notes','None')
         
         #pprint.pprint( self.getMetaDataFromCurrent() )
         
