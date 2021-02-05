@@ -84,7 +84,9 @@ d_build_profiles = {
 }
 
 
-
+l_correctiveLayouts = ['upDown','outs','hipRight','hipLeft', 'shoulderRight','shoulderLeft']
+l_readerPlugs = ['posFwd','negFwd','posSide','negSide','posTwist','negTwist']
+l_readerTypes = ['none','alignMatrix']
 
 
 #These are our default attrs to make library. To be called via modules
@@ -109,6 +111,12 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'addMotionJoint':'bool',
                    'jointRadius':'float',                 
                    'jointDepth':'float',
+                   
+                   'correctiveLayout':":".join(l_correctiveLayouts),
+                   'readerKey':":".join(l_readerPlugs),
+                   'readerType':":".join(l_readerTypes),
+                   
+                   
                    
                    'proxy':'off:lock:on',
                    'addScalePivot':'bool',                   

@@ -37,7 +37,7 @@ import cgm.core.cgm_General as cgmGEN
 #import cgm.core.lib.math_utils as MATH
 #import cgm.core.lib.transform_utils as TRANS
 #import cgm.core.lib.distance_utils as DIST
-#import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.attribute_utils as ATTR
 #import cgm.core.tools.lib.snap_calls as SNAPCALLS
 #import cgm.core.classes.NodeFactory as NODEFACTORY
 #from cgm.core import cgm_RigMeta as cgmRigMeta
@@ -67,23 +67,186 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-log_start = cgmGEN.log_start
+log_start = cgmGEN.logString_start
 log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
 
+class handler(object):
+    baseName = None
+    mJoint = None
+    mReader = None
+    mDriven = None
+    maxValue = 1
+    _plug_reader = None
+    
+    def __init__(self,
+                 joint = None,
+                 readerName = 'forward'
+                 ):
+        _str_func = 'handler.__init__'
+        
+        log.debug(log_start(_str_func))
+        
+        _sel = mc.ls(sl=1)
+        if _sel:
+            if not joint:
+                joint = _sel[0]
+                
+        if readerName and self._plug_reader != readerName:
+            log.warn("New reader name!")
+            
+        if joint:
+            self.joint_verify(joint)
+            
+    def driven_verify(self, obj, attr):
+        _str_func = 'handler.driven_verify'
+        log.debug(log_start(_str_func))
+        
+        if mc.objExists('{0}.{1}'.format(obj,attr)):
+            mDriven = cgmMeta.cgmAttr(obj,attr)
+
+        else:
+            mDriven = cgmMeta.cgmAttr(obj,attr, 'float', minValue=0, maxValue=self.maxValue)
+        
+        mDriven.p_hidden = False
+        
+        self.mDriven = mDriven
+        return mDriven        
+    
+    def get_readerString(self, readerName):
+        return '{0}Reader'.format(readerName)
+        
+    def joint_verify(self, joint = None, readerName = None):
+        _str_func = 'handler.joint_verify'
+        log.debug(log_start(_str_func))
+        
+        mJoint = cgmMeta.validateObjArg(joint,noneValid=True, mayaType='joint')
+        
+        if not mJoint:
+            raise ValueError,log_msg(_str_func,"Not a valid joint")
+        
+        self.mJoint = mJoint
+        
+        if readerName:
+            _string = self.get_readerString(readerName)
+            mReader = mJoint.getMessageAsMeta(_string)
+            if mReader:
+                self.mReader = mReader
+                self._plug_reader = _string
+        
+        
+        return mJoint
+    
+    def report(self):
+        _str_func = 'handler.report'
+        log.debug(log_start(_str_func))
+        
+        pprint.pprint ({'mJoint':self.mJoint,
+                        'mReader':self.mReader,
+                        'mDriven':self.mDriven})
+    
+        
+    def reader_verify(self, readerName= 'forward',
+                      parent = False):
+        _str_func = 'handler.reader_verify'
+        log.debug(log_start(_str_func))
+        
+        _plug_reader = '{0}Reader'.format(readerName)
+        mJoint = self.mJoint
+        
+        _nameBase = '{0}_{1}'.format(mJoint.p_nameBase, _plug_reader)
+        
+        mReader = mJoint.getMessageAsMeta(_plug_reader)
+        if not mReader:
+            log.debug(log_msg(_str_func,"Making mReader"))
+            mReader = mJoint.doDuplicate(po=True,ic=False)
+            mReader.p_parent = parent
+            mReader.rename(_nameBase)
+            mJoint.connectChildNode(mReader,_plug_reader,'source')
+        elif parent:
+            mReader.p_parent = parent
+        
+        
+        self.mReader = mReader
+        return mReader
+    
+    def reader_set(self):
+        _str_func = 'handler.reader_setup'
+        log.debug(log_start(_str_func))
+        
+        self.mReader.p_orient = self.mJoint.p_orient
+        
+        
+    def reader_setup(self,mode = 'alignMatrix',
+                     drivenBy = 'group'):
+        '''
+        alignMatrix | r&d by Charles Wardlaw. Just proceduralized CGM pals's work.
+        '''
+        
+        _str_func = 'handler.reader_setup'
+        log.debug(log_start(_str_func))
+        
+        mReader = self.mReader
+        mJoint = self.mJoint
+        mDriven = self.mDriven
+        
+        # Vector Products =====================================================
+        l_todo = [{'name':'extract_source', 'type':'vectorProduct'},
+                  {'name':'extract_reader', 'type':'vectorProduct'},
+                  {'name':'vectorProduct', 'type':'vectorProduct'},
+                  {'name':'remap', 'type':'remapValue'}]
+        md = {}
+        
+        for d in l_todo:
+            _name = d['name']
+            _type = d['type']
+            
+            log.debug(log_sub(_str_func, _name))
+            mNode = cgmMeta.cgmNode(nodeType= _type)
+            mNode.rename("{0}_{1}".format(mReader.p_nameBase, _name))
+            
+            md[_name] = mNode
+            
+            if _name in  ['extract_source','extract_reader']:
+                mNode.input1Z = 1
+                mNode.input2Z = 1
+                mNode.operation = 3 #...vector matrix product
+                
+                if _name == 'extract_source':
+                    mJoint.doConnectOut('worldMatrix[0]', "{0}.matrix".format(mNode.mNode))        
+                    mNode.normalizeOutput = 1
+                else:
+                    mReader.doConnectOut('worldMatrix[0]', "{0}.matrix".format(mNode.mNode))        
+                    mNode.normalizeOutput = 1
+                    
+            elif _name == 'vectorProduct':
+                mNode.operation = 1#dot product
+                md['extract_source'].doConnectOut('output', "{0}.input1".format(mNode.mNode))    
+                md['extract_reader'].doConnectOut('output', "{0}.input2".format(mNode.mNode))    
+                
+            else:
+                md['vectorProduct'].doConnectOut('outputX', "{0}.inputValue".format(mNode.mNode))    
+            
+        if self.mDriven:
+            mDriven.doConnectIn("{0}.outValue".format(md['remap'].mNode))        
+        
+        
+
+    
+
 def reader_verify(joint = None,
-                  axisAim = 'z+',
-                  axisUp = 'y+',
+                  #axisAim = 'z+',
+                  #axisUp = 'y+',
                   target = None,
                   parent = None,
                   driven = None,
                   name = 'posX'):
     _str_func = 'reader_verify'
-    log.info(log_start(_str_func))
+    log.debug(log_start(_str_func))
     
     
     mJoint = cgmMeta.validateObjArg(joint,mayaType='joint')
-    mAxis = VALID.simpleAxis(axisAim)
+    #mAxis = VALID.simpleAxis(axisAim)
     mTarget = cgmMeta.validateObjArg(target,noneValid=True)
     mDriven = cgmMeta.validateAttrArg(driven)
     
@@ -94,15 +257,17 @@ def reader_verify(joint = None,
     mReader = mJoint.getMessageAsMeta(_plug_reader)
     if not mReader:
         log.debug(log_msg(_str_func,"Making mReader"))
-        mReader = mJoint.doDuplicate(po=True)
+        mReader = mJoint.doDuplicate(po=True,ic=False)
         mReader.p_parent = False
         mReader.rename(_nameBase)
         mJoint.connectChildNode(mReader,_plug_reader,'source')
         
+        
     # Vector Products =====================================================
     l_todo = [{'name':'extract_source', 'type':'vectorProduct'},
               {'name':'extract_reader', 'type':'vectorProduct'},
-              {'name':'vectorProduct', 'type':'vectorProduct'}]
+              {'name':'vectorProduct', 'type':'vectorProduct'},
+              {'name':'remap', 'type':'remapValue'}]
     md = {}
     
     for d in l_todo:
@@ -131,9 +296,12 @@ def reader_verify(joint = None,
             mNode.operation = 1#dot product
             md['extract_source'].doConnectOut('output', "{0}.input1".format(mNode.mNode))    
             md['extract_reader'].doConnectOut('output', "{0}.input2".format(mNode.mNode))    
+            
+        else:
+            md['vectorProduct'].doConnectOut('outputX', "{0}.inputValue".format(mNode.mNode))    
         
     if mDriven:
-        mDriven['mPlug'].doConnectIn("{0}.outputX".format(md['vectorProduct'].mNode))
+        mDriven['mPlug'].doConnectIn("{0}.outValue".format(md['remap'].mNode))
         
     pprint.pprint(md)
         

@@ -353,6 +353,13 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                             v = []
                         if a == 'loftList':
                             enum = BLOCKSHARE._d_attrsTo_make['loftShape']
+                        elif a == 'correctiveLayout':
+                            enum = BLOCKSHARE._d_attrsTo_make['correctiveLayout']
+                        elif a == 'readerKey':
+                            enum = BLOCKSHARE._d_attrsTo_make['readerKey']
+                        elif a == 'readerType':
+                            enum = BLOCKSHARE._d_attrsTo_make['readerType']
+                            
                         else:
                             enum = 'off:on'
                         ATTR.datList_connect(_short, a, v, mode='enum',enum=enum)                    
@@ -6688,7 +6695,7 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         if report:pprint.pprint(l)
         _tmp = []
         for s in l:
-            if s.endswith('List') or s in ['numSubShapers','rollCount']:
+            if s.endswith('List') or s in ['numSubShapers','rollCount','readerKey','readerType','correctiveLayout']:
                 if ATTR.datList_exists(_short,s):
                     for s2 in ATTR.datList_getAttrs(_short,s):
                         _tmp.append(s2)
@@ -8658,7 +8665,7 @@ def blockProfile_load(self, arg):
     log.debug("|{0}| >>  BlockModule: {1} | profile: {2}".format(_str_func,mBlockModule,arg))
     try:_d = mBlockModule.d_block_profiles[arg]
     except Exception,err:
-        return log.warning("|{0}| >>  Failed to query profile: {1} | {2} | {3}".format(_str_func,err, _short, Exception))
+        return log.warning("|{0}| >>  Failed to query profile: {1} | {2} | {3} {4}".format(_str_func,arg, err, _short, Exception))
     
     #if not _d.get('blockProfile'):
     #    _d['blockProfile'] = arg
@@ -8684,9 +8691,19 @@ def blockProfile_load(self, arg):
                 
             if issubclass(_typeDat,list) or _datList:
                 log.debug("|{0}| datList...".format(_str_func))
-                if a == 'loftList':
+                
+                if a in ['loftList','correctiveLayout','readerKey','readerType']:
+                    if a == 'correctiveLayout':
+                        enum = BLOCKSHARE._d_attrsTo_make['correctiveLayout']
+                    elif a == 'readerKey':
+                        enum = BLOCKSHARE._d_attrsTo_make['readerKey']
+                    elif a == 'readerType':
+                        enum = BLOCKSHARE._d_attrsTo_make['readerType']
+                    else:
+                        enum = BLOCKSHARE._d_attrsTo_make['loftShape']
+                
                     ATTR.datList_connect(_short, a, v, 
-                                         mode='enum',enum= BLOCKSHARE._d_attrsTo_make['loftShape'])
+                                         mode='enum',enum= enum)
                 else:
                     mc.select(cl=True)
                     if VALID.stringArg(v[0]):
@@ -11424,7 +11441,7 @@ def blockScale_bake(self,sizeMethod = 'axisSize',force=False,):
         
         
         
-def rootShape_update(self):
+def rootShape_update(self, shape = 'locatorForm', multiplier = 1.0):
     """
     Bring a rigBlock to current settings - check attributes, reset baseDat
     """
@@ -11438,8 +11455,8 @@ def rootShape_update(self):
     
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
-        _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * 1.25)
+        _crv = CURVES.create_fromName(name= shape,
+                                      direction = 'z+', size = (_size * 1.25) * multiplier)
     
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')
