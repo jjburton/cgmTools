@@ -15,6 +15,7 @@ __MAYALOCAL = 'RAYS'
 
 import maya.cmds as mc
 import copy
+import pprint
 import maya.OpenMayaUI as OpenMayaUI
 import maya.OpenMaya as om
 from cgm.core.lib.zoo import apiExtensions
@@ -309,9 +310,17 @@ def cast(mesh = None, obj = None, axis = 'z+',
                     if not _uv:
                         log.debug("{0} failed to find uvs".format(m))
     
-                    if offsetMode:
-                        h = offset_hit_by_distance(h,startPoint,vector,offsetDistance)
-                    _l_posBuffer.append(h)                
+                    if offsetMode == 'vectorDistance':
+                        _v = MATH.get_vector_of_two_points(h,startPoint)
+                        h2 = offset_hit_by_distance(h,startPoint,_v,offsetDistance)
+                        _l_posBuffer.append(h2)
+                    elif offsetMode == 'normal':
+                        _dist = DIST.get_distance_between_points(h,startPoint) * offsetDistance
+                        h2 = DIST.get_pos_by_vec_dist(h, _normal, _dist)
+                        _l_posBuffer.append(h2)                
+                        
+                    else:
+                        _l_posBuffer.append(h)                
             else:
                 try:_b = findMeshIntersections(m, _castPoint, rayDir=vector, maxDistance = maxDistance)
                 except:log.error("|{0}| mesh failed to get hit: {1}".format(_str_func,m))	
@@ -349,9 +358,11 @@ def cast(mesh = None, obj = None, axis = 'z+',
             log.debug("|{0}| No hits detected. startPoint: {1} | mesh:{2} | vector:{4} | axis: {3}".format(_str_func,startPoint,mesh,axis,vector))
             return {}
     
-    
-        _near = distance.returnClosestPoint(startPoint, _l_posBuffer)
-        _furthest = distance.returnFurthestPoint(startPoint,_l_posBuffer)
+        #reload(DIST)
+        _list = DIST.get_pointsOrderedByDist(startPoint,_l_posBuffer)
+        #pprint.pprint(_list)
+        _near = _list[0][0]
+        _furthest = _list[-1][0]
     
         _d = {'source':startPoint, 'near':_near, 'far':_furthest, 'hits':_l_posBuffer, 'uvs':_d_meshUV, 'uvsRaw':_d_meshUVRaw, 'meshHits':_d_meshPos,'meshNormals':_d_meshNormal}
     
@@ -375,6 +386,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
         return _d
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+        
 def offset_hit_by_distance(h,startPoint,vector,offsetDistance, offsetMode = 'distance'):
     _str_func = 'offset_hit_by_distance'    
     log.debug("|{0}| >> offset call...".format(_str_func))

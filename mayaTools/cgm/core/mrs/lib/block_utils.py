@@ -3112,7 +3112,7 @@ def skeleton_duplicateJoint(self,sourceJoints = None, modifier = 'rig', connectT
             connectToModule.msgList_connect(connectAs, ml_joints,'rigNull')#connect	
     return ml_joints
 
-def skeleton_getAttachJoint(self):
+def skeleton_getAttachJoint(self,attachPoint = None):
     _str_func = 'skeleton_connectToParent'
     log.debug(cgmGEN.logString_start(_str_func))
 
@@ -3149,7 +3149,11 @@ def skeleton_getAttachJoint(self):
             ml_targetJoints = mParentModule.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
             if not ml_targetJoints:
                 raise ValueError,"mParentModule has no module joints."
-            _attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
+            if attachPoint is None:
+                _attachPoint = ATTR.get_enumValueString(self.mNode,'attachPoint')
+            else:
+                _attachPoint = attachPoint
+                
             if _attachPoint == 'end':
                 mTargetJoint = ml_targetJoints[-1]
             elif _attachPoint == 'base':

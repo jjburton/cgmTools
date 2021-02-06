@@ -85,7 +85,7 @@ d_build_profiles = {
 
 
 l_correctiveLayouts = ['upDown','outs','hipRight','hipLeft', 'shoulderRight','shoulderLeft']
-l_readerPlugs = ['posFwd','negFwd','posSide','negSide','posTwist','negTwist']
+l_readerPlugs = ['fwdPos','fwdNeg','sideIn','sideOut','twistIn','twistOut']
 l_readerTypes = ['none','alignMatrix']
 
 

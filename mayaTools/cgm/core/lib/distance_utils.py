@@ -645,6 +645,39 @@ def get_closestTarget(source = None, objects = None):
         l_dists.append (get_distance_between_points(_point, pos))
     return objects[(l_dists.index ((min(l_dists))))]
 
+def get_pointsOrderedByDist(source = None, posList = None):
+    """
+    Get the closest object to a give source
+    
+    :parameters:
+        source(str/vector) -- source point or object
+        targetSurface -- surface to check transform, nurbsSurface, curve, mesh supported
+
+    :returns
+        [[obj,dist],...]
+    """         
+    _str_func = 'get_closestTarget'
+    _point = False
+    
+    if VALID.vectorArg(source) is not False:
+        _point = source   
+    elif mc.objExists(source):
+        _point = POS.get(source)
+
+    if not _point:raise ValueError,"Must have point of reference"
+    
+    l_dists = []
+    d_dists = {}
+    for i,pos in enumerate(posList):
+        _d = get_distance_between_points(_point, pos)
+        if _d in l_dists:
+            raise ValueError,"Cannot handle matching distances. {0}".format(_str_func)
+        l_dists.append(_d)
+        d_dists[_d] = pos
+        
+    l_dists.sort()
+    return [[d_dists[d],d] for d in l_dists]
+
 def get_targetsOrderedByDist(source = None, objects = None):
     """
     Get the closest object to a give source

@@ -1166,7 +1166,6 @@ def skeleton_build(self, forceNew = True):
     _str_func = '[{0}] > skeleton_build'.format(_short)
     log.debug("|{0}| >> ...".format(_str_func)) 
     
-    _radius = 1
     ml_joints = []
     
     mModule = self.moduleTarget

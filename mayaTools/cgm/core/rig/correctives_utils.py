@@ -43,10 +43,10 @@ import cgm.core.lib.attribute_utils as ATTR
 #from cgm.core import cgm_RigMeta as cgmRigMeta
 #import cgm.core.lib.list_utils as LISTS
 #import cgm.core.lib.nameTools as NAMETOOLS
-#import cgm.core.lib.locator_utils as LOC
+import cgm.core.lib.locator_utils as LOC
 #import cgm.core.rig.create_utils as RIGCREATE
 #import cgm.core.lib.snap_utils as SNAP
-#import cgm.core.lib.rayCaster as RAYS
+import cgm.core.lib.rayCaster as RAYS
 ##import cgm.core.lib.rigging_utils as CORERIG
 #import cgm.core.lib.curve_Utils as CURVES
 #import cgm.core.rig.constraint_utils as RIGCONSTRAINT
@@ -231,6 +231,63 @@ class handler(object):
             mDriven.doConnectIn("{0}.outValue".format(md['remap'].mNode))        
         
         
+d_layouts = {'upDown':{'names':['up','dn'],
+                       'directions':['y+','y-'],
+                       'offset':-.3,},
+             'outs':{'names':['out','in'],
+                       'directions':['x+','x-'],
+                       'offset':-.3,}             
+             }
+
+
+def layout_getPoints(dag = None,
+                     #axisAim = 'z+',
+                     #axisUp = 'y+',
+                     castMesh = None,
+                     orient = 'zyx',
+                     layout = 'upDown',
+                     offset = -.3,
+                     loc = False,
+                     name = 'posX'):
+    _str_func = 'layout_getPoints'
+    log.debug(log_start(_str_func))
+    
+    _d = d_layouts.get(layout)
+    if not _d:
+        raise ValueError,log_msg(_str_func,"Unknown layout: {0}".format(layout))
+    mDag= cgmMeta.validateObjArg(dag,default_mType='cgmObject')
+    
+    _mode = _d.get('mode','default')
+    _res = {}
+    if _mode == 'default':
+        _names = _d['names']
+        _directions = _d['directions']
+        _offset = _d.get('offset',offset)
+        for i,n in enumerate(_names):
+            log.debug(log_sub(_str_func,n))
+            
+            #pos = RAYS.get_cast_pos(mDag.mNode,_directions[i],shapes = castMesh)
+            #_res[n] = pos
+            
+            
+            _cast = RAYS.cast(mesh = castMesh, obj = mDag.mNode, axis = _directions[i],
+                              maxDistance = 10000, firstHit = True,
+                              offsetMode = 'normal', offsetDistance = _offset,
+                              locDat=0)           
+            pprint.pprint(_cast)
+            _res[n] = _cast['near']
+            
+        
+    else:
+        raise ValueError,log_msg(_str_func,"Unknown mode: {0}".format(_mode))
+        
+    pprint.pprint(_res)
+    
+    if loc:
+        for n,p in _res.iteritems():
+            LOC.create(position=p,name='{0}_loc'.format(n))
+    
+    return _res
 
     
 
