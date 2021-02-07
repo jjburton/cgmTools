@@ -171,7 +171,7 @@ class handler(object):
         return mReader
     
     def reader_set(self):
-        _str_func = 'handler.reader_setup'
+        _str_func = 'handler.reader_set'
         log.debug(log_start(_str_func))
         
         self.mReader.p_orient = self.mJoint.p_orient

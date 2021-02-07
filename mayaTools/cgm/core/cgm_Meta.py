@@ -409,7 +409,18 @@ class cgmNode(r9Meta.MetaClass):
 
             return True
         return False
+    
+    def connectNode(self,node,attr,connectBack = None, srcAttr = None):
+        '''
+        Placeholder to stop overloading marks stuff
+        '''
+        if issubclass(type(node), r9Meta.MetaClass):
+            node=node.mNode        
+        
+        ATTR.set_message(self.mNode, attr, node, connectBack=connectBack)            
 
+        return True            
+        
     def connectChildNode(self, node, attr, connectBack = None, srcAttr=None):
         """
         Replacing Mark's connect child with our own which connects to .message connections.
@@ -424,10 +435,10 @@ class cgmNode(r9Meta.MetaClass):
         if issubclass(type(node), r9Meta.MetaClass):
             node=node.mNode        
 
-        ATTR.set_message(self.mNode, attr, node)            
+        ATTR.set_message(self.mNode, attr, node, connectBack=connectBack)            
 
-        if connectBack is not None:
-            ATTR.set_message(node, connectBack,self.mNode )            
+        #if connectBack is not None:
+            #ATTR.set_message(node, connectBack,self.mNode, simple=True )            
         return True    
     
     def connectParentNode(self, node, attr, connectBack = None, srcAttr=None):
@@ -447,10 +458,10 @@ class cgmNode(r9Meta.MetaClass):
             #add to parent node
             #mc.addAttr(node,longName=connectBack, at='message', m=False)
         
-        ATTR.set_message(self.mNode, attr, node)            
+        ATTR.set_message(self.mNode, attr, node, connectBack=connectBack)            
 
-        if connectBack is not None:
-            ATTR.set_message(node, connectBack,self.mNode )            
+        #if connectBack is not None:
+            #ATTR.set_message(node, connectBack,self.mNode, simple = True)            
         return True
 
 

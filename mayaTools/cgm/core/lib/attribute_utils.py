@@ -2475,6 +2475,10 @@ def set_message(messageHolder, messageAttr, message, dataAttr = None, dataKey = 
         
         _d = validate_arg(messageHolder,messageAttr)
         _combined = _d['combined']
+        
+        
+        if connectBack:
+            set_message(message, connectBack, messageHolder, simple = True)
     
         #>> Validation -----------------------------------------------------------------------------------------------
         _mode = 'reg'

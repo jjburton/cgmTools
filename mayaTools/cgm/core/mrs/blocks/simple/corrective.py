@@ -247,6 +247,26 @@ def uiBuilderMenu(self,parent = None):
     
     return
 
+def get_readerParentModuleTarget(self,mode='driver'):
+    _str_func = 'readerParent_set'
+    log.debug(log_start(_str_func))
+    
+    mModuleParent = self.p_blockParent.moduleTarget
+    
+    l_targetJoints = mModuleParent.rigNull.msgList_get('moduleJoints',asMeta = False, cull = True)
+    if not l_targetJoints:
+        raise ValueError,"mParentModule has no module joints."    
+    
+    
+    if mode == 'driver':
+        _closestJoint = DIST.get_closestTarget(self.readerDriver.mNode, l_targetJoints)
+        return cgmMeta.asMeta(_closestJoint)
+    else:
+        _closestJoint = DIST.get_closestTarget(self.readerParent.mNode, l_targetJoints)
+        return cgmMeta.asMeta(_closestJoint)
+    
+    
+
 def readerParent_set(self,target = None):
     _str_func = 'readerParent_set'
     log.debug(log_start(_str_func))
@@ -825,7 +845,8 @@ def skeleton_build(self, forceNew = True):
             
             JOINTS.freezeOrientation(mJoint)
             
-            mDag.doStore('joint',mJoint)
+            mDag.doStore('skinJoint',mJoint)
+            mJoint.doStore('helper',mDag)
             mJoint.rotateOrder = 5
             mJoint.displayLocalAxis = 1
             mJoint.radius = _radius 
@@ -890,7 +911,21 @@ def rig_dataBuffer(self):
             mSettings = self.d_module['mMasterControl'].controlVis
             self.mSettingsParent = mSettings
             
+        self.mSettings = mSettings
+            
         log.debug(cgmGEN._str_subLine)
+        
+        #Find our parent joint --------------------------------------
+        l_targetJoints = mModuleParent.rigNull.msgList_get('moduleJoints',asMeta = False, cull = True)
+        if not l_targetJoints:
+            raise ValueError,"mParentModule has no module joints."    
+        
+        _closestJoint = DIST.get_closestTarget(mBlock.readerDriver.mNode, l_targetJoints)
+        self.mReaderDriver =  cgmMeta.asMeta(_closestJoint)
+        _str_driver = CORENAMES.get_combinedNameDict(self.mReaderDriver.mNode,ignore=['cgmType','cgmDirection'])
+        
+        _closestJoint = DIST.get_closestTarget(mBlock.readerParent.mNode, l_targetJoints)
+        self.mReaderParent =  cgmMeta.asMeta(_closestJoint)                
             
         #  data ======================================================================================
         log.debug(log_sub(_str_func,'data'))
@@ -905,11 +940,12 @@ def rig_dataBuffer(self):
             _d['key'] = l
             _d['dags'] = []
             _d['shapes'] = []
+            _d['names'] = []
             
             for mDag in mPrerigNull.getMessageAsMeta('handleDags_{0}'.format(i)):
                 _d['dags'].append(mDag)
                 _d['shapes'].append(mDag.shapeHelper)
-                
+                _d['names'].append("{0}_{1}".format(_str_driver, mDag.cgmName))
         self.md_layouts = md_layouts
         pprint.pprint(md_layouts)
         
@@ -924,20 +960,13 @@ def rig_dataBuffer(self):
             _d = md_readers["{0}_{1}".format(l,i)]
             
             _d['type'] = mBlock.getEnumValueString('readerType_{0}'.format(i))
-                
+            _d['key'] = l
+            _d['attr'] = "{0}_{1}".format(_str_driver, l)
+            _d['name'] = "{0}_{1}_{2}".format(_str_driver,l,_d['type'])
         self.md_readers = md_readers
         pprint.pprint(md_readers)        
         
-        #Find our parent joint --------------------------------------
-        l_targetJoints = mModuleParent.rigNull.msgList_get('moduleJoints',asMeta = False, cull = True)
-        if not l_targetJoints:
-            raise ValueError,"mParentModule has no module joints."    
-        
-        _closestJoint = DIST.get_closestTarget(mBlock.readerDriver.mNode, l_targetJoints)
-        self.mReaderDriver =  cgmMeta.asMeta(_closestJoint)
-        
-        _closestJoint = DIST.get_closestTarget(mBlock.readerParent.mNode, l_targetJoints)
-        self.mReaderParent =  cgmMeta.asMeta(_closestJoint)        
+
         
 
         #Offset ============================================================================    
@@ -985,8 +1014,9 @@ def rig_skeleton(self):
     
     for mJnt in ml_joints:
         mJnt.segmentScaleCompensate = 0
-        
-    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints, 'rig', self.mRigNull,'rigJoints','rigJoint')
+    
+    reload(BLOCKUTILS)
+    ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints, 'rig', self.mRigNull,'rigJoints','rig')
     
     for mJnt in ml_rigJoints:
         mJnt.p_parent = False
@@ -1024,8 +1054,6 @@ def rig_shapes(self):
     
     
     log.debug(log_sub(_str_func,"Layouts"))
-
-    
     for k,d in self.md_layouts.iteritems():
         log.debug(log_sub(_str_func,k))
         
@@ -1033,14 +1061,25 @@ def rig_shapes(self):
         l = self.md_layouts[k]['handles']
         for i,mDag in enumerate(d['dags']):
             
-            mHandle = mDag.doCreateAt()
+            mHandle = mDag.getMessageAsMeta('skinJoint').getMessageAsMeta('rigJoint')
             CORERIG.shapeParent_in_place(mHandle.mNode, d['shapes'][i].mNode)
             
-            mHandle.doCopyNameTagsFromObject(mDag.mNode,ignore = ['cgmType'])
+            ATTR.delete(mHandle.mNode,'cgmNameModifier')
+            ATTR.delete(mHandle.mNode,'cgmTypeModifier')
+            
+            mHandle.doStore('cgmName',d['names'][i])
+            #mHandle.doCopyNameTagsFromObject(mDag.mNode,ignore = ['cgmType'])
             mHandle.doName()
             
+            mHandle.doStore('layoutTag',k)
+            mHandle.doStore('layoutType',d['key'])
+            
             l.append(mHandle)
-        
+            
+            try:
+                mHandle.drawStyle =2
+            except:
+                mHandle.radius = .00001                   
         
     #...
     log.debug(log_sub(_str_func,"Readers"))
@@ -1054,23 +1093,29 @@ def rig_shapes(self):
                                                                         bakeScale=1), 
                                               'cgmControl',setClass=1)
             
-            mReader = self.mReaderDriver.doCreateAt(setClass=True)
-            
-            mShape.doSnapTo(mReader)
+            mReader = self.mReaderDriver.doDuplicate(po=True,ic=False)
+            mReader.p_parent = False
+            #mShape.doSnapTo(mReader)
             
             mShape.p_position = mReader.getPositionByAxisDistance('{0}+'.format(self.d_orientation['str'][0]), _size_reader)
             CORERIG.shapeParent_in_place(mReader.mNode, mShape.mNode, False)
             
-            mReader.doStore('cgmName', "{0}_{1}".format(k,self.mReaderDriver.p_nameBase))
+            mReader.doStore('cgmName', d['name'])
             mReader.doName()
+            
+            mReader.doStore('readerTag',k)
+            mReader.doStore('readerType',d['key'])
             
             d['handle'] = mReader
             CORERIG.colorControl(mReader.mNode,_side,'sub')
             
+            try:
+                mReader.drawStyle =2
+            except:
+                mReader.radius = .00001                
             
-            
-        
-    
+
+
     """
     #Direct Controls =============================================================================
     log.info("|{0}| >> Direct controls...".format(_str_func))      
@@ -1099,271 +1144,180 @@ def rig_shapes(self):
         except:
             mJnt.radius = .00001"""
 
-        
-
 
     
 def rig_controls(self):
-    try:
-        _short = self.d_block['shortName']
-        _str_func = '[{0}] > rig_controls'.format(_short)
-        log.info("|{0}| >> ...".format(_str_func))  
-        _start = time.clock()
-      
-        mBlock = self.mBlock
-        mRigNull = self.mRigNull
-        ml_controlsAll = []#we'll append to this list and connect them all at the end
-        mRootParent = self.mDeformNull
-        mSettings = mRigNull.settings
-        
-            
-        mHandle = mRigNull.handle
-        
-        # Drivers ==============================================================================================    
-        #>> vis Drivers ================================================================================================	
-        mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
-        mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
-        self.atBuilderUtils('build_visModuleProxy')#...proxyVis wiring
+    _short = self.d_block['shortName']
+    _str_func = '[{0}] > rig_controls'.format(_short)
+    log.debug(log_start(_str_func))
+  
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    ml_controlsAll = []#we'll append to this list and connect them all at the end
+    mRootParent = self.mDeformNull
+    
+    mRigNull.doStore('settings', self.mSettings.mNode)
+    
+    #>> vis Drivers ================================================================================================	
+    #mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
+    #mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
+    mPlug_visHelpers = self.atBuilderUtils('build_visModuleMD','visHelpers')
+    mPlug_visSetup = self.atBuilderUtils('build_visModuleMD','visSetup')
+    
+    #self.atBuilderUtils('build_visModuleProxy')#...proxyVis wiring
 
-        # Connect to visModule ...
-        ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
-                     "{0}.visibility".format(self.mDeformNull.mNode))        
+    # Connect to visModule ...
+    #ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
+    #             "{0}.visibility".format(self.mDeformNull.mNode))        
+    
+    
+    d_space = {}
+    ml_layoutHandles = []
+    #mHandles =======================================================================
+    log.debug(log_sub(_str_func,"Layouts"))
+    for k,d in self.md_layouts.iteritems():
+        log.debug(log_sub(_str_func,k))
         
-
+        for i,mHandle in enumerate(d['handles']):
+            _d = MODULECONTROL.register(mHandle,
+                                        addConstraintGroup=False,
+                                        addSDKGroup = mBlock.buildSDK,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",**d_space)
             
-
-        #mHandle ========================================================================================
-        log.info("|{0}| >> Found handle : {1}".format(_str_func, mHandle))
-        d_space = {'addDynParentGroup':True}
-        if mBlock.numSpacePivots:
-            d_space['addSpacePivots'] = mBlock.numSpacePivots
+            mHandle = _d['mObj']
+            mHandle.masterGroup.parent = mRootParent
+            ml_controlsAll.append(mHandle)
+            ml_layoutHandles.append(mHandle)
             
-        _d = MODULECONTROL.register(mHandle,
-                                    addConstraintGroup=False,
-                                    addSDKGroup = mBlock.buildSDK,
-                                    mirrorSide= self.d_module['mirrorDirection'],
-                                    mirrorAxis="translateX,rotateY,rotateZ",
-                                    makeAimable = True,**d_space)
-        
-        mHandle = _d['mObj']
-        mHandle.masterGroup.parent = mRootParent
-        ml_controlsAll.append(mHandle)            
-        
-        #>> settings ========================================================================================
-        if mSettings.mNode != mHandle.mNode:
-            log.info("|{0}| >> Settings setup : {1}".format(_str_func, mSettings))        
-            MODULECONTROL.register(mSettings)
-            mSettings.masterGroup.parent = mHandle
-            ml_controlsAll.append(mSettings)
-            
-            
-        #Settings Parent ==================================================================================
-        if self.mSettingsParent:
-            str_attr = "snapPoint_{0}".format(self.d_module['partName'])
-
-            #Build the network
-            self.mSettingsParent.addAttr(str_attr,enumName = 'off:lock:on',
-                                         defaultValue = 2, value = 0,
-                                         attrType = 'enum',keyable = False,
-                                         hidden = False)
-            str_objName = mHandle.mNode
-            str_driver = self.mSettingsParent.mNode
-            mHandle.overrideEnabled = 1
-            d_ret = NODEFACTORY.argsToNodes("%s.overrideVisibility = if %s.%s > 0"%(str_objName,str_driver,str_attr)).doBuild()
-            log.debug(d_ret)
-            d_ret = NODEFACTORY.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_objName,str_driver,str_attr)).doBuild()
-            
-            for shape in mc.listRelatives(mHandle.mNode,shapes=True,fullPath=True):
-                log.debug(shape)
-                mc.connectAttr("%s.overrideVisibility"%str_objName,"%s.overrideVisibility"%shape,force=True)
-                mc.connectAttr("%s.overrideDisplayType"%str_objName,"%s.overrideDisplayType"%shape,force=True)            
-            
-    
-        #>> Direct Controls ================================================================================
-        ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
-        ml_controlsAll.extend(ml_rigJoints)
-        
-        for i,mObj in enumerate(ml_rigJoints):
-            d_buffer = MODULECONTROL.register(mObj,
-                                              typeModifier='direct',
-                                              addDynParentGroup = True,                                          
-                                              mirrorSide= self.d_module['mirrorDirection'],
-                                              mirrorAxis="translateX,rotateY,rotateZ",
-                                              makeAimable = False)
-    
-            mObj = d_buffer['instance']
-            ATTR.set_hidden(mObj.mNode,'radius',True)        
-            if mObj.hasAttr('cgmIterator'):
-                ATTR.set_hidden(mObj.mNode,'cgmIterator',True)        
-                
-            for mShape in mObj.getShapes(asMeta=True):
-                ATTR.connect(mPlug_visDirect.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
-    
-    
-        # Pivots =================================================================================================
-        if mBlock.getMessage('pivotHelper'):
-            log.info("|{0}| >> Pivot helper found".format(_str_func))
-            for a in 'center','front','back','left','right':#This order matters
-                str_a = 'pivot' + a.capitalize()
-                if mRigNull.getMessage(str_a):
-                    log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
-                    
-                    mPivot = mRigNull.getMessage(str_a,asMeta=True)[0]
-                    
-                    d_buffer = MODULECONTROL.register(mPivot,
-                                                      typeModifier='pivot',
-                                                      mirrorSide= self.d_module['mirrorDirection'],
-                                                      mirrorAxis="translateX,rotateY,rotateZ",
-                                                      makeAimable = False)
-                    
-                    mPivot = d_buffer['instance']
-                    for mShape in mPivot.getShapes(asMeta=True):
-                        ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
-                    
-                    
-                    ml_controlsAll.append(mPivot)
-            
-        
-        #>> headLookAt ========================================================================================
-        if mRigNull.getMessage('lookAtHandle'):
-            mLookAtHandle = mRigNull.lookAtHandle
-            log.info("|{0}| >> Found lookAtHandle : {1}".format(_str_func, mLookAtHandle))
-            MODULECONTROL.register(mLookAtHandle,
-                                   typeModifier='lookAt',
-                                   addSpacePivots = 1,
-                                   addDynParentGroup = True,
-                                   addConstraintGroup=False,
-                                   mirrorSide= self.d_module['mirrorDirection'],
-                                   mirrorAxis="translateX,rotateY,rotateZ",
-                                   makeAimable = False)
-            mLookAtHandle.masterGroup.parent = mRootParent
-            ml_controlsAll.append(mLookAtHandle)
-    
-        mHandleFactory = mBlock.asHandleFactory()
-        for mCtrl in ml_controlsAll:            
-            if mCtrl.hasAttr('radius'):
-                ATTR.set(mCtrl.mNode,'radius',0)        
-            
-            ml_pivots = mCtrl.msgList_get('spacePivots')
-            if ml_pivots:
-                log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
-                for mPivot in ml_pivots:
-                    mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
-                    ml_controlsAll.append(mPivot)    
-    
-    
-            for mShape in mCtrl.getShapes(asMeta=True):
+            for mShape in mHandle.getShapes(asMeta=True):
                 if not ATTR.get_driver(mShape.mNode,'overrideVisibility'):
-                    ATTR.connect(self.mPlug_visModule.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
-                        
-        #Connections =======================================================================================
-        #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
-        mRigNull.msgList_connect('controlsAll',ml_controlsAll)
-        mRigNull.moduleSet.extend(ml_controlsAll)
+                    ATTR.connect(mPlug_visHelpers.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+                    
+                            
+                
         
-        log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))                
+    #Readers -------------------------------------------------------------------------------------------------
+    log.debug(log_sub(_str_func,"Readers"))
+    ml_readers = []
+    if self.mReaderDriver and self.mReaderParent:
+
+        for k,d in self.md_readers.iteritems():
+            log.debug(log_sub(_str_func,k))
+            
+            mHandle = d['handle']
+            _d = MODULECONTROL.register(mHandle,
+                                        addConstraintGroup=False,
+                                        addSDKGroup = mBlock.buildSDK,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",**d_space)
+            
+            mHandle = _d['mObj']
+            mHandle.masterGroup.parent = mRootParent
+            ml_controlsAll.append(mHandle)
+            ml_readers.append(mHandle)
+            for mShape in mHandle.getShapes(asMeta=True):
+                if not ATTR.get_driver(mShape.mNode,'overrideVisibility'):
+                    ATTR.connect(mPlug_visSetup.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))             
+
+
+
+    if ml_layoutHandles:
+        ATTR.set_message(mRigNull.mNode, 'layoutHandles', [mObj.mNode for mObj in ml_layoutHandles], simple =True, multi=True)
+
+    if ml_readers:
+        ATTR.set_message(mRigNull.mNode, 'readerHandles', [mObj.mNode for mObj in ml_readers], simple =True, multi=True)
+
+
+    """
+    #Settings Parent ==================================================================================
+    if self.mSettingsParent:
+        str_attr = "snapPoint_{0}".format(self.d_module['partName'])
+
+        #Build the network
+        self.mSettingsParent.addAttr(str_attr,enumName = 'off:lock:on',
+                                     defaultValue = 2, value = 0,
+                                     attrType = 'enum',keyable = False,
+                                     hidden = False)
+        str_objName = mHandle.mNode
+        str_driver = self.mSettingsParent.mNode
+        mHandle.overrideEnabled = 1
+        d_ret = NODEFACTORY.argsToNodes("%s.overrideVisibility = if %s.%s > 0"%(str_objName,str_driver,str_attr)).doBuild()
+        log.debug(d_ret)
+        d_ret = NODEFACTORY.argsToNodes("%s.overrideDisplayType = if %s.%s == 2:0 else 2"%(str_objName,str_driver,str_attr)).doBuild()
         
+        for shape in mc.listRelatives(mHandle.mNode,shapes=True,fullPath=True):
+            log.debug(shape)
+            mc.connectAttr("%s.overrideVisibility"%str_objName,"%s.overrideVisibility"%shape,force=True)
+            mc.connectAttr("%s.overrideDisplayType"%str_objName,"%s.overrideDisplayType"%shape,force=True)            
+        """
+
+
+    mHandleFactory = mBlock.asHandleFactory()
+    for mCtrl in ml_controlsAll:            
+        if mCtrl.hasAttr('radius'):
+            ATTR.set(mCtrl.mNode,'radius',0)        
         
-        
-        return 
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        ml_pivots = mCtrl.msgList_get('spacePivots')
+        if ml_pivots:
+            log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
+            for mPivot in ml_pivots:
+                mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+                ml_controlsAll.append(mPivot)    
+
+
+    #Connections =======================================================================================
+    #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    mRigNull.msgList_connect('controlsAll',ml_controlsAll)
+    mRigNull.moduleSet.extend(ml_controlsAll)
+    
+    
+    return 
 
 def rig_frame(self):
-    try:
-        _short = self.d_block['shortName']
-        _str_func = '[{0}] > rig_rigFrame'.format(_short)
-        log.info("|{0}| >> ...".format(_str_func))  
-        _start = time.clock()
-        
-        mBlock = self.mBlock
-        ml_formHandles = mBlock.msgList_get('formHandles')
-        mMainHandle = self.mRootFormHandle#ml_formHandles[0]    
-        mRigNull = self.mRigNull
-        mHandle = mRigNull.handle        
-        log.info("|{0}| >> Found mHandle : {1}".format(_str_func, mHandle))
-        
-        #Changing targets - these change based on how the setup rolls through
-        mDirectDriver = mHandle
-        mAimDriver = mHandle
-        mRootParent = self.mDeformNull
-        
-        if mBlock.parentToDriver:
-            #This was causing issues with toe setup , need to resolve...
-            log.debug("|{0}| >> Parent to driver".format(_str_func))
-            #raise ValueError,"This was causing issues with toe setup , need to resolve..."
-            self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode        
-        
-        #Pivot Setup ========================================================================================
-        if mBlock.getMessage('pivotHelper'):
-            log.info("|{0}| >> Pivot setup...".format(_str_func))
-            
-            mPivotResultDriver = mHandle.doCreateAt()
-            mPivotResultDriver.addAttr('cgmName','pivotResult')
-            mPivotResultDriver.addAttr('cgmType','driver')
-            mPivotResultDriver.doName()
-            
-            mPivotResultDriver.addAttr('cgmAlias', 'PivotResult')
-            
-            mDirectDriver = mPivotResultDriver
-            mAimDriver = mPivotResultDriver
-            mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
-     
-            mBlock.atBlockUtils('pivots_setup', mControl = mHandle, mRigNull = mRigNull, pivotResult = mPivotResultDriver, rollSetup = 'default',
-                                front = 'front', back = 'back')#front, back to clear the toe, heel defaults
-            
+    _short = self.d_block['shortName']
+    _str_func = '[{0}] > rig_controls'.format(_short)
+    log.debug(log_start(_str_func))
     
-        #Aim ========================================================================================
-        if mBlock.addAim:
-            log.info("|{0}| >> Aim setup...".format(_str_func))
-            mSettings = mRigNull.settings
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    _settings = self.mSettings.mNode
+   
+    if mBlock.parentToDriver:
+        #This was causing issues with toe setup , need to resolve...
+        log.debug("|{0}| >> Parent to driver".format(_str_func))
+        #raise ValueError,"This was causing issues with toe setup , need to resolve..."
+        self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
+        
+        
+    #Readers -------------------------------------------------------------------------------------------------
+    log.debug(log_sub(_str_func,"Readers"))
+    if self.mReaderDriver and self.mReaderParent:
+
+        for k,d in self.md_readers.iteritems():
+            log.debug(log_sub(_str_func,k))
             
-            mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
+            mReader = d['handle']
+            # We need to register our attribute...
+            #mPlug = cgmMeta.cgmAttr(_settings, d['attr'], attrType = 'float',
+            #                        hidden = False, lock=True)
             
-            mAimFKJoint = mRigNull.getMessage('aimFKJoint', asMeta=True)[0]
-            mAimIKJoint = mRigNull.getMessage('aimIKJoint', asMeta=True)[0]
-            mAimBlendJoint = mRigNull.getMessage('aimBlendJoint', asMeta=True)[0]
             
-            mDirectDriver = mAimBlendJoint
-            mAimLookAt = mRigNull.lookAtHandle
+            mc.parentConstraint(self.mReaderParent.mNode,
+                                mReader.masterGroup.mNode,
+                                maintainOffset= True)
             
-            ATTR.connect(mPlug_aim.p_combinedShortName, "{0}.v".format(mAimLookAt.mNode))
-            
-            #Setup Aim -------------------------------------------------------------------------------------
-            mc.aimConstraint(mAimLookAt.mNode,
-                             mAimIKJoint.mNode,
-                             maintainOffset = False, weight = 1,
-                             aimVector = self.d_orientation['vectorAim'],
-                             upVector = self.d_orientation['vectorUp'],
-                             worldUpVector = self.d_orientation['vectorUp'],
-                             worldUpObject = mAimDriver.mNode,
-                             worldUpType = 'objectRotation' )
-    
-            #Setup blend ----------------------------------------------------------------------------------
-            RIGCONSTRAINT.blendChainsBy(mAimFKJoint,mAimIKJoint,mAimBlendJoint,
-                                        driver = mPlug_aim.p_combinedName,l_constraints=['orient'])
-            
-            #Parent pass ---------------------------------------------------------------------------------
-            mAimLookAt.masterGroup.parent = mAimDriver
-            
-            for mObj in mAimFKJoint,mAimIKJoint,mAimBlendJoint:
-                mObj.parent = mAimDriver
-    
-        else:
-            log.info("|{0}| >> NO Head IK setup...".format(_str_func))    
+            mHandler = CORRECTIVES.handler(joint= self.mReaderDriver.mNode)
+            mHandler.mReader = mReader
+            mHandler.driven_verify(_settings,d['attr'])
+            mHandler.reader_setup()    
+        
         
     
-        #Direct  ===================================================================================
-        ml_rigJoints = mRigNull.msgList_get('rigJoints')
-        
-        #Parent the direct control to the 
-        if ml_rigJoints[0].getMessage('masterGroup'):
-            ml_rigJoints[0].masterGroup.parent = mDirectDriver
-        else:
-            ml_rigJoints[0].parent = mDirectDriver
+    
+
+
             
-        log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err,msg=vars())
     
 def rig_cleanUp(self):
     _short = self.d_block['shortName']
@@ -1373,124 +1327,20 @@ def rig_cleanUp(self):
     
     mBlock = self.mBlock
     mRigNull = self.mRigNull
-    mHandle = mRigNull.handle            
-    mSettings = mRigNull.settings
+    #mHandle = mRigNull.handle            
+    #mSettings = mRigNull.settings
     
     
-    mMasterControl= self.d_module['mMasterControl']
-    mMasterDeformGroup= self.d_module['mMasterDeformGroup']    
-    mMasterNull = self.d_module['mMasterNull']
-    mModuleParent = self.d_module['mModuleParent']
-    mPlug_globalScale = self.d_module['mPlug_globalScale']
+    #mMasterControl= self.d_module['mMasterControl']
+    #mMasterDeformGroup= self.d_module['mMasterDeformGroup']    
+    #mMasterNull = self.d_module['mMasterNull']
+    #mModuleParent = self.d_module['mModuleParent']
+    #mPlug_globalScale = self.d_module['mPlug_globalScale']
     
     
     #>>  Parent and constraining joints and rig parts =======================================================
     #>>>> mSettings.masterGroup.parent = mHandle
     
-    #>>  DynParentGroups - Register parents for various controls ============================================
-    #>>  DynParentGroups - Register parents for various controls ============================================
-    ml_baseDynParents = []
-    ml_endDynParents = self.ml_dynParentsAbove + self.ml_dynEndParents# + [mRoot]
-    ml_ikDynParents = []
-    
-    
-    #...Handle -----------------------------------------------------------------------------------   
-    ml_targetDynParents = copy.copy(ml_baseDynParents)
-    ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
-    ml_targetDynParents.extend(ml_endDynParents)
-    
-    ml_targetDynParents.append(self.md_dynTargetsParent['world'])
-    
-    mRoot = mRigNull.getMessageAsMeta('rigRoot')
-    if mRoot:
-        mDynGroup = mRoot.getMessageAsMeta('dynParentGroup')
-        mDynGroup.dynMode = 0
-        for o in ml_targetDynParents:
-            mDynGroup.addDynParent(o)
-        mDynGroup.rebuild()
-        
-        ml_targetDynParents.insert(0,mRoot)
-    
-    #...don't add space pivots till here    
-    ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
-    
-    #Add our parents
-    mDynGroup = mHandle.getMessageAsMeta('dynParentGroup')
-    if mDynGroup:
-        log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-        mDynGroup.dynMode = 0
-    
-        for o in ml_targetDynParents:
-            mDynGroup.addDynParent(o)
-        mDynGroup.rebuild()
-    else:
-        mc.parentConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
-                            mHandle.masterGroup.mNode,maintainOffset = True)
-        mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
-                            mHandle.masterGroup.mNode,maintainOffset = True)
-    #mDynGroup.dynFollow.parent = mMasterDeformGroup
-    
-    
-    #Direct ---------------------------------------------------------------------------------------------
-    if mBlock.spaceSwitch_direct:
-        for mControl in mRigNull.msgList_get('rigJoints'):
-            _short_direct = mControl.p_nameBase
-            if mControl.getMessage('dynParentGroup'):
-                log.info("|{0}| >> Direct control: {1}".format(_str_func,_short_direct))
-                ml_directHandleDynParents = copy.copy(ml_baseDynParents)
-                ml_directHandleDynParents.extend(ml_endDynParents)
-                
-                mDriver = mControl.masterGroup.getParent(asMeta=True)
-                if mDriver:
-                    ml_directHandleDynParents.insert(0, mDriver)
-                    if not mDriver.hasAttr('cgmAlias'):
-                        mDriver.addAttr('cgmAlias',_short_direct + '_driver')
-                    
-                mDynGroup = mControl.dynParentGroup
-                log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-                mDynGroup.dynMode = 0
-            
-                for o in ml_directHandleDynParents:
-                    mDynGroup.addDynParent(o)
-                mDynGroup.rebuild()        
-
-    
-    #...look at ------------------------------------------------------------------------------------------
-    if mRigNull.getMessage('lookAtHandle'):
-        log.info("|{0}| >> LookAt setup...".format(_str_func))
-        
-        mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
-        
-
-        mHeadLookAt = mRigNull.lookAtHandle        
-        mHeadLookAt.setAttrFlags(attrs='v')
-        
-        #...dynParentGroup...
-        ml_headLookAtDynParents = copy.copy(ml_baseDynParents)
-        ml_headLookAtDynParents.extend(mHeadLookAt.msgList_get('spacePivots',asMeta = True))
-        ml_headLookAtDynParents.extend(ml_baseDynParents_end)
-        
-        ml_headLookAtDynParents.insert(0, mHandle)
-        
-        
-        mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
-        if mPivotResultDriver:
-            ml_headLookAtDynParents.insert(0, mPivotResultDriver)
-
-            
-        #mHandle.masterGroup.addAttr('cgmAlias','headRoot')
-        
-        #Add our parents...
-        mDynGroup = mHeadLookAt.dynParentGroup
-        log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-    
-        for o in ml_headLookAtDynParents:
-            mDynGroup.addDynParent(o)
-        mDynGroup.rebuild()
-        
-
-    #>>  Lock and hide ======================================================================================
-    mHandle.visDirect = 0
     
     #>>  Attribute defaults =================================================================================
     

@@ -3608,6 +3608,7 @@ class rigFactory(object):
         _start = time.clock()
 
         _blockType = self.mBlock.blockType
+        _buildModule = self.buildModule
 
         if _blockType in ['master']:
             return True
@@ -3627,11 +3628,12 @@ class rigFactory(object):
         self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint,idx=_attachIdx )        
 
         if not self.mModule.getMessage('deformNull'):
-            if self.d_block['b_faceBlock'] or _blockType in ['eyeMain']:
-                log.debug("|{0}| >> Face deformNull".format(_str_func))
+            if self.d_block['b_faceBlock'] or _blockType in ['eyeMain','corrective']:
+                log.debug("|{0}| >> special deformNull".format(_str_func))
                 mGrp = self.attachPoint.doCreateAt(setClass=True)
                 self.mModule.connectChildNode(mGrp,'constrainNull','module')
                 mGrp.parent = self.attachPoint
+                
             else:
                 #Make it and link it
                 buffer =  CORERIG.group_me(_ml_skinJoints[0].mNode,False)
