@@ -351,10 +351,16 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                         mc.select(cl=True)
                         if v == None:
                             v = []
+                            
                         if a == 'loftList':
                             enum = BLOCKSHARE._d_attrsTo_make['loftShape']
                         elif a == 'correctiveLayout':
                             enum = BLOCKSHARE._d_attrsTo_make['correctiveLayout']
+                        elif a == 'correctiveDirection':
+                            enum = BLOCKSHARE._d_attrsTo_make['correctiveDirection']
+                        elif a == 'correctiveSetup':
+                            enum = BLOCKSHARE._d_attrsTo_make['correctiveSetup']
+                            
                         elif a == 'readerKey':
                             enum = BLOCKSHARE._d_attrsTo_make['readerKey']
                         elif a == 'readerType':
@@ -6699,7 +6705,8 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         if report:pprint.pprint(l)
         _tmp = []
         for s in l:
-            if s.endswith('List') or s in ['numSubShapers','rollCount','readerKey','readerType','correctiveLayout']:
+            if s.endswith('List') or s in ['numSubShapers','rollCount','readerKey','readerType',
+                                           'correctiveLayout','correctiveDirection','correctiveSetup']:
                 if ATTR.datList_exists(_short,s):
                     for s2 in ATTR.datList_getAttrs(_short,s):
                         _tmp.append(s2)
@@ -8696,7 +8703,10 @@ def blockProfile_load(self, arg):
             if issubclass(_typeDat,list) or _datList:
                 log.debug("|{0}| datList...".format(_str_func))
                 
-                if a in ['loftList','correctiveLayout','readerKey','readerType']:
+                if a in ['loftList',
+                         'correctiveLayout','correctiveDirection','correctiveSetup',
+                         'readerKey','readerType']:
+                    """
                     if a == 'correctiveLayout':
                         enum = BLOCKSHARE._d_attrsTo_make['correctiveLayout']
                     elif a == 'readerKey':
@@ -8704,8 +8714,13 @@ def blockProfile_load(self, arg):
                     elif a == 'readerType':
                         enum = BLOCKSHARE._d_attrsTo_make['readerType']
                     else:
+                        enum = BLOCKSHARE._d_attrsTo_make['loftShape']"""
+                    #log.info(enum)
+                    #log.info(a)
+                    if a == ['loftList']:
                         enum = BLOCKSHARE._d_attrsTo_make['loftShape']
-                
+                    else:
+                        enum = BLOCKSHARE._d_attrsTo_make[a]
                     ATTR.datList_connect(_short, a, v, 
                                          mode='enum',enum= enum)
                 else:

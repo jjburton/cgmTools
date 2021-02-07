@@ -99,7 +99,8 @@ d_build_profiles = {'unityLow':{'default':{}},
 
 
 d_attrStateMask = {'define':['readerDriver','readerParent',
-                             'correctiveLayout','readerKey','readerType'],
+                             'correctiveLayout','readerKey','readerType',
+                             'correctivesetup','correctiveDirection'],
                    'form':['loftList','basicShape','proxyShape','proxyType','shapersAim'],
                    'prerig':[],
                    'skeleton':['hasJoint'],
@@ -110,8 +111,11 @@ d_attrStateMask = {'define':['readerDriver','readerParent',
 d_block_profiles = {
     'hingeSimple':{
     'basicShape':'cube',
-    'correctiveLayout':['upDown'],
-    'readerKey':['posFwd'],
+    'correctiveLayout':['single','single'],
+    'correctiveDirection':['up','down'],
+    'correctiveSetup':['simpleBlend','simpleBlend'],
+    
+    'readerKey':['fwdPos'],
     'readerType':['alignMatrix'],
     'cgmName':'hinge'},}
 
@@ -120,6 +124,10 @@ d_block_profiles = {
 #>> Attrs 
 #=============================================================================================================
 l_correctiveLayouts = BLOCKSHARE.l_correctiveLayouts#['upDown','outs','hipRight','hipLeft', 'shoulderRight','shoulderLeft']
+l_correctiveDirections = BLOCKSHARE.l_correctiveDirections
+l_correctiveSetups = BLOCKSHARE.l_correctiveSetups 
+
+
 l_readerPlugs = BLOCKSHARE.l_readerPlugs# ['posFwd','negFwd','posSide','negSide','posTwist','negTwist']
 l_readerTypes = BLOCKSHARE.l_readerTypes# ['none','alignMatrix']
 
@@ -139,11 +147,22 @@ l_attrsStandard = ['side',
                    'scaleSetup',                   
                    'visProximityMode',
                    'shapeDirection',
-                   'meshBuild',                   
+                   'meshBuild',
+                   
+                   #'correctiveLayout',
+                   #'correctiveDirection',
+                   #'correctiveSetup',
+                   
+                   #'readerKey',
+                   #'readerType',
+                   
                    'moduleTarget']
 
 d_attrsToMake = {'parentToDriver':'bool',
                  'correctiveLayout':"enumDatList",
+                 'correctiveDirection':"enumDatList",
+                 'correctiveSetup':"enumDatList",
+                 
                  'readerKey':'enumDatList',
                  'readerType':"enumDatList",
                  'readerKeyOverride':'string',
@@ -159,8 +178,11 @@ d_defaultSettings = {'version':__version__,
                      'attachPoint':'closest',
                      'visLabels':True,
                      'jointRadius':.1,
-                     'correctiveLayout':['upDown'],
-                     'readerKey':['posFwd'],
+                     'correctiveLayout':['single'],
+                     'correctiveDirection':['up'],
+                     'correctiveSetup':['simpleBlend'],
+                     
+                     'readerKey':['fwdPos'],
                      'readerType':['alignMatrix'],                     
                      'meshBuild':False,
                      'proxyType':1}
@@ -265,7 +287,6 @@ def get_readerParentModuleTarget(self,mode='driver'):
         _closestJoint = DIST.get_closestTarget(self.readerParent.mNode, l_targetJoints)
         return cgmMeta.asMeta(_closestJoint)
     
-    
 
 def readerParent_set(self,target = None):
     _str_func = 'readerParent_set'
@@ -314,8 +335,8 @@ def driver_set(self,target = None):
     #Name... ---------------------------------------
     self.side = mTargetParent.side
     
-    str_name = "{0}_{1}".format(CORENAMES.get_combinedNameDict(mTarget.mNode,
-                                                               ignore = ['cgmType','cgmDirection']),self.blockProfile)
+    str_name = "{0}".format(CORENAMES.get_combinedNameDict(mTarget.mNode,
+                                                           ignore = ['cgmType','cgmDirection','cgmType']))
     self.doStore('cgmName',str_name)
     self.doName()
 
@@ -334,8 +355,9 @@ def layout_add(self,lType = None):
     _short = self.p_nameShort
     
     i = ATTR.get_nextAvailableSequentialAttrIndex(_short,'correctiveLayout')
-    str_attr = "correctiveLayout_{0}".format(i)
-    self.addAttr(str_attr,initialValue = lType, attrType = 'enum', enumName= ":".join(l_correctiveLayouts), keyable = False)
+    self.addAttr("correctiveLayout_{0}".format(i),initialValue = lType, attrType = 'enum', enumName= ":".join(l_correctiveLayouts), keyable = False)
+    self.addAttr("correctiveDirection_{0}".format(i), attrType = 'enum', enumName= ":".join(l_correctiveDirections), keyable = False)
+    self.addAttr("correctiveSetup_{0}".format(i), attrType = 'enum', enumName= ":".join(l_correctiveSetups), keyable = False)
     
 def reader_add(self,rType = None):
     _str_func = 'reader_add'
@@ -589,11 +611,14 @@ def prerig(self):
     
     # Process...===================================================================================
     _l_layouts = self.datList_get('correctiveLayout',enum=True)
+    _l_directions = self.datList_get('correctiveDirection',enum=True)
+    
     for i,l in enumerate(_l_layouts):
         log.info(log_msg(_str_func,l))
         
         _d = {'dag':mDriver.mNode,
               'layout':l,
+              'direction':_l_directions[i],
               'castMesh':_mesh,
               "loc":0}
         
@@ -619,7 +644,7 @@ def prerig(self):
             ml_dags.append(mDagHelper)
             
             mDagHelper.doStore('cgmName',n)            
-            mDagHelper.doStore('cgmNameModifier',l)
+            #mDagHelper.doStore('cgmNameModifier',l)
             mDagHelper.doStore('cgmType','dag')
             mHandleFactory.copyBlockNameTags(mDagHelper)      
             #mDagHelper.doName()
@@ -662,7 +687,7 @@ def prerig(self):
                 
             
             mShapeHandle.doStore('cgmName',n)            
-            mShapeHandle.doStore('cgmNameModifier',l)
+            #mShapeHandle.doStore('cgmNameModifier',l)
             mShapeHandle.doStore('cgmType','handle')
             mHandleFactory.copyBlockNameTags(mShapeHandle)
         
@@ -834,8 +859,9 @@ def skeleton_build(self, forceNew = True):
     ml_joints = []
     for i,l in enumerate(_l_layouts):
         log.info(log_msg(_str_func,l))
+        #ml = cgmMeta.validateObjListArg( self.prerigNull.getMessage('handleDags_{0}'.format(i)) )
         
-        for mDag in self.prerigNull.getMessageAsMeta('handleDags_{0}'.format(i)):
+        for mDag in self.prerigNull.getMessageAsMeta('handleDags_{0}'.format(i), asList=1):
             mJoint = mDag.doCreateAt('joint')
             mJoint.doCopyNameTagsFromObject(mDag.mNode,ignore = ['cgmType'])
             mJoint.doStore('cgmType','skinJoint')
@@ -942,7 +968,7 @@ def rig_dataBuffer(self):
             _d['shapes'] = []
             _d['names'] = []
             
-            for mDag in mPrerigNull.getMessageAsMeta('handleDags_{0}'.format(i)):
+            for mDag in mPrerigNull.getMessageAsMeta('handleDags_{0}'.format(i),asList=1):
                 _d['dags'].append(mDag)
                 _d['shapes'].append(mDag.shapeHelper)
                 _d['names'].append("{0}_{1}".format(_str_driver, mDag.cgmName))
@@ -1059,6 +1085,10 @@ def rig_shapes(self):
         
         self.md_layouts[k]['handles'] = []
         l = self.md_layouts[k]['handles']
+        
+        self.md_layouts[k]['sdkShapes'] = []
+        l_shapes = self.md_layouts[k]['sdkShapes']
+        
         for i,mDag in enumerate(d['dags']):
             
             mHandle = mDag.getMessageAsMeta('skinJoint').getMessageAsMeta('rigJoint')
@@ -1079,7 +1109,12 @@ def rig_shapes(self):
             try:
                 mHandle.drawStyle =2
             except:
-                mHandle.radius = .00001                   
+                mHandle.radius = .00001
+                
+            #SDK Shape -----------------------------------------------------
+            mShape = mDag.doDuplicate(po=False, ic=False)
+            mShape.p_parent = False
+            l_shapes.append(mShape)
         
     #...
     log.debug(log_sub(_str_func,"Readers"))
@@ -1181,7 +1216,7 @@ def rig_controls(self):
         for i,mHandle in enumerate(d['handles']):
             _d = MODULECONTROL.register(mHandle,
                                         addConstraintGroup=False,
-                                        addSDKGroup = mBlock.buildSDK,
+                                        addSDKGroup = True,
                                         mirrorSide= self.d_module['mirrorDirection'],
                                         mirrorAxis="translateX,rotateY,rotateZ",**d_space)
             
@@ -1193,7 +1228,14 @@ def rig_controls(self):
             for mShape in mHandle.getShapes(asMeta=True):
                 if not ATTR.get_driver(mShape.mNode,'overrideVisibility'):
                     ATTR.connect(mPlug_visHelpers.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
-                    
+            
+            #SDK Shape
+            mSDKGroup = mHandle.sdkGroup
+            CORERIG.shapeParent_in_place(mSDKGroup.mNode, self.md_layouts[k]['sdkShapes'][i].mNode, False)
+            for mShape in mSDKGroup.getShapes(asMeta=True):
+                if not ATTR.get_driver(mShape.mNode,'overrideVisibility'):
+                    ATTR.connect(mPlug_visSetup.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                         
+            
                             
                 
         
@@ -1575,8 +1617,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
 
 
 
-
-
+#Make this work off the moduleTarget --------------------------------------------------------------------------
+def sdkPose_set(self, key = None):
+    _str_func = 'sdkPose_set'
+    log.debug(log_start(_str_func))
+        
+    
 
 
  

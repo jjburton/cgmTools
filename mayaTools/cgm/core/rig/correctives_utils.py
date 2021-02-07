@@ -245,21 +245,25 @@ def layout_getPoints(dag = None,
                      #axisUp = 'y+',
                      castMesh = None,
                      orient = 'zyx',
-                     layout = 'upDown',
+                     layout = 'single',
+                     direction = 'up',
                      offset = -.3,
-                     loc = False,
+                     loc = True,
+                     mode = 'default',
                      name = 'posX'):
     _str_func = 'layout_getPoints'
     log.debug(log_start(_str_func))
     
-    _d = d_layouts.get(layout)
-    if not _d:
-        raise ValueError,log_msg(_str_func,"Unknown layout: {0}".format(layout))
+
     mDag= cgmMeta.validateObjArg(dag,default_mType='cgmObject')
     
-    _mode = _d.get('mode','default')
+    #_mode = _d.get('mode','default')
     _res = {}
-    if _mode == 'default':
+    if mode == 'prototype':
+        _d = d_layouts.get(layout)
+        if not _d:
+            raise ValueError,log_msg(_str_func,"Unknown layout: {0}".format(layout))
+        
         _names = _d['names']
         _directions = _d['directions']
         _offset = _d.get('offset',offset)
@@ -276,10 +280,34 @@ def layout_getPoints(dag = None,
                               locDat=0)           
             pprint.pprint(_cast)
             _res[n] = _cast['near']
+    
+    elif mode == 'default':
+        log.debug(log_sub(_str_func,mode))
+        
+        _dirs = {'up':'y+',
+                 'down':'y-',
+                 'outPos':'x+',
+                 'outNeg':'x-',
+                 'forward':'z+',
+                 'back':'z-',
+                 }
+        
+        _dir = _dirs[direction]
+        
+        if layout == 'single':
+            _cast = RAYS.cast(mesh = castMesh, obj = mDag.mNode, axis = _dir,
+                              maxDistance = 10000, firstHit = True,
+                              offsetMode = 'normal', offsetDistance = offset,
+                              locDat=0)           
+            pprint.pprint(_cast)
+            _res["{0}_{1}".format(layout,direction)] = _cast['near']
+        else:
+            raise ValueError,log_msg(_str_func,"Unknown layout: {0}".format(layout))
+            
             
         
     else:
-        raise ValueError,log_msg(_str_func,"Unknown mode: {0}".format(_mode))
+        raise ValueError,log_msg(_str_func,"Unknown mode: {0}".format(mode))
         
     pprint.pprint(_res)
     
