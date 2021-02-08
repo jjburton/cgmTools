@@ -114,6 +114,7 @@ d_block_profiles = {
     'correctiveLayout':['single','single'],
     'correctiveDirection':['up','down'],
     'correctiveSetup':['simpleBlend','simpleBlend'],
+    'correctiveAttach':['driver','driverParent'],
     
     'readerKey':['fwdPos'],
     'readerType':['alignMatrix'],
@@ -126,6 +127,7 @@ d_block_profiles = {
 l_correctiveLayouts = BLOCKSHARE.l_correctiveLayouts#['upDown','outs','hipRight','hipLeft', 'shoulderRight','shoulderLeft']
 l_correctiveDirections = BLOCKSHARE.l_correctiveDirections
 l_correctiveSetups = BLOCKSHARE.l_correctiveSetups 
+l_correctiveAttach = BLOCKSHARE.l_correctiveAttach 
 
 
 l_readerPlugs = BLOCKSHARE.l_readerPlugs# ['posFwd','negFwd','posSide','negSide','posTwist','negTwist']
@@ -162,6 +164,7 @@ d_attrsToMake = {'parentToDriver':'bool',
                  'correctiveLayout':"enumDatList",
                  'correctiveDirection':"enumDatList",
                  'correctiveSetup':"enumDatList",
+                 'correctiveAttach':"enumDatList",
                  
                  'readerKey':'enumDatList',
                  'readerType':"enumDatList",
@@ -212,10 +215,10 @@ def uiBuilderMenu(self,parent = None):
     
     mUI.MelMenuItem(parent, ann = '[{0}] Set Driver'.format(_short),
                 c = cgmGEN.Callback(driver_set,self),
-                label = "Set Driver")
+                label = "Set Reader Driver")
     mUI.MelMenuItem(parent, ann = '[{0}] Clear Driver'.format(_short),
                 c = cgmGEN.Callback(driver_clear,self),
-                label = "Clear Driver")
+                label = "Clear Reader Driver")
     
     mUI.MelMenuItem(parent, ann = '[{0}] Set Reader Parent'.format(_short),
                 c = cgmGEN.Callback(readerParent_set,self),
@@ -612,6 +615,7 @@ def prerig(self):
     # Process...===================================================================================
     _l_layouts = self.datList_get('correctiveLayout',enum=True)
     _l_directions = self.datList_get('correctiveDirection',enum=True)
+    _l_attaches = self.datList_get('correctiveAttach',enum=True)
     
     for i,l in enumerate(_l_layouts):
         log.info(log_msg(_str_func,l))
@@ -642,9 +646,16 @@ def prerig(self):
             mDagHelper.p_orient = mDriver.p_orient
             mDagHelper.p_parent = mStateNull
             ml_dags.append(mDagHelper)
+                        
+            mFollow = get_readerParentModuleTarget(self, _l_attaches[i])
+            
+            str_name = "{0}".format(CORENAMES.get_combinedNameDict(mFollow.mNode,
+                                                                   ignore = ['cgmType','cgmDirection','cgmType']))
+            
+            
             
             mDagHelper.doStore('cgmName',n)            
-            #mDagHelper.doStore('cgmNameModifier',l)
+            mDagHelper.doStore('cgmNameModifier',str_name)
             mDagHelper.doStore('cgmType','dag')
             mHandleFactory.copyBlockNameTags(mDagHelper)      
             #mDagHelper.doName()
@@ -687,7 +698,7 @@ def prerig(self):
                 
             
             mShapeHandle.doStore('cgmName',n)            
-            #mShapeHandle.doStore('cgmNameModifier',l)
+            mShapeHandle.doStore('cgmNameModifier',str_name)
             mShapeHandle.doStore('cgmType','handle')
             mHandleFactory.copyBlockNameTags(mShapeHandle)
         
@@ -841,8 +852,8 @@ def skeleton_build(self, forceNew = True):
     if not l_targetJoints:
         raise ValueError,"mParentModule has no module joints."    
     
-    _closestJoint = DIST.get_closestTarget(self.mNode, l_targetJoints)
-    mParentJoint = cgmMeta.asMeta(_closestJoint)
+    #_closestJoint = DIST.get_closestTarget(self.mNode, l_targetJoints)
+    #mParentJoint = cgmMeta.asMeta(_closestJoint)
 
     #>> If skeletons there, delete ------------------------------------------------------------------------ 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
@@ -856,6 +867,9 @@ def skeleton_build(self, forceNew = True):
     
     # Process...===================================================================================
     _l_layouts = self.datList_get('correctiveLayout',enum=True)
+    _l_attaches = self.datList_get('correctiveAttach',enum=True)
+    
+        
     ml_joints = []
     for i,l in enumerate(_l_layouts):
         log.info(log_msg(_str_func,l))
@@ -866,8 +880,9 @@ def skeleton_build(self, forceNew = True):
             mJoint.doCopyNameTagsFromObject(mDag.mNode,ignore = ['cgmType'])
             mJoint.doStore('cgmType','skinJoint')
             mJoint.doName()
-            
-            mJoint.p_parent = mParentJoint
+                        
+            mFollow = get_readerParentModuleTarget(self, _l_attaches[i])
+            mJoint.p_parent = mFollow
             
             JOINTS.freezeOrientation(mJoint)
             
@@ -958,7 +973,8 @@ def rig_dataBuffer(self):
         md_layouts = {}
         
         _l_layouts = mBlock.datList_get('correctiveLayout',enum=True)
-        
+        _l_attaches = mBlock.datList_get('correctiveAttach',enum=True)
+                
         for i,l in enumerate(_l_layouts):
             log.info(log_msg(_str_func,l))
             md_layouts["{0}_{1}".format(l,i)] = {}
@@ -967,6 +983,8 @@ def rig_dataBuffer(self):
             _d['dags'] = []
             _d['shapes'] = []
             _d['names'] = []
+            _d['attach'] = get_readerParentModuleTarget(mBlock, _l_attaches[i])
+
             
             for mDag in mPrerigNull.getMessageAsMeta('handleDags_{0}'.format(i),asList=1):
                 _d['dags'].append(mDag)
@@ -1332,7 +1350,24 @@ def rig_frame(self):
         self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
         
         
+    for k,d in self.md_layouts.iteritems():
+        log.debug(log_sub(_str_func,k))
+        
+        for i,mHandle in enumerate(d['handles']):            
+            if d['attach'] != self.mReaderDriver:
+                mc.parentConstraint(d['attach'].mNode,
+                                    mHandle.masterGroup.mNode,
+                                    maintainOffset= True)
+                
+
+            
+            
     #Readers -------------------------------------------------------------------------------------------------
+    _str_orientation = self.d_orientation['str']
+    
+    d_setReader = {'fwdPos':{'attr':"r{0}".format(_str_orientation[2]),
+                             'value':90}}
+    
     log.debug(log_sub(_str_func,"Readers"))
     if self.mReaderDriver and self.mReaderParent:
 
@@ -1352,7 +1387,10 @@ def rig_frame(self):
             mHandler = CORRECTIVES.handler(joint= self.mReaderDriver.mNode)
             mHandler.mReader = mReader
             mHandler.driven_verify(_settings,d['attr'])
-            mHandler.reader_setup()    
+            mHandler.reader_setup()
+            
+            _d2 = d_setReader[ d['key'] ]
+            ATTR.set(mReader.mNode, **_d2 )
         
         
     
@@ -1617,10 +1655,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
 
 
 
-#Make this work off the moduleTarget --------------------------------------------------------------------------
 def sdkPose_set(self, key = None):
+    #Make this work off the module target if possible  --------------------------------------------------------------------------
+    
     _str_func = 'sdkPose_set'
     log.debug(log_start(_str_func))
+    
+    md = {'key':['handles']}
         
     
 

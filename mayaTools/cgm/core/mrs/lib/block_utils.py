@@ -347,28 +347,34 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                             v = []
                         ATTR.datList_connect(_short, a, v, mode='string')
                 elif t == 'enumDatList':
+                    
+                    if a == 'loftList':
+                        enum = BLOCKSHARE._d_attrsTo_make['loftShape']
+                    elif a == 'correctiveLayout':
+                        enum = BLOCKSHARE._d_attrsTo_make['correctiveLayout']
+                    elif a == 'correctiveDirection':
+                        enum = BLOCKSHARE._d_attrsTo_make['correctiveDirection']
+                    elif a == 'correctiveSetup':
+                        enum = BLOCKSHARE._d_attrsTo_make['correctiveSetup']
+                    elif a == 'correctiveAttach':
+                        enum = BLOCKSHARE._d_attrsTo_make['correctiveAttach']                            
+                    elif a == 'readerKey':
+                        enum = BLOCKSHARE._d_attrsTo_make['readerKey']
+                    elif a == 'readerType':
+                        enum = BLOCKSHARE._d_attrsTo_make['readerType']
+                        
+                    else:
+                        enum = 'off:on'                    
+                    
                     if forceReset or not ATTR.datList_exists(_short,a,mode='enum'):
                         mc.select(cl=True)
                         if v == None:
                             v = []
+                    else:
+                        v = ATTR.datList_get(_short,a,mode='enum')
                             
-                        if a == 'loftList':
-                            enum = BLOCKSHARE._d_attrsTo_make['loftShape']
-                        elif a == 'correctiveLayout':
-                            enum = BLOCKSHARE._d_attrsTo_make['correctiveLayout']
-                        elif a == 'correctiveDirection':
-                            enum = BLOCKSHARE._d_attrsTo_make['correctiveDirection']
-                        elif a == 'correctiveSetup':
-                            enum = BLOCKSHARE._d_attrsTo_make['correctiveSetup']
-                            
-                        elif a == 'readerKey':
-                            enum = BLOCKSHARE._d_attrsTo_make['readerKey']
-                        elif a == 'readerType':
-                            enum = BLOCKSHARE._d_attrsTo_make['readerType']
-                            
-                        else:
-                            enum = 'off:on'
-                        ATTR.datList_connect(_short, a, v, mode='enum',enum=enum)                    
+                        
+                    ATTR.datList_connect(_short, a, v, mode='enum',enum=enum)                    
                 elif t == 'float3':
                     #checkType(a,'float3')
                     if not self.hasAttr(a):
@@ -8704,7 +8710,7 @@ def blockProfile_load(self, arg):
                 log.debug("|{0}| datList...".format(_str_func))
                 
                 if a in ['loftList',
-                         'correctiveLayout','correctiveDirection','correctiveSetup',
+                         'correctiveLayout','correctiveDirection','correctiveSetup','correctiveAttach',
                          'readerKey','readerType']:
                     """
                     if a == 'correctiveLayout':

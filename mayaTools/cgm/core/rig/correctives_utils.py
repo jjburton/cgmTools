@@ -254,7 +254,6 @@ def layout_getPoints(dag = None,
     _str_func = 'layout_getPoints'
     log.debug(log_start(_str_func))
     
-
     mDag= cgmMeta.validateObjArg(dag,default_mType='cgmObject')
     
     #_mode = _d.get('mode','default')
