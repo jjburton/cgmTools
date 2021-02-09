@@ -100,7 +100,7 @@ d_build_profiles = {'unityLow':{'default':{}},
 
 d_attrStateMask = {'define':['readerDriver','readerParent',
                              'correctiveLayout','readerKey','readerType',
-                             'correctivesetup','correctiveDirection'],
+                             'correctiveSetup','correctiveDirection'],
                    'form':['loftList','basicShape','proxyShape','proxyType','shapersAim'],
                    'prerig':[],
                    'skeleton':['hasJoint'],
@@ -118,7 +118,27 @@ d_block_profiles = {
     
     'readerKey':['fwdPos'],
     'readerType':['alignMatrix'],
-    'cgmName':'hinge'},}
+    'cgmName':'hinge'},
+    
+    'ankle':{
+    'basicShape':'cube',
+    'correctiveLayout':['single','single','single','single'],
+    'correctiveDirection':['outPos','outNeg','forward','back'],
+    'correctiveSetup':['simpleBlend','simpleBlend','simpleBlend','simpleBlend'],
+    'correctiveAttach':['driver','driver','driver','driver'],
+    
+    'readerKey':['fwdPos','fwdNeg','sideIn','sideOut'],
+    'readerType':['alignMatrix'],
+    'cgmName':'ankle'},
+    
+    'heel':{
+    'basicShape':'cube',
+    'correctiveLayout':['single'],
+    'correctiveDirection':['down'],
+    'correctiveSetup':['none'],
+    'correctiveAttach':['driver',],
+    'cgmName':'heel'},    
+}
 
 
 #=============================================================================================================
@@ -224,6 +244,10 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(readerParent_set,self),
                 label = "Set Reader Parent")
     
+    mUI.MelMenuItem(parent, ann = '[{0}] Verify Reader Attrs'.format(_short),
+                c = cgmGEN.Callback(readers_checkAttrs,self),
+                label = "Verify Reader Attrs")
+    
     mUI.MelMenuItem(parent, en=True,divider = True,
                 label = "Utilities")
     
@@ -239,7 +263,10 @@ def uiBuilderMenu(self,parent = None):
     for a in l_readerPlugs + ['custom']:
         mUI.MelMenuItem(mReaders, ann = '[{0}] Add Reader: {1}'.format(_short,a),
                     c = cgmGEN.Callback(reader_add,self,a),
-                    label = a)        
+                    label = a)
+        
+        
+        
         
     
     """
@@ -342,6 +369,19 @@ def driver_set(self,target = None):
                                                            ignore = ['cgmType','cgmDirection','cgmType']))
     self.doStore('cgmName',str_name)
     self.doName()
+
+def readers_checkAttrs(self):
+    _str_func = 'readers_checkAttrs'
+    log.debug(log_start(_str_func))
+    
+    _l_keys = self.datList_get('readerKey',enum=True)
+    
+    for i,l in enumerate(_l_keys):
+        log.info(log_msg(_str_func,l))
+        
+        _attr = 'readerType_{0}'.format(i)
+        if not self.getMayaAttr(_attr):
+            self.addAttr(_attr,initialValue = 1, attrType = 'enum', enumName= ":".join(l_readerTypes), keyable = False)    
 
 def driver_clear(self):
     l_constraints = self.getConstraintsTo()
@@ -1000,13 +1040,20 @@ def rig_dataBuffer(self):
         
         for i,l in enumerate(_l_keys):
             log.info(log_msg(_str_func,l))
+                
             md_readers["{0}_{1}".format(l,i)] = {}
             _d = md_readers["{0}_{1}".format(l,i)]
+            
+            if not mBlock.getMayaAttr('readerType_{0}'.format(i)):
+                continue            
             
             _d['type'] = mBlock.getEnumValueString('readerType_{0}'.format(i))
             _d['key'] = l
             _d['attr'] = "{0}_{1}".format(_str_driver, l)
             _d['name'] = "{0}_{1}_{2}".format(_str_driver,l,_d['type'])
+            
+            if 'twist' in l:
+                _d['twistDriver'] = True
         self.md_readers = md_readers
         pprint.pprint(md_readers)        
         
@@ -1059,11 +1106,12 @@ def rig_skeleton(self):
     for mJnt in ml_joints:
         mJnt.segmentScaleCompensate = 0
     
-    reload(BLOCKUTILS)
+    #reload(BLOCKUTILS)
     ml_rigJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints, 'rig', self.mRigNull,'rigJoints','rig')
     
     for mJnt in ml_rigJoints:
         mJnt.p_parent = False
+                
 
     
     #...joint hide -----------------------------------------------------------------------------------
@@ -1088,6 +1136,7 @@ def rig_shapes(self):
     
     mBlock = self.mBlock
     mRigNull = self.mRigNull
+    _str_orientation = self.d_orientation['str']
     
     #Get our base size from the block
     _side = BLOCKUTILS.get_side(self.mBlock)
@@ -1165,8 +1214,28 @@ def rig_shapes(self):
             try:
                 mReader.drawStyle =2
             except:
-                mReader.radius = .00001                
-            
+                mReader.radius = .00001
+
+            if d.get('twistDriver'):
+                log.debug(log_msg(_str_func,'Twist Driver!'))
+                
+                mTwistReader = mReader.doCreateAt()
+                mTwistTargetReader = mReader.doCreateAt()
+                
+                mTwistReader.rename("{0}_twistReader".format(mReader.p_nameBase))
+                mTwistTargetReader.rename("{0}_twistTarget".format(mReader.p_nameBase))
+                
+                pos = mReader.getPositionByAxisDistance('{0}+'.format(_str_orientation[2]), mBlock.jointRadius)
+                
+                SNAP.aim_atPoint(mTwistReader.mNode, pos, '{0}+'.format(_str_orientation[0]), '{0}+'.format(_str_orientation[1]))
+                SNAP.aim_atPoint(mTwistTargetReader.mNode, pos, '{0}+'.format(_str_orientation[0]), '{0}+'.format(_str_orientation[1]))
+                
+                d['twistReader'] = mTwistReader
+                d['twistTarget'] = mTwistTargetReader
+                
+                mTwistTargetReader.p_parent = self.mReaderDriver
+                mTwistReader.p_parent = mReader
+
 
 
     """
@@ -1268,7 +1337,7 @@ def rig_controls(self):
             mHandle = d['handle']
             _d = MODULECONTROL.register(mHandle,
                                         addConstraintGroup=False,
-                                        addSDKGroup = mBlock.buildSDK,
+                                        #addSDKGroup = mBlock.buildSDK,
                                         mirrorSide= self.d_module['mirrorDirection'],
                                         mirrorAxis="translateX,rotateY,rotateZ",**d_space)
             
@@ -1361,12 +1430,23 @@ def rig_frame(self):
                 
 
             
-            
+
     #Readers -------------------------------------------------------------------------------------------------
     _str_orientation = self.d_orientation['str']
     
     d_setReader = {'fwdPos':{'attr':"r{0}".format(_str_orientation[2]),
-                             'value':90}}
+                             'value':90},
+                   'fwdNeg':{'attr':"r{0}".format(_str_orientation[2]),
+                             'value':-90},
+                   'sideIn':{'attr':"r{0}".format(_str_orientation[1]),
+                             'value':90},
+                   'sideOut':{'attr':"r{0}".format(_str_orientation[1]),
+                              'value':-90},
+                   'twistIn':{'attr':"r{0}".format(_str_orientation[0]),
+                              'value':90},
+                   'twistOut':{'attr':"r{0}".format(_str_orientation[0]),
+                               'value':-90},                   
+                   }
     
     log.debug(log_sub(_str_func,"Readers"))
     if self.mReaderDriver and self.mReaderParent:
@@ -1384,13 +1464,19 @@ def rig_frame(self):
                                 mReader.masterGroup.mNode,
                                 maintainOffset= True)
             
-            mHandler = CORRECTIVES.handler(joint= self.mReaderDriver.mNode)
-            mHandler.mReader = mReader
+            
+            mReaderUse = d.get('twistReader') or mReader
+            mReaderTargetUse = d.get('twistTarget') or self.mReaderDriver.mNode
+
+            
+            mHandler = CORRECTIVES.reader(joint= mReaderTargetUse)
+            mHandler.mReader = mReaderUse
             mHandler.driven_verify(_settings,d['attr'])
             mHandler.reader_setup()
             
-            _d2 = d_setReader[ d['key'] ]
-            ATTR.set(mReader.mNode, **_d2 )
+            _d2 = d_setReader.get( d['key'] )
+            if _d2:
+                ATTR.set(mReader.mNode, **_d2 )
         
         
     

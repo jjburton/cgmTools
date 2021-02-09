@@ -671,7 +671,8 @@ def get_pointsOrderedByDist(source = None, posList = None):
     for i,pos in enumerate(posList):
         _d = get_distance_between_points(_point, pos)
         if _d in l_dists:
-            raise ValueError,"Cannot handle matching distances. {0}".format(_str_func)
+            continue
+            #raise ValueError,"Cannot handle matching distances. {0}".format(_str_func)
         l_dists.append(_d)
         d_dists[_d] = pos
         

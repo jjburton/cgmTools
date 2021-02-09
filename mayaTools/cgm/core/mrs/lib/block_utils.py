@@ -74,6 +74,13 @@ from cgm.core.classes import GuiFactory as CGMUI
 from cgm.core.cgmPy import dict_utils as CGMDICT
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
+
+
+
+log_start = cgmGEN.logString_start
+log_msg = cgmGEN.logString_msg
+log_sub = cgmGEN.logString_sub
+
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
@@ -371,9 +378,10 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
                         if v == None:
                             v = []
                     else:
-                        v = ATTR.datList_get(_short,a,mode='enum')
+                        v = ATTR.datList_get(_short,a,mode='enum',enum=True)
                             
-                        
+                    log.debug(v)
+                    log.debug(enum)
                     ATTR.datList_connect(_short, a, v, mode='enum',enum=enum)                    
                 elif t == 'float3':
                     #checkType(a,'float3')
@@ -5721,6 +5729,24 @@ def get_blockDagNodes(self):
         return ml_controls
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
+
+def get_subBlocks(self):
+    _short = self.p_nameShort        
+    _str_func = '[{0}] get_subBlocks'.format(_short)
+    log.debug(log_start(_str_func))
+    
+    ml = []
+    for mBlock in self.getBlockChildren():
+        if mBlock.p_blockModule.__dict__.get('__component__'):
+            ml.append(mBlock)
+            
+    return ml
+    
+    
+    
+
+
+
 def connect_jointLabels(self):
     try:
         _short = self.p_nameShort
@@ -9267,12 +9293,26 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNo
         
 
             log.debug("|{0}| >> skinning..".format(_str_func))
+            ml_sub = self.atUtils('get_subBlocks')
+            ml_subJoints = []
+            for mSub in ml_sub:
+                _ml_sub = mSub.moduleTarget.rigNull.msgList_get('moduleJoints')
+                if _ml_sub:
+                    ml_subJoints.extend(_ml_sub)
+            
+            if ml_subJoints:
+                ml_skinJoints = ml_subJoints + ml_moduleJoints
+            else:
+                ml_skinJoints = ml_moduleJoints
+
             #l_joints= [mJnt.mNode for mJnt in ml_moduleJoints]
             for mMesh in ml_mesh:
                 log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
                 mMesh.p_parent = mParent
                 
-                MRSPOST.skin_mesh(mMesh,ml_moduleJoints)
+                
+                
+                MRSPOST.skin_mesh(mMesh,ml_skinJoints)
                 
                 """
                 #mMesh.doCopyPivot(mGeoGroup.mNode)

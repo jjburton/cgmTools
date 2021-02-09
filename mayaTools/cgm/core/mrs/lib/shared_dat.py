@@ -86,11 +86,11 @@ d_build_profiles = {
 
 l_correctiveLayouts = ['single', 'both','fan3','hipRight','hipLeft', 'shoulderRight','shoulderLeft']
 l_correctiveDirections = ['up','down','outPos','outNeg','forward','back']
-l_correctiveSetups = ['hold','simpleBlend','slideWith']
+l_correctiveSetups = ['none','default','hold','simpleBlend','rollBulge','midBulge','slideWith']
 l_correctiveAttach = ['driver','driverParent','custom']
 
 
-l_readerPlugs = ['fwdPos','fwdNeg','sideIn','sideOut','twistIn','twistOut']
+l_readerPlugs = ['none','fwdPos','fwdNeg','sideIn','sideOut','twistIn','twistOut']
 l_readerTypes = ['none','alignMatrix']
 
 
