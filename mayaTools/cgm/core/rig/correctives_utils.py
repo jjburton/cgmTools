@@ -33,10 +33,10 @@ import cgm.core.cgm_General as cgmGEN
 #import cgm.core.cgmPy.os_Utils as cgmOS
 #import cgm.core.cgmPy.path_Utils as cgmPATH
 #import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-#import cgm.core.rig.general_utils as CORERIGGEN
-#import cgm.core.lib.math_utils as MATH
+import cgm.core.rig.general_utils as CORERIGGEN
+import cgm.core.lib.math_utils as MATH
 #import cgm.core.lib.transform_utils as TRANS
-#import cgm.core.lib.distance_utils as DIST
+import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.attribute_utils as ATTR
 #import cgm.core.tools.lib.snap_calls as SNAPCALLS
 #import cgm.core.classes.NodeFactory as NODEFACTORY
@@ -55,7 +55,7 @@ import cgm.core.lib.rayCaster as RAYS
 #import cgm.core.rig.joint_utils as JOINT
 #import cgm.core.lib.search_utils as SEARCH
 #import cgm.core.rig.ik_utils as IK
-#import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 #import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 #import cgm.core.cgm_RigMeta as cgmRIGMETA
@@ -71,7 +71,167 @@ log_start = cgmGEN.logString_start
 log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
 
-class handler(object):
+
+class setup(object):
+    mTarget = None
+    mDriver = None
+    maxValue = 1
+    setup_default = 'simpleBlend'
+    
+    def __init__(self,
+                 reader = None,
+                 ):
+        _str_func = 'setup.__init__'
+        
+        log.debug(log_start(_str_func))
+        
+        _sel = mc.ls(sl=1)
+        if _sel:
+            if not reader:
+                reader = _sel[0]
+
+    def setupAttr_verify(self,mTarget):
+        mTarget = cgmMeta.validateObjArg(mTarget,default_mType='cgmObject')
+        if not mTarget.hasAttr('correctiveSetup'):
+            enum = BLOCKSHARE._d_attrsTo_make['correctiveSetup']
+            mTarget.addAttr('correctiveSetup',attrType='enum', enumName=enum)
+            
+        
+    def pose_verify(self,
+                    target = None, 
+                    setup = None,
+                    driver = None,
+                    mover = None,
+                    radius = 23,
+                    reader = None,
+                    **kws):
+        _str_func = 'setup.pose_verify'
+        log.debug(log_start(_str_func))
+        
+        mTarget = cgmMeta.validateObjArg(target,default_mType='cgmObject')
+        log.debug(cgmGEN.logString_msg(_str_func, "mTarget: {0}".format(mTarget)))
+        _target = mTarget.mNode
+        
+        
+        mReader = cgmMeta.validateObjArg(reader,default_mType='cgmObject')
+        log.debug(cgmGEN.logString_msg(_str_func, "mReader: {0}".format(mReader)))
+        _reader = mReader.mNode
+        
+        
+        mMover = cgmMeta.validateObjArg(mover,default_mType='cgmObject')
+        log.debug(cgmGEN.logString_msg(_str_func, "mMover: {0}".format(mMover)))
+        _mover = mMover.mNode                
+        
+        #Setup ----------------------------------------------------------------
+        if not setup:
+            setup = mTarget.getEnumValueString('correctiveSetup')
+            if not setup:
+                setup = self.setup_default
+                
+        log.debug(cgmGEN.logString_msg(_str_func, "setup: {0}".format(setup)))
+        
+        #Driver... ---------------------------------------------------------
+        if driver:
+            self.driver_verify(driver)
+        if not self.mDriver:
+            raise ValueError,cgmGEN.logString_msg(_str_func,"No driver")
+        _driver = self.mDriver.p_combinedShortName
+        log.debug(cgmGEN.logString_msg(_str_func, "Driver: {0}".format(_driver)))
+        
+        #log.debug(cgmGEN.logString_msg(_str_func, "mReader: {0}".format(self.mReader)))
+        
+        #Set our zero pose...
+        l_attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz']
+        
+        for a in l_attrs:
+            if a.startswith('s'):
+                _v = 1.0
+            else:
+                _v = 0.0
+            mc.setDrivenKeyframe("{0}.{1}".format(_target,a),
+                                 currentDriver = _driver,
+                                 ott='linear',itt='linear',
+                                 driverValue = 0,value = _v)
+            
+            
+        #_baseDat = CORERIGGEN.objectDat_get(mReader.mNode)
+        _translate = mReader.translate
+        _rotate = mReader.rotate
+        _targetBase = mTarget.p_nameBase
+        _pos_reader = mReader.p_position
+        
+        if setup == 'simpleBlend':
+            mLoc_base = mTarget.doLoc(fastMode=True)
+            mLoc_end = mTarget.doLoc(fastMode=True)
+            mLoc_end.rename("{0}_end".format(_targetBase))
+
+            mLoc_end.p_parent = mMover
+            
+            mMover.translate = [v * .5 for v in _translate]
+            mMover.rotate = [v * .5 for v in _rotate]
+            
+            mLoc_end.p_parent = False
+            _vec = MATH.get_vector_of_two_points(_pos_reader, mLoc_end.p_position)
+            
+            mLoc_end.p_position = DIST.get_pos_by_vec_dist(_pos_reader, _vec, distance = radius * .6)
+            
+            
+            mMover.translate = _translate
+            mMover.rotate = _rotate    
+            
+            mTarget.doSnapTo(mLoc_end)
+            
+            for a in l_attrs:
+                mc.setDrivenKeyframe("{0}.{1}".format(_target,a),
+                                     currentDriver = _driver,
+                                     ott='linear',itt='linear',
+                                     driverValue = 1.0, value = mTarget.getMayaAttr(a))            
+            
+
+            mMover.resetAttrs(transformsOnly=True)
+            
+            for mObj in mLoc_base,mLoc_end:
+                mObj.delete()
+                
+        elif setup == 'rollBulge':
+            pass
+        
+        
+        
+        
+        return
+        #Let's set ourposes...
+        str_driverRot = "%s.r%s"%(mi_targetJoint.mNode,orientation[2])
+        str_drivenTransAim = "%s.t%s"%(mi_helperJoint.mNode,orientation[0])
+        f_baseTransValue = mi_helperJoint.getAttr("t%s"%(orientation[0]))
+        f_sdkTransValue = f_baseTransValue + (f_baseTransValue * .3)	
+        mc.setDrivenKeyframe(str_drivenTransAim,
+                             currentDriver = str_driverRot,
+                             driverValue = 0,value = f_baseTransValue)        
+
+        
+        
+    def driver_verify(self, arg):
+        _str_func = 'setup.driven_verify'
+        log.debug(log_start(_str_func))
+        
+        
+        mAttr= cgmMeta.validateAttrArg(arg,noneValid=False)
+        self.mDriver = mAttr['mPlug']
+        return self.mDriver
+         
+    
+    def report(self):
+        _str_func = 'setup.report'
+        log.debug(log_start(_str_func))
+        
+        pprint.pprint ({'mDriver':self.mDriver})
+    
+        
+   
+
+
+class reader(object):
     baseName = None
     mJoint = None
     mReader = None
@@ -83,7 +243,7 @@ class handler(object):
                  joint = None,
                  readerName = 'forward'
                  ):
-        _str_func = 'handler.__init__'
+        _str_func = 'reader.__init__'
         
         log.debug(log_start(_str_func))
         
@@ -99,7 +259,7 @@ class handler(object):
             self.joint_verify(joint)
             
     def driven_verify(self, obj, attr):
-        _str_func = 'handler.driven_verify'
+        _str_func = 'reader.driven_verify'
         log.debug(log_start(_str_func))
         
         if mc.objExists('{0}.{1}'.format(obj,attr)):
@@ -117,10 +277,10 @@ class handler(object):
         return '{0}Reader'.format(readerName)
         
     def joint_verify(self, joint = None, readerName = None):
-        _str_func = 'handler.joint_verify'
+        _str_func = 'reader.joint_verify'
         log.debug(log_start(_str_func))
         
-        mJoint = cgmMeta.validateObjArg(joint,noneValid=True, mayaType='joint')
+        mJoint = cgmMeta.validateObjArg(joint,noneValid=True)
         
         if not mJoint:
             raise ValueError,log_msg(_str_func,"Not a valid joint")
@@ -138,7 +298,7 @@ class handler(object):
         return mJoint
     
     def report(self):
-        _str_func = 'handler.report'
+        _str_func = 'reader.report'
         log.debug(log_start(_str_func))
         
         pprint.pprint ({'mJoint':self.mJoint,
@@ -148,7 +308,7 @@ class handler(object):
         
     def reader_verify(self, readerName= 'forward',
                       parent = False):
-        _str_func = 'handler.reader_verify'
+        _str_func = 'reader.reader_verify'
         log.debug(log_start(_str_func))
         
         _plug_reader = '{0}Reader'.format(readerName)
@@ -171,7 +331,7 @@ class handler(object):
         return mReader
     
     def reader_set(self):
-        _str_func = 'handler.reader_set'
+        _str_func = 'reader.reader_set'
         log.debug(log_start(_str_func))
         
         self.mReader.p_orient = self.mJoint.p_orient
@@ -183,7 +343,7 @@ class handler(object):
         alignMatrix | r&d by Charles Wardlaw. Just proceduralized CGM pals's work.
         '''
         
-        _str_func = 'handler.reader_setup'
+        _str_func = 'reader.reader_setup'
         log.debug(log_start(_str_func))
         
         mReader = self.mReader
