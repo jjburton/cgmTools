@@ -52,7 +52,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 import cgm.core.classes.GuiFactory as cgmUI
-#reload(cgmUI)
+import cgm.core.cgmPy.os_Utils as CGMOS
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
 #reload(COREPATHS)
@@ -1892,7 +1892,7 @@ def uiProject_addDir(self,pSet = None, mScrollList = None):
         if mScrollList:
             mScrollList.rebuild()
             
-def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
+def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None, addHolderFile = False):
     _str_func = 'uiProject_verifyDir'
     log.debug("|{0}| >>...".format(_str_func))
     
@@ -1928,7 +1928,6 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
                 os.makedirs(mDir)
                 log.warning("created dir: {0}".format(mDir))
                 
-            
             for k2 in l:
                 #if case == 'lower':
                     #k2 = k2.lower()
@@ -1955,6 +1954,9 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
         
     if mScrollList:
         mScrollList.rebuild(self.d_tf['paths'][pSet].getValue())
+        
+    if addHolderFile:
+        CGMOS.find_emptyDirs(_path, addFile=True)
 
     
 def buildFrame_dirContent(self,parent):
@@ -2081,7 +2083,16 @@ def buildFrame_dirExport(self,parent):
     
     button_verify = mUI.MelButton(_row,
                                    label='Verify Dir',ut='cgmUITemplate',
-                                    ann='Verify the directories from the project Type')    
+                                    ann='Verify the directories from the project Type')
+    
+    button_fillEmpty= mUI.MelButton(_row,
+                                    label='Fill Empty',ut='cgmUITemplate',
+                                    c=lambda *a: CGMOS.find_emptyDirs(self.d_tf['paths']['export'].getValue(),True),
+                                    
+                                     ann='Add an empty file to any empty directories')    
+    
+    
+    
     
     """
     mUI.MelButton(_row,
