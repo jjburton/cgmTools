@@ -28,10 +28,11 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 #========================================================================
-__version__ = cgmGEN.__RELEASE
 
 import maya.cmds as mc
 from cgm.core import cgm_General as cgmGEN
+__version__ = cgmGEN.__RELEASE
+
 
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.cgmPy.os_Utils as CGMOS
