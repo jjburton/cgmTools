@@ -16,10 +16,10 @@ import maya.cmds as cmd
 
 from maya.OpenMaya import MGlobal
 
-from zooPy import names
-from zooPy import typeFactories
-from zooPy.misc import removeDupes, Callback, iterBy
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy import names
+from cgm.lib.zoo.zooPy import typeFactories
+from cgm.lib.zoo.zooPy.misc import removeDupes, Callback, iterBy
+from cgm.lib.zoo.zooPy.path import Path
 
 import melUtils
 
@@ -1819,7 +1819,7 @@ class MelTreeView(BaseMelWidget):
 
 		#construct the mel proc
 		melCmd = """global proc %s( string $str, int $index ) {
-		python( "from zooPyMaya import baseMelUI; baseMelUI.BaseMelUI.FromStr( '%s' )._executePressCB( %d, '"+ $str +"', "+ $index +" );" );
+		python( "from cgm.lib.zoo.zooPyMaya import baseMelUI; baseMelUI.BaseMelUI.FromStr( '%s' )._executePressCB( %d, '"+ $str +"', "+ $index +" );" );
 		}""" % (melCmdName, self, buttonIndex)
 
 		#execute the proc we just constructed

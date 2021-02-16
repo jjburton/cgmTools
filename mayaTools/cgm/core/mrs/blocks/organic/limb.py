@@ -2771,7 +2771,7 @@ def create_jointHelpers(self, force = True):
             
             
         mPrerigNull.msgList_connect('rollHelpers_{0}'.format(i), ml_roll)
-        pprint.pprint(ml_roll)
+        #pprint.pprint(ml_roll)
             
         #pprint.pprint([md_helperRolls[mHelperSet[0]], mHelperSet])
         _upVector =  MATH.get_obj_vector(mHelperSet[0].mNode,'y+')
@@ -2947,10 +2947,13 @@ def skeleton_build(self, forceNew = True):
         if len(ml_handleHelpers) != len(ml_prerigHandles):
             raise ValueError,"Must have matching handleHelper length to prerig."
             
-        
         ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
         if not ml_jointHelpers:
             raise ValueError,"No jointHelpers connected"
+        
+        
+          
+        
         
         #>> If skeletons there, delete ------------------------------------------------------------------- 
         _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
@@ -2980,6 +2983,17 @@ def skeleton_build(self, forceNew = True):
             else:
                 log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
                 _b_lever = True
+                
+        #Before building things, 
+        for i,mJnt in enumerate(ml_handleHelpers):
+            log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
+            ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
+            _expected = self.getMayaAttr('rollCount_{0}'.format(i))
+            if _expected and len(ml_rollHelpers) != _expected:
+                if self.addLeverBase:
+                    continue
+                return log.error("RollCount of section {0} | len: {1} != expected: {2}. Recreate your joint helpers.".format(i,len(ml_rollHelpers),_expected))
+                
 
         """
         _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
@@ -3092,6 +3106,7 @@ def skeleton_build(self, forceNew = True):
             ml_joints.append(mJnt)
             ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
             
+            
             if ml_rollHelpers:
                 log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))
                
@@ -3144,6 +3159,7 @@ def skeleton_build(self, forceNew = True):
         
         
         #reload(JOINT)
+        ml_children = []
         #PivotHelper -------------------------------------------------------------------------------------
         if ml_formHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot helper found".format(_str_func))
@@ -3164,7 +3180,7 @@ def skeleton_build(self, forceNew = True):
                     #ml_children = mEnd.getChildren(asMeta=True)
                     ml_childrenToDo = ml_joints[idx_end+1:]
                     ml_childrenHelpers = ml_prerigHandles[_idx+1:]
-                    
+                    mFirstChild = None
                     #pprint.pprint(ml_childrenToDo)
                     #pprint.pprint(ml_childrenHelpers)
                     for i,mChild in enumerate(ml_childrenToDo):
@@ -3179,9 +3195,14 @@ def skeleton_build(self, forceNew = True):
                         
                         if i:
                             mChild.p_parent = ml_childrenToDo[i-1]
+                        else:
+                            mFirstChild = mChild
+                            
                     mEnd.jointOrient = 0,0,0
-                
-                    ml_childrenToDo[0].p_parent = mEnd
+                    
+                    if mFirstChild:
+                        mFirstChild.p_parent = mEnd
+                    #if ml_childrenToDo:ml_childrenToDo[0].p_parent = mEnd
                     #mChild.parent = mEnd   
         """
         if len(ml_handleJoints) > self.numControls:
@@ -3295,6 +3316,11 @@ def rig_prechecks(self):
             if mBlock.addBall:
                 self.l_precheckErrors.append("default ikEnd and hasBallJoint on. | Fix this setting. If you have a ball, you should probably be a pad or foot")
             
+            
+        for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
+            if not mObj.p_parent:
+                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+                
         #str_ikEnd = mBlock.getEnumValueString('ikEnd')
         #ml_formHandles = mBlock.msgList_get('formHandles')
         #if not mBlock.ikEnd and ml_formHandles[-1].getMessage('pivotHelper')
@@ -6704,52 +6730,58 @@ def rig_frame(self):
             #mLeverRigJnt = mRigNull.getMessage('leverRig',asMeta=True)[0]
             mLeverFK = mRigNull.leverFK
             mLeverFK.masterGroup.p_parent = mRoot#mRootParent
-            mLeverDirect = mRigNull.leverDirect
+            mLeverDirect = mRigNull.getMessageAsMeta('leverDirect')
             
-            log.debug("|{0}| >> Lever rig aim".format(_str_func))
-            
-            mBaseLoc = mLeverDirect.doLoc()
-            mAimLoc = mLeverDirect.doLoc()
-            _str_tmp = mLeverDirect.p_nameBase
-            mBaseLoc.rename("{0}_baseLoc".format(_str_tmp))
-            mAimLoc.rename("{0}_aimLoc".format(_str_tmp))
-            
-            for mLoc in mBaseLoc,mAimLoc:
-                mLoc.p_parent = mLeverDirect.masterGroup
+            if mLeverDirect:
+                log.debug("|{0}| >> Lever rig aim".format(_str_func))
                 
-            mOrientGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'orient')
+                mBaseLoc = mLeverDirect.doLoc()
+                mAimLoc = mLeverDirect.doLoc()
+                _str_tmp = mLeverDirect.p_nameBase
+                mBaseLoc.rename("{0}_baseLoc".format(_str_tmp))
+                mAimLoc.rename("{0}_aimLoc".format(_str_tmp))
+                
+                for mLoc in mBaseLoc,mAimLoc:
+                    mLoc.p_parent = mLeverDirect.masterGroup
+                    
+                mOrientGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'orient')
+                
+                if ml_blendJoints:
+                    mLeverTarget = ml_blendJoints[0]
+                else:
+                    mLeverTarget = ml_fkJoints[0]
+                    
+                mc.aimConstraint(mLeverTarget.mNode,
+                                 mAimLoc.mNode,
+                                 maintainOffset = True, weight = 1,
+                                 aimVector = self.d_orientation['vectorAim'],
+                                 upVector = self.d_orientation['vectorUp'],
+                                 worldUpVector = self.d_orientation['vectorUp'],
+                                 worldUpObject = mLeverFK.mNode,
+                                 worldUpType = 'objectRotation' )
+                
+                #Attribute ----------------------
+                const = mc.orientConstraint([mAimLoc.mNode,mBaseLoc.mNode],
+                                            mOrientGroup.mNode, maintainOffset = True)[0]
             
-            mc.aimConstraint(ml_blendJoints[0].mNode,
-                             mAimLoc.mNode,
-                             maintainOffset = True, weight = 1,
-                             aimVector = self.d_orientation['vectorAim'],
-                             upVector = self.d_orientation['vectorUp'],
-                             worldUpVector = self.d_orientation['vectorUp'],
-                             worldUpObject = mLeverFK.mNode,
-                             worldUpType = 'objectRotation' )
             
-            #Attribute ----------------------
-            const = mc.orientConstraint([mAimLoc.mNode,mBaseLoc.mNode],
-                                        mOrientGroup.mNode, maintainOffset = True)[0]
-        
-        
-            d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mLeverFK.mNode,'aim'],
-                                                                 [mLeverFK.mNode,'resultRootFollow'],
-                                                                 [mLeverFK.mNode,'resultAimFollow'],
-                                                                 keyable=True)
-        
-            targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
-        
-            #Connect                                  
-            d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
-            d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
-            d_blendReturn['d_result1']['mi_plug'].p_hidden = True
-            d_blendReturn['d_result2']['mi_plug'].p_hidden = True            
+                d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mLeverFK.mNode,'aim'],
+                                                                     [mLeverFK.mNode,'resultRootFollow'],
+                                                                     [mLeverFK.mNode,'resultAimFollow'],
+                                                                     keyable=True)
             
-            ATTR.set_default(mLeverFK.mNode, 'aim', 1.0)
-            mLeverFK.aim = 1.0
-            #mLeverFK.aim = .5        
+                targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
             
+                #Connect                                  
+                d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+                d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+                d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+                d_blendReturn['d_result2']['mi_plug'].p_hidden = True            
+                
+                ATTR.set_default(mLeverFK.mNode, 'aim', 1.0)
+                mLeverFK.aim = 1.0
+                #mLeverFK.aim = .5        
+                
         
             log.debug("|{0}| >> Lever setup | LimbRoot".format(_str_func))            
             if not mRigNull.getMessage('limbRoot'):

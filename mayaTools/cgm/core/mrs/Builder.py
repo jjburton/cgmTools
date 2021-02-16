@@ -4050,6 +4050,12 @@ class ui_toStandAlone(cgmUI.cgmGUI):
         
         if False in l_fails:
             #self.uiScrollList_blocks.selectByObj(ml_fails[0])
+            result = mc.confirmDialog(title="Prechecks Failed",
+                                      message= "{0} Blocks failed prechecks. \n Check scriptEditor".format(len(ml_fails)),
+                                      button=['OK'],
+                                      defaultButton='OK',
+                                      #cancelButton='Cancel',
+                                      dismissString='OK')            
             return (log.warning("Prechecks failed. Check script editor!"))
         
         log.info("Batch file creating...")
@@ -4083,6 +4089,16 @@ class ui_toStandAlone(cgmUI.cgmGUI):
         
         if False in l_fails:
             #self.uiScrollList_blocks.selectByObj(ml_fails[0])
+            result = mc.confirmDialog(title="Prchecks failed. Verify",
+                                      message= "{0} Blocks failed prechecks. \n Check scriptEditor".format(len(ml_fails)),
+                                      button=['OK'],
+                                      defaultButton='OK',
+                                      #cancelButton='Cancel',
+                                      dismissString='OK')
+            
+            #if result != 'OK':
+            #    log.error("|{0}| >> Cancelled | {1} | {2}.".format(_str_func,_state_target,self))
+            #    return False            
             return (log.warning("Prechecks failed. Check script editor!"))
         
         log.info("Batch file creating...")        
@@ -4673,7 +4689,11 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_menu, l="Report",
                         ann = "Report rig data",
                         c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'get_report'),
-                        )                
+                        )
+        mUI.MelMenuItem(_menu, l="Report | CSV",
+                        ann = "Report rig data as csv",
+                        c= cgmGEN.Callback(self.uiFunc_contextPuppetCall,'get_report_asset'),
+                        )                        
         mUI.MelMenuItem( _menu, l="Gather Blocks",
                          c = self.uiCallback(self,BUILDERUTILS.gather_rigBlocks,self.uiPB_mrs))
                          #c=lambda *a: BUILDERUTILS.gather_rigBlocks(self.uiPB_mrs) )
@@ -5023,7 +5043,7 @@ class ui(cgmUI.cgmGUI):
                                          'atUtils','color_outliner')},             
                                },
                'Mirror':{
-                'order':['Build','Rebuild','Push','Pull','Self','Left', 'Right',
+                'order':['Build','Rebuild','Push','Pull','Form|Push','Form|Pull','Prerig|Push','Prerig|Pull','Self','Left', 'Right',
                          'Settings',' Push',' Pull','SubShapes','   Push', '   Pull'],
                 'divTags':[],
                 'headerTags':['Self','Settings','SubShapes'],
@@ -5043,6 +5063,25 @@ class ui(cgmUI.cgmGUI):
                         'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                   'atUtils','blockMirror_go',
                                   **{'mode':'pull','updateUI':0})},
+                
+                'Form|Push':{'ann':'Push form to the mirror',
+                        'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                  'atUtils','blockMirror_go',
+                                  **{'mode':'push','updateUI':0,'define':False,'prerig':False})},
+                'Form|Pull':{'ann':'Pull form to the mirror',
+                        'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                  'atUtils','blockMirror_go',
+                                  **{'mode':'pull','updateUI':0,'define':False,'prerig':False})},
+                'Prerig|Push':{'ann':'Push prerig to the mirror',
+                        'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                  'atUtils','blockMirror_go',
+                                  **{'mode':'push','updateUI':0,'define':False,'form':False})},
+                'Prerig|Pull':{'ann':'Pull prerig to the mirror',
+                        'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                  'atUtils','blockMirror_go',
+                                  **{'mode':'pull','updateUI':0,'define':False,'form':False})},                
+                
+                
                 'Left':{'ann':'Mirror self - Left Prime Axis',
                         'call': cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                   'atUtils','mirror_self',
@@ -5251,7 +5290,7 @@ class ui(cgmUI.cgmGUI):
                                 c=d2.get('call'))
 
         #Vis menu -----------------------------------------------------------------------------
-        for a in ['Measure','RotatePlane','JointHandle','Labels','ProximityMode','FormMesh']:
+        for a in ['Measure','RotatePlane','JointHandle','Labels','ProximityMode','FormMesh','FormHandles']:
             _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
                                    label = a,
                                    en=True,)
@@ -5446,6 +5485,15 @@ class ui(cgmUI.cgmGUI):
                                 'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                        'getModuleStatus',
                                                        **{'updateUI':0})},
+                  'Get Missing Attr Mask':{'ann':'Get missing attrs for the attrMask',
+                                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                    'atUtils','uiQuery_getStateAttrDict',
+                                                                    **{'updateUI':0})},
+                  'Find orphaned rigModules':{'ann':'Get missing attrs for the attrMask',
+                                              'call':cgmGEN.Callback(BLOCKGEN.get_orphanedRigModules,
+                                                                    **{'select':1})},                  
+                  
+                  
                   'blockProfile Valid?':{'ann':'Check if blockProfile setting is valid',
                                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                                     'atUtils','blockProfile_valid',

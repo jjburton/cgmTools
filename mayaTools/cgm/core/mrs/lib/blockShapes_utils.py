@@ -1938,9 +1938,9 @@ def create_face_anchor(self, pos, mSurface,tag,k,side=None,controlType = 'main',
                             worldUpType = 'objectrotation', 
                             worldUpVector = [0,1,0]))
     
-    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',(size) * 4)
+    pBall = DIST.get_pos_by_axis_dist(mHandle.mNode,'z+',(size) * 3)
     
-    mBall = cgmMeta.validateObjArg( CURVES.create_fromName('semiSphere', size = size), 
+    mBall = cgmMeta.validateObjArg( CURVES.create_fromName('circle', size = size), 
                                       'cgmControl',setClass=1)
     mBall.doSnapTo(mHandle)
     mBall.p_position = pBall
@@ -2036,7 +2036,7 @@ def create_face_handle(self, pos, tag, k, side,
     color(self, mHandle.mNode,side = side, controlType=controlType)
     mStateNull.connectChildNode(mHandle, _key+STR.capFirst(plugShape),'block')
     
-    if mSurface and not orientToDriver and orientToNormal:
+    if mSurface and orientToNormal: #and not orientToDriver
         mc.delete(mc.normalConstraint(mSurface.mNode, mHandle.mNode,
                                 aimVector = [0,0,1], upVector = [0,1,0],
                                 worldUpObject = self.mNode,
@@ -2142,7 +2142,7 @@ def create_face_handle(self, pos, tag, k, side,
                 mTrack.p_position = md['mFollicle'].p_position
                 mc.pointConstraint(mFollicle.mNode,mTrack.mNode,maintainOffset=0)
                 if not orientToDriver:
-                    mc.orientConstraint(mFollicle.mNode, mTrack.mNode,maintainOffset = False)                
+                    mc.orientConstraint(mFollicle.mNode, mTrack.mNode,maintainOffset = True)                
                 
             mDepth = mTrack.doCreateAt(setClass=1)
             mDepth.rename("{0}_depthDriver".format(mHandle.p_nameBase))
@@ -2480,3 +2480,199 @@ def attachHandleToCurve(mHandle,mCrv,mShape = None,parentTo=None,pct = None, ble
     mTrackLoc.p_parent = parentTo
     mTrackLoc.v=False
     mc.pointConstraint(mTrackLoc.mNode,mHandle.trackGroup.mNode,maintainOffset = False)           
+    
+    
+def eyeOrb(self, mTarget, mStateNull, side='left', attr= 'eyeSize'):
+    _str_func = 'eyeOrb'
+    mNoTransformNull = self.noTransDefineNull
+    _res = []
+    
+    #Bounding sphere ==================================================================
+    log.debug(cgmGEN.logString_msg(_str_func,'blockVolume...'))
+    mBlockVolume = mTarget.doCreateAt(setClass=1)
+
+    mBlockVolume.doSnapTo(mTarget)
+    mBlockVolume.p_parent = mTarget        
+    #mBlockVolume.tz = -.5
+    #mBlockVolume.p_parent = False
+    mBlockVolume.rename(side + 'BlockVolume')
+    
+    """
+    #Mid driver ....
+    log.debug(cgmGEN.logString_msg(_str_func,'midDriver...'))
+    
+    mMidDriver = mBlockVolume.doCreateAt(setClass=1)
+    mMidDriver.rename('midDriver')
+    mMidDriver.p_parent = mBlockVolume
+    mMidDriver.dagLock()
+    
+    #Mid Group...
+    log.debug(cgmGEN.logString_msg(_str_func,'midGroup...'))    
+    mMidGroup = mMidDriver.doCreateAt(setClass=1)
+    mMidGroup.rename(side + 'midGoup')
+    mMidGroup.p_parent = mStateNull
+    mc.parentConstraint(mMidDriver.mNode, mMidGroup.mNode)
+    mMidGroup.dagLock()
+    self.connectChildNode(mMidGroup.mNode,side+'MidDrivenDag','module')    
+    """
+    
+    CORERIG.copy_pivot(mBlockVolume.mNode,mTarget.mNode)
+    
+    
+    """
+    #Create Pivot =====================================================================================
+    log.debug(cgmGEN.logString_msg(_str_func,'pivot...'))
+    _irisPosHelper = CURVES.create_fromName('sphere', size = _size_base/3)
+    mShape = cgmMeta.validateObjArg(_irisPosHelper)
+
+    mShape.doSnapTo(self.mNode)
+    mShape.p_parent = mMidGroup
+
+    mShape.tz = self.baseSizeZ
+    mShape.rz = 90    
+    
+
+    mIrisPosHelper = self.doCreateAt(setClass=True)
+    mIrisPosHelper.p_position = mShape.p_position
+    
+    CORERIG.shapeParent_in_place(mIrisPosHelper.mNode, mShape.mNode,False)
+
+    
+    mPupilTrackDriver = mIrisPosHelper.doCreateAt(setClass=1)
+    mPupilTrackDriver.rename('eyeTrackDriver')
+    
+    mIrisPosHelper.p_parent = mStateNull
+    mIrisPosHelper.rename('irisPos_defineHandle')
+
+    self.connectChildNode(mIrisPosHelper.mNode,'irisPosHelper','module')
+    mHandleFactory.color(mIrisPosHelper.mNode,controlType='sub')
+    
+    ml_handles.append(mIrisPosHelper)    
+    mPupilTrackDriver.p_parent = mIrisPosHelper#...parent our tracker to the orient handle    
+    """
+
+    #Bounding sphere ==================================================================
+    _bb_shape = mc.sphere(axis=[0,0,1],ch=0,radius=.5,sections=6,spans=8)#[0]
+    mBBShape = cgmMeta.validateObjArg(_bb_shape, 'cgmObject',setClass=True)
+    for mShape in mBBShape.getShapes(asMeta=1):
+        mShape.overrideEnabled = 1
+        mShape.overrideDisplayType = 2
+        
+    mBBShape.doSnapTo(mTarget)
+    mBBShape.p_parent = mBlockVolume#mDefineNull    
+    
+    mBBShape.tz = -.5
+    
+    CORERIG.colorControl(mBBShape.mNode,side,controlType='sub',transparent = True)
+    
+    #mBBShape.setAttrFlags()
+    
+    mBBShape.doStore('cgmName', mTarget)
+    mBBShape.doStore('cgmType','bbVisualize')
+    mBBShape.doName()    
+    
+    mTarget.connectChildNode(mBBShape.mNode,'bbHelper')
+    
+
+    #EyeControl -----------------------------------------------------
+    mEyeDag = mBBShape.doCreateAt()
+    mEyeDag = cgmMeta.validateObjArg(mEyeDag,'cgmControl',setClass=True)
+    mEyeDag.doStore('cgmName', mTarget)
+    mEyeDag.doStore('cgmType','eyeHelper')
+    mEyeDag.doName()
+    
+    _str_capFirst = side[0].capitalize()
+    mEyeDag.doStore('handleTag',"{0}_eyeHelper".format(_str_capFirst))
+    
+    _res.append(mEyeDag)
+    
+    mEndLoc = mTarget.doCreateAt()
+    mEndLoc.rename('{0}_endLoc'.format(mTarget.mNode))
+    mEndLoc.p_parent = mEyeDag
+    
+    mEyeDag.p_parent = mBlockVolume#mDefineNull    
+    mBBShape.p_parent = mEyeDag
+    
+    mTarget.connectChildNode(mEyeDag.mNode,side + 'EyeHelper')        
+        
+            
+    str_meshShape = mBBShape.getShapes()[0]
+    ml_curves = []
+    for i,k in enumerate([6.5,6]):
+        _crv = mc.duplicateCurve("{0}.{2}[{1}]".format(str_meshShape,k,'u'), ch = 1, rn = 0, local = 0)[0]
+        #mCrv = cgmMeta.validateObjArg(_crv, 'cgmObject',setClass=True)
+        #mCrv.p_parent = mNoTransformNull
+        color(self,_crv,side)
+        CORERIG.shapeParent_in_place(mEyeDag.mNode,_crv,False )
+        
+        #mCrv.rename("eye_knot_{0}_approx".format(i))
+        #for mShape in mCrv.getShapes(asMeta=1):
+            #mShape.overrideEnabled = 1
+            #mShape.overrideDisplayType = 2
+        #mCrv.dagLock()
+        
+    """
+    #SurfaceTrackSphere ==========================================================
+    log.debug(cgmGEN.logString_msg(_str_func,'surface...'))
+    mSurface = mBBShape.doDuplicate(po=False)
+    mSurface.rename('TrackSurface')
+    mSurface.v=0
+    
+    self.connectChildNode(mSurface.mNode,'trackSurface')
+        
+    """
+    #Pupil/Iris =====================================================================
+    log.debug(cgmGEN.logString_msg(_str_func,'Iris/pupil...'))
+
+    _size_width = self.getMayaAttr(attr)[0][0]
+    for k in ['pupil','iris']:
+        _shape = CURVES.create_fromName('circle', 1.0, baseSize=1.0)
+        mHelper = cgmMeta.validateObjArg(_shape, 'cgmControl',setClass=True)
+        mHelper.doSnapTo(mTarget)
+        color(self,mHelper.mNode,side, controlType='sub')
+        #ml_handles.append(mHelper)
+        mHelper.rename("{0}_visualize".format(k))
+        mHelper.p_parent = mEndLoc
+        mHelper.doStore('handleTag',"{0}_{1}Helper".format(_str_capFirst, k))
+        
+        _res.append(mHelper)
+        
+        
+        if k == 'pupil':
+            _sizeUse = _size_width * .03
+            self.doConnectOut('pupilDepth', "{0}.tz".format(mHelper.mNode))
+            
+            #mHelper.p_position = mTarget.getPositionByAxisDistance('z-', _size_width * .01)        
+            
+        else:
+            _sizeUse = _size_width * .05
+            self.doConnectOut('irisDepth', "{0}.tz".format(mHelper.mNode))
+        
+        mHelper.setAttrFlags(['rotate','translate','sz'])
+            
+        mHelper.sx = _sizeUse        
+        mHelper.sy = _sizeUse        
+
+        self.connectChildNode(mHelper.mNode,'{0}Helper'.format(k))
+
+        if k == 'pupil':
+            _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
+                                 name = "{0}_approx".format(k))
+            mc.reverseSurface(_surf[0])
+            mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
+        else:
+            _surf =  mc.loft([mHelper.mNode,_res[-2].mNode], o = True, d = 3, po = 0,ch=1,
+                             name = "{0}_approx".format(k))            
+            mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
+        
+        if k == 'iris':
+            CORERIG.colorControl(mSurf.mNode,side,'sub',transparent = True)
+        else:
+            CORERIG.colorControl(mSurf.mNode,side,'main',transparent=True)
+            
+        mSurf.p_parent = mNoTransformNull
+        mSurf.dagLock()
+ 
+    self.doConnectOut(attr, "{0}.scale".format(mBlockVolume.mNode))
+    
+    return _res

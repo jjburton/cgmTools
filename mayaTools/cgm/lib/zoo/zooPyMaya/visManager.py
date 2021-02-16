@@ -1,7 +1,7 @@
 
 import datetime
 
-from zooPy import presets
+from cgm.lib.zoo.zooPy import presets
 
 import maya.cmds as cmd
 import melUtils

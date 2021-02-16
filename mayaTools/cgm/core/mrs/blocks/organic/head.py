@@ -1600,7 +1600,8 @@ def create_jointHelpers(self,cnt=None, force = False):
     ATTR.set_lock(str_vectorRP,'translate',False)
     
     mc.pointConstraint([ml_jointHelpers[0].mNode], str_vectorRP,maintainOffset=False)
-    ATTR.set_lock(str_vectorRP,'translate',True)            
+    ATTR.set_lock(str_vectorRP,'translate',True)            
+
     #IKMid Handle ---------------------------------------------------------------------
     _trackCurve,l_clusters = CORERIG.create_at([mObj.mNode for mObj in ml_jointHelpers],'linearTrack',baseName = "{0}_drivenCrv".format(self.p_nameBase))
     mCrv = cgmMeta.asMeta(_trackCurve)
@@ -1727,6 +1728,8 @@ def skeleton_build(self, forceNew = True):
             raise ValueError,"No jointHelpers connected"        
         
         
+        
+        
         #>> If skeletons there, delete -------------------------------------------------------------------------- 
         _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
         if _bfr:
@@ -1743,6 +1746,12 @@ def skeleton_build(self, forceNew = True):
                                      iterName = _l_baseNames[0])     
         """
             
+        #Check out
+        if self.neckBuild:
+            _expected = self.neckJoints + 1
+            if len(ml_jointHelpers) != _expected:
+                return log.error("Joint helper count not found: {0} (1 + self.neckJoints) != expected: {1}. Recreate your joint helpers.".format(len(ml_jointHelpers),_expected))
+        
         #>> Head ===================================================================================
         log.debug("|{0}| >> Head...".format(_str_func))
         if self.neckBuild:
@@ -1866,6 +1875,11 @@ def rig_prechecks(self):
             
         if mBlock.neckIK not in [0,3]:
             self.l_precheckErrors.append("Haven't setup neck mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'neckIK')))
+            
+                
+        for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
+            if not mObj.p_parent:
+                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
             
         #Checking our data points
         ml_pre = mBlock.msgList_get('prerigHandles')
@@ -2228,7 +2242,7 @@ def rig_shapes(self):
             log.debug("|{0}| >> Head aim...".format(_str_func))  
             
             _ikPos =DIST.get_pos_by_vec_dist(ml_prerigHandles[-1].p_position,
-                                             MATH.get_obj_vector(ml_rigJoints[-1].mNode,'y-'),
+                                             MATH.get_obj_vector(ml_rigJoints[-1].mNode,'z+'),
                                              _size * 1.5)
             
             ikCurve = CURVES.create_fromName('sphere2',_size/3)
@@ -3094,9 +3108,9 @@ def rig_frame(self):
             #Setup Aim Main -------------------------------------------------------------------------------------
             mc.aimConstraint(mHeadLookAt.mNode,
                              mHeadAimJoint.mNode,
-                             maintainOffset = False, weight = 1,
-                             aimVector = self.d_orientation['vectorUpNeg'],
-                             upVector = self.d_orientation['vectorAim'],
+                             maintainOffset = True, weight = 1,
+                             aimVector = self.d_orientation['vectorAim'],
+                             upVector = self.d_orientation['vectorUp'],
                              worldUpVector = self.d_orientation['vectorUp'],
                              worldUpObject = mHeadLookAt.mNode,#mHeadIK.mNode,#mHeadIK.masterGroup.mNode
                              worldUpType = 'objectRotation' )

@@ -1,12 +1,12 @@
 
-from zooPy.vectors import Matrix, Vector, Axis
-from zooPy import vectors
+from cgm.lib.zoo.zooPy.vectors import Matrix, Vector, Axis
+from cgm.lib.zoo.zooPy import vectors
 
 import maya.cmds as cmd
 import maya.OpenMaya as OpenMaya
 import maya.OpenMayaMPx as OpenMayaMPx
 
-from zooPyMaya import apiExtensions
+from cgm.lib.zoo.zooPyMaya import apiExtensions
 
 from maya.OpenMaya import MObject, MFnMatrixAttribute, MFnCompoundAttribute, MFnMessageAttribute, MGlobal, \
      MFnEnumAttribute, MFnNumericAttribute, MFnNumericData, MFnUnitAttribute, MFnDependencyNode, \

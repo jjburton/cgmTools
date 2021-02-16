@@ -1,8 +1,8 @@
 
 from baseMelUI import *
 
-from zooPy.path import Path
-from zooPy.misc import Callback
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy.misc import Callback
 
 import presetsUI
 

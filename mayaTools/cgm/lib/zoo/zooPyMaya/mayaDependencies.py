@@ -2,8 +2,8 @@
 import os
 import sys
 
-from zooPy import dependencies
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy import dependencies
+from cgm.lib.zoo.zooPy.path import Path
 
 import maya
 import maya.cmds as cmd

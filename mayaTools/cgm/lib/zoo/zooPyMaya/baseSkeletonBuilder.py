@@ -4,12 +4,12 @@ import inspect
 import maya.cmds as cmd
 from maya.cmds import *
 
-from zooPy import names
-from zooPy import typeFactories
-from zooPy.names import Parity, Name, camelCaseToNice
-from zooPy.vectors import Vector, Colour, Axis
-from zooPy.path import Path
-from zooPy.misc import removeDupes
+from cgm.lib.zoo.zooPy import names
+from cgm.lib.zoo.zooPy import typeFactories
+from cgm.lib.zoo.zooPy.names import Parity, Name, camelCaseToNice
+from cgm.lib.zoo.zooPy.vectors import Vector, Colour, Axis
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy.misc import removeDupes
 
 import meshUtils
 import rigUtils

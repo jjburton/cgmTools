@@ -128,7 +128,8 @@ d_attrStateMask = {'define':['addEyeSqueeze',
                    'skeleton':[ 'numBrowJoints',
                     ],
                    'rig':[
-                   ]}
+                   ],
+                   'vis':['visFormHandles']}
 
 
 #>>>Profiles ==============================================================================================
@@ -171,6 +172,7 @@ l_attrsStandard = ['side',
                    'squashFactorMax',
                    'squashFactorMin',                   
                    'visProximityMode',
+                   'visFormHandles',
                    'moduleTarget',]
 
 d_attrsToMake = {'browType':'full:split:side',
@@ -214,7 +216,8 @@ d_defaultSettings = {'version':__version__,
                      'controlOffset':1,
                      'buildCenter':2,
                      'squashFactorMax':1.0,
-                     'squashFactorMin':1.0,                        
+                     'squashFactorMin':1.0,
+                     'visFormHandles':True,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -805,7 +808,10 @@ def form(self):
                 mHandle.mirrorIndex = idx_ctr
                 idx_ctr +=1
             mHandle.mirrorAxis = "translateX,rotateY,rotateZ"
-    
+            
+            mHandle.doConnectIn('v', "{0}.visFormHandles".format(_short))
+            mHandle.setAttrFlags('v')    
+            
         #Self mirror wiring -------------------------------------------------------
         for k,m in d_pairs.iteritems():
             try:
@@ -1169,6 +1175,8 @@ def prerig(self):
                     d_use = copy.copy(_d)
                     d_use['cgmName'] = tag
                     d_use['cgmIterator'] = 0
+                    d_use['cgmDirection'] = side
+                    
                     mAnchor = md_anchorsLists[section][side][0]
                     p = mAnchor.p_position
                     
@@ -1229,6 +1237,7 @@ def prerig(self):
                    #     mCrv.v=False
                     d_use = copy.copy(_d)
                     d_use['cgmName'] = tag
+                    d_use['cgmDirection'] = side
 
                     for i,mAnchor in enumerate(md_anchorsLists[section][side]):
                         d_use['cgmIterator'] = i
@@ -1264,6 +1273,8 @@ def prerig(self):
                                                                       plugShape= 'preShape',
                                                                       attachToSurf=True,
                                                                       orientToDriver = True,
+                                                                      orientToNormal=True,
+                                                                      
                                                                       nameDict= d_use,**d_baseHandeKWS)                            
                         _ml_shapes.append(mShape)
                         _ml_prerigDags.append(mDag)
@@ -1307,8 +1318,9 @@ def prerig(self):
                                                                       plugShape= 'directShape',
                                                                       attachToSurf=True,
                                                                       #orientToDriver=True,
+                                                                      orientToDriver=False,
                                                                       offsetAttr='conDirectOffset',
-                                                                      
+                                                                      orientToNormal=True,
                                                                       nameDict= d_use,**d_baseHandeKWS)                        
                         
                         _ml_jointShapes.append(mShape)
@@ -1812,6 +1824,7 @@ def skeleton_build(self, forceNew = True):
                 for mObj in ml_base:
                     mJnt = mObj.doCreateAt('joint')
                     mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                    mJnt.doStore('cgmName','brow')
                     mJnt.doStore('cgmType','skinJoint')
                     mJnt.doName()
                     ml_new.append(mJnt)
@@ -1828,6 +1841,7 @@ def skeleton_build(self, forceNew = True):
                 for mObj in ml_base:
                     mJnt = mObj.doCreateAt('joint')
                     mJnt.doCopyNameTagsFromObject(mObj.mNode,ignore = ['cgmType'])
+                    mJnt.doStore('cgmName','brow')                    
                     mJnt.doStore('cgmType','skinJoint')
                     mJnt.doName()
                     ml_new.append(mJnt)
@@ -3030,18 +3044,31 @@ def uiBuilderMenu(self,parent = None):
                 c = cgmGEN.Callback(uiFunc_snapStateHandles,self),
                 label = "Snap State Handles")
     
-    mc.menuItem(ann = '[{0}] Aim pre handles'.format(_short),
+    _aim =  mc.menuItem(en=True,subMenu = True,tearOff=True,
+                       label = 'Aim pre'.format(_short))
+    
+    mc.menuItem(ann = 'Aim All',
                 c = cgmGEN.Callback(uiFunc_aimPreHandles,self),
-                label = "Aim Pre Handles")
+                label = "All")
+    mc.menuItem(ann = "Aim Pre Handles",
+                c = cgmGEN.Callback(uiFunc_aimPreHandles,self,0,1,0),
+                label = "Handles")
+    mc.menuItem(ann = "Aim Pre Anchors",
+                c = cgmGEN.Callback(uiFunc_aimPreHandles,self,1,0,0),
+                label = "Anchors")
+    mc.menuItem(ann = "Aim Pre Joint Helpers",
+                c = cgmGEN.Callback(uiFunc_aimPreHandles,self,0,0,1),
+                label = "Joint Helpers")
     
     
-    mc.menuItem(en=True,divider = True,
-                label = "Utilities")
+    #mc.menuItem(en=True,divider = True,
+    #            label = "Utilities")
     
+    """
     _sub = mc.menuItem(en=True,subMenu = True,tearOff=True,
                        label = "State Picker")
     
-    self.atUtils('uiStatePickerMenu',parent)
+    self.atUtils('uiStatePickerMenu',parent)"""
     
     #self.UTILS.uiBuilderMenu(self,parent)
     
@@ -3070,15 +3097,19 @@ def uiFunc_snapStateHandles(self,ml=None):
             log.warning("Failed to snap: {0} | {1}".format(mObj.mNode,err))
 
 
-def uiFunc_aimPreHandles(self,upr=1,lwr=1):
+def uiFunc_aimPreHandles(self,anchors=1,handles=1,joints=1):
     _str_func = 'uiFunc_aimPreHandles'    
     
     for side in 'Left','Right':
-        ml_anchors = self.prerigNull.msgList_get('brow{0}Anchors'.format(side))        
-        ml_pre = self.prerigNull.msgList_get('brow{0}PrerigHandles'.format(side))
-        ml_joint = self.prerigNull.msgList_get('brow{0}JointHelpers'.format(side))
+        ml_sets = []
+        if anchors:
+            ml_sets.append(self.prerigNull.msgList_get('brow{0}Anchors'.format(side)))
+        if handles:
+            ml_sets.append(self.prerigNull.msgList_get('brow{0}PrerigHandles'.format(side)))        
+        if joints:
+            ml_sets.append(self.prerigNull.msgList_get('brow{0}JointHelpers'.format(side)))                                  
         
-        for ml in ml_anchors,ml_pre,ml_joint:
+        for ml in ml_sets:
             for i,mObj in enumerate(ml):
                 if side == 'Left':
                     if mObj == ml[-1]:

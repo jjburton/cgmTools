@@ -3,7 +3,7 @@ import sys
 import skeletonBuilder
 import baseRigPrimitive
 
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy.path import Path
 from skeletonBuilder import *
 from baseRigPrimitive import *
 

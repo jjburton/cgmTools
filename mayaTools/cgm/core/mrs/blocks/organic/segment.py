@@ -1412,6 +1412,14 @@ def skeleton_build(self, forceNew = True):
         else:
             return _bfr
     
+    
+            
+    _expected = self.numJoints
+    if len(ml_jointHelpers) != _expected:
+        return log.error("Joint helper count not found: {0} != expected: {1}. Recreate your joint helpers.".format(len(ml_jointHelpers),_expected))    
+    
+    
+    
     #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')    
 
     log.debug("|{0}| >> creating...".format(_str_func))
@@ -1521,7 +1529,11 @@ def rig_prechecks(self):
         if mBlock.numControls > mBlock.numJoints:
             self.l_precheckErrors.append('More controls ({0}) than joints ({1})'.format(mBlock.numControls, mBlock.numJoints))
         
-        
+                
+        for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
+            if not mObj.p_parent:
+                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+                
         #ml = mBlock.moduleTarget.rigNull.msgList_get('moduleJoints',cull=True)
         #if len(ml) != mBlock.numJoints:
         #    self.l_precheckErrors.append('Joint len ({0}) != numJoints setting ({1})'.format(len(ml), mBlock.numJoints))
@@ -3029,7 +3041,7 @@ def rig_cleanUp(self):
             #self.mConstrainNull.addAttr('cgmAlias','{0}_rootNull'.format(self.d_module['partName']))
         
         mAttachDriver = self.md_dynTargetsParent['attachDriver']
-        if not mAttachDriver.hasAttr('cgmAlias'):
+        if mAttachDriver and not mAttachDriver.hasAttr('cgmAlias'):
             mAttachDriver.addAttr('cgmAlias','{0}_rootDriver'.format(self.d_module['partName']))    
         
         #>>  DynParentGroups - Register parents for various controls ============================================

@@ -35,18 +35,19 @@ import maya.mel as mel
 from maya.mel import eval as evalMel
 
 #>>>>> Bridge to get our sub zoo stuff working
-from cgm import cgmInitialize
-cgmInitialize.setupContributorPaths()
+#from cgm import cgmInitialize
+#cgmInitialize.setupContributorPaths()
 
 #import cgm.lib.zoo.zooPyMaya.baseMelUI as mUI
 import cgm.core.classes.HotkeyFactory as HKEY
 
 #>>>>>
 
-from cgm.lib import guiFactory
+#from cgm.lib import guiFactory
 from cgm.core.cgmPy import path_Utils as cgmPath
-from cgm.lib.zoo.zooPyMaya import baseMelUI as mUI
-from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
+#from cgm.lib.zoo.zooPyMaya import baseMelUI as mUI
+from cgm.core.lib.zoo import baseMelUI as mUI
+#from cgm.lib.zoo.zooPyMaya.melUtils import printErrorStr
 import Red9
 
 #==========================================================================
@@ -675,11 +676,11 @@ def loadZooToolbox( *a ):
     zooToolbox.ToolboxWindow()
 
 def loadSkinPropagation( *a ):
-    from zooPyMaya import refPropagation
+    from cgm.lib.zoo.zooPyMaya import refPropagation
     refPropagation.propagateWeightChangesToModel_confirm()
 
 def loadXferAnim( *a ):
-    from zooPyMaya import xferAnimUI
+    from cgm.lib.zoo.zooPyMaya import xferAnimUI
     xferAnimUI.XferAnimWindow()
 
 class ToolCB(object):

@@ -28,5 +28,5 @@ def setupContributorPaths():
                                         print ('%s Failed to append' %bufferFolderPath)
         except Exception,err:
                 raise Exception,"setupContributorPaths FAILURE || {0}".format(err)
-setupContributorPaths()
+#setupContributorPaths()
 #=======================================================================================

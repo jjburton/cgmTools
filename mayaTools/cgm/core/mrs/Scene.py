@@ -19,10 +19,9 @@ from cgm.core.mrs.lib import batch_utils as BATCH
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.lib import math_utils as MATH
 from cgm.core.mrs.lib import scene_utils as SCENEUTILS
-reload(SCENEUTILS)
 from cgm.core.lib import skinDat as SKINDAT
-reload(SKINDAT)
 import cgm.core.mrs.Builder as BUILDER
+import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 
 import Red9.core.Red9_General as r9General
 
@@ -85,6 +84,7 @@ example:
 
     TOOLNAME = 'cgmScene'
     WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
+    reload(SCENEUTILS)
 
     def insert_init(self,*args,**kws):
         
@@ -178,8 +178,8 @@ example:
             self.LoadProject(self.optionVarProjectStore.getValue())
         else:
             mPathList = cgmMeta.pathList('cgmProjectPaths')
-            self.LoadProject(mPathList.mOptionVar.value[0])
-
+            try:self.LoadProject(mPathList.mOptionVar.value[0])
+            except:pass
     @property
     def directory(self):
         return self.directoryTF.getValue()
@@ -1394,7 +1394,56 @@ example:
         return thumbFile
     
     def metaData_print(self):
-        pprint.pprint( self.getMetaDataFromCurrent() )
+        
+        _d = self.getMetaDataFromFile() 
+        pprint.pprint(_d)
+        
+        _type = _d.get('type')
+        _subType =_d.get('subType')
+        _subTypeAsset = _d.get('subTypeAsset')
+        _asset = _d.get('asset')
+        
+        _l = []
+        for k in _type,_asset,_subType,_subTypeAsset:
+            if k:
+                _l.append(k)
+        
+        _name = '.'.join(_l)
+        
+        print ''
+        _d.get('file')
+        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.project.userPaths_get()['content']), '')
+        _l_asset = [_name,_file]
+        print ','.join(_l_asset)
+        print ''
+        
+        #Shots
+        if _d.get('shots'):
+            _shots = _d.get('shots')
+            _total = 0
+            _lows = []
+            _highs = []
+            
+            _l_shots = []
+            
+            for s in _shots:
+                _total += s[1][2]
+                _l = [s[0], s[1][0], s[1][1], s[1][2]] 
+                _l = [str(v) for v in _l]
+                _l_shots.append( _l )
+                _lows.append(s[1][0])
+                _highs.append(s[1][1])
+                
+            
+            print ','.join(['clip','start','end',str(_total), "{0}".format(max(_highs) - min(_lows))])
+            print ''
+            for s in _l_shots:
+                print ','.join(s)
+                
+        print 'Notes'
+        print _d.get('notes','None')
+        
+        #pprint.pprint( self.getMetaDataFromCurrent() )
         
     def getMetaDataFromCurrent(self):
         from cgm.core.mrs.Shots import AnimList
@@ -1525,6 +1574,9 @@ example:
 
         mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Verify Asset Dirs",
                                  c = cgmGEN.Callback(self.VerifyAssetDirs) )
+        
+        mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Clean Scene",
+                                 c = lambda *a:mc.evalDeferred(MAYABEODD.cleanFile,lp=1) )        
         
         mUI_skinDat = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='SkinDat',subMenu=True)
         SKINDAT.uiBuildMenu(mUI_skinDat)
@@ -2414,7 +2466,7 @@ example:
             name = mProj.d_project['name']
             project_names.append(name)
 
-            if self.project.userPaths_get()['content'] == mProj.userPaths_get()['content']:
+            if self.project.userPaths_get().get('content') == mProj.userPaths_get().get('content'):
                 continue
 
             item = mUI.MelMenuItem( mMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
@@ -2551,10 +2603,12 @@ example:
     def RemoveFromQueue(self, *args):
         if args[0] == 0:
             idxes = self.queueTSL.getSelectedIdxs()
+            print idxes
             idxes.reverse()
 
             for idx in idxes:
-                del self.batchExportItems[idx-1]
+                #del self.batchExportItems[idx-1]
+                self.batchExportItems.remove( self.batchExportItems[idx] )
         elif args[0] == 1:
             self.batchExportItems = []
 

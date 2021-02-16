@@ -704,7 +704,9 @@ def uiSection_animUtils(parent):
     mc.menuItem(parent = parent,
                 l='red9.Studio Tools',
                 ann = "Launch Red 9's tools",
-                c=lambda *a:Red9.start())     
+                c=lambda *a:Red9.start())
+    
+    
     mc.menuItem(parent = parent,
                 l='zoo.XferAnim',
                 ann = "Tool for transferring animation - from Hamish McKenzie's zooToolbox",

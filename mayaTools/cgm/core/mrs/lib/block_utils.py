@@ -3960,7 +3960,7 @@ def blockMirror_create(self, forceNew = False):
         return mMirror
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def blockMirror_go(self, mode = 'push',autoCreate = False):
+def blockMirror_go(self, mode = 'push',autoCreate = False,define=True,form = True, prerig= True):
     """
     Call to duplicate a block module and load data
     """
@@ -3973,10 +3973,12 @@ def blockMirror_go(self, mode = 'push',autoCreate = False):
         
         mMirror = self.blockMirror
         
+        kws = {'define':True,'form':True, "prerig":True,}
+        
         if mode == 'push':
-            controls_mirror(self,mMirror)
+            controls_mirror(self,mMirror,**kws)
         else:
-            controls_mirror(mMirror,self)
+            controls_mirror(mMirror,self,**kws)
 
         return mMirror
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
@@ -6639,6 +6641,7 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                 'define':['basicShape','shapeDirection','jointRadius'],
                 'form':['numShapers','numSubShapers','shapersAim',
                         'loftSetup','loftList','loftShape',
+                        'ikEnd',                        
                         'proxyShape'],
                 'proxySurface':['loftSides','loftDegree','loftSplit'],
                 'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace',
@@ -6654,7 +6657,6 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                        'ikOrientToWorld',
                        'ikSetup',
                        'ikBase',
-                       'ikEnd',
                         'offsetMode','proxyDirect','parentToDriver','rigSetup','scaleSetup'],
                 'advanced':['baseDat'],
                 'squashStretch':['squash','squashExtraControl','squashFactorMin','squashFactorMax',
@@ -9069,13 +9071,15 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 if _res:ml_mesh.extend(_res)
                 
             else:
-                _res = create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,)
-                if _res:ml_mesh.extend(_res)
-                
-                _side = get_side(mBlock)
-                
-            for mObj in _res:
-                CORERIG.colorControl(mObj.mNode,_side,'main',transparent=False,proxy=True)
+                if mBlock.blockType not in ['eye','brow','muzzle','eyeMain']:
+                    
+                    _res = create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,)
+                    if _res:ml_mesh.extend(_res)
+                    
+                    _side = get_side(mBlock)
+                    
+                    for mObj in _res:
+                        CORERIG.colorControl(mObj.mNode,_side,'main',transparent=False,proxy=True)
             
             
             """
