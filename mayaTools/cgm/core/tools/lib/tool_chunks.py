@@ -772,6 +772,12 @@ def uiSection_mrsAnim(parent):
                 l='cgmSetTools',
                 ann = "Launch cgm's setTools - a tool for managing maya selection sets",
                 c=lambda *a: TOOLCALLS.setTools())
+    
+    mc.menuItem(parent = parent,
+                l='Randomize Attr',
+                ann = "Bokser's ranomdize attr tool. Select some attributes in the channel box and click the button",
+                c=lambda *a: maya.mel.eval('dbRandomizeAttr'))    
+    
 
     
     
