@@ -31,6 +31,11 @@ import cgm.core.lib.search_utils as SEARCH
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.lib.list_utils as LISTS
+from cgm.core import cgm_General as cgmGEN
+
+log_start = cgmGEN.logString_start
+log_sub = cgmGEN.logString_sub
+log_msg = cgmGEN.logString_msg
 
 def get_driven(driver = None, getPlug = True, select = True):
     """
@@ -137,5 +142,73 @@ def get_animCurve(driverAttribute,drivenObject):
     buffer = mc.listConnections(drivenObject,s=True)
     drivenPast = mc.listHistory(buffer[0])
     
-    reload(LISTS)
+    #reload(LISTS)
     return LISTS.get_matchList(driverFuture,drivenPast)
+
+
+def walk_sdkInfo(driverAttribute):
+    _str_func = 'walk_sdkInfo'
+    
+    l_driven = get_driven(driverAttribute,True)
+    if not l_driven:
+        return log.error( log_msg(_str_func, "No driven") )
+    
+    _res = {}
+    
+    for o in l_driven:
+        _res[o] = get_sdkInfo(driverAttribute, o)
+        
+    
+    pprint.pprint(_res)
+    return _res
+        
+    
+
+def get_sdkInfo(driverAttribute,drivenObject):
+    """ 
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
+    DESCRIPTION:
+    Returns the info for a sdk curve
+
+    ARGUMENTS:
+    driverAttribute(string)
+    drivenObject(string)
+
+    RETURNS:
+    curveInfo(dict){time:value,etc...}
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    """
+    driverCurve = get_animCurve(driverAttribute,drivenObject)
+    
+    if driverCurve:
+        _res = {}
+        keyCnt = mc.keyframe(driverCurve[0],q=True, keyframeCount = True)
+        curveValues = mc.keyframe(driverCurve[0],q=True, vc=True)
+        #pprint.pprint([keyCnt,curveValues])
+        _d = {}
+        _l = ['lock','ia','ix','iy','oy','ox','ow','itt','ott','iw','wl']
+        
+        for k in _l:
+            _d[k] = mc.keyTangent(driverCurve[0], q=1,**{k:1})
+        
+        #for i in range(keyCnt):
+            #_t = mc.keyframe(driverCurve[0], index = (i,[i]), query=True, fc=True)
+            #_res[curveValues[i]] = {'v':curveValues[i],'kf':_t}
+        
+        
+        for cnt in range(keyCnt):
+            _d_tmp = {}
+            # Because maya is stupid and the syntax for this in python unfathomable my mere mortals such as I
+            mel.eval('string $animCurve = "%s";' %driverCurve[0])
+            mel.eval('int $cnt = %i;' %cnt)
+            keyTimeValue = mel.eval('keyframe -index $cnt -query -fc $animCurve')
+            
+            _d_tmp['v'] = curveValues[cnt]
+            _d_tmp['curve'] = driverCurve[0]
+            for k in _l:
+                _d_tmp[k] = _d[k][cnt]
+            
+            _res[keyTimeValue[0]] = _d_tmp
+            
+        pprint.pprint(_res)
+        return _res
