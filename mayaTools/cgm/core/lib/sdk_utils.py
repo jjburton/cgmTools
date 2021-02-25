@@ -146,7 +146,7 @@ def get_animCurve(driverAttribute,drivenObject):
     return LISTS.get_matchList(driverFuture,drivenPast)
 
 
-def walk_sdkInfo(driverAttribute):
+def walk_sdkInfo(driverAttribute,stripObj=True):
     _str_func = 'walk_sdkInfo'
     
     l_driven = get_driven(driverAttribute,True)
@@ -156,15 +156,21 @@ def walk_sdkInfo(driverAttribute):
     _res = {}
     
     for o in l_driven:
-        _res[o] = get_sdkInfo(driverAttribute, o)
+        if stripObj:
+            _o = o.split('.')[1]
+        else:
+            _o = o
+            
+        _res[_o] = get_sdkInfo(driverAttribute, o)
         
     
-    pprint.pprint(_res)
+    #pprint.pprint(_res)
     return _res
         
     
 
-def get_sdkInfo(driverAttribute,drivenObject):
+    
+def get_sdkInfo(driverAttribute,drivenObject, simple = True):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
     DESCRIPTION:
@@ -204,11 +210,27 @@ def get_sdkInfo(driverAttribute,drivenObject):
             keyTimeValue = mel.eval('keyframe -index $cnt -query -fc $animCurve')
             
             _d_tmp['v'] = curveValues[cnt]
-            _d_tmp['curve'] = driverCurve[0]
-            for k in _l:
-                _d_tmp[k] = _d[k][cnt]
+            
+            if not simple:
+                #_d_tmp['curve'] = driverCurve[0]
+                for k in _l:
+                    _d_tmp[k] = _d[k][cnt]
             
             _res[keyTimeValue[0]] = _d_tmp
             
-        pprint.pprint(_res)
+        #pprint.pprint(_res)
         return _res
+    
+def set_sdk_fromDict(driverAttribute,targets, dat = {}):
+    _str_func = 'set_sdk_fromDict'
+    log.info(log_start(_str_func))
+    
+    for o in targets:
+        log.info(log_sub(_str_func,o))
+        
+        for a,d in dat.iteritems():
+            for dv,d2 in d.iteritems():
+                mc.setDrivenKeyframe("{0}.{1}".format(o,a),
+                                     currentDriver = driverAttribute,
+                                     driverValue = dv, value = d2['v'])        
+            

@@ -40,6 +40,7 @@ from cgm.core.rig import joint_utils as RIGJOINTS
 from cgm.core.lib import attribute_utils as ATTR
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.classes import NodeFactory as NODEF
+import cgm.core.lib.sdk_utils as SDK
 
 
 def controls_wireRightToLeft(nodes = None):
@@ -527,7 +528,6 @@ class poseBuffer():
             for a in l_missingDrivers:
                 print a
                                 
-
     def report(self):
         mBuffer = self.mBuffer
         
@@ -549,7 +549,23 @@ class poseBuffer():
                 continue
             print "'{0}':None, ".format(a)        
         print "}}"
-        #pprint.pprint(self.attrDat)
+        
+    def poseDat_get(self):
+        mBuffer = self.mBuffer
+        
+        _res = {}
+        _str = mBuffer.mNode
+        
+        for a in mBuffer.getAttrs(ud=True):
+            if a in poseBuffer.attrMask:
+                continue
+            if 'XXX' in a:
+                continue
+            
+            _res[a] = SDK.walk_sdkInfo("{0}.{1}".format(_str,a),stripObj = False)
+        
+        return _res
+    
 
 
 d_wireTMP = {
