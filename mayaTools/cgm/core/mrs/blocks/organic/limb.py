@@ -142,11 +142,13 @@ d_build_profiles = {
                        'addBall':'none'},
                 'finger':{'numRoll':0},
                 'thumb':{'numRoll':0},
+                'nub':{'numRoll':0},
                 'toe':{'numRoll':0},
                 },
     'unityMed':{'default':{'numRoll':1},
                'finger':{'numRoll':0},
                'thumb':{'numRoll':0},
+               'nub':{'numRoll':0},               
                'toe':{'numRoll':0},
                },
     'unityToon':{'default':{'squashMeasure':'pointDist',
@@ -155,11 +157,13 @@ d_build_profiles = {
                             },
                  'finger':{'numRoll':0},
                  'toe':{'numRoll':0},
+                 'nub':{'numRoll':0},                 
                  'thumb':{'numRoll':0},
                  },    
     'unityHigh':{'default':{'numRoll':3},
                 'finger':{'numRoll':0},
                 'thumb':{'numRoll':0},
+                'nub':{'numRoll':0},                
                 'toe':{'numRoll':0},
                            },
     'feature':{'default':{'numRoll':3,},
@@ -9116,12 +9120,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 #log.debug("|{0}| >> digit end: {1}".format(_str_func,mEnd))                        
                 
         else:
+            log.info('default...')
             mEnd = ml_rigJoints[-1]
                 
         
         log.info("|{0}| >> Handles Targets: {1}".format(_str_func,ml_rigJoints))            
         log.info("|{0}| >> End idx: {1} | {2}".format(_str_func,int_handleEndIdx,
-                                                       ml_rigJoints[int_handleEndIdx]))                
+                                                       int_handleEndIdx))                
             
         
         # Create ---------------------------------------------------------------------------

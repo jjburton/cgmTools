@@ -35,12 +35,13 @@ from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import transform_utils as TRANS
 import cgm.core.lib.name_utils as NAMES
+import cgm.core.lib.math_utils as MATH
 
 
 
 def create_uvPickerNetwork(target = None,
                            name = 'iris',
-                           mode = 1,
+                           mode = 'twoAttr',
                            enums = None,
                            count = 9, split = 3):
     _str_func = 'create_uvPickerNetwork'
@@ -53,7 +54,7 @@ def create_uvPickerNetwork(target = None,
         target = mc.group(em=True,name='uvPickerDefault')
     
     
-    if mode == 2:
+    if mode == 'twoAttr':
         log.debug(cgmGen.logString_msg(_str_func,'2 Attr mode'))
         
         if not enums:
@@ -81,10 +82,65 @@ def create_uvPickerNetwork(target = None,
         
         mMD.doConnectOut('outputX', '{0}.res_{1}U'.format(target,name))
         mMD.doConnectOut('outputY', '{0}.res_{1}V'.format(target,name))
+        
+    elif mode == 'singleSquare':
+        #split is our square split number 16 would be 4, 9 would be 3 etc
+        l_base = MATH.get_splitValueList(0,1,split+1)
+        l_second = MATH.get_splitValueList(0,1,split+1)
+        l_second.reverse()
+        l_dat = []
+        for i in range(split):
+            for i2 in range(split):
+                l_dat.append([l_base[i2], l_base[i]])
+        
+        pprint.pprint(l_dat)
+                
+        for a in ['U','V']:
+            _a = 'res_{0}{1}'.format(name,a)
+            ATTR.add(target,_a,'float',keyable=False,hidden=False)
+            ATTR.set_hidden(target,_a,False)
+            
+            if a == 'U':
+                _strU = "{0}.{1}".format(target,_a)
+            else:
+                _strV = "{0}.{1}".format(target,_a)
+            
+            
+        ATTR.add(target,name,'int')
+        mAttr = cgmMeta.cgmAttr(target,name)
+        mAttr.p_maxValue = len(l_dat)
+        mAttr.p_minValue = 0       
+        mAttr.p_hidden = False
+        
+        _str_driver = mAttr.p_combinedName
+        
+        
+        for i,vSet in enumerate(l_dat):
+            log.info(cgmGen.logString_msg(_str_func, "{0} | {1} | {2}".format(_strU, i, vSet[0])))
+            mc.setDrivenKeyframe(_strU,
+                                 currentDriver = _str_driver,
+                                 driverValue = i, value = vSet[0])
+            
+            log.info(cgmGen.logString_msg(_str_func, "{0} | {1} | {2}".format(_strV, i, vSet[1])))
+            mc.setDrivenKeyframe(_strV,
+                                 currentDriver = _str_driver,
+                                 driverValue = i, value = vSet[1])
+            
+            
+        
     else:
         log.debug(cgmGen.logString_msg(_str_func,'1 Attr mode'))
         
         _d_values = {9:[[.999,.666],
+                        [.333,.666],
+                        [.666,.666],
+                        [.999,.333],
+                        [.333,.333],
+                        [.666,.333],
+                        [.999,.999],
+                        [.333,.999],
+                        [.666,.999],],
+                    16:[[.999,.666],
                         [.333,.666],
                         [.666,.666],
                         [.999,.333],
@@ -98,6 +154,7 @@ def create_uvPickerNetwork(target = None,
         l_dat = _d_values.get(count)
         if not l_dat:
             raise ValueError,"{0} | count {1} not supported".format(_str_func,count)
+    
         
         
         
