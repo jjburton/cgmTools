@@ -4478,14 +4478,14 @@ class cgmRigMaster(cgmMeta.cgmObject):
             if self.hasAttr('cgmName'):
                 log.debug("|{0}| >> Making name curve...".format(_str_func))                
                 nameSize = size[0]
-                _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .7, font = font)
-                #TRANS.scale_to_boundingBox(_textCurve, [None,None,size[2]*.95])
-                
-                ATTR.set(_textCurve,'rx',-90)
-                mHandleFactory.color(_textCurve,'center','main',transparent = False)
-                
-                CORERIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
-                
+                try:
+                    _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .7, font = font)
+                                
+                    ATTR.set(_textCurve,'rx',-90)
+                    mHandleFactory.color(_textCurve,'center','main',transparent = False)
+                    
+                    CORERIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
+                except:pass
             
             #>> Helpers -----------------------------------------------------------------------------
             #======================
