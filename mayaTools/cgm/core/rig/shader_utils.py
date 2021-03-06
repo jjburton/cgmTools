@@ -86,12 +86,24 @@ def create_uvPickerNetwork(target = None,
     elif mode == 'singleSquare':
         #split is our square split number 16 would be 4, 9 would be 3 etc
         l_base = MATH.get_splitValueList(0,1,split+1)
-        l_second = MATH.get_splitValueList(0,1,split+1)
-        l_second.reverse()
+        #l_second = MATH.get_splitValueList(0,1,split+1)
+        #l_second.reverse()
         l_dat = []
+        d_dat = {}
         for i in range(split):
+            d_dat[i] = []
             for i2 in range(split):
-                l_dat.append([l_base[i2], l_base[i]])
+                d_dat[i].append([l_base[i2], l_base[i]])
+                
+        l_keys = d_dat.keys()
+        l_keys.sort()
+        l_set = l_keys[1:]
+        l_set.reverse()
+        l_keys = [l_keys[0]] + l_set
+        
+        for k in l_keys:
+            l_dat.extend(d_dat[k])
+        
         
         pprint.pprint(l_dat)
                 
