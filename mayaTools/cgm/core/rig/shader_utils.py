@@ -41,9 +41,14 @@ import cgm.core.lib.math_utils as MATH
 
 def create_uvPickerNetwork(target = None,
                            name = 'iris',
-                           mode = 'twoAttr',
+                           mode = 'singleSquare',
                            enums = None,
-                           count = 9, split = 3):
+                           count = 9, split = 3,
+                           maxValue = .999):
+    """
+    
+    maxValue | float | the factor max value for our splits
+    """
     _str_func = 'create_uvPickerNetwork'
     log.debug("|{0}| >> ".format(_str_func)+ '-'*80)
 
@@ -85,7 +90,7 @@ def create_uvPickerNetwork(target = None,
         
     elif mode == 'singleSquare':
         #split is our square split number 16 would be 4, 9 would be 3 etc
-        l_base = MATH.get_splitValueList(0,1,split+1)
+        l_base = MATH.get_splitValueList(0,maxValue,split+1)
         #l_second = MATH.get_splitValueList(0,1,split+1)
         #l_second.reverse()
         l_dat = []
