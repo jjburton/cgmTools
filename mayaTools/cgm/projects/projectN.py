@@ -101,4 +101,43 @@ def cards_outSnap(nodes = None):
         mc.setKeyframe(mObj.mNode)
         
     _current = mc.currentTime(q=True)
+    
+
+
+def cards_constrainToSockects():
+    _str_func = cards_constrainToSockects
+    _d = {'p1c1':'seating:seat1_root|seating:card1_socket',
+          'p1c2':'seating:seat1_root|seating:card2_socket',
+          'p2c1':'seating:seat2_root|seating:card1_socket',
+          'p2c2':'seating:seat2_root|seating:card2_socket',
+          'p3c1':'seating:seat3_root|seating:card1_socket',
+          'p3c2':'seating:seat3_root|seating:card2_socket',
+          'p4c1':'seating:seat4_root|seating:card1_socket',
+          'p4c2':'seating:seat4_root|seating:card2_socket',
+          'p5c1':'seating:seat5_root|seating:card1_socket',
+          'p5c2':'seating:seat5_root|seating:card2_socket',
+          'p6c1':'seating:seat6_root|seating:card1_socket',
+          'p6c2':'seating:seat6_root|seating:card2_socket',
+          'p7c1':'seating:seat7_root|seating:card1_socket',
+          'p7c2':'seating:seat7_root|seating:card2_socket',
+          'flop1':'holdem_sockets:socket_table1',
+          'flop2':'holdem_sockets:socket_table2',
+          'flop3':'holdem_sockets:socket_table3',
+          'turn':'holdem_sockets:socket_table4',
+          'river':'holdem_sockets:socket_table5',}
+    
+    
+    
+    for k,t in _d.iteritems():
+        mObj = cgmMeta.asMeta("{0}:rootMotion_anim".format(k))
+        if not mObj:
+            log.error("Failed to find: {0}".format(k))
+            continue
+        
+        l_constraints = mObj.getConstraintsTo()
+        if l_constraints:
+            mc.delete(l_constraints)
+            
+        
+        mc.parentConstraint(t, mObj.mNode, maintainOffset = 0)
 
