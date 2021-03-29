@@ -11,7 +11,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.4.1.06'
+__RELEASE = '21.4.1.07'
 
 __BRANCH = 'MRSDEV'
 
