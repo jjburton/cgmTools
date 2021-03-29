@@ -1377,8 +1377,9 @@ def get_castMesh(self,extend=False,pivotEnd=False):
                 l_targets.append(mSub.mNode)
         """
         mHandle = ml_formHandles[-1]
-        l_targets.append(mHandle.loftCurve.mNode)
-        
+        try:l_targets.append(mHandle.loftCurve.mNode)
+        except:
+            pass
         
         if mHandle.getMessage('pivotHelper'):
             mPivotHelper = ml_formHandles[-1].pivotHelper
@@ -1425,7 +1426,9 @@ def get_castMesh(self,extend=False,pivotEnd=False):
                 
                 
             else:"""
-            l_targets.append(mHandle.loftCurve.mNode)
+            try:l_targets.append(mHandle.loftCurve.mNode)
+            except:
+                continue
             ml_sub = mHandle.msgList_get('subShapers')
             if ml_sub:
                 for mSub in ml_sub:
@@ -1463,11 +1466,16 @@ def get_castMesh(self,extend=False,pivotEnd=False):
         #print _mesh
         #mCastMesh =  cgmMeta.validateObjArg(_mesh,'cgmObject')
         
+        if self.blockType == 'head':
+            uAttr = 'neckControls'
+        else:
+            uAttr = 'numControls'
+            
         mMesh = create_prerigLoftMesh(
             self,
             l_targets,
             None,
-            'numControls',
+            uAttr,
             'loftSplit',
             polyType='bezier',
             justMesh = True,

@@ -5702,7 +5702,7 @@ def rig_skeleton(self):
     if self.str_cheekUprSetup:
         log.debug("|{0}| >> cheekUpr...".format(_str_func))
         
-        if self.str_cheekUprSetup == 'simple':
+        if self.str_cheekUprSetup == 'single':
             for t in ['cheekUprLeft','cheekUprRight']:
                 doSingleJoint(t,False)
             mirrorConnect('cheekUprLeft','cheekUprRight')
@@ -5740,7 +5740,7 @@ def rig_skeleton(self):
     if self.str_smileSetup:
         log.debug("|{0}| >> smile...".format(_str_func))
         
-        if self.str_cheekUprSetup == 'simple':
+        if self.str_cheekUprSetup == 'single':
         
             for t in ['smileLeft','smileRight']:
                 doSingleJoint(t,False)
@@ -6888,7 +6888,7 @@ def rig_frame(self):
         if self.str_cheekUprSetup:
             log.debug("|{0}| >> cheekUpr setup...".format(_str_func)+ '-'*40)
             
-            if self.str_cheekUprSetup == 'simple':
+            if self.str_cheekUprSetup == 'single':
                 for k in ['cheekUprLeft','cheekUprRight']:
                     log.debug("|{0}| >> {1}...".format(_str_func,k))
                     mdD[k].masterGroup.p_parent = self.mDeformNull

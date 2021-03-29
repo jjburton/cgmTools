@@ -5899,18 +5899,21 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         mHelper = mBlock.getMessageAsMeta('{0}Helper'.format(k))
         if not mHelper:
             continue
+        
         mDup = mHelper.doDuplicate(po=False,ic=False)
         mDup.dagLock(False)
-        mDup.p_parent = False
+        mDup.p_parent = self#False
         l_crvs.append(mDup.mNode)
         l_delete.append(mDup.mNode)
         md_helpers[k] =[mDup.mNode]
+        
         mDup.rz = _r
+        
         
         if k == 'iris' and not mBlock.getMessage('pupilHelper'):
             mDup2 = mHelper.doDuplicate(po=False,ic=False)
             mDup2.dagLock(False)
-            mDup2.rz = _r
+            #mDup2.rz = _r
             mDup2.dagLock(False)
             mDup2.p_parent = mDup
             pos_bb = TRANS.bbCenter_get(mDup2.mNode)
@@ -5926,7 +5929,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
         if k == 'pupil':
             mDup2 = mHelper.doDuplicate(po=False,ic=False)
-            mDup2.rz = _r
+            #mDup2.rz = _r
             mDup2.dagLock(False)
             mDup2.p_parent = mDup
             d = DIST.get_bb_size(mDup.mNode,mode='max')
@@ -5945,6 +5948,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             l_delete.append(mDup2.mNode)
             
             md_helpers[k].append(mDup2)
+            
+            
+            
         """
         _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
                              name = "{0}_approx".format(k))
