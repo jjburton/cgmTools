@@ -128,13 +128,13 @@ _dataConfigToStored = {'general':'d_project',
                        'world':'d_world'}
 
 l_projectPathModes = ['art','content','root']
-l_projectDat = ['name','type','nameStyle','mayaVersion','lock']
+l_projectDat = ['name','type','nameStyle','mayaVersion','mayaFilePref','lock']
 l_nameConventions = ['none','lower','capital','upper','camelCase','capFirst']
 l_mayaVersions = ['2016','2017','2018','2019','2020','2021']
 l_userMode = ['general','master']
 l_projectTypes = ['unity','unreal','commercial']
 l_projectPaths = ['root','content','export','image']
-
+l_mayaFileType = ['ma','mb']
 
 
 _tangents = ['linear','spline','clamped','flat','plateau','auto']
@@ -151,6 +151,7 @@ _projSettings = [{'n':'name','t':'text','dv':'Name me'},
                  {'n':'type','t':l_projectTypes,'dv':'unity'},
                  {'n':'lock','t':'bool','dv':'false'},
                  {'n':'mayaVersion','t':l_mayaVersions,'dv':'2018'},
+                 {'n':'mayaFilePref','t':l_mayaFileType,'dv':'mb'},
                  #{'n':'projectPathMode','t':l_projectPathModes,'dv':'art'},
                  {'n':'nameStyle','t':l_nameConventions,'dv':'none'},
                  ]

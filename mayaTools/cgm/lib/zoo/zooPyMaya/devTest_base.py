@@ -9,7 +9,7 @@ except: pass
 
 from maya import cmds as cmd
 
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy.path import Path
 
 TEST_DIRECTORY = Path( __file__ ).up() / '_devTest_testScenes_'  #location for maya files written by tests
 

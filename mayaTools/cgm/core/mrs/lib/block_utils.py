@@ -72,7 +72,8 @@ import cgm.core.lib.string_utils as STR
 import cgm.core.mrs.lib.post_utils as MRSPOST
 from cgm.core.classes import GuiFactory as CGMUI
 from cgm.core.cgmPy import dict_utils as CGMDICT
-
+import cgm.core.classes.GuiFactory as cgmUI
+mUI = cgmUI.mUI
 #=============================================================================================================
 #>> Queries
 #=============================================================================================================
@@ -705,9 +706,45 @@ def color(self):
                 elif mShape.overrideEnabled:
                     log.debug("|{0}| >> shape: {1}".format(_str_func,mShape))
                     mHandleFactory.color(mShape.mNode)
-            
+
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
+        
+def color_outliner(self,mNodes = None, arg = 'main', stateLinks = True):
+    _short = self.p_nameShort
+    _str_func = 'color'
+    log.debug(cgmGEN.logString_start(_str_func))
+
+    reload(BLOCKSHARE)
+    
+    d_color = BLOCKSHARE.d_outlinerColors.get(self.blockType)
+    if not d_color:
+        return log.warning(cgmGEN.logString_msg(_str_func,"No color data found"))
+    
+    if not mNodes:
+        mNodes = [self]
+        
+    def color(mArg,arg):
+        mArgs = VALID.listArg(mArg)
+        for mO in mArgs:
+            log.info(cgmGEN.logString_msg(_str_func, "Coloring: {0}".format(mO)))            
+            mO.useOutlinerColor = 1
+            mO.outlinerColor = d_color.get(arg)
+        
+    
+    for mNode in mNodes:
+        color(mNode,arg)
+        
+        if stateLinks:
+            for s in BLOCKSHARE._l_blockStates[:mNode.blockState+1]:
+                d_stateLinks = get_stateLinks(mNode,s)
+                for lnk in d_stateLinks.get('msgLinks',[]):
+                    mObj = mNode.getMessageAsMeta(lnk)
+                    #print mObj
+                    if mObj: color(mObj,'sub')
+            
+        
+        
 
 
 def test(self):
@@ -871,6 +908,8 @@ def stateNull_verify(self,state='define'):
         #mNull.rename(_strPlug)
         mNull.p_parent = self
         mNull.setAttrFlags()
+        
+        mNull.doStore('cgmRelease',cgmGEN.__RELEASE)
     else:
         mNull = self.getMessageAsMeta(_strPlug)
     return mNull
@@ -1184,7 +1223,7 @@ def get_stateLinks(self, mode = 'form' ):
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
         d_wiring = {}
         try:
-            d_wiring.update(getattr(mBlockModule,'d_wiring_{0}'.format(mode)))
+            d_wiring = CGMDICT.blendDat(d_wiring, getattr(mBlockModule,'d_wiring_{0}'.format(mode)))
             log.debug("|{0}| >>  Found {1} wiring dat in BlockModule".format(_str_func,mode))
         except Exception,err:
             log.debug("|{0}| >>  No {1} wiring dat in BlockModule. error: {2}".format(_str_func,mode,err))
@@ -1194,6 +1233,11 @@ def get_stateLinks(self, mode = 'form' ):
         if _noTrans not in d_wiring and self.getMessage(_noTrans):
             if not d_wiring.get('msgLinks'):d_wiring['msgLinks'] = []            
             d_wiring['msgLinks'].append(_noTrans)
+            
+            
+        for k,l in d_wiring.iteritems():
+            d_wiring[k] = LISTS.get_noDuplicates(l)
+            
         return d_wiring
         
     except Exception,err:
@@ -1333,8 +1377,9 @@ def get_castMesh(self,extend=False,pivotEnd=False):
                 l_targets.append(mSub.mNode)
         """
         mHandle = ml_formHandles[-1]
-        l_targets.append(mHandle.loftCurve.mNode)
-        
+        try:l_targets.append(mHandle.loftCurve.mNode)
+        except:
+            pass
         
         if mHandle.getMessage('pivotHelper'):
             mPivotHelper = ml_formHandles[-1].pivotHelper
@@ -1381,7 +1426,9 @@ def get_castMesh(self,extend=False,pivotEnd=False):
                 
                 
             else:"""
-            l_targets.append(mHandle.loftCurve.mNode)
+            try:l_targets.append(mHandle.loftCurve.mNode)
+            except:
+                continue
             ml_sub = mHandle.msgList_get('subShapers')
             if ml_sub:
                 for mSub in ml_sub:
@@ -1419,11 +1466,16 @@ def get_castMesh(self,extend=False,pivotEnd=False):
         #print _mesh
         #mCastMesh =  cgmMeta.validateObjArg(_mesh,'cgmObject')
         
+        if self.blockType == 'head':
+            uAttr = 'neckControls'
+        else:
+            uAttr = 'numControls'
+            
         mMesh = create_prerigLoftMesh(
             self,
             l_targets,
             None,
-            'numControls',
+            uAttr,
             'loftSplit',
             polyType='bezier',
             justMesh = True,
@@ -1949,7 +2001,7 @@ def create_jointLoft(self, targets = None, mPrerigNull = None,
     mc.polyNormal(mLoft.mNode, normalMode = 0, userNormalMode = 1, ch=1)
 
     log.debug("|{0}| loft inputs: {1}".format(_str_func,_inputs)) 
-    _d = {'format':1,#fit, 2 - #General
+    _d = {'format':3,#1,#fit, 2 - #General
           'polygonType':1,#'quads',
           'uNumber': baseCount + len(targets)}
 
@@ -2676,7 +2728,7 @@ def skeleton_getNameDictBase(self):
     
     
     for s in 'cgmDirection','cgmPosition':
-        _val = mModule.getMayaAttr(s)
+        _val = self.getMayaAttr(s)
         if _val and _val not in ['none','None','False']:
             _nameDict[s] = _val
     """
@@ -3580,7 +3632,7 @@ def siblings_get(self,matchType = False, matchProfile = False, excludeSelf = Tru
     if excludeSelf:
         ml_match.remove(self)
     
-    pprint.pprint(ml_match)
+    #pprint.pprint(ml_match)
     return ml_match
 
 def siblings_pushSubShapers(self,matchType=True,matchProfile=True):
@@ -3628,7 +3680,7 @@ def siblings_pushFormHandles(self,matchType=True,matchProfile=True):
             d[a]= mHandle.getMayaAttr(a)
         l.append(d)
     
-    pprint.pprint(l)
+    #pprint.pprint(l)
     
     for mSib in ml_siblings:
         log.info(cgmGEN.logString_msg(_str_func,mSib))
@@ -3655,7 +3707,7 @@ def siblings_pushPrerigHandles(self,matchType=True,matchProfile=True):
             d[a]= mHandle.getMayaAttr(a)
         l.append(d)
     
-    pprint.pprint(l)
+    #pprint.pprint(l)
     
     for mSib in ml_siblings:
         log.info(cgmGEN.logString_msg(_str_func,mSib))
@@ -3856,7 +3908,7 @@ def blockMirror_create(self, forceNew = False):
 
         
         log.debug("|{0}| >> Block settings...".format(_str_func, self.mNode))                    
-        pprint.pprint(_d)
+        #pprint.pprint(_d)
         
         mMirror = cgmMeta.createMetaNode('cgmRigBlock',
                                          **_d)
@@ -3916,7 +3968,7 @@ def blockMirror_create(self, forceNew = False):
         return mMirror
     except Exception,err:cgmGEN.cgmException(Exception,err)
     
-def blockMirror_go(self, mode = 'push',autoCreate = False):
+def blockMirror_go(self, mode = 'push',autoCreate = False,define=True,form = True, prerig= True):
     """
     Call to duplicate a block module and load data
     """
@@ -3929,10 +3981,12 @@ def blockMirror_go(self, mode = 'push',autoCreate = False):
         
         mMirror = self.blockMirror
         
+        kws = {'define':True,'form':True, "prerig":True,}
+        
         if mode == 'push':
-            controls_mirror(self,mMirror)
+            controls_mirror(self,mMirror,**kws)
         else:
-            controls_mirror(mMirror,self)
+            controls_mirror(mMirror,self,**kws)
 
         return mMirror
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
@@ -3985,7 +4039,7 @@ def blockMirror_settings(blockSource, blockMirror = None,
                 _l_done.append(k)"""
         
                 
-        _mask = ['side','version','blockState','baseAim','baseAimY']
+        _mask = ['side','version','blockState','baseAim','baseAimY','cgmDirection']
         for a,v in _ud.iteritems():
             if a in _mask or a in _l_done:
                 continue
@@ -6595,6 +6649,7 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                 'define':['basicShape','shapeDirection','jointRadius'],
                 'form':['numShapers','numSubShapers','shapersAim',
                         'loftSetup','loftList','loftShape',
+                        'ikEnd',                        
                         'proxyShape'],
                 'proxySurface':['loftSides','loftDegree','loftSplit'],
                 'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace',
@@ -6610,12 +6665,11 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                        'ikOrientToWorld',
                        'ikSetup',
                        'ikBase',
-                       'ikEnd',
                         'offsetMode','proxyDirect','parentToDriver','rigSetup','scaleSetup'],
                 'advanced':['baseDat'],
                 'squashStretch':['squash','squashExtraControl','squashFactorMin','squashFactorMax',
                                  'squashMeasure'],
-                'vis':[ 'visLabels','visMeasure','visProximityMode'],
+                'vis':[ 'visLabels','visMeasure','visProximityMode','visJointHandle','visRotatePlane'],
                 'data':['version','blockType','blockProfile'],
                 'post':['proxyLoft','proxyGeoRoot','proxyType']}
 
@@ -6664,7 +6718,7 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         _tmp = []
         for a in self.getAttrs(ud=True):
             if a not in _done:
-                _tmp.append(a)
+                _tmp.append(str(a))
         _tmp.sort()
         log.info(cgmGEN.logString_sub(_str_func,'Unknown...'))
         pprint.pprint(_tmp) 
@@ -7415,6 +7469,29 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             self.msgList_append('formStuff',mObj)
             """
     return md_handles,ml_handles,ml_shapers,ml_handles_chain
+
+
+def jointRadius_guess(self,sizeTarget = None):
+    _str_func = 'jointRadius_guess'
+    log.debug("|{0}| >> self: {1}".format(_str_func,self)+ '-'*80)
+    _initial = self.jointRadius
+    _done = False
+    if sizeTarget:
+        _size = TRANS.bbSize_get(sizeTarget,True)
+        print _size
+        print MATH.average(_size[0],_size[1])
+        _v = (MATH.average(_size[0],_size[1]) * .25)
+        if self.jointRadius < _v:
+            log.info("|{0}| >> changing from sizeTarget | {1} | {2}".format(_str_func,_v,sizeTarget))
+            self.jointRadius = _v
+            _done = True
+    else:
+        _base = get_shapeOffset(self) * 2
+        if self.jointRadius < _base:
+            self.jointRadius = _base   
+
+    log.info("|{0}| >> Initial: {1} | Now: {2}".format(_str_func,_initial,self.jointRadius))
+    return self.jointRadius
 
 
     
@@ -8992,13 +9069,26 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 continue
             log.debug("|{0}| >> Meshing... {1}".format(_str_func,mBlock))
             
+    
+            if mBlock.getMayaAttr('meshBuild') in [False,0]:
+                log.error("|{0}| >> meshBuild off: {1}".format(_str_func,mBlock))
+                continue
+            
             if proxy:
                 _res = mBlock.verify_proxyMesh(puppetMeshMode=True)
                 if _res:ml_mesh.extend(_res)
                 
             else:
-                _res = create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,)
-                if _res:ml_mesh.extend(_res)
+                if mBlock.blockType not in ['eye','brow','muzzle','eyeMain']:
+                    
+                    _res = create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,)
+                    if _res:ml_mesh.extend(_res)
+                    
+                    _side = get_side(mBlock)
+                    
+                    for mObj in _res:
+                        CORERIG.colorControl(mObj.mNode,_side,'main',transparent=False,proxy=True)
+            
             
             """
             if skin:
@@ -9032,7 +9122,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 #mMesh = mMeshBase.doDuplicate(po=False,ic=False)
                 mMesh.rename('{0}_unified_geo'.format(mPuppet.p_nameBase))
                 mMesh.p_parent = mParent
-                cgmGEN.func_snapShot(vars())
+                #cgmGEN.func_snapShot(vars())
                 
                 #now copy weights
                 #CORESKIN.transfer_fromTo(mMeshBase.mNode, [mMesh.mNode])
@@ -9065,8 +9155,8 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
         if skin or proxy:
             mPuppet.msgList_connect('puppetMesh',ml_mesh)
             
-        for mGeo in ml_mesh:
-            CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
+        #for mGeo in ml_mesh:
+        #    CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
             
         return ml_mesh
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -9075,7 +9165,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
     
 
 def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNormal = None,
-                      deleteHistory=False,loftMode = 'evenCubic'):
+                      deleteHistory=False,loftMode = None ):#'evenCubic'
     """
     Main call for creating a skinned or single mesh from a rigBlock
     """
@@ -9118,6 +9208,13 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNo
         ml_mesh = mBlockModule.create_simpleMesh(self,skin=skin,parent=mParent,deleteHistory=deleteHistory)
     
     else:#Create ======================================================================================
+        if not loftMode:
+            if self.getEnumValueString('loftDegree') == 'cubic':
+                loftMode = 'evenCubic'
+            else:
+                loftMode = 'evenLinear'
+            
+            
         ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory,loftMode=loftMode)
     
         
@@ -10298,6 +10395,25 @@ def prerig_snapRPtoOrientHelper(self):
         vector_pos = mOrientHelper.getAxisVector('y+',asEuclid = 0)
     
         mRP.p_position = DIST.get_pos_by_vec_dist(pos_self, vector_pos,dist)
+
+def get_tagMessage(self,selfKey=None, msgList = None, idx = None):
+    _str_func = 'get_tagMessage'
+    log.debug(cgmGEN.logString_start(_str_func))    
+    
+    if selfKey:
+        return self.getMessageAsMeta(selfKey)
+    
+    if msgList:
+        if msgList:
+            _res = self.msgList_get(msgList)
+            
+            
+            
+    if idx is not None:
+        return _res[idx]
+    return _res
+
+
 
 
 def get_handleIndices(self):
@@ -12263,8 +12379,8 @@ def blockScale_bake(self,sizeMethod = 'axisSize',force=False,):
 def uiStatePickerMenu(self,parent = None):
     _short = self.p_nameShort
     ml_done = []
-    try:mc.setParent(parent)
-    except:pass
+    #mc.setParent(parent)
+    
     """
     mc.menuItem(en=True,divider = True,
                 label = "Utilities")
@@ -12274,9 +12390,10 @@ def uiStatePickerMenu(self,parent = None):
 
     _state = self.blockState
     #Define ----------------------------------------------------------------------------
-    mc.menuItem(label = 'Root',
-                ann = 'select root',
-                c = cgmGEN.Callback(self.select),)
+    mUI.MelMenuItem(parent,
+                    label = 'Root',
+                    ann = 'select root',
+                    c = cgmGEN.Callback(self.select),)
     ml_done.append(self)
     
     
@@ -12307,9 +12424,9 @@ def uiStatePickerMenu(self,parent = None):
     
                 
     if d_define:
-        mc.menuItem(en=True,divider = True, label = "Define")
+        mUI.MelMenuItem(parent,en=True,divider = True, label = "Define")
         for d in d_define:
-            mc.menuItem(**d)
+            mUI.MelMenuItem(parent,**d)
         
     #Form ------------------------------------------------------------------------------
     def addPivotHelper(mPivotHelper,i,l):
@@ -12364,22 +12481,22 @@ def uiStatePickerMenu(self,parent = None):
         
 
         if d_form:
-            mc.menuItem(en=True,divider = True,
+            mUI.MelMenuItem(parent,en=True,divider = True,
                         label = "Form")
             for d in d_form:
-                mc.menuItem(**d)                        
+                mUI.MelMenuItem(parent,**d)                        
             
             if ml_lofts:
                 mc.menuItem(en=False,divider = True,
                             label = "--- [Shapers]")
                 for i,mSub in enumerate(ml_lofts):
-                    mc.menuItem(ann='[{0}] Loft Handles [{1}]'.format(mSub.mNode,i),
+                    mUI.MelMenuItem(parent,ann='[{0}] Loft Handles [{1}]'.format(mSub.mNode,i),
                                 label=' '*i + "{0} | {1}".format(i,mSub.p_nameBase),
                                 c=cgmGEN.Callback(mSub.select))
 
             
-            try:mc.setParent(parent)
-            except:pass            
+            #try:mc.setParent(parent)
+            #except:pass            
     #Prerig ------------------------------------------------------------------------------
     if _state > 1:
         d_pre = []
@@ -12421,14 +12538,14 @@ def uiStatePickerMenu(self,parent = None):
                               'label':' '*i + "{0} | {1}".format(i,_name)})
                 ml_done.append(mObj)
             
-            try:mc.setParent(parent)
-            except:pass
+            #try:mc.setParent(parent)
+            #except:pass
             
         if d_pre:
-            mc.menuItem(en=True,divider = True,
+            mUI.MelMenuItem(parent,en=True,divider = True,
                         label = "Prerig")            
             for d in d_pre:
-                mc.menuItem(**d)
+                mUI.MelMenuItem(parent,**d)
                 
                 
 

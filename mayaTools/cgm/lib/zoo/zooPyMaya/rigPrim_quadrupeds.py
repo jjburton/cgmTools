@@ -309,11 +309,11 @@ class SatyrLeg(PrimaryRigPart, SwitchableMixin):
 
 		#now we need to setup right mouse button menus for ik/fk switching
 		footTrigger = Trigger( footCtrl )
-		footTrigger.createMenu( 'switch to FK', '''python( "from zooPyMaya import rigPrimitives; rigPrimitives.RigPart.InitFromItem('#').switchToFk()" )''' )
+		footTrigger.createMenu( 'switch to FK', '''python( "from cgm.lib.zoo.zooPyMaya import rigPrimitives; rigPrimitives.RigPart.InitFromItem('#').switchToFk()" )''' )
 
 		for c in fkControls:
 			t = Trigger( c )
-			t.createMenu( 'switch to IK', '''python( "from zooPyMaya import rigPrimitives; rigPrimitives.RigPart.InitFromItem('#').switchToIk()" )''' )
+			t.createMenu( 'switch to IK', '''python( "from cgm.lib.zoo.zooPyMaya import rigPrimitives; rigPrimitives.RigPart.InitFromItem('#').switchToIk()" )''' )
 
 		#setup stretch as appropriate
 		if stretchy:

@@ -8,7 +8,7 @@ from path import Path
 from sobject import SObject
 from unittest import TestCase
 
-_BIG_STR = r"""python( "from zooPyMaya import triggered" );
+_BIG_STR = r"""python( "from cgm.lib.zoo.zooPyMaya import triggered" );
 python( "triggers = [t.obj for t in triggered.Trigger.All(False,True)]" );
 for( $n in python( "range(len(triggers))" ) ) {
 	print( python("triggers["+ $n +"]") +"\n" );

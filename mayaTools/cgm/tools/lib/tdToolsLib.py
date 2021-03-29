@@ -72,7 +72,7 @@ from cgm.tools.lib import locinatorLib,namingToolsLib
 
 """
 def loadZooSkinPropagation( *a ):
-    from zooPyMaya import refPropagation
+    from cgm.lib.zoo.zooPyMaya import refPropagation
     refPropagation.propagateWeightChangesToModel_confirm()
 
 def uiSetSelfVariable(self,variable,value):

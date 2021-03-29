@@ -19,10 +19,9 @@ from cgm.core.mrs.lib import batch_utils as BATCH
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.lib import math_utils as MATH
 from cgm.core.mrs.lib import scene_utils as SCENEUTILS
-reload(SCENEUTILS)
 from cgm.core.lib import skinDat as SKINDAT
-reload(SKINDAT)
 import cgm.core.mrs.Builder as BUILDER
+import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 
 import Red9.core.Red9_General as r9General
 
@@ -34,12 +33,23 @@ import cgm.images as cgmImages
 
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
+global UI
+UI = None
+def ui_get():
+    global UI
+    if UI:
+        log.info('cached...')
+        UI.show()
+        return UI
+    return ui()
+
 #>>>======================================================================
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
+_d_ann = SCENEUTILS.d_annotations
 
 
 #>>> Root settings =============================================================
@@ -74,8 +84,10 @@ example:
 
     TOOLNAME = 'cgmScene'
     WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
+    reload(SCENEUTILS)
 
     def insert_init(self,*args,**kws):
+        
         self.categoryList                = ["Character", "Environment", "Props"]
         self.categoryIndex               = 0
 
@@ -96,6 +108,8 @@ example:
         self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
         self.showDirectoriesStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
         self.displayDetailsStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
+        self.displayProjectStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_project", defaultValue = 1)
+        
         self.bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
         self.deleteSet                   = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet')
         self.exportSet                   = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet') 
@@ -121,11 +135,15 @@ example:
         self.categoryMenu                = None
         self.categoryMenuItemList        = []
         self.subTypeMenuItemList         = []
-        self.sendToProjectMenuItemList   = []
+        self.uList_sendToProject_version   = []
+        self.uList_sendToProject_variant   = []
+        self.d_subPops = {}
         self.assetRigMenuItemList        = []
         self.assetReferenceRigMenuItemList  = []
-        self.sendToProjectMenu           = None
-
+        self.uiPop_sendToProject_version = None
+        self.uiPop_sendToProject_variant = None
+        self.uiPop_sendToProject_sub = None
+        
         self.project                     = None
         self.assetMetaData               = {}
 
@@ -151,15 +169,17 @@ example:
         self.exportDirectory             = None
 
         self.v_bgc                       = [.6,.3,.3]
-
+        
+        global UI
+        UI = self
 
     def post_init(self,*args,**kws):
         if self.optionVarProjectStore.getValue():
             self.LoadProject(self.optionVarProjectStore.getValue())
         else:
             mPathList = cgmMeta.pathList('cgmProjectPaths')
-            self.LoadProject(mPathList.mOptionVar.value[0])
-
+            try:self.LoadProject(mPathList.mOptionVar.value[0])
+            except:pass
     @property
     def directory(self):
         return self.directoryTF.getValue()
@@ -201,6 +221,16 @@ example:
     @property
     def variationDirectory(self):
         return os.path.normpath(os.path.join( self.subTypeDirectory, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
+    
+    @property
+    def versionDirectory(self):
+        if self.hasSub:
+            if self.hasVariant:
+                return os.path.normpath(os.path.join( self.variationDirectory))
+            else:
+                return os.path.normpath(os.path.join( self.subTypeDirectory))
+        else:
+            return os.path.normpath(os.path.join( self.subTypeDirectory))   
 
     @property
     def selectedVersion(self):
@@ -270,6 +300,7 @@ example:
         self.useMayaPy       = bool(self.useMayaPyStore.getValue())
         self.showDirectories = bool(self.showDirectoriesStore.getValue())
         self.displayDetails  = bool(self.displayDetailsStore.getValue())
+        self.displayProject  = bool(self.displayProjectStore.getValue())
 
         if self.showAllFilesOption:
             self.showAllFilesOption(e=True, checkBox = self.showAllFiles)
@@ -284,6 +315,7 @@ example:
         self.LoadPreviousSelection()
         self.uiFunc_showDirectories(self.showDirectories)	
         self.uiFunc_displayDetails(self.displayDetails)
+        self.uiFunc_displayProject( self.displayProject )
 
         self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
 
@@ -302,12 +334,14 @@ example:
         self.useMayaPyStore.setValue(self.useMayaPy)
         self.showDirectoriesStore.setValue(self.showDirectories)
         self.displayDetailsStore.setValue(self.displayDetails)
+        self.displayProjectStore.setValue(self.displayProject)
 
         # self.optionVarExportDirStore.setValue( self.exportDirectory )
         self.categoryStore.setValue( self.categoryIndex )
         self.subTypeStore.setValue( self.subTypeIndex )
         self.uiFunc_showDirectories( self.showDirectories )
         self.uiFunc_displayDetails( self.displayDetails )
+        self.uiFunc_displayProject( self.displayProject )
 
     def UpdateToLatestRig(self, *args):
         for obj in mc.ls(sl=True):
@@ -355,6 +389,71 @@ example:
         log.info( "Setting geo set to: %s" % exportSet )
         self.exportSet.setValue(exportSet)
 
+    def uiFunc_contentDir_loadSelect(self):
+        try:_dat = self.mContentListDat
+        except:
+            log.warning("No self.mContentListDat")
+            return
+            
+        
+        if self.mDat:#Adding the ability to load to Scene
+            select_idx = self.uiScrollList_dirContent.getSelectedIdxs(False)
+            
+            for i,d in enumerate(self.mDat.assetDat):
+                k = d.get('n')
+                if k in _dat['split']:
+                    idx_split = _dat['split'].index(k)
+                    l_temp = _dat['split'][idx_split:]
+                    print ('Found: {0} | {1}'.format(k,l_temp))
+
+                    numItemsFound = len(l_temp)   
+                    
+                    if numItemsFound > 0:
+                        if l_temp[0] in self.categoryList:
+                            idx = self.categoryList.index(l_temp[0])
+                            self.SetCategory(idx)
+                        else:
+                            log.warning('{0} not found in category list'.format(l_temp[0]) )
+                            return
+                    
+                    if numItemsFound > 1:
+                        self.assetList['scrollList'].clearSelection()
+                        self.assetList['scrollList'].selectByValue(l_temp[1])
+                    
+                    if numItemsFound > 2:
+                        if l_temp[2] in self.subTypes:
+                            self.SetSubType(self.subTypes.index(l_temp[2]))
+                        else:
+                            log.warning('{0} not found in subType list'.format(l_temp[2]) )
+                            return
+                    
+                    if numItemsFound > 3:
+                        self.subTypeSearchList['scrollList'].clearSelection()
+                        self.subTypeSearchList['scrollList'].selectByValue(l_temp[3])
+                        self.LoadVariationList()
+                        
+                    if numItemsFound > 4:                  
+                        if self.hasVariant:
+                            self.variationList['scrollList'].clearSelection()
+                            self.variationList['scrollList'].selectByValue(l_temp[4])
+                            self.LoadVersionList()
+                            if numItemsFound > 5:   
+                                self.versionList['scrollList'].selectByValue(l_temp[5])
+                        else:
+                            self.versionList['scrollList'].selectByValue(l_temp[4])
+
+                    #if self.mScene:
+                    #self.categoryStore.value = i
+                    #self.LoadOptions()
+                    
+                    #if select_idx:
+                        #self.uiScrollList_dirContent.selectByIdx(select_idx[0])
+                    #return
+                        
+                    
+    def uiFunc_reloadContentBrowswer(self):
+        self.uiScrollList_dirContent.rebuild( self.directory)
+        
     def build_layoutWrapper(self,parent):
 
         _ParentForm = mUI.MelFormLayout(self,ut='cgmUISubTemplate')
@@ -372,6 +471,7 @@ example:
         imageRow.layout()
 
         self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=294)
+        self._projectForm = mUI.MelFormLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
 
         _MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
@@ -380,7 +480,11 @@ example:
         ##############################
 
         self._detailsToggleBtn = mUI.MelButton(_MainForm, ut = 'cgmUITemplate', label="<", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleDisplayInfo,lp=True))	
-
+        
+        self._projectToggleBtn = mUI.MelButton(_MainForm,
+                                               ut = 'cgmUITemplate',
+                                               label=">", w=15, bgc=(1.0, .445, .08), c = lambda *a:mc.evalDeferred(self.uiFunc_toggleProjectColumn,lp=True))	
+        
         _directoryColumn = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate')
 
         self._uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn)
@@ -408,6 +512,97 @@ example:
 
         self._uiRow_export(e=True, vis=self.showDirectories)
         self._uiRow_dir(e=True, vis=self.showDirectories)
+        
+        
+        #======================================
+        # Projects Column
+        _projectColumnTop = mUI.MelColumn(self._projectForm)
+        mUI.MelButton(_projectColumnTop,l='Content', h=15, ut = 'cgmUITemplate',
+                      c=lambda *a:self.uiFunc_reloadContentBrowswer())
+        
+        
+        _inside = _projectColumnTop
+        
+        #Utils -------------------------------------------------------------------------------------------
+        """
+        _row = mUI.MelHLayout(_inside,padding=3,)
+        button_refresh = mUI.MelButton(_row,
+                                       label='Refresh',ut='cgmUITemplate',
+                                        c=lambda *a: self.uiScrollList_dirContent.rebuild( self.directory),
+                                        ann='Force the scroll list to update')
+        
+        button_add= mUI.MelButton(_row,
+                                  label='Add',ut='cgmUITemplate',
+                                   ann='Add a subdir to the path root')    
+        
+        button_verify = mUI.MelButton(_row,
+                                       label='Verify Dir',ut='cgmUITemplate',
+                                        ann='Verify the directories from the project Type')"""  
+        """
+        mUI.MelButton(_row,
+                      label='Query',ut='cgmUITemplate',
+                       c=lambda *a: SCENEUTILS.find_tmpFiles( self. self.directory),
+                       ann='Query trash files')    
+        mUI.MelButton(_row,
+                      label='Clean',ut='cgmUITemplate',
+                       c=lambda *a: SCENEUTILS.find_tmpFiles( self.directory,cleanFiles=1),
+                       ann='Clean trash files')
+        _row.layout()"""
+        #--------------------------------------------------------------------------------------------
+        
+        mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+        
+        _textField = mUI.MelTextField(_inside,
+                                      ann='Filter',
+                                      w=50,
+                                      bgc = [.3,.3,.3],
+                                      en=True,
+                                      text = '')    
+        
+        
+        #Scroll list
+        mScrollList = Project.cgmProjectDirList(self._projectForm, ut='cgmUISubTemplate',
+                                        allowMultiSelection=0,en=True,
+                                        ebg=0,
+                                        bgc = [.2,.2,.2],
+                                        w = 50,
+                                        dcc = cgmGEN.Callback(self.uiFunc_contentDir_loadSelect))
+        
+        
+        #Connect the functions to the buttons after we add the scroll list...
+        """
+        button_verify(edit=True,
+                      c=lambda *a:Project.uiProject_verifyDir(self,'content',None,mScrollList),)
+        button_add(edit=True,
+                   c=lambda *a:Project.uiProject_addDir(self,'content',mScrollList),
+                   )"""
+        
+        try:mScrollList(edit=True,hlc = [.5,.5,.5])
+        except:pass
+        
+        mScrollList.set_filterObj(_textField)
+        _textField(edit=True,
+                   tcc = lambda *a: mScrollList.update_display())    
+       
+        #mScrollList.set_selCallBack(mrsPoseDirSelect,mScrollList,self)
+        
+        self.uiScrollList_dirContent = mScrollList        
+        mScrollList.mScene = self
+        
+        self._projectForm( edit=True, 
+                           attachForm=[
+                               (_projectColumnTop, 'top', 0), 
+                               (_projectColumnTop, 'left', 0), 
+                               (_projectColumnTop, 'right', 0),
+                               (mScrollList, 'left', 0), 
+                               (mScrollList, 'right', 0),                               
+                               (mScrollList, 'bottom', 0)], 
+                           attachControl=[
+                               (mScrollList, 'top', 0, _projectColumnTop)] )
+        
+        
+        
+        #--------------------------------------
 
         ##############################
         # Main Asset Lists 
@@ -447,7 +642,7 @@ example:
                                       (self.assetList['formLayout'], 'bottom', 0, self.assetButton)] )
 
 
-        # SubTypes
+        # SubTypes ======================================================================================
         _animForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
         self.subTypeBtn = mUI.MelButton( _animForm,
                                                  label=self.subType,ut='cgmUITemplate',
@@ -461,11 +656,47 @@ example:
 
 
         self.subTypeSearchList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
-
-        pum = mUI.MelPopupMenu(self.subTypeSearchList['scrollList'])
-        mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenSubTypeDirectory )
+        
+        #JOSH HERE
+        pum = mUI.MelPopupMenu(self.subTypeSearchList['scrollList'],
+                               pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_sub))        
+        
+        mUI.MelMenuItem( pum, label='        Subtype', en=False )
+        
+        mUI.MelMenuItemDiv( pum, label='Selected' )
+        
+        self._referenceSubTypePUM = mUI.MelMenuItem(pum,label="Reference",
+                                                    ann = _d_ann.get('reference'),
+                                                    command=self.ReferenceFile,en=1 )
+        self._importSubTypePUM = mUI.MelMenuItem(pum,label="Import",
+                                                 ann = _d_ann.get('import'),
+                                                 command=self.ImportFile,en=1 )
+        self._importSubTypePUM = mUI.MelMenuItem(pum,label="Replace",
+                                                 ann=_d_ann.get('replace','Replace'),
+                                                 command=self.file_replace,en=1 )
+        
+        self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=1)
+        
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        
+        
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
-        self._referenceSubTypePUM = mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile, en=False )
+        
+
+        mUI.MelMenuItemDiv( pum, label='Directory' )
+        mUI.MelMenuItem(pum, label="Explorer", command=self.OpenSubTypeDirectory )
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Open Maya file",
+                        c= lambda *a:self.uiPath_mayaOpen_subType(),
+                        label = 'Open Maya here')
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Save Maya file",
+                        c= lambda *a:self.uiPath_mayaSaveTo_subType(),
+                        label = 'Save Maya here')
+        mUI.MelMenuItem(pum, label="Refresh", command=lambda *a:self.LoadSubTypeList() )
+        
 
         self.subTypeButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateSubAsset)
 
@@ -483,20 +714,57 @@ example:
                                (self.subTypeSearchList['formLayout'], 'top', 0, self.subTypeBtn),
                                        (self.subTypeSearchList['formLayout'], 'bottom', 0, self.subTypeButton)] )
 
-        # Variation
+        # Variation ======================================================================================
         _variationForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
         _variationBtn = mUI.MelButton(_variationForm,
                                               label='Variation',ut='cgmUITemplate',
                                               ann='Select the asset variation', en=False)
 
         self.variationList = self.build_searchable_list(_variationForm, sc=self.LoadVersionList)
+        
+   
+        pum = mUI.MelPopupMenu(self.variationList['scrollList'],
+                               pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_variant))
+        
+        
 
-        pum = mUI.MelPopupMenu(self.variationList['scrollList'])
-        mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVariationDirectory )
+        #------------------------------------------------------------------------------
+        mUI.MelMenuItem( pum, label='        Variant', en=False )
+        mUI.MelMenuItemDiv( pum, label='Selected' )
+        
+        mUI.MelMenuItem(pum, label="Reference File",
+                        ann = _d_ann.get('reference'),
+                        command=self.ReferenceFile )
+        mUI.MelMenuItem(pum,label="Import",
+                        ann = _d_ann.get('import'),
+                        command=self.ImportFile)        
+        mUI.MelMenuItem(pum,label="Replace",
+                        ann=_d_ann.get('replace','Replace'),
+                        command=self.file_replace)        
+
+        self.uiPop_sendToProject_variant = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
+
+        mUI.MelMenuItemDiv( pum, label='Directory' )
+        mUI.MelMenuItem(pum, label="Explorer", command=self.OpenVariationDirectory )
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Open Maya file",
+                        c= lambda *a:self.uiPath_mayaOpen_variant(),
+                        label = 'Open Maya here')
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Save Maya file",
+                        c= lambda *a:self.uiPath_mayaSaveTo_variant(),
+                        label = 'Save Maya here')
+        mUI.MelMenuItem(pum, label="Refresh", command=lambda *a:self.LoadVariationList() )        
         
 
+        #---------------------------------------------------------------------------------------
+        
         self.variationButton = mUI.MelButton(_variationForm, ut='cgmUITemplate', label="New Variation", command=self.CreateVariation)
 
         _variationForm( edit=True, 
@@ -514,7 +782,7 @@ example:
                                             (self.variationList['formLayout'], 'bottom', 0, self.variationButton)] )
 
 
-        # Version
+        # Version ======================================================================================
         _versionForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
         _versionBtn = mUI.MelButton(_versionForm,
                                             label='Version',ut='cgmUITemplate',
@@ -522,28 +790,57 @@ example:
 
         self.versionList = self.build_searchable_list(_versionForm, sc=self.uiFunc_selectVersionList)
 
-        pum = mUI.MelPopupMenu(self.versionList['scrollList'], pmc=self.UpdateVersionTSLPopup)
-        mUI.MelMenuItem(pum, label="Open In Explorer", command=self.OpenVersionDirectory )
-        mUI.MelMenuItem(pum, label="Reference File", command=self.ReferenceFile )
-        self.sendToProjectMenu = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )		
+        pum = mUI.MelPopupMenu(self.versionList['scrollList'],
+                               pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_version))
+        
+        
+
+        #------------------------------------------------------------------------------
+        mUI.MelMenuItem( pum, label='        Version', en=False )
+        mUI.MelMenuItemDiv( pum, label='Selected' )
+        
+        mUI.MelMenuItem(pum, label="Reference File",
+                        ann = _d_ann.get('reference'),
+                        command=self.ReferenceFile )
+        mUI.MelMenuItem(pum,label="Import",
+                        ann = _d_ann.get('import'),
+                        command=self.ImportFile)        
+        mUI.MelMenuItem(pum,label="Replace",
+                        ann=_d_ann.get('replace','Replace'),
+                        command=self.file_replace)        
+
+        self.uiPop_sendToProject_version = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
-        mUI.MelMenuItem( pum, label="Send to Build", command=self.SendToBuild )
+        
+
+        mUI.MelMenuItemDiv( pum, label='Directory' )
+        mUI.MelMenuItem(pum, label="Explorer", command=self.OpenVersionDirectory )
+        
+        
+        mUI.MelMenuItem(pum,
+                        ann = "Save Maya file",
+                        c= lambda *a:self.uiPath_mayaSaveTo_version(),
+                        label = 'Save Maya here')
+        mUI.MelMenuItem(pum, label="Refresh", command=lambda *a:self.LoadVersionList() )
+
 
         self.versionButton = mUI.MelButton(_versionForm, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
 
         _versionForm( edit=True, 
-                              attachForm=[
-                                  (_versionBtn, 'top', 0), 
-                                  (_versionBtn, 'left', 0), 
-                                          (_versionBtn, 'right', 0), 
-                                    (self.versionList['formLayout'], 'left', 0),
-                                        (self.versionList['formLayout'], 'right', 0),
-                                        (self.versionButton, 'bottom', 0), 
-                                        (self.versionButton, 'right', 0), 
-                                        (self.versionButton, 'left', 0)], 
-                              attachControl=[
-                                  (self.versionList['formLayout'], 'top', 0, _versionBtn),
-                                          (self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
+                      attachForm=[
+                          (_versionBtn, 'top', 0), 
+                          (_versionBtn, 'left', 0), 
+                                  (_versionBtn, 'right', 0), 
+                            (self.versionList['formLayout'], 'left', 0),
+                                (self.versionList['formLayout'], 'right', 0),
+                                (self.versionButton, 'bottom', 0), 
+                                (self.versionButton, 'right', 0), 
+                                (self.versionButton, 'left', 0)], 
+                      attachControl=[
+                          (self.versionList['formLayout'], 'top', 0, _versionBtn),
+                                  (self.versionList['formLayout'], 'bottom', 0, self.versionButton)] )
 
 
         self._subForms = [_catForm,_animForm,_variationForm,_versionForm]
@@ -640,36 +937,49 @@ example:
         _MainForm( edit=True, 
                            attachForm=[
                                (_directoryColumn, 'top', 0), 
-                                        (_directoryColumn, 'left', 0), 
+                                        #(_directoryColumn, 'left', 0), 
                                         (_bottomColumn, 'left', 0),
                                         (_bottomColumn, 'bottom', 0),
                                                                 (self._assetsForm, 'left', 0),
+                                                                
 
+                                        (self._projectToggleBtn, 'top', 0),
+                                        (self._projectToggleBtn, 'bottom', 0),
+                                        (self._projectToggleBtn, 'left', 0),
+                                        
                                         (self._detailsToggleBtn, 'right', 0),
-                                                                (self._detailsToggleBtn, 'top', 0),
-                                                                (self._detailsToggleBtn, 'bottom', 0)], 
+                                        (self._detailsToggleBtn, 'top', 0),
+                                        (self._detailsToggleBtn, 'bottom', 0)], 
                            attachControl=[
                                (self._assetsForm, 'top', 0, _directoryColumn),
                                         (self._assetsForm, 'bottom', 0, _bottomColumn),
+                                        
+                                        (self._assetsForm, 'left', 0, self._projectToggleBtn),
+                                        (_bottomColumn, 'left', 0, self._projectToggleBtn),
+                                        (_directoryColumn, 'left', 0, self._projectToggleBtn),                                        
                                         (self._assetsForm, 'right', 0, self._detailsToggleBtn),
-                                                                (_bottomColumn, 'right', 0, self._detailsToggleBtn),
-                                                                (_directoryColumn, 'right', 0, self._detailsToggleBtn)])
+                                         (_bottomColumn, 'right', 0, self._detailsToggleBtn),
+                                         (_directoryColumn, 'right', 0, self._detailsToggleBtn)])
 
         _ParentForm( edit=True,
                              attachForm=[						 
-                                             (_headerColumn, 'left', 0),
+                                        (_headerColumn, 'left', 0),
                                         (_headerColumn, 'right', 0),
                                         (_headerColumn, 'top', 0),
                                         (self._detailsColumn, 'right', 0),
-                                                                (_MainForm, 'left', 0),
-                                                                (_footer, 'left', 0),
-                                                        (_footer, 'right', 0),
+                                        (self._projectForm, 'left', 0),                                        
+                                         #(_MainForm, 'left', 0),
+                                        (_footer, 'left', 0),
+                                          (_footer, 'right', 0),
                                         (_footer, 'bottom', 0)],
                                          attachControl=[(_MainForm, 'top', 0, _headerColumn),
                                                         (_MainForm, 'bottom', 0, _footer),
-                                                                        (_MainForm, 'right', 0, self._detailsColumn),
-                                                                        (self._detailsColumn, 'top', 0, _headerColumn),
-                                                                        (self._detailsColumn, 'bottom', 1, _footer)])
+                                                        (_MainForm, 'left', 0, self._projectForm),
+                                                         (_MainForm, 'right', 0, self._detailsColumn),
+                                                         (self._projectForm, 'top', 0, _headerColumn),
+                                                          (self._projectForm, 'bottom', 1, _footer),
+                                                         (self._detailsColumn, 'top', 0, _headerColumn),
+                                                          (self._detailsColumn, 'bottom', 1, _footer)])
     def show( self ):		
         self.setVisibility( True )
         self.buildMenu_options()
@@ -799,12 +1109,100 @@ example:
         self.buildDetailsColumn()
         self.StoreCurrentSelection()
         log.info( self.versionFile )
+        
+    def buildProjectColumn(self):
+        if not self._projectForm(q=True, vis=True):
+            log.info("Project column isn't visible")
+            return
+        
+        log.info("Project column...")
+        
+        self._projectForm.clear()
+        
+        #self._projectForm(e=1, vis=1)
+        mc.setParent(self._projectForm)
 
+        mUI.MelLabel(self._projectForm,l='Project', h=15, ut = 'cgmUIHeaderTemplate')
+        
+        _inside = self._projectForm
+        #Utils -------------------------------------------------------------------------------------------
+        _row = mUI.MelHLayout(_inside,padding=3,)
+        button_refresh = mUI.MelButton(_row,
+                                       label='Refresh',ut='cgmUITemplate',
+                                        c=lambda *a: self.uiScrollList_dirContent.rebuild( self.directory),
+                                        ann='Force the scroll list to update')
+        
+        button_add= mUI.MelButton(_row,
+                                  label='Add',ut='cgmUITemplate',
+                                   ann='Add a subdir to the path root')    
+        
+        button_verify = mUI.MelButton(_row,
+                                       label='Verify Dir',ut='cgmUITemplate',
+                                        ann='Verify the directories from the project Type')  
+        
+        mUI.MelButton(_row,
+                      label='Query',ut='cgmUITemplate',
+                       c=lambda *a: SCENEUTILS.find_tmpFiles( self. self.directory),
+                       ann='Query trash files')    
+        mUI.MelButton(_row,
+                      label='Clean',ut='cgmUITemplate',
+                       c=lambda *a: SCENEUTILS.find_tmpFiles( self.directory,cleanFiles=1),
+                       ann='Clean trash files')
+        _row.layout()
+        #--------------------------------------------------------------------------------------------
+        
+        mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+        
+        
+        _textField = mUI.MelTextField(_inside,
+                                      ann='Filter',
+                                      w=50,
+                                      bgc = [.3,.3,.3],
+                                      en=True,
+                                      text = '')    
+        
+        
+        
+        #Scroll list
+        mScrollList = Project.cgmProjectDirList(_inside, ut='cgmUISubTemplate',
+                                        allowMultiSelection=0,en=True,
+                                        ebg=0,
+                                        h=600,
+                                        bgc = [.2,.2,.2],
+                                        w = 50)
+        
+        mScrollList.mDat = self.mDat
+        
+        #Connect the functions to the buttons after we add the scroll list...
+        button_verify(edit=True,
+                      c=lambda *a:Project.uiProject_verifyDir(self,'content',None,mScrollList),)
+        button_add(edit=True,
+                   c=lambda *a:Project.uiProject_addDir(self,'content',mScrollList),
+                   )
+        
+        try:mScrollList(edit=True,hlc = [.5,.5,.5])
+        except:pass
+        
+        mScrollList.set_filterObj(_textField)
+        _textField(edit=True,
+                   tcc = lambda *a: mScrollList.update_display())    
+       
+        #mScrollList.set_selCallBack(mrsPoseDirSelect,mScrollList,self)
+        
+        self.uiScrollList_dirContent = mScrollList        
+        
+        self.uiScrollList_dirContent.mDat = self.mDat
+        
+        
+
+        
     def buildDetailsColumn(self):
         if not self._detailsColumn(q=True, vis=True):
             log.info("details column isn't visible")
             return
-
+        _spacer = 2
+        _bgc = .8,.8,.8
+        
         self._detailsColumn.clear()
 
         mc.setParent(self._detailsColumn)
@@ -829,17 +1227,43 @@ example:
 
         mc.setParent(self._detailsColumn)
         cgmUI.add_LineSubBreak()
-
-        mUI.MelButton(self._detailsColumn, ut = 'cgmUITemplate', h=15, label="Refresh MetaData", c=cgmGEN.Callback(self.refreshMetaData) )
-
+        
+        _row = mUI.MelHLayout(self._detailsColumn)
+        
+        mUI.MelButton(_row, ut = 'cgmUITemplate', h=15, label="Refresh Data",
+                      c=cgmGEN.Callback(self.refreshMetaData) )
+        mUI.MelButton(_row, ut = 'cgmUITemplate', h=15, label="Report Data",
+                      c=cgmGEN.Callback(self.metaData_print) )        
+        _row.layout()
+        
+        
         mc.setParent(self._detailsColumn)
         cgmUI.add_LineSubBreak()	
-
+        
+        _d = {'Asset':self.assetMetaData.get('asset', None),
+              'Type':self.assetMetaData.get('type', None),
+              'SubAsset':self.assetMetaData.get('subTypeAsset', None),
+              'Variation':self.assetMetaData.get('variation', None),
+              'User':self.assetMetaData.get('user', None)}
+        
+        for k in ['Asset','Type','SubAsset','Variation','User']:
+            _dat = _d.get(k)
+            if _dat is not None:
+                _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+                mUI.MelLabel(_row,l=k, w=70)
+                _row.setStretchWidget(mUI.MelTextField(_row, text=_dat, ann=_dat,
+                                                       editable = False, bgc=_bgc))	
+                mUI.MelSpacer(_row,w=_spacer)
+    
+                _row.layout()	
+                
+                
+        """
         _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
 
         mUI.MelLabel(_row,l='Asset', w=70)
         _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('asset', ""), editable = False, bgc=(.8,.8,.8)))	
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
 
         _row.layout()
 
@@ -847,7 +1271,7 @@ example:
 
         mUI.MelLabel(_row,l='Type', w=70)
         _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('type', ""), editable = False, bgc=(.8,.8,.8)))	
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
 
         _row.layout()
 
@@ -855,7 +1279,7 @@ example:
 
         mUI.MelLabel(_row,l='SubType', w=70)
         _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('subType', ""), editable = False, bgc=(.8,.8,.8)))	
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
 
         _row.layout()
 
@@ -864,7 +1288,7 @@ example:
 
             mUI.MelLabel(_row,l='SubAsset', w=70)
             _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('subTypeAsset', ""), editable = False, bgc=(.8,.8,.8)))	
-            mUI.MelSpacer(_row,w=5)
+            mUI.MelSpacer(_row,w=_spacer)
 
             _row.layout()	
 
@@ -873,7 +1297,7 @@ example:
 
             mUI.MelLabel(_row,l='Variation', w=70)
             _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('variation', ""), editable = False, bgc=(.8,.8,.8)))	
-            mUI.MelSpacer(_row,w=5)
+            mUI.MelSpacer(_row,w=_spacer)
 
             _row.layout()	
 
@@ -881,18 +1305,18 @@ example:
 
         mUI.MelLabel(_row,l='User', w=70)
         _row.setStretchWidget(mUI.MelTextField(_row, text=self.assetMetaData.get('user', ""), editable = False, bgc=(.8,.8,.8)))	
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
 
         _row.layout()	
-
+        """
         mUI.MelLabel(self._detailsColumn,l='Notes', w=70)
 
         _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
-        mUI.MelSpacer(_row,w=5)		
+        mUI.MelSpacer(_row,w=_spacer)		
         noteField = mUI.MelScrollField(_row, h=150, text=self.assetMetaData.get('notes', ""), wordWrap=True, editable=True, bgc=(.8,.8,.8))
         noteField(e=True, changeCommand=cgmGEN.Callback( self.saveMetaNote,noteField ) )
         _row.setStretchWidget(noteField)
-        mUI.MelSpacer(_row,w=5)
+        mUI.MelSpacer(_row,w=_spacer)
         _row.layout()
 
         if self.assetMetaData.get('references', None):
@@ -900,9 +1324,9 @@ example:
 
             for ref in self.assetMetaData.get('references', []):
                 _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
-                mUI.MelSpacer(_row,w=5)		
+                mUI.MelSpacer(_row,w=_spacer)		
                 _row.setStretchWidget(mUI.MelTextField(_row, text=ref, editable = False, bgc=(.8,.8,.8)))
-                mUI.MelSpacer(_row,w=5)
+                mUI.MelSpacer(_row,w=_spacer)
                 _row.layout()			
 
         if self.assetMetaData.get('shots', None):
@@ -910,13 +1334,37 @@ example:
 
             for shot in self.assetMetaData.get('shots', []):
                 _row = mUI.MelHRowLayout(self._detailsColumn, w=150)
-                mUI.MelSpacer(_row,w=5)
-                mUI.MelTextField(_row, text=shot[0], editable = False, bgc=(.8,.8,.8), w = 80)
-                mUI.MelTextField(_row, text=shot[1][0], editable = False, bgc=(.8,.8,.8), w=40)
-                mUI.MelTextField(_row, text=shot[1][1], editable = False, bgc=(.8,.8,.8), w=40)
-                mUI.MelTextField(_row, text=shot[1][2], editable = False, bgc=(.8,.8,.8), w=40)
-                mUI.MelSpacer(_row,w=5)
+                _ann = "{0} | start: {1} | end: {2} | length: {3}".format(shot[0],shot[1][0],shot[1][1],shot[1][2])
+                mUI.MelSpacer(_row,w=_spacer)
+                mUI.MelTextField(_row, text=shot[0], ann = _ann,
+                                 editable = False, bgc=(.8,.8,.8), w = 120)
+                mUI.MelTextField(_row, text=shot[1][0], editable = False, ann = _ann,
+                                 bgc=(.8,.8,.8), w=40)
+                mUI.MelTextField(_row, text=shot[1][1], editable = False, ann = _ann,
+                                 bgc=(.8,.8,.8), w=40)
+                mUI.MelTextField(_row, text=shot[1][2], editable = False, ann = _ann,
+                                 bgc=(.8,.8,.8), w=40)
+                mUI.MelSpacer(_row,w=_spacer)
                 _row.layout()
+                
+                
+        mUI.MelLabel(self._detailsColumn,l='File', w=50)
+        for k in ['size','dateModified','dateAccess','file']:
+            if self.assetMetaData.get(k, None) is not None:
+                _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+                _dat = self.assetMetaData.get(k, "")
+                mUI.MelLabel(_row,l=k, w=70)
+                _row.setStretchWidget(mUI.MelTextField(_row, text=_dat, ann=_dat,
+                                                       editable = False, bgc=(_bgc)))	
+                mUI.MelSpacer(_row,w=_spacer)
+            
+                _row.layout()                
+        """
+        ata['size'] = os.path.getsize(self.versionFile)
+        data['dateModified'] = time.ctime(os.path.getmtime(self.versionFile))
+        data['dateAccess'] = time.ctime(os.path.getctime(self.versionFile))
+        data['file']
+        """
 
     def makeThumbnail(self):
         if self.versionFile:
@@ -944,7 +1392,59 @@ example:
                 thumbFile = None
 
         return thumbFile
-
+    
+    def metaData_print(self):
+        
+        _d = self.getMetaDataFromFile() 
+        pprint.pprint(_d)
+        
+        _type = _d.get('type')
+        _subType =_d.get('subType')
+        _subTypeAsset = _d.get('subTypeAsset')
+        _asset = _d.get('asset')
+        
+        _l = []
+        for k in _type,_asset,_subType,_subTypeAsset:
+            if k:
+                _l.append(k)
+        
+        _name = '.'.join(_l)
+        
+        print ''
+        _d.get('file')
+        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.project.userPaths_get()['content']), '')
+        _l_asset = [_name,_file]
+        print ','.join(_l_asset)
+        print ''
+        
+        #Shots
+        if _d.get('shots'):
+            _shots = _d.get('shots')
+            _total = 0
+            _lows = []
+            _highs = []
+            
+            _l_shots = []
+            
+            for s in _shots:
+                _total += s[1][2]
+                _l = [s[0], s[1][0], s[1][1], s[1][2]] 
+                _l = [str(v) for v in _l]
+                _l_shots.append( _l )
+                _lows.append(s[1][0])
+                _highs.append(s[1][1])
+                
+            
+            print ','.join(['clip','start','end',str(_total), "{0}".format(max(_highs) - min(_lows))])
+            print ''
+            for s in _l_shots:
+                print ','.join(s)
+                
+        print 'Notes'
+        print _d.get('notes','None')
+        
+        #pprint.pprint( self.getMetaDataFromCurrent() )
+        
     def getMetaDataFromCurrent(self):
         from cgm.core.mrs.Shots import AnimList
         import getpass
@@ -960,6 +1460,11 @@ example:
         data['subTypeAsset'] = self.subTypeSearchList['scrollList'].getSelectedItem() if self.hasSub else ""
         data['variation'] = self.variationList['scrollList'].getSelectedItem() if self.hasVariant else ""
         data['user'] = getpass.getuser()
+        
+        data['size'] = os.path.getsize(self.versionFile)
+        data['dateModified'] = time.ctime(os.path.getmtime(self.versionFile))
+        data['dateAccess'] = time.ctime(os.path.getctime(self.versionFile))
+        data['file'] = self.versionFile
 
         data['saved'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
         data['notes'] = ""
@@ -1034,13 +1539,26 @@ example:
     def uiFunc_toggleDisplayInfo(self):
         self.displayDetails = not self.displayDetails
         self.SaveOptions()
-
+        
+    def uiFunc_toggleProjectColumn(self):
+        self.displayProject = not self.displayProject
+        self.uiFunc_displayProject(self.displayProject)
+        #self.SaveOptions()
+        
     def uiFunc_displayDetails(self, val):
         self._detailsColumn(e=True, vis=val)
         self._detailsToggleBtn(e=True, label='>' if val else '<')
 
         if val:
             self.buildDetailsColumn()
+    def uiFunc_displayProject(self,val):
+        self._projectForm(e=True, vis=val)
+        self._projectToggleBtn(e=True, label='<' if val else '>')
+
+        #if val:
+            #self.uiScrollList_dirContent.mDat = self.mDat
+            #self.uiScrollList_dirContent.rebuild( self.directory)
+            #self.buildProjectColumn()        
 
     def buildMenu_tools( self, *args):
         self.uiMenu_ToolsMenu.clear()
@@ -1056,6 +1574,9 @@ example:
 
         mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Verify Asset Dirs",
                                  c = cgmGEN.Callback(self.VerifyAssetDirs) )
+        
+        mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Clean Scene",
+                                 c = lambda *a:mc.evalDeferred(MAYABEODD.cleanFile,lp=1) )        
         
         mUI_skinDat = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='SkinDat',subMenu=True)
         SKINDAT.uiBuildMenu(mUI_skinDat)
@@ -1635,9 +2156,20 @@ example:
             log.warning("Failed to set bgc: {0} | {1}".format(_bgColor,err))
 
         try:
-            self._detailsToggleBtn(edit=True, bgc=[MATH.Clamp(1.8 * v,None,1.0) for v in _bgColor])
-        except:
+            vTmp = [MATH.Clamp(1.5 * v,None,2.0) for v in _bgColor]
+            vLite = [MATH.Clamp(1.7 * v, .5, 1.0) for v in _bgColor]
+
+            
+            self._detailsToggleBtn(edit=True, bgc=vTmp)
+            self._projectToggleBtn(edit=True, bgc=vTmp)
+            #self.uiScrollList_dirContent(edit=True, bgc = vLite)
+            self.uiScrollList_dirContent.v_hlc = vLite
+        except Exception,err:
+            log.error("Load project color set error | {0}".format(err))
+            
             self._detailsToggleBtn(edit=True, bgc=(1.0, .445, .08))
+            self._projectToggleBtn(edit=True, bgc=(1.0, .445, .08))
+            self.uiScrollList_dirContent(edit=True, hlc = (1.0, .445, .08))
 
 
         d_userPaths = self.project.userPaths_get()
@@ -1682,6 +2214,11 @@ example:
             self.LoadOptions()
         else:
             mel.eval('error "Project path does not exist"')
+            
+            
+        self.uiScrollList_dirContent.mDat = self.mDat
+        self.uiScrollList_dirContent.rebuild( self.directory)
+            
         return True
 
     def RenameAsset(self, *args):
@@ -1750,6 +2287,47 @@ example:
         if _res:
             log.warning("Opening: {0}".format(_res[0]))
             mc.file(_res[0], o=True, f=True, pr=True)
+            
+    def uiPath_mayaSaveTo(self,path=None):
+        _res = mc.fileDialog2(fileMode=0,dialogStyle=2,dir=path)
+        #fileFilter = 'Maya Files (*.ma *.mb)'
+        if _res:
+            log.warning("Saving: {0}".format(_res[0]))
+            newFile = mc.file(rename = _res[0])
+            mc.file(save = 1)        
+            
+    def uiPath_mayaOpen_subType(self):
+        _path = os.path.normpath(os.path.join(self.assetDirectory, self.subType) )
+        if os.path.exists(_path):
+            self.uiPath_mayaOpen( _path)
+        else:
+            log.warning("SubType path doesn't exist")
+            
+    def uiPath_mayaSaveTo_subType(self):
+        _path = os.path.normpath(os.path.join(self.assetDirectory, self.subType) )        
+        if _path:
+            self.uiPath_mayaSaveTo( _path )
+        else:
+            log.warning("SubType path doesn't exist")
+            
+    def uiPath_mayaOpen_variant(self):
+        
+        if self.variationDirectory:
+            self.uiPath_mayaOpen( self.variationDirectory )
+        else:
+            log.warning("Variation path doesn't exist")
+            
+    def uiPath_mayaSaveTo_variant(self):
+        if self.variationDirectory:
+            self.uiPath_mayaSaveTo( self.variationDirectory)
+        else:
+            log.warning("Variation path doesn't exist")
+            
+    def uiPath_mayaSaveTo_version(self):
+        if self.versionDirectory:
+            self.uiPath_mayaSaveTo( self.versionDirectory)
+        else:
+            log.warning("Version path doesn't exist")
 
     def OpenSubTypeDirectory(self, *args):
         if self.assetDirectory:
@@ -1761,7 +2339,7 @@ example:
         self.OpenDirectory(self.subTypeDirectory)
 
     def OpenVersionDirectory(self, *args):
-        self.OpenDirectory(self.variationDirectory)
+        self.OpenDirectory(self.versionDirectory)
 
     def ReferenceFile(self, *args):
         #if not self.assetList['scrollList'].getSelectedItem():
@@ -1775,11 +2353,38 @@ example:
             #return
 
         filePath = self.versionFile
-        if os.path.exists(self.versionFile):
+        if self.versionFile and os.path.exists(self.versionFile):
             mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
         else:
             log.info( "Version file doesn't exist" )
+            
+    def ImportFile(self, *args):
+        filePath = self.versionFile
+        if self.versionFile and os.path.exists(self.versionFile):
+            #file -import -type "mayaBinary"  -ignoreVersion -mergeNamespacesOnClash false -rpr #"wing_birdBase_03" -options "v=0;"  -pr  -importTimeRange "combine" "D:/Dropbox/mrsMakers_share/content/Demo/wing/scenes/birdBase/wing_birdBase_03.mb";
 
+            mc.file(filePath, i=True, ignoreVersion=True,
+                    mergeNamespacesOnClash=False,
+                    importTimeRange = 'combine')
+        else:
+            log.info( "Version file doesn't exist" )
+    def file_replace(self, *args):
+        filePath = self.versionFile
+        if self.versionFile and os.path.exists(self.versionFile):
+            result = mc.confirmDialog(title='Confirm',
+                                      message= "Replacing : {0}".format(self.versionFile),
+                                      button=['OK', 'Cancel'],
+                                      defaultButton='OK',
+                                      cancelButton='Cancel',
+                                      dismissString='Cancel')
+            if result != 'OK':
+                log.error(">> Replacing Cancelled | {0}".format(filePath))
+                return False
+            mc.file(rn=filePath)
+            mc.file(s=True)
+        else:
+            log.info( "Version file doesn't exist" )
+            
     def UpdateAssetTSLPopup(self, *args):
         self.assetTSLpum.clear()
 
@@ -1804,7 +2409,9 @@ example:
             if self.HasSub(self.category, subType):
                 continue
 
-            subDir = os.path.join(self.assetDirectory, subType)
+            try:subDir = os.path.join(self.assetDirectory, subType)
+            except:
+                continue
             if not os.path.exists(subDir):
                 continue
 
@@ -1843,11 +2450,11 @@ example:
 
         self.refreshAssetListMB = mUI.MelMenuItem(self.assetTSLpum, label="Refresh", command=self.LoadCategoryList )
 
-    def UpdateVersionTSLPopup(self, *args):	
-        for item in self.sendToProjectMenuItemList:
+    def UpdateVersionTSLPopup(self, mMenu = None,  *args):	
+        for item in self.d_subPops.get(mMenu,[]):
             mc.deleteUI(item, menuItem=True)
 
-        self.sendToProjectMenuItemList = []
+        self.d_subPops[mMenu] = []
 
         asset = self.versionFile
 
@@ -1855,16 +2462,17 @@ example:
 
         project_names = []
         for i,p in enumerate(mPathList.mOptionVar.value):
-            proj = Project.data(filepath=p)
-            name = proj.d_project['name']
+            mProj = Project.data(filepath=p)
+            name = mProj.d_project['name']
             project_names.append(name)
 
-            if self.project.userPaths_get()['content'] == proj.userPaths_get()['content']:
+            if self.project.userPaths_get().get('content') == mProj.userPaths_get().get('content'):
                 continue
 
-            item = mUI.MelMenuItem( self.sendToProjectMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
+            item = mUI.MelMenuItem( mMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
                                                 c = partial(self.SendVersionFileToProject,{'filename':asset,'project':p}))
-            self.sendToProjectMenuItemList.append(item)
+            self.d_subPops[mMenu].append(item)
+            #mMenu.append(item)
             
     def SendToBuild(self,*args):
         f = self.versionFile
@@ -1872,14 +2480,18 @@ example:
             return log.error("SendToBuild: No version file found")
         
         log.info ("file: {0}".format(f))
-        mStandAlone = BUILDER.uiStandAlone_get()
+        mStandAlone = BUILDER.ui_toStandAlone()
         mStandAlone.l_files = [f]
         
         
     def SendVersionFileToProject(self, infoDict, *args):
+        _str_func = 'ui.SendVersionFileToProject'
         newProject = Project.data(filepath=infoDict['project'])
-
-        newFilename = os.path.normpath(infoDict['filename']).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+        _file = infoDict['filename']
+        newFilename = os.path.normpath(_file).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+        
+        log.info( cgmGEN.logString_msg(_str_func,"Selected: {0}".format(_file)))            
+        log.info( cgmGEN.logString_msg(_str_func,"New: {0}".format(newFilename)))            
 
         if os.path.exists(newFilename):
             result = mc.confirmDialog(
@@ -1894,47 +2506,53 @@ example:
                 return False
 
         if not os.path.exists(os.path.dirname(newFilename)):
+            log.info( cgmGEN.logString_msg(_str_func,"Creating path : {0}".format(newFilename)))            
             os.makedirs(os.path.dirname(newFilename))
 
-        copyfile(infoDict['filename'], newFilename)
+        copyfile(_file, newFilename)
 
-        if os.path.exists(newFilename) and os.path.normpath(mc.file(q=True, loc=True)) == os.path.normpath(infoDict['filename']):
-            result = 'Cancel'
-            if not self.alwaysSendReferenceFiles.getValue():
-                result = mc.confirmDialog(
-                                    title='Send Missing References?',
-                                    message='Copy missing references as well?',
-                                    button=['Yes', 'Yes and Stop Asking', 'Cancel'],
-                                                    defaultButton='Yes',
-                                                                cancelButton='No',
-                                                                dismissString='No')
-
-            if result == 'Yes and Stop Asking':
-                self.alwaysSendReferenceFiles.setValue(1)
-
-            if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
-                for refFile in mc.file(query=True, reference=True):
-                    if not os.path.exists(refFile):
-                        continue
-
-                    newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
-
-                    if not os.path.exists(newRefFilename):
-                        if not os.path.exists(os.path.dirname(newRefFilename)):
-                            os.makedirs(os.path.dirname(newRefFilename))
-                        copyfile(refFile, newRefFilename)
-
+        #if os.path.exists(newFilename) and os.path.normpath(mc.file(q=True, loc=True)) == os.path.normpath(infoDict['filename']):
+        result = 'Cancel'
+        if not self.alwaysSendReferenceFiles.getValue():
             result = mc.confirmDialog(
-                            title='Change Project?',
-                            message='Change to the new project?',
-                            button=['Yes', 'No'],
-                                        defaultButton='Yes',
-                                                    cancelButton='No',
-                                                    dismissString='No')
+                                title='Send Missing References?',
+                                message='Copy missing references as well?',
+                                button=['Yes', 'Yes and Stop Asking', 'Cancel'],
+                                                defaultButton='Yes',
+                                                            cancelButton='No',
+                                                            dismissString='No')
 
-            if result == 'Yes':
-                if self.LoadProject(infoDict['project']):
-                    self.LoadOptions()
+        if result == 'Yes and Stop Asking':
+            self.alwaysSendReferenceFiles.setValue(1)
+
+        if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
+            log.info( cgmGEN.logString_msg(_str_func,"Trying References..."))
+            for refFile in mc.file(_file,query=True, reference=True):
+                if not os.path.exists(refFile):
+                    continue
+
+                newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+                print newRefFilename
+                if not os.path.exists(newRefFilename):
+                    if not os.path.exists(os.path.dirname(newRefFilename)):
+                        os.makedirs(os.path.dirname(newRefFilename))
+                    copyfile(refFile, newRefFilename)
+
+        result = mc.confirmDialog(
+                        title='Change Project?',
+                        message='Change to the new project?',
+                        button=['Yes', 'No'],
+                                    defaultButton='Yes',
+                                                cancelButton='No',
+                                                dismissString='No')
+
+        if result == 'Yes':
+            if self.LoadProject(infoDict['project']):
+                self.LoadOptions()
+        #else:
+        #    log.info( cgmGEN.logString_msg(_str_func,"Path mismatch, no ref possible"))
+            
+        log.info( cgmGEN.logString_msg(_str_func,"Done"))
 
     def SendLatestRigToProject():
         pass
@@ -1985,10 +2603,12 @@ example:
     def RemoveFromQueue(self, *args):
         if args[0] == 0:
             idxes = self.queueTSL.getSelectedIdxs()
+            print idxes
             idxes.reverse()
 
             for idx in idxes:
-                del self.batchExportItems[idx-1]
+                #del self.batchExportItems[idx-1]
+                self.batchExportItems.remove( self.batchExportItems[idx] )
         elif args[0] == 1:
             self.batchExportItems = []
 
@@ -2565,7 +3185,7 @@ def ExportScene(mode = -1,
             exportDir = os.path.split(exportFile)[0]
             if not os.path.exists(exportDir):
                 log.info("making export dir... {0}".format(exportDir))
-                os.mkdir(exportDir)
+                os.makedirs(exportDir)
                 # create empty file so folders are checked into source control
                 #f = open(os.path.join(exportAnimPath, "filler.txt"),"w")
                 #f.write("filler file")

@@ -114,6 +114,45 @@ d_wiring_form = {'msgLinks':['formNull','noTransFormNull'],
 d_wiring_extraDags = {'msgLinks':['bbHelper'],
                       'msgLists':[]}
 
+
+d_attrStateMask = {'define':['eyeType',
+                             'irisDepth',
+                             'irisBuild',
+                             'lidDepth',
+                             'pupilBuild',                             
+                             
+    ],
+                   'form':[
+                       'numLidLwrShapers',
+                       'numLidUprShapers',
+                       ],
+                   'proxySurface':[
+                       'numLidSplit_u',
+                       'numLidSplit_v',],
+                   'prerig':[
+                       'highlightSetup',
+                       'controlOffset',
+                       'lidJointDepth',
+                       'numConLids',
+
+                       'paramMidLwr',
+                       'paramMidUpr',                       
+                       
+                       'conDirectOffset',],
+                   'skeleton':[
+                       'numLidLwrJoints',
+                       'numLidUprJoints',
+                       
+                    ],
+                   'rig':['buildSDK',
+                          'irisAttach',
+                          'pupilAttach',                          
+                          'lidFanLwr',
+                          'lidFanUpr',                          
+                          
+                   ]}
+
+
 #>>>Profiles ==============================================================================================
 d_build_profiles = {}
 
@@ -183,7 +222,8 @@ l_attrsStandard = ['side',
                    'conDirectOffset',
                    'proxyDirect',
                    'moduleTarget',
-                   'visProximityMode',                   
+                   'visProximityMode',
+                   'visFormHandles',                   
                    'scaleSetup']
 
 d_attrsToMake = {'eyeType':'sphere:nonsphere',
@@ -195,6 +235,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
                  'pupilBuild':'none:shape:joint:blendshape',
                  'irisBuild':'none:shape:joint:blendshape',
                  'irisDepth':'float',
+                 'pupilDepth':'float',
                  'lidAttach':'aimJoint:surfaceSlide',
                  'irisAttach':'parent:surfaceSlide',
                  'pupilAttach':'parent:surfaceSlide',
@@ -244,6 +285,7 @@ d_defaultSettings = {'version':__version__,
                      'numLidLwrShapers':5,
                      'numLidUprShapers':5,
                      'preLidStartSplit':.05,
+                     'visFormHandles':True,                     
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -432,6 +474,8 @@ def define(self):
     mNoTransformNull = self.atUtils('noTransformNull_verify','define',mVisLink=self)
     ml_handles = []
     
+    
+    
     """
     #Rotate Group ==================================================================
     mRotateGroup = cgmMeta.validateObjArg(mDefineNull.doGroup(True,False,asMeta=True,typeModifier = 'rotate'),
@@ -443,6 +487,13 @@ def define(self):
     _size_width = self.baseSize[0]#...x width
     _size_base = _size_width * .25
     
+    
+    
+    BLOCKSHAPES.eyeOrb(self,self,None, _side, 'baseSize')
+    
+    mBBShape = self.bbHelper
+    mMidDriver = mBBShape
+    """
     #Bounding sphere ==================================================================
     log.debug(cgmGEN.logString_msg(_str_func,'blockVolume...'))
     mBlockVolume = self.doCreateAt(setClass=1)
@@ -471,29 +522,7 @@ def define(self):
     self.connectChildNode(mMidGroup.mNode,'midDrivenDag','module')
 
     CORERIG.copy_pivot(mBlockVolume.mNode,self.mNode)
-    
-    
-    #Create Pivot =====================================================================================
-    """
-    log.debug(cgmGEN.logString_msg(_str_func,'pivot...'))    
-    
-    crv = CURVES.create_fromName('sphere', size = _size_base/5)
-    mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-    mHandleFactory.color(mHandleRoot.mNode)
 
-    #_shortHandle = mHandleRoot.mNode
-
-    #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
-    mHandleRoot.doStore('cgmType','formHandle')
-    mHandleRoot.rename('eyeRoot_formHandle')
-
-    mHandleRoot.p_parent = mMidGroup
-    mHandleRoot.resetAttrs()
-    #mHandleRoot.doGroup(True,True,asMeta=True,typeModifier = 'center')
-
-    self.connectChildNode(mHandleRoot.mNode,'rootHelper','module')
-    ml_handles.append('rootHelper')"""
-    
     #Create Pivot =====================================================================================
     log.debug(cgmGEN.logString_msg(_str_func,'pivot...'))
     _irisPosHelper = CURVES.create_fromName('sphere', size = _size_base/3)
@@ -510,9 +539,7 @@ def define(self):
     mIrisPosHelper.p_position = mShape.p_position
     
     CORERIG.shapeParent_in_place(mIrisPosHelper.mNode, mShape.mNode,False)
-    
-    
-    
+
     mPupilTrackDriver = mIrisPosHelper.doCreateAt(setClass=1)
     mPupilTrackDriver.rename('eyeTrackDriver')
     
@@ -569,7 +596,7 @@ def define(self):
         #for mShape in mCrv.getShapes(asMeta=1):
             #mShape.overrideEnabled = 1
             #mShape.overrideDisplayType = 2
-        mCrv.dagLock()
+        mCrv.dagLock()"""
         
     #SurfaceTrackSphere ==========================================================
     log.debug(cgmGEN.logString_msg(_str_func,'surface...'))
@@ -579,7 +606,7 @@ def define(self):
     
     self.connectChildNode(mSurface.mNode,'trackSurface')
         
-        
+    """
     #Pupil/Iris =====================================================================
     log.debug(cgmGEN.logString_msg(_str_func,'Iris/pupil...'))
     
@@ -669,10 +696,10 @@ def define(self):
         
         
         self.irisDepth = -_size_width * .04
-        
+        """
     #...no connect scale
-    self.doConnectOut('baseSize', "{0}.scale".format(mBlockVolume.mNode))
-
+    #self.doConnectOut('baseSize', "{0}.scale".format(mBlockVolume.mNode))
+    
     #Lid stuff ======================================================================
     _sideMult = 1
     _axisOuter = 'x+'
@@ -823,8 +850,8 @@ def formDelete(self):
     ml_defSubHandles = self.msgList_get('defineSubHandles')
     for mObj in ml_defSubHandles:
         mObj.template = False    
-        mObj.v=1
-        
+        try:mObj.v=1
+        except:pass
     for mObj in self.msgList_get('defineCurves'):
         mObj.template=0
         mObj.v=1
@@ -972,7 +999,7 @@ def form(self):
                     #Get percentage list
                     l_v = MATH.get_splitValueList(points = _cnt)
                     
-                    _crv = CORERIG.create_at(create='curve',l_pos= l_pos)
+                    _crv = CORERIG.create_at(create='curveLinear',l_pos= l_pos)
                     
                     if crvToDo in ['contact','line']:
                         _crvShape = TRANS.shapes_get(_crv)[0]
@@ -1058,6 +1085,12 @@ def form(self):
             ml_subHandles.extend(md_res['ml_handles'])
             md_handles.update(md_res['md_handles'])
             
+            for k,mHandle in md_handles.iteritems():
+                if mHandle in ml_defineHandles:
+                    continue
+                mHandle.doConnectIn('v', "{0}.visFormHandles".format(_short))
+                mHandle.setAttrFlags('v')                
+            
             
             #Setting up contact line tracking...
             for tag in l_tags:
@@ -1082,6 +1115,7 @@ def form(self):
                     for k in ['mDriverLoc','mFollicle']:
                         md[k].p_parent = mNoTransformNull
                         md[k].v = False
+                        
                         
 
             md_res = self.UTILS.create_defineCurve(self, d_curveCreation, md_handles, mNoTransformNull,'formCurve')
@@ -1231,10 +1265,12 @@ def prerig(self):
             if k == 'iris':
                 _size_use = _size_use * 2.0
                 
+                
+            mDriver = self.getMessageAsMeta(k+'Helper')
             mShape, mDag = BLOCKSHAPES.create_face_handle(self,
                                                           self.p_position,
                                                           _tag ,None, 'center',
-                                                          mDriver = mIrisPos,
+                                                          mDriver = mDriver,#mIrisPos,
                                                           mSurface = mBBHelper,#mLidLoft,
                                                           mAttachCrv = None,
                                                           mainShape='semiSphere',
@@ -1269,8 +1305,7 @@ def prerig(self):
     
         mShape.doSnapTo(self.mNode)
         mShape.p_parent = self
-    
-        mShape.tz = DIST.get_distance_between_points(self.p_position,mIrisPos.p_position) - (_size_base)
+        mShape.p_position = self.irisHelper.getPositionByAxisDistance('z+', _size_base * 4)#DIST.get_distance_between_points(self.p_position,mIrisPos.p_position) - (_size_base)
         mShape.rz = 90
                 
         
@@ -1298,34 +1333,18 @@ def prerig(self):
             if md_shapes.get(k):
                 mOrientHelper.p_parent = md_shapes[k].p_parent
                 break
-        
+        """
         mAimGroup = mOrientHelper.doGroup(True,True,asMeta=True,typeModifier = 'aim',setClass='cgmObject')
         
         mc.aimConstraint(mIrisPos.mNode, mAimGroup.mNode, maintainOffset = False,
                          aimVector = [0,0,1], upVector = [0,1,0], 
                          worldUpObject = self.mNode,
                          worldUpType = 'objectrotation', 
-                         worldUpVector = [0,1,0])
+                         worldUpVector = [0,1,0])"""
+        
         
         if self.buildEyeOrb:
             pass
-            """
-                log.debug("|{0}| >> Eye orb setup...".format(_str_func))
-    
-                crv = CURVES.create_fromName('circle', size = [self.baseSizeX, self.baseSizeY, None])
-                mHandleOrb = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
-                mHandleFactory.color(mHandleOrb.mNode)
-    
-                #_shortHandle = mHandleRoot.mNode
-                mHandleOrb.doSnapTo(self.mNode)
-                mHandleOrb.p_parent = mStateNull
-    
-                #ATTR.copy_to(self.mNode,_baseNameAttrs[i],_short, 'cgmName', driven='target')
-                mHandleOrb.doStore('cgmName','eyeOrb')    
-                mHandleOrb.doStore('cgmType','formHandle')
-                mHandleOrb.doName()
-    
-                self.connectChildNode(mHandleOrb.mNode,'eyeOrbHelper','module')"""
     
         
         
@@ -1336,7 +1355,7 @@ def prerig(self):
             _size_bb = mHandleFactory.get_axisBox_size(self.getMessage('bbHelper'))
             _size = MATH.average(_size_bb)
             
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size_base * .5,
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size_base,
                                                                            'z+'),'cgmObject',setClass=True)
             
             mSettingsShape.doSnapTo(mHandleRoot.mNode)
@@ -1614,8 +1633,12 @@ def prerig(self):
                 
                 mLidSurf = self.attachLidsFormLoft#self.bbHelper
                 
+                size_anchor = self.lidDepth * 2.0
+                
                 for section,sectionDat in d_anchorDat.iteritems():
                     md_anchors[section] = {}
+                    
+                    ml_sectionAnchors = []
                     
                     _base = 0
                     if section == 'lwr':
@@ -1667,16 +1690,20 @@ def prerig(self):
                                                                      _side,
                                                                      nameDict=_dUse,
                                                                      mStateNull=mStateNull,
-                                                                     size= _size_sub/2)
+                                                                     size= size_anchor)
                             #mAnchor.p_position = p
                             
                             #mAnchor.rotate = 0,0,0
                             d_tmp['tags'].append(tag)
                             d_tmp['ml'].append(mAnchor)
                             ml_handles.append(mAnchor)
-                            
+                            ml_sectionAnchors.append(mAnchor)
                             md_mirrorDat[_d_mirrorKey.get(side,side)].append(mAnchor)#...this will need to map eventually on the mirror call
-                            
+                    
+                    self.UTILS.controller_walkChain(self,ml_sectionAnchors,'prerig')
+                    #self.UTILS.controller_walkChain(self,ml_sectionDag,'prerig')
+                    #self.UTILS.controller_walkChain(self,ml_sectionShape,'prerig')
+                    
     
                 
                 #...get my anchors in lists...-----------------------------------------------------------------
@@ -1782,10 +1809,14 @@ def prerig(self):
                 
                 _d = {'cgmName':''}
                 
+                size_handles = self.jointRadius * 2.0
                 #...get our driverSetup
+                ml_handleShapes = []
+                ml_handleDags = []
+                
                 for section,sectionDat in md_anchors.iteritems():
                     log.debug(cgmGEN.logString_sub(section))
-                    
+
                     #md_handles[section] = {}
                     md_prerigDags[section] = {}
                     md_jointHelpers[section] = {}
@@ -1823,7 +1854,7 @@ def prerig(self):
                                                                           None,
                                                                           _side,
                                                                           mDriver=mAnchor,
-                                                                          size= self.jointRadius,#self.lidDepth,
+                                                                          size= size_handles,#self.lidDepth,
                                                                           
                                                                           mSurface=mLidSurf,#mLidLoft,
                                                                           #mAttachCrv=mDriverCrv,
@@ -1880,7 +1911,7 @@ def prerig(self):
                                                                               mainShape=_shapeUse,
                                                                               jointShape='locatorForm',
                                                                               depthAttr = 'lidJointDepth',
-                                                                              size= _size_sub,
+                                                                              size= size_handles,#self.lidDepth,
                                                                               controlType=_controlType,
                                                                               mode='handle',
                                                                               plugDag= 'preDag',
@@ -1895,12 +1926,20 @@ def prerig(self):
                                 
                                 
                                 
+
       
                         mStateNull.msgList_connect('{0}PrerigShapes'.format(tag),_ml_shapes)
                         mStateNull.msgList_connect('{0}PrerigHandles'.format(tag),_ml_prerigDags)
                         md_mirrorDat[_d_mirrorKey.get(side,side)].extend(_ml_shapes + _ml_prerigDags)
                         md_prerigDags[section][side] = _ml_prerigDags
                         ml_handles.extend(_ml_shapes + _ml_prerigDags)
+                        
+                        ml_handleShapes.extend(_ml_shapes)
+                        ml_handleDags.extend(_ml_prerigDags)
+                
+                self.UTILS.controller_walkChain(self,ml_handleShapes,'prerig')
+                self.UTILS.controller_walkChain(self,ml_handleDags,'prerig')
+                        
                 
                 
                 #...get joint handles...-----------------------------------------------------------------
@@ -1982,9 +2021,11 @@ def prerig(self):
                 _d = {'cgmName':'lid',
                       'cgmType':'preAnchor'}
                 
-                _sizeDirect = _size_sub * .4
+                _sizeDirect = self.jointRadius#_size_sub * .4
                 
                 md_lidJoints = {}
+                ml_jointDags = []
+                ml_jointShapes = []
                 for section,sectionDat in d_lidDrivenDat.iteritems():
                     mDriverCrv = md_resCurves[section+'Driver']
                     mDriverCrv.v = 0
@@ -2098,6 +2139,11 @@ def prerig(self):
                         md_mirrorDat[_d_mirrorKey.get(side,side)].extend(_ml_jointShapes + _ml_jointHelpers)
                         md_lidDrivers[section][side] = _ml_lidDrivers
                         
+                        ml_jointDags.extend(_ml_jointHelpers)
+                        ml_jointShapes.extend(_ml_jointShapes)
+                        
+                self.UTILS.controller_walkChain(self,ml_jointDags,'prerig')
+                self.UTILS.controller_walkChain(self,ml_jointShapes,'prerig')
                 
                 #Aim our lid drivers...------------------------------------------------------------------
                 if self.prerigJointOrient:
@@ -2195,7 +2241,7 @@ def prerig(self):
                     mScalePivot = mHandleFactory.addScalePivotHelper(self)
                     ml_handles.append(mScalePivot)
                     
-                    mScalePivot.p_position = self.midDrivenDag.p_position
+                    mScalePivot.p_position = self.bbHelper.p_position
                 
                 #Mirror setup --------------------------------
                 log.debug(cgmGEN.logString_sub('mirror'))
@@ -5853,18 +5899,21 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         mHelper = mBlock.getMessageAsMeta('{0}Helper'.format(k))
         if not mHelper:
             continue
-        mDup = mHelper.doDuplicate(po=False)
+        
+        mDup = mHelper.doDuplicate(po=False,ic=False)
         mDup.dagLock(False)
-        mDup.p_parent = False
+        mDup.p_parent = self#False
         l_crvs.append(mDup.mNode)
         l_delete.append(mDup.mNode)
         md_helpers[k] =[mDup.mNode]
+        
         mDup.rz = _r
         
+        
         if k == 'iris' and not mBlock.getMessage('pupilHelper'):
-            mDup2 = mHelper.doDuplicate(po=False)
-            mDup2.rz = _r
-            
+            mDup2 = mHelper.doDuplicate(po=False,ic=False)
+            mDup2.dagLock(False)
+            #mDup2.rz = _r
             mDup2.dagLock(False)
             mDup2.p_parent = mDup
             pos_bb = TRANS.bbCenter_get(mDup2.mNode)
@@ -5879,9 +5928,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             b_noPupil = True
 
         if k == 'pupil':
-            mDup2 = mHelper.doDuplicate(po=False)
-            mDup2.rz = _r
-            
+            mDup2 = mHelper.doDuplicate(po=False,ic=False)
+            #mDup2.rz = _r
             mDup2.dagLock(False)
             mDup2.p_parent = mDup
             d = DIST.get_bb_size(mDup.mNode,mode='max')
@@ -5900,6 +5948,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
             l_delete.append(mDup2.mNode)
             
             md_helpers[k].append(mDup2)
+            
+            
+            
         """
         _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
                              name = "{0}_approx".format(k))
@@ -5963,7 +6014,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         
         str_lidBuild = mBlock.getEnumValueString('lidBuild')
         #>>Lid setup ================================================
-        if str_lidBuild == 'clam':
+        if str_lidBuild in ['clam']:
             #Need to make our lid roots and orient
             for k in 'upr','lwr':
                 log.debug("|{0}| >> {1}...".format(_str_func,k))
@@ -6032,6 +6083,51 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 log.debug("|{0}| loft node: {1}".format(_str_func,_loftNode))             
     
                 ml_proxy.append(mLoftSurface)
+                
+        elif str_lidBuild in ['clamSimple']:
+            _baseSize = [v * 1.4 for v in mBlock.baseSize]
+            
+
+            for k in 'upr','lwr':
+                log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
+                _key = '{0}LidHandle'.format(k)
+                mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(k))
+                
+                _d_create = {"ax":[1,0,0], 'ch':0}
+                if k == 'upr':
+                    _color = 'main'
+                    _d_create['ssw'] = 180
+                    _d_create['esw'] = 360
+                    _d_create['r'] = _baseSize[0] /2 * .9
+                else:
+                    _color = 'sub'
+                    _d_create['ssw'] = 0
+                    _d_create['esw'] = 180
+                    _d_create['r'] = _baseSize[0]/2 * .8                    
+                    
+                _sphere = mc.sphere(**_d_create)
+                mShapeSource = cgmMeta.asMeta(_sphere[0])
+                
+                #mShapeSource.scale = _baseSize
+                
+                mShapeSource.doSnapTo(mLidSkin)            
+                CORERIG.colorControl(mShapeSource.mNode,_side,_color,transparent=False,proxy=True)
+            
+            
+                mShapeSource.overrideEnabled = 1
+                mShapeSource.overrideDisplayType = 2
+            
+                mShapeSource.p_parent = mLidSkin.rigJoint#mModule
+                #mShapeSource.resetAttrs()
+            
+                mShapeSource.doStore('cgmName',"{0}_{1}Lid".format(str_partName,k),attrType='string')
+                mShapeSource.doStore('cgmType','proxy')
+                mShapeSource.doName()
+    
+                ml_proxy.append(mShapeSource)               
+            
+            
+            
         else:
             log.debug("|{0}| >> ...".format(_str_func))
             ml_proxyJoints = []

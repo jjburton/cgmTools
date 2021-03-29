@@ -26,6 +26,7 @@ import maya.mel as mel
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGeneral
 from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core import cgm_Meta as cgmMeta
 
 from cgm.lib import attributes
 from cgm.core.lib import attribute_utils as coreAttr
@@ -61,3 +62,25 @@ def killRoguePanel(method = ''):
         processedPanelNames.append(panelName)
         panelName = mc.sceneUIReplacement(getNextPanel=('modelPanel', modelPanelLabel))
         log.info("Processed: {0}".format(panelName))
+        
+
+
+def cleanFile():
+    kill_unknownPlugins()
+    kill_rendererNodes()
+    
+def kill_unknownPlugins():
+    """
+    Hat tip to Ryan Porter
+    """
+    for each in mc.unknownPlugin(q=1, l=1) or []:
+        mc.unknownPlugin(each, remove=True)
+        
+    
+def kill_rendererNodes():
+    for o in ['TurtleDefaultBakeLayer']:
+        if mc.objExists(o):
+            cgmMeta.asMeta(o).delete()
+            print "killed node: " + o
+
+        

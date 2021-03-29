@@ -2,7 +2,7 @@
 import sys
 import baseSkeletonBuilder
 
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy.path import Path
 from baseSkeletonBuilder import *
 
 SKELETON_PART_SCRIPT_PREFIX = 'skeletonPart_'

@@ -54,7 +54,7 @@ global proc zooWeightSave() {
 				menuItem -d 1;
 				menuItem -l "Print Joints in Stored Weights" -c( "{string $sel[] = `ls -sl -tr`; string $toSel[] = {}; for( $a in $sel ) { string $existing[] = {}; zooGetJointsFromStored $a {} $existing {} {}; $toSel = `zooAddArray_str $toSel $existing`; } if( size(`ls -hl`)) zooGetJointsFromStoredVerts `ls -sl` {} $toSel {} {}; print \"\\n======SELECTED HAVE THE FOLLOWING JOINTS STORED IN THEM======\\n\"; print $toSel; }" );
 			menu -l "File Utils";
-				menuItem -l "Print Data for Selected" -c( "python(\"from zooPyMaya import skinWeights as sw; sw.printDataFromSelection();\");" );
+				menuItem -l "Print Data for Selected" -c( "python(\"from cgm.lib.zoo.zooPyMaya import skinWeights as sw; sw.printDataFromSelection();\");" );
 			menu -l "Help";
 				menuItem -l "Help..." -c( "zooHelp zooWeightSave 1;" );
 
@@ -63,8 +63,8 @@ global proc zooWeightSave() {
 			string $button2 = `button -l "restore from mesh" -c( "{string $selObjs[] = `ls -sl -tr`; for( $a in $selObjs ) zooWeightRestore $a; if( size(`ls -hl`)) zooWeightRestoreVerts `ls -sl`;}" )`;
 			string $button3 = `button -l "remove stored" -c( "{for( $a in `ls -sl -tr` ) zooRemoveWeightSave $a;}" )`;
 
-			string $button4 = `button -l "store to tmp file" -c( "python(\"from zooPyMaya import skinWeights as sw; sw.saveWeights(cmd.ls(sl=True));\");" )`;
-			string $button5 = `button -l "restore from tmp file" -c( "python(\"from zooPyMaya import skinWeights as sw; sw.loadWeights(cmd.ls(sl=True));\");" )`;
+			string $button4 = `button -l "store to tmp file" -c( "python(\"from cgm.lib.zoo.zooPyMaya import skinWeights as sw; sw.saveWeights(cmd.ls(sl=True));\");" )`;
+			string $button5 = `button -l "restore from tmp file" -c( "python(\"from cgm.lib.zoo.zooPyMaya import skinWeights as sw; sw.loadWeights(cmd.ls(sl=True));\");" )`;
 			string $image = `image -width 100 -height 8 -backgroundColor ((float)1) ((float)0) ((float)0) -image(zooGetFileLocation(zooListEnv("XBMLANGPATH"),"zoo_sig","tga") +"zoo_sig.tga" )`;
 				popupMenu -p $image -b 1 -pmc ( "showHelp -a \"http://www.macaronikazoo.com/\"" );
 

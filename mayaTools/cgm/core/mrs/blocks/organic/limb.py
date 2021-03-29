@@ -142,11 +142,13 @@ d_build_profiles = {
                        'addBall':'none'},
                 'finger':{'numRoll':0},
                 'thumb':{'numRoll':0},
+                'nub':{'numRoll':0},
                 'toe':{'numRoll':0},
                 },
     'unityMed':{'default':{'numRoll':1},
                'finger':{'numRoll':0},
                'thumb':{'numRoll':0},
+               'nub':{'numRoll':0},               
                'toe':{'numRoll':0},
                },
     'unityToon':{'default':{'squashMeasure':'pointDist',
@@ -155,11 +157,13 @@ d_build_profiles = {
                             },
                  'finger':{'numRoll':0},
                  'toe':{'numRoll':0},
+                 'nub':{'numRoll':0},                 
                  'thumb':{'numRoll':0},
                  },    
     'unityHigh':{'default':{'numRoll':3},
                 'finger':{'numRoll':0},
                 'thumb':{'numRoll':0},
+                'nub':{'numRoll':0},                
                 'toe':{'numRoll':0},
                            },
     'feature':{'default':{'numRoll':3,},
@@ -688,7 +692,8 @@ d_block_profiles = {
        'baseAim':[0,0,1],
        'baseUp':[0,1,0],
        'baseSize':[10,10,20],
-       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
+       'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},
+       'meshBuild':False,
        },    
 
    }
@@ -756,7 +761,7 @@ l_attrsStandard = ['side',
                    'visLabels',
                    'visProximityMode',
                    'visJointHandle',
-                   
+                   'meshBuild',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'jointRadius',
                    'shapeDirection',
@@ -799,7 +804,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'loftSetup':'default:loftList',
                  'loftShapeStart':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  'loftShapeEnd':BLOCKSHARE._d_attrsTo_make['loftShape'],
-                 
+                 'segmentType':'ribbon:curve:linear',
                  #'buildSpacePivots':'bool',
                  #'nameIter':'string',
                  #'numControls':'int',
@@ -827,6 +832,7 @@ d_defaultSettings = {'version':__version__,
                      'addBall':'joint',
                      'addToe':'joint',
                      'addLeverBase':'none',
+                     'meshBuild':True,
                      'addLeverEnd':'none',                     
                      'visLabels':True,
                      'settingsDirection':'up',
@@ -1121,6 +1127,9 @@ def form(self):
     mDefineUpObj = self.defineUpHelper
     mDefineStartObj = self.defineStartHelper
     
+    self.atUtils('jointRadius_guess',mDefineStartObj.mNode)#...size our jointRadius
+    
+    
     #Form our vectors
     for k in ['end','rp','up','lever']:
         mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))    
@@ -1140,6 +1149,11 @@ def form(self):
     _size_length = DIST.get_distance_between_points(self.p_position, _end)
     #_size_handle = _size_width * 1.25
     _size_handle = 1.0
+    
+    if self.jointRadius < .2:
+        self.jointRadius = self.atUtils('get_shapeOffset') #MATH.average([_size_width,_size_height]) * .2
+    
+    
     
     self.baseSize = [_size_width,_size_height,_size_length]
     _l_basePos.append(_end)
@@ -2051,7 +2065,10 @@ def uiBuilderMenu(self,parent = None):
     mc.menuItem(ann = '[{0}] Edit rollCount'.format(_short),
                 c = cgmGEN.Callback(uiCall_edit_rollCount,self),
                 label = "Edit rollCount")
-
+    mc.menuItem(ann = '[{0}] create joint helpers'.format(_short),
+                c = cgmGEN.Callback(create_jointHelpers,self,**{'force':1}),
+                label = "Create Joint Helpers")
+    
 def uiCall_edit_rollCount(self):
     if not self.atUtils('datList_validate',datList='rollCount',
                         count=self.numControls - 1,
@@ -2589,17 +2606,19 @@ def create_jointHelpers(self, force = True):
     
     #If we have existing, we want to save that result so we can try to match those changes 
     _targetCurve = None
+ 
     if ml_jointHelpers:
         _targetCurve = CORERIG.create_at(None, 'curveLinear',
-                                         l_pos = [mObj.p_position for mObj in ml_jointHelpers])
-        
-    
-    for mJointHelper in ml_jointHelpers:
-        bfr = mJointHelper.getMessage('mController')
-        if bfr:
-            log.warning("Deleting controller: {0}".format(bfr))
-            mc.delete(bfr)
-        mJointHelper.delete()
+                                                 l_pos = [mObj.p_position for mObj in ml_jointHelpers])
+        for mJointHelper in ml_jointHelpers:
+            try:mJointHelper
+            except:continue
+            bfr = mJointHelper.getMessage('mController')
+            if bfr:
+                log.warning("Deleting controller: {0}".format(bfr))
+                mc.delete(bfr)        
+
+        mc.delete([mObj.mNode for mObj in ml_jointHelpers])
         
     for k in ['jointHelpersGroup','jointHelpersNoTransGroup']:
         old = mPrerigNull.getMessage(k)
@@ -2677,15 +2696,14 @@ def create_jointHelpers(self, force = True):
         mHandleFactory.setHandle(mHandle)
         
         mJointHelper = mHandleFactory.addJointHelper(baseSize = _size )
-    
 
-    
         ml_mainHelpers.append(mJointHelper)
         md_helperRolls[mJointHelper] = []
         md_handleHelper[mHandle] = mJointHelper
         self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-        ATTR.set_standardFlags(mJointHelper.mNode,['v'])        
+        ATTR.set_standardFlags(mJointHelper.mNode,['v'])
         
+    
     
     #Let's do the meat ========================================================================
     if self.addLeverBase:
@@ -2698,6 +2716,7 @@ def create_jointHelpers(self, force = True):
     for i,mSet in enumerate(ml_sets):
         _roll = _d_rollCounts.get(i)
         if not _roll:
+            ml_jointHelpers.append(md_handleHelper[mSet[0]])            
             continue
             
         log.info(cgmGEN.logString_sub(_str_func,"Set: {0}".format(i)))
@@ -2720,7 +2739,7 @@ def create_jointHelpers(self, force = True):
             l_pcts = [ii*(1.0/(_roll+1)) for ii in range(_roll+1)] + [1.0]
             l_pcts = l_pcts[1:-1]
         
-        pprint.pprint([l_pcts,_roll])
+        #pprint.pprint([l_pcts,_roll])
         
         ml_jointHelpers.append(md_handleHelper[mSet[0]])
         dRoll = mHelperSet[0].getNameDict()
@@ -2735,23 +2754,19 @@ def create_jointHelpers(self, force = True):
             dRoll['cgmIterator'] = ii
             
             mJointHelper = BLOCKSHAPES.addJointHelper(self,size = _size, d_nameTags=dRoll)
-        
-        
+            
             mJointHelper.p_position = CURVES.getPercentPointOnCurve(mTrackCrv.mNode, pct)
             mJointHelper.p_parent = mGroup
         
             mGroup = mJointHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
-        
-        
+            
             res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode,mTrackCrv.mNode,'conPoint')
             TRANS.parent_set(res_attach[0],mGroupNoTrans.mNode)
         
-           
-        
-        
+
             ml_jointHelpers.append(mJointHelper)
             #self.doConnectOut('visJointHandle',"{0}.v".format(mJointHelper.mNode))
-            ATTR.set_standardFlags(mJointHelper.mNode,['v'])            
+            #ATTR.set_standardFlags(mJointHelper.mNode,['v'])            
         
             md_helperRolls[mHelperSet[0]].append(mJointHelper)
             ml_roll.append(mJointHelper)
@@ -2760,7 +2775,7 @@ def create_jointHelpers(self, force = True):
             
             
         mPrerigNull.msgList_connect('rollHelpers_{0}'.format(i), ml_roll)
-        pprint.pprint(ml_roll)
+        #pprint.pprint(ml_roll)
             
         #pprint.pprint([md_helperRolls[mHelperSet[0]], mHelperSet])
         _upVector =  MATH.get_obj_vector(mHelperSet[0].mNode,'y+')
@@ -2802,9 +2817,7 @@ def create_jointHelpers(self, force = True):
     for i,mJointHelper in enumerate(ml_jointHelpers):
         log.info(cgmGEN.logString_sub(_str_func,"idx: {0} | {1}".format(i,mJointHelper)))
         
-        
-        
-        
+
         # Loft curve --------------------------------------------------------------------------------
         mLoftCurve = mJointHelper.loftCurve
         
@@ -2857,6 +2870,14 @@ def create_jointHelpers(self, force = True):
         
         l_targets.append(mLoftCurve.mNode)
 
+    
+    for mMain,l in md_helperRolls.iteritems():
+        
+        for mObj in l:
+            mc.orientConstraint(mMain.loftCurve.mNode, mObj.mNode)
+            ATTR.set_standardFlags(mObj.mNode,['rotate','v'])
+    
+
         
     self.msgList_connect('jointHelpers',ml_jointHelpers)
     self.atUtils('create_jointLoft',
@@ -2864,6 +2885,7 @@ def create_jointHelpers(self, force = True):
                  mPrerigNull,
                  'numJoints',
                  degree = 1,
+                 #simpleMode=1,
                  baseName = self.cgmName )
     
     self.UTILS.controller_walkChain(self,ml_jointHelpers,'prerig')
@@ -2929,10 +2951,13 @@ def skeleton_build(self, forceNew = True):
         if len(ml_handleHelpers) != len(ml_prerigHandles):
             raise ValueError,"Must have matching handleHelper length to prerig."
             
-        
         ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
         if not ml_jointHelpers:
             raise ValueError,"No jointHelpers connected"
+        
+        
+          
+        
         
         #>> If skeletons there, delete ------------------------------------------------------------------- 
         _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
@@ -2962,6 +2987,17 @@ def skeleton_build(self, forceNew = True):
             else:
                 log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
                 _b_lever = True
+                
+        #Before building things, 
+        for i,mJnt in enumerate(ml_handleHelpers):
+            log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
+            ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
+            _expected = self.getMayaAttr('rollCount_{0}'.format(i))
+            if _expected and len(ml_rollHelpers) != _expected:
+                if self.addLeverBase:
+                    continue
+                return log.error("RollCount of section {0} | len: {1} != expected: {2}. Recreate your joint helpers.".format(i,len(ml_rollHelpers),_expected))
+                
 
         """
         _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
@@ -3074,6 +3110,7 @@ def skeleton_build(self, forceNew = True):
             ml_joints.append(mJnt)
             ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
             
+            
             if ml_rollHelpers:
                 log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))
                
@@ -3126,6 +3163,7 @@ def skeleton_build(self, forceNew = True):
         
         
         #reload(JOINT)
+        ml_children = []
         #PivotHelper -------------------------------------------------------------------------------------
         if ml_formHandles[-1].getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot helper found".format(_str_func))
@@ -3136,30 +3174,39 @@ def skeleton_build(self, forceNew = True):
                 log.debug("|{0}| >> Non quad setup finding end...".format(_str_func))
                 _idx = (cnt_lever + self.numControls) - 1
                 log.debug("|{0}| >> non quad end: {1}".format(_str_func,_idx))
-                try:mEnd = ml_handleJoints[(cnt_lever + self.numControls) - 1]
+                try:mEnd = ml_handleJoints[_idx]
                 except:mEnd=False
                 
                 
                 if mEnd:
                     log.info("|{0}| >> non quad end: {1}".format(_str_func,mEnd))
                     idx_end = ml_joints.index(mEnd)
-                    
                     #ml_children = mEnd.getChildren(asMeta=True)
                     ml_childrenToDo = ml_joints[idx_end+1:]
-                    ml_childrenHelpers = ml_jointHelpers[idx_end+1:]
-                    
+                    ml_childrenHelpers = ml_prerigHandles[_idx+1:]
+                    mFirstChild = None
+                    #pprint.pprint(ml_childrenToDo)
+                    #pprint.pprint(ml_childrenHelpers)
                     for i,mChild in enumerate(ml_childrenToDo):
-                        print mChild
+                        #print mChild
                         mChild.parent = False
-                        mChild.doSnapTo(ml_childrenHelpers[i])
+                        mChild.doSnapTo(ml_childrenHelpers[i].jointHelper)
                         JOINT.freezeOrientation(mChild.mNode)
                         
                         #JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
                         #                  worldUpAxis= ml_jointHelpers[-1].getAxisVector('y+') )
-                
+                        
+                        
+                        if i:
+                            mChild.p_parent = ml_childrenToDo[i-1]
+                        else:
+                            mFirstChild = mChild
+                            
                     mEnd.jointOrient = 0,0,0
-                
-                    ml_childrenToDo[0].p_parent = mEnd
+                    
+                    if mFirstChild:
+                        mFirstChild.p_parent = mEnd
+                    #if ml_childrenToDo:ml_childrenToDo[0].p_parent = mEnd
                     #mChild.parent = mEnd   
         """
         if len(ml_handleJoints) > self.numControls:
@@ -3182,7 +3229,8 @@ def skeleton_build(self, forceNew = True):
         #End Fixing --------------------------------
         #if len(ml_handleJoints) > self.numControls:
             #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
-
+            
+        
         mEndOrient = self.ikOrientHandle
         
         _idx_end = -1
@@ -3272,6 +3320,11 @@ def rig_prechecks(self):
             if mBlock.addBall:
                 self.l_precheckErrors.append("default ikEnd and hasBallJoint on. | Fix this setting. If you have a ball, you should probably be a pad or foot")
             
+            
+        for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
+            if not mObj.p_parent:
+                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+                
         #str_ikEnd = mBlock.getEnumValueString('ikEnd')
         #ml_formHandles = mBlock.msgList_get('formHandles')
         #if not mBlock.ikEnd and ml_formHandles[-1].getMessage('pivotHelper')
@@ -3322,7 +3375,7 @@ def rig_dataBuffer(self):
             #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
             
         
-        for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','addLeverBase','addLeverEnd','addToe']:
+        for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','addLeverBase','addLeverEnd','addToe','segmentType']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
         #self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
         #self.str_ikRollSetup = ATTR.get_enumValueString(mBlock.mNode,'ikRollSetup')
@@ -4089,8 +4142,14 @@ def rig_skeleton(self):
                     mMidIK.p_parent = False
                     mMidIK.doName()
                 
+                    crv = CORERIG.create_at(create= 'curve', l_pos = [mObj.p_position for mObj in ml_set])
+                    
+                    mMidIK.p_position = CURVES.getMidPoint(crv)
+                    """
                     mMidIK.p_position = DIST.get_average_position([ml_set[0].p_position,
-                                                                   ml_set[-1].p_position])
+                                                                   ml_set[-1].p_position])"""
+                    mc.delete(crv)
+                    
                 
                     SNAP.aim(mMidIK.mNode, ml_set[-1].mNode, 'z+','y+','vector',
                              self.mVec_up)
@@ -4100,40 +4159,7 @@ def rig_skeleton(self):
                     mRigNull.connectChildNode(mMidIK,'controlSegMidIK_{0}'.format(i),'rigNull')            
                 
                     
-        
-        """
-        if self.b_segmentSetup:
-            log.debug("|{0}| >> segment necessary...".format(_str_func))
-                
-            ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                                      ml_joints, None, 
-                                                                      mRigNull,'segmentJoints',
-                                                                      connectToSource = 'seg',
-                                                                      cgmType = 'segJnt')
-            for i,mJnt in enumerate(ml_rigJoints):
-                mJnt.parent = ml_segmentChain[i]
-                mJnt.connectChildNode(ml_segmentChain[i],'driverJoint','sourceJoint')#Connect
-                
-            ml_jointsToHide.extend(ml_segmentChain)
-            
-        else:
-            log.debug("|{0}| >> rollSetup joints...".format(_str_func))
-            
-             
-            for i,mBlend in enumerate(ml_blendJoints):
-                ml_rolls = self.md_roll.get(i)
-                
-                if ml_rolls:
-                    ml_segmentChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                                              ml_rolls,
-                                                                              None, 
-                                                                              False,
-                                                                              connectToSource = 'seg',
-                                                                              cgmType = 'segJnt')
-                
-                    ml_jointsToHide.extend(ml_segmentChain)
-                    ml_segmentChain[0].p_parent = mBlend"""
-            
+
         
         #Parenting rigJoints ======================================================================
         log.debug("|{0}| >> Connecting rigJoints to drivers...".format(_str_func))
@@ -5727,8 +5753,8 @@ def rig_controls(self):
             self.atUtils('get_switchTarget', mIKControlBase,ml_blend[0])
             log.debug(cgmGEN._str_subLine)
             
-            for mShape in mIKControlBase.getShapes(asMeta=True):
-                ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
+            #for mShape in mIKControlBase.getShapes(asMeta=True):
+                #ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                         
     
             
@@ -5936,6 +5962,7 @@ def rig_controls(self):
 def rig_segments(self):
     try:
         _short = self.d_block['shortName']
+        reload(RIGCONSTRAINT)
         _str_func = 'rig_segments'
         log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
         log.debug(self)
@@ -5978,9 +6005,14 @@ def rig_segments(self):
                 log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
                 
         
+        _type = self.str_segmentType
+        
+        
+        ml_segHandlesProcessed = []
+        
+            
         if self.md_roll:
             log.debug("|{0}| >> Segments...".format(_str_func))
-            
             
             _settingsControl = None
             if mBlock.squashExtraControl:
@@ -6017,6 +6049,8 @@ def rig_segments(self):
                 ml_segHandles[0].parent = ml_handleJoints[i]
                 ml_segHandles[-1].parent = ml_handleJoints[i+1]
                 
+                ml_segHandlesProcessed.extend([ml_handleJoints[i],ml_handleJoints[i+1]])
+                
                 for mJnt in ml_segHandles:
                     mJnt.segmentScaleCompensate = False
                     
@@ -6031,7 +6065,6 @@ def rig_segments(self):
                     log.debug("|{0}| >> Handle: {1} | {2}".format(_str_func,mSegHandle.p_nameShort, ii))            
                     mParent = mSegHandle.getParent(asMeta=1)
                     idx_parent = ml_handleJoints.index(mParent)
-                    #mBlendParent = mParent.masterGroup.getParent(asMeta=True)
                     mBlendParent = ml_blendJoints[idx_parent]
                     
                     if mParent == ml_handleJoints[0]:
@@ -6039,12 +6072,6 @@ def rig_segments(self):
                         log.debug("|{0}| >> First handle...".format(_str_func))
                         _aimForward = ml_handleJoints[idx_parent+1].p_nameShort
                         
-                        """
-                        mc.aimConstraint(_aimForward, mSegHandle.mNode, maintainOffset = True,
-                                         aimVector = [0,0,1], upVector = [0,1,0], 
-                                         worldUpObject = mParent.mNode,
-                                         worldUpType = 'objectrotation', 
-                                         worldUpVector = [1,0,0])"""
                         
                         #Stable aim ---------------------------------------------------------------
                         log.debug("|{0}| >> Stable/Aim...".format(_str_func))                    
@@ -6325,7 +6352,7 @@ def rig_segments(self):
                     
                     #reload(IK)
                     l_midSurfReturn = IK.ribbon(**d_mid)            
-                    ml_influences.append(mControlMid)
+                    ml_influences.insert(1,mControlMid)
                     
                     if self.b_squashSetup:
                         mc.scaleConstraint([mObj.mNode for mObj in ml_segHandles], mControlMid.masterGroup.mNode, maintainOffset=True)
@@ -6363,7 +6390,83 @@ def rig_segments(self):
                 
                 _d.update(_d_ribbonShare)
                 
-                IK.ribbon(**_d)
+                if _type in ['linear','curve']:
+                    #reload(IK)
+                    #pprint.pprint(_d)
+                    
+                    l_handles = _d['influences']
+                    _l_segJoints = _d['jointList']
+                    
+                    
+                    mGroup = cgmMeta.cgmObject(name="{0}_{1}_grp".format(_d['baseName'],_type))
+
+                    _trackCurve,l_clusters = CORERIG.create_at(_d['influences'], 'linearTrack',
+                                                               baseName = _d['baseName'])
+                    mCrv = cgmMeta.asMeta(_trackCurve)
+                    
+                    mCrv.p_parent = mGroup
+
+                    _node = mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,
+                                            ch=1,s=len(l_handles),
+                                            n="{0}_reparamRebuild".format(mCrv.p_nameBase))
+                    mc.rename(_node[1],"{0}_reparamRebuild".format(mCrv.p_nameBase))
+                    
+                    _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+                    
+
+                    
+                    mGroup.p_parent = mRigNull
+
+                    #First pass attach
+                    for mObj in _ml_segTmp:
+                        RIGCONSTRAINT.attach_toShape(mObj.mNode, mCrv.mNode,'conPoint',parentTo=mGroup)#,parentTo=mGroup)
+                        l_constraints = []
+                        
+                        if _type == 'curve':
+                            mOrient = mObj.doGroup(True,True,asMeta=True,typeModifier = 'orient',setClass='cgmObject')
+                            _orient = mc.orientConstraint(l_handles, mOrient.mNode, maintainOffset = 1)
+                        else:
+                            _orient = mc.orientConstraint(l_handles, mObj.mNode, maintainOffset = 1)
+                            
+                        l_constraints.append(_orient)
+                        
+                        if self.b_scaleSetup:
+                            _scale = mc.scaleConstraint(l_handles, mObj.mNode, maintainOffset = 1)
+                            l_constraints.append(_scale)
+                        
+                        
+                        _vList = DIST.get_normalizedWeightsByDistance(mObj.mNode,
+                                                                      l_handles)                          
+
+                        if len(l_constraints) >1 :
+                            for c in l_constraints:
+                                CONSTRAINT.set_weightsByDistance(c[0],_vList)
+                        
+                    #Now aim...
+                    if _type == 'curve':
+                        _d_aim = {'worldUpType' : 'objectrotation',
+                                  'upVector':self.v_twistUp,#[0,1,0],
+                                  'worldUpVector' : self.v_twistUp}
+                        
+                        for ii,mObj in enumerate(_ml_segTmp):
+                            _d_aim['worldUpObject'] = mObj.orientGroup.mNode
+                            
+                            if mObj == _ml_segTmp[-1]:
+                                _d_aim['aimVector'] = [0,0,-1]
+                                mTar = _ml_segTmp[-2]
+                            else:
+                                _d_aim['aimVector'] = [0,0,1]
+                                mTar = _ml_segTmp[ii+1]
+                            
+                            mc.aimConstraint(mTar.mNode,
+                                             mObj.mNode,
+                                             maintainOffset = True,**_d_aim)                        
+
+                    
+                    
+                    #IK.spline(**_d)
+                else:
+                    IK.ribbon(**_d)
                 
                 ml_segJoints[0].parent = ml_blendJoints[i]
                     
@@ -6380,30 +6483,7 @@ def rig_segments(self):
                         
                         
                 
-                """
-                mSurf = IK.ribbon([mObj.mNode for mObj in ml_segJoints],
-                                  #baseName = "{0}_seg_{1}".format(mBlock.cgmName,i),
-                                  baseName = "{0}_seg_{1}".format(self.d_module['partName'],i),                              
-                                  driverSetup='stable',
-                                  connectBy='constraint',
-                                  moduleInstance = mModule)
-                
-                #Skin ribbon...
-                log.debug("|{0}| >> Skin Ribbon {1} setup...".format(_str_func,i))            
-                mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_segHandles],
-                                                                      mSurf.mNode,
-                                                                      tsb=True,
-                                                                      maximumInfluences = 2,
-                                                                      normalizeWeights = 1,dropoffRate=2.5),
-                                                      'cgmNode',
-                                                      setClass=True)
-                
-                mSkinCluster.doStore('cgmName', mSurf)
-                mSkinCluster.doName()    
-                """
-                #cgmGEN.func_snapShot(vars())
-            
-                #ml_segJoints[0].parent = mRoot            
+    
                 
                 
             #segmentHandles_{0}
@@ -6441,7 +6521,57 @@ def rig_segments(self):
                 if mScaleParent:
                     mHandle.masterGroup.p_parent=mScaleParent
                     
-                        
+        #if _type in ['linear','curve']:
+
+        for mHandle in ml_handleJoints:
+            if mHandle not in ml_segHandlesProcessed:
+                
+                if mHandle == ml_handleJoints[-1]:
+                    if mBlock.addBall or mBlock.addLeverEnd:
+                        continue
+                    
+                log.debug("|{0}| >> Not in processed: {1}...".format(_str_func,mHandle))
+                
+                mSource = mHandle.sourceJoint
+                mRigJoint = mHandle.rigJoint
+                
+                idx = ml_handleJoints.index(mHandle)
+                
+                try:
+                    mTarget = ml_handleJoints[idx+1]
+                
+                    _d_aim = {'worldUpType' : 'objectrotation',
+                              'upVector':self.v_twistUp,#[0,1,0],
+                              'aimVector':[0,0,1],
+                              'worldUpObject':mHandle.mNode,
+                              'worldUpVector' : self.v_twistUp}                    
+                except:
+                    mTarget = ml_handleJoints[idx-1]
+                    _d_aim = {'worldUpType' : 'objectrotation',
+                              'upVector':self.v_twistUp,#[0,1,0],
+                              'aimVector':[0,0,-1],
+                              'worldUpObject':mHandle.mNode,
+                              'worldUpVector' : self.v_twistUp}                          
+                
+                mc.aimConstraint(mTarget.mNode,
+                                 mRigJoint.masterGroup.mNode,
+                                 maintainOffset = True,**_d_aim)                                 
+                mc.pointConstraint(mHandle.mNode,
+                                   mRigJoint.masterGroup.mNode,
+                                   maintainOffset = True)
+                
+                
+                if self.b_scaleSetup:
+                    _scale = mc.scaleConstraint(mHandle.mNode,
+                                                mRigJoint.masterGroup.mNode,
+                                                maintainOffset = 1)
+                    
+            
+            
+
+                
+                
+                
     
         return
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -6604,20 +6734,58 @@ def rig_frame(self):
             #mLeverRigJnt = mRigNull.getMessage('leverRig',asMeta=True)[0]
             mLeverFK = mRigNull.leverFK
             mLeverFK.masterGroup.p_parent = mRoot#mRootParent
-            #mLeverDirect = mRigNull.leverDirect
-            """
-            log.debug("|{0}| >> Lever rig aim".format(_str_func))
-
-            mAimGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'aim')
-            mc.aimConstraint(ml_handleJoints[0].mNode,
-                             mAimGroup.mNode,
-                             maintainOffset = True, weight = 1,
-                             aimVector = self.d_orientation['vectorAim'],
-                             upVector = self.d_orientation['vectorUp'],
-                             worldUpVector = self.d_orientation['vectorOut'],
-                             worldUpObject = mLeverFK.mNode,
-                             worldUpType = 'objectRotation' )"""
-        
+            mLeverDirect = mRigNull.getMessageAsMeta('leverDirect')
+            
+            if mLeverDirect:
+                log.debug("|{0}| >> Lever rig aim".format(_str_func))
+                
+                mBaseLoc = mLeverDirect.doLoc()
+                mAimLoc = mLeverDirect.doLoc()
+                _str_tmp = mLeverDirect.p_nameBase
+                mBaseLoc.rename("{0}_baseLoc".format(_str_tmp))
+                mAimLoc.rename("{0}_aimLoc".format(_str_tmp))
+                
+                for mLoc in mBaseLoc,mAimLoc:
+                    mLoc.p_parent = mLeverDirect.masterGroup
+                    
+                mOrientGroup = mLeverDirect.doGroup(True,asMeta=True,typeModifier = 'orient')
+                
+                if ml_blendJoints:
+                    mLeverTarget = ml_blendJoints[0]
+                else:
+                    mLeverTarget = ml_fkJoints[0]
+                    
+                mc.aimConstraint(mLeverTarget.mNode,
+                                 mAimLoc.mNode,
+                                 maintainOffset = True, weight = 1,
+                                 aimVector = self.d_orientation['vectorAim'],
+                                 upVector = self.d_orientation['vectorUp'],
+                                 worldUpVector = self.d_orientation['vectorUp'],
+                                 worldUpObject = mLeverFK.mNode,
+                                 worldUpType = 'objectRotation' )
+                
+                #Attribute ----------------------
+                const = mc.orientConstraint([mAimLoc.mNode,mBaseLoc.mNode],
+                                            mOrientGroup.mNode, maintainOffset = True)[0]
+            
+            
+                d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mLeverFK.mNode,'aim'],
+                                                                     [mLeverFK.mNode,'resultRootFollow'],
+                                                                     [mLeverFK.mNode,'resultAimFollow'],
+                                                                     keyable=True)
+            
+                targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
+            
+                #Connect                                  
+                d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+                d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+                d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+                d_blendReturn['d_result2']['mi_plug'].p_hidden = True            
+                
+                ATTR.set_default(mLeverFK.mNode, 'aim', 1.0)
+                mLeverFK.aim = 1.0
+                #mLeverFK.aim = .5        
+                
         
             log.debug("|{0}| >> Lever setup | LimbRoot".format(_str_func))            
             if not mRigNull.getMessage('limbRoot'):
@@ -8869,6 +9037,11 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
       
         _start = time.clock()
         mBlock = self
+        
+        if not mBlock.meshBuild:
+            log.error("|{0}| >> meshBuild off".format(_str_func))                        
+            return False
+        
         mModule = self.moduleTarget
         mRigNull = mModule.rigNull
         mSettings = mRigNull.settings
@@ -8947,12 +9120,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                 #log.debug("|{0}| >> digit end: {1}".format(_str_func,mEnd))                        
                 
         else:
+            log.info('default...')
             mEnd = ml_rigJoints[-1]
                 
         
         log.info("|{0}| >> Handles Targets: {1}".format(_str_func,ml_rigJoints))            
         log.info("|{0}| >> End idx: {1} | {2}".format(_str_func,int_handleEndIdx,
-                                                       ml_rigJoints[int_handleEndIdx]))                
+                                                       int_handleEndIdx))                
             
         
         # Create ---------------------------------------------------------------------------

@@ -133,6 +133,7 @@ d_block_profiles = {
             },
     'snapPoint':{'cgmName':'snapPoint',
                  'rotPivotPlace':'jointHelper',
+                 'meshBuild':False,
                  },
     'cylinder':{'proxyShape':'shapers',
                 'cgmName':'cylinder',
@@ -207,6 +208,7 @@ l_attrsStandard = ['side',
                    'visMeasure',
                    'visProximityMode',
                    'shapeDirection',
+                   'meshBuild',                   
                    'moduleTarget']
 
 d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
@@ -236,7 +238,8 @@ d_defaultSettings = {'version':__version__,
                      'visJointHandle':1,
                      'proxy':1,
                      'numShapers':2,
-                     'jointRadius':.1,                     
+                     'jointRadius':.1,
+                     'meshBuild':True,
                      'loftList':['square','circle','square'],
                      'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},
                      'proxyType':1}
@@ -688,6 +691,9 @@ def form(self):
                 mHandle.template = True        
             #if k in ['up']:
                 #mHandle.v=False
+
+    self.atUtils('jointRadius_guess',md_defineHandles['start'].mNode)#...size our jointRadius
+                
 
     mDefineLoftMesh = self.defineLoftMesh
     _v_range = DIST.get_distance_between_points(self.p_position,
@@ -2031,6 +2037,10 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False,**kws):
         log.debug("|{0}| >> snapPoint".format(_str_func))  
         
         return True
+    
+    if not mBlock.meshBuild:
+        log.error("|{0}| >> meshBuild off".format(_str_func))                        
+        return False
     
     mModule = self.moduleTarget    
     

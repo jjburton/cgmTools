@@ -6,10 +6,10 @@ currently just contains a function to take skin weights from the current scene a
 
 from maya.cmds import *
 
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy.path import Path
 
 from melUtils import printWarningStr
-from zooPyMaya.melUtils import mel
+from cgm.lib.zoo.zooPyMaya.melUtils import mel
 from referenceUtils import stripNamespaceFromNamePath
 
 import skinWeights

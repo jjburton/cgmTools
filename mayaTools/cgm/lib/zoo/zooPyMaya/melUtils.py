@@ -3,8 +3,8 @@ import maya.mel
 from maya import cmds as cmd
 from maya.OpenMaya import MGlobal
 
-from zooPy.exceptionHandlers import generateTraceableStrFactory
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy.exceptionHandlers import generateTraceableStrFactory
+from cgm.lib.zoo.zooPy.path import Path
 
 melEval = maya.mel.eval
 

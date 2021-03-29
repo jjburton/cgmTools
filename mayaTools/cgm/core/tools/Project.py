@@ -52,10 +52,11 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 import cgm.core.classes.GuiFactory as cgmUI
-#reload(cgmUI)
+import cgm.core.cgmPy.os_Utils as CGMOS
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
 #reload(COREPATHS)
+import cgm.core.lib.math_utils as COREMATH
 import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.tools.lib.project_utils as PU
@@ -104,6 +105,9 @@ def uiAsset_add(self):
         uiAsset_rebuildOptionMenu(self)
         self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
+        
+        self.uiProject_save()
+        
         #mUI.MelOptionMenu
         
 def uiAsset_addSub(self):
@@ -133,6 +137,7 @@ def uiAsset_addSub(self):
         #uiAsset_rebuildOptionMenu(self)
         #self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
+        self.uiProject_save()
         
 def uiAsset_remove(self):
     _str_func = 'uiAsset_remove'
@@ -143,6 +148,7 @@ def uiAsset_remove(self):
     self.mDat.assetType_remove(idx=_value)
     uiAsset_rebuildOptionMenu(self)
     uiAsset_rebuildSub(self)
+    self.uiProject_save()
     
     #self.uiAssetTypeOptions.remove(_value)
     
@@ -172,6 +178,7 @@ def uiAsset_editName(self):
         uiAsset_rebuildSub(self)
         
         self.uiAssetTypeOptions.selectByValue(_name)
+        self.uiProject_save()
 
 def uiAsset_duplicate(self):
     _str_func = 'uiAsset_duplicate'
@@ -193,7 +200,6 @@ def uiAsset_duplicate(self):
     if result == 'OK':
         _name = str(mc.promptDialog(query=True, text=True))
         
-        
         if _name == _currentName:
             raise ValueError,"Same name given as exists. Pick a new name"
     
@@ -205,6 +211,7 @@ def uiAsset_duplicate(self):
         self.uiAssetTypeOptions.selectByValue(_name)
         
         uiAsset_rebuildSub(self)
+        self.uiProject_save()
         
 
 
@@ -890,7 +897,7 @@ class ui(cgmUI.cgmGUI):
                         
                     else:
                         if v is not None:
-                            if k in ['lock','mayaVersion']:
+                            if k in ['lock','mayaVersion','mayaFilePref']:
                                 self.d_tf[dType][k].setValue(str(v),executeChangeCB=False)
                             else:
                                 self.d_tf[dType][k].setValue(v,executeChangeCB=False)
@@ -1608,6 +1615,11 @@ class ui(cgmUI.cgmGUI):
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in PU.l_mayaVersions:
                     _d[key].append(t)
+            
+            elif key == 'mayaFilePref':
+                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                for t in PU.l_mayaFileType:
+                    _d[key].append(t)                
                     
             elif key == 'projectPathMode':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
@@ -1616,11 +1628,9 @@ class ui(cgmUI.cgmGUI):
                 _d[key] =   mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in ['False','True']:
                     _d[key].append(t)
-                    
                 if key == 'lock':
                     _d[key](edit=True, cc = lambda *a:self.uiProject_lock())
 
-                    
             else:
                 #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
                 _d[key] =  mUI.MelTextField(_row,
@@ -1882,7 +1892,7 @@ def uiProject_addDir(self,pSet = None, mScrollList = None):
         if mScrollList:
             mScrollList.rebuild()
             
-def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
+def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None, addHolderFile = False):
     _str_func = 'uiProject_verifyDir'
     log.debug("|{0}| >>...".format(_str_func))
     
@@ -1918,7 +1928,6 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
                 os.makedirs(mDir)
                 log.warning("created dir: {0}".format(mDir))
                 
-            
             for k2 in l:
                 #if case == 'lower':
                     #k2 = k2.lower()
@@ -1945,6 +1954,9 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
         
     if mScrollList:
         mScrollList.rebuild(self.d_tf['paths'][pSet].getValue())
+        
+    if addHolderFile:
+        CGMOS.find_emptyDirs(_path, addFile=True)
 
     
 def buildFrame_dirContent(self,parent):
@@ -2071,7 +2083,16 @@ def buildFrame_dirExport(self,parent):
     
     button_verify = mUI.MelButton(_row,
                                    label='Verify Dir',ut='cgmUITemplate',
-                                    ann='Verify the directories from the project Type')    
+                                    ann='Verify the directories from the project Type')
+    
+    button_fillEmpty= mUI.MelButton(_row,
+                                    label='Fill Empty',ut='cgmUITemplate',
+                                    c=lambda *a: CGMOS.find_emptyDirs(self.d_tf['paths']['export'].getValue(),True),
+                                    
+                                     ann='Add an empty file to any empty directories')    
+    
+    
+    
     
     """
     mUI.MelButton(_row,
@@ -2233,7 +2254,7 @@ class data(object):
                     d_pathsUse[k]=v
         else:
             d_pathsUse = self.d_pathsProject
-            log.warning("Using project paths dat!")
+            log.debug("Using project paths dat!")
             
         return d_pathsUse
         
@@ -2597,7 +2618,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self._d_itc =  {}
         self.filterField = None
         self.b_selCommandOn = True
-        
+        self.v_hlc = [1,.5,0]
         self._l_uiKeys = []
         self._l_uiStrings = []
         self._l_paths = []
@@ -2610,6 +2631,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         self.uiPopUpMenu = None
         self.str_structureMode = 'content'
         self.set_selCallBack(self.select_popup)
+        self.mScene = None
         
     def __getitem__( self, idx ):
         return self.getItems()[ idx ]
@@ -2632,7 +2654,8 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         _indices = []
         for i in _res:
-            _indices.append(int(str(i).split('L')[0]))
+            _indices.append(int(i))
+            #_indices.append(int(str(i).split('L')[0]))
         return _indices
     def selectByIdx( self, idx ):
         self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
@@ -2767,98 +2790,264 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                 log.warning("Dir doesn't exists: {0}".format(mPath))
 
 
+    def uiFunc_sendDirToProject(self, path, toProjectPath):
+        _str_func = 'ui.uiFunc_sendToProject'
+        from shutil import copyfile
+        
+        log.info( cgmGEN.logString_msg(_str_func,"Selected: {0}".format(path)))            
+        log.info( cgmGEN.logString_msg(_str_func,"to: {0}".format(toProjectPath)))            
+        
+        newProject = data(filepath=toProjectPath)
+        newPath = os.path.normpath(path).replace(os.path.normpath(self.mDat.userPaths_get()['content']),
+                                                 os.path.normpath(newProject.userPaths_get()['content']))
+        
+        log.info( cgmGEN.logString_msg(_str_func,"New: {0}".format(newPath)))            
+
+        if os.path.exists(newPath):
+            result = mc.confirmDialog(
+                            title='Destination file exists!',
+                            message='The destination file already exists. Would you like to overwrite it?',
+                            button=['Yes', 'Cancel'],
+                                        defaultButton='Yes',
+                                                    cancelButton='Cancel',
+                                                    dismissString='Cancel')
+
+            if result != 'Yes':
+                return False
+
+        if not os.path.exists(os.path.dirname(newPath)):
+            _createPath = os.path.join(newPath,'')            
+            log.info( cgmGEN.logString_msg(_str_func,"Creating path : {0}".format(_createPath)))            
+            os.makedirs(os.path.dirname(_createPath))
+            
+            
+            
+        for f in os.listdir(path):
+            _fileSource = os.path.join(path,f)            
+            if os.path.isfile(_fileSource):
+                _fileTarget = os.path.join(newPath,f)
+                log.info('From: {0}'.format(_fileSource))
+                log.info('To: {0}'.format(_fileTarget))
+
+                copyfile(_fileSource, _fileTarget)
+                
+                if f.endswith('.ma') or f.endswith('.mb'):
+                    log.info('checking ref...')
+                    
+                    for refFile in mc.file(_fileSource,query=True, reference=True):
+                        if not os.path.exists(refFile):
+                            continue
+                        log.info('Ref found: {0}'.format(refFile))
+                        log.info(self.mDat.userPaths_get()['content'])
+                        log.info(newProject.userPaths_get()['content'])
+                        
+                        if os.path.normpath(self.mDat.userPaths_get()['content']) not in os.path.normpath(refFile):
+                            log.warning("Ref outside of known content: {0}".format(refFile))
+                            continue
+                
+                        newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.mDat.userPaths_get()['content']),os.path.normpath(newProject.userPaths_get()['content']))
+                        log.info('To: {0}'.format(newRefFilename))
+                        
+                        if not os.path.exists(newRefFilename):
+                            if not os.path.exists(os.path.dirname(newRefFilename)):
+                                os.makedirs(os.path.dirname(newRefFilename))
+                            copyfile(refFile, newRefFilename)                    
+                    
+            
+        return
+        copyfile(path, newPath)
+        
+        
+        return
+        #if os.path.exists(newFilename) and os.path.normpath(mc.file(q=True, loc=True)) == os.path.normpath(infoDict['filename']):
+        result = 'Cancel'
+        if not self.alwaysSendReferenceFiles.getValue():
+            result = mc.confirmDialog(
+                                title='Send Missing References?',
+                                message='Copy missing references as well?',
+                                button=['Yes', 'Yes and Stop Asking', 'Cancel'],
+                                                defaultButton='Yes',
+                                                            cancelButton='No',
+                                                            dismissString='No')
+
+        if result == 'Yes and Stop Asking':
+            self.alwaysSendReferenceFiles.setValue(1)
+
+        if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
+            log.info( cgmGEN.logString_msg(_str_func,"Trying References..."))
+            for refFile in mc.file(_file,query=True, reference=True):
+                if not os.path.exists(refFile):
+                    continue
+
+                newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+                print newRefFilename
+                if not os.path.exists(newRefFilename):
+                    if not os.path.exists(os.path.dirname(newRefFilename)):
+                        os.makedirs(os.path.dirname(newRefFilename))
+                    copyfile(refFile, newRefFilename)
+
+        """
+        result = mc.confirmDialog(
+                        title='Change Project?',
+                        message='Change to the new project?',
+                        button=['Yes', 'No'],
+                                    defaultButton='Yes',
+                                                cancelButton='No',
+                                                dismissString='No')
+
+        if result == 'Yes':
+            if self.LoadProject(infoDict['project']):
+                self.LoadOptions()"""
+        #else:
+        #    log.info( cgmGEN.logString_msg(_str_func,"Path mismatch, no ref possible"))
+            
+        log.info( cgmGEN.logString_msg(_str_func,"Done"))
+        
         
     #@cgmGEN.Timer
     def select_popup(self): 
-        try:
-            _str_func = 'uiScrollList_select'  
-            log.debug(cgmGEN.logString_start(_str_func))
+        #try:
+        _str_func = 'uiScrollList_select'  
+        log.debug(cgmGEN.logString_start(_str_func))
 
-            if self.uiPopUpMenu:
-                self.uiPopUpMenu.clear()
-                self.uiPopUpMenu.delete()
-                self.uiPopUpMenu = None
-                
+        if self.uiPopUpMenu:
+            self.uiPopUpMenu.clear()
+            self.uiPopUpMenu.delete()
+            self.uiPopUpMenu = None
             
-            dat = self.getSelectedDirDat()
-            _mPath = dat['mPath']
-            _path = _mPath.asFriendly()
+        dat = self.getSelectedDirDat()
+        _mPath = dat['mPath']
+        _path = _mPath.asFriendly()
 
-            #pprint.pprint(dat)
+        #pprint.pprint(dat)
+        """
+        ['D:',
+           'Dropbox',
+           'cgmMRS',
+           'maya',
+           'Assets',
+           'character',
+           'dragon',
+           'animation',
+           'walk']
+        """
+        if self.mScene:
+            self.mScene.mContentListDat = dat
+        
+        """
+        if self.mDat:#Adding the ability to load to Scene
+            for i,d in enumerate(self.mDat.assetDat):
+                k = d.get('n')
+                if k in dat['split']:
+                    idx_split = dat['split'].index(k)
+                    l_temp = dat['split'][idx_split:]
+                    print 'Found: {0} | {1}'.format(k,l_temp)
+                    """
+                    
+                    
+        self.uiPopUpMenu = mUI.MelPopupMenu(self,button = 3)
+        _popUp = self.uiPopUpMenu
+        
+        
+        mUI.MelMenuItemDiv(_popUp, label=_mPath.asTruncate())
+
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Open Path to: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_openDir,_path),
+                        label = 'Open Dir')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Open Maya file in: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_mayaOpen,_path),
+                        label = 'Open Maya file')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Save Maya file to: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_MayaSaveTo,_path),
+                        label = 'Save Maya here')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Add sub dir to: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_addDir,_path),
+                        label = 'Add Sub Dir')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Remove dir: {0}".format(_path),
+                        c= cgmGEN.Callback(self.uiPath_removeDir,_path),
+                        label = 'Delete Dir')
+        
+        mUI.MelMenuItem(_popUp,
+                        ann = "Log dat: {0}".format(_path),
+                        c= lambda *a:pprint.pprint(dat),
+                        label = 'Log Dat')
+        
+        
+        #Send to Project =================================================================
+        _send = mUI.MelMenuItem(_popUp, l="Send To Project:",subMenu=True)
+
+        mPathList = cgmMeta.pathList('cgmProjectPaths')
+
+        project_names = []
+        from functools import partial
+        
+        for i,p in enumerate(mPathList.mOptionVar.value):
+            mProj = data(filepath=p)
+            name = mProj.d_project['name']
+            project_names.append(name)
+
+            if self.mDat.userPaths_get()['content'] == mProj.userPaths_get()['content']:
+                continue
+
+            mUI.MelMenuItem( _send,
+                             l=name if project_names.count(name) == 1 else '%s {%i}' % (name,
+                                                                                        project_names.count(name)-1),
+                                                c = cgmGEN.Callback(self.uiFunc_sendDirToProject,_path,p))
+            #self.d_subPops[mMenu].append(item)        
+        
+        
+        
+        
+        
+        return
+        if self.mDat:
+            mUI.MelMenuItemDiv(_popUp,label = 'Add Asset Dirs')
+            """d_toDo = {'char':'character',
+                      'prop':'prop',
+                      'env':'enviornment',
+                      'sub':'sub project'}"""
             
-            self.uiPopUpMenu = mUI.MelPopupMenu(self,button = 3)
-            _popUp = self.uiPopUpMenu
-            
-            mUI.MelMenuItemDiv(_popUp, label=_mPath.asTruncate())
+            l_types = self.mDat.assetType_getTypeDict().keys() #self.uiAssetTypeOptions.getMenuItems()
 
             
-            mUI.MelMenuItem(_popUp,
-                            ann = "Open Path to: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_openDir,_path),
-                            label = 'Open Dir')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Open Maya file in: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_mayaOpen,_path),
-                            label = 'Open Maya file')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Save Maya file to: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_MayaSaveTo,_path),
-                            label = 'Save Maya here')            
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Add sub dir to: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_addDir,_path),
-                            label = 'Add Sub Dir')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Remove dir: {0}".format(_path),
-                            c= cgmGEN.Callback(self.uiPath_removeDir,_path),
-                            label = 'Delete Dir')
-            
-            mUI.MelMenuItem(_popUp,
-                            ann = "Log dat: {0}".format(_path),
-                            c= lambda *a:pprint.pprint(dat),
-                            label = 'Log Dat')
-            
-            if self.mDat:
-                mUI.MelMenuItemDiv(_popUp,label = 'Add Asset Dirs')
-                """d_toDo = {'char':'character',
-                          'prop':'prop',
-                          'env':'enviornment',
-                          'sub':'sub project'}"""
-                
-                l_types = self.mDat.assetType_getTypeDict().keys() #self.uiAssetTypeOptions.getMenuItems()
+            for t in l_types: #['char','prop','env','sub']:
+                _t = CORESTRINGS.byMode(t,'capitalize')
+                #print '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))
+                mUI.MelMenuItem(_popUp,
+                                ann = "Add {0} asset to path: {1}".format(_t,_path),
+                                c= cgmGEN.Callback(self.uiPath_addAsset,
+                                                   _path,
+                                                   t,
+                                                   t),
+                                #c= lambda *a:self.uiPath_addAsset(_path,'content','{0}Content'.format(t)),
+                                label = _t)
 
-                
-                for t in l_types: #['char','prop','env','sub']:
-                    _t = CORESTRINGS.byMode(t,'capitalize')
-                    #print '{0}{1}'.format(t,CORESTRINGS.capFirst(self.str_structureMode))
-                    mUI.MelMenuItem(_popUp,
-                                    ann = "Add {0} asset to path: {1}".format(_t,_path),
-                                    c= cgmGEN.Callback(self.uiPath_addAsset,
-                                                       _path,
-                                                       t,
-                                                       t),
-                                    #c= lambda *a:self.uiPath_addAsset(_path,'content','{0}Content'.format(t)),
-                                    label = _t)
-
-        except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
+        #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
     def setHLC(self,arg=None):
         log.debug(cgmGEN.logString_start('setHLC'))        
         if arg:
             try:
-                _color = self._d_itc[arg]
+                #_color = self._d_itc[arg]
+                _color = self.v_hlc
                 log.debug("{0} | {1}".format(arg,_color))
-                _color = [v*.7 for v in _color]
+                _color = [v*.5 for v in _color]
                 self(e =1, hlc = _color)
                 return
             except Exception,err:
                 log.error(err)
                 
-            try:self(e =1, hlc = [.5,.5,.5])
+            try:self(e =1, hlc = self.v_bgc)
             except:pass
             
     def getSelectedDirDat( self):
@@ -2883,6 +3072,8 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         #self.getSelectedDir()
         if l_indices:
             self.setHLC(self._l_str_loaded[l_indices[0]])
+            
+        if not self.b_selCommandOn:return
         """
         mBlock = self.getSelectedBlocks()
         if mBlock:
@@ -2890,8 +3081,9 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             pprint.pprint(mBlock)
             self.mDat._ml_listNodes = mBlock"""
         log.debug(cgmGEN.logString_start('cmd_select | {0}'.format(self.cmd_select)))            
+        log.debug(cgmGEN.logString_start('b_selCommandOn | {0}'.format(self.b_selCommandOn)))            
         
-        if self.b_selCommandOn and self.cmd_select:
+        if self.cmd_select:
             if len(l_indices)<=1:
                 return self.cmd_select(*self.selArgs,**self.selkws)
         return False
@@ -2931,14 +3123,23 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             return False        
  
         
-        
+        _buffer = self.b_selCommandOn 
         self.b_selCommandOn = False
         #ml_sel = self.getSelectedBlocks()
         
         self( e=True, ra=True )
         
-        try:self(e =1, hlc = [.5,.5,.5])
-        except:pass                
+        
+        #try:_bgColor = self.mDat.d_colors['project']
+        #except:
+        #    print 'failsafe color'
+        #    _bgColor = [1,.5,0]
+        #self.v_hlc = _bgColor
+        
+        #_bgColor = [COREMATH.Clamp(3*v,.25,1.0) for v in _bgColor]
+        
+        #try:self(e = 1, hlc = _bgColor)
+        #except:pass                
         
         
         _d_dir, _d_levels, l_keys = COREPATHS.walk_below_dir(path,
@@ -2959,7 +3160,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         
         for i,k in enumerate(l_keys):
-            _color = [1,.5,0]#d_colors.get(d_colors['center'])
+            _color = [1,1,1]#d_colors.get(d_colors['center']) self.v_hlc  [1,.5,0]
             self._l_itc.append(_color)            
             self._d_itc[k] = _color
             
@@ -2974,7 +3175,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             try:self.selectByBlock(ml_sel)
             except Exception,err:
                 print err"""
-        self.b_selCommandOn = True
+        if _buffer:self.b_selCommandOn = True
 
     def clear( self ):
         log.debug(cgmGEN.logString_start('clear')) 
@@ -3000,8 +3201,9 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         if self.filterField is not None:
             searchFilter = self.filterField.getValue()
-        
         self.clear()
+        _buffer = self.b_selCommandOn
+        self.b_selCommandOn = False
         try:
             for i,str_entry in enumerate(r9Core.filterListByString(self._l_strings,
                                                                   searchFilter,
@@ -3028,7 +3230,9 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             log.error("|{0}| >> err: {1}".format(_str_func, err))  
             for a in err:
                 log.error(a)
-
+        finally:
+            if _buffer:
+                self.b_selCommandOn = _buffer
     def selectCallBack(self,func=None,*args,**kws):
         pprint.pprint( self.getSelectedDirDat() )
 
