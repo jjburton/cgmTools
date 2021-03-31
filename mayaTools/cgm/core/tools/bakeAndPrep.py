@@ -105,6 +105,14 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
                         shape = True )
 
         mc.setInfinity(bakeTransforms, pri='constant', poi='constant')
+        
+        #Filter euler
+        for obj in bakeTransforms:
+            for a in ['rotateX','rotateY','rotateZ']:
+                try:mc.filterCurve( obj + '_' + a )
+                except Exception,err:
+                    print "{0} | {1} | {2}".format(obj,a,err)
+            
 
         baked = True
     else:

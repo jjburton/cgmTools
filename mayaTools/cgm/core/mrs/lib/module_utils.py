@@ -943,7 +943,7 @@ def controls_getDat(self, keys = None,
         return ml_controls
     return md_controls,ml_controls
     
-def control_add(self, controls = None):
+def control_add(self, controls = None, face=True):
     _str_func = ' controls_get'
     
     if not controls:
@@ -955,6 +955,11 @@ def control_add(self, controls = None):
     mRigNull = self.rigNull
     
     for mObj in ml:
+        
+        if not mObj.getMessage('rigNull'):
+            ATTR.set_message(mObj.mNode, 'rigNull', mRigNull.mNode)
+            
+        
         if mObj in ml_exists:
             continue
         print mObj
@@ -963,13 +968,15 @@ def control_add(self, controls = None):
         mRigNull.msgList_append('controlsAll',mObj)
         mRigNull.moduleSet.add(mObj)
         
+        if face:
+            if mRigNull.msgList_exists('controlsFace'):
+                mRigNull.msgList_append('controlsFace',mObj)
+            else:
+                mRigNull.msgList_connect('controlsFace',[mObj])
+            
         
-        if mRigNull.msgList_exists('controlsFace'):
-            mRigNull.msgList_append('controlsFace',mObj)        
-        
-        if mRigNull.getMessage('faceSet'):
-            mRigNull.faceSet.add(mObj)        
-    
+            if mRigNull.getMessage('faceSet'):
+                mRigNull.faceSet.add(mObj.mNode)        
     
     
     

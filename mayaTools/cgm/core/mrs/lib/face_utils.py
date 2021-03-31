@@ -114,6 +114,16 @@ _d_faceBufferAttributes = {
             "brow":{'attrs':['innrUp','innrDn','outrUp','outrDn','squeeze'],
                     'sideAttrs':['innrUp','innrDn','outrUp','outrDn']},
             },
+    
+    'g1':{
+        "eye":{'attrs':['up','dn','left','right']},
+        "lid":{'attrs':['uprOpen','lwrOpen','arcUp','arcDn']},
+        "orb":{'attrs':['blink','arcUp','arcDn','angry','surprise','arcDn','bottomSqueeze','sad','frustrated']},        
+        "mouth":{'attrs':['up','dn','left','right']},
+        "brow":{'attrs':['up','dn','thicken']},                       
+        "jaw":{'attrs':['dn','close','fwd','back']},                    
+        "lips":{'attrs':['smile','wide','narrow','frown', 'sneer', 'teethLip','close'],
+                'sideAttrs':'*'}},    
 
     
     'toon':{"nose":{'attrs':['out','in','sneer_up','sneer_dn',
@@ -399,7 +409,7 @@ class poseBuffer():
         self.buffer_purge()
         self.buffer_verify()
         
-    def buffer_verify(self, addNonSplits = False, maxValue = 10.0, minValue = 0):
+    def buffer_verify(self, addNonSplits = False, maxValue = 1.0, minValue = 0):
         """
         addNonSplits | add a lips_smile for example for splitting to L/R
         """
