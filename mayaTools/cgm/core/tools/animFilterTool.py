@@ -16,6 +16,8 @@ import time
 import pprint
 import os
 import logging
+import json
+
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -60,7 +62,7 @@ class ui(cgmUI.cgmGUI):
     
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
-        log.info("|{0}| >>...".format(_str_func))        
+        log.info("|{0}| >>...".format(_str_func))
 
         if kws:log.debug("kws: %s"%str(kws))
         if args:log.debug("args: %s"%str(args))
@@ -74,33 +76,42 @@ class ui(cgmUI.cgmGUI):
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
 
         self._optionDict = {
-            #'mode' : 'position',
-            #'plane' : 'screen',
-            #'planeObject' : None,
             'aimFwd' : 'z+',
             'aimUp' : 'y+',
             'translate' : True,
             'rotate' : True
-            #'loopTime' : False,
-            #'debug' : False,
-            #'postBlendFrames' : 6,
-            #'recordMode' : 'replace'
         }
+        
+        self._actionList = []
+        self._loadedFile = ""
 
  
     def build_menus(self):
-        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
+        self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
 
-    def buildMenu_first(self):
-        self.uiMenu_FirstMenu.clear()
+    def buildMenu_file(self):
+        self.uiMenu_FileMenu.clear()                      
+
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_actions,self)))
+
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save As",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_as_actions,self)))
+        
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
+
+    def buildMenu_setup(self):
+        self.uiMenu_SetupMenu.clear()
         #>>> Reset Options		                     
 
-        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        mUI.MelMenuItemDiv( self.uiMenu_SetupMenu )
 
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reload",
+        mUI.MelMenuItem( self.uiMenu_SetupMenu, l="Reload",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
 
-        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+        mUI.MelMenuItem( self.uiMenu_SetupMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))
         
     def build_layoutWrapper(self,parent):
@@ -143,7 +154,8 @@ def buildColumn_main(self,parent, asScroll = False):
     return _inside
     
 def uiFunc_clear_loaded(self):
-    _str_func = 'uiFunc_clear_loaded'  
+    _str_func = 'uiFunc_clear_loaded'
+
     self._mTransformTarget = False
     #self._mGroup = False
     self.uiTF_objLoad(edit=True, l='',en=False)      
@@ -180,6 +192,9 @@ def uiFunc_updateTargetDisplay(self):
     return
 
 def uiFunc_build_post_process_column(self, parentColumn):   
+    _str_func = 'uiFunc_build_post_process_column[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
     mc.setParent(parentColumn)
     cgmUI.add_LineSubBreak()
 
@@ -193,9 +208,9 @@ def uiFunc_build_post_process_column(self, parentColumn):
 
     _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-    actions = ['Dragger', 'Spring', 'Trajectory Aim', 'Keys to Motion Curve']
+    actions = ['Dragger', 'Spring', 'Trajectory Aim', 'Keyframe to Motion Curve']
 
-    self.post_actionMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAction,self))
+    self.post_actionMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate') #, changeCommand=cgmGEN.Callback(uiFunc_setPostAction,self)
     for dir in actions:
         self.post_actionMenu.append(dir)
     
@@ -207,679 +222,1234 @@ def uiFunc_build_post_process_column(self, parentColumn):
     #
     # End Post Process Action
 
+
+    # Add Action Button
+    #
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Add Action',
+        cgmGEN.Callback(uiFunc_add_action,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Add Action',h=30) )
+    
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()       
+    #
+    # End Add Action Button
+
     # Post Process Options Frame
     #
     self._postProcessOptionsColumn = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
     #
     # Post Process Options Frame
-
-    uiFunc_setPostAction(self)
- 
-def uiFunc_setPostAction(self):
-    postAction = self.post_actionMenu.getValue()
-
-    if postAction == 'Dragger':
-        uiFunc_build_post_dragger_column(self)
-    elif postAction == 'Spring':
-        uiFunc_build_post_spring_column(self)
-    elif postAction == 'Trajectory Aim':
-        uiFunc_build_post_trajectory_aim_column(self)
-    elif postAction == 'Keys to Motion Curve':
-        uiFunc_build_post_keyframe_to_motion_curve_column(self) 
-
-def uiFunc_build_post_dragger_column(self):
-    parentColumn = self._postProcessOptionsColumn
-
-    parentColumn.clear()
-
-    # Translate
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Translate:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict['translate'], changeCommand=cgmGEN.Callback(uiFunc_set_translate,self))
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
     
+    # Actions Frame
     #
-    # End Translate
+    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding)        
 
-    self.uiCL_translate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+    mUI.MelSpacer(_row,w=_padding)
+
+    _subColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+
+    self._actionsFrame = mUI.MelFrameLayout(_subColumn, label='Actions', collapsable=False, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
     
-    # Post Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Damp:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=7.0)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
+    self._actionsColumn = mUI.MelColumnLayout(self._actionsFrame,useTemplate = 'cgmUIHeaderTemplate') 
     
-    #
-    # End Damp
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-    # Rotate
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Rotate:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_rotate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict['rotate'], changeCommand=cgmGEN.Callback(uiFunc_set_rotate,self))
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
+    uiFunc_buildActionsColumn(self)
     
+    _row.setStretchWidget(_subColumn)
+
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()
     #
-    # End Rotate
-
-    self.uiCL_rotate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
-
-    # Aim
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-    self._post_row_aimDirection = _row
-
-    mUI.MelSpacer(_row,w=_padding)                          
-    mUI.MelLabel(_row,l='Aim:')  
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
-
-    mUI.MelLabel(_row,l='Fwd:') 
-
-    self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_fwdMenu.append(dir)
+    # End Actions Frame
     
-    self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
+    #uiFunc_setPostAction(self)
 
-    mUI.MelSpacer(_row,w=_padding)
-    
-    mUI.MelLabel(_row,l='Up:')
+def uiFunc_buildActionsColumn(self):
+    _str_func = 'uiFunc_buildActionsColumn[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
 
-    self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_upMenu.append(dir)
+    self._actionsColumn.clear()
+    self._actionFrames = []
 
-    self.post_upMenu.setValue(self._optionDict['aimUp'])
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Aim
-
-    # Post Angular Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Angular Damp:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_angular_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=7.0)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Angular Damp
-
-    mc.setParent(self.uiCL_rotate)
-    cgmUI.add_LineSubBreak()  
-
-    # Post Object Scale
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Object Scale:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=10.0)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Object Scale
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-    # Debug
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    mUI.MelLabel(_row,l='Additional Options:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    mUI.MelLabel(_row,l='Debug:')
-
-    self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Debug locators will not be deleted so you could see what happened')
-
-
-    mUI.MelLabel(_row,l='Show Bake:')
-
-    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Show the bake process')
-
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Debug
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-    # Bake Dragger Button
-    #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
-    
-    cgmUI.add_Button(_row,'Bake Dragger',
-        cgmGEN.Callback(uiFunc_bake_dragger,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Dragger',h=30)
-
-    _row.layout()   
-    #
-    # End Bake Dragger Button
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-def uiFunc_set_translate(self):
-    self._optionDict['translate'] = self.uiFF_translate.getValue()
-    self.uiCL_translate(e=True, vis=self._optionDict['translate'])
-
-def uiFunc_set_rotate(self):
-    self._optionDict['rotate'] = self.uiFF_rotate.getValue()
-    self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
-
-def uiFunc_build_post_spring_column(self):
-    parentColumn = self._postProcessOptionsColumn
-
-    parentColumn.clear()
-
-    # Translate
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Translate:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict['translate'], changeCommand=cgmGEN.Callback(uiFunc_set_translate,self))
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    
-    #
-    # End Translate
-
-    self.uiCL_translate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
-
-    # Spring
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Spring Force:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Spring
-
-    mc.setParent(self.uiCL_translate)
-    cgmUI.add_LineSubBreak()  
-
-    # Post Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Damp:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Damp
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-    # Rotate
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Rotate:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_rotate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict['rotate'], changeCommand=cgmGEN.Callback(uiFunc_set_rotate,self))
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    
-    #
-    # End Rotate
-
-    self.uiCL_rotate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
-
-    # Aim
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-    self._post_row_aimDirection = _row
-
-    mUI.MelSpacer(_row,w=_padding)                          
-    mUI.MelLabel(_row,l='Aim:')  
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
-
-    mUI.MelLabel(_row,l='Fwd:') 
-
-    self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_fwdMenu.append(dir)
-    
-    self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
-
-    mUI.MelSpacer(_row,w=_padding)
-    
-    mUI.MelLabel(_row,l='Up:')
-
-    self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_upMenu.append(dir)
-
-    self.post_upMenu.setValue(self._optionDict['aimUp'])
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Aim
-
-    # Angular Spring
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Angular Spring Force:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_angular_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Angular Spring
-
-    mc.setParent(self.uiCL_rotate)
-    cgmUI.add_LineSubBreak()  
-
-    # Post Angular Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Angular Damp:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_angular_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Angular Damp
-
-    # Angular Up Spring
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Angular Up Spring Force:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_angular_up_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=1.0)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # Angular Up Spring
-
-    mc.setParent(self.uiCL_rotate)
-    cgmUI.add_LineSubBreak()  
-
-    # Post Angular Up Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Angular Damp:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_angular_up_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=.1)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Post Angular Up Damp
-
-    mc.setParent(self.uiCL_rotate)
-    cgmUI.add_LineSubBreak()  
-
-    # Post Object Scale
-    #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Object Scale:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=10.0)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Object Scale
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-    # Debug
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    mUI.MelLabel(_row,l='Additional Options:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    mUI.MelLabel(_row,l='Debug:')
-
-    self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Debug locators will not be deleted so you could see what happened')
-
-
-    mUI.MelLabel(_row,l='Show Bake:')
-
-    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Show the bake process')
-
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Debug
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-    # Bake Spring Button
-    #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
-    
-    cgmUI.add_Button(_row,'Bake Spring',
-        cgmGEN.Callback(uiFunc_bake_spring,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Spring',h=30)
-
-    _row.layout()   
-    #
-    # End Bake Spring Button
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-def uiFunc_build_post_trajectory_aim_column(self):
-    parentColumn = self._postProcessOptionsColumn
-
-    parentColumn.clear()
-
-    # Aim
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-    self._post_row_aimDirection = _row
-
-    mUI.MelSpacer(_row,w=_padding)                          
-    mUI.MelLabel(_row,l='Aim:')  
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
-
-    mUI.MelLabel(_row,l='Fwd:') 
-
-    self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_fwdMenu.append(dir)
-    
-    self.post_fwdMenu.setValue(self._optionDict['aimFwd'])
-
-    mUI.MelSpacer(_row,w=_padding)
-    
-    mUI.MelLabel(_row,l='Up:')
-
-    self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(uiFunc_setPostAim,self))
-    for dir in directions:
-        self.post_upMenu.append(dir)
-
-    self.post_upMenu.setValue(self._optionDict['aimUp'])
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Aim
-
-    # Post Damp
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Damp:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=15)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Damp
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-    # Debug
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-    mUI.MelLabel(_row,l='Show Bake:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )   
-
-    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Show the bake process')
-
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Debug
-
-    # Bake Trajectory Aim Button
-    #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
-    
-    cgmUI.add_Button(_row,'Bake Trajectory Aim',
-        cgmGEN.Callback(uiFunc_bake_trajectory_aim,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Trajectory Aim',h=30)
-
-    _row.layout()   
-    #
-    # End Bake Dragger Button
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-def uiFunc_build_post_keyframe_to_motion_curve_column(self):
-    parentColumn = self._postProcessOptionsColumn
-
-    parentColumn.clear()
-
-    # Debug
-    #
-    _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    mUI.MelLabel(_row,l='Additional Options:')
-
-    _row.setStretchWidget( mUI.MelSeparator(_row) )
-
-    mUI.MelLabel(_row,l='Debug:')
-
-    self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Debug locators will not be deleted so you could see what happened')
-
-
-    mUI.MelLabel(_row,l='Show Bake:')
-
-    self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
-                               v = False,
-                               label = '',
-                               ann='Show the bake process')
-
-
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout()
-    #
-    # End Debug
-
-    # Bake Trajectory Aim Button
-    #
-    _row = mUI.MelHLayout(parentColumn,ut='cgmUISubTemplate',padding = _padding*2)
-    
-    cgmUI.add_Button(_row,'Bake Keyframes to Motion Curve',
-        cgmGEN.Callback(uiFunc_bake_keyframe_to_motion_curve,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Bake Keyframes to Motion Curve',h=30)
-
-    _row.layout()   
-    #
-    # End Bake Dragger Button
-
-    mc.setParent(parentColumn)
-    cgmUI.add_LineSubBreak()  
-
-def uiFunc_bake_dragger(self):
-    for obj in mc.ls(sl=True):
-        mc.select(obj)
-        postInstance = DRAGGER.Dragger(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), angularDamp = self.uiFF_post_angular_damp.getValue(), translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self.uiFF_post_object_scale.getValue(), debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
-        postInstance.bake()
-
-def uiFunc_bake_spring(self):
-    for obj in mc.ls(sl=True):
-        mc.select(obj)
-        postInstance = SPRING.Spring(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), springForce=self.uiFF_post_spring.getValue(), angularDamp = self.uiFF_post_angular_damp.getValue(), angularSpringForce = self.uiFF_post_angular_spring.getValue(), angularUpDamp = self.uiFF_post_angular_up_damp.getValue(), angularUpSpringForce = self.uiFF_post_angular_up_spring.getValue(),objectScale=self.uiFF_post_object_scale.getValue(), translate=self._optionDict['translate'], rotate=self._optionDict['rotate'],debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
-        postInstance.bake()
-
-def uiFunc_bake_trajectory_aim(self):
-    for obj in mc.ls(sl=True):
-        mc.select(obj)
-        postInstance = TRAJECTORYAIM.TrajectoryAim(aimFwd = self.post_fwdMenu.getValue(), aimUp = self.post_upMenu.getValue(), damp = self.uiFF_post_damp.getValue(), showBake=self.uiCB_post_show_bake.getValue())
-        postInstance.bake()
-
-def uiFunc_bake_keyframe_to_motion_curve(self):
-    for obj in mc.ls(sl=True):
-        mc.select(obj)
-        postInstance = K2MC.KeyframeToMotionCurve(debug=self.uiCB_post_debug.getValue(), showBake=self.uiCB_post_show_bake.getValue())
-        postInstance.bake()
+    for i,action in enumerate(self._actionList):
+        mc.setParent(self._actionsColumn)
+        cgmUI.add_LineSubBreak()
         
-def uiFunc_setPostAim(self):
-    aimFwd = self.post_fwdMenu.getValue()
-    aimUp = self.post_upMenu.getValue()
+        _row = mUI.MelHSingleStretchLayout(self._actionsColumn,ut='cgmUISubTemplate',padding = _padding)        
+    
+        mUI.MelSpacer(_row,w=_padding)
+    
+        _subColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+    
+        _frame = mUI.MelFrameLayout(_subColumn, label=action.filterType if action.name == None else "{0} - {1}".format(action.name, action.filterType), collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+        
+        pum = mUI.MelPopupMenu(_frame)
+        mUI.MelMenuItem(pum, label="Rename", command=cgmGEN.Callback(uiFunc_rename_action,self,i) )
+        mUI.MelMenuItem(pum, label="Copy", command=cgmGEN.Callback(uiFunc_copy_action,self,i) )
+        mUI.MelMenuItem(pum, label="Paste", command=cgmGEN.Callback(uiFunc_paste_action,self,i) )
+        mUI.MelMenuItem(pum, label="Duplicate", command=cgmGEN.Callback(uiFunc_duplicate_action,self,i) )
+        mUI.MelMenuItem(pum, divider=True )
+        mUI.MelMenuItem(pum, label="Move Up", command=cgmGEN.Callback(uiFunc_move_action,self,i,'up') )
+        mUI.MelMenuItem(pum, label="Move Down", command=cgmGEN.Callback(uiFunc_move_action,self,i,'down') )
+        mUI.MelMenuItem(pum, label="Move to Top", command=cgmGEN.Callback(uiFunc_move_action,self,i,'top') )
+        mUI.MelMenuItem(pum, label="Move to Bottom", command=cgmGEN.Callback(uiFunc_move_action,self,i,'bottom') )
+        mUI.MelMenuItem(pum, divider=True )
+        mUI.MelMenuItem(pum, label="Delete", command=cgmGEN.Callback(uiFunc_remove_action,self,i) )
+        mUI.MelMenuItem(pum, divider=True )
+        mUI.MelMenuItem(pum, label="Run", command=cgmGEN.Callback(uiFunc_run_action,self,i) )
 
-    if aimFwd[0] == aimUp[0]:
-        log.error('Fwd and Up axis should be different or you may get unexpected results')
-        self.post_fwdMenu(edit=True, bgc=[1,.35,.35])
-        self.post_upMenu(edit=True, bgc=[1,.35,.35])
+        _dataColumn = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUIHeaderTemplate') 
+        
+        self._actionFrames.append(_frame)
+
+        mc.evalDeferred( cgmGEN.Callback(action.build_column,_dataColumn) )
+        
+        _row.setStretchWidget(_subColumn)
+        
+        mUI.MelSpacer(_row,w=_padding)
+    
+        _row.layout()         
+    
+    mc.setParent(self._actionsColumn)
+    cgmUI.add_LineSubBreak()      
+    
+    _row = mUI.MelHSingleStretchLayout(self._actionsColumn,ut='cgmUISubTemplate',padding = 5)
+    
+    mUI.MelSpacer(_row,w=_padding)
+    
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Run',
+        cgmGEN.Callback(uiFunc_run,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Run',h=30) ) 
+    
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout()    
+    
+    mc.setParent(self._actionsColumn)
+    cgmUI.add_LineSubBreak()  
+
+def uiFunc_run(self):
+    _str_func = 'uiFunc_run[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    for i, action in enumerate(self._actionList):
+        uiFunc_run_action(self, i)
+
+def uiFunc_run_action(self, idx):
+    _str_func = 'uiFunc_run_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    action = self._actionList[idx]
+    
+    action.update_dict()
+    
+    mc.select(action._optionDict['objs'])
+    
+    animLayerName = mc.animLayer(action.name if action.name else "")
+    mc.setAttr( '{0}.rotationAccumulationMode'.format(animLayerName), 0)
+    mc.setAttr( '{0}.scaleAccumulationMode'.format(animLayerName), 1)
+    mc.animLayer( animLayerName, e=True, addSelectedObjects=True)
+
+    for layer in mc.ls(type='animLayer'):
+        mc.animLayer(layer, e=True, selected=(layer == animLayerName))
+    
+    mc.animLayer(animLayerName, e=True, preferred=True)
+
+    action.run()
+    
+    mc.animLayer(animLayerName, e=True, preferred=False)
+
+def uiFunc_copy_action(self, idx):
+    _str_func = 'uiFunc_copy_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func))
+
+    self.clipboard = cgmMeta.cgmOptionVar("cgmVar_animFilter_clipboard", varType = "string")
+    self.clipboard.setValue( json.dumps(self._actionList[idx]._optionDict) )
+
+def uiFunc_paste_action(self, idx):
+    _str_func = 'uiFunc_paste_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    ignoreList = ['name', 'filterType']
+
+    action = self._actionList[idx]
+
+    self.clipboard = cgmMeta.cgmOptionVar("cgmVar_animFilter_clipboard", varType = "string")
+
+    clipboard = self.clipboard.getValue()
+    if clipboard:
+        optionDict = json.loads(clipboard)
+
+        for key in optionDict:
+            if key in action._optionDict and key not in ignoreList:
+                action._optionDict[key] = optionDict[key]
+
+        mc.evalDeferred( cgmGEN.Callback(action.build_column,action._parentColumn) )
+
+
+def uiFunc_duplicate_action(self, idx):
+    _str_func = 'uiFunc_duplicate_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    uiFunc_updateActionDicts(self)
+
+    action = self._actionList[idx]   
+
+    self._actionList.append( action_class[action._optionDict['filterType']](action._optionDict) )
+
+    mc.evalDeferred( cgmGEN.Callback(uiFunc_buildActionsColumn,self) )
+
+def uiFunc_save_actions(self):
+    _str_func = 'uiFunc_save_actions[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    if os.path.exists(self._loadedFile):
+        uiFunc_updateActionDicts(self)
+
+        f = open(self._loadedFile, 'w')
+        f.write(json.dumps( [copy.copy(action._optionDict) for action in self._actionList] ))
+        f.close()
     else:
-        self.post_fwdMenu(edit=True, bgc=[.35,.35,.35])
-        self.post_upMenu(edit=True, bgc=[.35,.35,.35])
+        uiFunc_save_as_actions(self)
+
+def uiFunc_save_as_actions(self):
+    _str_func = 'uiFunc_save_actions[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    uiFunc_updateActionDicts(self)
+
+    basicFilter = "*.afs"
+    filename = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fileMode=0)
+
+    f = open(filename[0], 'w')
+    f.write(json.dumps( [copy.copy(action._optionDict) for action in self._actionList] ))
+    f.close()
+
+    self._loadedFile = filename[0]
+
+    mc.window(self, e=True, title="{0} - {1}".format(self.__class__.WINDOW_TITLE, filename[0]))
+
+def uiFunc_load_actions(self):
+    _str_func = 'uiFunc_load_actions[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    basicFilter = "*.afs"
+    filename = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fileMode=1)
+
+    f = open(filename[0], 'r')
+    actionDicts = json.loads(f.read())
+    f.close()
+
+    self._loadedFile = filename[0]
+
+    mc.window(self, e=True, title="{0} - {1}".format(self.__class__.WINDOW_TITLE, filename[0]))
+
+    self._actionList = []
+
+    for data in actionDicts:
+        if data['filterType'] in action_class:
+            self._actionList.append( action_class[data['filterType']](data) )
+
+    mc.evalDeferred( cgmGEN.Callback(uiFunc_buildActionsColumn,self) )
+
+def uiFunc_rename_action(self, idx):
+    _str_func = 'uiFunc_rename_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    result = mc.promptDialog(
+            title='Rename Action',
+            message='Enter Name:',
+            button=['OK', 'Cancel'],
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel')
+
+    if result == 'OK':
+        text = mc.promptDialog(query=True, text=True)
+        self._actionList[idx].name = text
+        self._actionFrames[idx](edit=True, label="{0} - {1}".format(text, self._actionList[idx].filterType)) 
+
+def uiFunc_move_action(self, idx, direction):
+    _str_func = 'uiFunc_move_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    uiFunc_updateActionDicts(self)
+
+    action = self._actionList.pop(idx)
+
+    if direction == 'up':
+        self._actionList.insert( max(idx-1,0), action )
+    elif direction == 'down':
+        self._actionList.insert( min(idx+1, len(self._actionList)), action )
+    elif direction == 'top':
+        self._actionList.insert(0, action)
+    elif direction == 'bottom':
+        self._actionList.append(action)
+
+    mc.evalDeferred( cgmGEN.Callback(uiFunc_buildActionsColumn,self) )
+
+def uiFunc_remove_action(self, idx):
+    _str_func = 'uiFunc_remove_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    self._actionList.pop(idx)
+
+    mc.evalDeferred( cgmGEN.Callback(uiFunc_buildActionsColumn,self) )
+
+def uiFunc_add_action(self):
+    _str_func = 'uiFunc_add_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    postAction = self.post_actionMenu.getValue().lower()
+
+    action = action_class[postAction]()
+    # if postAction == 'dragger':
+    #     action = ui_post_dragger_column(self._optionDict)
+    # elif postAction == 'spring':
+    #     action = ui_post_spring_column(self._optionDict)
+    # elif postAction == 'trajectory aim':
+    #     action = ui_post_trajectory_aim_column(self._optionDict)
+    # elif postAction == 'keyframe to motion curve':
+    #     action = ui_post_keyframe_to_motion_curve_column(self._optionDict)
+
+    self._actionList.append(action)
+
+    uiFunc_updateActionDicts(self)
+    mc.evalDeferred( cgmGEN.Callback(uiFunc_buildActionsColumn,self) )
+
+# def uiFunc_setPostAction(self):
+#     _str_func = 'uiFunc_setPostAction[{0}]'.format(self.__class__.TOOLNAME)            
+#     log.info("|{0}| >>...".format(_str_func)) 
+
+#     postAction = self.post_actionMenu.getValue()
+
+#     if postAction == 'Dragger':
+#         uiFunc_build_post_dragger_column(self)
+#     elif postAction == 'Spring':
+#         uiFunc_build_post_spring_column(self)
+#     elif postAction == 'Trajectory Aim':
+#         uiFunc_build_post_trajectory_aim_column(self)
+#     elif postAction == 'Keys to Motion Curve':
+#         uiFunc_build_post_keyframe_to_motion_curve_column(self)
+
+def uiFunc_updateActionDicts(self):
+    _str_func = 'uiFunc_updateActionDicts[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func))
+
+    for action in self._actionList:
+        action.update_dict()
+
+class ui_post_filter(object):
+    filterType = 'undefined'
+
+    def __init__(self, optionDict = {
+            'aimFwd' : 'z+',
+            'aimUp' : 'y+',
+            'translate' : True,
+            'rotate' : True
+        }):
+
+        self._optionDict = copy.copy(optionDict)
+        self.name = self._optionDict.get('name', None)
+
+    def build_column(self, parentColumn):
+        pass
+
+    def run(self):
+        pass
+
+    def get_data(self):
+        return None
+
+    def update_dict(self):
+        pass
+
+    def uiFunc_set_translate(self):
+        self._optionDict['translate'] = self.uiFF_translate.getValue()
+        self.uiCL_translate(e=True, vis=self._optionDict['translate'])
+
+    def uiFunc_set_rotate(self):
+        self._optionDict['rotate'] = self.uiFF_rotate.getValue()
+        self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
+
+    def uiFunc_setPostAim(self):
+        aimFwd = self.post_fwdMenu.getValue()
+        aimUp = self.post_upMenu.getValue()
+
+        if aimFwd[0] == aimUp[0]:
+            log.error('Fwd and Up axis should be different or you may get unexpected results')
+            self.post_fwdMenu(edit=True, bgc=[1,.35,.35])
+            self.post_upMenu(edit=True, bgc=[1,.35,.35])
+        else:
+            self.post_fwdMenu(edit=True, bgc=[.35,.35,.35])
+            self.post_upMenu(edit=True, bgc=[.35,.35,.35])
+
+    def uiFunc_setObjects(self):
+        if not hasattr(self, 'uiTF_objects'):
+            return
+
+        self._optionDict['objs'] = mc.ls(sl=True)
+        self.uiTF_objects(edit=True, label=', '.join(mc.ls(sl=True)))
+
+class ui_post_dragger_column(ui_post_filter):
+    filterType = 'dragger'
+
+    def build_column(self, parentColumn):
+        self._parentColumn = parentColumn
+
+        parentColumn.clear()
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Objects
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Objects:')
+
+        self.uiTF_objects = mUI.MelLabel(_row, ut='cgmUIInstructionsTemplate', l=', '.join(self._optionDict.get('objs', mc.ls(sl=True)))  )
+
+        _row.setStretchWidget( self.uiTF_objects )
+
+        cgmUI.add_Button(_row,'Set',
+            cgmGEN.Callback(self.uiFunc_setObjects),
+            'Set Objects')
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Objects
+
+        # Translate
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Translate:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('translate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_translate))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Translate
+
+        self.uiCL_translate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+        
+        # Post Damp
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Damp:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('damp', 7.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Damp
+
+        self.uiCL_translate(e=True, vis=self._optionDict['translate'])
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Rotate
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Rotate:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_rotate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('rotate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_rotate))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Rotate
+
+        self.uiCL_rotate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+
+        # Aim
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+        self._post_row_aimDirection = _row
+
+        mUI.MelSpacer(_row,w=_padding)                          
+        mUI.MelLabel(_row,l='Aim:')  
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+
+        mUI.MelLabel(_row,l='Fwd:') 
+
+        self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(self.uiFunc_setPostAim))
+        for dir in directions:
+            self.post_fwdMenu.append(dir)
+        
+        self.post_fwdMenu.setValue(self._optionDict.get('aimFwd', 'z+'))
+
+        mUI.MelSpacer(_row,w=_padding)
+        
+        mUI.MelLabel(_row,l='Up:')
+
+        self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(self.uiFunc_setPostAim))
+        for dir in directions:
+            self.post_upMenu.append(dir)
+
+        self.post_upMenu.setValue(self._optionDict.get('aimUp', 'y+'))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Aim
+
+        # Post Angular Damp
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Angular Damp:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_angular_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('angularDamp', 7.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Angular Damp
+
+        # Post Angular Up Damp
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Angular Up Damp:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_angular_up_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('angularUpDamp', 7.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Angular Damp
+
+        mc.setParent(self.uiCL_rotate)
+        cgmUI.add_LineSubBreak()  
+
+        # Post Object Scale
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Object Scale:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('objectScale', 10.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Object Scale
+
+        self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Debug
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        mUI.MelLabel(_row,l='Additional Options:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        mUI.MelLabel(_row,l='Debug:')
+
+        self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
+                                   v = self._optionDict.get('debug', False),
+                                   label = '',
+                                   ann='Debug locators will not be deleted so you could see what happened')
+
+
+        mUI.MelLabel(_row,l='Show Bake:')
+
+        self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                                   v = self._optionDict.get('showBake', False),
+                                   label = '',
+                                   ann='Show the bake process')
+
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Debug
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+    def get_data(self):
+        self.update_dict()
+
+        order = ['name',
+            'filterType',
+            'objs',
+            'aimFwd',
+            'aimUp',
+            'damp',
+            'angularDamp',
+            'angularUpDamp',
+            'translate',
+            'rotate',
+            'objectScale',
+            'debug',
+            'showBake']
+
+        data = [self._optionDict[x] for x in order]
+        
+        return data
+
+    def update_dict(self):
+        self._optionDict['name'] = self.name
+        self._optionDict['filterType'] = self.filterType
+        self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
+        self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
+        self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
+        self._optionDict['damp'] = self.uiFF_post_damp.getValue() if hasattr(self, 'uiFF_post_damp') else 7.0
+        self._optionDict['angularDamp'] = self.uiFF_post_angular_damp.getValue() if hasattr(self, 'uiFF_post_angular_damp') else 7.0
+        self._optionDict['angularUpDamp'] = self.uiFF_post_angular_up_damp.getValue() if hasattr(self, 'uiFF_post_angular_up_damp') else 7.0
+        self._optionDict['translate'] = self.uiFF_translate.getValue() if hasattr(self, 'uiFF_translate') else True
+        self._optionDict['rotate'] = self.uiFF_rotate.getValue() if hasattr(self, 'uiFF_rotate') else True
+        self._optionDict['objectScale'] = self.uiFF_post_object_scale.getValue() if hasattr(self, 'uiFF_post_object_scale') else 10.0
+        self._optionDict['debug'] = self.uiCB_post_debug.getValue() if hasattr(self, 'uiCB_post_debug') else False
+        self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
+
+    def run(self):
+        self.update_dict()
+
+        for obj in self._optionDict['objs']:
+            mc.select(obj)
+            postInstance = DRAGGER.Dragger(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], angularDamp = self._optionDict['angularDamp'], angularUpDamp = self._optionDict['angularUpDamp'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self._optionDict['objectScale'], debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
+            postInstance.bake()
+
+
+class ui_post_spring_column(ui_post_filter):
+    filterType = 'spring'
+
+    def build_column(self, parentColumn):
+        self._parentColumn = parentColumn
+
+        parentColumn.clear()
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Objects
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Objects:')
+
+        self.uiTF_objects = mUI.MelLabel(_row, ut='cgmUIInstructionsTemplate', l=', '.join(self._optionDict.get('objs', mc.ls(sl=True)))  )
+
+        _row.setStretchWidget( self.uiTF_objects )
+
+        cgmUI.add_Button(_row,'Set',
+            cgmGEN.Callback(self.uiFunc_setObjects),
+            'Set Objects')
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Objects
+
+        # Translate
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Translate:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('translate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_translate))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Translate
+
+        self.uiCL_translate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+
+        # Spring
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Spring Force:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('springForce', 1.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Spring
+
+        mc.setParent(self.uiCL_translate)
+        cgmUI.add_LineSubBreak()  
+
+        # Post Damp
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Damp:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('damp', .1))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Damp
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Rotate
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Rotate:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_rotate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('rotate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_rotate))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Rotate
+
+        self.uiCL_rotate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
+
+        # Aim
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+        self._post_row_aimDirection = _row
+
+        mUI.MelSpacer(_row,w=_padding)                          
+        mUI.MelLabel(_row,l='Aim:')  
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+
+        mUI.MelLabel(_row,l='Fwd:') 
+
+        self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(self.uiFunc_setPostAim))
+        for dir in directions:
+            self.post_fwdMenu.append(dir)
+        
+        self.post_fwdMenu.setValue(self._optionDict.get('aimFwd', 'z+'))
+
+        mUI.MelSpacer(_row,w=_padding)
+        
+        mUI.MelLabel(_row,l='Up:')
+
+        self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(self.uiFunc_setPostAim))
+        for dir in directions:
+            self.post_upMenu.append(dir)
+
+        self.post_upMenu.setValue(self._optionDict.get('aimUp', 'y+'))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Aim
+
+        # Angular Spring
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Angular Spring Force:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_angular_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('angularSpringForce', 1.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Angular Spring
+
+        mc.setParent(self.uiCL_rotate)
+        cgmUI.add_LineSubBreak()  
+
+        # Post Angular Damp
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Angular Damp:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_angular_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('angularDamp', .1))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Angular Damp
+
+        # Angular Up Spring
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Angular Up Spring Force:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_angular_up_spring = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('angularUpSpringForce', 1.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # Angular Up Spring
+
+        mc.setParent(self.uiCL_rotate)
+        cgmUI.add_LineSubBreak()  
+
+        # Post Angular Up Damp
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Angular Up Damp:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_angular_up_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('angularUpDamp', .1))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Post Angular Up Damp
+
+        mc.setParent(self.uiCL_rotate)
+        cgmUI.add_LineSubBreak()  
+
+        # Post Object Scale
+        #
+        _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Object Scale:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('objectScale', 10.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Object Scale
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Debug
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        mUI.MelLabel(_row,l='Additional Options:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        mUI.MelLabel(_row,l='Debug:')
+
+        self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
+                                   v = self._optionDict.get('debug', False),
+                                   label = '',
+                                   ann='Debug locators will not be deleted so you could see what happened')
+
+
+        mUI.MelLabel(_row,l='Show Bake:')
+
+        self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                                   v = self._optionDict.get('showBake', False),
+                                   label = '',
+                                   ann='Show the bake process')
+
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Debug
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        self.uiCL_translate(e=True, vis=self._optionDict['translate'])
+        self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
+
+
+    def get_data(self):
+        self.update_dict()
+
+        order = ['name',
+                'filterType',
+                'objs',
+                'aimFwd',
+                'aimUp',
+                'damp',
+                'springForce',
+                'angularDamp',
+                'angularSpringForce',
+                'angularUpDamp',
+                'angularUpSpringForce',
+                'objectScale',
+                'translate',
+                'rotate',
+                'debug',
+                'showBake']
+
+        data = [self._optionDict[x] for x in order]
+        
+        return data
+
+    def update_dict(self):
+        self._optionDict['name'] = self.name
+        self._optionDict['filterType'] = self.filterType
+        self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
+        self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
+        self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
+        self._optionDict['damp'] = self.uiFF_post_damp.getValue() if hasattr(self, 'uiFF_post_damp') else .3
+        self._optionDict['springForce'] = self.uiFF_post_spring.getValue() if hasattr(self, 'uiFF_post_spring') else 12.0
+        self._optionDict['angularDamp'] = self.uiFF_post_angular_damp.getValue() if hasattr(self, 'uiFF_post_angular_damp') else .3
+        self._optionDict['angularSpringForce'] = self.uiFF_post_angular_spring.getValue() if hasattr(self, 'uiFF_post_angular_spring') else 12.0
+        self._optionDict['angularUpDamp'] = self.uiFF_post_angular_up_damp.getValue() if hasattr(self, 'uiFF_post_angular_up_damp') else .3
+        self._optionDict['angularUpSpringForce'] = self.uiFF_post_angular_up_spring.getValue() if hasattr(self, 'uiFF_post_angular_up_spring') else 12.0
+        self._optionDict['translate'] = self.uiFF_translate.getValue() if hasattr(self, 'uiFF_translate') else True
+        self._optionDict['rotate'] = self.uiFF_rotate.getValue() if hasattr(self, 'uiFF_rotate') else True
+        self._optionDict['objectScale'] = self.uiFF_post_object_scale.getValue() if hasattr(self, 'uiFF_post_object_scale') else 10.0
+        self._optionDict['debug'] = self.uiCB_post_debug.getValue() if hasattr(self, 'uiCB_post_debug') else False
+        self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
+
+
+    def run(self):
+        self.update_dict()
+
+        for obj in self._optionDict['objs']:
+            mc.select(obj)
+            postInstance = SPRING.Spring(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], springForce=self._optionDict['springForce'], angularDamp = self._optionDict['angularDamp'], angularSpringForce = self._optionDict['angularSpringForce'], angularUpDamp = self._optionDict['angularUpDamp'], angularUpSpringForce = self._optionDict['angularUpSpringForce'],objectScale=self._optionDict['objectScale'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'],debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
+            postInstance.bake()
+
+class ui_post_trajectory_aim_column(ui_post_filter):
+    filterType = 'trajectory aim'
+
+    def build_column(self, parentColumn):
+        self._parentColumn = parentColumn
+
+        parentColumn.clear()
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Objects
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Objects:')
+
+        self.uiTF_objects = mUI.MelLabel(_row, ut='cgmUIInstructionsTemplate', l=', '.join(self._optionDict.get('objs', mc.ls(sl=True)))  )
+
+        _row.setStretchWidget( self.uiTF_objects )
+
+        cgmUI.add_Button(_row,'Set',
+            cgmGEN.Callback(self.uiFunc_setObjects),
+            'Set Objects')
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Objects
+
+        # Aim
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+        self._post_row_aimDirection = _row
+
+        mUI.MelSpacer(_row,w=_padding)                          
+        mUI.MelLabel(_row,l='Aim:')  
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        directions = ['x+', 'x-', 'y+', 'y-', 'z+', 'z-']
+
+        mUI.MelLabel(_row,l='Fwd:') 
+
+        self.post_fwdMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(self.uiFunc_setPostAim))
+        for dir in directions:
+            self.post_fwdMenu.append(dir)
+        
+        self.post_fwdMenu.setValue(self._optionDict.get('aimFwd', 'z+'))
+
+        mUI.MelSpacer(_row,w=_padding)
+        
+        mUI.MelLabel(_row,l='Up:')
+
+        self.post_upMenu = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate', changeCommand=cgmGEN.Callback(self.uiFunc_setPostAim))
+        for dir in directions:
+            self.post_upMenu.append(dir)
+
+        self.post_upMenu.setValue(self._optionDict.get('aimUp', 'y+'))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Aim
+
+        # Post Damp
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Damp:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_post_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('damp', 10.0))
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Damp
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Debug
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Show Bake:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )   
+
+        self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                                   v = self._optionDict.get('debug', False),
+                                   label = '',
+                                   ann='Show the bake process')
+
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Debug
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+    def get_data(self):
+        self.update_dict()
+
+        order = ['name',
+                'filterType',
+                'objs',
+                'aimFwd',
+                'aimUp',
+                'damp',
+                'showBake']
+
+        data = [self._optionDict[x] for x in order]
+        
+        return data
+
+    def update_dict(self):
+        self._optionDict['name'] = self.name
+        self._optionDict['filterType'] = self.filterType
+        self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
+        self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
+        self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
+        self._optionDict['damp'] = self.uiFF_post_damp.getValue() if hasattr(self, 'uiFF_post_damp') else .3
+        self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
+
+    def run(self):
+        self.update_dict()
+
+        for obj in self._optionDict['objs']:
+            mc.select(obj)
+            postInstance = TRAJECTORYAIM.TrajectoryAim(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], showBake=self._optionDict['showBake'])
+            postInstance.bake()
+
+class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
+    filterType = 'keyframe to motion curve'
+
+    def build_column(self, parentColumn):
+        self._parentColumn = parentColumn
+
+        parentColumn.clear()
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+        # Objects
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Objects:')
+
+        self.uiTF_objects = mUI.MelLabel(_row, ut='cgmUIInstructionsTemplate', l=', '.join(self._optionDict.get('objs', mc.ls(sl=True)))  )
+
+        _row.setStretchWidget( self.uiTF_objects )
+
+        cgmUI.add_Button(_row,'Set',
+            cgmGEN.Callback(self.uiFunc_setObjects),
+            'Set Objects')
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        
+        #
+        # End Objects
+
+        # Debug
+        #
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        mUI.MelLabel(_row,l='Additional Options:')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        mUI.MelLabel(_row,l='Debug:')
+
+        self.uiCB_post_debug = mUI.MelCheckBox(_row,en=True,
+                                   v = self._optionDict.get('debug', False),
+                                   label = '',
+                                   ann='Debug locators will not be deleted so you could see what happened')
+
+
+        mUI.MelLabel(_row,l='Show Bake:')
+
+        self.uiCB_post_show_bake = mUI.MelCheckBox(_row,en=True,
+                                   v = self._optionDict.get('showBake', False),
+                                   label = '',
+                                   ann='Show the bake process')
+
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()
+        #
+        # End Debug
+
+        mc.setParent(parentColumn)
+        cgmUI.add_LineSubBreak()  
+
+    def get_data(self):
+        self.update_dict()
+
+        order = ['name',
+                'filterType',
+                'objs',
+                'debug',
+                'showBake']
+
+        data = [self._optionDict[x] for x in order]
+        
+        return data
+
+    def update_dict(self):
+        self._optionDict['name'] = self.name
+        self._optionDict['filterType'] = self.filterType
+        self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
+        self._optionDict['debug'] = self.uiCB_post_debug.getValue() if hasattr(self, 'uiCB_post_debug') else False
+        self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
+
+
+    def run(self):
+        self.update_dict()
+
+        for obj in self._optionDict['objs']:
+            mc.select(obj)
+            postInstance = K2MC.KeyframeToMotionCurve(debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
+            postInstance.bake()
+
+action_class = {
+    'dragger':ui_post_dragger_column,
+    'spring':ui_post_spring_column,
+    'trajectory aim':ui_post_trajectory_aim_column,
+    'keyframe to motion curve':ui_post_keyframe_to_motion_curve_column
+}

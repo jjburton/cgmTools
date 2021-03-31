@@ -1445,7 +1445,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
     """
     try:
         _short = self.mBlock.mNode
-        _str_func = 'shapes_build ( {0} )'.format(_short)
+        _str_func = 'shapes_fromCast ( {0} )'.format(_short)
         
         
         _dir = self.d_module.get('direction')
@@ -1487,7 +1487,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             #offset = self.d_module.get('f_shapeOffset',1.0)
 
         if mode in ['singleCurve']:
-            mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+            mMesh_tmp =  self.mBlock.atUtils('get_castMesh', True)
             str_meshShape = mMesh_tmp.getShapes()[0]
             
             minU = ATTR.get(str_meshShape,'minValueU')
@@ -1528,7 +1528,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
             #Get our cast mesh        
             ml_handles = self.mBlock.msgList_get('prerigHandles',asMeta = True)
 
-            mMesh_tmp =  self.mBlock.atUtils('get_castMesh')
+            mMesh_tmp =  self.mBlock.atUtils('get_castMesh',True)
             str_meshShape = mMesh_tmp.getShapes()[0]
             
             minU = ATTR.get(str_meshShape,'minValueU')
@@ -1718,7 +1718,7 @@ def shapes_fromCast(self, targets = None, mode = 'default', aimVector = None, up
                     for i,mObj in enumerate(ml_fkJoints):
                         _short = mObj.mNode
                         _d = RAYS.cast(str_meshShape, _short, str_aim)
-                        log.debug("|{0}| >> Casting {1} ...".format(_str_func,_short))
+                        log.debug("|{0}| >> Casting {1} | {2} ...".format(_str_func,i,_short))
                         #cgmGEN.log_info_dict(_d,j)
                         try:_v = _d['uvsRaw'][str_meshShape][0][0]                                    
                         except:

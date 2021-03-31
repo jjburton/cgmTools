@@ -35,12 +35,12 @@ import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 
 from cgm.core.tools import animDraw
-from cgm.core.tools import dragger as DRAGGER
-from cgm.core.tools import trajectoryAim as TRAJECTORYAIM
-from cgm.core.tools import keyframeToMotionCurve as K2MC
-from cgm.core.tools import spring as SPRING
+#from cgm.core.tools import dragger as DRAGGER
+#from cgm.core.tools import trajectoryAim as TRAJECTORYAIM
+#from cgm.core.tools import keyframeToMotionCurve as K2MC
+#from cgm.core.tools import spring as SPRING
 
-from cgm.core.tools import animFilterTool as AFT
+#from cgm.core.tools import animFilterTool as AFT
 
 #>>> Root settings =============================================================
 __version__ = cgmGEN.__RELEASE
@@ -221,27 +221,27 @@ def buildColumn_main(self,parent, asScroll = False):
     #
     # End Instructions
 
-    # Post Process Frame
-    #
-    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = _padding)        
+    ## Post Process Frame
+    ##
+    #_row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = _padding)        
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _subColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
+    #_subColumn = mUI.MelColumnLayout(_row,useTemplate = 'cgmUIHeaderTemplate') 
 
-    _postProcessFrame = mUI.MelFrameLayout(_subColumn, label='Post Process Animation', collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
+    #_postProcessFrame = mUI.MelFrameLayout(_subColumn, label='Post Process Animation', collapsable=True, collapse=True,useTemplate = 'cgmUIHeaderTemplate')
     
-    self._postProcessColumn = mUI.MelColumnLayout(_postProcessFrame,useTemplate = 'cgmUIHeaderTemplate') 
+    #self._postProcessColumn = mUI.MelColumnLayout(_postProcessFrame,useTemplate = 'cgmUIHeaderTemplate') 
 
-    AFT.uiFunc_build_post_process_column(self, self._postProcessColumn)
+    #AFT.uiFunc_build_post_process_column(self, self._postProcessColumn)
 
-    _row.setStretchWidget(_subColumn)
+    #_row.setStretchWidget(_subColumn)
 
-    mUI.MelSpacer(_row,w=_padding)
+    #mUI.MelSpacer(_row,w=_padding)
 
-    _row.layout()
-    #
-    # End Post Process Frame
+    #_row.layout()
+    ##
+    ## End Post Process Frame
 
     return _inside
 
