@@ -1410,7 +1410,7 @@ def get_castMesh(self,extend=False,pivotEnd=False):
             mObj.delete()
         return cgmMeta.asMeta(mesh)
         
-    if extend:
+    if extend and self.blockType not in ['handle','muzzle','brow','eye','facs']:
         log.debug(cgmGEN.logString_msg(_str_func,'extend'))
         ml_formHandles = self.msgList_get('formHandles')
         l_targets = []
