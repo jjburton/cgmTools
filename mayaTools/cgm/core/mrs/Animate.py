@@ -5309,7 +5309,7 @@ def mmUI_part(self,parent = None):
     _select = mc.menuItem(p=parent,l="Switch",subMenu=True)
     d_modes = {'BlendSnap':'blendsnap'}
     
-    for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','Blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
+    for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
               ]:
         #_d = d_setup[m]
         _d_tmp = {'mode':d_modes.get(m,m),

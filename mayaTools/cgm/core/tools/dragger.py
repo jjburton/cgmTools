@@ -19,7 +19,7 @@ import maya.cmds as mc
 import maya.mel as mel
 
 class Dragger(PostBake.PostBake):
-    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = 7.0, angularDamp=7.0, objectScale=100, rotate=True, translate=True, debug=False, showBake=False):
+    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = 7.0, angularDamp=7.0, angularUpDamp=7.0,objectScale=100, rotate=True, translate=True, debug=False, showBake=False):
         PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
 
         self.aimFwd = VALID.simpleAxis(aimFwd)
@@ -30,6 +30,7 @@ class Dragger(PostBake.PostBake):
 
         self.damp = damp
         self.angularDamp = angularDamp
+        self.angularUpDamp = angularUpDamp
         
         self.translate = translate
         self.rotate = rotate
@@ -55,12 +56,11 @@ class Dragger(PostBake.PostBake):
         if self.rotate:
             wantedTargetPos = ((VALID.euclidVector3Arg(self.obj.p_position) + self.dir) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
             
-            self.lastUp = MATH.Vector3.Lerp( self.lastUp, self._bakedLoc.getTransformDirection(self.aimUp.p_vector), min(deltaTime * self.damp, 1.0) ).normalized()
+            self.lastUp = MATH.Vector3.Lerp( self.lastUp, self._bakedLoc.getTransformDirection(self.aimUp.p_vector), min(deltaTime * self.angularUpDamp, 1.0) ).normalized()
     
-            self.aimTargetPos = (MATH.Vector3.Lerp(self.aimTargetPos, wantedTargetPos, deltaTime*self.damp) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
-            self.upTargetPos = (MATH.Vector3.Lerp(self.aimTargetPos, wantedTargetPos, deltaTime*self.damp) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
+            self.aimTargetPos = (MATH.Vector3.Lerp(self.aimTargetPos, wantedTargetPos, deltaTime*self.angularDamp) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
     
-            self.lastFwd = MATH.Vector3.Lerp( self.lastFwd, self._bakedLoc.getTransformDirection(self.aimFwd.p_vector), min(deltaTime * self.damp, 1.0) ).normalized()
+            self.lastFwd = MATH.Vector3.Lerp( self.lastFwd, self._bakedLoc.getTransformDirection(self.aimFwd.p_vector), min(deltaTime * self.angularDamp, 1.0) ).normalized()
             
             SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
 

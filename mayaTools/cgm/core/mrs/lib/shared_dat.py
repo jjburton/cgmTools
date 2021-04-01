@@ -168,12 +168,14 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'proxyGeoRoot':'none:loft:ball',
                    'proxyType':'none:castMesh',
                    'proxyBuild':'bool',
+                   'meshBuild':'bool',
                    'visBoundingBox':'bool',
                    'visRotatePlane':'bool',
                    'visLabels':'bool',
                    'visProximityMode':'off:inherit:proximity',
                    'parentToDriver':'bool',
                    'visJointHandle':'bool',
+                   'visFormHandles':'bool',                   
                    'visMeasure':'bool',}
 
 _l_defineHandlesOrder = ('end','start','up','rp','aim','lever')

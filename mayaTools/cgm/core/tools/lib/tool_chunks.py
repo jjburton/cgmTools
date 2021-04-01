@@ -46,7 +46,7 @@ import cgm.core.tools.lib.tool_calls as TOOLCALLS
 import cgm.core.classes.GuiFactory as cgmUI
 import cgm.projects.CGM as CGMPROJECTS
 from cgm.core.tools import attrTools as ATTRTOOLS
-
+from cgm.core.rig import general_utils as RIGGEN
 from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
@@ -704,7 +704,9 @@ def uiSection_animUtils(parent):
     mc.menuItem(parent = parent,
                 l='red9.Studio Tools',
                 ann = "Launch Red 9's tools",
-                c=lambda *a:Red9.start())     
+                c=lambda *a:Red9.start())
+    
+    
     mc.menuItem(parent = parent,
                 l='zoo.XferAnim',
                 ann = "Tool for transferring animation - from Hamish McKenzie's zooToolbox",
@@ -770,6 +772,12 @@ def uiSection_mrsAnim(parent):
                 l='cgmSetTools',
                 ann = "Launch cgm's setTools - a tool for managing maya selection sets",
                 c=lambda *a: TOOLCALLS.setTools())
+    
+    mc.menuItem(parent = parent,
+                l='Randomize Attr',
+                ann = "Bokser's ranomdize attr tool. Select some attributes in the channel box and click the button",
+                c=lambda *a: maya.mel.eval('dbRandomizeAttr'))    
+    
 
     
     
@@ -814,6 +822,10 @@ def uiSection_mrsTD(parent):
                 l='Builder',
                 ann = "MRS Rigging Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsUI())
+    mc.menuItem(parent = parent,
+                l='Block Picker',
+                ann = "MRS Block Picker Tool | Beta",
+                c=lambda *a:TOOLCALLS.mrsBlockPicker())    
     mc.menuItem(parent = parent,
                 l='Block Editor',
                 ann = "MRS Block Editor Tool | Beta",
@@ -1146,6 +1158,17 @@ def uiSection_dev(parent):
     mc.menuItem(parent = _screenGrab,
                 l='On',
                 c=lambda *a: CGMPROJECTS.setup_forCapture(1))
+    
+    #BG ------------------------------------------
+    _bgColor = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
+                           l='BG Gradiant')
+    for k in CGMPROJECTS.d_bg_presets.keys():
+        mc.menuItem(parent = _bgColor,
+                    l='{0}'.format(k),
+                    c=cgmGEN.Callback(CGMPROJECTS.setup_bgColor,k))
+        mc.menuItem(parent = _bgColor,
+                    l='{0} Reverse'.format(k),
+                    c=cgmGEN.Callback(CGMPROJECTS.setup_bgColor,k,True))
     
 def ut_cgmTestCall(*args,**kws):
     import cgm.core.tests.cgmTests as cgmTests
@@ -1555,7 +1578,16 @@ def uiSection_snap(parent, selection = None ):
               l = '3[Spaced]',
               ut = 'cgmUITemplate',
               c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicRebuild','spans':3}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))
+    
+    mUI.MelMenuItemDiv(_arrange)        
+    mc.menuItem(parent=_arrange,
+              l = 'Ratio | Finger',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGEN.ratio, None,'all', 'ratioFinger',noSelect = 0, **{'mode':'finger'}),
               ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))    
+    
+    
     #cgmUI.mUI.MelSeparator(parent)
     mc.menuItem(parent=parent,
                 l = 'Snap UI',

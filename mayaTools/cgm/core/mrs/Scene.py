@@ -19,10 +19,9 @@ from cgm.core.mrs.lib import batch_utils as BATCH
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.lib import math_utils as MATH
 from cgm.core.mrs.lib import scene_utils as SCENEUTILS
-reload(SCENEUTILS)
 from cgm.core.lib import skinDat as SKINDAT
-reload(SKINDAT)
 import cgm.core.mrs.Builder as BUILDER
+import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 
 import Red9.core.Red9_General as r9General
 
@@ -85,6 +84,7 @@ example:
 
     TOOLNAME = 'cgmScene'
     WINDOW_TITLE = '%s - %s'%(TOOLNAME,__version__)    
+    reload(SCENEUTILS)
 
     def insert_init(self,*args,**kws):
         
@@ -178,8 +178,8 @@ example:
             self.LoadProject(self.optionVarProjectStore.getValue())
         else:
             mPathList = cgmMeta.pathList('cgmProjectPaths')
-            self.LoadProject(mPathList.mOptionVar.value[0])
-
+            try:self.LoadProject(mPathList.mOptionVar.value[0])
+            except:pass
     @property
     def directory(self):
         return self.directoryTF.getValue()
@@ -667,15 +667,19 @@ example:
         
         self._referenceSubTypePUM = mUI.MelMenuItem(pum,label="Reference",
                                                     ann = _d_ann.get('reference'),
-                                                    command=self.ReferenceFile,en=False )
+                                                    command=self.ReferenceFile,en=1 )
         self._importSubTypePUM = mUI.MelMenuItem(pum,label="Import",
                                                  ann = _d_ann.get('import'),
-                                                 command=self.ImportFile,en=False )
+                                                 command=self.ImportFile,en=1 )
         self._importSubTypePUM = mUI.MelMenuItem(pum,label="Replace",
                                                  ann=_d_ann.get('replace','Replace'),
-                                                 command=self.file_replace,en=False )
+                                                 command=self.file_replace,en=1 )
         
-        self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=False)
+        self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=1)
+        
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        
+        
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
 
@@ -739,6 +743,7 @@ example:
                         command=self.file_replace)        
 
         self.uiPop_sendToProject_variant = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
         
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
@@ -805,6 +810,8 @@ example:
                         command=self.file_replace)        
 
         self.uiPop_sendToProject_version = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
 
@@ -1387,7 +1394,56 @@ example:
         return thumbFile
     
     def metaData_print(self):
-        pprint.pprint( self.getMetaDataFromCurrent() )
+        
+        _d = self.getMetaDataFromFile() 
+        pprint.pprint(_d)
+        
+        _type = _d.get('type')
+        _subType =_d.get('subType')
+        _subTypeAsset = _d.get('subTypeAsset')
+        _asset = _d.get('asset')
+        
+        _l = []
+        for k in _type,_asset,_subType,_subTypeAsset:
+            if k:
+                _l.append(k)
+        
+        _name = '.'.join(_l)
+        
+        print ''
+        _d.get('file')
+        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.project.userPaths_get()['content']), '')
+        _l_asset = [_name,_file]
+        print ','.join(_l_asset)
+        print ''
+        
+        #Shots
+        if _d.get('shots'):
+            _shots = _d.get('shots')
+            _total = 0
+            _lows = []
+            _highs = []
+            
+            _l_shots = []
+            
+            for s in _shots:
+                _total += s[1][2]
+                _l = [s[0], s[1][0], s[1][1], s[1][2]] 
+                _l = [str(v) for v in _l]
+                _l_shots.append( _l )
+                _lows.append(s[1][0])
+                _highs.append(s[1][1])
+                
+            
+            print ','.join(['clip','start','end',str(_total), "{0}".format(max(_highs) - min(_lows))])
+            print ''
+            for s in _l_shots:
+                print ','.join(s)
+                
+        print 'Notes'
+        print _d.get('notes','None')
+        
+        #pprint.pprint( self.getMetaDataFromCurrent() )
         
     def getMetaDataFromCurrent(self):
         from cgm.core.mrs.Shots import AnimList
@@ -1518,6 +1574,9 @@ example:
 
         mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Verify Asset Dirs",
                                  c = cgmGEN.Callback(self.VerifyAssetDirs) )
+        
+        mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Clean Scene",
+                                 c = lambda *a:mc.evalDeferred(MAYABEODD.cleanFile,lp=1) )        
         
         mUI_skinDat = mUI.MelMenuItem(self.uiMenu_ToolsMenu,l='SkinDat',subMenu=True)
         SKINDAT.uiBuildMenu(mUI_skinDat)
@@ -2302,7 +2361,11 @@ example:
     def ImportFile(self, *args):
         filePath = self.versionFile
         if self.versionFile and os.path.exists(self.versionFile):
-            mc.file(filePath, i=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
+            #file -import -type "mayaBinary"  -ignoreVersion -mergeNamespacesOnClash false -rpr #"wing_birdBase_03" -options "v=0;"  -pr  -importTimeRange "combine" "D:/Dropbox/mrsMakers_share/content/Demo/wing/scenes/birdBase/wing_birdBase_03.mb";
+
+            mc.file(filePath, i=True, ignoreVersion=True,
+                    mergeNamespacesOnClash=False,
+                    importTimeRange = 'combine')
         else:
             log.info( "Version file doesn't exist" )
     def file_replace(self, *args):
@@ -2403,7 +2466,7 @@ example:
             name = mProj.d_project['name']
             project_names.append(name)
 
-            if self.project.userPaths_get()['content'] == mProj.userPaths_get()['content']:
+            if self.project.userPaths_get().get('content') == mProj.userPaths_get().get('content'):
                 continue
 
             item = mUI.MelMenuItem( mMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
@@ -2417,7 +2480,7 @@ example:
             return log.error("SendToBuild: No version file found")
         
         log.info ("file: {0}".format(f))
-        mStandAlone = BUILDER.uiStandAlone_get()
+        mStandAlone = BUILDER.ui_toStandAlone()
         mStandAlone.l_files = [f]
         
         
@@ -2540,10 +2603,12 @@ example:
     def RemoveFromQueue(self, *args):
         if args[0] == 0:
             idxes = self.queueTSL.getSelectedIdxs()
+            print idxes
             idxes.reverse()
 
             for idx in idxes:
-                del self.batchExportItems[idx-1]
+                #del self.batchExportItems[idx-1]
+                self.batchExportItems.remove( self.batchExportItems[idx] )
         elif args[0] == 1:
             self.batchExportItems = []
 
@@ -3120,7 +3185,7 @@ def ExportScene(mode = -1,
             exportDir = os.path.split(exportFile)[0]
             if not os.path.exists(exportDir):
                 log.info("making export dir... {0}".format(exportDir))
-                os.mkdir(exportDir)
+                os.makedirs(exportDir)
                 # create empty file so folders are checked into source control
                 #f = open(os.path.join(exportAnimPath, "filler.txt"),"w")
                 #f.write("filler file")

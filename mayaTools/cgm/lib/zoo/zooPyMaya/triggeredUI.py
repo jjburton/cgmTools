@@ -1,9 +1,9 @@
 
 import maya.cmds as cmd
 
-from zooPy import events
-from zooPy.misc import removeDupes, Callback
-from zooPy.vectors import Colour
+from cgm.lib.zoo.zooPy import events
+from cgm.lib.zoo.zooPy.misc import removeDupes, Callback
+from cgm.lib.zoo.zooPy.vectors import Colour
 
 from triggered import *
 from baseMelUI import *

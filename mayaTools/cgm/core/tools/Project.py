@@ -52,7 +52,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 import cgm.core.classes.GuiFactory as cgmUI
-#reload(cgmUI)
+import cgm.core.cgmPy.os_Utils as CGMOS
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
 #reload(COREPATHS)
@@ -105,6 +105,9 @@ def uiAsset_add(self):
         uiAsset_rebuildOptionMenu(self)
         self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
+        
+        self.uiProject_save()
+        
         #mUI.MelOptionMenu
         
 def uiAsset_addSub(self):
@@ -134,6 +137,7 @@ def uiAsset_addSub(self):
         #uiAsset_rebuildOptionMenu(self)
         #self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
+        self.uiProject_save()
         
 def uiAsset_remove(self):
     _str_func = 'uiAsset_remove'
@@ -144,6 +148,7 @@ def uiAsset_remove(self):
     self.mDat.assetType_remove(idx=_value)
     uiAsset_rebuildOptionMenu(self)
     uiAsset_rebuildSub(self)
+    self.uiProject_save()
     
     #self.uiAssetTypeOptions.remove(_value)
     
@@ -173,6 +178,7 @@ def uiAsset_editName(self):
         uiAsset_rebuildSub(self)
         
         self.uiAssetTypeOptions.selectByValue(_name)
+        self.uiProject_save()
 
 def uiAsset_duplicate(self):
     _str_func = 'uiAsset_duplicate'
@@ -194,7 +200,6 @@ def uiAsset_duplicate(self):
     if result == 'OK':
         _name = str(mc.promptDialog(query=True, text=True))
         
-        
         if _name == _currentName:
             raise ValueError,"Same name given as exists. Pick a new name"
     
@@ -206,6 +211,7 @@ def uiAsset_duplicate(self):
         self.uiAssetTypeOptions.selectByValue(_name)
         
         uiAsset_rebuildSub(self)
+        self.uiProject_save()
         
 
 
@@ -891,7 +897,7 @@ class ui(cgmUI.cgmGUI):
                         
                     else:
                         if v is not None:
-                            if k in ['lock','mayaVersion']:
+                            if k in ['lock','mayaVersion','mayaFilePref']:
                                 self.d_tf[dType][k].setValue(str(v),executeChangeCB=False)
                             else:
                                 self.d_tf[dType][k].setValue(v,executeChangeCB=False)
@@ -1609,6 +1615,11 @@ class ui(cgmUI.cgmGUI):
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in PU.l_mayaVersions:
                     _d[key].append(t)
+            
+            elif key == 'mayaFilePref':
+                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                for t in PU.l_mayaFileType:
+                    _d[key].append(t)                
                     
             elif key == 'projectPathMode':
                 _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
@@ -1617,11 +1628,9 @@ class ui(cgmUI.cgmGUI):
                 _d[key] =   mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
                 for t in ['False','True']:
                     _d[key].append(t)
-                    
                 if key == 'lock':
                     _d[key](edit=True, cc = lambda *a:self.uiProject_lock())
 
-                    
             else:
                 #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
                 _d[key] =  mUI.MelTextField(_row,
@@ -1883,7 +1892,7 @@ def uiProject_addDir(self,pSet = None, mScrollList = None):
         if mScrollList:
             mScrollList.rebuild()
             
-def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
+def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None, addHolderFile = False):
     _str_func = 'uiProject_verifyDir'
     log.debug("|{0}| >>...".format(_str_func))
     
@@ -1919,7 +1928,6 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
                 os.makedirs(mDir)
                 log.warning("created dir: {0}".format(mDir))
                 
-            
             for k2 in l:
                 #if case == 'lower':
                     #k2 = k2.lower()
@@ -1946,6 +1954,9 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None):
         
     if mScrollList:
         mScrollList.rebuild(self.d_tf['paths'][pSet].getValue())
+        
+    if addHolderFile:
+        CGMOS.find_emptyDirs(_path, addFile=True)
 
     
 def buildFrame_dirContent(self,parent):
@@ -2072,7 +2083,16 @@ def buildFrame_dirExport(self,parent):
     
     button_verify = mUI.MelButton(_row,
                                    label='Verify Dir',ut='cgmUITemplate',
-                                    ann='Verify the directories from the project Type')    
+                                    ann='Verify the directories from the project Type')
+    
+    button_fillEmpty= mUI.MelButton(_row,
+                                    label='Fill Empty',ut='cgmUITemplate',
+                                    c=lambda *a: CGMOS.find_emptyDirs(self.d_tf['paths']['export'].getValue(),True),
+                                    
+                                     ann='Add an empty file to any empty directories')    
+    
+    
+    
     
     """
     mUI.MelButton(_row,

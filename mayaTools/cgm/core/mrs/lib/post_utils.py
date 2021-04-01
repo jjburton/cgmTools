@@ -53,6 +53,7 @@ import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.position_utils as POS
 import cgm.core.rig.joint_utils as JOINT
+import cgm.core.lib.search_utils as SEARCH
 import cgm.core.rig.ik_utils as IK
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.lib.shapeCaster as SHAPECASTER
@@ -76,7 +77,7 @@ def skin_mesh(mMesh,ml_joints,**kws):
         log_start(_str_func)
         l_joints = [mObj.mNode for mObj in ml_joints]
         _mesh = mMesh.mNode
-        
+        """
         try:
             kws_heat = copy.copy(kws)
             _defaults = {'heatmapFalloff' : 1,
@@ -93,17 +94,19 @@ def skin_mesh(mMesh,ml_joints,**kws):
                                    bm=2,
                                    wd=0,
                                    **kws)
-        except Exception,err:
-            log.warning("|{0}| >> heat map fail | {1}".format(_str_func,err))
-            skin = mc.skinCluster (l_joints,
-                                   mMesh.mNode,
-                                   tsb=True,
-                                   bm=0,
-                                   maximumInfluences = 2,
-                                   wd=0,
-                                   normalizeWeights = 1,dropoffRate=10)
-            """ """
-        skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))    
+        except Exception,err:"""
+        #log.warning("|{0}| >> heat map fail | {1}".format(_str_func,err))
+        skin = mc.skinCluster (l_joints,
+                               mMesh.mNode,
+                               tsb=True,
+                               bm=0,#0
+                               maximumInfluences = 3,
+                               wd=0,
+                               normalizeWeights = 1,dropoffRate=5)
+        """ """
+        skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))
+        #mc.geomBind( skin, bindMethod=3, mi=3 )
+        
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
@@ -127,9 +130,12 @@ def backup(self,ml_handles = None):
     
 
 
+d_default = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50, 'ease':{0:.25, 1:.5}},
+           'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
+           'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30,'ease':{0:.25, 1:.5}},}
 
 def SDK_wip(ml = [], matchType = False,
-            d_attrs = {}, skipLever = True, skipFKBase = []):
+            d_attrs = d_default, skipLever = True, skipFKBase = []):
     _str_func = 'siblingSDK_wip'
     log.info(cgmGEN.logString_start(_str_func))
     
@@ -234,8 +240,13 @@ def SDK_wip(ml = [], matchType = False,
                 
                 log.info(cgmGEN.logString_msg(_str_func,"{0}| {1} | {2}".format(i,ii,d_use))) 
                 
+                if d_use.get('skip'):
+                    continue                
+                
                 d_ease = d_use.get('ease',{})
                 v_ease = d_ease.get(ii,None)
+                
+                l_rev = d_sib.get('reverse',[])
                 
                 if  issubclass( type(d_use['d']), dict):
                     d_do = d_use.get('d')
@@ -244,6 +255,9 @@ def SDK_wip(ml = [], matchType = False,
                     
                     
                 for k,d3 in d_do.iteritems():
+                    
+                    if d3.get('skip'):
+                        continue
 
                     mc.setDrivenKeyframe("{0}.{1}".format(mSDK.mNode, k),
                                          currentDriver = "{0}.{1}".format(_settings, _aDriver),
@@ -255,6 +269,10 @@ def SDK_wip(ml = [], matchType = False,
                     pos_d = d_use.get('+d', 1.0)
                     if v_ease is not None:
                         pos_v = pos_v * v_ease
+                    
+                    if i in l_rev:
+                        print("...rev pos")
+                        pos_v*=-1
                     
                     ATTR.set_max("{0}.{1}".format(_settings, _aDriver),pos_d)
                     
@@ -270,6 +288,11 @@ def SDK_wip(ml = [], matchType = False,
                     neg_d = d_use.get('-d', -1.0)
                     if v_ease is not None:
                         neg_v = neg_v * v_ease                
+                    
+                    if i in l_rev:
+                        print("...rev neg")                        
+                        neg_v*=-1
+                            
                     ATTR.set_min("{0}.{1}".format(_settings, _aDriver),neg_d)
                         
                     if neg_v:
@@ -279,9 +302,7 @@ def SDK_wip(ml = [], matchType = False,
                                          driverValue = neg_d, value = neg_v)        
      
 
-d_attrs = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50, 'ease':{0:.25, 1:.5}},
-           'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
-           'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30,'ease':{0:.25, 1:.5}},}
+
 
 #bear...
 d_toeClaws = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50, 'ease':{0:.25, 1:.5, 3:0}},
@@ -365,7 +386,16 @@ d_fingersPaw = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease
                 2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':1}},#middle
                 3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':20, '-':-20}},#ring
                 4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':30, '-':-30}}}}#pinky
-
+d_pawSimple = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}},
+                'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.5, 1:.7}},
+                'roll':{
+                    #0:{0:{'d':'rx', '+d':10.0, '-d':-10.0, '+':10, '-':-40}},
+                    'd':'rx', '+d':10.0, '-d':-10.0, '+':80, '-':-40},
+                'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':0,'-':0,
+                0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-25, '-':40}},#index
+                1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':1}},#middle
+                2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':20, '-':-20}},#ring
+                3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':30, '-':-30}}}}#pinky
 
 d_pawFront= {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.5,}},
                'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.5}},
@@ -376,6 +406,28 @@ d_pawFront= {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{
                2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':1}},#middle
                3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':5, '-':-10}},#ring
                4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
+
+d_dragonFront= {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.5,2:0}},
+               'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.5,2:0}},
+               'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':90, '-':-40, 'ease':{1:.5,2:0},
+                       0:{0:{'d':'rx', '+d':10.0, '-d':-10.0, '+':60, '-':-40, 'ease':{1:.5,2:0}}}},
+               'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':0,'-':0,
+               0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-40, '-':25}},#thumb
+               1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':25}},#index
+               2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':1}},#middle
+               3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':15, '-':-10}},#ring
+               4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-30}}}}#pinky
+
+d_catPaw = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.5,}},
+            'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.5}},
+            'claw':{'d':'rx', '+d':10.0, '-d':-10.0, '+':20, '-':-120, 'ease':{0:0,}},            
+            'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':120, '-':-40, 'ease':{1:0,}},
+            'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':1,'-':-1,
+            0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':45}},#thumb
+            1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':25}},#index
+            2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':1}},#middle
+            3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':5, '-':-10}},#ring
+            4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
 
 d_pawBack = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.5,}},
                'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.5}},
@@ -388,24 +440,55 @@ d_pawBack = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{
                4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
 
 
-d_attrs_bat= {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}},
-              'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
-              'roll':{0:{0:{'d':'rx', '+d':10.0, '-d':-10.0, '+':10, '-':-40}},
-              'd':'rx', '+d':10.0, '-d':-10.0, '+':80, '-':-40},
-              'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':1,'-':-1,
-              0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':10}},#inner
-              1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-20, '-':25}},#main
-              2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':-10}},#mid
-              3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':40, '-':-30}},#end
+d_talons = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5,2:0}, 'reverse':[0]},
+              'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5,2:0}, 'reverse':[0]},
+              'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':100, '-':-40, 'ease':{1:.5, 2:.5,2:0}},
+              'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':0,'-':-0,
+              0:{'skip':True},#thumb
+              1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-20, '-':25}},#index
+              2:{0:{'d':'ry', '+d':10.0, '-d':-10.0,'+':0, '-':0}},#middle
+              3:{0:{'d':'ry',  '+d':10.0, '-d':-10.0, '+':20, '-':-25}},#ring
               4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
 
+d_batToes = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5,2:0}, 'reverse':[0]},
+             'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5,2:0}, 'reverse':[0]},
+             'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':100, '-':-40, 'ease':{1:.8, 2:.5,2:0}},
+             'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':0,'-':-0,
+             0:{'skip':True},#thumb
+             1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-20, '-':25}},#index
+             2:{0:{'d':'ry', '+d':10.0, '-d':-10.0,'+':0, '-':0}},#middle
+             3:{0:{'d':'ry',  '+d':10.0, '-d':-10.0, '+':20, '-':-25}},#ring
+             4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
 
 
+d_dragonFrontBak = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}},
+                 'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
+                 'roll':{0:{0:{'d':'rx', '+d':10.0, '-d':-10.0, '+':10, '-':-40}},
+                 'd':'rx', '+d':10.0, '-d':-10.0, '+':80, '-':-40},
+                 'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':1,'-':-1,
+                 0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':10}},#inner
+                 1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-20, '-':25}},#main
+                 2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':-10}},#mid
+                 3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':40, '-':-30}},#end
+                 4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
 
+d_tailFan7 = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}, 'reverse':[0,1,2]},
+              'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':50, '-':-50,'ease':{0:.25, 1:.5}, 'reverse':[0,1,2]},
+              'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':100, '-':-40, 'ease':{0:.25, 1:.5, 2:.5}},
+              'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':0,'-':-0,
+              0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':90, '-':-50}},
+              1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':60, '-':-30}},
+              2:{0:{'d':'ry', '+d':10.0, '-d':-10.0,'+':30, '-':-20}},
+              3:{'skip':True},#---middle
+              4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':30, '-':-20}},
+              5:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':60, '-':-30}},
+              6:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':90, '-':-50}},
+              
+              }}#pinky
 
 
 def siblingSDK_wip(mTarget = 'L_ring_limb_part',matchType = False,
-                   d_attrs = d_attrs):
+                   d_attrs = d_default):
     _str_func = 'siblingSDK_wip'
     log.info(cgmGEN.logString_start(_str_func))
     
@@ -496,3 +579,92 @@ def siblingSDK_wip(mTarget = 'L_ring_limb_part',matchType = False,
         _d['sdk'] = ml_sdk
         md[mSib] = _d
         
+
+
+
+#
+def gather_worldStuff(groupTo = 'worldStuff',parent=True):
+    ml = []
+    for mObj in cgmMeta.asMeta(mc.ls('|*', type = 'transform')):
+        if mObj.p_nameBase in ['cgmLightGroup','master','main','cgmRigBlocksGroup']:
+            continue
+        
+        _type =  mObj.getMayaType()
+        if _type in ['camera']:
+            continue
+        
+        if mObj.isReferenced():
+            continue
+        
+        print mObj
+        print _type
+        ml.append(mObj)
+        
+        
+    if ml and parent:
+        if not mc.objExists(groupTo):
+            mGroup = cgmMeta.asMeta(mc.group(em=True))
+            mGroup.rename(groupTo)
+        else:
+            mGroup = cgmMeta.asMeta(groupTo)
+            
+        for mObj in ml:
+            log.info("Parenting to {0} | {1} | {2}".format(groupTo, mObj.p_nameShort, mObj.getMayaType()))
+            mObj.p_parent = mGroup
+    
+    pprint.pprint(ml)
+    return ml
+        
+def layers_getUnused(delete=False):
+    ml = []
+    for mObj in cgmMeta.asMeta(mc.ls(type = 'displayLayer')):
+        if not mc.editDisplayLayerMembers(mObj.mNode, q=True):
+            ml.append(mObj)
+    
+    if delete:
+        for mObj in ml:
+            if not mObj.isReferenced():
+                log.info("Deleting  empty layer {0} ".format(mObj))
+                mObj.delete()
+        return True
+    return ml
+
+def shaders_getUnused(delete=False):
+    ml = []
+    for _type in ['lambert','blinn','phong','phongE']:
+        for mObj in cgmMeta.asMeta(mc.ls(type = _type),noneValid=True) or []:
+            if mObj in ml:
+                continue
+            log.info(cgmGEN.logString_sub("shaders_getUnused", mObj))
+            
+            if mObj.p_nameBase is '{0}1'.format(_type):
+                log.info("default shader {0}".format(mObj))                
+                continue
+            
+            try:
+                for o in ATTR.get_driven("{0}.outColor".format(mObj.mNode),getNode=1):
+                    if VALID.get_mayaType(o) == 'shadingEngine':
+                        l = mc.sets(o, q=True) 
+                        if not l:
+                            log.info("Unused shader | {0}".format(mObj))
+                            ml.append(mObj)
+            except Exception,err:
+                print err
+            #if not mc.editDisplayLayerMembers(mObj.mNode, q=True):
+                #ml.append(mObj)
+    
+    if delete:
+        for mObj in ml:
+            if not mObj.isReferenced():
+                log.info("Deleting  empty layer | {0} ".format(mObj))
+                mObj.delete()
+        return True
+    return ml
+
+
+def refs_remove():
+    for refFile in mc.file(query=True, reference=True):
+        log.info("Removing | {0}".format(refFile))
+        mc.file( refFile, removeReference=True )
+
+    

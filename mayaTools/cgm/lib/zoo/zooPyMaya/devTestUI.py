@@ -1,6 +1,6 @@
 
-from zooPy.misc import removeDupes
-from zooPy.devTest import TEST_CASES, runTestCases
+from cgm.lib.zoo.zooPy.misc import removeDupes
+from cgm.lib.zoo.zooPy.devTest import TEST_CASES, runTestCases
 
 from baseMelUI import *
 

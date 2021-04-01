@@ -1,6 +1,6 @@
 
 from maya.OpenMaya import *
-from zooPy.vectors import Vector, Matrix
+from cgm.lib.zoo.zooPy.vectors import Vector, Matrix
 
 import sys
 import maya.cmds as cmd
@@ -396,7 +396,7 @@ def __getitem__( self, idx ):
 
 #MPlug.__getattr__ = __getattr__
 #MPlug.__getitem__ = __getitem__
-MPlug.asMObject = MPlug.attribute
+#MPlug.asMObject = MPlug.attribute
 
 
 def _set( self, value ):

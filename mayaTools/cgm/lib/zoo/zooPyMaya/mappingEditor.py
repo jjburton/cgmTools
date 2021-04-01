@@ -1,8 +1,8 @@
 
-from zooPy import names
-from zooPy.path import Path
-from zooPy import presets
-from zooPy.strUtils import Mapping
+from cgm.lib.zoo.zooPy import names
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy import presets
+from cgm.lib.zoo.zooPy.strUtils import Mapping
 
 import presetsUI
 

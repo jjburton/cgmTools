@@ -643,8 +643,42 @@ def get_closestTarget(source = None, objects = None):
     for obj in objects:
         pos = POS.get(obj)
         l_dists.append (get_distance_between_points(_point, pos))
-    return objects[(l_dists.index ((min(l_dists))))]    
+    return objects[(l_dists.index ((min(l_dists))))]
 
+def get_targetsOrderedByDist(source = None, objects = None):
+    """
+    Get the closest object to a give source
+    
+    :parameters:
+        source(str/vector) -- source point or object
+        targetSurface -- surface to check transform, nurbsSurface, curve, mesh supported
+
+    :returns
+        [[obj,dist],...]
+    """         
+    _str_func = 'get_closestTarget'
+    _point = False
+    
+    if VALID.vectorArg(source) is not False:
+        _point = source   
+    elif mc.objExists(source):
+        _point = POS.get(source)
+
+    if not _point:raise ValueError,"Must have point of reference"
+    
+    l_dists = []
+    d_objs = {}
+    for obj in objects:
+        pos = POS.get(obj)
+        _d = get_distance_between_points(_point, pos)
+        if _d in l_dists:
+            raise ValueError,"Cannot handle matching distances. {0}".format(_str_func)
+        l_dists.append(_d)
+        d_objs[_d] = obj
+        
+    l_dists.sort()
+    return [[d_objs[d],d] for d in l_dists]
+        
 def get_closest_point(source = None, targetSurface = None, loc = False):
     """
     Get the closest point on a target surface/curve/mesh to a given point or object.

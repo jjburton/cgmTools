@@ -1,8 +1,8 @@
 
-from zooPy import typeFactories
-from zooPy.path import Path
-from zooPy.vectors import Vector, Matrix, Axis
-from zooPy.names import Parity, Name, camelCaseToNice, stripParity
+from cgm.lib.zoo.zooPy import typeFactories
+from cgm.lib.zoo.zooPy.path import Path
+from cgm.lib.zoo.zooPy.vectors import Vector, Matrix, Axis
+from cgm.lib.zoo.zooPy.names import Parity, Name, camelCaseToNice, stripParity
 
 from maya.cmds import *
 from maya import cmds as cmd

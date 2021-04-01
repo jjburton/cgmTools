@@ -2,7 +2,7 @@
 import apiExtensions
 
 from maya.cmds import *
-from zooPy.misc import removeDupes
+from cgm.lib.zoo.zooPy.misc import removeDupes
 
 
 def resetAttrs( obj, skipVisibility=True ):

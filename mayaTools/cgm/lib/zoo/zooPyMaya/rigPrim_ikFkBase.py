@@ -1,5 +1,5 @@
 
-from zooPy.typeFactories import interfaceTypeFactory
+from cgm.lib.zoo.zooPy.typeFactories import interfaceTypeFactory
 from baseRigPrimitive import *
 from apiExtensions import cmpNodes
 

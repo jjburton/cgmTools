@@ -10,7 +10,10 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 ================================================================
 """
 __MAYALOCAL = 'cgmGEN'
-__RELEASE = '3.4.6.2.20'
+
+__RELEASE = '21.4.1.08'
+
+__BRANCH = 'MRSDEV'
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -24,6 +27,8 @@ import traceback
 import linecache
 import datetime
 import pprint
+from time import gmtime
+from time import strftime
 # Shared Defaults ========================================================
 
 #=========================================================================
@@ -34,15 +39,25 @@ log.setLevel(logging.INFO)
 #=========================================================================
 
 #Strings settings
-_str_subLine = '-'*100
-_str_hardLine = '='*100
-_str_hardBreak = '=' * 125
+_str_subLine = '-'*75
+_str_hardLine = '='*75
+_str_hardBreak = '=' * 75
 _str_headerDiv = '///'
 _str_baseStart = "--"
 _d_KWARG_stopAtStep = {'kw':'stopAtStep',"default":None, 'help':"Step of a cgmFuncToStopAt", "argType":"int/str"}
 
 #Shared data...
 _l_moduleStates = ['define','size','template','skeleton','rig']
+
+def get_timeString(v):
+    if v > 1:
+        return strftime("%H:%M:%S", gmtime(v))
+    return "%0.3f"%(v) + "s"    
+
+def get_releaseString():
+    try:return __BRANCH + ' | ' + __RELEASE
+    except:
+        return __RELEASE
 
 class cgmFuncCls(object):  
     '''

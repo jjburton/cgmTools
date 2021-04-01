@@ -4,8 +4,8 @@ import maya.OpenMayaAnim
 import maya.cmds as cmd
 from maya.cmds import getAttr, setAttr, deleteAttr, objExists, createNode, xform, move, rotate, setKeyframe
 
-from zooPy import strUtils
-from zooPy.vectors import Vector, Matrix
+from cgm.lib.zoo.zooPy import strUtils
+from cgm.lib.zoo.zooPy.vectors import Vector, Matrix
 from mayaDecorators import d_unifyUndo, d_noAutoKey, d_maintainSceneSelection
 import cmdStrResolver
 import mappingUtils

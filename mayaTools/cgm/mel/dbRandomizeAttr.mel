@@ -1,0 +1,130 @@
+global proc dbRandomizeAttr()
+{
+	string $objects[] = `ls -sl`; 
+	string $channels[] = `channelBox -q -sma mainChannelBox`;
+	
+	if(`window -exists dbRandomizeWin`) {
+		deleteUI -window "dbRandomizeWin";
+	}
+	string $window = `window -title "Randomize Attributes"
+	       -iconName "dbRandomizeAttr"
+	       -widthHeight 500 300 dbRandomizeWin`;
+
+	string $form = `formLayout`;
+	string $tabs = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5`;
+		formLayout -edit
+		-attachForm $tabs "top"    0
+		-attachForm $tabs "left"   0
+		-attachForm $tabs "bottom" 0
+		-attachForm $tabs "right"  0
+		$form;
+
+	string $child1 = `columnLayout -adjustableColumn true`;
+		int $i = 1;
+		for($p in $channels) {
+			floatFieldGrp -numberOfFields 2
+				-label $p -value1 -1 -value2 1 
+				-cw 1 60 ("chanFieldAbs" + $i);
+			$i++;
+		}
+		frameLayout -collapsable true -collapse true -label "Animate";
+			columnLayout;
+				checkBox -label "Animated" -onc ("intFieldGrp -e -en 1 animateField;") -ofc ("intFieldGrp -e -en 0 animateField;") animateCheck;
+				intFieldGrp -label "Start" -extraLabel "End" -numberOfFields 2 -v1 `playbackOptions -q -min` -v2 `playbackOptions -q -max` -en 0 animateField;
+				intFieldGrp -label "Step" -numberOfFields 1 -v1 1 stepField;
+			setParent ..;
+		setParent ..;
+		button -label "Randomize" -c ("dbRandomizeAbsolute()");
+		button -label "Refresh" -c ("dbRandomizeAttr()");
+	setParent ..;
+
+	string $child2 = `columnLayout -adjustableColumn true`;
+		int $i = 1;
+		for($p in $channels) {
+			floatFieldGrp -numberOfFields 1
+				-label $p -value1 1 -cw 1 60 
+				("chanFieldNudge" + $i);
+			$i++;
+		}
+		button -label "Randomize" -c ("dbRandomizeNudge()");
+		button -label "Refresh" -c ("dbRandomizeAttr()");
+	setParent ..;
+
+	tabLayout -edit
+		-tabLabel $child1 "Absolute" -tabLabel $child2 "Nudge"
+		$tabs;
+
+	showWindow $window;
+
+	window -edit -widthHeight 500 300 $window;
+}
+
+global proc dbRandomizeAbsolute()
+{
+	string $objects[] = `ls -sl`; 
+	string $channels[] = `channelBox -q -sma mainChannelBox`;
+	int $animate = `checkBox -q -v animateCheck`;
+	int $start = `intFieldGrp -q -v1 animateField`;
+	int $end = `intFieldGrp -q -v2 animateField`;
+	int $step = `intFieldGrp -q -v1 stepField`;
+	if($step < 1) {
+		$step = 1;
+	}
+	
+	if($animate) {
+		for($i = $start; $i <= $end; $i+=$step) {
+			currentTime -e $i;
+			dbRandomizeAbsCommand($objects, $channels, 1);
+		}
+	}
+	else {
+		dbRandomizeAbsCommand($objects, $channels, 0);
+	}
+}
+
+global proc dbRandomizeAbsCommand(string $objects[], string $channels[], int $key) {
+	for($obj in $objects) {
+		int $i = 1;
+		for($p in $channels) {
+			float $tempMin = `floatFieldGrp -q -v1 ("chanFieldAbs" + $i)`;
+			float $tempMax = `floatFieldGrp -q -v2 ("chanFieldAbs" + $i)`;
+			float $tempVal = rand($tempMin, $tempMax);
+			setAttr ($obj + "." + $p) $tempVal;
+			if($key) {
+				setKeyframe ($obj + "." + $p);
+			}
+			$i++;
+		}
+	}
+}
+
+global proc dbRandomizeNudge()
+{
+	string $objects[] = `ls -sl`; 
+	string $channels[] = `channelBox -q -sma mainChannelBox`;
+	int $animate = `checkBox -q -v animateCheck`;
+	int $start = `intFieldGrp -q -v1 animateField`;
+	int $end = `intFieldGrp -q -v2 animateField`;
+	int $step = `intFieldGrp -q -v1 stepField`;
+	
+	if ($animate == 0) {
+		$start = `currentTime -q`;
+		$end = `currentTime -q`;
+		$step = 1;
+	}
+	
+	for($obj in $objects) {
+		for ($z = $start; $z <= $end; $z+=$step) {
+			currentTime -e $z;
+			int $i = 1;
+			for($p in $channels) {
+				float $tempNudge = `floatFieldGrp -q -v1 ("chanFieldNudge" + $i)`;
+				float $currentVal = `getAttr ($obj + "." + $p)`;
+			
+				float $tempVal = rand($currentVal - $tempNudge, $currentVal + $tempNudge);
+				setAttr -clamp ($obj + "." + $p) $tempVal;
+				$i++;
+			}
+		}
+	}
+}

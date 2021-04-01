@@ -2046,7 +2046,24 @@ def mirrorCurve(*args, **kws):
 
     return fncWrap(*args, **kws).go()
 
-
+def snapToSurface(base=None, target=None):
+    _str_func = 'snapToSurface'    
+    sel = mc.ls(sl=True)
+    if base is None:
+        if sel:
+            base = sel[0]
+    if target is None:
+        if sel:
+            target = sel[-1]
+            
+    _l_shapes_source = mc.listRelatives(base,shapes=True,fullPath=True)
+    for i,s in enumerate(_l_shapes_source):
+        _l_ep_source = mc.ls("{0}.cv[*]".format(s),flatten=True)
+        for ii,ep in enumerate(_l_ep_source):
+            SNAP.go(_l_ep_source[ii],target,pivot='closestPoint',rotation=0)
+            #_pos = DIST.get_closest_point(_l_ep_source[ii], target)
+            #POS.set(_l_ep_source[ii], _pos)    
+    
 def mirror_worldSpace(base=None, target = None, mirrorAcross = 'x'):
     _str_func = 'mirror_worldSpace'    
     sel = mc.ls(sl=True)
@@ -2105,6 +2122,22 @@ def match(base=None, target = None, autoRebuild = True, keepOriginal = True, spa
         
     return True
 
+def distribute(target=None,comp='ep',closed= True, rebuild = 1):
+    _l_shapes_target = mc.listRelatives(target,shapes=True,fullPath=True)
+    
+    for i,s in enumerate(_l_shapes_target):
+        _l_ep_source = mc.ls("{0}.{1}[*]".format(s,comp),flatten=True)    
+        
+        if closed:
+            _l_split = getUSplitList(target,len(_l_ep_source)+1,rebuild=rebuild, rebuildSpans=20)
+        else:
+            _l_split = getUSplitList(target,len(_l_ep_source),rebuild=rebuild, rebuildSpans=20)
+            
+        for ii,ep in enumerate(_l_ep_source):
+            #if ep == _l_ep_source[-1]:
+            #    POS.set(ep, _l_split[0])
+            #else:
+            POS.set(ep, _l_split[ii])
 
     
     

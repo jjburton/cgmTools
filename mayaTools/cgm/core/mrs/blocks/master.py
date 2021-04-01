@@ -41,6 +41,8 @@ import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.math_utils as MATH
+import cgm.core.rig.joint_utils as JOINT
+
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -719,6 +721,7 @@ def skeleton_build(self):
             #self.copyAttrTo('cgmName',mJoint.mNode,'cgmName',driven='target')
             mJoint.doStore('cgmTypeModifier','rootMotion')
             mJoint.doName()
+            JOINT.freezeOrientation(mJoint.mNode)
             
             mJoint.radius = self.controlOffset
             

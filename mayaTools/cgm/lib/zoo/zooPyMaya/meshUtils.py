@@ -11,8 +11,8 @@ from maya.OpenMayaAnim import MFnSkinCluster
 import maya.cmds as cmd
 import maya.OpenMaya as OpenMaya
 
-from zooPy.vectors import Vector, Matrix
-from zooPy.path import Path
+from cgm.lib.zoo.zooPy.vectors import Vector, Matrix
+from cgm.lib.zoo.zooPy.path import Path
 
 from mayaDecorators import d_progress
 
