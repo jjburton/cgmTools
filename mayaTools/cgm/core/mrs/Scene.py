@@ -110,6 +110,12 @@ example:
         self.displayDetailsStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
         self.displayProjectStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_project", defaultValue = 1)
         
+        self.var_bakeEuler          = cgmMeta.cgmOptionVar("cgmVar_sceneUI_bakeEuler", defaultValue = 1)
+        self.var_bakeTangent     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string", defaultValue='auto')
+        
+        
+        
+        
         self.bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
         self.deleteSet                   = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet')
         self.exportSet                   = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet') 
@@ -1082,7 +1088,6 @@ example:
     def buildMenu_options( self, *args):
         self.uiMenu_OptionsMenu.clear()
         #>>> Reset Options		
-
         self.showAllFilesOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
                                                            checkBox=self.showAllFiles,
                                                         c = lambda *a:mc.evalDeferred(self.uiFunc_showAllFiles,lp=True))

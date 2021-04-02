@@ -14,9 +14,11 @@ def BakeAndPrep(bakeSetName = 'bake_tdSet',
                 deleteSetName = "delete_tdSet",
                 exportSetName = "export_tdSet",
                 startFrame = None,
-                endFrame = None):
+                endFrame = None,
+                euler = True,
+                tangent = 'auto'):
     
-    baked = Bake(bakeSetName,startFrame = startFrame,endFrame=endFrame)
+    baked = Bake(bakeSetName,startFrame = startFrame,endFrame=endFrame, euler=euler, tangent=tangent)
     if baked:
         prepped = Prep(deleteSetName,
                        exportSetName)
@@ -30,7 +32,9 @@ def BakeAndPrep(bakeSetName = 'bake_tdSet',
 
 def Bake(assets, bakeSetName = 'bake_tdSet',
          startFrame = None,
-         endFrame = None):
+         endFrame = None,
+         euler = True,
+         tangent = 'auto'):
     _str_func = 'Bake'
     
     if startFrame is None:
@@ -107,11 +111,19 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
         mc.setInfinity(bakeTransforms, pri='constant', poi='constant')
         
         #Filter euler
-        for obj in bakeTransforms:
-            for a in ['rotateX','rotateY','rotateZ']:
-                try:mc.filterCurve( obj + '_' + a )
-                except Exception,err:
-                    print "{0} | {1} | {2}".format(obj,a,err)
+        if euler or tangent:
+            for obj in bakeTransforms:
+                if euler:
+                    for a in ['rotateX','rotateY','rotateZ']:
+                        try:mc.filterCurve( obj + '_' + a )
+                        except Exception,err:
+                            print "{0} | {1} | {2}".format(obj,a,err)
+                            
+                if tangent:
+                    _anim = mc.listConnections(obj, type = 'animCurve')
+                    if _anim:
+                        mc.keyTangent(_anim, e=1, itt=tangent,ott=tangent,animation='keysOrObjects')            
+            
             
 
         baked = True
