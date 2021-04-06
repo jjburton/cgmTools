@@ -11186,8 +11186,9 @@ def rebuild(self, stopState = 'define'):
         _blockType = self.blockType
         _side = get_side(self)
         
+        l_datKeys = ATTR.get_datListKeys(_short)
         d_lists = {}
-        for l in ['nameList','rollCount']:
+        for l in l_datKeys:
             if ATTR.datList_exists(_short,l):
                 d_lists[l] = ATTR.datList_get(_short,l)
                 
