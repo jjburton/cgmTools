@@ -2862,6 +2862,29 @@ def reorder(node = None, attrs = None, direction = 0,top = False):
 #>>>==============================================================================================
 #>> datList/msgList
 #>>>==============================================================================================
+def get_datListKeys(node, skipMsg = True):
+    _res = []
+    _done = []
+    _l_user = mc.listAttr(node, userDefined=True) or []
+    
+    for a in _l_user:
+        if '_' in a:
+            if skipMsg and get_type(node,a) in ['message']:
+                continue
+            
+            _test = '_'.join(a.split('_')[:-1])
+            if _test in _done:
+                continue
+            
+            _done.append(_test)
+            
+            if datList_exists(node,_test):
+                _res.append(_test)
+    
+    return _res
+
+            
+
 def get_sequentialAttrDict(node, attr = None):
     """   
     Get dict of sequential attrs. This is mainly used for our own storage methods
