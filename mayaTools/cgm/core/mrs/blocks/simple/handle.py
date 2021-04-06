@@ -1950,75 +1950,58 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                 return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))        
         
         
-        
         ml_geo = self.msgList_get('proxyMeshGeo')
-        ml_proxy = []
-        mMeshCheck = self.getMessageAsMeta('proxyHelper')
         
-        if ml_geo:
-            log.debug("|{0}| >> ml_geo...".format(_str_func))
+        str_setup = self.getEnumValueString('proxyShape')
+        if str_setup == 'shapers':
+            d_kws = {}
+            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
+            ml_proxy = [mMesh]
             
-            str_setup = self.getEnumValueString('proxyShape')
-            if str_setup in ['shapers']:
-                d_kws = {}
-                mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
-                ml_proxy = [mMesh]
-                
+        if ml_geo:
             for i,mGeo in enumerate(ml_geo):
-                if mGeo == mMeshCheck:
-                    print 'nope...'
-                    continue
-                log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
-                if mGeo.getMayaType() == 'nurbsSurface':
-                    d_kws = {'mode':'general',
-                             'uNumber':self.loftSplit,
-                             'vNumber':self.loftSides,
-                             }
-                    mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,**d_kws)
-                else:
-                    mMesh = mGeo.doDuplicate(po=False)
-                    mMesh.p_parent = False
-                    
-                ml_proxy.append(mMesh)            
-            """
-            for i,mGeo in enumerate(ml_geo):
+                #if mGeo == mMeshCheck:
+                #    continue
                 log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
                 if mGeo.getMayaType() == 'nurbsSurface':
-                    mMesh = RIGCREATE.get_meshFromNurbs(self.proxyHelper,
+                    mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
                                                         mode = 'general',
                                                         uNumber = self.loftSplit, vNumber=self.loftSides)
                 else:
                     mMesh = mGeo.doDuplicate(po=False)
                     #mMesh.p_parent = False
                     #mDup = mBlock.proxyHelper.doDuplicate(po=False)
-                mMesh.rename("{0}_{1}_mesh".format(self.p_nameBase,i))
-                #mDup.inheritsTransform = True
-                ml_proxy.append(mMesh)        """
+                ml_proxy.append(mMesh)
+        else:
+            log.debug("|{0}| >> no ml_geo".format(_str_func))          
         
-            for mGeo in ml_proxy:
-                CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
-            #mDup = self.proxyHelper.doDuplicate(po=False)
+        
+        
+
+        
+        for mGeo in ml_proxy:
+            CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
+        
+        if len(ml_proxy) > 1:
+            _mesh = mc.polyUnite([mObj.mNode for mObj in ml_proxy], ch=False )[0]
+            mMesh = cgmMeta.asMeta(_mesh)
+            for mObj in ml_proxy[1:]:
+                try:mObj.delete()
+                except:pass
+            ml_proxy = [mMesh]
+
+        for i,mMesh in enumerate(ml_proxy):
+            if parent and skin:
+                mMesh.p_parent=parent
             
-            if len(ml_proxy) > 1:
-                _mesh = mc.polyUnite([mObj.mNode for mObj in ml_proxy], ch=False )[0]
-                mMesh = cgmMeta.asMeta(_mesh)
-                for mObj in ml_proxy[1:]:
-                    try:mObj.delete()
-                    except:pass
-                ml_proxy = [mMesh]
- 
-            for i,mMesh in enumerate(ml_proxy):
-                if parent and skin:
-                    mMesh.p_parent=parent
-                
-                if skin:
-                    mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
-                                    mMesh.mNode,
-                                    tsb=True,
-                                    bm=1,
-                                    maximumInfluences = 3,
-                                    normalizeWeights = 1, dropoffRate=10)            
-                mMesh.rename('{0}_{1}_puppetmesh_geo'.format(self.p_nameBase,i))
+            if skin:
+                mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
+                                mMesh.mNode,
+                                tsb=True,
+                                bm=1,
+                                maximumInfluences = 3,
+                                normalizeWeights = 1, dropoffRate=10)            
+            mMesh.rename('{0}_{1}_puppetmesh_geo'.format(self.p_nameBase,i))
         return ml_proxy
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 

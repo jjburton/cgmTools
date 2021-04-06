@@ -16,6 +16,7 @@ import re
 import os
 import stat
 import pprint
+from shutil import copyfile
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -637,3 +638,77 @@ def find_tmpFiles(path = None, level = None, cleanFiles = False,
         _l_pyc = []
         """
     #return _d_files, _l_ordered_list, _l_pycd
+    
+    
+def dup_filesInPath(path = None, count = 1, level = None, test= True):
+    """
+    Function for walking below a given directory looking for modules to reload. It finds modules that have pyc's as
+    well for help in reloading. There is a cleaner on it as well to clear all pycs found.
+    
+    :parameters
+        path(str)
+        level(int) - Depth to search. None means everything
+        mode(int)
+            0 - normal
+            1 - pycs only
+        self(instance): cgmMarkingMenu
+        cleanPyc: Delete pycs after check
+    :returns
+        _d_files,_l_ordered,_l_pycd
+        _d_files - dict of import key to file
+        _l_ordered - ordered list of module keys as found
+        _l_pycd - list of modules that were _pycd
+    
+    """
+    _str_func = 'find_tmpFiles'
+    _b_debug = log.isEnabledFor(logging.DEBUG)
+
+    _path = PATH.Path(path)
+    _base = _path.split()[-1]
+    
+    l_files = []
+    
+    log.debug("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,path))
+    
+    _i = 0
+    
+    for root, dirs, files in os.walk(path, True, None):
+        
+        # Parse all the files of given path and reload python modules
+        _mRoot = PATH.Path(root)
+        _split = _mRoot.split()
+        _subRoot = _split[-1]
+        _splitUp = _split[_split.index(_base):]
+        
+        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
+        log.debug("|{0}| >> On split: {1}".format(_str_func,_splitUp))   
+        
+        
+        for f in files:
+            key = False
+            _pycd = False
+            _long = os.path.join(root,f)
+            if '.' not in f:
+                continue
+            if f.endswith('.meta'):
+                continue
+            
+            print f
+            
+            _dot_split = f.split('.')
+            _extension = _dot_split[1:]
+            _pre = _dot_split[0]
+            
+            for i in range(count):
+                newFilename = os.path.normpath(_pre + '_{0}'.format(i+1) + '.' + '.'.join(_extension))
+                newFilename = os.path.join(root, newFilename)
+                print newFilename
+                if not test:copyfile(os.path.normpath(_long), newFilename)
+                
+
+            
+
+        if level is not None and _i >= level:break 
+        _i +=1
+
+    return

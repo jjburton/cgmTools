@@ -943,6 +943,43 @@ def controls_getDat(self, keys = None,
         return ml_controls
     return md_controls,ml_controls
     
+def control_add(self, controls = None, face=True):
+    _str_func = ' controls_get'
+    
+    if not controls:
+        controls = mc.ls(sl=1)
+    
+    ml = cgmMeta.validateObjListArg(controls,'cgmControl',setClass=True)
+    ml_exists = controls_get(self)
+    
+    mRigNull = self.rigNull
+    
+    for mObj in ml:
+        
+        if not mObj.getMessage('rigNull'):
+            ATTR.set_message(mObj.mNode, 'rigNull', mRigNull.mNode)
+            
+        
+        if mObj in ml_exists:
+            continue
+        print mObj
+
+        
+        mRigNull.msgList_append('controlsAll',mObj)
+        mRigNull.moduleSet.add(mObj)
+        
+        if face:
+            if mRigNull.msgList_exists('controlsFace'):
+                mRigNull.msgList_append('controlsFace',mObj)
+            else:
+                mRigNull.msgList_connect('controlsFace',[mObj])
+            
+        
+            if mRigNull.getMessage('faceSet'):
+                mRigNull.faceSet.add(mObj.mNode)        
+    
+    
+    
 def controls_get(self, mode = '',rewire=False,core=False):
     _str_func = ' controls_get'    
     if mode == 'mirror':

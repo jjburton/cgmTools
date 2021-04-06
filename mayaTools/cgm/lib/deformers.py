@@ -1167,8 +1167,8 @@ def bakeCombinedBlendShapeNodeToTargetObject(targetObject,sourceObject, blendSha
         t+=1
 
     """ restore connections """
-    for shape in blendShapeNodeChannels:
-        currentIndex = blendShapeNodeChannels.index(shape)
+    for i,shape in enumerate(blendShapeNodeChannels):
+        currentIndex = i+1#blendShapeNodeChannels.index(shape)
         blendShapeBuffer = (blendShapeNode+'.'+shape)
         """ Restore the connection """
         if blendShapeConnections[currentIndex] != False:
