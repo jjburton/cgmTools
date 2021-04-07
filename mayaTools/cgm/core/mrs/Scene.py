@@ -29,6 +29,8 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 import cgm.core.cgmPy.path_Utils as PATHS
+import cgm.core.cgmPy.os_Utils as CGMOS
+
 import cgm.images as cgmImages
 
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
@@ -47,7 +49,7 @@ def ui_get():
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #=========================================================================
 _d_ann = SCENEUTILS.d_annotations
 
@@ -195,7 +197,7 @@ example:
         self.directoryTF.setValue( directory )
 
     @property
-    def categoryDirectory(self):
+    def path_dir_category(self):
         return os.path.normpath(os.path.join( self.directory, self.category ))
 
     @property
@@ -204,7 +206,7 @@ example:
 
     @property
     def assetDirectory(self):
-        return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
+        return os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
 
     @property
     def selectedSubType(self):
@@ -627,7 +629,7 @@ example:
         # 	if i == self.categoryIndex:
         # 		self.categoryMenuItemList[i]( e=True, enable=False)
 
-        self.assetList = self.build_searchable_list(_catForm, sc=self.LoadSubTypeList)
+        self.assetList = self.build_searchable_list(_catForm, sc=self.uiFunc_assetList_select)
 
         self.assetTSLpum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
 
@@ -1141,8 +1143,52 @@ example:
     def uiFunc_showAllFiles(self):
         self.SaveOptions()
         self.LoadVersionList()
+        
+    def uiFunc_assetList_select(self):
+        _str_func = 'uiFunc_assetList_select'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() ))
+        
+        l_newTypes = []
+        l_expected = []
+        for d in CGMOS.get_lsFromPath(path_subType,'dir'):
+            if d in self.l_subTypesBase:
+                l_expected.append(d)
+            else:
+                l_newTypes.append(d)
+                
+        pprint.pprint(l_expected)
+        pprint.pprint(l_newTypes)
+        self.subTypes = []
+        if l_expected:
+            self.subTypes.extend(l_expected)
+        if l_newTypes:
+            self.subTypes.extend(l_newTypes)
+            
+            
+        if self.subTypes and self.subType not in self.subTypes:
+            log.debug(cgmGEN.logString_msg(_str_func, "Setting subtype because stored not in list"))
+            self.subType = self.subTypes[0]
+            
+        print self.subType
+        pprint.pprint(self.subTypes)
 
+        if self.subTypes:
+            self.buildMenu_subTypes()
+            self.LoadSubTypeList()
+            
+            self.SetSubType(0)
+            
+            #if len(self.subTypes) == 1:
+                #self.SetSubType(1)
+            #self.subTypeSearchList['scrollList'].selectByIdx(1)#...select
+            
+        
     def uiFunc_selectVersionList(self):
+        _str_func = 'uiFunc_selectVersionList'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
         self.assetMetaData = self.getMetaDataFromFile()
         self.buildDetailsColumn()
         self.StoreCurrentSelection()
@@ -1644,11 +1690,20 @@ example:
     def buildMenu_category(self, *args):
         self.categoryMenu.clear()
         self.categoryMenuItemList = []
-
+        
+        l_cats = []
+        b_extra = False
         for i,category in enumerate(self.categoryList):
+            #if category not in self.l_categoriesBase and not b_extra != True:
+            #    mUI.MelMenuItemDiv( self.categoryMenu, label='Extras..' )
+            #    b_extra = True
+                
+            
             self.categoryMenuItemList.append( mUI.MelMenuItem(self.categoryMenu, label=category, c=partial(self.SetCategory,i)) )
             if i == self.categoryIndex:
                 self.categoryMenuItemList[i]( e=True, enable=False)
+            l_cats.append(category)
+
 
     def buildMenu_subTypes(self, *args):
         self.subTypeMenu.clear()
@@ -1659,11 +1714,17 @@ example:
         self.subTypeMenuItemList = []
 
         mc.setParent(self.subTypeMenu, menu=True)
+        b_extra = False
 
         for i,subType in enumerate(self.subTypes):
             # mc.menuItem(label=subType, c=cgmGEN.Callback(self.SetSubType,i))
+            
+            if subType not in self.l_subTypesBase and not b_extra:
+                mUI.MelMenuItemDiv( self.subTypeMenu, label='Extras..' )
+                b_extra = True
             self.subTypeMenuItemList.append( mc.menuItem(label=subType, enable=i!=self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
 
+        
     #####
     ## Searchable Lists
     #####
@@ -1734,26 +1795,33 @@ example:
 
         self.var_categoryStore.setValue(self.categoryIndex)
 
-        # Set SubType
+        # Set SubType -------------------------------------------------------------------------
         try:
             self.subTypes = [x['n'] for x in self.project.assetType_get(self.category)['content']]
         except:
-            self.subTypes = ['animation']
+            self.subTypes = ['None']
+            
+
+        
+        
 
         if self.subTypeBtn(q=True, label=True) in self.subTypes:
             self.subTypeIndex = self.subTypes.index(self.subTypeBtn(q=True, label=True))
         else:
             self.subTypeIndex = min(self.subTypeIndex, len(self.subTypes)-1)
+        
         self.SetSubType(self.subTypeIndex)
         self.buildMenu_subTypes()
 
     def LoadCategoryList(self, directory="", *args):
+        _str_func = 'LoadCategoryList'
         if directory:		
             self.directory = directory
 
-        charList = []
+        assetList = []
 
         categoryDirectory = os.path.join(self.directory, self.category)
+        log.debug( cgmGEN.logString_msg( _str_func, categoryDirectory ) )
         if os.path.exists(categoryDirectory):
             for d in os.listdir(categoryDirectory):
                 #for ext in fileExtensions:
@@ -1763,11 +1831,11 @@ example:
 
                 charDir = os.path.normpath(os.path.join(categoryDirectory, d))
                 if os.path.isdir(charDir):
-                    charList.append(d)
+                    assetList.append(d)
 
-        charList = sorted(charList, key=lambda v: v.upper())
+        assetList = sorted(assetList, key=lambda v: v.upper())
 
-        self.UpdateAssetList(charList)
+        self.UpdateAssetList(assetList)
 
         self.subTypeSearchList['items'] = []
         self.subTypeSearchList['scrollList'].clear()
@@ -1802,6 +1870,10 @@ example:
         self.buildAssetForm()
 
     def LoadSubTypeList(self, *args):
+        _str_func = 'LoadSubTypeList'
+        log.debug(cgmGEN.logString_start(_str_func))        
+        
+        
         if not self.hasSub:
             self.LoadVersionList()
             self._referenceSubTypePUM(e=True, en=True)
@@ -1809,10 +1881,10 @@ example:
 
         self._referenceSubTypePUM(e=True, en=False)
 
-        animList = []
+        subList = []
 
-        if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem():
-            charDir = os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem(), self.subType ))
+        if self.path_dir_category and self.assetList['scrollList'].getSelectedItem():
+            charDir = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem(), self.subType ))
 
             if os.path.exists(charDir):
                 for d in os.listdir(charDir):
@@ -1823,11 +1895,12 @@ example:
 
                     animDir = os.path.normpath(os.path.join(charDir, d))
                     if os.path.isdir(animDir):
-                        animList.append(d)
+                        subList.append(d)
 
-        self.subTypeSearchList['items'] = animList
+        self.subTypeSearchList['items'] = subList
         self.subTypeSearchList['scrollList'].clear()
-        self.subTypeSearchList['scrollList'].setItems(animList)
+        self.subTypeSearchList['scrollList'].setItems(subList)
+        
 
         self.variationList['items'] = []
         self.variationList['scrollList'].clear()
@@ -1852,7 +1925,7 @@ example:
         self.variationList['items'] = []
         self.variationList['scrollList'].clear()
 
-        if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
+        if self.path_dir_category and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
             animationDir = self.subTypeDirectory
 
             if os.path.exists(animationDir):
@@ -1884,7 +1957,7 @@ example:
     def LoadVersionList(self, *args):
         _str_func = 'Scene.LoadVersionList'
 
-        searchDir = os.path.join(self.assetDirectory if self.assetDirectory else self.categoryDirectory, self.subType if self.subType else "")
+        searchDir = os.path.join(self.assetDirectory if self.assetDirectory else self.path_dir_category, self.subType if self.subType else "")
         searchList = self.subTypeSearchList
         if self.hasSub:
             searchDir = self.subTypeDirectory
@@ -1903,7 +1976,7 @@ example:
 
         #log.info('{0} >> searchDir: {1}'.format(_str_func, searchDir))
         if os.path.exists(searchDir):
-            # animDir = (self.variationDirectory if self.hasVariant else self.subTypeDirectory) if self.hasSub else self.categoryDirectory
+            # animDir = (self.variationDirectory if self.hasVariant else self.subTypeDirectory) if self.hasSub else self.path_dir_category
 
             # if os.path.exists(animDir):
             for d in os.listdir(searchDir):
@@ -1940,7 +2013,8 @@ example:
         if not self.versionList['scrollList'].getSelectedItem() and self.hasSub:
             print "No version selected"
             return
-
+        
+        mc.file(self.versionFile, o=True, f=True, ignoreVersion=True)
 
 
     def SetAnimationDirectory(self, *args):
@@ -1955,9 +2029,9 @@ example:
         else:
             return []
 
-    def UpdateAssetList(self, charList):
-        self.assetList['items'] = charList
-        self.assetList['scrollList'].setItems(charList)
+    def UpdateAssetList(self, assetList):
+        self.assetList['items'] = assetList
+        self.assetList['scrollList'].setItems(assetList)
 
     # def GetPreviousDirectory(self, *args):
     # 	if self.optionVarLastDirStore.getValue():
@@ -1966,6 +2040,9 @@ example:
     # 		return None
 
     def StoreCurrentSelection(self, *args):
+        _str_func = 'StoreCurrentSelection'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
         if self.assetList['scrollList'].getSelectedItem():
             self.var_lastAsset.setValue(self.assetList['scrollList'].getSelectedItem())
         #else:
@@ -2026,7 +2103,7 @@ example:
 
         if result == 'OK':
             charName = mc.promptDialog(query=True, text=True)
-            charPath = os.path.normpath(os.path.join(self.categoryDirectory, charName))
+            charPath = os.path.normpath(os.path.join(self.path_dir_category, charName))
             if not os.path.exists(charPath):
                 os.mkdir(charPath)
                 for subType in self.subTypes:
@@ -2234,10 +2311,22 @@ example:
 
             self.exportDirectoryTF.setValue( self.exportDirectory )
             # self.optionVarExportDirStore.setValue( self.exportDirectory )
+            
+            self.l_categoriesBase = self.project.assetTypes_get() if self.project.assetTypes_get() else self.project.d_structure.get('assetTypes', [])
+            self.categoryList = [c for c in self.l_categoriesBase]
+            
+            for i,f in enumerate(os.listdir(self.directory)):
+                if os.path.isfile(os.path.join(self.directory, f)):
+                    continue
+                if f in self.l_categoriesBase:
+                    continue
+                
+                self.categoryList.append(f)
 
-            self.categoryList = self.project.assetTypes_get() if self.project.assetTypes_get() else self.project.d_structure.get('assetTypes', [])
+            
+            self.l_subTypesBase = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
+            self.subTypes = [c for c in self.l_subTypesBase]
 
-            self.subTypes = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
 
             if d_userPaths.get('image') and os.path.exists(d_userPaths.get('image')):
                 self.uiImage_Project.setImage(d_userPaths['image'])
@@ -2333,9 +2422,9 @@ example:
 
     def OpenAssetDirectory(self, *args):
         if self.selectedAsset:
-            self.OpenDirectory( os.path.join(self.categoryDirectory, self.selectedAsset) )
+            self.OpenDirectory( os.path.join(self.path_dir_category, self.selectedAsset) )
         else:
-            self.OpenDirectory( self.categoryDirectory )
+            self.OpenDirectory( self.path_dir_category )
 
     def uiPath_mayaOpen(self,path=None):
         _res = mc.fileDialog2(fileMode=1, dir=path)
@@ -2441,11 +2530,15 @@ example:
             log.info( "Version file doesn't exist" )
             
     def UpdateAssetTSLPopup(self, *args):
+        ''''''
+        _str_func = 'UpdateAssetTSLPopup'
+        log.debug(_str_func)
+        
         self.assetTSLpum.clear()
 
         renameAssetMB = mUI.MelMenuItem(self.assetTSLpum, label="Rename Asset", command=self.RenameAsset )
         openInExplorerMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Explorer", command=self.OpenAssetDirectory )
-        openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.categoryDirectory, self.selectedAsset) ))
+        openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.path_dir_category, self.selectedAsset) ))
 
         for item in self.assetRigMenuItemList:
             mc.deleteUI(item, menuItem=True)
@@ -2629,7 +2722,7 @@ example:
     def VerifyAssetDirs(self):
         _str_func = 'Scene.VerifyAssetDirs'
         assetName = self.selectedAsset
-        assetPath = os.path.normpath(os.path.join(self.categoryDirectory, assetName))
+        assetPath = os.path.normpath(os.path.join(self.path_dir_category, assetName))
         #subTypes = [x['n'] for x in self.project.assetType_get(category).get('content', [{'n':'animation'}])]
 
         if not os.path.exists(assetPath):
