@@ -1227,6 +1227,35 @@ def filepath(filepath = None, fileMode = 0, fileFilter = 'Config file (*.cfg)', 
             _result = filepath
     return _result
 
+def fileOpen(filepath= None, force = True, ignoreVersion = True):
+    if filepath == None:
+        filepath = filepath()
+        
+    if not filepath:
+        raise ValueError,"No filepath"
+    
+    _current = mc.file(q=True, sn=True)
+    if mc.file(_current, q=1, modified = 1):
+        log.warning("File has been modified: {0}".format(_current))
+        result = mc.confirmDialog(title="Save Changes?",
+                                  message= "{0} Has unsaved chagnes. \n Would you like to save?".format(_current),
+                                  icon='warning',
+                                  button=['Save',"Don't Save","Cancel"],
+                                  defaultButton='Save',
+                                  cancelButton='Cancel',
+                                  dismissString='Cancel')
+        if result == 'Save':
+            mc.file( save=True )
+        elif result == "Cancel":
+            return log.warning("File open aborted: {0}".format(filepath))
+    
+    mc.file(filepath, o=True, f=force, ignoreVersion=ignoreVersion)
+    
+    
+    
+    
+    
+
 def kw_fromDict(arg = None ,d = None, indexCallable = False, returnIndex = False,  noneValid = False, calledFrom = None):
     """
     Returns valid kw if it matches a key of a dict or a list of possible options provided.

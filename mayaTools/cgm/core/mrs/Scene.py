@@ -22,6 +22,7 @@ from cgm.core.mrs.lib import scene_utils as SCENEUTILS
 from cgm.core.lib import skinDat as SKINDAT
 import cgm.core.mrs.Builder as BUILDER
 import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
+import cgm.core.cgmPy.validateArgs as VALID
 
 import Red9.core.Red9_General as r9General
 
@@ -2014,7 +2015,7 @@ example:
             print "No version selected"
             return
         
-        mc.file(self.versionFile, o=True, f=True, ignoreVersion=True)
+        VALID.fileOpen(self.versionFile,True,True)
 
 
     def SetAnimationDirectory(self, *args):
