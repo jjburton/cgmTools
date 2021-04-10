@@ -329,6 +329,7 @@ l_attrsStandard = ['side',
                    'baseAim',
                    'addCog',
                    'addPivot',
+                   'castVector',
                    #'hasRootJoint',
                    'nameList',
                    'attachPoint',
@@ -336,7 +337,7 @@ l_attrsStandard = ['side',
                    'jointRadius',                   
                    'loftSides',
                    'loftDegree',
-                   'loftList',                   
+                   'loftList',
                    'loftSplit',
                    'loftShape',
                    'ikSetup',
@@ -400,6 +401,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSetup':0,
                      'loftShape':0,
                      'numShapers':3,
+                     'castVector':'up',
                      'squashMeasure':'arcLength',
                      'squash':'simple',
                      'squashFactorMax':1.0,
@@ -1996,6 +1998,12 @@ def rig_shapes(self):
         ml_fkCastTargets = self.mRigNull.msgList_get('fkAttachJoints')
         if not ml_fkCastTargets:
             ml_fkCastTargets = copy.copy(ml_fkJoints)
+            
+            
+        #...get our aim vector ----------------------------------------------------------------------
+        d_orients = self.d_orientation
+        _castVector = mBlock.getEnumValueString('castVector')
+        _aimVector = d_orients.get('vector{0}'.format(CORESTRING.capFirst(_castVector)))        
 
 
         #controlSegMidIK... =============================================================================
@@ -2029,6 +2037,7 @@ def rig_shapes(self):
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           targets = ml_fkCastTargets,
                                           offset = _offset,
+                                          aimVector = _aimVector,
                                           mode = 'frameHandle')
     
         

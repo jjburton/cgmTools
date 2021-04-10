@@ -27,7 +27,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #========================================================================
 
 import maya.cmds as mc
@@ -52,6 +52,7 @@ from cgm.core.lib import rigging_utils as CORERIG
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.classes.NodeFactory as NODEFACTORY
+import cgm.core.lib.string_utils as CORESTRING
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
@@ -268,6 +269,8 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         for k in _l_standard:
             if k in BLOCKSHARE._d_attrsTo_make.keys():
                 _d[k] = BLOCKSHARE._d_attrsTo_make[k]
+            else:
+                log.warning("|{0}| >> standard attr missing def: {1} ".format(_str_func,k))                        
                 
         if extraAttrs is not None:
             _d.update(extraAttrs)
@@ -11479,6 +11482,14 @@ def get_orienationDict(self,orienation='zyx'):
         _d['vectorUpNeg'] = _mOrientation.p_upNegative.p_vector
         _d['vectorOutNeg'] = _mOrientation.p_outNegative.p_vector
         
+        
+        _d['stringAim'] = _mOrientation.p_aim.p_string
+        _d['stringUp'] = _mOrientation.p_up.p_string
+        _d['stringOut'] = _mOrientation.p_out.p_string
+     
+        _d['stringAimNeg'] = _mOrientation.p_aimNegative.p_string
+        _d['stringUpNeg'] = _mOrientation.p_upNegative.p_string
+        _d['stringOutNeg'] = _mOrientation.p_outNegative.p_string        
         return _d
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
@@ -11513,14 +11524,26 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
     _dir = get_side(self)#self.d_module.get('direction')
     mdOrient = get_orienationDict(self,orient)
     
+    
+    
     if aimVector is None:
-        if _dir and _dir.lower() == 'left':
-            aimVector = mdOrient['mOrientation'].p_outNegative.p_string
-        else:
-            aimVector = mdOrient['mOrientation'].p_out.p_string
+        if self.hasAttr('castVector'):
+            _castVector = self.getEnumValueString('castVector')
+            aimVector = mdOrient.get('string{0}'.format(CORESTRING.capFirst(_castVector)))
             
-    aimAlternate = mdOrient['mOrientation'].p_up.p_string
-    #aimVector = mdOrient['mOrientation'].p_up.p_string
+            if 'Neg' in _castVector:
+                _castNeg = _castVector.replace('Neg','')
+                aimAlternate = mdOrient.get('string{0}'.format(CORESTRING.capFirst(_castNeg)))
+            else:
+                aimAlternate = mdOrient.get('string{0}Neg'.format(CORESTRING.capFirst(_castVector)))
+
+        else:
+            if _dir and _dir.lower() == 'left':
+                aimVector = mdOrient['mOrientation'].p_outNegative.p_string
+            else:
+                aimVector = mdOrient['mOrientation'].p_out.p_string
+            
+        aimAlternate = mdOrient['mOrientation'].p_up.p_string
 
     #Get our prerig handles if none provided
     if targets is None:
