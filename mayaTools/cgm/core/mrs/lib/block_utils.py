@@ -27,7 +27,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -11494,7 +11494,45 @@ def get_orienationDict(self,orienation='zyx'):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-
+def shapes_castTest(self,orient= 'zyx'):
+    
+    if self.blockType in ['master']:
+        return
+        
+    mFac = self.asRigFactory()
+    
+    ml_joints = self.prerigNull.msgList_get('handleJoints')
+    if not ml_joints:  
+        ml_joints = mFac.mRigNull.msgList_get('moduleJoints')
+    
+    if not ml_joints:
+        return log.error("Must have joints")
+    
+    
+    mHandleFactory = self.asHandleFactory()
+    
+    
+    mdOrient = get_orienationDict(self,orient)
+    
+    _castVector = self.getEnumValueString('castVector')
+    _aimVector = mdOrient.get('string{0}'.format(CORESTRING.capFirst(_castVector)))
+    
+    _offset = mFac.mPuppet.atUtils('get_shapeOffset')
+    
+    mFac.d_orientation = mdOrient
+    ml_shapes = mFac.atBuilderUtils('shapes_fromCast',
+                                    targets = ml_joints,
+                                    offset = _offset,
+                                    aimVector = _aimVector,
+                                    mode = 'frameHandle')   
+    #pprint.pprint(vars())
+    
+    for i,mObj in enumerate(ml_shapes):
+        mObj.p_parent = False
+        mObj.rename("{0}_previs".format(ml_joints[i].p_nameBase))
+        mHandleFactory.color(mObj.mNode, controlType = 'main')        
+                
+    
 @cgmGEN.Timer
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
