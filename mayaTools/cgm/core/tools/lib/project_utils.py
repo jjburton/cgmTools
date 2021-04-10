@@ -190,7 +190,10 @@ _structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','En
                       {'n':'envExport','t':'text','dv':d_dirFramework['environment']['content']}]
                       """
 
-_exportOptionSettings = [{'n':'removeNameSpace','t':'bool','dv':False}]
+_exportOptionSettings = [{'n':'removeNameSpace','t':'bool','dv':False},
+                         {'n':'zeroRoot','t':'bool','dv':True},
+                         {'n':'postEuler','t':'bool','dv':True},
+                         {'n':'postTangent','t':['none','auto','linear',],'dv':'auto'}]
 
 _d_defaultsMap = {'general':_projSettings,
                   'anim':_animSettings,

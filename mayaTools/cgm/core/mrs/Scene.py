@@ -22,6 +22,7 @@ from cgm.core.mrs.lib import scene_utils as SCENEUTILS
 from cgm.core.lib import skinDat as SKINDAT
 import cgm.core.mrs.Builder as BUILDER
 import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
+import cgm.core.cgmPy.validateArgs as VALID
 
 import Red9.core.Red9_General as r9General
 
@@ -29,6 +30,8 @@ import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
 import cgm.core.cgmPy.path_Utils as PATHS
+import cgm.core.cgmPy.os_Utils as CGMOS
+
 import cgm.images as cgmImages
 
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
@@ -47,7 +50,7 @@ def ui_get():
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #=========================================================================
 _d_ann = SCENEUTILS.d_annotations
 
@@ -94,31 +97,31 @@ example:
         self.subTypes                    = ['animation']
         self.subTypeIndex                = 0
 
-        self.optionVarProjectStore       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
-        self.optionVarLastAssetStore     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
-        self.optionVarLastAnimStore      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
-        self.optionVarLastVariationStore = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
-        self.optionVarLastVersionStore   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
-        self.showAllFilesStore           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 0)
-        self.removeNamespaceStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
-        self.zeroRootStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
-        self.useMayaPyStore              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
-        self.categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
-        self.subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
-        self.alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
-        self.showDirectoriesStore        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
-        self.displayDetailsStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
-        self.displayProjectStore         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_project", defaultValue = 1)
+        self.var_lastProject       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
+        self.var_lastAsset     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
+        self.var_lastAnim      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
+        self.var_lastVariation = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
+        self.var_lastVersion   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
+        self.var_showAllFiles           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 0)
+        self.var_removeNamespace        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
+        self.var_zeroRoot               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
+        self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
+        self.var_categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
+        self.var_subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
+        self.var_alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
+        self.var_showDirectories        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
+        self.var_displayDetails         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
+        self.var_displayProject         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_project", defaultValue = 1)
         
-        self.var_bakeEuler          = cgmMeta.cgmOptionVar("cgmVar_sceneUI_bakeEuler", defaultValue = 1)
-        self.var_bakeTangent     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string", defaultValue='auto')
-        
-        
+        self.var_postEuler          = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postEuler", defaultValue = 1)
+        self.var_postTangent     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postTangent", varType = "string", defaultValue='auto')
         
         
-        self.bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
-        self.deleteSet                   = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet')
-        self.exportSet                   = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet') 
+        
+        
+        self.var_bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
+        self.var_deleteSet                   = cgmMeta.cgmOptionVar('cgm_delete_set', varType="string",defaultValue = 'delete_tdSet')
+        self.var_exportSet                   = cgmMeta.cgmOptionVar('cgm_export_set', varType="string",defaultValue = 'export_tdSet') 
 
         ## sizes
         self.__itemHeight                = 35
@@ -161,13 +164,13 @@ example:
         self.useMayaPyOption             = None
         self.showDirectoriesOption       = None
 
-        self.showDirectories             = self.showDirectoriesStore.getValue()
-        self.displayDetails              = self.displayDetailsStore.getValue()
+        self.showDirectories             = self.var_showDirectories.getValue()
+        self.displayDetails              = self.var_displayDetails.getValue()
 
-        self.showAllFiles                = self.showAllFilesStore.getValue()
-        self.removeNamespace             = self.removeNamespaceStore.getValue()
-        self.zeroRoot                    = self.zeroRootStore.getValue()
-        self.useMayaPy                   = self.useMayaPyStore.getValue()
+        self.showAllFiles                = self.var_showAllFiles.getValue()
+        self.removeNamespace             = self.var_removeNamespace.getValue()
+        self.zeroRoot                    = self.var_zeroRoot.getValue()
+        self.useMayaPy                   = self.var_useMayaPy.getValue()
 
         self.fileListMenuItems           = []
         self.batchExportItems            = []
@@ -180,8 +183,8 @@ example:
         UI = self
 
     def post_init(self,*args,**kws):
-        if self.optionVarProjectStore.getValue():
-            self.LoadProject(self.optionVarProjectStore.getValue())
+        if self.var_lastProject.getValue():
+            self.LoadProject(self.var_lastProject.getValue())
         else:
             mPathList = cgmMeta.pathList('cgmProjectPaths')
             try:self.LoadProject(mPathList.mOptionVar.value[0])
@@ -195,7 +198,7 @@ example:
         self.directoryTF.setValue( directory )
 
     @property
-    def categoryDirectory(self):
+    def path_dir_category(self):
         return os.path.normpath(os.path.join( self.directory, self.category ))
 
     @property
@@ -204,7 +207,7 @@ example:
 
     @property
     def assetDirectory(self):
-        return os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
+        return os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
 
     @property
     def selectedSubType(self):
@@ -298,15 +301,15 @@ example:
             return True
 
     def LoadOptions(self, *args):
-        self.showAllFiles    = bool(self.showAllFilesStore.getValue())
-        self.categoryIndex   = int(self.categoryStore.getValue())
-        self.subTypeIndex    = int(self.subTypeStore.getValue())
-        self.removeNamespace = bool(self.removeNamespaceStore.getValue())
-        self.zeroRoot        = bool(self.zeroRootStore.getValue())
-        self.useMayaPy       = bool(self.useMayaPyStore.getValue())
-        self.showDirectories = bool(self.showDirectoriesStore.getValue())
-        self.displayDetails  = bool(self.displayDetailsStore.getValue())
-        self.displayProject  = bool(self.displayProjectStore.getValue())
+        self.showAllFiles    = bool(self.var_showAllFiles.getValue())
+        self.categoryIndex   = int(self.var_categoryStore.getValue())
+        self.subTypeIndex    = int(self.var_subTypeStore.getValue())
+        self.removeNamespace = bool(self.var_removeNamespace.getValue())
+        self.zeroRoot        = bool(self.var_zeroRoot.getValue())
+        self.useMayaPy       = bool(self.var_useMayaPy.getValue())
+        self.showDirectories = bool(self.var_showDirectories.getValue())
+        self.displayDetails  = bool(self.var_displayDetails.getValue())
+        self.displayProject  = bool(self.var_displayProject.getValue())
 
         if self.showAllFilesOption:
             self.showAllFilesOption(e=True, checkBox = self.showAllFiles)
@@ -334,17 +337,17 @@ example:
         self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
         self.showDirectories = self.showDirectoriesOption( q=True, checkBox=True ) if self.showDirectoriesOption else False
 
-        self.showAllFilesStore.setValue(self.showAllFiles)
-        self.removeNamespaceStore.setValue(self.removeNamespace)
-        self.zeroRootStore.setValue(self.zeroRoot)
-        self.useMayaPyStore.setValue(self.useMayaPy)
-        self.showDirectoriesStore.setValue(self.showDirectories)
-        self.displayDetailsStore.setValue(self.displayDetails)
-        self.displayProjectStore.setValue(self.displayProject)
+        self.var_showAllFiles.setValue(self.showAllFiles)
+        self.var_removeNamespace.setValue(self.removeNamespace)
+        self.var_zeroRoot.setValue(self.zeroRoot)
+        self.var_useMayaPy.setValue(self.useMayaPy)
+        self.var_showDirectories.setValue(self.showDirectories)
+        self.var_displayDetails.setValue(self.displayDetails)
+        self.var_displayProject.setValue(self.displayProject)
 
         # self.optionVarExportDirStore.setValue( self.exportDirectory )
-        self.categoryStore.setValue( self.categoryIndex )
-        self.subTypeStore.setValue( self.subTypeIndex )
+        self.var_categoryStore.setValue( self.categoryIndex )
+        self.var_subTypeStore.setValue( self.subTypeIndex )
         self.uiFunc_showDirectories( self.showDirectories )
         self.uiFunc_displayDetails( self.displayDetails )
         self.uiFunc_displayProject( self.displayProject )
@@ -381,19 +384,19 @@ example:
         sel = mc.ls(sl=True)
         deleteSet = sel[0].split(':')[-1]
         log.info( "Setting delete set to: %s" % deleteSet )
-        self.deleteSet.setValue(deleteSet)
+        self.var_deleteSet.setValue(deleteSet)
 
     def SetBakeSet(self, *args):
         sel = mc.ls(sl=True)
         bakeSet = sel[0].split(':')[-1]
         log.info( "Setting bake set to: %s" % bakeSet )
-        self.bakeSet.setValue(bakeSet)
+        self.var_bakeSet.setValue(bakeSet)
 
     def SetExportSet(self, *args):
         sel = mc.ls(sl=True)
         exportSet = sel[0].split(':')[-1]
         log.info( "Setting geo set to: %s" % exportSet )
-        self.exportSet.setValue(exportSet)
+        self.var_exportSet.setValue(exportSet)
 
     def uiFunc_contentDir_loadSelect(self):
         try:_dat = self.mContentListDat
@@ -449,7 +452,7 @@ example:
                             self.versionList['scrollList'].selectByValue(l_temp[4])
 
                     #if self.mScene:
-                    #self.categoryStore.value = i
+                    #self.var_categoryStore.value = i
                     #self.LoadOptions()
                     
                     #if select_idx:
@@ -627,7 +630,7 @@ example:
         # 	if i == self.categoryIndex:
         # 		self.categoryMenuItemList[i]( e=True, enable=False)
 
-        self.assetList = self.build_searchable_list(_catForm, sc=self.LoadSubTypeList)
+        self.assetList = self.build_searchable_list(_catForm, sc=self.uiFunc_assetList_select)
 
         self.assetTSLpum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
 
@@ -1088,19 +1091,52 @@ example:
     def buildMenu_options( self, *args):
         self.uiMenu_OptionsMenu.clear()
         #>>> Reset Options		
-        self.showAllFilesOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
-                                                           checkBox=self.showAllFiles,
-                                                        c = lambda *a:mc.evalDeferred(self.uiFunc_showAllFiles,lp=True))
-        self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
-                                                              checkBox=self.removeNamespace,
-                                                              c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
-        self.zeroRootOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero root upon export",
-                                                       checkBox=self.zeroRoot,
-                                                              c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+        
+        mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu, label = 'Export', )
         self.useMayaPyOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use Maya Standalone",
                                                  ann="Use Mayapy/Maya stand alone to process",
                                                  checkBox=self.useMayaPy,
-                                                 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+                                                 c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))        
+        
+        self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
+                                                      checkBox=self.removeNamespace,
+                                                      c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+        
+        self.zeroRootOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero root upon export",
+                                               checkBox=self.zeroRoot,
+                                               c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+        
+        self.postEuler = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Euler",
+                                               checkBox=self.var_postEuler.getValue(),
+                                               c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+        
+        self.uiMenu_tangent = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Tangent",subMenu=True
+                                              )
+        
+        uiMenu = self.uiMenu_tangent 
+                
+        uiRC = mc.radioMenuItemCollection()
+        #self.uiOptions_menuMode = []		
+        _v = self.var_postTangent.value
+    
+        for i,item in enumerate(['none','auto','linear']):
+            if item == _v: _rb = True
+            else:_rb = False            
+            mc.menuItem(parent=uiMenu,collection = uiRC,
+                        label=item,
+                        c = cgmGEN.Callback(self.var_postTangent.setValue,item),                                  
+                        rb = _rb)        
+        
+        
+        #...-------------------------------------------------------------------------------------------
+        
+        mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu, l = 'Other')
+        
+        self.showAllFilesOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
+                                                           checkBox=self.showAllFiles,
+                                                        c = lambda *a:mc.evalDeferred(self.uiFunc_showAllFiles,lp=True))
+
+        
         self.showDirectoriesOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
                                                                checkBox=self.showDirectories,
                                                          c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
@@ -1108,8 +1144,52 @@ example:
     def uiFunc_showAllFiles(self):
         self.SaveOptions()
         self.LoadVersionList()
+        
+    def uiFunc_assetList_select(self):
+        _str_func = 'uiFunc_assetList_select'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() ))
+        
+        l_newTypes = []
+        l_expected = []
+        for d in CGMOS.get_lsFromPath(path_subType,'dir'):
+            if d in self.l_subTypesBase:
+                l_expected.append(d)
+            else:
+                l_newTypes.append(d)
+                
+        pprint.pprint(l_expected)
+        pprint.pprint(l_newTypes)
+        self.subTypes = []
+        if l_expected:
+            self.subTypes.extend(l_expected)
+        if l_newTypes:
+            self.subTypes.extend(l_newTypes)
+            
+            
+        if self.subTypes and self.subType not in self.subTypes:
+            log.debug(cgmGEN.logString_msg(_str_func, "Setting subtype because stored not in list"))
+            self.subType = self.subTypes[0]
+            
+        print self.subType
+        pprint.pprint(self.subTypes)
 
+        if self.subTypes:
+            self.buildMenu_subTypes()
+            self.LoadSubTypeList()
+            
+            self.SetSubType(0)
+            
+            #if len(self.subTypes) == 1:
+                #self.SetSubType(1)
+            #self.subTypeSearchList['scrollList'].selectByIdx(1)#...select
+            
+        
     def uiFunc_selectVersionList(self):
+        _str_func = 'uiFunc_selectVersionList'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
         self.assetMetaData = self.getMetaDataFromFile()
         self.buildDetailsColumn()
         self.StoreCurrentSelection()
@@ -1329,8 +1409,12 @@ example:
 
             for ref in self.assetMetaData.get('references', []):
                 _row = mUI.MelHSingleStretchLayout(self._detailsColumn)
+                path = os.path.normpath(self.directory) +  os.path.normpath(ref)
                 mUI.MelSpacer(_row,w=_spacer)		
                 _row.setStretchWidget(mUI.MelTextField(_row, text=ref, editable = False, bgc=(.8,.8,.8)))
+                cgmUI.add_Button(_row,'Load', lambda *a: VALID.fileOpen(path,True,True))
+                
+                
                 mUI.MelSpacer(_row,w=_spacer)
                 _row.layout()			
 
@@ -1607,11 +1691,20 @@ example:
     def buildMenu_category(self, *args):
         self.categoryMenu.clear()
         self.categoryMenuItemList = []
-
+        
+        l_cats = []
+        b_extra = False
         for i,category in enumerate(self.categoryList):
+            #if category not in self.l_categoriesBase and not b_extra != True:
+            #    mUI.MelMenuItemDiv( self.categoryMenu, label='Extras..' )
+            #    b_extra = True
+                
+            
             self.categoryMenuItemList.append( mUI.MelMenuItem(self.categoryMenu, label=category, c=partial(self.SetCategory,i)) )
             if i == self.categoryIndex:
                 self.categoryMenuItemList[i]( e=True, enable=False)
+            l_cats.append(category)
+
 
     def buildMenu_subTypes(self, *args):
         self.subTypeMenu.clear()
@@ -1622,11 +1715,17 @@ example:
         self.subTypeMenuItemList = []
 
         mc.setParent(self.subTypeMenu, menu=True)
+        b_extra = False
 
         for i,subType in enumerate(self.subTypes):
             # mc.menuItem(label=subType, c=cgmGEN.Callback(self.SetSubType,i))
+            
+            if subType not in self.l_subTypesBase and not b_extra:
+                mUI.MelMenuItemDiv( self.subTypeMenu, label='Extras..' )
+                b_extra = True
             self.subTypeMenuItemList.append( mc.menuItem(label=subType, enable=i!=self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
 
+        
     #####
     ## Searchable Lists
     #####
@@ -1695,28 +1794,35 @@ example:
 
         self.LoadCategoryList(self.directory)
 
-        self.categoryStore.setValue(self.categoryIndex)
+        self.var_categoryStore.setValue(self.categoryIndex)
 
-        # Set SubType
+        # Set SubType -------------------------------------------------------------------------
         try:
             self.subTypes = [x['n'] for x in self.project.assetType_get(self.category)['content']]
         except:
-            self.subTypes = ['animation']
+            self.subTypes = ['None']
+            
+
+        
+        
 
         if self.subTypeBtn(q=True, label=True) in self.subTypes:
             self.subTypeIndex = self.subTypes.index(self.subTypeBtn(q=True, label=True))
         else:
             self.subTypeIndex = min(self.subTypeIndex, len(self.subTypes)-1)
+        
         self.SetSubType(self.subTypeIndex)
         self.buildMenu_subTypes()
 
     def LoadCategoryList(self, directory="", *args):
+        _str_func = 'LoadCategoryList'
         if directory:		
             self.directory = directory
 
-        charList = []
+        assetList = []
 
         categoryDirectory = os.path.join(self.directory, self.category)
+        log.debug( cgmGEN.logString_msg( _str_func, categoryDirectory ) )
         if os.path.exists(categoryDirectory):
             for d in os.listdir(categoryDirectory):
                 #for ext in fileExtensions:
@@ -1726,11 +1832,11 @@ example:
 
                 charDir = os.path.normpath(os.path.join(categoryDirectory, d))
                 if os.path.isdir(charDir):
-                    charList.append(d)
+                    assetList.append(d)
 
-        charList = sorted(charList, key=lambda v: v.upper())
+        assetList = sorted(assetList, key=lambda v: v.upper())
 
-        self.UpdateAssetList(charList)
+        self.UpdateAssetList(assetList)
 
         self.subTypeSearchList['items'] = []
         self.subTypeSearchList['scrollList'].clear()
@@ -1755,7 +1861,7 @@ example:
 
         self.LoadSubTypeList()
 
-        self.subTypeStore.setValue(self.subTypeIndex)
+        self.var_subTypeStore.setValue(self.subTypeIndex)
 
         for i,item in enumerate(self.subTypeMenuItemList):
             mc.menuItem(item, e=True, enable= i != self.subTypeIndex)
@@ -1765,6 +1871,10 @@ example:
         self.buildAssetForm()
 
     def LoadSubTypeList(self, *args):
+        _str_func = 'LoadSubTypeList'
+        log.debug(cgmGEN.logString_start(_str_func))        
+        
+        
         if not self.hasSub:
             self.LoadVersionList()
             self._referenceSubTypePUM(e=True, en=True)
@@ -1772,10 +1882,10 @@ example:
 
         self._referenceSubTypePUM(e=True, en=False)
 
-        animList = []
+        subList = []
 
-        if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem():
-            charDir = os.path.normpath(os.path.join( self.categoryDirectory, self.assetList['scrollList'].getSelectedItem(), self.subType ))
+        if self.path_dir_category and self.assetList['scrollList'].getSelectedItem():
+            charDir = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem(), self.subType ))
 
             if os.path.exists(charDir):
                 for d in os.listdir(charDir):
@@ -1786,11 +1896,12 @@ example:
 
                     animDir = os.path.normpath(os.path.join(charDir, d))
                     if os.path.isdir(animDir):
-                        animList.append(d)
+                        subList.append(d)
 
-        self.subTypeSearchList['items'] = animList
+        self.subTypeSearchList['items'] = subList
         self.subTypeSearchList['scrollList'].clear()
-        self.subTypeSearchList['scrollList'].setItems(animList)
+        self.subTypeSearchList['scrollList'].setItems(subList)
+        
 
         self.variationList['items'] = []
         self.variationList['scrollList'].clear()
@@ -1815,7 +1926,7 @@ example:
         self.variationList['items'] = []
         self.variationList['scrollList'].clear()
 
-        if self.categoryDirectory and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
+        if self.path_dir_category and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
             animationDir = self.subTypeDirectory
 
             if os.path.exists(animationDir):
@@ -1847,7 +1958,7 @@ example:
     def LoadVersionList(self, *args):
         _str_func = 'Scene.LoadVersionList'
 
-        searchDir = os.path.join(self.assetDirectory if self.assetDirectory else self.categoryDirectory, self.subType if self.subType else "")
+        searchDir = os.path.join(self.assetDirectory if self.assetDirectory else self.path_dir_category, self.subType if self.subType else "")
         searchList = self.subTypeSearchList
         if self.hasSub:
             searchDir = self.subTypeDirectory
@@ -1866,7 +1977,7 @@ example:
 
         #log.info('{0} >> searchDir: {1}'.format(_str_func, searchDir))
         if os.path.exists(searchDir):
-            # animDir = (self.variationDirectory if self.hasVariant else self.subTypeDirectory) if self.hasSub else self.categoryDirectory
+            # animDir = (self.variationDirectory if self.hasVariant else self.subTypeDirectory) if self.hasSub else self.path_dir_category
 
             # if os.path.exists(animDir):
             for d in os.listdir(searchDir):
@@ -1903,8 +2014,9 @@ example:
         if not self.versionList['scrollList'].getSelectedItem() and self.hasSub:
             print "No version selected"
             return
+        
+        VALID.fileOpen(self.versionFile,True,True)
 
-        mc.file(self.versionFile, o=True, f=True, ignoreVersion=True)
 
     def SetAnimationDirectory(self, *args):
         basicFilter = "*"
@@ -1918,9 +2030,9 @@ example:
         else:
             return []
 
-    def UpdateAssetList(self, charList):
-        self.assetList['items'] = charList
-        self.assetList['scrollList'].setItems(charList)
+    def UpdateAssetList(self, assetList):
+        self.assetList['items'] = assetList
+        self.assetList['scrollList'].setItems(assetList)
 
     # def GetPreviousDirectory(self, *args):
     # 	if self.optionVarLastDirStore.getValue():
@@ -1929,34 +2041,37 @@ example:
     # 		return None
 
     def StoreCurrentSelection(self, *args):
+        _str_func = 'StoreCurrentSelection'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
         if self.assetList['scrollList'].getSelectedItem():
-            self.optionVarLastAssetStore.setValue(self.assetList['scrollList'].getSelectedItem())
+            self.var_lastAsset.setValue(self.assetList['scrollList'].getSelectedItem())
         #else:
-        #	mc.optionVar(rm=self.optionVarLastAssetStore)
+        #	mc.optionVar(rm=self.var_lastAsset)
 
         if self.subTypeSearchList['scrollList'].getSelectedItem():
-            self.optionVarLastAnimStore.setValue(self.subTypeSearchList['scrollList'].getSelectedItem())
+            self.var_lastAnim.setValue(self.subTypeSearchList['scrollList'].getSelectedItem())
         #else:
-        #	mc.optionVar(rm=self.optionVarLastAnimStore)
+        #	mc.optionVar(rm=self.var_lastAnim)
 
         if self.variationList['scrollList'].getSelectedItem():
-            self.optionVarLastVariationStore.setValue(self.variationList['scrollList'].getSelectedItem())
+            self.var_lastVariation.setValue(self.variationList['scrollList'].getSelectedItem())
         #else:
-        #	mc.optionVar(rm=self.optionVarLastVariationStore)
+        #	mc.optionVar(rm=self.var_lastVariation)
 
         if self.versionList['scrollList'].getSelectedItem():
-            self.optionVarLastVersionStore.setValue( self.versionList['scrollList'].getSelectedItem() )
+            self.var_lastVersion.setValue( self.versionList['scrollList'].getSelectedItem() )
         #else:
-        #	mc.optionVar(rm=self.optionVarLastVersionStore)
+        #	mc.optionVar(rm=self.var_lastVersion)
 
     def LoadPreviousSelection(self, *args):
-        if self.optionVarLastAssetStore.getValue():
-            self.assetList['scrollList'].selectByValue( self.optionVarLastAssetStore.getValue() )
+        if self.var_lastAsset.getValue():
+            self.assetList['scrollList'].selectByValue( self.var_lastAsset.getValue() )
 
         self.LoadSubTypeList()
 
-        if self.optionVarLastAnimStore.getValue():
-            self.subTypeSearchList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
+        if self.var_lastAnim.getValue():
+            self.subTypeSearchList['scrollList'].selectByValue( self.var_lastAnim.getValue() )
 
         self.LoadVariationList()
 
@@ -1964,13 +2079,13 @@ example:
             self.assetMetaData = self.getMetaDataFromFile()		
             return
 
-        if self.optionVarLastVariationStore.getValue():
-            self.variationList['scrollList'].selectByValue( self.optionVarLastVariationStore.getValue() )
+        if self.var_lastVariation.getValue():
+            self.variationList['scrollList'].selectByValue( self.var_lastVariation.getValue() )
 
         self.LoadVersionList()
 
-        if self.optionVarLastVersionStore.getValue():
-            self.versionList['scrollList'].selectByValue( self.optionVarLastVersionStore.getValue() )
+        if self.var_lastVersion.getValue():
+            self.versionList['scrollList'].selectByValue( self.var_lastVersion.getValue() )
 
         self.assetMetaData = self.getMetaDataFromFile()	
 
@@ -1989,7 +2104,7 @@ example:
 
         if result == 'OK':
             charName = mc.promptDialog(query=True, text=True)
-            charPath = os.path.normpath(os.path.join(self.categoryDirectory, charName))
+            charPath = os.path.normpath(os.path.join(self.path_dir_category, charName))
             if not os.path.exists(charPath):
                 os.mkdir(charPath)
                 for subType in self.subTypes:
@@ -2188,18 +2303,31 @@ example:
 
 
         if os.path.exists(d_userPaths['content']):
-            self.optionVarProjectStore.setValue( path )
+            self.var_lastProject.setValue( path )
 
             self.LoadCategoryList(d_userPaths['content'])
-
             self.exportDirectory = d_userPaths['export']
+            
+            
 
             self.exportDirectoryTF.setValue( self.exportDirectory )
             # self.optionVarExportDirStore.setValue( self.exportDirectory )
+            
+            self.l_categoriesBase = self.project.assetTypes_get() if self.project.assetTypes_get() else self.project.d_structure.get('assetTypes', [])
+            self.categoryList = [c for c in self.l_categoriesBase]
+            
+            for i,f in enumerate(os.listdir(self.directory)):
+                if os.path.isfile(os.path.join(self.directory, f)):
+                    continue
+                if f in self.l_categoriesBase:
+                    continue
+                
+                self.categoryList.append(f)
 
-            self.categoryList = self.project.assetTypes_get() if self.project.assetTypes_get() else self.project.d_structure.get('assetTypes', [])
+            
+            self.l_subTypesBase = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
+            self.subTypes = [c for c in self.l_subTypesBase]
 
-            self.subTypes = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
 
             if d_userPaths.get('image') and os.path.exists(d_userPaths.get('image')):
                 self.uiImage_Project.setImage(d_userPaths['image'])
@@ -2223,6 +2351,18 @@ example:
             
         self.uiScrollList_dirContent.mDat = self.mDat
         self.uiScrollList_dirContent.rebuild( self.directory)
+        
+        
+        if self.project.d_exportOptions:
+            self.var_postEuler.setValue( self.project.d_exportOptions['postEuler'] )
+            self.var_postTangent.setValue( self.project.d_exportOptions['postTangent'] )
+            self.var_removeNamespace.setValue( self.project.d_exportOptions['removeNameSpace'] )
+            self.removeNamespace = self.project.d_exportOptions['removeNameSpace']
+            
+            self.var_zeroRoot.setValue( self.project.d_exportOptions['zeroRoot'] )
+            
+            
+            
             
         return True
 
@@ -2266,26 +2406,26 @@ example:
 
             self.LoadSubTypeList()
 
-            if self.optionVarLastAnimStore.getValue():
-                self.subTypeSearchList['scrollList'].selectByValue( self.optionVarLastAnimStore.getValue() )
+            if self.var_lastAnim.getValue():
+                self.subTypeSearchList['scrollList'].selectByValue( self.var_lastAnim.getValue() )
 
             self.LoadVariationList()
 
-            if self.optionVarLastVariationStore.getValue():
-                self.variationList['scrollList'].selectByValue( self.optionVarLastVariationStore.getValue() )
+            if self.var_lastVariation.getValue():
+                self.variationList['scrollList'].selectByValue( self.var_lastVariation.getValue() )
 
             self.LoadVersionList()
 
-            if self.optionVarLastVersionStore.getValue():
-                self.versionList['scrollList'].selectByValue( self.optionVarLastVersionStore.getValue() )
+            if self.var_lastVersion.getValue():
+                self.versionList['scrollList'].selectByValue( self.var_lastVersion.getValue() )
 
 
 
     def OpenAssetDirectory(self, *args):
         if self.selectedAsset:
-            self.OpenDirectory( os.path.join(self.categoryDirectory, self.selectedAsset) )
+            self.OpenDirectory( os.path.join(self.path_dir_category, self.selectedAsset) )
         else:
-            self.OpenDirectory( self.categoryDirectory )
+            self.OpenDirectory( self.path_dir_category )
 
     def uiPath_mayaOpen(self,path=None):
         _res = mc.fileDialog2(fileMode=1, dir=path)
@@ -2391,11 +2531,15 @@ example:
             log.info( "Version file doesn't exist" )
             
     def UpdateAssetTSLPopup(self, *args):
+        ''''''
+        _str_func = 'UpdateAssetTSLPopup'
+        log.debug(_str_func)
+        
         self.assetTSLpum.clear()
 
         renameAssetMB = mUI.MelMenuItem(self.assetTSLpum, label="Rename Asset", command=self.RenameAsset )
         openInExplorerMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Explorer", command=self.OpenAssetDirectory )
-        openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.categoryDirectory, self.selectedAsset) ))
+        openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.path_dir_category, self.selectedAsset) ))
 
         for item in self.assetRigMenuItemList:
             mc.deleteUI(item, menuItem=True)
@@ -2518,7 +2662,7 @@ example:
 
         #if os.path.exists(newFilename) and os.path.normpath(mc.file(q=True, loc=True)) == os.path.normpath(infoDict['filename']):
         result = 'Cancel'
-        if not self.alwaysSendReferenceFiles.getValue():
+        if not self.var_alwaysSendReferenceFiles.getValue():
             result = mc.confirmDialog(
                                 title='Send Missing References?',
                                 message='Copy missing references as well?',
@@ -2528,9 +2672,9 @@ example:
                                                             dismissString='No')
 
         if result == 'Yes and Stop Asking':
-            self.alwaysSendReferenceFiles.setValue(1)
+            self.var_alwaysSendReferenceFiles.setValue(1)
 
-        if result == 'Yes' or self.alwaysSendReferenceFiles.getValue():
+        if result == 'Yes' or self.var_alwaysSendReferenceFiles.getValue():
             log.info( cgmGEN.logString_msg(_str_func,"Trying References..."))
             for refFile in mc.file(_file,query=True, reference=True):
                 if not os.path.exists(refFile):
@@ -2579,7 +2723,7 @@ example:
     def VerifyAssetDirs(self):
         _str_func = 'Scene.VerifyAssetDirs'
         assetName = self.selectedAsset
-        assetPath = os.path.normpath(os.path.join(self.categoryDirectory, assetName))
+        assetPath = os.path.normpath(os.path.join(self.path_dir_category, assetName))
         #subTypes = [x['n'] for x in self.project.assetType_get(category).get('content', [{'n':'animation'}])]
 
         if not os.path.exists(assetPath):
@@ -2624,9 +2768,9 @@ example:
             #reload(BATCH)
             log.info('Maya Py!')
 
-            bakeSetName = self.bakeSet.getValue()
-            deleteSetName = self.deleteSet.getValue()
-            exportSetName = self.exportSet.getValue()
+            bakeSetName = self.var_bakeSet.getValue()
+            deleteSetName = self.var_deleteSet.getValue()
+            exportSetName = self.var_exportSet.getValue()
 
             #if(mc.optionVar(exists='cgm_bake_set')):
                 #bakeSetName = mc.optionVar(q='cgm_bake_set')    
@@ -2765,9 +2909,14 @@ example:
             #reload(BATCH)
             log.info('Maya Py!')
 
-            bakeSetName = self.bakeSet.getValue()
-            deleteSetName = self.deleteSet.getValue()
-            exportSetName = self.exportSet.getValue()             
+            bakeSetName = self.var_bakeSet.getValue()
+            deleteSetName = self.var_deleteSet.getValue()
+            exportSetName = self.var_exportSet.getValue()
+            
+            postEuler = self.var_postEuler.getValue()
+            postTangent = self.var_postTangent.getValue()
+            if postTangent == 'none':
+                postTangent = False
 
             d = {
                         'file':mc.file(q=True, sn=True),
@@ -2784,6 +2933,8 @@ example:
                         'exportSetName':exportSetName,
                         'deleteSetName':deleteSetName,
                         'animationName':self.selectedSubType,
+                        'tangent':postTangent,
+                        'euler':postEuler,
             'workspace':d_userPaths['content']
                         }
 
@@ -2803,6 +2954,8 @@ example:
                             removeNamespace = self.removeNamespace,
                             zeroRoot = self.zeroRoot,
                                         animationName = self.selectedSubType,
+                            tangent=postTangent,
+                            euler=postEuler,                            
                     workspace=d_userPaths['content']
                     )        
 
@@ -2996,7 +3149,9 @@ def ExportScene(mode = -1,
                 deleteSetName = 'delete_tdSet',
                 animationName = None,
                 workspace = None,
-                updateAndIncrement = False
+                updateAndIncrement = False,
+                euler = False,
+                tangent = False,
                 ):
 
     if workspace:
@@ -3150,7 +3305,8 @@ def ExportScene(mode = -1,
 
     log.info( cgmGEN.logString_sub(_str_func,'Bake | start: {0} | end: {1}'.format(_start,_end)) )
 
-    bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end)
+    bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
+                     euler=euler,tangent=tangent)
 
     mc.loadPlugin("fbxmaya")
 
