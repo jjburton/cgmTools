@@ -62,6 +62,7 @@ import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.tools.lib.project_utils as PU
 import cgm.core.lib.mayaSettings_utils as MAYASET
 import cgm.core.mrs.lib.scene_utils as SCENEUTILS
+import cgm.core.lib.attribute_utils as ATTR
 #reload(SCENEUTILS)
 #reload(MAYASET)
 #reload(PU)
@@ -74,6 +75,9 @@ __version__ = cgmGEN.__RELEASE
 _colorGood = CORESHARE._d_colors_to_RGB['greenWhite']
 _colorBad = CORESHARE._d_colors_to_RGB['redWhite']
 
+log_msg = cgmGEN.logString_msg
+log_sub = cgmGEN.logString_sub
+log_start = cgmGEN.logString_start
 
 
 class data(object):
@@ -84,12 +88,122 @@ class data(object):
     def __init__(self, mBlock = None, filepath = None, **kws):
         """
 
-        """        
+        """
+        _str_func = 'data.__buffer__'
+        log.debug(log_start(_str_func))
+        
         self.str_filepath = None
         self.data = {}
+        self.mBlock = None
         
-    def mBlock_set(self, mBlock = None):
-        pass
+        
+    def get(self, mBlock = None):
+        _str_func = 'data.get'
+        log.debug(log_start(_str_func))
+        
+        
+        
+        
+    
+    
+    def set(self, mBlock = None):
+        _str_func = 'data.set'
+        log.debug(log_start(_str_func))
+        
+
+def blockDat_get(self,report = True):
+    _str_func = 'blockDat_get'        
+    log.debug(log_start(_str_func))
+    
+    _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
+    #_ml_controls = self.getControls(True,True)
+    _ml_controls = []
+    _short = self.p_nameShort
+    _blockState_int = self.blockState
+    
+    #self.baseSize = baseSize_get(self)
+    #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
+    _d = {#"name":_short, 
+          "blockType":self.blockType,
+          "blockState":self.getEnumValueString('blockState'),
+          "baseName":self.getMayaAttr('cgmName'), 
+          'position':self.p_position,
+          'baseSize':self.getState(False),
+          'orient':self.p_orient,
+          'scale':self.scale,
+          'blockScale':ATTR.get(_short,'blockScale'),
+          "version":self.version, 
+          "ud":{}
+          }   
+    
+    
+    #Get attr sets...--------------------------------------------------------------------------
+    _d = self.mBlock.atUtils('uiQuery_getStateAttrDict',0,0)
+    
+    self._d_attrFields = {}
+    
+    _short = mBlock.mNode
+    
+    _keys = _d.keys()
+    _keys.sort()
+    l_order =['define','profile','basic','name',
+              'form','proxySurface','prerig',
+              'skeleton',
+              'rig','squashStretch']
+    l_order.reverse()
+    
+    for k in l_order:
+        if k in _keys:
+            _keys.remove(k)
+            _keys.insert(0,k)
+            
+    l_end = ['data','wiring','advanced']
+    for k in l_end:
+        if k in _keys:
+            _keys.remove(k)
+            _keys.append(k)
+    
+    
+    
+    """
+    if self.getShapes():
+        _d["size"] = POS.get_axisBox_size(self.mNode,False),
+    else:
+        _d['size'] = self.baseSize"""
+    
+        
+    if self.getMessage('orientHelper'):
+        _d['rootOrientHelper'] = self.orientHelper.rotate
+    """
+    _d['define'] = blockDat_getControlDat(self,'define',report)#self.getBlockDat_formControls()
+    
+    if _blockState_int >= 1:
+        _d['form'] = blockDat_getControlDat(self,'form',report)#self.getBlockDat_formControls()
+
+    if _blockState_int >= 2:
+        _d['prerig'] = blockDat_getControlDat(self,'prerig',report)#self.getBlockDat_prerigControls() 
+
+    for a in self.getAttrs(ud=True):
+        if a not in _l_udMask:
+            try:
+                _type = ATTR.get_type(_short,a)
+                if _type in ['message']:
+                    continue
+                elif _type == 'enum':
+                    _d['ud'][a] = ATTR.get_enumValueString(_short,a)                    
+                else:
+                    _d['ud'][a] = ATTR.get(_short,a)
+            except Exception,err:
+                log.error("Failed to query attr: {0} | type: {1} | err: {2}".format(a,_type,err))
+    
+    _d['ud']['baseSize'] = baseSize_get(self)
+    """
+    if report:
+        pprint.pprint(_d)
+        #cgmGEN.walk_dat(_d,'[{0}] blockDat'.format(self.p_nameShort))
+    return _d
+
+
 
 
 
