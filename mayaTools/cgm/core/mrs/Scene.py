@@ -46,6 +46,10 @@ def ui_get():
         return UI
     return ui()
 
+log_start = cgmGEN.logString_start
+log_msg = cgmGEN.logString_msg
+log_sub = cgmGEN.logString_sub
+
 #>>>======================================================================
 import logging
 logging.basicConfig()
@@ -268,14 +272,23 @@ example:
 
     @property
     def category(self):
+        _str_func = 'category'
+        log.debug(log_start(_str_func))        
         return self.categoryList[self.categoryIndex] if len(self.categoryList) > self.categoryIndex else self.categoryList[0]
 
     @property
     def subType(self):
+        _str_func = 'subType'
+        log.debug(log_start(_str_func))
+        log.debug(log_msg(_str_func, self.subTypeIndex))
         return self.subTypes[min(self.subTypeIndex, len(self.subTypes)-1)] if self.subTypes else None
 
     @property
     def hasSub(self):
+        _str_func = 'hasSub'
+        log.debug(log_start(_str_func))    
+        log.debug(log_msg(_str_func, self.category))
+        
         try:
             r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasSub', False)
             return r
@@ -284,6 +297,10 @@ example:
 
     @property
     def hasVariant(self):
+        _str_func = 'hasVariant'
+        log.debug(log_start(_str_func))
+        log.debug(log_msg(_str_func, self.category))
+        
         try:
             r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasVariant', False)
             return r
@@ -291,6 +308,10 @@ example:
             return True
 
     def HasSub(self, category, subType):
+        _str_func = 'HasSub'
+        log.debug(log_start(_str_func))
+        log.debug(log_msg(_str_func, self.category))
+        
         try:
             hasSub = True
             for sub in self.project.assetType_get(category)['content']:
@@ -1147,7 +1168,7 @@ example:
         
     def uiFunc_assetList_select(self):
         _str_func = 'uiFunc_assetList_select'
-        log.debug(cgmGEN.logString_start(_str_func))
+        log.debug(log_start(_str_func))
         
         path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() ))
         
@@ -1168,27 +1189,33 @@ example:
             self.subTypes.extend(l_newTypes)
             
             
-        if self.subTypes and self.subType not in self.subTypes:
-            log.debug(cgmGEN.logString_msg(_str_func, "Setting subtype because stored not in list"))
-            self.subType = self.subTypes[0]
-            
+        
         print self.subType
-        pprint.pprint(self.subTypes)
-
+        pprint.pprint(self.subTypes)        
+        
         if self.subTypes:
             self.buildMenu_subTypes()
-            self.LoadSubTypeList()
+            if self.subType not in self.subTypes:
+                log.debug(log_msg(_str_func, "Setting subtype because stored not in list"))
+                self.subType = self.subTypes[0]
+            else:
+                self.SetSubType(self.subTypes.index(self.subType))
+                
+        
             
-            self.SetSubType(0)
+
+
+        
+        #if self.subTypes:
+            #self.buildMenu_subTypes()
+            #self.LoadSubTypeList()
             
-            #if len(self.subTypes) == 1:
-                #self.SetSubType(1)
-            #self.subTypeSearchList['scrollList'].selectByIdx(1)#...select
+
             
         
     def uiFunc_selectVersionList(self):
         _str_func = 'uiFunc_selectVersionList'
-        log.debug(cgmGEN.logString_start(_str_func))
+        log.debug(log_start(_str_func))
         
         self.assetMetaData = self.getMetaDataFromFile()
         self.buildDetailsColumn()
@@ -1707,6 +1734,9 @@ example:
 
 
     def buildMenu_subTypes(self, *args):
+        _str_func = 'buildMenu_subTypes'
+        log.debug(log_start(_str_func))
+        
         self.subTypeMenu.clear()
         # for item in self.subTypeMenuItemList:
         # 	if mc.menuItem(item, q=True, exists=True):
@@ -1822,7 +1852,7 @@ example:
         assetList = []
 
         categoryDirectory = os.path.join(self.directory, self.category)
-        log.debug( cgmGEN.logString_msg( _str_func, categoryDirectory ) )
+        log.debug( log_msg( _str_func, categoryDirectory ) )
         if os.path.exists(categoryDirectory):
             for d in os.listdir(categoryDirectory):
                 #for ext in fileExtensions:
@@ -1872,7 +1902,7 @@ example:
 
     def LoadSubTypeList(self, *args):
         _str_func = 'LoadSubTypeList'
-        log.debug(cgmGEN.logString_start(_str_func))        
+        log.debug(log_start(_str_func))        
         
         
         if not self.hasSub:
@@ -1891,12 +1921,16 @@ example:
                 for d in os.listdir(charDir):
                     #for ext in fileExtensions:
                     #	if os.path.splitext(f)[-1].lower() == ".%s" % ext :
-                    if d[0] == '_' or d[0] == '.':
-                        continue
+                    
+                    #if d[0] == '_' or d[0] == '.':
+                    #    continue
 
                     animDir = os.path.normpath(os.path.join(charDir, d))
                     if os.path.isdir(animDir):
                         subList.append(d)
+                    else:
+                        subList.append(d)
+                        
 
         self.subTypeSearchList['items'] = subList
         self.subTypeSearchList['scrollList'].clear()
@@ -2042,7 +2076,7 @@ example:
 
     def StoreCurrentSelection(self, *args):
         _str_func = 'StoreCurrentSelection'
-        log.debug(cgmGEN.logString_start(_str_func))
+        log.debug(log_start(_str_func))
         
         if self.assetList['scrollList'].getSelectedItem():
             self.var_lastAsset.setValue(self.assetList['scrollList'].getSelectedItem())
@@ -2639,8 +2673,8 @@ example:
         _file = infoDict['filename']
         newFilename = os.path.normpath(_file).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
         
-        log.info( cgmGEN.logString_msg(_str_func,"Selected: {0}".format(_file)))            
-        log.info( cgmGEN.logString_msg(_str_func,"New: {0}".format(newFilename)))            
+        log.info( log_msg(_str_func,"Selected: {0}".format(_file)))            
+        log.info( log_msg(_str_func,"New: {0}".format(newFilename)))            
 
         if os.path.exists(newFilename):
             result = mc.confirmDialog(
@@ -2655,7 +2689,7 @@ example:
                 return False
 
         if not os.path.exists(os.path.dirname(newFilename)):
-            log.info( cgmGEN.logString_msg(_str_func,"Creating path : {0}".format(newFilename)))            
+            log.info( log_msg(_str_func,"Creating path : {0}".format(newFilename)))            
             os.makedirs(os.path.dirname(newFilename))
 
         copyfile(_file, newFilename)
@@ -2675,7 +2709,7 @@ example:
             self.var_alwaysSendReferenceFiles.setValue(1)
 
         if result == 'Yes' or self.var_alwaysSendReferenceFiles.getValue():
-            log.info( cgmGEN.logString_msg(_str_func,"Trying References..."))
+            log.info( log_msg(_str_func,"Trying References..."))
             for refFile in mc.file(_file,query=True, reference=True):
                 if not os.path.exists(refFile):
                     continue
@@ -2699,9 +2733,9 @@ example:
             if self.LoadProject(infoDict['project']):
                 self.LoadOptions()
         #else:
-        #    log.info( cgmGEN.logString_msg(_str_func,"Path mismatch, no ref possible"))
+        #    log.info( log_msg(_str_func,"Path mismatch, no ref possible"))
             
-        log.info( cgmGEN.logString_msg(_str_func,"Done"))
+        log.info( log_msg(_str_func,"Done"))
 
     def SendLatestRigToProject():
         pass
@@ -3005,7 +3039,7 @@ def BatchExport(dataList = []):
         mc.file(_path, open = 1, f = 1, iv = 1)
 
         # if not _d['exportObjs']:
-        # 	log.info(cgmGEN.logString_sub(_str_func,"Trying to find masters..."))
+        # 	log.info(log_sub(_str_func,"Trying to find masters..."))
 
         # 	l_masters = []
         # 	for item in mc.ls("*:master", r=True):
@@ -3019,7 +3053,7 @@ def BatchExport(dataList = []):
         # 				#self.SaveVersion()
 
         # 	if l_masters:
-        # 		log.info(cgmGEN.logString_msg(_str_func,"Found..."))
+        # 		log.info(log_msg(_str_func,"Found..."))
         # 		pprint.pprint(l_masters)
 
         # 		_d['exportObjs'] = l_masters
@@ -3048,27 +3082,27 @@ def BatchExport(dataList = []):
     else:"""
     _name = mFile.name()
     _d = mFile.up().asFriendly()
-    log.debug(cgmGEN.logString_msg(_str_func,_name))
+    log.debug(log_msg(_str_func,_name))
     _newPath = os.path.join(_d,_name+'_BUILD.{0}'.format(mFile.getExtension()))        
 
     log.info("New Path: {0}".format(_newPath))
 
-    #cgmGEN.logString_msg(_str_func,'File Open...')
+    #log_msg(_str_func,'File Open...')
     mc.file(_path, open = 1, f = 1)
 
-    #cgmGEN.logString_msg(_str_func,'Process...')
+    #log_msg(_str_func,'Process...')
     t1 = time.time()
 
     try:
         if not blocks:
-            #cgmGEN.logString_sub(_str_func,'No blocks arg')
+            #log_sub(_str_func,'No blocks arg')
 
             ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
                                                          nTypes=['transform','network'],
                                                          mAttrs='blockType=master')
 
             for mMaster in ml_masters:
-                #cgmGEN.logString_sub(_str_func,mMaster)
+                #log_sub(_str_func,mMaster)
 
                 RIGBLOCKS.contextual_rigBlock_method_call(mMaster, 'below', 'atUtils','changeState','rig',forceNew=False)
 
@@ -3114,7 +3148,7 @@ def BatchExport(dataList = []):
     log.info("|{0}| >> Total Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 ))) 
 
 
-    #cgmGEN.logString_msg(_str_func,'File Save...')
+    #log_msg(_str_func,'File Save...')
     newFile = mc.file(rename = _newPath)
     mc.file(save = 1)            
 
@@ -3303,7 +3337,7 @@ def ExportScene(mode = -1,
     else:
         _end = None
 
-    log.info( cgmGEN.logString_sub(_str_func,'Bake | start: {0} | end: {1}'.format(_start,_end)) )
+    log.info( log_sub(_str_func,'Bake | start: {0} | end: {1}'.format(_start,_end)) )
 
     bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
                      euler=euler,tangent=tangent)
@@ -3311,7 +3345,7 @@ def ExportScene(mode = -1,
     mc.loadPlugin("fbxmaya")
 
     for obj in exportObjs:			
-        log.info( cgmGEN.logString_sub(_str_func,'On: {0}'.format(obj)) )
+        log.info( log_sub(_str_func,'On: {0}'.format(obj)) )
 
         cgmObj = cgmMeta.asMeta(obj)
         mc.select(obj)
@@ -3339,7 +3373,7 @@ def ExportScene(mode = -1,
         if(exportFBXFile):
             mel.eval('FBXExportSplitAnimationIntoTakes -c')
             for shot in animList.shotList:
-                log.info( cgmGEN.logString_msg(_str_func, "shot..."))
+                log.info( log_msg(_str_func, "shot..."))
                 log.info(shot)
                 mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
             
