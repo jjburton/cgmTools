@@ -52,6 +52,7 @@ from cgm.core.lib import rigging_utils as CORERIG
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.classes.NodeFactory as NODEFACTORY
+import cgm.core.lib.string_utils as CORESTRING
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
@@ -268,6 +269,8 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         for k in _l_standard:
             if k in BLOCKSHARE._d_attrsTo_make.keys():
                 _d[k] = BLOCKSHARE._d_attrsTo_make[k]
+            else:
+                log.warning("|{0}| >> standard attr missing def: {1} ".format(_str_func,k))                        
                 
         if extraAttrs is not None:
             _d.update(extraAttrs)
@@ -11186,8 +11189,9 @@ def rebuild(self, stopState = 'define'):
         _blockType = self.blockType
         _side = get_side(self)
         
+        l_datKeys = ATTR.get_datListKeys(_short)
         d_lists = {}
-        for l in ['nameList','rollCount']:
+        for l in l_datKeys:
             if ATTR.datList_exists(_short,l):
                 d_lists[l] = ATTR.datList_get(_short,l)
                 
@@ -11478,11 +11482,57 @@ def get_orienationDict(self,orienation='zyx'):
         _d['vectorUpNeg'] = _mOrientation.p_upNegative.p_vector
         _d['vectorOutNeg'] = _mOrientation.p_outNegative.p_vector
         
+        
+        _d['stringAim'] = _mOrientation.p_aim.p_string
+        _d['stringUp'] = _mOrientation.p_up.p_string
+        _d['stringOut'] = _mOrientation.p_out.p_string
+     
+        _d['stringAimNeg'] = _mOrientation.p_aimNegative.p_string
+        _d['stringUpNeg'] = _mOrientation.p_upNegative.p_string
+        _d['stringOutNeg'] = _mOrientation.p_outNegative.p_string        
         return _d
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
 
-
+def shapes_castTest(self,orient= 'zyx'):
+    
+    if self.blockType in ['master']:
+        return
+        
+    mFac = self.asRigFactory()
+    
+    ml_joints = self.prerigNull.msgList_get('handleJoints')
+    if not ml_joints:  
+        ml_joints = mFac.mRigNull.msgList_get('moduleJoints')
+    
+    if not ml_joints:
+        return log.error("Must have joints")
+    
+    
+    mHandleFactory = self.asHandleFactory()
+    
+    
+    mdOrient = get_orienationDict(self,orient)
+    
+    _castVector = self.getEnumValueString('castVector')
+    _aimVector = mdOrient.get('string{0}'.format(CORESTRING.capFirst(_castVector)))
+    
+    _offset = mFac.mPuppet.atUtils('get_shapeOffset')
+    
+    mFac.d_orientation = mdOrient
+    ml_shapes = mFac.atBuilderUtils('shapes_fromCast',
+                                    targets = ml_joints,
+                                    offset = _offset,
+                                    aimVector = _aimVector,
+                                    mode = 'frameHandle')   
+    #pprint.pprint(vars())
+    
+    for i,mObj in enumerate(ml_shapes):
+        mObj.p_parent = False
+        mObj.rename("{0}_previs".format(ml_joints[i].p_nameBase))
+        mHandleFactory.color(mObj.mNode, controlType = 'main')        
+                
+    
 @cgmGEN.Timer
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
@@ -11512,14 +11562,26 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
     _dir = get_side(self)#self.d_module.get('direction')
     mdOrient = get_orienationDict(self,orient)
     
+    
+    
     if aimVector is None:
-        if _dir and _dir.lower() == 'left':
-            aimVector = mdOrient['mOrientation'].p_outNegative.p_string
-        else:
-            aimVector = mdOrient['mOrientation'].p_out.p_string
+        if self.hasAttr('castVector'):
+            _castVector = self.getEnumValueString('castVector')
+            aimVector = mdOrient.get('string{0}'.format(CORESTRING.capFirst(_castVector)))
             
-    aimAlternate = mdOrient['mOrientation'].p_up.p_string
-    #aimVector = mdOrient['mOrientation'].p_up.p_string
+            if 'Neg' in _castVector:
+                _castNeg = _castVector.replace('Neg','')
+                aimAlternate = mdOrient.get('string{0}'.format(CORESTRING.capFirst(_castNeg)))
+            else:
+                aimAlternate = mdOrient.get('string{0}Neg'.format(CORESTRING.capFirst(_castVector)))
+
+        else:
+            if _dir and _dir.lower() == 'left':
+                aimVector = mdOrient['mOrientation'].p_outNegative.p_string
+            else:
+                aimVector = mdOrient['mOrientation'].p_out.p_string
+            
+        aimAlternate = mdOrient['mOrientation'].p_up.p_string
 
     #Get our prerig handles if none provided
     if targets is None:

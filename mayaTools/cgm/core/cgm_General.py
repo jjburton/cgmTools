@@ -13,7 +13,7 @@ __MAYALOCAL = 'cgmGEN'
 
 __RELEASE = '21.4.1.10'
 
-__BRANCH = 'MRSDEV'
+__BRANCH = 'config'
 
 import maya.cmds as mc
 import maya.mel as mel

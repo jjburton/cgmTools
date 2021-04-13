@@ -63,6 +63,7 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.rig.create_utils as RIGCREATE
+import cgm.core.lib.string_utils as CORESTRING
 #reload(NAMETOOLS)
 #Prerig handle making. refactor to blockUtils
 import cgm.core.lib.snap_utils as SNAP
@@ -733,6 +734,7 @@ l_attrsStandard = ['side',
                    'baseAim',
                    'addCog',
                    'nameList',
+                   'castVector',
                    'attachPoint',
                    'attachIndex',
                    'formEndAim',
@@ -788,6 +790,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'addLeverEnd':'none:dag:joint',
                  'proxyLoft':'default:toEnd:toStart:toBoth',
                  
+                 
                  'ikExtendSetup':'aim:full',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
@@ -828,6 +831,7 @@ d_defaultSettings = {'version':__version__,
                      'ikEnd':'tipEnd',
                      'ikRPAim':'default',
                      'visJointHandle':1,
+                     'castVector':'out',
                      'buildEnd':'dag',
                      'addBall':'joint',
                      'addToe':'joint',
@@ -4980,6 +4984,11 @@ def rig_shapes(self):
             #if str_profile in ['finger','thumb','toe'] and not self.b_singleChain:
                 #return rig_digitShapes(self)
             
+        #...get our aim vector ----------------------------------------------------------------------
+        d_orients = self.d_orientation
+        _castVector = mBlock.getEnumValueString('castVector')
+        _aimVector = d_orients.get('vector{0}'.format(CORESTRING.capFirst(_castVector)))
+        
         
         mRigNull = self.mRigNull
 
@@ -5081,6 +5090,7 @@ def rig_shapes(self):
                 ml_shapes = self.atBuilderUtils('shapes_fromCast',
                                                 targets = mControlMid,
                                                 offset = _offset,
+                                                aimVector = _aimVector,
                                                 mode = 'limbSegmentHandle')#'simpleCast
                 CORERIG.shapeParent_in_place(mControlMid.mNode, ml_shapes[0].mNode,False)
             
@@ -5429,9 +5439,12 @@ def rig_shapes(self):
             #if mAttach:
             ml_targets.append(mAttach or mObj)
             
+        
+
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           #targets = [mObj.mNode for mObj in self.ml_handleTargets],
                                           targets = [mObj.mNode for mObj in self.ml_fkShapeTargetDags],
+                                          aimVector = _aimVector,
                                           #targets = ml_targets,
                                           offset = _offset,
                                           mode = 'frameHandle')#limbHandle
