@@ -5715,10 +5715,13 @@ def rig_cleanUp(self):
     self.UTILS.rigNodes_store(self)
 
 
-def create_simpleMesh(self,  deleteHistory = True, cap=True):
+def create_simpleMesh(self,  deleteHistory = True, cap=True, skin = True, **kws):
     _str_func = 'create_simpleMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
+
+    log.warning("create_simpleMesh not done")    
+    return False
     
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))

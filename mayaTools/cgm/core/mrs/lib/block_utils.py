@@ -9108,6 +9108,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
         if unified:
             if skin:
                 #self.msgList_connect('simpleMesh',ml_mesh)
+                mMesh = False
                 for mObj in ml_mesh:
                     TRANS.pivots_zeroTransform(mObj)
                     mObj.dagLock(False)
@@ -9116,46 +9117,47 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 if len(ml_mesh)>1:
                     mMesh = cgmMeta.validateObjListArg(mc.polyUniteSkinned([mObj.mNode for mObj in ml_mesh],ch=0))
                     mMesh = mMesh[0]
-                else:
+                elif ml_mesh:
                     mMesh = ml_mesh[0]
-                
-                mMesh.dagLock(False)
-                
-                #mMeshBase = mMeshBase[0]
-                #mMesh = mMeshBase.doDuplicate(po=False,ic=False)
-                mMesh.rename('{0}_unified_geo'.format(mPuppet.p_nameBase))
-                mMesh.p_parent = mParent
-                #cgmGEN.func_snapShot(vars())
-                
-                #now copy weights
-                #CORESKIN.transfer_fromTo(mMeshBase.mNode, [mMesh.mNode])
-                #mMeshBase.delete()
-                
-                ml_mesh = [mMesh]
-                #ml_mesh[0].p_parent = mGeoGroup
-                mMesh.dagLock(True)
-                
-                """
-                log.debug("|{0}| >> skinning..".format(_str_func))
-                for mMesh in ml_mesh:
-                    log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
-                    mMesh.p_parent = mGeoGroup
-                    skin = mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
-                                           mMesh.mNode,
-                                           tsb=True,
-                                           bm=0,
-                                           wd=0,
-                                           heatmapFalloff = 1.0,
-                                           maximumInfluences = 2,
-                                           normalizeWeights = 1, dropoffRate=10.0)
-                    skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))        """
+                if mMesh:
+                    
+                    mMesh.dagLock(False)
+                    
+                    #mMeshBase = mMeshBase[0]
+                    #mMesh = mMeshBase.doDuplicate(po=False,ic=False)
+                    mMesh.rename('{0}_unified_geo'.format(mPuppet.p_nameBase))
+                    mMesh.p_parent = mParent
+                    #cgmGEN.func_snapShot(vars())
+                    
+                    #now copy weights
+                    #CORESKIN.transfer_fromTo(mMeshBase.mNode, [mMesh.mNode])
+                    #mMeshBase.delete()
+                    
+                    ml_mesh = [mMesh]
+                    #ml_mesh[0].p_parent = mGeoGroup
+                    mMesh.dagLock(True)
+                    
+                    """
+                    log.debug("|{0}| >> skinning..".format(_str_func))
+                    for mMesh in ml_mesh:
+                        log.debug("|{0}| >> skinning {1}".format(_str_func,mMesh))
+                        mMesh.p_parent = mGeoGroup
+                        skin = mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
+                                               mMesh.mNode,
+                                               tsb=True,
+                                               bm=0,
+                                               wd=0,
+                                               heatmapFalloff = 1.0,
+                                               maximumInfluences = 2,
+                                               normalizeWeights = 1, dropoffRate=10.0)
+                        skin = mc.rename(skin,'{0}_skinCluster'.format(mMesh.p_nameBase))        """
             else:
                 if len(ml_mesh)>1:
                     ml_mesh = cgmMeta.validateObjListArg(mc.polyUnite([mObj.mNode for mObj in ml_mesh],ch=False))
-                
-            ml_mesh[0].rename('{0}_unified_geo'.format(mRoot.p_nameBase))
+            if ml_mesh:
+                ml_mesh[0].rename('{0}_unified_geo'.format(mRoot.p_nameBase))
             
-        if skin or proxy:
+        if skin or proxy and ml_mesh:
             mPuppet.msgList_connect('puppetMesh',ml_mesh)
             
         #for mGeo in ml_mesh:
@@ -9269,7 +9271,7 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNo
             for i,mJnt in enumerate(ml_moduleJoints):
                 mJnt.p_parent = md_parents[mJnt]
             #pprint.pprint(md_parents)
-    if connect:
+    if connect and ml_mesh:
         self.msgList_connect('simpleMesh',ml_mesh)        
     return ml_mesh
             

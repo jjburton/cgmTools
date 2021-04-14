@@ -517,24 +517,6 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                         t2 = time.clock()
                         l_timeReports.append(['deleteUnusedShaders', get_time(t2-t1)])
                         
-                    if kws.get('proxyMesh',1):
-                        print(cgmGEN._str_hardBreak)                                                
-
-                        log.info('proxyMesh...')
-                        t1 = time.clock()                        
-                        mPuppet.atUtils('proxyMesh_verify',1)
-                        t2 = time.clock()
-                        l_timeReports.append(['proxyMesh', get_time(t2-t1)
-])
-                        
-                    if kws.get('puppetMesh',1):
-                        print(cgmGEN._str_hardBreak)                                                
-                        
-                        log.info('puppetMesh...')
-                        t1 = time.clock()                                                
-                        mPuppet.atUtils('puppetMesh_create', **{'unified':True,'skin':True})
-                        t2 = time.clock()
-                        l_timeReports.append(['puppetMesh', get_time(t2-t1)])
                         
                     if kws.get('hideVisSub',1):
                         print(cgmGEN._str_hardBreak)                                                
@@ -629,6 +611,23 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                         l_timeReports.append(['blocksGather', get_time(t2-t1)])
                                               
 
+                    if kws.get('proxyMesh',1):
+                        print(cgmGEN._str_hardBreak)                                                
+
+                        log.info('proxyMesh...')
+                        t1 = time.clock()                        
+                        mPuppet.atUtils('proxyMesh_verify',1)
+                        t2 = time.clock()
+                        l_timeReports.append(['proxyMesh', get_time(t2-t1)])
+                        
+                    if kws.get('puppetMesh',1):
+                        print(cgmGEN._str_hardBreak)                                                
+                        
+                        log.info('puppetMesh...')
+                        t1 = time.clock()                                                
+                        mPuppet.atUtils('puppetMesh_create', **{'unified':True,'skin':True})
+                        t2 = time.clock()
+                        l_timeReports.append(['puppetMesh', get_time(t2-t1)])
 
                         
                     if kws.get('worldGather'):
