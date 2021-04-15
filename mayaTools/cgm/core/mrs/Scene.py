@@ -2905,6 +2905,12 @@ example:
 
         d_userPaths = self.project.userPaths_get()
 
+
+        postEuler = self.var_postEuler.getValue()
+        postTangent = self.var_postTangent.getValue()
+        if postTangent == 'none':
+            postTangent = False
+
         if self.useMayaPy:
             #reload(BATCH)
             log.info('Maya Py!')
@@ -2913,10 +2919,7 @@ example:
             deleteSetName = self.var_deleteSet.getValue()
             exportSetName = self.var_exportSet.getValue()
             
-            postEuler = self.var_postEuler.getValue()
-            postTangent = self.var_postTangent.getValue()
-            if postTangent == 'none':
-                postTangent = False
+
 
             d = {
                         'file':mc.file(q=True, sn=True),
