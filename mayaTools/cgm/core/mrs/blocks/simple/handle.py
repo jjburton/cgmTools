@@ -452,9 +452,7 @@ def define(self):
                   'lever':{'color':'purple','defaults':{'tz':-.25}}}
         
             md_handles = {}
-            ml_handles = []
             md_vector = {}
-            md_jointLabels = {}
         
             _l_order = ['aim','end','up','start']
             
@@ -482,9 +480,16 @@ def define(self):
             md_handles['aim'].p_parent = mAimGroup
             #md_vector['aim'].p_parent = mAimGroup
             
-            _end = md_handles['end'].mNode
             
-            self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
+            _l_walkOrder = ['end','start','lever','aim','up','rp']
+            ml_walk = []
+            for k in _l_walkOrder:
+                v = md_handles.get(k)
+                if v:
+                    ml_walk.append(v)
+            ml_walk.append(self)
+            
+            self.UTILS.controller_walkChain(self,ml_walk,'define')
             
         
         self.UTILS.rootShape_update(self)        

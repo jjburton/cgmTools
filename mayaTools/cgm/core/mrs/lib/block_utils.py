@@ -7149,99 +7149,104 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
         for mShape in mLoft.getShapes(asMeta=True):
             mShape.overrideDisplayType = 0
-
-        _worldUpType = 'objectrotation'
-        _worldUpBack = 'objectrotation'
-
-
-        _aimBack = None
-        _aimForward = None
-        _backUpObj = None
-
-        if mHandle == ml_handles_chain[0]:
-            _aimForward = ml_handles_chain[i+1].mNode
-        elif mHandle == ml_handles_chain[-1]:
-            if len(ml_handles_chain)>2:
-                _aimBack = ml_handles_chain[-2].mNode#md_handles['start'].mNode#ml_handles_chain[].mNode
-            else:
-                _aimBack = md_handles['start'].mNode
-        else:
-            _aimForward =  ml_handles_chain[i+1].mNode
-            _aimBack  =  ml_handles_chain[i-1].mNode
-
-        if _aimBack and md_handles.get('lever'):
-            if _aimBack == md_handles.get('lever').mNode:
-                _backUpObj = md_handles.get('lever').mNode
-
-        if _aimForward and _aimBack is None:
-            mc.aimConstraint(_aimForward, mTransformedGroup.mNode, maintainOffset = False,
-                             aimVector = [0,0,1], upVector = [0,1,0], 
-                             worldUpObject = mBaseOrientCurve.mNode,
-                             worldUpType = _worldUpType, 
-                             worldUpVector = [0,1,0])
-        elif _aimBack and _aimForward is None:
-            mc.aimConstraint(_aimBack, mTransformedGroup.mNode, maintainOffset = False,
-                             aimVector = [0,0,-1], upVector = [0,1,0], 
-                             worldUpObject = mBaseOrientCurve.mNode,
-                             worldUpType = _worldUpBack, 
-                             worldUpVector = [0,1,0])
-        else:
-            mAimForward = mLoft.doCreateAt()
-            mAimForward.p_parent = mHandle.p_parent#mLoft
-            mAimForward.doStore('cgmName',mHandle)                
-            mAimForward.doStore('cgmTypeModifier','forward')
-            mAimForward.doStore('cgmType','aimer')
-            mAimForward.doName()
-
-            mAimBack = mLoft.doCreateAt()
-            mAimBack.p_parent = mHandle.p_parent
-            mAimBack.doStore('cgmName',mHandle)                                
-            mAimBack.doStore('cgmTypeModifier','back')
-            mAimBack.doStore('cgmType','aimer')
-            mAimBack.doName()
-
-            mc.aimConstraint(_aimForward, mAimForward.mNode, maintainOffset = False,
-                             aimVector = [0,0,1], upVector = [0,1,0], 
-                             worldUpObject = mBaseOrientCurve.mNode,
-                             worldUpType = _worldUpType, 
-                             worldUpVector = [0,1,0])
-
-            if _backUpObj == None:
-                _backUpObj =  mBaseOrientCurve.mNode
-
-            mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
-                             aimVector = [0,0,-1], upVector = [0,1,0], 
-                             worldUpObject = _backUpObj,
-                             worldUpType = _worldUpType, 
-                             worldUpVector = [0,1,0])                
-
-            const = mc.orientConstraint([mAimForward.mNode, mAimBack.mNode],
-                                        mTransformedGroup.mNode, maintainOffset = False)[0]
-
-            ATTR.set(const,'interpType',2)#.shortest...
-
-            #...also aim our main handles...
             
-            if mHandle not in [md_handles['end'],md_handles['start']]:
-                log.debug("|{0}| >> {2} | Aiming Handle: {1}".format(_str_func,mHandle,_formAim))
-                
-                mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
-                if not mHandleAimGroup:
-                    mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'transformed')
-
-                if _formAim == 'toEnd':
-                    mc.aimConstraint(md_handles['end'].mNode,
-                                     mHandleAimGroup.mNode, maintainOffset = False,
-                                     aimVector = [0,0,1], upVector = [0,1,0], 
-                                     worldUpObject = mBaseOrientCurve.mNode,
-                                     worldUpType = 'objectrotation', 
-                                     worldUpVector = [0,1,0])                        
+        if _formAim == 'orientToHandle':
+            mc.orientConstraint([mHandle.mNode],
+                                mTransformedGroup.mNode, maintainOffset = False)
+        else:
+            _worldUpType = 'objectrotation'
+            _worldUpBack = 'objectrotation'
+    
+    
+            _aimBack = None
+            _aimForward = None
+            _backUpObj = None
+    
+            if mHandle == ml_handles_chain[0]:
+                _aimForward = ml_handles_chain[i+1].mNode
+            elif mHandle == ml_handles_chain[-1]:
+                if len(ml_handles_chain)>2:
+                    _aimBack = ml_handles_chain[-2].mNode#md_handles['start'].mNode#ml_handles_chain[].mNode
                 else:
-                    mc.aimConstraint(_aimForward, mHandleAimGroup.mNode, maintainOffset = False,
-                                     aimVector = [0,0,1], upVector = [0,1,0], 
-                                     worldUpObject = mBaseOrientCurve.mNode,
-                                     worldUpType = 'objectrotation', 
-                                     worldUpVector = [0,1,0])
+                    _aimBack = md_handles['start'].mNode
+            else:
+                _aimForward =  ml_handles_chain[i+1].mNode
+                _aimBack  =  ml_handles_chain[i-1].mNode
+    
+            if _aimBack and md_handles.get('lever'):
+                if _aimBack == md_handles.get('lever').mNode:
+                    _backUpObj = md_handles.get('lever').mNode
+    
+            if _aimForward and _aimBack is None:
+                mc.aimConstraint(_aimForward, mTransformedGroup.mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,1,0], 
+                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpType = _worldUpType, 
+                                 worldUpVector = [0,1,0])
+            elif _aimBack and _aimForward is None:
+                mc.aimConstraint(_aimBack, mTransformedGroup.mNode, maintainOffset = False,
+                                 aimVector = [0,0,-1], upVector = [0,1,0], 
+                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpType = _worldUpBack, 
+                                 worldUpVector = [0,1,0])
+            else:
+                mAimForward = mLoft.doCreateAt()
+                mAimForward.p_parent = mHandle.p_parent#mLoft
+                mAimForward.doStore('cgmName',mHandle)                
+                mAimForward.doStore('cgmTypeModifier','forward')
+                mAimForward.doStore('cgmType','aimer')
+                mAimForward.doName()
+    
+                mAimBack = mLoft.doCreateAt()
+                mAimBack.p_parent = mHandle.p_parent
+                mAimBack.doStore('cgmName',mHandle)                                
+                mAimBack.doStore('cgmTypeModifier','back')
+                mAimBack.doStore('cgmType','aimer')
+                mAimBack.doName()
+    
+                mc.aimConstraint(_aimForward, mAimForward.mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,1,0], 
+                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpType = _worldUpType, 
+                                 worldUpVector = [0,1,0])
+    
+                if _backUpObj == None:
+                    _backUpObj =  mBaseOrientCurve.mNode
+    
+                mc.aimConstraint(_aimBack, mAimBack.mNode, maintainOffset = False,
+                                 aimVector = [0,0,-1], upVector = [0,1,0], 
+                                 worldUpObject = _backUpObj,
+                                 worldUpType = _worldUpType, 
+                                 worldUpVector = [0,1,0])                
+    
+                const = mc.orientConstraint([mAimForward.mNode, mAimBack.mNode],
+                                            mTransformedGroup.mNode, maintainOffset = False)[0]
+    
+                ATTR.set(const,'interpType',2)#.shortest...
+    
+                #...also aim our main handles...
+                
+        if mHandle not in [md_handles['end'],md_handles['start']]:
+            log.debug("|{0}| >> {2} | Aiming Handle: {1}".format(_str_func,mHandle,_formAim))
+            _aimForward = ml_handles_chain[i+1].mNode
+            
+            mHandleAimGroup = mHandle.getMessageAsMeta('transformedGroup')
+            if not mHandleAimGroup:
+                mHandleAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'transformed')
+
+            if _formAim == 'toEnd':
+                mc.aimConstraint(md_handles['end'].mNode,
+                                 mHandleAimGroup.mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,1,0], 
+                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpType = 'objectrotation', 
+                                 worldUpVector = [0,1,0])                        
+            else:
+                mc.aimConstraint(_aimForward, mHandleAimGroup.mNode, maintainOffset = False,
+                                 aimVector = [0,0,1], upVector = [0,1,0], 
+                                 worldUpObject = mBaseOrientCurve.mNode,
+                                 worldUpType = 'objectrotation', 
+                                 worldUpVector = [0,1,0])
 
 
         if mHandle in [md_handles['start'],md_handles['end']]:
