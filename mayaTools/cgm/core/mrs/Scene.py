@@ -46,11 +46,15 @@ def ui_get():
         return UI
     return ui()
 
+log_start = cgmGEN.logString_start
+log_msg = cgmGEN.logString_msg
+log_sub = cgmGEN.logString_sub
+
 #>>>======================================================================
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #=========================================================================
 _d_ann = SCENEUTILS.d_annotations
 
@@ -60,6 +64,7 @@ __version__ = cgmGEN.__RELEASE
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]
+_l_directoryMask = ['meta']
 
 class ui(cgmUI.cgmGUI):
     '''
@@ -158,11 +163,11 @@ example:
 
         self.exportCommand               = ""
 
-        self.showAllFilesOption          = None
-        self.removeNamespaceOption       = None
-        self.zeroRootOption              = None
-        self.useMayaPyOption             = None
-        self.showDirectoriesOption       = None
+        self.cb_showAllFiles          = None
+        self.cb_removeNamespace       = None
+        self.cb_zeroRoot              = None
+        self.cb_useMayaPy             = None
+        self.cb_showDirectories       = None
 
         self.showDirectories             = self.var_showDirectories.getValue()
         self.displayDetails              = self.var_displayDetails.getValue()
@@ -200,46 +205,111 @@ example:
     @property
     def path_dir_category(self):
         return os.path.normpath(os.path.join( self.directory, self.category ))
+    
+    
+    def report_selectedPaths(self):
+        _str_func = 'report_selectedPaths'
+
+        log.debug(log_start(_str_func))    
+        
+        log.info("Directory: {0}".format(self.directory))        
+        log.info("Asset: {0}".format(self.path_asset))
+        log.info("Subtype Dir: {0}".format(self.path_subTypeDir))                
+        log.info("Subtype: {0}".format(self.path_subType))
+        log.info("Variation: {0}".format(self.path_variationDirectory))
+        log.info("Version: {0}".format(self.path_versionDirectory))
+        
+    def report_states(self):
+        _str_func = 'report_selectedPaths'
+
+        log.debug(log_start(_str_func))    
+        
+        log.info(log_sub(_str_func,'Options...'))
+        log.info("Asset: {0}".format(self.category))     
+        log.info("Subtype: {0}".format(self.selectedSubType))
+        log.info("Variation: {0}".format(self.selectedVariation))        
+        log.info("Version: {0}".format(self.selectedVersion))        
+        
+        log.info("File: {0}".format(self.versionFile))        
+        
+        
+        
+        log.info(log_sub(_str_func,'Paths...'))    
+        
+        log.info("Directory: {0}".format(self.directory))        
+        log.info("Asset: {0}".format(self.path_asset))
+        log.info("Subtype Dir: {0}".format(self.path_subTypeDir))        
+        log.info("Subtype: {0}".format(self.path_subType))
+        log.info("Variation: {0}".format(self.path_variationDirectory))
+        log.info("Version: {0}".format(self.path_versionDirectory))
+        
+        log.info(log_sub(_str_func,'States...'))            
+        log.info("hasSub: {0}".format(self.hasSub))
+        log.info("hasVariant: {0}".format(self.hasVariant))
+        log.info("hasNested: {0}".format(self.hasNested))
+        log.info("hasSubTypes: {0}".format(self.hasSubTypes))
 
     @property
     def selectedAsset(self):
         return self.assetList['scrollList'].getSelectedItem()
 
     @property
-    def assetDirectory(self):
-        return os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
-
+    def path_asset(self):
+        try:return os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
+        except Exception,err:
+            log.debug(err)
+            return False        
     @property
     def selectedSubType(self):
         return self.subTypeSearchList['scrollList'].getSelectedItem()	
 
     @property
-    def subTypeDirectory(self):
-        if self.hasSub:
-            if self.subTypeSearchList['scrollList'].getSelectedItem():
-                return os.path.normpath(os.path.join( self.assetDirectory, self.subType, self.subTypeSearchList['scrollList'].getSelectedItem() ))
+    def path_subTypeDir(self):
+        try:
+            return os.path.normpath(os.path.join( self.path_asset, self.subType ))
+        except Exception,err:
+            log.debug(err)
+            return False
+        
+    @property
+    def path_subType(self):
+        try:
+            if self.hasSub:
+                if self.subTypeSearchList['scrollList'].getSelectedItem():
+                    return os.path.normpath(os.path.join( self.path_asset, self.subType, self.subTypeSearchList['scrollList'].getSelectedItem() ))
+                else:
+                    return None
             else:
-                return None
-        else:
-            return os.path.normpath(os.path.join( self.assetDirectory, self.subType ))
+                return os.path.normpath(os.path.join( self.path_asset, self.subType ))
+        except Exception,err:
+            log.debug(err)
+            return False
+            
 
     @property
     def selectedVariation(self):
         return self.variationList['scrollList'].getSelectedItem()
 
     @property
-    def variationDirectory(self):
-        return os.path.normpath(os.path.join( self.subTypeDirectory, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
-    
+    def path_variationDirectory(self):
+        try:return os.path.normpath(os.path.join( self.path_subType, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
+        except Exception,err:
+            log.debug(err)
+            return False    
     @property
-    def versionDirectory(self):
-        if self.hasSub:
-            if self.hasVariant:
-                return os.path.normpath(os.path.join( self.variationDirectory))
+    def path_versionDirectory(self):
+        try:
+            
+            if self.hasSub:
+                if self.hasVariant:
+                    return os.path.normpath(os.path.join( self.path_variationDirectory))
+                else:
+                    return os.path.normpath(os.path.join( self.path_subType))
             else:
-                return os.path.normpath(os.path.join( self.subTypeDirectory))
-        else:
-            return os.path.normpath(os.path.join( self.subTypeDirectory))   
+                return os.path.normpath(os.path.join( self.path_subType))   
+        except Exception,err:
+            log.debug(err)
+            return False            
 
     @property
     def selectedVersion(self):
@@ -249,11 +319,11 @@ example:
     def versionFile(self):
         if self.hasSub:
             if self.hasVariant:
-                return os.path.normpath(os.path.join( self.variationDirectory, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None
+                return os.path.normpath(os.path.join( self.path_variationDirectory, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None
             else:
-                return os.path.normpath(os.path.join( self.subTypeDirectory, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None
+                return os.path.normpath(os.path.join( self.path_subType, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None
         else:
-            return os.path.normpath(os.path.join( self.subTypeDirectory, self.subTypeSearchList['scrollList'].getSelectedItem() )) if self.subTypeSearchList['scrollList'].getSelectedItem() else None
+            return os.path.normpath(os.path.join( self.path_subType, self.subTypeSearchList['scrollList'].getSelectedItem() )) if self.subTypeSearchList['scrollList'].getSelectedItem() else None
 
     @property
     def exportFileName(self):
@@ -268,29 +338,153 @@ example:
 
     @property
     def category(self):
+        _str_func = 'category'
+        log.debug(log_start(_str_func))        
         return self.categoryList[self.categoryIndex] if len(self.categoryList) > self.categoryIndex else self.categoryList[0]
 
     @property
     def subType(self):
+        _str_func = 'subType'
+        log.debug(log_start(_str_func))
+        log.debug(log_msg(_str_func, self.subTypeIndex))
         return self.subTypes[min(self.subTypeIndex, len(self.subTypes)-1)] if self.subTypes else None
 
     @property
     def hasSub(self):
+        _str_func = 'hasSub'
+
+        _res = False
+        _path  = self.path_subTypeDir
+        if not _path:
+            return False
+        
+        log.debug(log_start(_str_func))    
+        log.debug(log_msg(_str_func, self.category))
+        
+        #path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.category ))
+        try:
+            _dirs = CGMOS.get_lsFromPath(_path,'dir')
+            for d in _l_directoryMask:
+                try:_dirs = _dirs.remove(d)
+                except:pass
+        except Exception,err:
+            log.error(log_msg(_str_func, err))
+            return False
+                
+        if _dirs:
+            _res = True
+            
+        #log.debug(log_start(_str_func))    
+        #pprint.pprint(_dirs)
+        log.debug(log_msg(_str_func,_res))
+        return _res
+        
+        
+        """
         try:
             r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasSub', False)
             return r
         except:
             return True
+            
+        """
+    @property
+    def hasSubTypes(self):
+        _str_func = 'hasSubTypes'
 
+        _res = False
+        _path = self.path_asset
+        if not _path:
+            return False
+        
+        log.debug(log_start(_str_func))    
+        log.debug(log_msg(_str_func, self.subType))
+        
+        #path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.category ))
+        try:
+            _dirs = CGMOS.get_lsFromPath(_path,'dir')
+            for d in _l_directoryMask:
+                try:_dirs = _dirs.remove(d)
+                except:pass
+        except Exception,err:
+            log.error(log_msg(_str_func, err))
+            return False
+            
+        if _dirs:
+            _res = True
+        
+        log.debug(log_msg(_str_func,_res))
+        return _res
+    
+    @property
+    def hasNested(self):
+        _str_func = 'hasSub'
+
+        _res = False
+        _path = self.path_subTypeDir
+        if not _path:
+            return False
+        
+        log.debug(log_start(_str_func))    
+        log.debug(log_msg(_str_func, self.subType))
+        
+        #path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.category ))
+        try:
+            _dirs = CGMOS.get_lsFromPath(_path,'dir')
+            for d in _l_directoryMask:
+                try:_dirs = _dirs.remove(d)
+                except:pass
+        except Exception,err:
+            log.error(log_msg(_str_func, err))
+            return False
+            
+        if _dirs:
+            _res = True
+        
+        log.debug(log_msg(_str_func,_res))
+        return _res
+    
     @property
     def hasVariant(self):
+        _str_func = 'hasVariant'
+        _res = False
+        
+        try:
+            _path_subType = self.path_subType
+            log.debug(log_msg(_str_func, _path_subType))
+        except:
+            return _res
+        
+        log.debug(log_start(_str_func))
+        log.debug(log_msg(_str_func, self.category))        
+        try:
+            if _path_subType:
+                _dirs = CGMOS.get_lsFromPath(_path_subType,'dir')
+                for d in _l_directoryMask:
+                    try:_dirs = _dirs.remove(d)
+                    except:pass
+                        
+                if _dirs:
+                    _res = True
+        except Exception,err:
+            log.error(log_msg(_str_func, err))
+            return False
+
+        log.debug(log_msg(_str_func,_res))
+
+        return _res
+        """
         try:
             r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasVariant', False)
             return r
         except:
-            return True
+            return True"""
 
     def HasSub(self, category, subType):
+        _str_func = 'HasSub ||||||||| laksj;flaksjdfkl;'
+        log.warning(log_start(_str_func))
+        log.warning(log_msg(_str_func, self.category))
+        
         try:
             hasSub = True
             for sub in self.project.assetType_get(category)['content']:
@@ -311,12 +505,12 @@ example:
         self.displayDetails  = bool(self.var_displayDetails.getValue())
         self.displayProject  = bool(self.var_displayProject.getValue())
 
-        if self.showAllFilesOption:
-            self.showAllFilesOption(e=True, checkBox = self.showAllFiles)
-        if self.removeNamespaceOption:
-            self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
-        if self.zeroRootOption:
-            self.zeroRootOption(e=True, checkBox = self.zeroRoot)
+        if self.cb_showAllFiles:
+            self.cb_showAllFiles(e=True, checkBox = self.showAllFiles)
+        if self.cb_removeNamespace:
+            self.cb_removeNamespace(e=True, checkBox = self.removeNamespace)
+        if self.cb_zeroRoot:
+            self.cb_zeroRoot(e=True, checkBox = self.zeroRoot)
 
         self.SetSubType(self.subTypeIndex)
         self.buildMenu_subTypes()
@@ -330,12 +524,12 @@ example:
 
     def SaveOptions(self, *args):
         log.info( "Saving options" )
-        self.showAllFiles = self.showAllFilesOption( q=True, checkBox=True ) if self.showAllFilesOption else False
-        self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
-        self.zeroRoot = self.zeroRootOption( q=True, checkBox=True ) if self.zeroRootOption else False
+        self.showAllFiles = self.cb_showAllFiles( q=True, checkBox=True ) if self.cb_showAllFiles else False
+        self.removeNamespace = self.cb_removeNamespace( q=True, checkBox=True ) if self.cb_removeNamespace else False
+        self.zeroRoot = self.cb_zeroRoot( q=True, checkBox=True ) if self.cb_zeroRoot else False
 
-        self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
-        self.showDirectories = self.showDirectoriesOption( q=True, checkBox=True ) if self.showDirectoriesOption else False
+        self.useMayaPy = self.cb_useMayaPy( q=True, checkBox=True ) if self.cb_useMayaPy else False
+        self.showDirectories = self.cb_showDirectories( q=True, checkBox=True ) if self.cb_showDirectories else False
 
         self.var_showAllFiles.setValue(self.showAllFiles)
         self.var_removeNamespace.setValue(self.removeNamespace)
@@ -664,7 +858,7 @@ example:
         # 		self.subTypeMenuItemList[i]( e=True, enable=False)
 
 
-        self.subTypeSearchList = self.build_searchable_list(_animForm, sc=self.LoadVariationList)
+        self.subTypeSearchList = self.build_searchable_list(_animForm, sc=self.uiFunc_subTypeList_select)
         
         #JOSH HERE
         pum = mUI.MelPopupMenu(self.subTypeSearchList['scrollList'],
@@ -729,14 +923,13 @@ example:
                                               label='Variation',ut='cgmUITemplate',
                                               ann='Select the asset variation', en=False)
 
-        self.variationList = self.build_searchable_list(_variationForm, sc=self.LoadVersionList)
+        self.variationList = self.build_searchable_list(_variationForm, sc=self.uiFunc_variationList_select)
         
    
         pum = mUI.MelPopupMenu(self.variationList['scrollList'],
                                pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_variant))
         
         
-
         #------------------------------------------------------------------------------
         mUI.MelMenuItem( pum, label='        Variant', en=False )
         mUI.MelMenuItemDiv( pum, label='Selected' )
@@ -797,7 +990,7 @@ example:
                                             label='Version',ut='cgmUITemplate',
                                             ann='Select the asset version', en=False)
 
-        self.versionList = self.build_searchable_list(_versionForm, sc=self.uiFunc_selectVersionList)
+        self.versionList = self.build_searchable_list(_versionForm, sc=self.uiFunc_versionList_select)
 
         pum = mUI.MelPopupMenu(self.versionList['scrollList'],
                                pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_version))
@@ -999,6 +1192,23 @@ example:
     # Menu Building
     #=========================================================================
     def buildAssetForm(self):
+        mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
+        _hasSub = self.hasSub
+        
+        if not self.hasSubTypes:
+            mc.formLayout( self._subForms[1], e=True, vis=False )
+            mc.formLayout( self._subForms[3], e=True, vis=1 )
+        
+        else:
+            mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
+                
+            #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
+            #else:
+            #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
+                
+            mc.formLayout( self._subForms[1], e=True, vis=True )
+            
+        
         attachForm = []
         attachControl = []
         attachPosition = []
@@ -1054,7 +1264,8 @@ example:
 
         mUI.MelMenuItem( _log, l="Dat",
                                  c=lambda *a: self.project.log_self())
-
+        mUI.MelMenuItem( _log, l="States",
+                                 c=lambda *a: self.report_states())
         mc.menuItem(parent=self.uiMenu_HelpMenu,
                             l = 'Get Help',
                             c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
@@ -1093,27 +1304,27 @@ example:
         #>>> Reset Options		
         
         mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu, label = 'Export', )
-        self.useMayaPyOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use Maya Standalone",
+        self.cb_useMayaPy =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use Maya Standalone",
                                                  ann="Use Mayapy/Maya stand alone to process",
                                                  checkBox=self.useMayaPy,
                                                  c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))        
         
-        self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
+        self.cb_removeNamespace = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
                                                       checkBox=self.removeNamespace,
                                                       c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
         
-        self.zeroRootOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero root upon export",
+        self.cb_zeroRoot = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero root upon export",
                                                checkBox=self.zeroRoot,
                                                c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
         
-        self.postEuler = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Euler",
+        self.cb_postEuler = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Euler",
                                                checkBox=self.var_postEuler.getValue(),
                                                c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
         
-        self.uiMenu_tangent = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Tangent",subMenu=True
+        self.cb_tangent = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Tangent",subMenu=True
                                               )
         
-        uiMenu = self.uiMenu_tangent 
+        uiMenu = self.cb_tangent 
                 
         uiRC = mc.radioMenuItemCollection()
         #self.uiOptions_menuMode = []		
@@ -1132,12 +1343,12 @@ example:
         
         mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu, l = 'Other')
         
-        self.showAllFilesOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
+        self.cb_showAllFiles = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
                                                            checkBox=self.showAllFiles,
                                                         c = lambda *a:mc.evalDeferred(self.uiFunc_showAllFiles,lp=True))
 
         
-        self.showDirectoriesOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
+        self.cb_showDirectories =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
                                                                checkBox=self.showDirectories,
                                                          c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 
@@ -1147,9 +1358,20 @@ example:
         
     def uiFunc_assetList_select(self):
         _str_func = 'uiFunc_assetList_select'
-        log.debug(cgmGEN.logString_start(_str_func))
+        log.info(log_start(_str_func))
         
         path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() ))
+        
+        
+        self.subTypeSearchList['items'] = []
+        self.subTypeSearchList['scrollList'].clear()
+
+        self.variationList['items'] = []
+        self.variationList['scrollList'].clear()
+
+        self.versionList['items'] = []
+        self.versionList['scrollList'].clear()        
+        
         
         l_newTypes = []
         l_expected = []
@@ -1159,36 +1381,77 @@ example:
             else:
                 l_newTypes.append(d)
                 
-        pprint.pprint(l_expected)
-        pprint.pprint(l_newTypes)
+        #pprint.pprint(l_expected)
+        #pprint.pprint(l_newTypes)
+        
         self.subTypes = []
         if l_expected:
             self.subTypes.extend(l_expected)
         if l_newTypes:
             self.subTypes.extend(l_newTypes)
-            
-            
-        if self.subTypes and self.subType not in self.subTypes:
-            log.debug(cgmGEN.logString_msg(_str_func, "Setting subtype because stored not in list"))
-            self.subType = self.subTypes[0]
-            
-        print self.subType
-        pprint.pprint(self.subTypes)
 
+        #print self.subType
+        #pprint.pprint(self.subTypes)        
+        
         if self.subTypes:
             self.buildMenu_subTypes()
-            self.LoadSubTypeList()
+            if self.subType not in self.subTypes:
+                log.debug(log_msg(_str_func, "Setting subtype because stored not in list"))
+                self.subType = self.subTypes[0]
+            else:
+                self.SetSubType(self.subTypes.index(self.subType))
+                
+        #if self.subTypes:
+            #self.buildMenu_subTypes()
+            #self.LoadSubTypeList()
             
-            self.SetSubType(0)
-            
-            #if len(self.subTypes) == 1:
-                #self.SetSubType(1)
-            #self.subTypeSearchList['scrollList'].selectByIdx(1)#...select
-            
+        self.buildAssetForm()
+        self.LoadPreviousSelection()
+                
+    def uiFunc_subTypeList_select(self):
+        _str_func = 'uiFunc_subTypeList_select'
+        log.info(log_start(_str_func))
+        
+        self.report_selectedPaths()
+        
+        try: 
+            _path = os.path.normpath(os.path.join( self.path_dir_category,
+                                                   self.assetList['scrollList'].getSelectedItem(),
+                                                   self.subType,
+                                                   self.subTypeSearchList['scrollList'].getSelectedItem(),
+                                                   ))
+        except:
+            _path = None
+           
+        print _path
+        if _path and os.path.isfile(_path):
+            return
+
+        self.LoadVariationList()
+        
+    def uiFunc_variationList_select(self):
+        _str_func = 'uiFunc_variationList_select'
+        log.info(log_start(_str_func))
+        self.report_selectedPaths()
+        
+        
+        self.LoadVersionList()
+        
+    def uiFunc_versionList_select(self):
+        _str_func = 'uiFunc_variationList_select'
+        log.info(log_start(_str_func))
+        self.report_selectedPaths()
+        
+        self.assetMetaData = self.getMetaDataFromFile()
+        self.buildDetailsColumn()
+        self.StoreCurrentSelection()
+        log.info( self.versionFile )
+        
         
     def uiFunc_selectVersionList(self):
         _str_func = 'uiFunc_selectVersionList'
-        log.debug(cgmGEN.logString_start(_str_func))
+        log.info(log_start(_str_func))
+        self.report_selectedPaths()
         
         self.assetMetaData = self.getMetaDataFromFile()
         self.buildDetailsColumn()
@@ -1707,6 +1970,9 @@ example:
 
 
     def buildMenu_subTypes(self, *args):
+        _str_func = 'buildMenu_subTypes'
+        log.debug(log_start(_str_func))
+        
         self.subTypeMenu.clear()
         # for item in self.subTypeMenuItemList:
         # 	if mc.menuItem(item, q=True, exists=True):
@@ -1822,7 +2088,7 @@ example:
         assetList = []
 
         categoryDirectory = os.path.join(self.directory, self.category)
-        log.debug( cgmGEN.logString_msg( _str_func, categoryDirectory ) )
+        log.debug( log_msg( _str_func, categoryDirectory ) )
         if os.path.exists(categoryDirectory):
             for d in os.listdir(categoryDirectory):
                 #for ext in fileExtensions:
@@ -1854,7 +2120,7 @@ example:
 
         self.subTypeBtn( e=True, label=self.subType )
 
-        if self.hasSub:
+        if self.hasSubTypes:
             self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()), command=self.CreateSubAsset)
         else:
             self.subTypeButton(edit=True, label="Save New Version", command=self.SaveVersion)
@@ -1866,13 +2132,17 @@ example:
         for i,item in enumerate(self.subTypeMenuItemList):
             mc.menuItem(item, e=True, enable= i != self.subTypeIndex)
 
+        if not self.hasNested:
+            mc.formLayout( self._subForms[3], e=True, vis=False )
+        else:
+            mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
+            
         mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
-        mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
         self.buildAssetForm()
 
     def LoadSubTypeList(self, *args):
         _str_func = 'LoadSubTypeList'
-        log.debug(cgmGEN.logString_start(_str_func))        
+        log.info(log_start(_str_func))
         
         
         if not self.hasSub:
@@ -1891,12 +2161,16 @@ example:
                 for d in os.listdir(charDir):
                     #for ext in fileExtensions:
                     #	if os.path.splitext(f)[-1].lower() == ".%s" % ext :
-                    if d[0] == '_' or d[0] == '.':
-                        continue
+                    
+                    #if d[0] == '_' or d[0] == '.':
+                    #    continue
 
                     animDir = os.path.normpath(os.path.join(charDir, d))
                     if os.path.isdir(animDir):
                         subList.append(d)
+                    else:
+                        subList.append(d)
+                        
 
         self.subTypeSearchList['items'] = subList
         self.subTypeSearchList['scrollList'].clear()
@@ -1912,12 +2186,25 @@ example:
         self.StoreCurrentSelection()
 
     def LoadVariationList(self, *args):
-        if not self.hasSub:
-            self.uiFunc_selectVersionList()
+        _str_func = 'LoadVariationList'
+        log.info(log_start(_str_func))
+        
+        if not self.hasSub and self.hasNested:
+            self.LoadVersionList()            
+            #self.uiFunc_versionList_select()
             return
+        
+        
         if not self.hasVariant:
             self.LoadVersionList()
+            #self.buildAssetForm()
+            mc.formLayout( self._subForms[2], e=True, vis=False )
+            self.buildAssetForm()            
             return
+        else:
+            mc.formLayout( self._subForms[2], e=True, vis=False )                        
+            self.buildAssetForm()
+            
 
         variationList = []
 
@@ -1927,7 +2214,7 @@ example:
         self.variationList['scrollList'].clear()
 
         if self.path_dir_category and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
-            animationDir = self.subTypeDirectory
+            animationDir = self.path_subType
 
             if os.path.exists(animationDir):
                 for d in os.listdir(animationDir):
@@ -1956,15 +2243,16 @@ example:
         self.StoreCurrentSelection()
 
     def LoadVersionList(self, *args):
-        _str_func = 'Scene.LoadVersionList'
+        _str_func = 'LoadVersionList'
+        log.info(log_start(_str_func))
 
-        searchDir = os.path.join(self.assetDirectory if self.assetDirectory else self.path_dir_category, self.subType if self.subType else "")
+        searchDir = os.path.join(self.path_asset if self.path_asset else self.path_dir_category, self.subType if self.subType else "")
         searchList = self.subTypeSearchList
         if self.hasSub:
-            searchDir = self.subTypeDirectory
+            searchDir = self.path_subType
             searchList = self.versionList
         if self.hasVariant and self.hasSub:
-            searchDir = self.variationDirectory
+            searchDir = self.path_variationDirectory
 
         if not searchDir:
             return
@@ -1977,7 +2265,7 @@ example:
 
         #log.info('{0} >> searchDir: {1}'.format(_str_func, searchDir))
         if os.path.exists(searchDir):
-            # animDir = (self.variationDirectory if self.hasVariant else self.subTypeDirectory) if self.hasSub else self.path_dir_category
+            # animDir = (self.path_variationDirectory if self.hasVariant else self.path_subType) if self.hasSub else self.path_dir_category
 
             # if os.path.exists(animDir):
             for d in os.listdir(searchDir):
@@ -2042,7 +2330,7 @@ example:
 
     def StoreCurrentSelection(self, *args):
         _str_func = 'StoreCurrentSelection'
-        log.debug(cgmGEN.logString_start(_str_func))
+        log.debug(log_start(_str_func))
         
         if self.assetList['scrollList'].getSelectedItem():
             self.var_lastAsset.setValue(self.assetList['scrollList'].getSelectedItem())
@@ -2103,19 +2391,19 @@ example:
                                         dismissString='Cancel')
 
         if result == 'OK':
+            pprint.pprint(self.l_subTypesBase)
             charName = mc.promptDialog(query=True, text=True)
             charPath = os.path.normpath(os.path.join(self.path_dir_category, charName))
             if not os.path.exists(charPath):
                 os.mkdir(charPath)
-                for subType in self.subTypes:
+                for subType in self.l_subTypesBase:
                     os.mkdir(os.path.normpath(os.path.join(charPath, subType)))
 
             self.LoadCategoryList(self.directory)
-
             self.assetList['scrollList'].selectByValue(charName)
 
     def CreateSubAsset(self, *args):
-        if not self.assetDirectory:
+        if not self.path_asset:
             log.error("No asset selected.")
             return
 
@@ -2129,7 +2417,7 @@ example:
 
         if result == 'OK':
             subTypeName = mc.promptDialog(query=True, text=True)
-            subTypeDir = os.path.normpath(os.path.join(self.assetDirectory, self.subType)) if self.hasSub else os.path.normpath(self.assetDirectory)
+            subTypeDir = self.path_subType #os.path.normpath(os.path.join(self.path_asset, self.subType)) if self.hasSub else os.path.normpath(self.path_asset)
             if not os.path.exists(subTypeDir):
                 os.mkdir(subTypeDir)
 
@@ -2172,7 +2460,7 @@ example:
 
         if result == 'OK':
             variationName = mc.promptDialog(query=True, text=True)
-            variationDir = os.path.normpath( os.path.join(self.subTypeDirectory, variationName) )
+            variationDir = os.path.normpath( os.path.join(self.path_subType, variationName) )
             if not os.path.exists(variationDir):
                 os.mkdir(variationDir)
 
@@ -2185,7 +2473,7 @@ example:
                 self.LoadVersionList()
 
     def SaveVersion(self, *args):
-        if not self.assetDirectory:
+        if not self.path_asset:
             log.error("No asset selected")
             return
 
@@ -2234,11 +2522,11 @@ example:
 
             wantedName = "%s_%s%02d.%s" % (noVersionName, versionPrefix, newVersion, ext)
 
-        saveLocation = os.path.join(self.assetDirectory, self.subType)
+        saveLocation = os.path.join(self.path_asset, self.subType)
         if self.hasSub:
-            saveLocation = self.subTypeDirectory
+            saveLocation = self.path_subType
         if self.hasSub and self.hasVariant:
-            saveLocation = self.variationDirectory
+            saveLocation = self.path_variationDirectory
 
         saveFile = os.path.normpath(os.path.join(saveLocation, wantedName) ) 
         log.info( "Saving file: %s" % saveFile )
@@ -2356,8 +2644,10 @@ example:
         if self.project.d_exportOptions:
             self.var_postEuler.setValue( self.project.d_exportOptions['postEuler'] )
             self.var_postTangent.setValue( self.project.d_exportOptions['postTangent'] )
-            self.var_removeNamespace.setValue( self.project.d_exportOptions['removeNameSpace'] )
-            self.removeNamespace = self.project.d_exportOptions['removeNameSpace']
+            
+            if self.project.d_exportOptions.get('removeNameSpace'):
+                self.var_removeNamespace.setValue( self.project.d_exportOptions['removeNameSpace'] )
+                self.removeNamespace = self.project.d_exportOptions['removeNameSpace']
             
             self.var_zeroRoot.setValue( self.project.d_exportOptions['zeroRoot'] )
             
@@ -2382,24 +2672,24 @@ example:
             originalAssetName = self.selectedAsset
 
             # rename animations
-            for animation in os.listdir(os.path.join(self.assetDirectory, self.subType)):
-                for variation in os.listdir(os.path.join(self.assetDirectory, self.subType, animation)):
-                    for version in os.listdir(os.path.join(self.assetDirectory, self.subType, animation, variation)):
+            for animation in os.listdir(os.path.join(self.path_asset, self.subType)):
+                for variation in os.listdir(os.path.join(self.path_asset, self.subType, animation)):
+                    for version in os.listdir(os.path.join(self.path_asset, self.subType, animation, variation)):
                         if originalAssetName in version:
-                            originalPath = os.path.join(self.assetDirectory, self.subType, animation, variation, version)
-                            newPath = os.path.join(self.assetDirectory, self.subType, animation, variation, version.replace(originalAssetName, newName))
+                            originalPath = os.path.join(self.path_asset, self.subType, animation, variation, version)
+                            newPath = os.path.join(self.path_asset, self.subType, animation, variation, version.replace(originalAssetName, newName))
                             os.rename(originalPath, newPath)
 
             # rename rigs
-            for baseFile in os.listdir(self.assetDirectory):
-                if os.path.isfile(os.path.join(self.assetDirectory, baseFile)):
+            for baseFile in os.listdir(self.path_asset):
+                if os.path.isfile(os.path.join(self.path_asset, baseFile)):
                     if originalAssetName in baseFile:
-                        originalPath = os.path.join(self.assetDirectory, baseFile)
-                        newPath = os.path.join(self.assetDirectory, baseFile.replace(originalAssetName, newName))
+                        originalPath = os.path.join(self.path_asset, baseFile)
+                        newPath = os.path.join(self.path_asset, baseFile.replace(originalAssetName, newName))
                         os.rename(originalPath, newPath)
 
             # rename folder
-            os.rename(self.assetDirectory, self.assetDirectory.replace(originalAssetName, newName))
+            os.rename(self.path_asset, self.path_asset.replace(originalAssetName, newName))
 
             self.LoadCategoryList(self.directory)
             self.assetList['scrollList'].selectByValue( newName )
@@ -2442,14 +2732,14 @@ example:
             mc.file(save = 1)        
             
     def uiPath_mayaOpen_subType(self):
-        _path = os.path.normpath(os.path.join(self.assetDirectory, self.subType) )
+        _path = os.path.normpath(os.path.join(self.path_asset, self.subType) )
         if os.path.exists(_path):
             self.uiPath_mayaOpen( _path)
         else:
             log.warning("SubType path doesn't exist")
             
     def uiPath_mayaSaveTo_subType(self):
-        _path = os.path.normpath(os.path.join(self.assetDirectory, self.subType) )        
+        _path = os.path.normpath(os.path.join(self.path_asset, self.subType) )        
         if _path:
             self.uiPath_mayaSaveTo( _path )
         else:
@@ -2457,34 +2747,34 @@ example:
             
     def uiPath_mayaOpen_variant(self):
         
-        if self.variationDirectory:
-            self.uiPath_mayaOpen( self.variationDirectory )
+        if self.path_variationDirectory:
+            self.uiPath_mayaOpen( self.path_variationDirectory )
         else:
             log.warning("Variation path doesn't exist")
             
     def uiPath_mayaSaveTo_variant(self):
-        if self.variationDirectory:
-            self.uiPath_mayaSaveTo( self.variationDirectory)
+        if self.path_variationDirectory:
+            self.uiPath_mayaSaveTo( self.path_variationDirectory)
         else:
             log.warning("Variation path doesn't exist")
             
     def uiPath_mayaSaveTo_version(self):
-        if self.versionDirectory:
-            self.uiPath_mayaSaveTo( self.versionDirectory)
+        if self.path_versionDirectory:
+            self.uiPath_mayaSaveTo( self.path_versionDirectory)
         else:
             log.warning("Version path doesn't exist")
 
     def OpenSubTypeDirectory(self, *args):
-        if self.assetDirectory:
-            self.OpenDirectory( os.path.normpath(os.path.join(self.assetDirectory, self.subType) ))
+        if self.path_asset:
+            self.OpenDirectory( os.path.normpath(os.path.join(self.path_asset, self.subType) ))
         else:
             log.warning("Asset path doesn't exist")
 
     def OpenVariationDirectory(self, *args):
-        self.OpenDirectory(self.subTypeDirectory)
+        self.OpenDirectory(self.path_subType)
 
     def OpenVersionDirectory(self, *args):
-        self.OpenDirectory(self.versionDirectory)
+        self.OpenDirectory(self.path_versionDirectory)
 
     def ReferenceFile(self, *args):
         #if not self.assetList['scrollList'].getSelectedItem():
@@ -2558,7 +2848,7 @@ example:
             if self.HasSub(self.category, subType):
                 continue
 
-            try:subDir = os.path.join(self.assetDirectory, subType)
+            try:subDir = os.path.join(self.path_asset, subType)
             except:
                 continue
             if not os.path.exists(subDir):
@@ -2573,7 +2863,7 @@ example:
             openRigMB = mUI.MelMenuItem(openMB, label=subType, subMenu=True )
             referenceRigMB = mUI.MelMenuItem(referenceMB, label=subType, subMenu=True )
 
-            #rigPath = #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
+            #rigPath = #os.path.normpath(os.path.join(self.path_asset, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
             #if len(assetList.versions) > 0:
                 #mc.menuItem( openRigMB, e=True, enable=True )
                 #mc.menuItem( referenceRigMB, e=True, enable=True )
@@ -2639,8 +2929,8 @@ example:
         _file = infoDict['filename']
         newFilename = os.path.normpath(_file).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
         
-        log.info( cgmGEN.logString_msg(_str_func,"Selected: {0}".format(_file)))            
-        log.info( cgmGEN.logString_msg(_str_func,"New: {0}".format(newFilename)))            
+        log.info( log_msg(_str_func,"Selected: {0}".format(_file)))            
+        log.info( log_msg(_str_func,"New: {0}".format(newFilename)))            
 
         if os.path.exists(newFilename):
             result = mc.confirmDialog(
@@ -2655,7 +2945,7 @@ example:
                 return False
 
         if not os.path.exists(os.path.dirname(newFilename)):
-            log.info( cgmGEN.logString_msg(_str_func,"Creating path : {0}".format(newFilename)))            
+            log.info( log_msg(_str_func,"Creating path : {0}".format(newFilename)))            
             os.makedirs(os.path.dirname(newFilename))
 
         copyfile(_file, newFilename)
@@ -2675,7 +2965,7 @@ example:
             self.var_alwaysSendReferenceFiles.setValue(1)
 
         if result == 'Yes' or self.var_alwaysSendReferenceFiles.getValue():
-            log.info( cgmGEN.logString_msg(_str_func,"Trying References..."))
+            log.info( log_msg(_str_func,"Trying References..."))
             for refFile in mc.file(_file,query=True, reference=True):
                 if not os.path.exists(refFile):
                     continue
@@ -2699,21 +2989,21 @@ example:
             if self.LoadProject(infoDict['project']):
                 self.LoadOptions()
         #else:
-        #    log.info( cgmGEN.logString_msg(_str_func,"Path mismatch, no ref possible"))
+        #    log.info( log_msg(_str_func,"Path mismatch, no ref possible"))
             
-        log.info( cgmGEN.logString_msg(_str_func,"Done"))
+        log.info( log_msg(_str_func,"Done"))
 
     def SendLatestRigToProject():
         pass
 
     def OpenRig(self, filename, *args):
-        rigPath = filename #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
+        rigPath = filename #os.path.normpath(os.path.join(self.path_asset, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
         if os.path.exists(rigPath):
             mc.file(rigPath, o=True, f=True, ignoreVersion=True)
 
     def ReferenceRig(self, filename, assetName, *args):
         _str_func = 'Scene.ReferenceRig'
-        rigPath = filename #os.path.normpath(os.path.join(self.assetDirectory, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
+        rigPath = filename #os.path.normpath(os.path.join(self.path_asset, "%s_rig.mb" % self.assetList['scrollList'].getSelectedItem() ))
 
         log.info( '{0} | Referencing file : {1}'.format(_str_func, rigPath) )
 
@@ -2812,10 +3102,10 @@ example:
                 # else:
                 # 	objs = [masterNode]
                 categoryDirectory = os.path.normpath(os.path.join( self.directory, animDict["category"] ))
-                assetDirectory = os.path.normpath(os.path.join( categoryDirectory, animDict["asset"] ))
-                subTypeDirectory = os.path.normpath(os.path.join( assetDirectory, self.subType, animDict["animation"] ))
-                variationDirectory = os.path.normpath(os.path.join( subTypeDirectory, animDict["variation"] ))
-                versionFile = os.path.normpath(os.path.join( variationDirectory, animDict["version"] ))
+                path_asset = os.path.normpath(os.path.join( categoryDirectory, animDict["asset"] ))
+                path_subType = os.path.normpath(os.path.join( path_asset, self.subType, animDict["animation"] ))
+                path_variationDirectory = os.path.normpath(os.path.join( path_subType, animDict["variation"] ))
+                versionFile = os.path.normpath(os.path.join( path_variationDirectory, animDict["version"] ))
 
                 categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, animDict["category"]))
                 exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, animDict["asset"]))
@@ -3008,7 +3298,7 @@ def BatchExport(dataList = []):
         mc.file(_path, open = 1, f = 1, iv = 1)
 
         # if not _d['exportObjs']:
-        # 	log.info(cgmGEN.logString_sub(_str_func,"Trying to find masters..."))
+        # 	log.info(log_sub(_str_func,"Trying to find masters..."))
 
         # 	l_masters = []
         # 	for item in mc.ls("*:master", r=True):
@@ -3022,7 +3312,7 @@ def BatchExport(dataList = []):
         # 				#self.SaveVersion()
 
         # 	if l_masters:
-        # 		log.info(cgmGEN.logString_msg(_str_func,"Found..."))
+        # 		log.info(log_msg(_str_func,"Found..."))
         # 		pprint.pprint(l_masters)
 
         # 		_d['exportObjs'] = l_masters
@@ -3051,27 +3341,27 @@ def BatchExport(dataList = []):
     else:"""
     _name = mFile.name()
     _d = mFile.up().asFriendly()
-    log.debug(cgmGEN.logString_msg(_str_func,_name))
+    log.debug(log_msg(_str_func,_name))
     _newPath = os.path.join(_d,_name+'_BUILD.{0}'.format(mFile.getExtension()))        
 
     log.info("New Path: {0}".format(_newPath))
 
-    #cgmGEN.logString_msg(_str_func,'File Open...')
+    #log_msg(_str_func,'File Open...')
     mc.file(_path, open = 1, f = 1)
 
-    #cgmGEN.logString_msg(_str_func,'Process...')
+    #log_msg(_str_func,'Process...')
     t1 = time.time()
 
     try:
         if not blocks:
-            #cgmGEN.logString_sub(_str_func,'No blocks arg')
+            #log_sub(_str_func,'No blocks arg')
 
             ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
                                                          nTypes=['transform','network'],
                                                          mAttrs='blockType=master')
 
             for mMaster in ml_masters:
-                #cgmGEN.logString_sub(_str_func,mMaster)
+                #log_sub(_str_func,mMaster)
 
                 RIGBLOCKS.contextual_rigBlock_method_call(mMaster, 'below', 'atUtils','changeState','rig',forceNew=False)
 
@@ -3117,7 +3407,7 @@ def BatchExport(dataList = []):
     log.info("|{0}| >> Total Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 ))) 
 
 
-    #cgmGEN.logString_msg(_str_func,'File Save...')
+    #log_msg(_str_func,'File Save...')
     newFile = mc.file(rename = _newPath)
     mc.file(save = 1)            
 
@@ -3306,7 +3596,7 @@ def ExportScene(mode = -1,
     else:
         _end = None
 
-    log.info( cgmGEN.logString_sub(_str_func,'Bake | start: {0} | end: {1}'.format(_start,_end)) )
+    log.info( log_sub(_str_func,'Bake | start: {0} | end: {1}'.format(_start,_end)) )
 
     bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
                      euler=euler,tangent=tangent)
@@ -3314,7 +3604,7 @@ def ExportScene(mode = -1,
     mc.loadPlugin("fbxmaya")
 
     for obj in exportObjs:			
-        log.info( cgmGEN.logString_sub(_str_func,'On: {0}'.format(obj)) )
+        log.info( log_sub(_str_func,'On: {0}'.format(obj)) )
 
         cgmObj = cgmMeta.asMeta(obj)
         mc.select(obj)
@@ -3342,7 +3632,7 @@ def ExportScene(mode = -1,
         if(exportFBXFile):
             mel.eval('FBXExportSplitAnimationIntoTakes -c')
             for shot in animList.shotList:
-                log.info( cgmGEN.logString_msg(_str_func, "shot..."))
+                log.info( log_msg(_str_func, "shot..."))
                 log.info(shot)
                 mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
             

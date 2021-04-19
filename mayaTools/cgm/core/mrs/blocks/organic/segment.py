@@ -376,7 +376,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'squashExtraControl' : 'bool',
                  'squashFactorMax':'float',
                  'squashFactorMin':'float',
-                 'shapersAim':'toEnd:chain',
+                 'shapersAim':'toEnd:chain:orientToHandle',
                  'loftSetup':'default:loftList',
                  
                  'ribbonAim': 'none:stable:stableBlend',
@@ -562,7 +562,12 @@ def define(self):
     _dat['baseSize'] = self.baseSize
     self.baseDat = _dat
     BLOCKSHAPES.addJointRadiusVisualizer(self, mDefineNull)
-    self.UTILS.controller_walkChain(self,_resDefine['ml_handles'],'define')
+    ml_order = [md_handles['end'],
+                md_handles['start'],
+                md_handles['up'],
+                md_handles['rp'],
+                self]
+    self.UTILS.controller_walkChain(self,ml_order,'define')
     
     return
     #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        

@@ -900,7 +900,8 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
     if softSelectMultiply and _sel:
         if mc.softSelect(q=True, sse=True):
             log.info("{0} softSelectMultiply Active...".format(_str_funcName))        
-            _d_softSelect = selUtils.get_sorted_softSelectionWeights()   
+            _d_softSelect = selUtils.get_sorted_softSelectionWeights()
+            pprint.pprint(_d_softSelect)
         else:
             log.warning("{0} softSelectMultiply True but softSelect is not on. Ignoring...".format(_str_funcName))
             
@@ -970,6 +971,7 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
             log.error("{0}>> Target: '{1}' has wrong vert count. lenBase> {2} != {3} <lenTarget".format(_str_funcName,o,_len_base, _len_pos))
         else:
             _l_targetsGood.append(i)
+            log.debug("{0} | {1}".format(i,o))	
 
     if len(_l_targetsGood) < 2:
         raise ValueError,"{0}>> must have at least two good targets".format(_str_funcName)
@@ -1022,7 +1024,7 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
             else:
                 _symDict = get_symmetryDict(_baseObj,center,axis,tolerance,returnMode = 'indices')
             if _symDict['asymmetrical']:
-                raise ValueError,"{0}>> Must have symmetrical target for mode: '{1}' | mode: {2}".format(_str_funcName,target,_mode)
+                raise ValueError,"{0}>> Must have symmetrical target for mode: '{1}' | mode: {2}".format(_str_funcName,_obj,_mode)
 
             #_l_toEvaluate = meshMath_values(_l_pos_obj,_l_pos_targ,'diff',_multiplier)
             _l_toApply = copy.copy(_posDat)
@@ -1157,18 +1159,26 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
                     _posDat = _l_posData[i] 
                     _multiplyDict = {}
                     if _d_softSelect:
-                        log.info("{0} >> Soft selection mode".format(_str_funcName))
+                        log.info("{0} >> Soft selection mode | 1160".format(_str_funcName))
                         if _d_baseSoftSelect:
                             if _mode in ['copyTo']:
                                 _d = _d_baseSoftSelect
                             else:
-                                _d = _d_softSelect.get(_l_longNames[i],{})
+                                _d = _d_softSelect.get(_l_longNames[i],{}) 
+                                
+                        else:
+                            _d = _d_softSelect.get(_l_longNames[i],{}) 
+                            log.info("soft dict...")
+                            pprint.pprint(_d)                                
+                            if not _d:raise ValueError,"No soft selection"
                             
                         #_d = _d_softSelect.get(_l_longNames[_b_idx],{})                        
                         #log.info(_l_longNames[i])
-                        log.info(_d)
+                        #log.info(_d)
                         if _d:               
-                            _multiplyDict = _d   
+                            _multiplyDict = _d
+                        else:
+                            log.warning("{0} >> Soft selection mode | none detected".format(_str_funcName))
 
                     #_l_toApply = meshMath_values(_posBase,_posDat,_mode,_multiplier,multiplyDict=_multiplyDict)                
                                          

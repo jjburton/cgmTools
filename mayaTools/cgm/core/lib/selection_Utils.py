@@ -122,7 +122,7 @@ def get_sorted_softSelectionWeights():
     while not iter.isDone(): 
         iter.getDagPath( dagPath, component )
         dagPath.pop() #Grab the parent of the shape node
-        node = dagPath.fullPathName()
+        node = str(dagPath.fullPathName())
         if not d_objects.get(node,False):
             d_objects[node] = {}
         

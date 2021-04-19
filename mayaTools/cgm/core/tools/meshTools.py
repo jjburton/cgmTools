@@ -1926,20 +1926,17 @@ class go(cgmUI.cgmGUI):
             _multiplier = multiplier
 
         for mObj in _ml_objs:
-            try:
-                log.info(GEO.meshMath([mObj.mNode,
-                                       self._mi_baseObject.mNode],
-                                      mode,
-                                      space = _d['space'],
-                                      center =_d['pivot'], 
-                                      axis=_d['axis'], 
-                                      tolerance= _d['tolerance'], 
-                                      resultMode=_d['resultMode'],
-                                      multiplier=_multiplier,
-                                      softSelectMultiply=True,
-                                      symDict=self._d_baseSym) ) 
-            except Exception,err:
-                log.error("{0}: meshMath(baseObject) fail. {1} | err:{2}".format(self._str_reportStart,mObj.mNode,err))                
+            log.info(GEO.meshMath([mObj.mNode,
+                                   self._mi_baseObject.mNode],
+                                  mode,
+                                  space = _d['space'],
+                                  center =_d['pivot'], 
+                                  axis=_d['axis'], 
+                                  tolerance= _d['tolerance'], 
+                                  resultMode=_d['resultMode'],
+                                  multiplier=_multiplier,
+                                  softSelectMultiply=True,
+                                  symDict=self._d_baseSym) ) 
 
     def baseObject_reprocessSym(self):
         try:
