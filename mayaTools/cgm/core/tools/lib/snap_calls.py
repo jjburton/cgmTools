@@ -81,7 +81,7 @@ def snap_action(objects = None, snapMode = 'point',selectionMode = 'eachToLast',
         _str_func = 'snap_action'
         subKWS = {}
         if objects is None:
-            objects = mc.ls(sl=True)
+            objects = mc.ls(os=True, flatten=True)
             
         if snapMode == 'aim':
             aim_axis = SHARED._l_axis_by_string[var_objDefaultAimAxis.value]

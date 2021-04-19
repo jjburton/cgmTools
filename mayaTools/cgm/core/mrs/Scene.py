@@ -163,11 +163,11 @@ example:
 
         self.exportCommand               = ""
 
-        self.showAllFilesOption          = None
-        self.removeNamespaceOption       = None
-        self.zeroRootOption              = None
-        self.useMayaPyOption             = None
-        self.showDirectoriesOption       = None
+        self.cb_showAllFiles          = None
+        self.cb_removeNamespace       = None
+        self.cb_zeroRoot              = None
+        self.cb_useMayaPy             = None
+        self.cb_showDirectories       = None
 
         self.showDirectories             = self.var_showDirectories.getValue()
         self.displayDetails              = self.var_displayDetails.getValue()
@@ -505,12 +505,12 @@ example:
         self.displayDetails  = bool(self.var_displayDetails.getValue())
         self.displayProject  = bool(self.var_displayProject.getValue())
 
-        if self.showAllFilesOption:
-            self.showAllFilesOption(e=True, checkBox = self.showAllFiles)
-        if self.removeNamespaceOption:
-            self.removeNamespaceOption(e=True, checkBox = self.removeNamespace)
-        if self.zeroRootOption:
-            self.zeroRootOption(e=True, checkBox = self.zeroRoot)
+        if self.cb_showAllFiles:
+            self.cb_showAllFiles(e=True, checkBox = self.showAllFiles)
+        if self.cb_removeNamespace:
+            self.cb_removeNamespace(e=True, checkBox = self.removeNamespace)
+        if self.cb_zeroRoot:
+            self.cb_zeroRoot(e=True, checkBox = self.zeroRoot)
 
         self.SetSubType(self.subTypeIndex)
         self.buildMenu_subTypes()
@@ -524,12 +524,12 @@ example:
 
     def SaveOptions(self, *args):
         log.info( "Saving options" )
-        self.showAllFiles = self.showAllFilesOption( q=True, checkBox=True ) if self.showAllFilesOption else False
-        self.removeNamespace = self.removeNamespaceOption( q=True, checkBox=True ) if self.removeNamespaceOption else False
-        self.zeroRoot = self.zeroRootOption( q=True, checkBox=True ) if self.zeroRootOption else False
+        self.showAllFiles = self.cb_showAllFiles( q=True, checkBox=True ) if self.cb_showAllFiles else False
+        self.removeNamespace = self.cb_removeNamespace( q=True, checkBox=True ) if self.cb_removeNamespace else False
+        self.zeroRoot = self.cb_zeroRoot( q=True, checkBox=True ) if self.cb_zeroRoot else False
 
-        self.useMayaPy = self.useMayaPyOption( q=True, checkBox=True ) if self.useMayaPyOption else False
-        self.showDirectories = self.showDirectoriesOption( q=True, checkBox=True ) if self.showDirectoriesOption else False
+        self.useMayaPy = self.cb_useMayaPy( q=True, checkBox=True ) if self.cb_useMayaPy else False
+        self.showDirectories = self.cb_showDirectories( q=True, checkBox=True ) if self.cb_showDirectories else False
 
         self.var_showAllFiles.setValue(self.showAllFiles)
         self.var_removeNamespace.setValue(self.removeNamespace)
@@ -1304,27 +1304,27 @@ example:
         #>>> Reset Options		
         
         mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu, label = 'Export', )
-        self.useMayaPyOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use Maya Standalone",
+        self.cb_useMayaPy =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Use Maya Standalone",
                                                  ann="Use Mayapy/Maya stand alone to process",
                                                  checkBox=self.useMayaPy,
                                                  c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))        
         
-        self.removeNamespaceOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
+        self.cb_removeNamespace = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
                                                       checkBox=self.removeNamespace,
                                                       c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
         
-        self.zeroRootOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero root upon export",
+        self.cb_zeroRoot = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Zero root upon export",
                                                checkBox=self.zeroRoot,
                                                c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
         
-        self.postEuler = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Euler",
+        self.cb_postEuler = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Euler",
                                                checkBox=self.var_postEuler.getValue(),
                                                c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
         
-        self.uiMenu_tangent = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Tangent",subMenu=True
+        self.cb_tangent = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Tangent",subMenu=True
                                               )
         
-        uiMenu = self.uiMenu_tangent 
+        uiMenu = self.cb_tangent 
                 
         uiRC = mc.radioMenuItemCollection()
         #self.uiOptions_menuMode = []		
@@ -1343,12 +1343,12 @@ example:
         
         mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu, l = 'Other')
         
-        self.showAllFilesOption = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
+        self.cb_showAllFiles = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show all files",
                                                            checkBox=self.showAllFiles,
                                                         c = lambda *a:mc.evalDeferred(self.uiFunc_showAllFiles,lp=True))
 
         
-        self.showDirectoriesOption =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
+        self.cb_showDirectories =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
                                                                checkBox=self.showDirectories,
                                                          c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
 
@@ -2644,8 +2644,10 @@ example:
         if self.project.d_exportOptions:
             self.var_postEuler.setValue( self.project.d_exportOptions['postEuler'] )
             self.var_postTangent.setValue( self.project.d_exportOptions['postTangent'] )
-            self.var_removeNamespace.setValue( self.project.d_exportOptions['removeNameSpace'] )
-            self.removeNamespace = self.project.d_exportOptions['removeNameSpace']
+            
+            if self.project.d_exportOptions.get('removeNameSpace'):
+                self.var_removeNamespace.setValue( self.project.d_exportOptions['removeNameSpace'] )
+                self.removeNamespace = self.project.d_exportOptions['removeNameSpace']
             
             self.var_zeroRoot.setValue( self.project.d_exportOptions['zeroRoot'] )
             
