@@ -2417,7 +2417,7 @@ example:
 
         if result == 'OK':
             subTypeName = mc.promptDialog(query=True, text=True)
-            subTypeDir = self.path_subType #os.path.normpath(os.path.join(self.path_asset, self.subType)) if self.hasSub else os.path.normpath(self.path_asset)
+            subTypeDir = self.path_subTypeDir #os.path.normpath(os.path.join(self.path_asset, self.subType)) if self.hasSub else os.path.normpath(self.path_asset)
             if not os.path.exists(subTypeDir):
                 os.mkdir(subTypeDir)
 
