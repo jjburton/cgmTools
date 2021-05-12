@@ -1467,7 +1467,7 @@ def buildBlendShapeNode(targetObject, blendShapeTargets, nameBlendShape = False)
     
 	    targetParent = objAttrs.get('cgmBlendShapeTargetParent')
 	    targetValue = float(objAttrs.get('cgmBlendShapeInbetweenWeight'))
-	    bsIndice = blendShapeChannels.index(targetParent)
+	    bsIndice = blendShapeChannels.index(names.getBaseName(targetParent))
     
 	    mc.blendShape(blendShapeNode[0], edit = True, ib = True , target = [targetObject,bsIndice,obj,targetValue])
 

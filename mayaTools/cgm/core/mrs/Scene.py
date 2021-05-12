@@ -64,7 +64,7 @@ __version__ = cgmGEN.__RELEASE
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]
-_l_directoryMask = ['meta']
+_l_directoryMask = ['meta','.mayaSwatches']
 
 class ui(cgmUI.cgmGUI):
     '''
@@ -828,7 +828,10 @@ example:
 
         self.assetTSLpum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
 
-        self.assetButton = mUI.MelButton(_catForm, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
+        mRow_asset = mUI.MelHLayout(_catForm)
+        self.assetButton = mUI.MelButton(mRow_asset, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
+        self.addSubTypeButton = mUI.MelButton(mRow_asset, ut='cgmUITemplate', label="Add SubType", command=self.CreateSubType)
+        mRow_asset.layout()
 
         _catForm( edit=True, 
                           attachForm=[
@@ -837,12 +840,12 @@ example:
                                       (self.categoryBtn, 'right', 0), 
                                     (self.assetList['formLayout'], 'left', 0),
                                         (self.assetList['formLayout'], 'right', 0),
-                                        (self.assetButton, 'bottom', 0), 
-                                        (self.assetButton, 'right', 0), 
-                                        (self.assetButton, 'left', 0)], 
+                                        (mRow_asset, 'bottom', 0), 
+                                        (mRow_asset, 'right', 0), 
+                                        (mRow_asset, 'left', 0)], 
                           attachControl=[
                               (self.assetList['formLayout'], 'top', 0, self.categoryBtn),
-                                      (self.assetList['formLayout'], 'bottom', 0, self.assetButton)] )
+                                      (self.assetList['formLayout'], 'bottom', 0, mRow_asset)] )
 
 
         # SubTypes ======================================================================================
@@ -866,7 +869,14 @@ example:
         
         mUI.MelMenuItem( pum, label='        Subtype', en=False )
         
+        mUI.MelMenuItem(pum,label="Add Sub Type",
+                        command=self.CreateSubType)                
+        mUI.MelMenuItem(pum,label="Add Sub Dir",
+                        command=self.CreateSubAsset)        
+        
         mUI.MelMenuItemDiv( pum, label='Selected' )
+        
+
         
         self._referenceSubTypePUM = mUI.MelMenuItem(pum,label="Reference",
                                                     ann = _d_ann.get('reference'),
@@ -900,9 +910,12 @@ example:
                         label = 'Save Maya here')
         mUI.MelMenuItem(pum, label="Refresh", command=lambda *a:self.LoadSubTypeList() )
         
-
-        self.subTypeButton = mUI.MelButton(_animForm, ut='cgmUITemplate', label="New Animation", command=self.CreateSubAsset)
-
+        
+        
+        mRow_subType = mUI.MelHLayout(_animForm)
+        self.subTypeButton = mUI.MelButton(mRow_subType, ut='cgmUITemplate', label="New Subtype", command=self.CreateSubAsset)
+        #self.addSubButton = mUI.MelButton(mRow_subType, ut='cgmUITemplate', label="Add Sub", command=self.CreateVariation)
+        mRow_subType.layout()
         _animForm( edit=True, 
                            attachForm=[
                                (self.subTypeBtn, 'top', 0), 
@@ -910,12 +923,12 @@ example:
                                        (self.subTypeBtn, 'right', 0), 
                                     (self.subTypeSearchList['formLayout'], 'left', 0),
                                         (self.subTypeSearchList['formLayout'], 'right', 0),
-                                        (self.subTypeButton, 'bottom', 0), 
-                                        (self.subTypeButton, 'right', 0), 
-                                        (self.subTypeButton, 'left', 0)], 
+                                        (mRow_subType, 'bottom', 0), 
+                                        (mRow_subType, 'right', 0),
+                                        (mRow_subType, 'left', 0)], 
                            attachControl=[
                                (self.subTypeSearchList['formLayout'], 'top', 0, self.subTypeBtn),
-                                       (self.subTypeSearchList['formLayout'], 'bottom', 0, self.subTypeButton)] )
+                                       (self.subTypeSearchList['formLayout'], 'bottom', 0, mRow_subType)] )
 
         # Variation ======================================================================================
         _variationForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
@@ -1200,7 +1213,7 @@ example:
             mc.formLayout( self._subForms[3], e=True, vis=1 )
         
         else:
-            mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
+            mc.formLayout( self._subForms[3], e=True, vis=self.hasSub)#self.hasSub )
                 
             #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
             #else:
@@ -2401,7 +2414,42 @@ example:
 
             self.LoadCategoryList(self.directory)
             self.assetList['scrollList'].selectByValue(charName)
+            
+    def CreateSubType(self, *args):
+        if not self.path_asset:
+            log.error("No asset selected.")
+            return
 
+        result = mc.promptDialog(
+                    title='New Subtype category'.format(self.subType.capitalize()),
+                    message='New SubType Name:'.format(self.subType.capitalize()),
+                    button=['OK', 'Cancel'],
+                            defaultButton='OK',
+                                        cancelButton='Cancel',
+                                        dismissString='Cancel')
+
+        if result == 'OK':
+            subTypeCat = mc.promptDialog(query=True, text=True)
+            subTypeDir = self.path_asset #os.path.normpath(os.path.join(self.path_asset, self.subType)) if self.hasSub else os.path.normpath(self.path_asset)
+            if not os.path.exists(subTypeDir):
+                os.mkdir(subTypeDir)
+
+            subTypePath = os.path.normpath(os.path.join(subTypeDir, subTypeCat))
+            if not os.path.exists(subTypePath):
+                os.mkdir(subTypePath)
+                
+            self.uiFunc_assetList_select()
+            self.LoadSubTypeList()
+
+            self.subTypeSearchList['scrollList'].clearSelection()
+            self.subTypeSearchList['scrollList'].selectByValue( subTypeCat )
+            
+            
+
+            if not self.hasVariant:
+                self.CreateStartingFile()
+                self.LoadVersionList()
+                
     def CreateSubAsset(self, *args):
         if not self.path_asset:
             log.error("No asset selected.")
