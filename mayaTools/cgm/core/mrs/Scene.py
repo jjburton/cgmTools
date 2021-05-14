@@ -1215,8 +1215,8 @@ example:
         _hasSub = self.hasSub
         
         if not self.hasSubTypes:
-            mc.formLayout( self._subForms[1], e=True, vis=False )
-            mc.formLayout( self._subForms[3], e=True, vis=1 )
+            #mc.formLayout( self._subForms[1], e=True, vis=False )
+            mc.formLayout( self._subForms[3], e=True, vis=0 )
         
         else:
             mc.formLayout( self._subForms[3], e=True, vis=self.hasSub)#self.hasSub )
@@ -2141,7 +2141,7 @@ example:
 
         self.subTypeBtn( e=True, label=self.subType )
 
-        if self.hasSubTypes:
+        if self.hasSub:
             self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()), command=self.CreateSubAsset)
         else:
             self.subTypeButton(edit=True, label="Save New Version", command=self.SaveVersion)
