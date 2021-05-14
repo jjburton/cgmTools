@@ -870,9 +870,13 @@ example:
         mUI.MelMenuItem( pum, label='        Subtype', en=False )
         
         mUI.MelMenuItem(pum,label="Add Sub Type",
-                        command=self.CreateSubType)                
+                        command=self.CreateSubType)
+        
         mUI.MelMenuItem(pum,label="Add Sub Dir",
-                        command=self.CreateSubAsset)        
+                        command=self.CreateSubAsset)
+        
+        mUI.MelMenuItem(pum,label="Add Variation",
+                        command=self.CreateVariation)
         
         mUI.MelMenuItemDiv( pum, label='Selected' )
         
@@ -1029,6 +1033,8 @@ example:
         
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
+        mUI.MelMenuItem( pum, label="Create SubTypeRef", command= lambda *a:self.CreateSubTypeRef() )
+        
 
         mUI.MelMenuItemDiv( pum, label='Directory' )
         mUI.MelMenuItem(pum, label="Explorer", command=self.OpenVersionDirectory )
@@ -1124,7 +1130,7 @@ example:
         cgmUI.add_LineSubBreak()
         mUI.MelButton(_col, label="Remove All", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 1))
         cgmUI.add_LineSubBreak()
-        mUI.MelButton(_col, label="Batch Export", ut = 'cgmUITemplate', command=partial(self.BatchExport))
+        mUI.MelButton(_col, label="Batch Export", ut = 'cgmUITemplate', command=partial(self.batch_buildFile))
         cgmUI.add_LineSubBreak()
 
         _options_fl = mUI.MelFrameLayout(_col, label="Options", collapsable=True)
@@ -1279,6 +1285,8 @@ example:
                                  c=lambda *a: self.project.log_self())
         mUI.MelMenuItem( _log, l="States",
                                  c=lambda *a: self.report_states())
+        mUI.MelMenuItem( _log, l="Export Batch",
+                                 c=lambda *a: pprint.pprint(self.batchExportItems))        
         mc.menuItem(parent=self.uiMenu_HelpMenu,
                             l = 'Get Help',
                             c='import webbrowser;webbrowser.open("https://http://docs.cgmonks.com/mrs.html");',                        
@@ -2450,6 +2458,105 @@ example:
                 self.CreateStartingFile()
                 self.LoadVersionList()
                 
+    def CreateSubTypeRef(self, *args):
+        _str_func = 'CreateSubTypeRef'
+        filePath = self.versionFile
+        if not self.versionFile and not os.path.exists(self.versionFile):
+            return False
+        
+            #file -import -type "mayaBinary"  -ignoreVersion -mergeNamespacesOnClash false -rpr #"wing_birdBase_03" -options "v=0;"  -pr  -importTimeRange "combine" "D:/Dropbox/mrsMakers_share/content/Demo/wing/scenes/birdBase/wing_birdBase_03.mb";
+            
+            
+            
+            
+        versionList = self.versionList if self.hasSub else self.subTypeSearchList
+        existingFiles = versionList['items']
+
+        wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem() if self.hasSub else self.subType)
+        if self.hasVariant:
+            wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
+        
+        wantedName = "%s_%s.mb" % (wantedName, self.subType)
+            
+        log.info(log_msg(_str_func,"Wanted: {0}".format(wantedName)))
+    
+        """
+        if len(existingFiles) == 0:
+            wantedName = "%s_%02d.mb" % (wantedName, 1)
+        else:
+            currentFile = mc.file(q=True, loc=True)
+            if not os.path.exists(currentFile):
+                currentFile = "%s_%02d.mb" % (wantedName, 1)
+
+            baseFile = os.path.split(currentFile)[-1]
+            baseName, ext = baseFile.split('.')
+
+            wantedBasename = wantedName #"%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
+            if not wantedBasename in baseName:
+                baseName = "%s_%02d" % (wantedBasename, 1)
+
+            noVersionName = '_'.join(baseName.split('_')[:-1])
+            versionString = baseName.split('_')[-1]
+            versionNumString = re.findall('[0-9]+', versionString)[0]
+            versionPrefix = versionString[:versionString.find(versionNumString)]
+            version = int(versionNumString)
+            
+            versionFiles = []
+            versions = []
+            for item in existingFiles:
+                matchString = "^(%s_%s)[0-9]+\.m." % (noVersionName, versionPrefix)
+                pattern = re.compile(matchString)
+                if pattern.match(item):
+                    versionFiles.append(item)
+                    versions.append( int(item.split('.')[0].split('_')[-1].replace(versionPrefix, '')) )
+
+            versions.sort()
+
+            if len(versions) > 0:
+                newVersion = versions[-1]+1
+            else:
+                newVersion = 1
+
+            wantedName = "%s_%s%02d.%s" % (noVersionName, versionPrefix, newVersion, ext)"""
+        
+        #new file
+        mc.file(f=True,new=True)
+        mc.file(filePath, r=True, ignoreVersion=True, gl=True, mergeNamespacesOnClash=False,
+                namespace=self.assetList['scrollList'].getSelectedItem())        
+        
+        saveLocation = os.path.join(self.path_asset, self.subType)
+        if self.hasSub:
+            saveLocation = self.path_subType
+        if self.hasSub and self.hasVariant:
+            saveLocation = self.path_variationDirectory
+        
+        log.info(log_msg(_str_func,"Save to: {0}".format(saveLocation)))
+
+        saveFile = os.path.normpath(os.path.join(saveLocation, wantedName) ) 
+        log.info( "Saving file: %s" % saveFile )
+        mc.file( rename=saveFile )
+        mc.file( save=True )
+
+        self.LoadVersionList()
+
+        versionList['scrollList'].selectByValue( wantedName )
+        self.StoreCurrentSelection()
+
+        self.refreshMetaData()
+            
+            
+            
+            
+            
+            
+            
+
+        
+        
+                
+            
+            
+        
     def CreateSubAsset(self, *args):
         if not self.path_asset:
             log.error("No asset selected.")
@@ -3075,16 +3182,33 @@ example:
 
     def AddLastToExportQueue(self, *args):
         if self.variationList != None:
-            self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.subTypeSearchList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
+            self.batchExportItems.append( {"category":self.category,
+                                           'subType':self.subType,                                           
+                                           "asset":self.assetList['scrollList'].getSelectedItem(),
+                                           "animation":self.subTypeSearchList['scrollList'].getSelectedItem(),
+                                           "variation":self.variationList['scrollList'].getSelectedItem(),
+                                           "version":self.versionList['scrollList'].getItems()[-1]} )
 
         self.RefreshQueueList()
 
     def AddToExportQueue(self, *args):
         if self.versionList['scrollList'].getSelectedItem() != None:
-            self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.subTypeSearchList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getSelectedItem()} )
+            self.batchExportItems.append( {"category":self.category,
+                                           "path":self.versionFile,
+                                           'subType':self.subType,
+                                           "asset":self.assetList['scrollList'].getSelectedItem(),
+                                           "animation":self.subTypeSearchList['scrollList'].getSelectedItem(),
+                                           "variation":self.variationList['scrollList'].getSelectedItem(),
+                                           "version":self.versionList['scrollList'].getSelectedItem()} )
         elif self.variationList != None:
-            self.batchExportItems.append( {"category":self.category,"asset":self.assetList['scrollList'].getSelectedItem(),"animation":self.subTypeSearchList['scrollList'].getSelectedItem(),"variation":self.variationList['scrollList'].getSelectedItem(),"version":self.versionList['scrollList'].getItems()[-1]} )
-
+            self.batchExportItems.append( {"category":self.category,
+                                           "path":None,
+                                           'subType':self.subType,                                           
+                                           "asset":self.assetList['scrollList'].getSelectedItem(),
+                                           "animation":self.subTypeSearchList['scrollList'].getSelectedItem(),
+                                           "variation":self.variationList['scrollList'].getSelectedItem(),
+                                           "version":self.versionList['scrollList'].getItems()[-1]} )
+        pprint.pprint(self.batchExportItems[-1])
         self.RefreshQueueList()
 
     def RemoveFromQueue(self, *args):
@@ -3101,7 +3225,11 @@ example:
 
         self.RefreshQueueList()
 
-    def BatchExport(self, *args):
+    def batch_buildFile(self, *args):
+        _str_func = 'batch_buildFile'
+        log.info(log_start(_str_func))
+        
+        
         if self.useMayaPy:
             #reload(BATCH)
             log.info('Maya Py!')
@@ -3117,49 +3245,40 @@ example:
             #if(mc.optionVar(exists='cgm_export_set')):
                 #exportSetName = mc.optionVar(q='cgm_export_set')                
 
+
             l_dat = []
             d_base = {'removeNamespace' : self.removeNamespace,
-                                  'bakeSetName':bakeSetName,
-                                  'exportSetName':exportSetName,
-                                  'deleteSetName':deleteSetName,
-                                  'zeroRoot' : self.zeroRoot}
+                      'bakeSetName':bakeSetName,
+                      'exportSetName':exportSetName,
+                      'deleteSetName':deleteSetName,
+                      'zeroRoot' : self.zeroRoot,
+                      'euler':self.var_postEuler.getValue(),
+                      'tangent':self.var_postTangent.getValue(),
+                      }
 
             for animDict in self.batchExportItems:
-                # self.assetList['scrollList'].selectByValue( animDict["asset"] )
-                # self.LoadSubTypeList()
-                # self.subTypeSearchList['scrollList'].selectByValue( animDict["animation"])
-                # self.LoadVariationList()
-                # self.variationList['scrollList'].selectByValue( animDict["variation"])
-                # self.LoadVersionList()
-                # self.versionList['scrollList'].selectByValue( animDict["version"])
-
-                #mc.file(self.versionFile, o=True, f=True, ignoreVersion=True)
-
-                # masterNode = None
-                # for item in mc.ls("*:master", r=True):
-                # 	if len(item.split(":")) == 2:
-                # 		masterNode = item
-
-                # 	if mc.checkBox(self.updateCB, q=True, v=True):
-                # 		rig = ASSET.Asset(item)
-                # 		if rig.UpdateToLatest():
-                # 			self.SaveVersion()
-
-                # if masterNode is None:
-                # 	objs = []
-                # else:
-                # 	objs = [masterNode]
+                
                 categoryDirectory = os.path.normpath(os.path.join( self.directory, animDict["category"] ))
                 path_asset = os.path.normpath(os.path.join( categoryDirectory, animDict["asset"] ))
                 path_subType = os.path.normpath(os.path.join( path_asset, self.subType, animDict["animation"] ))
-                path_variationDirectory = os.path.normpath(os.path.join( path_subType, animDict["variation"] ))
-                versionFile = os.path.normpath(os.path.join( path_variationDirectory, animDict["version"] ))
+                
+                if animDict.get('path'):
+                    versionFile = animDict.get('path')
+                else:
+                    path_variationDirectory = os.path.normpath(os.path.join( path_subType, animDict["variation"] ))                    
+                    versionFile = os.path.normpath(os.path.join( path_variationDirectory, animDict["version"] ))
 
                 categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, animDict["category"]))
                 exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, animDict["asset"]))
                 exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))                
-
-                exportFileName = '%s_%s_%s.fbx' % (animDict["asset"], animDict["animation"], animDict["variation"])
+                
+                _exportFileName = [animDict["asset"], animDict["animation"]]
+                if animDict.get("variation"):
+                    _exportFileName.append(animDict["variation"])
+                
+                exportFileName = "_".join(_exportFileName) + '.fbx'
+                    
+                #exportFileName = '%s_%s_%s.fbx' % (animDict["asset"], animDict["animation"], animDict["variation"])
 
                 d = {
                                     'file':PATHS.Path(versionFile).asString(),
@@ -3237,6 +3356,8 @@ example:
     #   - export into the base asset directory with
     #   - just the asset name
     def RunExportCommand(self, *args):
+        _str_func = 'RunExportCommand'
+        log.info(log_start(_str_func))
         categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, self.category))
         exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList['scrollList'].getSelectedItem()))
         exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))
@@ -3257,22 +3378,22 @@ example:
                 postTangent = False
 
             d = {
-                        'file':mc.file(q=True, sn=True),
-                        'objs':mc.ls(sl=1),
-                        'mode':args[0],
-                        'exportName':self.exportFileName,
-                        'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
-                        'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
-                        'subType' : self.subType,
-                        'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
-                        'removeNamespace' : self.removeNamespace,
-                        'zeroRoot' : self.zeroRoot,
-                        'bakeSetName':bakeSetName,
-                        'exportSetName':exportSetName,
-                        'deleteSetName':deleteSetName,
-                        'animationName':self.selectedSubType,
-                        'tangent':postTangent,
-                        'euler':postEuler,
+                'file':mc.file(q=True, sn=True),
+                'objs':mc.ls(sl=1),
+                'mode':args[0],
+                'exportName':self.exportFileName,
+                'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
+                'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
+                'subType' : self.subType,
+                'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
+                'removeNamespace' : self.removeNamespace,
+                'zeroRoot' : self.zeroRoot,
+                'bakeSetName':bakeSetName,
+                'exportSetName':exportSetName,
+                'deleteSetName':deleteSetName,
+                'animationName':self.selectedSubType,
+                'tangent':postTangent,
+                'euler':postEuler,
             'workspace':d_userPaths['content']
                         }
 
@@ -3305,7 +3426,8 @@ example:
 
 def BatchExport(dataList = []):
     _str_func = 'BatchExport'
-    #cgmGEN.log_start(_str_func)
+    log.info(log_start(_str_func))
+    
     t1 = time.time()
 
 
@@ -3330,6 +3452,10 @@ def BatchExport(dataList = []):
         _d['animationName'] = fileDat.get('animationName')
         _d['workspace'] = fileDat.get('workspace')
         _d['updateAndIncrement'] = fileDat.get('updateAndIncrement')
+        
+        _euler =  fileDat.get('euler', "0")        
+        _d['euler'] = False if _euler == '0' else True
+        _d['tangent'] = fileDat.get('tangent')
 
         log.info(mFile)
         pprint.pprint(_d)
@@ -3491,15 +3617,18 @@ def ExportScene(mode = -1,
                 euler = False,
                 tangent = False,
                 ):
-
+    
     if workspace:
         mc.workspace( workspace, openWorkspace=True )
 
+    pprint.pprint(vars())
+    
     #exec(self.exportCommand)
     import cgm.core.tools.bakeAndPrep as bakeAndPrep
     #reload(bakeAndPrep)
     import cgm.core.mrs.Shots as SHOTS
     _str_func = 'ExportScene'
+    log.info(log_start(_str_func))
 
     if not exportObjs:
         exportObjs = mc.ls(sl=True)
@@ -3539,7 +3668,7 @@ def ExportScene(mode = -1,
                     objName = set.replace('_%s' % exportSetName, '')
                     if mc.objExists(objName):
                         exportObjs.append(objName)
-
+                        
         if len(exportObjs) > 1:
             log.info("More than one export obj found, setting cutscene mode: 2")
             mode = 2
@@ -3552,8 +3681,12 @@ def ExportScene(mode = -1,
 
     if mode > 0:
         exportFBXFile = True
+    
+    log.info("Mode: {0}".format(mode))    
+    pprint.pprint(exportObjs)
 
     if len(exportObjs) > 1 and mode != 2:
+        log.info("Multi check")            
         result = mc.confirmDialog(
                     title='Multiple Object Selected',
                     message='Will export in cutscene mode, is this what you intended? If not, hit Cancel, select one object and try again.',
@@ -3569,9 +3702,11 @@ def ExportScene(mode = -1,
         exportAsCutscene = True
 
     if mode== 2:
+        log.info("mode 2...")        
         addNamespaceSuffix = True
         exportAsCutscene = True
     if mode == 3:
+        log.info("mode 3...")                
         exportAsRig = True
 
     # make the relevant directories if they dont exist
@@ -3586,7 +3721,10 @@ def ExportScene(mode = -1,
 
     #if not os.path.exists(exportAssetPath):
     #    os.mkdir(exportAssetPath)
-    exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
+    log.info(log_msg(_str_func,"Pathcheck..."))
+    if not exportAnimPath:
+        exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
+    log.info("exportPath: {0}".format(exportAnimPath))                
 
     #if not os.path.exists(exportAnimPath):
         #log.info("making export anim path...")
