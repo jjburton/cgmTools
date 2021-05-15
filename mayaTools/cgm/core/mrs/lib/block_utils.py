@@ -1256,27 +1256,25 @@ def is_prerig(self):
         cgmGEN.cgmExceptCB(Exception,err)
         
 def is_skeleton(self):
-    try:
-        _str_func = 'is_skeleton'
-        log.debug(cgmGEN.logString_start(_str_func))
+    _str_func = 'is_skeleton'
+    log.debug(cgmGEN.logString_start(_str_func))
 
-        
-        mBlockModule = self.p_blockModule
     
-        if 'skeleton_check' in mBlockModule.__dict__.keys():
-            log.debug("|{0}| >> BlockModule skeleton_check call found...".format(_str_func))            
-            return self.atBlockModule('skeleton_check')
-        else:
-            log.error("|{0}| >> Need skeleton_check for: {1}".format(_str_func,self.blockType))            
-            
-        return True
+    mBlockModule = self.p_blockModule
+
+    if 'skeleton_check' in mBlockModule.__dict__.keys():
+        log.debug("|{0}| >> BlockModule skeleton_check call found...".format(_str_func))            
+        return self.atBlockModule('skeleton_check')
+    else:
+        log.error("|{0}| >> Need skeleton_check for: {1}".format(_str_func,self.blockType))            
         
+    return True
     
-        #return False        
-        
-        return msgDat_check(self, get_stateLinks(self,'skeleton'))
-    except Exception,err:
-        cgmGEN.cgmExceptCB(Exception,err)
+
+    #return False        
+    
+    return msgDat_check(self, get_stateLinks(self,'skeleton'))
+
 
 def is_prerigBAK(self, msgLinks = [], msgLists = [] ):
     try:
@@ -11503,9 +11501,12 @@ def get_orienationDict(self,orienation='zyx'):
 
 def shapes_castTest(self,orient= 'zyx'):
     
-    if self.blockType in ['master']:
+    if self.blockType in ['master','eye','brow','mouth']:
         return
         
+    if not is_skeleton(self):
+        raise ValueError,"Must be skeletonized | {0}".format(self)
+    
     mFac = self.asRigFactory()
     
     ml_joints = self.prerigNull.msgList_get('handleJoints')

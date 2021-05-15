@@ -2048,14 +2048,16 @@ class build_conditionNetworkFromGroup(object):
         #children = self.i_group.getChildren()
         mChildren = self.i_group.getChildren(asMeta=True)
         children = [mObj.p_nameShort for mObj in mChildren]
+        baseNames = [mObj.p_nameBase for mObj in mChildren]
         children.insert(0,'none')
-
+        baseNames.insert(0,'none')
+        
         #Make our attr
         if len(children) == 2:
             self.i_attr.doConvert('bool')#Like bool better
             #self.i_attr.setEnum('off:on')
         else:
-            self.i_attr.setEnum(':'.join(children))
+            self.i_attr.setEnum(':'.join(baseNames))
 
         for i,c in enumerate(children[1:]):
             i_c = cgmMeta.cgmNode(c)

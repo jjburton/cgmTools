@@ -42,12 +42,22 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.classes import NodeFactory as NODEF
 import cgm.core.lib.sdk_utils as SDK
 
-
+def controls_verifyAsControls(nodes= None):
+    if not nodes:
+        nodes = mc.ls(sl=1)
+        
+    ml = cgmMeta.validateObjListArg(nodes,'cgmControl',setClass=1)
+    for mObj in ml:
+        mObj._verifyMirrorable()    
+    
 def controls_wireRightToLeft(nodes = None):
     if not nodes:
         nodes = mc.ls(sl=1)
     
-    ml = cgmMeta.asMeta(nodes)
+    ml = cgmMeta.validateObjListArg(nodes,'cgmControl',setClass=1)
+    for mObj in ml:
+        mObj._verifyMirrorable()
+        
     ml[0].connectChildNode(ml[1],'mirrorControl','mirrorControl')
     ml[0].mirrorSide = 'Right'
     ml[1].mirrorSide = 'Left'
@@ -120,10 +130,28 @@ _d_faceBufferAttributes = {
         "lid":{'attrs':['uprOpen','lwrOpen','arcUp','arcDn']},
         "orb":{'attrs':['blink','arcUp','arcDn','angry','surprise','arcDn','bottomSqueeze','sad','frustrated']},        
         "mouth":{'attrs':['up','dn','left','right']},
-        "brow":{'attrs':['up','dn','thicken']},                       
+        "brow":{'attrs':['up','dn','thicken','flatten']},                       
         "jaw":{'attrs':['dn','close','fwd','back']},                    
         "lips":{'attrs':['smile','wide','narrow','frown', 'sneer', 'teethLip','close'],
                 'sideAttrs':'*'}},    
+    
+    'w1':{
+        "lid":{'attrs':['uprClose','uprFurrow','lwrClose','lwrFurrow','arcUp','arcDn'],
+               "sideAttrs":'*'},
+        "brow":{'attrs':['arc','dn','up','flatten','furrow'],
+                "sideAttrs":'*'},
+        "mouth":{'attrs':['up','dn','left','right']},
+        "lips":{'attrs':['smile','wide','narrow','frown', 'seal','smirk',
+                         'smileBig','frownBig'],
+                'sideAttrs':'*'},
+        "tongue":{'attrs':['hide']},
+        "nose":{'attrs':['flare']},
+        
+        
+        
+        
+        
+    },
 
     
     'toon':{"nose":{'attrs':['out','in','sneer_up','sneer_dn',
