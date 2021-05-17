@@ -101,7 +101,8 @@ example:
 
         self.subTypes                    = ['animation']
         self.subTypeIndex                = 0
-
+        self.l_subTypesBase = []
+        
         self.var_lastProject       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
         self.var_lastAsset     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
         self.var_lastAnim      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
@@ -2082,6 +2083,13 @@ example:
         self.LoadCategoryList(self.directory)
 
         self.var_categoryStore.setValue(self.categoryIndex)
+        
+        try:
+            self.l_subTypesBase = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
+        except:
+            self.l_subTypesBase = []
+        
+        self.subTypes = [c for c in self.l_subTypesBase]        
 
         # Set SubType -------------------------------------------------------------------------
         try:
@@ -2767,9 +2775,7 @@ example:
                 
                 self.categoryList.append(f)
 
-            
-            self.l_subTypesBase = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
-            self.subTypes = [c for c in self.l_subTypesBase]
+    
 
 
             if d_userPaths.get('image') and os.path.exists(d_userPaths.get('image')):

@@ -2653,6 +2653,10 @@ def create_jointHelpers(self, force = True):
     _d_base['cgmType'] = 'jointHandle'
     _l_names = ATTR.datList_get(self.mNode,'nameList')
     
+    if len(_l_names) < len(ml_handles):
+        log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_handles)))
+        return False
+    
     #Deal with Lever joint or not --------------------------------------------------
     _b_lever = False
     if self.addLeverBase:
@@ -2673,9 +2677,7 @@ def create_jointHelpers(self, force = True):
     _d_rollCounts = {i+_int_rollStart:v for i,v in enumerate(_rollCounts)}
     
     
-    if len(_l_names) < len(ml_handles):
-        log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_handles)))
-        return False    
+
     
     #Groups ------------------------------------------------------------------------------
     mGroupNoTrans = mNoTrans.doCreateAt('null')
