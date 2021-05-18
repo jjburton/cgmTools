@@ -76,11 +76,42 @@ d_drivenToDriver = {u'ROOT': u'|master|skeleton|rootMotion_jnt',
 
 def attachFBXJointsToRig(connect=True):
     for driven,driver in d_drivenToDriver.iteritems():
+        mDriver = cgmMeta.asMeta(driver)
+        mDriven = cgmMeta.asMeta(driven)
+        mTargetDriver = mDriver.getMessageAsMeta('fbxDriver')
+
         
         if connect:
-            mc.parentConstraint(driver,driven,maintainOffset=True)
-            mc.scaleConstraint(driver,driven,maintainOffset=True)
+            if not mTargetDriver:
+                log.warning("Missing targetDriver: {0}".format(driver))
+                continue
+            _targetDriver = mTargetDriver.mNode
+            
+            log.info("Connecting: {0} -> {1}".format(mDriver.p_nameBase, mDriven.p_nameBase))
+            
+            mc.pointConstraint(_targetDriver,driven,maintainOffset=1)
+            mc.orientConstraint(_targetDriver,driven,maintainOffset=1)            
+            mc.scaleConstraint(_targetDriver,driven,maintainOffset=1)
         else:
+            log.info("Breaking Connection: {0} -> {1}".format(mDriver.p_nameBase, mDriven.p_nameBase))            
             mDriven = cgmMeta.asMeta(driven)
             mc.delete(mDriven.getConstraintsTo())
+            
+            
+def verifyTargetDrivers():
+    for driven,driver in d_drivenToDriver.iteritems():
+        mDriven = cgmMeta.asMeta(driven)
+        mDriver = cgmMeta.asMeta(driver)
+        
+        if not mDriver.getMessage('fbxDriver'):
+            mTargetDriver = mDriven.doCreateAt(setClass=True)
+            mDriver.doStore('fbxDriver', mTargetDriver.mNode, 'message')
+            mTargetDriver.rename("{0}_targetDriver".format(mDriver.p_nameBase))
+            
+            mDriverDriver = mDriver.getConstrainingObjects(asMeta=1)[0]
+            mTargetDriver.p_parent = mDriverDriver
+            mTargetDriver.rotateOrder = mDriven.rotateOrder
+            mTargetDriver.dagLock(True)
+
+
             

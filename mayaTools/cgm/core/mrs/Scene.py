@@ -1217,7 +1217,7 @@ example:
         
         if not self.hasSubTypes:
             #mc.formLayout( self._subForms[1], e=True, vis=False )
-            mc.formLayout( self._subForms[3], e=True, vis=0 )
+            mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
         
         else:
             mc.formLayout( self._subForms[3], e=True, vis=self.hasSub)#self.hasSub )
