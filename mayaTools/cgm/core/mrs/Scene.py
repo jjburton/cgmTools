@@ -766,11 +766,11 @@ example:
         
         #Scroll list
         mScrollList = Project.cgmProjectDirList(self._projectForm, ut='cgmUISubTemplate',
-                                        allowMultiSelection=0,en=True,
-                                        ebg=0,
-                                        bgc = [.2,.2,.2],
-                                        w = 50,
-                                        dcc = cgmGEN.Callback(self.uiFunc_contentDir_loadSelect))
+                                                allowMultiSelection=0, en=True,
+                                                ebg=0,
+                                                bgc = [.2,.2,.2],
+                                                w = 50,
+                                                dcc = cgmGEN.Callback(self.uiFunc_contentDir_loadSelect))
         
         
         #Connect the functions to the buttons after we add the scroll list...
@@ -880,8 +880,7 @@ example:
                         command=self.CreateVariation)
         
         mUI.MelMenuItemDiv( pum, label='Selected' )
-        
-
+                
         
         self._referenceSubTypePUM = mUI.MelMenuItem(pum,label="Reference",
                                                     ann = _d_ann.get('reference'),
@@ -900,6 +899,12 @@ example:
         
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
         
+        mUI.MelMenuItem( pum, label="Create SubTypeRef", command= lambda *a:self.CreateSubTypeRef() )
+        
+        _batch = mUI.MelMenuItem(pum, label="To Queue as:", subMenu=True )
+        for t in ['export','rig','cutscene']:
+            mUI.MelMenuItem( _batch, label= t.capitalize(),
+                             command = partial(self.AddToExportQueue,t))        
 
         mUI.MelMenuItemDiv( pum, label='Directory' )
         mUI.MelMenuItem(pum, label="Explorer", command=self.OpenSubTypeDirectory )
@@ -1032,14 +1037,22 @@ example:
         self.uiPop_sendToProject_version = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
         mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
         
-        mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
+        #mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
+        
+        _batch = mUI.MelMenuItem(pum, label="To Queue as:", subMenu=True )
+        for t in ['export','rig','cutscene']:
+            mUI.MelMenuItem( _batch, label= t.capitalize(),
+                             command = partial(self.AddToExportQueue,t))
+            
+        
+        
+        
         
         mUI.MelMenuItem( pum, label="Create SubTypeRef", command= lambda *a:self.CreateSubTypeRef() )
         
 
         mUI.MelMenuItemDiv( pum, label='Directory' )
         mUI.MelMenuItem(pum, label="Explorer", command=self.OpenVersionDirectory )
-        
         
         mUI.MelMenuItem(pum,
                         ann = "Save Maya file",
@@ -1080,7 +1093,9 @@ example:
 
         _row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
 
-        #mUI.MelSpacer(_row,w=0)
+        mUI.MelSpacer(_row,w=10)
+        mUI.MelLabel(_row, label="Process: ", h=self.__itemHeight, align = 'right')
+        
         self.exportButton = mUI.MelButton(_row, label="Export", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,1), h=self.__itemHeight)
         mc.popupMenu()
         mc.menuItem( l="Bake Without Export", c=partial(self.RunExportCommand,0))
@@ -1090,12 +1105,18 @@ example:
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Bake Without Export", c=partial(self.RunExportCommand,0), h=self.__itemHeight)
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Rig", c=partial(self.RunExportCommand,3), h=self.__itemHeight)
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Cutscene", c=partial(self.RunExportCommand,2), h=self.__itemHeight)
+        
+        _split = mUI.MelLabel(_row, label=" | ", h=self.__itemHeight, align = 'center')
+        mUI.MelLabel(_row, label="Add to queue as: ", h=self.__itemHeight, align = 'right')
+        
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export", w=100, c=lambda *a:(self.AddToExportQueue('export')), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Rig", w=100, c=lambda *a:(self.AddToExportQueue('rig')), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Cutscene", w=100, c=lambda *a:(self.AddToExportQueue('cutscene')), h=self.__itemHeight)
 
-        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Add To Export Queue", w=200, c=partial(self.AddToExportQueue), h=self.__itemHeight)
-
-        _row.setStretchWidget(self.exportButton)
+        _row.setStretchWidget(_split)
 
         #mUI.MelSpacer(_row,w=0)
+        mUI.MelSpacer(_row,w=10)
 
         _row.layout()
 
@@ -1125,8 +1146,8 @@ example:
         _col = mUI.MelColumnLayout(_rcl,width=200,adjustableColumn=True,useTemplate = 'cgmUISubTemplate')#mc.columnLayout(width=200,adjustableColumn=True)
 
         cgmUI.add_LineSubBreak()
-        mUI.MelButton(_col, label="Add", ut = 'cgmUITemplate', command=partial(self.AddToExportQueue))
-        cgmUI.add_LineSubBreak()
+        #mUI.MelButton(_col, label="Add", ut = 'cgmUITemplate', command=partial(self.AddToExportQueue))
+        #cgmUI.add_LineSubBreak()
         mUI.MelButton(_col, label="Remove", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 0))
         cgmUI.add_LineSubBreak()
         mUI.MelButton(_col, label="Remove All", ut = 'cgmUITemplate', command=partial(self.RemoveFromQueue, 1))
@@ -1435,6 +1456,7 @@ example:
         log.info(log_start(_str_func))
         
         self.report_selectedPaths()
+        self.file_subType = None
         
         try: 
             _path = os.path.normpath(os.path.join( self.path_dir_category,
@@ -1447,6 +1469,7 @@ example:
            
         print _path
         if _path and os.path.isfile(_path):
+            self.file_subType = _path
             return
 
         self.LoadVariationList()
@@ -3197,11 +3220,12 @@ example:
 
         self.RefreshQueueList()
 
-    def AddToExportQueue(self, *args):
+    def AddToExportQueue(self, exportMode = 'export', *args):
         if self.versionList['scrollList'].getSelectedItem() != None:
             self.batchExportItems.append( {"category":self.category,
                                            "path":self.versionFile,
                                            'subType':self.subType,
+                                           'exportMode':exportMode,
                                            "asset":self.assetList['scrollList'].getSelectedItem(),
                                            "animation":self.subTypeSearchList['scrollList'].getSelectedItem(),
                                            "variation":self.variationList['scrollList'].getSelectedItem(),
@@ -3209,11 +3233,12 @@ example:
         elif self.variationList != None:
             self.batchExportItems.append( {"category":self.category,
                                            "path":None,
-                                           'subType':self.subType,                                           
+                                           'subType':self.subType,
+                                           'exportMode':exportMode,
                                            "asset":self.assetList['scrollList'].getSelectedItem(),
-                                           "animation":self.subTypeSearchList['scrollList'].getSelectedItem(),
-                                           "variation":self.variationList['scrollList'].getSelectedItem(),
-                                           "version":self.versionList['scrollList'].getItems()[-1]} )
+                                           "animation":None,#self.subTypeSearchList['scrollList'].getSelectedItem(),
+                                           "variation":None, # self.variationList['scrollList'].getSelectedItem(),
+                                           "version":self.subTypeSearchList['scrollList'].getItems()[-1]} )
         pprint.pprint(self.batchExportItems[-1])
         self.RefreshQueueList()
 
@@ -3266,7 +3291,7 @@ example:
                 
                 categoryDirectory = os.path.normpath(os.path.join( self.directory, animDict["category"] ))
                 path_asset = os.path.normpath(os.path.join( categoryDirectory, animDict["asset"] ))
-                path_subType = os.path.normpath(os.path.join( path_asset, self.subType, animDict["animation"] ))
+                path_subType = os.path.normpath(os.path.join( path_asset, animDict["subType"], animDict["animation"] ))
                 
                 if animDict.get('path'):
                     versionFile = animDict.get('path')
@@ -3276,7 +3301,7 @@ example:
 
                 categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, animDict["category"]))
                 exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, animDict["asset"]))
-                exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))                
+                exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, animDict["subType"]))                
                 
                 _exportFileName = [animDict["asset"], animDict["animation"]]
                 if animDict.get("variation"):
@@ -3287,16 +3312,17 @@ example:
                 #exportFileName = '%s_%s_%s.fbx' % (animDict["asset"], animDict["animation"], animDict["variation"])
 
                 d = {
-                                    'file':PATHS.Path(versionFile).asString(),
-                                        #'objs':objs,
-                                        'mode':-1, #Probably needs to be able to specify this
-                                        'exportName':exportFileName,
-                                        'animationName':animDict["animation"],
-                                        'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
-                                        'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
-                                        'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
-                                        'updateAndIncrement' : int(mc.checkBox(self.updateCB, q=True, v=True))
-                                }                
+                    'file':PATHS.Path(versionFile).asString(),
+                    #'objs':objs,
+                    'mode':-1, #Probably needs to be able to specify this
+                    'exportMode':animDict['exportMode'],
+                    'exportName':exportFileName,
+                    'animationName':animDict["animation"],
+                    'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
+                    'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
+                    'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
+                    'updateAndIncrement' : int(mc.checkBox(self.updateCB, q=True, v=True))
+                }                
 
                 d.update(d_base)
 
@@ -3305,7 +3331,7 @@ example:
 
 
             pprint.pprint(l_dat)
-
+            
             BATCH.create_Scene_batchFile(l_dat)
             return
 
@@ -3342,8 +3368,16 @@ example:
 
     def RefreshQueueList(self, *args):
         self.queueTSL.clear()
-        for item in self.batchExportItems:
-            self.queueTSL.append( "%s - %s - %s - %s - %s" % (item["category"], item["asset"],item["animation"],item["variation"],item["version"]))
+        for i,item in enumerate(self.batchExportItems):
+            self.queueTSL.append( "%i ||| Cat: %s | asset: %s | anim: %s | var: %s | version: %s | ----- Mode: [ %s ] " % (
+            i,
+            item["category"],
+            item["asset"],
+            item["animation"],
+            item["variation"],
+            item["version"],
+            item['exportMode'],                                                                               
+            ))
 
         if len(self.batchExportItems) > 0:
             mc.frameLayout(self.exportQueueFrame, e=True, collapse=False)
@@ -3450,6 +3484,7 @@ def BatchExport(dataList = []):
         _d['exportName'] = fileDat.get('exportName')
         mFile = PATHS.Path(fileDat.get('file'))
         _d['mode'] = int(fileDat.get('mode'))
+        _d['exportMode'] = fileDat.get('exportMode')
         _d['exportObjs'] = fileDat.get('objs')
         _removeNamespace =  fileDat.get('removeNamespace', "False")
         _d['removeNamespace'] = False if _removeNamespace == "False" else True
@@ -3467,7 +3502,7 @@ def BatchExport(dataList = []):
         _d['tangent'] = fileDat.get('tangent')
 
         log.info(mFile)
-        pprint.pprint(_d)
+        #pprint.pprint(_d)
 
 
         _path = mFile.asString()
@@ -3615,6 +3650,7 @@ def ExportScene(mode = -1,
                 subType = None,
                 exportAssetPath = None,
                 exportAnimPath = None,
+                exportMode = None,
                 removeNamespace = False,
                 zeroRoot = False,
                                 bakeSetName = 'bake_tdSet',
@@ -3630,11 +3666,11 @@ def ExportScene(mode = -1,
     if workspace:
         mc.workspace( workspace, openWorkspace=True )
 
-    pprint.pprint(vars())
+    #pprint.pprint(vars())
     
     #exec(self.exportCommand)
     import cgm.core.tools.bakeAndPrep as bakeAndPrep
-    #reload(bakeAndPrep)
+    reload(bakeAndPrep)
     import cgm.core.mrs.Shots as SHOTS
     _str_func = 'ExportScene'
     log.info(log_start(_str_func))
@@ -3661,22 +3697,33 @@ def ExportScene(mode = -1,
 
 
     log.info("mode check...")
+    d_exportModes = {'export':1,
+                     'cutscene':2,
+                     'rig':3}
+    
+    if exportMode is not None:
+        mode = d_exportModes[exportMode]
+    
+    if not exportObjs:
+        exportObjs = []
+        for set in mc.ls('*%s' % exportSetName, r=True):
+            if len(set.split(':')) == 2:
+                ns = set.split(':')[0]
+                for p in mc.ls(mc.sets(set,q=True)[0], l=True)[0].split('|'):
+                    if mc.objExists(p) and ns in p:
+                        exportObjs.append(p)
+                        break
+                    
+            if len(set.split(':')) == 1:
+                objName = set.replace('_%s' % exportSetName, '')
+                if mc.objExists(objName):
+                    exportObjs.append(objName)
+                        
+                        
+                        
     if mode == -1:
         log.info("unknown mode, attempting to auto detect")
-        if not exportObjs:
-            exportObjs = []
-            wantedSets = []
-            for set in mc.ls('*%s' % exportSetName, r=True):
-                if len(set.split(':')) == 2:
-                    ns = set.split(':')[0]
-                    for p in mc.ls(mc.sets(set,q=True)[0], l=True)[0].split('|'):
-                        if mc.objExists(p) and ns in p:
-                            exportObjs.append(p)
-                            break
-                if len(set.split(':')) == 1:
-                    objName = set.replace('_%s' % exportSetName, '')
-                    if mc.objExists(objName):
-                        exportObjs.append(objName)
+
                         
         if len(exportObjs) > 1:
             log.info("More than one export obj found, setting cutscene mode: 2")
@@ -3734,6 +3781,10 @@ def ExportScene(mode = -1,
     if not exportAnimPath:
         exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
     log.info("exportPath: {0}".format(exportAnimPath))                
+    
+    
+    #pprint.pprint(vars())
+    #return
 
     #if not os.path.exists(exportAnimPath):
         #log.info("making export anim path...")
@@ -3746,7 +3797,6 @@ def ExportScene(mode = -1,
 
     if exportAsCutscene:
         log.info("export as cutscene...")
-
         exportAnimPath = os.path.normpath(os.path.join(exportAnimPath, animationName))
         if not os.path.exists(exportAnimPath):
             os.mkdir(exportAnimPath)

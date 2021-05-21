@@ -50,7 +50,7 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
 
     # set tangent options to spline
     currentTangent = mc.keyTangent( q=True, g=True, ott=True )[0]
-    mc.keyTangent( g=True, ott="spline" )
+    mc.keyTangent( g=True, ott="linear" )
     
     #Eval mode ----
     _evalMode = mc.evaluationManager(q=True, mode=True)
