@@ -193,9 +193,16 @@ def Prep(removeNamespace = False,
 
         ns = '%s:' % namespaces[-1].replace('|', '')
     else:
-        ns = "%s_" % topNode.mNode
-
-    exportSet = "%s%s" % (ns, exportSetName)
+        ns = None
+        #ns = "%s_" % topNode.mNode
+    
+    if ns:
+        exportSet = "%s%s" % (ns, exportSetName)
+        deleteSet = "%s%s" % (ns, deleteSetName)
+    else:
+        exportSet = exportSetName
+        deleteSet = deleteSetName
+        
     exportSetObjs = []
     
     log.debug("{0} || export set: {1}".format(_str_func,exportSet))
@@ -207,7 +214,6 @@ def Prep(removeNamespace = False,
         exportSetObjs = [topNode]
 
     # delete garbage
-    deleteSet = "%s%s" % (ns, deleteSetName)
     
     
     log.debug("{0} || delete set: {1}".format(_str_func,deleteSet))

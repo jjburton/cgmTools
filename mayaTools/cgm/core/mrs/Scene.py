@@ -121,6 +121,7 @@ example:
         
         self.var_postEuler          = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postEuler", defaultValue = 1)
         self.var_postTangent     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postTangent", varType = "string", defaultValue='auto')
+        self.var_mayaFilePref     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_mayaFilePref", varType = "string", defaultValue='ma')
         
         
         
@@ -1366,7 +1367,6 @@ example:
         
         self.cb_tangent = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Post Tangent",subMenu=True
                                               )
-        
         uiMenu = self.cb_tangent 
                 
         uiRC = mc.radioMenuItemCollection()
@@ -1379,10 +1379,26 @@ example:
             mc.menuItem(parent=uiMenu,collection = uiRC,
                         label=item,
                         c = cgmGEN.Callback(self.var_postTangent.setValue,item),                                  
+                        rb = _rb)
+                
+        #...-------------------------------------------------------------------------------------------
+        self.cb_mayaFilePref = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Maya File Pref",subMenu=True
+                                              )
+        uiMenu = self.cb_mayaFilePref 
+                
+        uiRC = mc.radioMenuItemCollection()
+        #self.uiOptions_menuMode = []		
+        _v = self.var_mayaFilePref.value
+    
+        for i,item in enumerate(['ma','mb']):
+            if item == _v: _rb = True
+            else:_rb = False            
+            mc.menuItem(parent=uiMenu,collection = uiRC,
+                        label=item,
+                        c = cgmGEN.Callback(self.var_mayaFilePref.setValue,item),                                  
                         rb = _rb)        
         
         
-        #...-------------------------------------------------------------------------------------------
         
         mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu, l = 'Other')
         
@@ -2507,7 +2523,7 @@ example:
         if self.hasVariant:
             wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
         
-        wantedName = "%s_%s.mb" % (wantedName, self.subType)
+        wantedName = "%s_%s.%s" % (wantedName, self.subType, self.var_mayaFilePref.value)
             
         log.info(log_msg(_str_func,"Wanted: {0}".format(wantedName)))
     
@@ -2662,7 +2678,8 @@ example:
         if not self.path_asset:
             log.error("No asset selected")
             return
-
+        
+        _fileType = self.var_mayaFilePref.value
         versionList = self.versionList if self.hasSub else self.subTypeSearchList
         existingFiles = versionList['items']
 
@@ -2671,12 +2688,14 @@ example:
         if self.hasVariant:
             wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
         if len(existingFiles) == 0:
-            wantedName = "%s_%02d.mb" % (wantedName, 1)
+            wantedName = "{0}_{1}.{2}".format(wantedName, 1, _fileType)
         else:
             currentFile = mc.file(q=True, loc=True)
             if not os.path.exists(currentFile):
-                currentFile = "%s_%02d.mb" % (wantedName, 1)
-
+                wantedName = "{0}_{1}.{2}".format(wantedName, 1, _fileType)
+                
+                
+            print wantedName
             baseFile = os.path.split(currentFile)[-1]
             baseName, ext = baseFile.split('.')
 
@@ -2706,7 +2725,7 @@ example:
             else:
                 newVersion = 1
 
-            wantedName = "%s_%s%02d.%s" % (noVersionName, versionPrefix, newVersion, ext)
+            wantedName = "%s_%s%02d.%s" % (noVersionName, versionPrefix, newVersion, _fileType)
 
         saveLocation = os.path.join(self.path_asset, self.subType)
         if self.hasSub:
@@ -2824,10 +2843,12 @@ example:
         self.uiScrollList_dirContent.mDat = self.mDat
         self.uiScrollList_dirContent.rebuild( self.directory)
         
+        self.var_mayaFilePref.setValue( self.project.d_project['mayaFilePref'] )
         
         if self.project.d_exportOptions:
             self.var_postEuler.setValue( self.project.d_exportOptions['postEuler'] )
             self.var_postTangent.setValue( self.project.d_exportOptions['postTangent'] )
+            
             
             if self.project.d_exportOptions.get('removeNameSpace'):
                 self.var_removeNamespace.setValue( self.project.d_exportOptions['removeNameSpace'] )
@@ -2908,7 +2929,8 @@ example:
             mc.file(_res[0], o=True, f=True, pr=True)
             
     def uiPath_mayaSaveTo(self,path=None):
-        _res = mc.fileDialog2(fileMode=0,dialogStyle=2,dir=path)
+        _filter = "Maya Files (*.ma *.mb);;Maya ASCII (*.ma);;Maya Binary (*.mb);;"
+        _res = mc.fileDialog2(fileMode=0,dialogStyle=2,dir=path, fileFilter = _filter)
         #fileFilter = 'Maya Files (*.ma *.mb)'
         if _res:
             log.warning("Saving: {0}".format(_res[0]))
@@ -3447,17 +3469,17 @@ example:
 
 
         ExportScene(mode = args[0],
-                            exportObjs = None,
-                            exportName = self.exportFileName,
-                            exportAssetPath = exportAssetPath,
-                            subType = self.subType,
-                            categoryExportPath = categoryExportPath,
-                            exportAnimPath = exportAnimPath,
-                            removeNamespace = self.removeNamespace,
-                            zeroRoot = self.zeroRoot,
-                                        animationName = self.selectedSubType,
-                            tangent=postTangent,
-                            euler=postEuler,                            
+                    exportObjs = None,
+                    exportName = self.exportFileName,
+                    exportAssetPath = exportAssetPath,
+                    subType = self.subType,
+                    categoryExportPath = categoryExportPath,
+                    exportAnimPath = exportAnimPath,
+                    removeNamespace = self.removeNamespace,
+                    zeroRoot = self.zeroRoot,
+                    animationName = self.selectedSubType,
+                    tangent=postTangent,
+                    euler=postEuler,                            
                     workspace=d_userPaths['content']
                     )        
 
@@ -3706,20 +3728,19 @@ def ExportScene(mode = -1,
     
     if not exportObjs:
         exportObjs = []
-        for set in mc.ls('*%s' % exportSetName, r=True):
-            if len(set.split(':')) == 2:
-                ns = set.split(':')[0]
-                for p in mc.ls(mc.sets(set,q=True)[0], l=True)[0].split('|'):
+        for s in mc.ls('*%s' % exportSetName, r=True):
+            if len(s.split(':')) == 2:
+                ns = s.split(':')[0]
+                for p in mc.ls(mc.sets(s,q=True)[0], l=True)[0].split('|'):
                     if mc.objExists(p) and ns in p:
                         exportObjs.append(p)
                         break
                     
-            if len(set.split(':')) == 1:
-                objName = set.replace('_%s' % exportSetName, '')
+            if len(s.split(':')) == 1:
+                objName = s.replace('_%s' % exportSetName, '')
                 if mc.objExists(objName):
                     exportObjs.append(objName)
-                        
-                        
+    
                         
     if mode == -1:
         log.info("unknown mode, attempting to auto detect")
@@ -3794,12 +3815,19 @@ def ExportScene(mode = -1,
         #f = open(os.path.join(exportAnimPath, "filler.txt"),"w")
         #f.write("filler file")
         #f.close()
-
+    
+    if '.' in animationName:
+        animationName = animationName.split('.')[0]
+        
+    pprint.pprint(vars())
     if exportAsCutscene:
         log.info("export as cutscene...")
-        exportAnimPath = os.path.normpath(os.path.join(exportAnimPath, animationName))
-        if not os.path.exists(exportAnimPath):
-            os.mkdir(exportAnimPath)
+        if animationName is not None:
+            exportAnimPath = os.path.normpath(os.path.join(exportAnimPath, animationName))
+        
+        CGMOS.mkdir_recursive(exportAnimPath)
+        #if not os.path.exists(exportAnimPath):
+        #    os.mkdir(exportAnimPath)
 
     exportFiles = []
 
@@ -3839,9 +3867,13 @@ def ExportScene(mode = -1,
         _end = None
 
     log.info( log_sub(_str_func,'Bake | start: {0} | end: {1}'.format(_start,_end)) )
+    
 
-    bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
-                     euler=euler,tangent=tangent)
+    #Bake Check -----------------------------------------------------------------------------------------------
+    if mc.objExists(bakeSetName) and mc.sets(bakeSetName, q=True):    
+        bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
+                         euler=euler,tangent=tangent)
+        
 
     mc.loadPlugin("fbxmaya")
 
@@ -3852,7 +3884,6 @@ def ExportScene(mode = -1,
         mc.select(obj)
 
         assetName = obj.split(':')[0].split('|')[-1]
-
         exportFile = os.path.normpath(os.path.join(exportAnimPath, exportName) )
 
         if( addNamespaceSuffix ):
@@ -3882,15 +3913,9 @@ def ExportScene(mode = -1,
             if not os.path.exists(exportDir):
                 log.info("making export dir... {0}".format(exportDir))
                 os.makedirs(exportDir)
-                # create empty file so folders are checked into source control
-                #f = open(os.path.join(exportAnimPath, "filler.txt"),"w")
-                #f.write("filler file")
-                #f.close()
 
-            #mc.file(exportFile, force=True, options="v=0;", exportSelected=True, pr=True, type="FBX export")
             log.info('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
             mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
-            #mc.FBXExport(f= exportFile)
 
             if len(exportObjs) > 1 and removeNamespace:
                 # Deleting the exported transforms in case another file has duplicate export names
