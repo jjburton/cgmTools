@@ -82,5 +82,17 @@ def kill_rendererNodes():
         if mc.objExists(o):
             cgmMeta.asMeta(o).delete()
             print "killed node: " + o
+            
+def kill_outlinerSelectCommands():
+    #https://forums.autodesk.com/t5/maya-forum/error-lt-function-selcom-at-0x7f29c5c04aa0-gt/td-p/9052236
+    for _editor in mc.lsUI(editors=True):
+        if not mc.outlinerEditor(_editor, query=True, exists=True):
+            continue
+        _sel_cmd = mc.outlinerEditor(_editor, query=True, selectCommand=True)
+        if not _sel_cmd:
+            continue
+        print _editor, _sel_cmd
+        mc.outlinerEditor(_editor, edit=True, selectCommand='pass')    
+
 
         

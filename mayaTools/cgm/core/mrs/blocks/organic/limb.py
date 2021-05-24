@@ -132,7 +132,7 @@ d_attrStateMask = {'define':[],
                              'addToe',
                              'buildEnd'],
                    'skeleton':[],
-                   'rig':[ 'ikExtendSetup','ikRollSetup', 'ikRPAim',
+                   'rig':[ 'ikExtendSetup','ikRollSetup', 'ikRPAim','ikOrientEndTo',
                            'mainRotAxis',  'followParentBank',],
                    'vis':['visRotatePlane']}
 
@@ -334,7 +334,7 @@ d_block_profiles = {
     'mainRotAxis':'out',
     'nameList':['hip','knee','ankle','ball','toe'],
     'formEndAim':'block',
-    
+    'ikOrientEndTo':'previous',
     'buildEnd':'joint',
     'ikRollSetup':'control',
     'addBall':'none',
@@ -349,7 +349,7 @@ d_block_profiles = {
     'baseAim':[-1,-1,0],
     'baseUp':[0,0,1],
     'baseSize':[11.6,13,70],
-    'baseDat':{'rp':[1,-1,0],'up':[-1,0,0],'lever':[1,0,0]},
+    'baseDat':{'rp':[1,1,0],'up':[-1,0,0],'lever':[1,0,0]},
           },
 
 'leg plantigrade rear':{
@@ -439,7 +439,7 @@ d_block_profiles = {
     'mainRotAxis':'out',
     'nameList':['hip','knee','tip'],
     'formEndAim':'block',
-    
+    'ikOrientEndTo':'previous',    
     'ikEnd':'default',    
     'buildEnd':'joint',
     'ikRollSetup':'control',
@@ -808,6 +808,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'loftShapeStart':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  'loftShapeEnd':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  'segmentType':'ribbon:curve:linear',
+                 'ikOrientEndTo':'end:previous',
                  #'buildSpacePivots':'bool',
                  #'nameIter':'string',
                  #'numControls':'int',
@@ -852,6 +853,7 @@ d_defaultSettings = {'version':__version__,
                      'numRoll':0,
                      'proxyBuild':True,
                      'ribbonParam':'blend',
+                     'ikOrientEndTo':'end',
                      'proxyDirect':True,
                      'nameList':['',''],
                      'blockProfile':'leg',
@@ -2840,7 +2842,7 @@ def create_jointHelpers(self, force = True):
         #mJointAim = mJointHelper.getMessage('aimGroup',asMeta=True)[0]
             
             
-        if mJointHelper == ml_jointHelpers[-1]:
+        if mJointHelper == ml_jointHelpers[-1] and len(ml_jointHelpers) > 1:
             mc.aimConstraint(ml_jointHelpers[-2].mNode, mAimGroup.mNode, maintainOffset = False,
                              aimVector = [0,0,-1], upVector = [0,1,0], worldUpObject = mOrientHelper.mNode, #skip = 'z',
                              worldUpType = 'objectrotation', worldUpVector = [0,1,0])
@@ -3381,7 +3383,7 @@ def rig_dataBuffer(self):
             #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
             
         
-        for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','addLeverBase','addLeverEnd','addToe','segmentType']:
+        for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','ikOrientEndTo','addLeverBase','addLeverEnd','addToe','segmentType']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
         #self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
         #self.str_ikRollSetup = ATTR.get_enumValueString(mBlock.mNode,'ikRollSetup')
@@ -3917,7 +3919,7 @@ def rig_skeleton(self):
             if self.b_ikNeedFullChain:
                 log.debug("|{0}| >> Creating full IK chain...".format(_str_func))          
                 ml_ikFullChain = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                                         ml_ikJoints[:self.int_handleEndIdx+2], 'fullChain', 
+                                                                         ml_ikJoints, 'fullChain', 
                                                                          mRigNull,
                                                                          'ikFullChainJoints',
                                                                          connectToSource = 'ikFullChain',
@@ -4184,13 +4186,13 @@ def rig_skeleton(self):
                 #if len(ml_drivers) == 1:
                 
                 if not self.b_leverEnd:
-                    if ml_joints[i] == self.mIKEndSkinJnt and mBlock.ikSetup:#last joint
+                    if ml_joints[i] == self.mIKEndSkinJnt and mBlock.ikSetup and self.str_ikOrientEndTo != 'previous':#last joint
                         log.debug("|{0}| >> End joint: {1} ".format(_str_func,mJnt))
                         mJnt.p_parent = ml_blendJoints[self.int_handleEndIdx]
                     else:
                         mJnt.p_parent = ml_drivers[-1]
                 else:
-                    if ml_joints[i] == ml_joints[-1]:#last joint
+                    if ml_joints[i] == ml_joints[-1] and self.str_ikOrientEndTo != 'previous':#last joint
                         log.debug("|{0}| >> End joint: {1} ".format(_str_func,mJnt))
                         mJnt.p_parent = ml_blendJoints[-1]
                     else:
@@ -7949,193 +7951,217 @@ def rig_frameSingle(self):
 
 @cgmGEN.Timer
 def rig_blendFrame(self):
-    try:
-        _short = self.d_block['shortName']
-        _str_func = 'rig_blendFrame'
-        log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
-        log.debug(self)
+    _short = self.d_block['shortName']
+    _str_func = 'rig_blendFrame'
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    log.debug(self)
+    
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    mRootParent = self.mConstrainNull
+    
+    ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    ml_fkJoints = mRigNull.msgList_get('fkJoints')
+    #ml_fkAttachJoints = mRigNull.msgList_get('fkAttachJoints')
+    ml_fkAttachJoints = []
+    for mObj in ml_fkJoints:
+        mAttach = mObj.getMessageAsMeta('fkAttach')
+        ml_fkAttachJoints.append(mAttach or mObj)
         
-        mBlock = self.mBlock
-        mRigNull = self.mRigNull
-        mRootParent = self.mConstrainNull
+    _str_ikOrientEndTo = mBlock.getEnumValueString('ikOrientEndTo')
         
-        ml_rigJoints = mRigNull.msgList_get('rigJoints')
-        ml_fkJoints = mRigNull.msgList_get('fkJoints')
-        #ml_fkAttachJoints = mRigNull.msgList_get('fkAttachJoints')
-        ml_fkAttachJoints = []
-        for mObj in ml_fkJoints:
-            mAttach = mObj.getMessageAsMeta('fkAttach')
-            ml_fkAttachJoints.append(mAttach or mObj)
-            
-            
-        ml_ikJoints = mRigNull.msgList_get('ikJoints')
-        if not ml_ikJoints:
-            log.debug("|{0}| >> No ik setup...".format(_str_func))        
-            return True 
-        ml_blendJoints = mRigNull.msgList_get('blendJoints')
+    ml_ikJoints = mRigNull.msgList_get('ikJoints')
+    if not ml_ikJoints:
+        log.debug("|{0}| >> No ik setup...".format(_str_func))        
+        return True 
+    ml_blendJoints = mRigNull.msgList_get('blendJoints')
+    
+    mSettings = mRigNull.settings    
+    mPlug_FKIK = cgmMeta.cgmAttr(mSettings,'FKIK',attrType='float',lock=False,keyable=True)
+    
+    ml_scaleJoints = []
+    def getScaleJoint(mJnt):
+        mDup = mJnt.doDuplicate(po=True,ic=False)
+        mDup.p_parent = mJnt
+        mDup.rename("{0}_scaled".format(mJnt.p_nameBase))
+        mDup.connectParentNode(mJnt,'source','scaleJoint')
+        mDup.resetAttrs()
+        ml_scaleJoints.append(mDup)
+        return mDup
+    
+    
+    if mBlock.getEnumValueString('rigSetup') == 'digit':
+        #This was causing issues with toe setup , need to resolve...
+        log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
+        #raise ValueError,"This was causing issues with toe setup , need to resolve..."
+        self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
+    
+    #Setup blend ----------------------------------------------------------------------------------
+    if self.b_scaleSetup:
+        """
+            mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
+                               self.mDeformNull.mNode,
+                               maintainOffset=True,
+                               scaleCompensate=False)"""        
+
+        log.debug("|{0}| >> scale blend chain setup...".format(_str_func))
         
-        mSettings = mRigNull.settings    
-        mPlug_FKIK = cgmMeta.cgmAttr(mSettings,'FKIK',attrType='float',lock=False,keyable=True)
+        log.debug("|{0}| >> fk setup...".format(_str_func))
         
-        ml_scaleJoints = []
-        def getScaleJoint(mJnt):
+        str_aimAxis = self.d_orientation['str'][0]
+        """
+        #Scale setup for fk joints -------------------------------------------------------------------
+        for i,mJnt in enumerate(ml_fkJoints[1:self.int_handleEndIdx+1]):
             mDup = mJnt.doDuplicate(po=True,ic=False)
-            mDup.p_parent = mJnt
-            mDup.rename("{0}_scaled".format(mJnt.p_nameBase))
-            mDup.connectParentNode(mJnt,'source','scaleJoint')
-            mDup.resetAttrs()
-            ml_scaleJoints.append(mDup)
-            return mDup
+            mDup.p_parent = ml_fkJoints[i]
+            mDup.rename("{0}_scaleHolder".format(mJnt.p_nameBase))
+            print mDup
+            
+            mJnt.masterGroup.p_parent = mDup
+            
+            mPlug_base = cgmMeta.cgmAttr(mDup.mNode,
+                                         "aimBase",
+                                         attrType = 'float',
+                                         lock=True,
+                                         value=ATTR.get(mDup.mNode,"t{0}".format(str_aimAxis)))
+            mPlug_inverse = cgmMeta.cgmAttr(mDup.mNode,
+                                            "aimInverse",
+                                            attrType = 'float',
+                                            lock=True)
+            
+            
+            l_argBuild = []
+            l_argBuild.append("{0} = 1 / {1}".format(mPlug_inverse.p_combinedShortName,
+                                                     "{0}.s{1}".format(ml_fkJoints[i].mNode, str_aimAxis)))
+            l_argBuild.append("{0} = {1} * {2}".format("{0}.t{1}".format(mDup.mNode, str_aimAxis),
+                                                       mPlug_inverse.p_combinedShortName,
+                                                       mPlug_base.p_combinedShortName))
+            for arg in l_argBuild:
+                log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                NODEFACTORY.argsToNodes(arg).doBuild()
+        """
         
+
+        #pprint.pprint(vars())
         
-        if mBlock.getEnumValueString('rigSetup') == 'digit':
-            #This was causing issues with toe setup , need to resolve...
-            log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
-            #raise ValueError,"This was causing issues with toe setup , need to resolve..."
-            self.mDeformNull.p_parent = self.md_dynTargetsParent['attachDriver'].mNode
+
+        log.debug(cgmGEN._str_subLine)    
+
+        log.debug("|{0}| >> ik setup...".format(_str_func))
         
-        #Setup blend ----------------------------------------------------------------------------------
-        if self.b_scaleSetup:
-            """
-                mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
-                                   self.mDeformNull.mNode,
-                                   maintainOffset=True,
-                                   scaleCompensate=False)"""        
-    
-            log.debug("|{0}| >> scale blend chain setup...".format(_str_func))
+        #Scale setup for ik joints -------------------------------------------------------------------
+        ml_ikScaleTargets = []
+        ml_ikScaleDrivers = copy.copy(ml_ikJoints)
+        
+        for i,mJnt in enumerate(ml_ikScaleDrivers[:self.int_handleEndIdx]):
+            ml_ikScaleDrivers[i] = getScaleJoint(mJnt)
             
-            log.debug("|{0}| >> fk setup...".format(_str_func))
-            
-            str_aimAxis = self.d_orientation['str'][0]
-            """
-            #Scale setup for fk joints -------------------------------------------------------------------
-            for i,mJnt in enumerate(ml_fkJoints[1:self.int_handleEndIdx+1]):
-                mDup = mJnt.doDuplicate(po=True,ic=False)
-                mDup.p_parent = ml_fkJoints[i]
-                mDup.rename("{0}_scaleHolder".format(mJnt.p_nameBase))
-                print mDup
-                
-                mJnt.masterGroup.p_parent = mDup
-                
-                mPlug_base = cgmMeta.cgmAttr(mDup.mNode,
-                                             "aimBase",
-                                             attrType = 'float',
-                                             lock=True,
-                                             value=ATTR.get(mDup.mNode,"t{0}".format(str_aimAxis)))
-                mPlug_inverse = cgmMeta.cgmAttr(mDup.mNode,
-                                                "aimInverse",
-                                                attrType = 'float',
-                                                lock=True)
-                
-                
-                l_argBuild = []
-                l_argBuild.append("{0} = 1 / {1}".format(mPlug_inverse.p_combinedShortName,
-                                                         "{0}.s{1}".format(ml_fkJoints[i].mNode, str_aimAxis)))
-                l_argBuild.append("{0} = {1} * {2}".format("{0}.t{1}".format(mDup.mNode, str_aimAxis),
-                                                           mPlug_inverse.p_combinedShortName,
-                                                           mPlug_base.p_combinedShortName))
-                for arg in l_argBuild:
-                    log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                    NODEFACTORY.argsToNodes(arg).doBuild()
-            """
-            
-    
-            #pprint.pprint(vars())
-            
-    
-            log.debug(cgmGEN._str_subLine)    
-    
-            log.debug("|{0}| >> ik setup...".format(_str_func))
-            
-            #Scale setup for ik joints -------------------------------------------------------------------
-            ml_ikScaleTargets = []
-            ml_ikScaleDrivers = copy.copy(ml_ikJoints)
-            
-            for i,mJnt in enumerate(ml_ikScaleDrivers[:self.int_handleEndIdx]):
-                ml_ikScaleDrivers[i] = getScaleJoint(mJnt)
-                
-            ml_blendScaleTargets = []
-            for i,mJnt in enumerate(ml_blendJoints):
-                if mJnt in ml_blendJoints[:self.int_handleEndIdx]:
-                    ml_blendScaleTargets.append(getScaleJoint(mJnt))
-                else:
-                    ml_blendScaleTargets.append(mJnt)
-            
-            mIKControl = mRigNull.getMessageAsMeta('controlIK')
-            mIKControlBase = mRigNull.getMessageAsMeta('controlIKBase')
-            mLimbRoot = mRigNull.getMessageAsMeta('limbRoot')
-            mIKControlMid = mRigNull.getMessageAsMeta('controlIKMid')
-    
-            if mIKControlBase:
-                log.debug("|{0}| >> Found controlBaseIK : {1}".format(_str_func, mIKControlBase))        
-                ml_ikScaleTargets.append(mIKControlBase)
-            elif mLimbRoot:
-                ml_ikScaleTargets.append(mLimbRoot)
+        ml_blendScaleTargets = []
+        for i,mJnt in enumerate(ml_blendJoints):
+            if mJnt in ml_blendJoints[:self.int_handleEndIdx]:
+                ml_blendScaleTargets.append(getScaleJoint(mJnt))
             else:
-                ml_ikScaleTargets.append(mRoot)
-            
-            ml_ikScaleTargets.append(ml_ikJoints[self.int_handleEndIdx])#mIKControl
-            log.debug("|{0}| >> Constrain ik 0 to : {1}".format(_str_func, ml_ikScaleTargets[0]))
-            mc.scaleConstraint(ml_ikScaleTargets[0].mNode, ml_ikScaleDrivers[0].mNode,
-                               maintainOffset=True,
-                               scaleCompensate=False)
-            
-            log.debug("|{0}| >> Constrain ik end to : {1}".format(_str_func,mIKControl))
-            mc.scaleConstraint(mIKControl.mNode, ml_ikScaleDrivers[self.int_handleEndIdx].mNode,
-                               maintainOffset=True,
-                               scaleCompensate=False)
-            
-            _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
+                ml_blendScaleTargets.append(mJnt)
         
-            #Scale setup for mid set IK
-            """
-            if mIKControlMid:
-                log.debug("|{0}| >> Mid control scale...".format(_str_func))                    
-                mMasterGroup = mIKControlMid.masterGroup
-                _vList = DIST.get_normalizedWeightsByDistance(mMasterGroup.mNode,_targets)
-                _scale = mc.scaleConstraint(_targets,mMasterGroup.mNode,maintainOffset = True)#Point contraint loc to the object
-                CONSTRAINT.set_weightsByDistance(_scale[0],_vList)                
-                ml_ikScaleTargets.append(mIKControlMid)
-                _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]"""
+        mIKControl = mRigNull.getMessageAsMeta('controlIK')
+        mIKControlBase = mRigNull.getMessageAsMeta('controlIKBase')
+        mLimbRoot = mRigNull.getMessageAsMeta('limbRoot')
+        mIKControlMid = mRigNull.getMessageAsMeta('controlIKMid')
+
+        if mIKControlBase:
+            log.debug("|{0}| >> Found controlBaseIK : {1}".format(_str_func, mIKControlBase))        
+            ml_ikScaleTargets.append(mIKControlBase)
+        elif mLimbRoot:
+            ml_ikScaleTargets.append(mLimbRoot)
+        else:
+            ml_ikScaleTargets.append(mRoot)
         
-            for mJnt in ml_ikScaleDrivers[1:self.int_handleEndIdx]:
-                _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
-                _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True,
-                                            skip = str_aimAxis,
-                                            scaleCompensate=False)#Point contraint loc to the object
-                CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
+        ml_ikScaleTargets.append(ml_ikJoints[self.int_handleEndIdx])#mIKControl
+        log.debug("|{0}| >> Constrain ik 0 to : {1}".format(_str_func, ml_ikScaleTargets[0]))
+        mc.scaleConstraint(ml_ikScaleTargets[0].mNode, ml_ikScaleDrivers[0].mNode,
+                           maintainOffset=True,
+                           scaleCompensate=False)
         
-            #for mJnt in ml_ikJoints[1:]:
-                #mJnt.p_parent = mIKGroup
-                
-            for mJnt in ml_ikJoints[self.int_handleEndIdx:]:
-                mJnt.segmentScaleCompensate = False
-                
-            for mJnt in ml_blendJoints:
-                mJnt.segmentScaleCompensate = False
-                if mJnt == ml_blendJoints[0]:
-                    continue
-                mJnt.p_parent = ml_blendJoints[0].p_parent
-            log.debug(cgmGEN._str_subLine)    
+        log.debug("|{0}| >> Constrain ik end to : {1}".format(_str_func,mIKControl))
+        mc.scaleConstraint(mIKControl.mNode, ml_ikScaleDrivers[self.int_handleEndIdx].mNode,
+                           maintainOffset=True,
+                           scaleCompensate=False)
+        
+        _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
+    
+        #Scale setup for mid set IK
+        """
+        if mIKControlMid:
+            log.debug("|{0}| >> Mid control scale...".format(_str_func))                    
+            mMasterGroup = mIKControlMid.masterGroup
+            _vList = DIST.get_normalizedWeightsByDistance(mMasterGroup.mNode,_targets)
+            _scale = mc.scaleConstraint(_targets,mMasterGroup.mNode,maintainOffset = True)#Point contraint loc to the object
+            CONSTRAINT.set_weightsByDistance(_scale[0],_vList)                
+            ml_ikScaleTargets.append(mIKControlMid)
+            _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]"""
+    
+        for mJnt in ml_ikScaleDrivers[1:self.int_handleEndIdx]:
+            _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
+            _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True,
+                                        skip = str_aimAxis,
+                                        scaleCompensate=False)#Point contraint loc to the object
+            CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
+    
+        #for mJnt in ml_ikJoints[1:]:
+            #mJnt.p_parent = mIKGroup
             
+        for mJnt in ml_ikJoints[self.int_handleEndIdx:]:
+            mJnt.segmentScaleCompensate = False
             
+        for mJnt in ml_blendJoints:
+            mJnt.segmentScaleCompensate = False
+            if mJnt == ml_blendJoints[0]:
+                continue
+            mJnt.p_parent = ml_blendJoints[0].p_parent
+        log.debug(cgmGEN._str_subLine)    
+        
+        if _str_ikOrientEndTo == 'previous':
+            RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikScaleDrivers,ml_blendJoints,
+                                        driver = mPlug_FKIK.p_combinedName,
+                                        l_constraints=['point'])
+            
+            ml_ikScaleDrivers[-1] = ml_ikScaleDrivers[-2]
+            RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikScaleDrivers,ml_blendJoints,
+                                        driver = mPlug_FKIK.p_combinedName,
+                                        l_constraints=['orient'])                
+        else:
             RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikScaleDrivers,ml_blendJoints,
                                         driver = mPlug_FKIK.p_combinedName,
                                         l_constraints=['point','orient'])
+        
+        RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikScaleDrivers,ml_blendScaleTargets,
+                                    driver = mPlug_FKIK.p_combinedName,
+                                    d_scale = {'scaleCompensate':False},
+                                    l_constraints=['scale'])
+
+        for mJnt in ml_scaleJoints:
+            mJnt.dagLock(True)
+    else:
+        log.debug("|{0}| >> Normal setup...".format(_str_func))
+        
+        if _str_ikOrientEndTo == 'previous':
+            RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
+                                        driver = mPlug_FKIK,
+                                        l_constraints=['point'])
             
-            RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikScaleDrivers,ml_blendScaleTargets,
-                                        driver = mPlug_FKIK.p_combinedName,
-                                        d_scale = {'scaleCompensate':False},
-                                        l_constraints=['scale'])        
-    
-            for mJnt in ml_scaleJoints:
-                mJnt.dagLock(True)
+            ml_ikJoints[-1] = ml_ikJoints[-2]
+            RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
+                                        driver = mPlug_FKIK,
+                                        l_constraints=['orient'])                
+            
         else:
-            log.debug("|{0}| >> Normal setup...".format(_str_func))
             RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                         driver = mPlug_FKIK,
                                         l_constraints=['point','orient'])
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+            
+            
+            
+                       
         
 @cgmGEN.Timer
 def rig_pivotSetup(self):
