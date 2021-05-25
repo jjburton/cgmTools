@@ -297,7 +297,8 @@ example:
         try:return os.path.normpath(os.path.join( self.path_subType, self.variationList['scrollList'].getSelectedItem() )) if self.variationList['scrollList'].getSelectedItem() else None
         except Exception,err:
             log.debug(err)
-            return False    
+            return False
+        
     @property
     def path_versionDirectory(self):
         try:
@@ -871,8 +872,13 @@ example:
         
         mUI.MelMenuItem( pum, label='        Subtype', en=False )
         
-        mUI.MelMenuItem(pum,label="Add Sub Type",
+        mUI.MelMenuItem(pum,label="Add Subtype",
                         command=self.CreateSubType)
+        
+        
+        mUI.MelMenuItem(pum, label="Rename Subtype", command= partial(self.rename_below,'subtype') )
+        
+        
         
         mUI.MelMenuItem(pum,label="Add Sub Dir",
                         command=self.CreateSubAsset)
@@ -957,6 +963,8 @@ example:
         #------------------------------------------------------------------------------
         mUI.MelMenuItem( pum, label='        Variant', en=False )
         mUI.MelMenuItemDiv( pum, label='Selected' )
+        
+        mUI.MelMenuItem(pum, label="Rename Variant", command= partial(self.rename_below,'variant') )
         
         mUI.MelMenuItem(pum, label="Reference File",
                         ann = _d_ann.get('reference'),
@@ -2860,7 +2868,95 @@ example:
             
             
         return True
+    
+    def rename_below(self, mode = 'asset',*args):
+        _str_func = 'rename_below'
+        
+        if mode == 'asset':
+            sourceName = self.selectedAsset
+            path = self.path_dir_category
+        elif mode == 'subtype':
+            sourceName = self.selectedSubType
+            path = self.path_subTypeDir
+        elif mode in ['variant','variation']:
+            sourceName = self.selectedVariation
+            path = self.path_subType
+        else:
+            return log.warning(log_msg(_str_func, "Unknown mode: {0}".format(mode)))        
+        
+        
+        
+        result = mc.promptDialog(
+                    title='Rename {0}'.format(mode.capitalize()),
+                    message='Current: {0} | Enter Name:'.format(sourceName),
+                    button=['OK', 'Cancel'],
+                            defaultButton='OK',
+                                        cancelButton='Cancel',
+                                        dismissString='Cancel')
+        
 
+        if result == 'OK':
+            newName = mc.promptDialog(query=True, text=True)
+            if not newName:
+                return log.warning(log_msg(_str_func, "Must enter a new name"))
+            if newName == sourceName:
+                return log.warning(log_msg(_str_func, "Must have a different name"))
+            
+            #_path = r"{0}".format(path)
+            #print os.path.normpath(path)
+            log.info(log_msg(_str_func,"Current: {0}".format(sourceName)))
+            log.info(log_msg(_str_func,"New: {0}".format(newName)))
+            #log.info(log_msg(_str_func,"path: {0}".format(_path)))
+            log.info(log_msg(_str_func,"path: {0}".format(path)))
+            
+            
+            
+            #Do the rename pass...
+            try:
+                CGMOS.rename_filesInPath(path, sourceName, newName)
+            except Exception,err:
+                log.error(err)
+                return log.warning(log_msg(_str_func, "Error on rename. Check if you have one of the directories open as file browsers"))
+            
+            #Cat...
+            self.LoadCategoryList(self.directory)
+            if mode == 'asset':
+                self.assetList['scrollList'].selectByValue( newName )
+            else:
+                self.assetList['scrollList'].selectByValue( self.var_lastAsset.getValue() )
+            
+            #Sub...
+            self.LoadSubTypeList()
+            
+            if mode == 'subtype':
+                self.subTypeSearchList['scrollList'].selectByValue( newName )
+            else:
+                self.subTypeSearchList['scrollList'].selectByValue( self.var_lastAnim.getValue() )
+
+            
+            #Var...
+            self.LoadVariationList()
+            if mode in ['variant','variation']:
+                self.variationList['scrollList'].selectByValue( newName )
+    
+            elif self.var_lastVariation.getValue():
+                self.variationList['scrollList'].selectByValue( self.var_lastVariation.getValue() )
+            
+            
+            #Version...
+            self.LoadVersionList()
+
+            if self.var_lastVersion.getValue():
+                self.versionList['scrollList'].selectByValue( self.var_lastVersion.getValue() )            
+            
+            
+
+
+
+
+
+
+                
     def RenameAsset(self, *args):
         result = mc.promptDialog(
                     title='Rename Object',
@@ -3033,7 +3129,7 @@ example:
         
         self.assetTSLpum.clear()
 
-        renameAssetMB = mUI.MelMenuItem(self.assetTSLpum, label="Rename Asset", command=self.RenameAsset )
+        renameAssetMB = mUI.MelMenuItem(self.assetTSLpum, label="Rename Asset", command= partial(self.rename_below,'asset') )
         openInExplorerMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Explorer", command=self.OpenAssetDirectory )
         openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.path_dir_category, self.selectedAsset) ))
 
