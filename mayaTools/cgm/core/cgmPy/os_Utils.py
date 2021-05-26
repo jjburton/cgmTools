@@ -721,3 +721,90 @@ def mkdir_recursive(path):
         mkdir_recursive(sub_path)
     if not os.path.exists(path):
         os.mkdir(path)
+        
+
+
+def rename_filesInPath(path = None, search = '', replace = '', test = False):
+    """
+    Function for walking below a given directory 
+    
+    :parameters
+        path(str)
+        search(str) | search for
+        replace(str) | replace with
+        level(int) - Depth to search. None means everything
+        mode(int)
+            0 - normal
+            1 - pycs only
+        self(instance): cgmMarkingMenu
+        cleanPyc: Delete pycs after check
+    :returns
+        _d_files,_l_ordered,_l_pycd
+        _d_files - dict of import key to file
+        _l_ordered - ordered list of module keys as found
+        _l_pycd - list of modules that were _pycd
+    
+    """
+    _str_func = 'find_tmpFiles'
+    #_b_debug = log.isEnabledFor(logging.DEBUG)
+    
+    if not search and replace:
+        raise ValueError, log_msg(_str_func,"Must have search and replace")
+    
+    _path = PATH.Path(path)
+    _base = _path.split()[-1]
+    
+    l_files = []
+    
+    log.info("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,_path))
+    
+    #First loop for dirs...
+    for root, dirs, files in os.walk(path, True, None):
+        # Parse all the files of given path and reload python modules
+        _mRoot = PATH.Path(root)
+        _split = _mRoot.split()
+        _subRoot = _split[-1]
+        _splitUp = _split[_split.index(_base):]
+        
+        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
+        log.debug("|{0}| >> On split: {1}".format(_str_func,_splitUp))
+
+                    
+        for d in dirs:
+            log.debug(log_sub(_str_func,d))
+            if search in d or search == d:#d.find(search) > 0:
+                dRenamed = d.replace(search,replace)
+                dPathSource = os.path.join(root, d) #get path
+                dPathTarget = os.path.join(root, dRenamed) #new path
+                
+                log.debug(log_msg(_str_func, "Source: {0}".format(dPathSource)))
+                log.debug(log_msg(_str_func, "Target: {0}".format(dPathTarget)))
+                if not test:
+                    os.rename(dPathSource,dPathTarget)  
+                    
+    #First loop for dirs...
+    for root, dirs, files in os.walk(path, True, None):
+        # Parse all the files of given path and reload python modules
+        _mRoot = PATH.Path(root)
+        _split = _mRoot.split()
+        _subRoot = _split[-1]
+        _splitUp = _split[_split.index(_base):]
+        
+        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
+        log.debug("|{0}| >> On split: {1}".format(_str_func,_splitUp))
+
+                
+        for f in files:
+            log.debug(log_sub(_str_func,d))
+            if search in f or search == f:#d.find(search) > 0:
+                dRenamed = f.replace(search,replace)
+                dPathSource = os.path.join(root, f) #get path
+                dPathTarget = os.path.join(root, dRenamed) #new path
+                
+                log.debug(log_msg(_str_func, "Source: {0}".format(dPathSource)))
+                log.debug(log_msg(_str_func, "Target: {0}".format(dPathTarget)))
+                if not test:
+                    os.rename(dPathSource,dPathTarget)
+                    
+
+    return

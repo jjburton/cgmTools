@@ -43,10 +43,10 @@ def cleanPath( pathString ):
     maya will often put double, sometimes triple slashes, different slash types etc
     '''
     pathString = os.path.expanduser( str( pathString ) )
-    path = pathString.strip().doReplace( OTHER_SEPARATOR, PATH_SEPARATOR )
+    path = pathString.strip().replace( OTHER_SEPARATOR, PATH_SEPARATOR )
     isUNC = path.startswith( UNC_PREFIX )
     while UNC_PREFIX in path:
-        path = path.doReplace( UNC_PREFIX, PATH_SEPARATOR )
+        path = path.replace( UNC_PREFIX, PATH_SEPARATOR )
 
     if isUNC:
         path = PATH_SEPARATOR + path
