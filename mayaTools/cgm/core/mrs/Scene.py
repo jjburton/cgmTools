@@ -3091,7 +3091,7 @@ example:
 
         filePath = self.versionFile
         if self.versionFile and os.path.exists(self.versionFile):
-            mc.file(filePath, r=True, ignoreVersion=True, namespace=self.versionList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
+            mc.file(filePath, r=True, ignoreVersion=True, namespace=self.assetList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
         else:
             log.info( "Version file doesn't exist" )
             
@@ -3927,7 +3927,7 @@ def ExportScene(mode = -1,
 
     exportFiles = []
 
-    log.info("bake start...")
+    log.info("bake prep...")
 
     # rename for safety
     loc = mc.file(q=True, loc=True)
@@ -3966,9 +3966,13 @@ def ExportScene(mode = -1,
     
 
     #Bake Check -----------------------------------------------------------------------------------------------
-    if mc.objExists(bakeSetName) and mc.sets(bakeSetName, q=True):    
-        bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
-                         euler=euler,tangent=tangent)
+    #if mc.objExists(bakeSetName) and mc.sets(bakeSetName, q=True):
+    #    log.info("bake...")        
+    bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
+                     euler=euler,tangent=tangent)
+    #else:
+    #    log.info("bake skip...")
+        
         
 
     mc.loadPlugin("fbxmaya")

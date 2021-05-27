@@ -108,6 +108,8 @@ def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None,
         _offset = self.v_offset
         _jointOrientation = self.d_orientation['str']
         
+        _str_mode = mBlock.getEnumValueString('segmentMidIKControl')
+        
         if not mHandle:
             mHandle = mRigNull.getMessageAsMeta('controlSegMidIK')
             if not mHandle:
@@ -117,68 +119,54 @@ def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None,
             
             
         mHandle.masterGroup.parent = mGroup
-
-        ml_midTrackJoints = copy.copy(ml_ribbonHandles)
-        
-        #Make our Driver -----------------------------------------------------
-        
-        
-        ml_midTrackJoints.insert(1,mHandle)
-
-        d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
-                 #'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
-                 'baseName' :self.d_module['partName'] + '_midRibbon',
-                 'driverSetup':None,
-                 'squashStretch':None,
-                 'msgDriver':'masterGroup',
-                 'specialMode':'noStartEnd',
-                 'paramaterization':'floating',
-                 'connectBy':'constraint',
-                 'influences':ml_ribbonHandles,
-                 'moduleInstance' : mModule}
-        #reload(IK)
-        l_midSurfReturn = IK.ribbon(**d_mid)
-        
-        
-        #Setup our aim setup ---------------------------------------------------------
-        mFollicle = mHandle.masterGroup.getMessageAsMeta('ribbonDriver')
-        
-        mTar = ml_ikJoints[1].doCreateAt(setClass='cgmObject')
-        mTar.rename('{0}_mid_baseTarget'.format(self.d_module['partName']))
-        mTar.p_parent = mIKBase
-        
         
         mDriver = mHandle.doCreateAt(setClass='cgmObject')
         mDriver.rename('{0}_mainDriver'.format(mHandle.p_nameBase))
         mDriver.p_parent = mHandle.masterGroup
-        mc.pointConstraint([mFollicle.mNode],mDriver.mNode,maintainOffset=True)
-        mc.aimConstraint([mTar.mNode], mDriver.mNode, maintainOffset = True, #skip = 'z',
-                         aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = mHandle.masterGroup.mNode,
-                         worldUpType = 'objectrotation', worldUpVector = [1,0,0])
-        
         mHandle.doStore('mainDriver',mDriver.mNode,'msg')
+        
+        if _str_mode == 'ribbon':
+            ml_midTrackJoints = copy.copy(ml_ribbonHandles)
+            
+            #Make our Driver -----------------------------------------------------
+            
+            
+            ml_midTrackJoints.insert(1,mHandle)
+    
+            d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
+                     #'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
+                     'baseName' :self.d_module['partName'] + '_midRibbon',
+                     'driverSetup':None,
+                     'squashStretch':None,
+                     'msgDriver':'masterGroup',
+                     'specialMode':'noStartEnd',
+                     'paramaterization':'floating',
+                     'connectBy':'constraint',
+                     'influences':ml_ribbonHandles,
+                     'moduleInstance' : mModule}
+            #reload(IK)
+            l_midSurfReturn = IK.ribbon(**d_mid)
+        
+        
+            #Setup our aim setup ---------------------------------------------------------
+            mFollicle = mHandle.masterGroup.getMessageAsMeta('ribbonDriver')
+            
+            mTar = ml_ikJoints[1].doCreateAt(setClass='cgmObject')
+            mTar.rename('{0}_mid_baseTarget'.format(self.d_module['partName']))
+            mTar.p_parent = mIKBase
+            
+            
+            
+            mc.pointConstraint([mFollicle.mNode],mDriver.mNode,maintainOffset=True)
+            mc.aimConstraint([mTar.mNode], mDriver.mNode, maintainOffset = True, #skip = 'z',
+                             aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = mHandle.masterGroup.mNode,
+                             worldUpType = 'objectrotation', worldUpVector = [1,0,0])
+            
+            
+        elif _str_mode == 'prntConstraint':
+            
+            mc.parentConstraint([mObj.mNode for mObj in ml_ribbonHandles], mDriver.mNode, maintainOffset = 1)
 
-        """
-    log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
-
-    if mIKBaseControl:
-        ml_ribbonHandles[0].parent = mIKBaseControl
-    else:
-        ml_ribbonHandles[0].parent = mSpinGroup
-        mc.aimConstraint(mIKControl.mNode,
-                         ml_ribbonHandles[0].mNode,
-                         maintainOffset = True, weight = 1,
-                         aimVector = self.d_orientation['vectorAim'],
-                         upVector = self.d_orientation['vectorUp'],
-                         worldUpVector = self.d_orientation['vectorOut'],
-                         worldUpObject = mSpinGroup.mNode,
-                         worldUpType = 'objectRotation' )                    
-
-    ml_ribbonHandles[-1].parent = mIKControl"""
-
-
-    #if not  mRigNull.msgList_get('segmentJoints') and ml_handleJoints:
-        #ml_skinDrivers.extend(ml_handleJoints)        
     
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())

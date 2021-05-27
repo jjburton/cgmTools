@@ -1238,7 +1238,7 @@ def fileOpen(filepath= None, force = True, ignoreVersion = True):
     if mc.file(_current, q=1, modified = 1):
         log.warning("File has been modified: {0}".format(_current))
         result = mc.confirmDialog(title="Save Changes?",
-                                  message= "{0} Has unsaved chagnes. \n Would you like to save?".format(_current),
+                                  message= "{0} Has unsaved changes. \n Would you like to save?".format(_current),
                                   icon='warning',
                                   button=['Save',"Don't Save","Cancel"],
                                   defaultButton='Save',
