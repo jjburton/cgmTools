@@ -898,10 +898,12 @@ example:
         self._importSubTypePUM = mUI.MelMenuItem(pum,label="Replace",
                                                  ann=_d_ann.get('replace','Replace'),
                                                  command=self.file_replace,en=1 )
+                
+        
         
         self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=1)
         
-        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        #mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
         
         
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
@@ -1428,6 +1430,9 @@ example:
         log.info(log_start(_str_func))
         
         path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() ))
+        if not os.path.exists(path_subType):
+            self.LoadCategoryList()
+            return
         
         
         self.subTypeSearchList['items'] = []
@@ -2467,7 +2472,7 @@ example:
                                         dismissString='Cancel')
 
         if result == 'OK':
-            pprint.pprint(self.l_subTypesBase)
+            #pprint.pprint(self.l_subTypesBase)
             charName = mc.promptDialog(query=True, text=True)
             charPath = os.path.normpath(os.path.join(self.path_dir_category, charName))
             if not os.path.exists(charPath):
@@ -2477,6 +2482,34 @@ example:
 
             self.LoadCategoryList(self.directory)
             self.assetList['scrollList'].selectByValue(charName)
+            
+    def DuplicateAssetStructure(self, *args):
+        result = mc.promptDialog(
+                    title='New Asset',
+                    message='Asset Name:',
+                    button=['OK', 'Cancel'],
+                            defaultButton='OK',
+                                        cancelButton='Cancel',
+                                        dismissString='Cancel')
+
+        if result == 'OK':
+            _currentChar = self.assetList['scrollList'].getSelectedItem()
+            _path1  = os.path.normpath(os.path.join(self.path_dir_category, _currentChar))
+            
+            
+            charName = mc.promptDialog(query=True, text=True)
+            _path2 = os.path.normpath(os.path.join(self.path_dir_category, charName))
+            
+            CGMOS.dup_dirsBelow(_path1,_path2)
+            
+            #if not os.path.exists(charPath):
+                #os.mkdir(charPath)
+                #for subType in self.l_subTypesBase:
+                    #os.mkdir(os.path.normpath(os.path.join(charPath, subType)))
+
+            self.LoadCategoryList(self.directory)
+            self.assetList['scrollList'].selectByValue(charName)   
+            self.uiFunc_assetList_select()
             
     def CreateSubType(self, *args):
         if not self.path_asset:
@@ -3130,6 +3163,8 @@ example:
         self.assetTSLpum.clear()
 
         renameAssetMB = mUI.MelMenuItem(self.assetTSLpum, label="Rename Asset", command= partial(self.rename_below,'asset') )
+        mUI.MelMenuItem(self.assetTSLpum, label="Duplicate Structure", command=self.DuplicateAssetStructure,en=1)
+        
         openInExplorerMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Explorer", command=self.OpenAssetDirectory )
         openMayaFileHereMB = mUI.MelMenuItem(self.assetTSLpum, label="Open In Maya", command=lambda *a:self.uiPath_mayaOpen( os.path.join(self.path_dir_category, self.selectedAsset) ))
 
