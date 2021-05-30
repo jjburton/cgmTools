@@ -2463,7 +2463,8 @@ def skeleton_build(self, forceNew = True):
         
         elif _lidBuild == 'clamSimple':
             #Parenting this joint here is necessary for scale work
-            mPrerigNull.getMessageAsMeta('pupilJoint').p_parent = mEyeJoint
+            if mPrerigNull.getMessageAsMeta('pupilJoint'):
+                mPrerigNull.getMessageAsMeta('pupilJoint').p_parent = mEyeJoint
             
             
             for a in ['upr','lwr']:

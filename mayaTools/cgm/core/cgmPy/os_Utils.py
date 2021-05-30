@@ -771,7 +771,7 @@ def rename_filesInPath(path = None, search = '', replace = '', test = False):
 
                     
         for d in dirs:
-            log.debug(log_sub(_str_func,d))
+            log.debug(log_sub(_str_func,"Dir: {0}".format(d)))
             if search in d or search == d:#d.find(search) > 0:
                 dRenamed = d.replace(search,replace)
                 dPathSource = os.path.join(root, d) #get path
@@ -795,7 +795,7 @@ def rename_filesInPath(path = None, search = '', replace = '', test = False):
 
                 
         for f in files:
-            log.debug(log_sub(_str_func,d))
+            log.debug(log_sub(_str_func,"f: {0}".format(f)))
             if search in f or search == f:#d.find(search) > 0:
                 dRenamed = f.replace(search,replace)
                 dPathSource = os.path.join(root, f) #get path

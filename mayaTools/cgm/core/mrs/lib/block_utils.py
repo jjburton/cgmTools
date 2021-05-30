@@ -6644,35 +6644,6 @@ def uiQuery_getStateAttrs(self,mode = None,report=True):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
-d_uiAttrDict = {'name':['nameList','cgmName'],
-                'profile':['blockProfile','buildProfile'],
-                'basic':['attachPoint','attachIndex'],
-                'define':['basicShape','shapeDirection','jointRadius'],
-                'form':['numShapers','numSubShapers','shapersAim',
-                        'loftSetup','loftList','loftShape',
-                        'ikEnd',                        
-                        'proxyShape'],
-                'proxySurface':['loftSides','loftDegree','loftSplit'],
-                'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace',
-                          'numControls',],
-                'skeleton':['numRoll','hasJoint','rollCount'],
-                'wiring':['blockMirror','blockParent','moduleTarget'],
-                'rig':['numSpacePivots','axisAim','axisUp','rotPivotPlace',
-                       'ribbonAim','ribbonParam','ribbonConnectBy',
-                       'segmentMidIKControl','settingsDirection','settingsPlace',
-                       'spaceSwitch_fk',                       
-                       'spaceSwitch_direct',
-                       'buildSDK',
-                       'ikOrientToWorld',
-                       'ikSetup',
-                       'ikBase',
-                        'offsetMode','proxyDirect','parentToDriver','rigSetup','scaleSetup'],
-                'advanced':['baseDat'],
-                'squashStretch':['squash','squashExtraControl','squashFactorMin','squashFactorMax',
-                                 'squashMeasure'],
-                'vis':[ 'visLabels','visMeasure','visProximityMode','visJointHandle','visRotatePlane'],
-                'data':['version','blockType','blockProfile'],
-                'post':['proxyLoft','proxyGeoRoot','proxyType']}
 
 def uiQuery_getStateAttrDict(self,report = False, unknown = True):
     _str_func = ' uiQuery_getStateAttrDict'
@@ -6690,7 +6661,7 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         log.error(err)
         
     
-    d_use = CGMDICT.blendDat(d_uiAttrDict,_d)
+    d_use = CGMDICT.blendDat(BLOCKSHARE.d_uiAttrDict,_d)
         
     for k,l in d_use.iteritems():
         log.debug(cgmGEN.logString_sub(_str_func, k))
