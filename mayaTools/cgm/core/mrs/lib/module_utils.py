@@ -927,7 +927,7 @@ def controls_getDat(self, keys = None,
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
     
     if rewire and not _isReferenced:
-        log.warning("|{0}| >> rewire [{1}] ".format(_str_func,self))        
+        log.debug("|{0}| >> rewire [{1}] ".format(_str_func,self))        
         for mObj in ml_controls:
             if not mObj.getMessageAsMeta('rigNull'):
                 log.info("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
