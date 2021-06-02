@@ -60,6 +60,10 @@ import cgm.core.tools.lightLoomLite as LIGHTLOOMLITE
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.core.lib import transform_utils as TRANS
 from cgm.core.lib import constraint_utils as CONSTRAINTS
+
+import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
+
+
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
                                    ml_resetChannels,
@@ -1059,6 +1063,25 @@ def uiSection_dev(parent):
                 ann = "Attempt to load the Morpheus Maker - ALPHA",
                 c=lambda *a: load_MorpheusMaker())
     
+    _mayaOdd = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
+                           l='Maya Be Odd:')
+    mc.menuItem(parent = _mayaOdd,
+                l='Kill Outliner Select Cmds',
+                ann = "Some files can turn on a outliner select command that bugs out",
+                c=lambda *a: MAYABEODD.kill_outlinerSelectCommands())
+    mc.menuItem(parent = _mayaOdd,
+                l='Clean Unknowns',
+                ann = "Clean unknown nodes and turtle",
+                c=lambda *a: MAYABEODD.cleanFile())
+    
+    mc.menuItem(parent = _mayaOdd,
+                l='Kill maya progress bar',
+                ann = "When the progress bar gets stuck",
+                c=lambda *a: cgmUI.doEndMayaProgressBar())    
+    
+    
+    
+    #...------------------------------------------------------------------
     _wipTools = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
                              l='WIP Tools:')
     mc.menuItem(parent = _wipTools,
