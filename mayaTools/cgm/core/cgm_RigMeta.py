@@ -1553,7 +1553,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 
         if mDynParent in ml_dynParents:
             log.debug("cgmDynParentGroup.addDynParent>> Child already connected: %s"%mDynParent.getShortName())
-            return True
+            return mDynParent
 
         if alias is not None:
             i_dynParent.addAttr('cgmAlias', str(alias),lock = True)
@@ -1562,7 +1562,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         ml_dynParents.append(mDynParent)	
         self.msgList_append('dynParents',mDynParent)#Connect the nodes
         log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynParents',asMeta =False))
-
+        return mDynParent
     def verifyConstraints(self):
         """
         1) are we constrained
@@ -1621,7 +1621,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         mDynScaleConst = False
 
         if self.dynMode == 0:#Parent
-            cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
+            cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = 0)[0]
             i_dynConst = cgmMeta.cgmNode(cBuffer)
             log.debug("|{0}| >> Parent: {1}".format(_str_func,i_dynConst))                    
             
