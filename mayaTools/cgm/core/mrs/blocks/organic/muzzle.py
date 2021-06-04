@@ -6825,7 +6825,7 @@ def rig_frame(self):
         if self.str_smileSetup:
             log.debug("|{0}| >> smile setup...".format(_str_func)+ '-'*40)
             
-            if self.str_smileSetup == 'simple':
+            if self.str_smileSetup == 'single':
             
                 for s in ['Left','Right']:
                     #k in ['smileLeft','smileRight']:

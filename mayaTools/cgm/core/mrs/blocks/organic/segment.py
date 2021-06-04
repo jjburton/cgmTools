@@ -1882,7 +1882,9 @@ def rig_skeleton(self):
                 log.debug("|{0}| >> Creating ik mid control...".format(_str_func))  
                 #Lever...
                 mMidIK = mBlock.ikMidHandle.doCreateAt('joint')#ml_rigJoints[0]
-                mMidIK.doStore('cgmName', '{0}_segMid'.format(mBlock.cgmName))
+                _nameSet = NAMETOOLS.combineDict( mBlock.getNameDict(ignore=['cgmType']))                    
+                
+                mMidIK.doStore('cgmName', '{0}_segMid'.format(_nameSet))
                 mMidIK.p_parent = False
                 mMidIK.doName()
             
