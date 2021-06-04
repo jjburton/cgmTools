@@ -2729,7 +2729,7 @@ example:
         if self.hasVariant:
             wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
         if len(existingFiles) == 0:
-            wantedName = "{0}_{1}.{2}".format(wantedName, 1, _fileType)
+            wantedName = "{0}_0{1}.{2}".format(wantedName, 1, _fileType)
         else:
             currentFile = mc.file(q=True, loc=True)
             if not os.path.exists(currentFile):
@@ -2739,6 +2739,9 @@ example:
             print wantedName
             baseFile = os.path.split(currentFile)[-1]
             baseName, ext = baseFile.split('.')
+            
+            if '_BUILD' in baseName:
+                baseName = baseName.replace('_BUILD','')
 
             wantedBasename = wantedName #"%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
             if not wantedBasename in baseName:

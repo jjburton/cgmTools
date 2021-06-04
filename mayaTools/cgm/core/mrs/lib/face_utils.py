@@ -145,12 +145,14 @@ _d_faceBufferAttributes = {
                          'smileBig','frownBig'],
                 'sideAttrs':'*'},
         "tongue":{'attrs':['hide']},
-        "nose":{'attrs':['flare']},
-        
-        
-        
-        
-        
+        "nose":{'attrs':['flare']},},
+    'ren':{
+        "eye":{'attrs':['up','dn','left','right'],
+               'sideAttrs':'*'},
+        "lid":{'attrs':['uprOpen','lwrOpen','arcUp','arcDn'],
+               "sideAttrs":'*'},
+        "teeth":{'attrs':['arcUp']},
+
     },
 
     
