@@ -695,11 +695,13 @@ example:
 
         self._uiRow_dir = mUI.MelHSingleStretchLayout(_directoryColumn)
 
-        mUI.MelLabel(self._uiRow_dir,l='Directory', w=100)
+        mUI.MelLabel(self._uiRow_dir,l='Content', w=100)
         self.directoryTF = mUI.MelTextField(self._uiRow_dir, editable = False, bgc=(.8,.8,.8))
         self.directoryTF.setValue( self.directory )
+        mUI.MelButton(self._uiRow_dir,l='Explorer', ut = 'cgmUITemplate',
+                      c=lambda *a:self.OpenDirectory(self.directory))        
 
-        mUI.MelSpacer(self._uiRow_dir,w=5)
+        mUI.MelSpacer(self._uiRow_dir,w=2)
 
         self._uiRow_dir.setStretchWidget(self.directoryTF)
         self._uiRow_dir.layout()
@@ -709,8 +711,11 @@ example:
         mUI.MelLabel(self._uiRow_export,l='Export Dir', w=100)
         self.exportDirectoryTF = mUI.MelTextField(self._uiRow_export, editable = False, bgc=(.8,.8,.8))
         self.exportDirectoryTF.setValue( self.exportDirectory )
+        
+        mUI.MelButton(self._uiRow_export,l='Explorer', ut = 'cgmUITemplate',
+                      c=lambda *a:self.OpenDirectory(self.exportDirectory))        
 
-        mUI.MelSpacer(self._uiRow_export,w=5)                      
+        mUI.MelSpacer(self._uiRow_export,w=2)                      
 
         self._uiRow_export.setStretchWidget(self.exportDirectoryTF)
 
@@ -2354,7 +2359,8 @@ example:
                     continue
 
                 if self.showAllFiles:
-                    anims.append(d)
+                    if d not in ['meta']:
+                        anims.append(d)
                 elif os.path.splitext(d)[-1].lower()[1:] in fileExtensions:
                     if self.hasSub:
                         if self.hasVariant:
@@ -2370,6 +2376,9 @@ example:
         searchList['items'] = anims
         searchList['scrollList'].clear()
         searchList['scrollList'].setItems(anims)
+        
+        if anims:
+            searchList['scrollList'].selectByValue(anims[-1])
 
         self.StoreCurrentSelection()
 
@@ -2455,6 +2464,8 @@ example:
 
         if self.var_lastVersion.getValue():
             self.versionList['scrollList'].selectByValue( self.var_lastVersion.getValue() )
+        #else:
+        #self.versionList['scrollList'].selectByIdx(-1)
 
         self.assetMetaData = self.getMetaDataFromFile()	
 
@@ -3059,6 +3070,8 @@ example:
         if _res:
             log.warning("Opening: {0}".format(_res[0]))
             mc.file(_res[0], o=True, f=True, pr=True)
+            return
+        log.warning("Unknown path: {0}".format(path))
             
     def uiPath_mayaSaveTo(self,path=None):
         _filter = "Maya Files (*.ma *.mb);;Maya ASCII (*.ma);;Maya Binary (*.mb);;"
@@ -3089,6 +3102,7 @@ example:
             self.uiPath_mayaOpen( self.path_variationDirectory )
         else:
             log.warning("Variation path doesn't exist")
+            
             
     def uiPath_mayaSaveTo_variant(self):
         if self.path_variationDirectory:
