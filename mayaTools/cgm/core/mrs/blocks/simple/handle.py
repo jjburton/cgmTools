@@ -472,7 +472,7 @@ def define(self):
             md_vector = _resDefine['md_vector']
             md_handles = _resDefine['md_handles']
             
-            mAimGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
+            mAimGroup = mDefineNull._right('null',setClass='cgmObject')
             mAimGroup.p_parent = mDefineNull
             mAimGroup.rename('aim_null')
             mAimGroup.doConnectIn('visibility',"{0}.addAim".format(self.mNode))
@@ -517,7 +517,7 @@ def define(self):
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
         #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))        
     
-        #mLeverGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
+        #mLeverGroup = mDefineNull._right('null',setClass='cgmObject')
         #mLeverGroup.p_parent = mDefineNull
         #mLeverGroup.rename('lever_null')
         #mLeverGroup.doConnectIn('visibility',"{0}.buildLeverBase".format(self.mNode))
@@ -655,7 +655,7 @@ def form(self):
     #Create temple Null  ==================================================================================
     
     
-    mGeoGroup = self.doCreateAt(setClass='cgmObject')
+    mGeoGroup = self._right(setClass='cgmObject')
     mGeoGroup.rename("proxyGeo")
     mGeoGroup.parent = mFormNull
     #mGeoProxies.parent = mFormNull
@@ -782,7 +782,7 @@ def form(self):
         mDefineEndObj=mDefineEndObj)
         
         mOrientHelper = self.getMessageAsMeta('orientHelper')
-        mUpTrans = md_defineHandles['up'].doCreateAt(setClass = True)
+        mUpTrans = md_defineHandles['up']._right(setClass = True)
         mUpTrans.p_parent = mOrientHelper.mNode
         
         for mHandle in ml_handles:
@@ -1040,7 +1040,7 @@ def prerig(self):
                     
             mPivot = BLOCKSHAPES.pivotHelper(self,self,baseShape = 'square', baseSize=_size_pivot,loft=False, mParent = mPrerigNull)
             mPivot.p_parent = mPrerigNull
-            mDriverGroup = ml_formHandles[0].doCreateAt(setClass=True)
+            mDriverGroup = ml_formHandles[0]._right(setClass=True)
             mDriverGroup.rename("Pivot_driver_grp")
             mDriverGroup.p_parent = mPrerigNull
             mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
@@ -1182,7 +1182,8 @@ def skeleton_build(self, forceNew = True):
     if not mRigNull:
         raise ValueError,"No rigNull connected"
     
-    
+    if not self.hasJoint:
+        return True
     
     #>> If skeletons there, delete ------------------------------------------------------------------------ 
     _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
@@ -1197,7 +1198,7 @@ def skeleton_build(self, forceNew = True):
     ml_formHandles = self.msgList_get('formHandles')
     
     ml_jointHelpers = self.msgList_get('jointHelpers')
-    mJoint = ml_jointHelpers[0].doCreateAt('joint')
+    mJoint = ml_jointHelpers[0]._right('joint')
     JOINTS.freezeOrientation(mJoint)
 
     _l_namesToUse = self.atUtils('skeleton_getNameDicts',False, 1)
@@ -1233,6 +1234,8 @@ def skeleton_build(self, forceNew = True):
 def skeleton_check(self):
     if self.getMessage('moduleTarget'):
         if self.moduleTarget.getMessage('rigNull'):
+            if not self.hasJoint:
+                return True            
             if self.moduleTarget.rigNull.msgList_get('moduleJoints'):
                 return True
     return False
@@ -1279,7 +1282,9 @@ def rig_dataBuffer(self):
         ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
         mMasterNull = self.d_module['mMasterNull']
         
-        self.mRootFormHandle = ml_formHandles[0]
+        try:self.mRootFormHandle = ml_formHandles[0]
+        except:self.mRootFormHandle = self
+        
         log.debug(cgmGEN._str_subLine)
         
         #Offset ============================================================================    
@@ -1394,11 +1399,11 @@ def rig_shapes(self):
     
     if _str_rotPivot == 'cog' and mBlock.addCog and mBlock.getMessage('cogHelper'):
         log.info("|{0}| >> Cog pivot setup... ".format(_str_func))    
-        mControl = mBlock.cogHelper.doCreateAt()
+        mControl = mBlock.cogHelper._right()
     elif _str_rotPivot == 'jointHelper':
-        mControl = mHelper.doCreateAt()        
+        mControl = mHelper._right()        
     else:
-        mControl = mMainHandle.doCreateAt()
+        mControl = mMainHandle._right()
         
     if mBlock.addScalePivot and mBlock.getMessage('scalePivotHelper'):
         log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
@@ -1407,7 +1412,7 @@ def rig_shapes(self):
         
     if mBlock.addCog and mBlock.getMessage('cogHelper'):
         log.info("|{0}| >> Cog helper setup... ".format(_str_func))
-        mCog = mBlock.cogHelper.doCreateAt()
+        mCog = mBlock.cogHelper._right()
         mCog.p_parent = False
         #ATTR.break_connection(mCog.mNode,'visibility')
         
@@ -1730,7 +1735,7 @@ def rig_frame(self):
         if mBlock.getMessage('pivotHelper'):
             log.info("|{0}| >> Pivot setup...".format(_str_func))
             
-            mPivotResultDriver = mHandle.doCreateAt()
+            mPivotResultDriver = mHandle._right()
             mPivotResultDriver.addAttr('cgmName','pivotResult')
             mPivotResultDriver.addAttr('cgmType','driver')
             mPivotResultDriver.doName()

@@ -705,7 +705,7 @@ def get_puppet_heirarchy_context(mModule, context = 'below', asList = False, rep
     _str_func = 'get_puppet_heirarchy_context'
     
     #blocks = VALID.listArg(mBlock)
-    ml_blocksRaw = cgmMeta.validateObjListArg(mModule)
+    ml_modulesRaw = cgmMeta.validateObjListArg(mModule)
     #mBlock = cgmMeta.validateObjArg(mBlock,'cgmRigBlock')
     _res = {}
     
@@ -716,10 +716,13 @@ def get_puppet_heirarchy_context(mModule, context = 'below', asList = False, rep
     elif context == 'root':
         ml_roots = []
         ml_puppets = []
-        for mObj in ml_blocksRaw:
-            mPuppet = mObj.modulePuppet
-            if mPuppet not in ml_puppets:
-                ml_puppets.append(mPuppet)
+        for mObj in ml_modulesRaw:
+            if mObj.mClass == 'cgmRigPuppet':
+                ml_puppets.append(mObj)
+            else:
+                mPuppet = mObj.modulePuppet
+                if mPuppet not in ml_puppets:
+                    ml_puppets.append(mPuppet)
         
         for mPuppet in ml_puppets:
             for mChild in mPuppet.UTILS.modules_get(mPuppet):
@@ -731,7 +734,7 @@ def get_puppet_heirarchy_context(mModule, context = 'below', asList = False, rep
             _res.update( walk_module_heirarchy(mRoot))
 
     elif context in ['self','below']:
-        for mObj in ml_blocksRaw:
+        for mObj in ml_modulesRaw:
             log.debug("|{0}| >> mModule: {1} | context: {2}".format(_str_func,mObj.mNode,context)  )  
             if context == 'self':
                 _res.update({mObj:{}})

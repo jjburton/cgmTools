@@ -476,6 +476,60 @@ _d_faceWiring = {
                                     'lips_wide_right':{'driverAttr':'tx'}}},},
     
     
+'ren':{
+    
+    #Eye... -----------------------------------------------
+    'L_eye':{'control':'L_eye_anim',
+           'wiringDict':{'eye_up_left':{'driverAttr':'ty'},
+                         'eye_dn_left':{'driverAttr':'-ty'},
+                         'eye_right_left':{'driverAttr':'-tx'},
+                         'eye_left_left':{'driverAttr':'tx'},
+                         }},
+    
+    'R_eye':{'control':'R_eye_anim',
+           'wiringDict':{'eye_up_right':{'driverAttr':'ty'},
+                         'eye_dn_right':{'driverAttr':'-ty'},
+                         'eye_right_right':{'driverAttr':'-tx'},
+                         'eye_left_right':{'driverAttr':'tx'},
+                         }},
+    
+
+
+
+    #Lid... --------------------------------------------
+    'L_lidArc_anim':{'control':'L_lidArc_anim',
+           'wiringDict':{'lid_arcUp_left':{'driverAttr':'ty'},
+                         'lid_arcDn_left':{'driverAttr':'-ty'},
+                         }},
+    'L_lidLwrOpen':{'control':'L_lidLwr_open_anim',
+           'wiringDict':{'lid_lwrOpen_left':{'driverAttr':'ty'},
+                         }},
+    'L_lidUprOpen':{'control':'L_lidUpr_open_anim',
+           'wiringDict':{'lid_uprOpen_left':{'driverAttr':'ty'},
+                         }},
+    
+    'R_lidArc_anim':{'control':'R_lidArc_anim',
+           'wiringDict':{'lid_arcUp_right':{'driverAttr':'ty'},
+                         'lid_arcDn_right':{'driverAttr':'-ty'},
+                         }},
+    'R_lidLwrOpen':{'control':'R_lidLwr_open_anim',
+           'wiringDict':{'lid_lwrOpen_right':{'driverAttr':'ty'},
+                         }},
+    'R_lidUprOpen':{'control':'R_lidUpr_open_anim',
+           'wiringDict':{'lid_uprOpen_right':{'driverAttr':'ty'},
+                         }},
+
+
+    
+    
+    #Mouth... --------------------------------------------
+    'teethArc':{'control':'teeth_arcUp_anim',
+           'wiringDict':{'teeth_arcUp':{'driverAttr':'ty'},
+                         }},    
+    
+    },
+
+
 'Wump':{
 
     
@@ -666,4 +720,68 @@ _d_faceWiring = {
                                     'lips_narrow_right':{'driverAttr':'-tx'},
                                     'lips_wide_right':{'driverAttr':'tx'}}},}}
                  
+
+def stacheSetup():
+    _muzzle = 'muzzle_anim'
+    _d = {'L_stache_root_anim':'L_uprLip_direct_anim',
+          'R_stache_root_anim':'R_uprLip_direct_anim'}
+    
+    
+    mMuzzle = cgmMeta.asMeta(_muzzle)
+    
+    for o,t in _d.iteritems():
+        mObj = cgmMeta.asMeta(o)
+        mTarget = cgmMeta.asMeta(t)
+        
+        mDynGroup = mObj.dynParentGroup
+        
+        for i in xrange(2):
+            if not i:
+                _name = "{0}_{1}_trackLoc".format(mObj.p_nameBase,mTarget.p_nameBase)
+                _alias = 'trackLip'
+            else:
+                _name = "{0}_{1}_muzzleLoc".format(mObj.p_nameBase,mTarget.p_nameBase)
+                _alias = 'trackLipMuzzle'
+                
+            mLoc = mObj.doLoc(fastMode=True)
+            mLoc.rename(_name)
+            mLoc.p_parent = mTarget
+            mLoc.doStore('cgmAlias', _alias)
+             
+            if i:
+                mc.orientConstraint(mMuzzle.mNode, mLoc.mNode, maintainOffset = True)
+                
+            mDynGroup.addDynParent(mLoc.mNode)
+            
+        mDynGroup.rebuild()
+            
+            
+            #mObj.doCreateAt('joint', connectAs = 'sdkGroup', setClass = 'cgmObject')
+            #            mSDK.p_parent = mObj.p_parent    
+    
+
+def swordSetup():
+    _l = [['L_wrist_direct_anim','sword_l_hand','handR'],
+          ['R_wrist_direct_anim','sword_r_hand','handL'],
+          ['L_snapSheath_anim','sword_sheath','sheathL']]
+    
+    mSword = cgmMeta.asMeta('sword_anim')
+    mDynGroup = mSword.dynParentGroup
+
+    for s in _l:
+        mObj = cgmMeta.asMeta(s[0])
+        mTarget = cgmMeta.asMeta(s[1])
+        
+        
+        mDriver = mDynGroup.addDynParent(mTarget.mNode)
+        mDriver.doSnapTo(mTarget)
+        mSword.doSnapTo(mTarget)
+        
+        mTarget.p_parent = mObj
+        mTarget.v=False
+        mTarget.doStore('cgmAlias', s[2])
+
+            
+        mDynGroup.rebuild()
+    mSword.resetAttrs()
 

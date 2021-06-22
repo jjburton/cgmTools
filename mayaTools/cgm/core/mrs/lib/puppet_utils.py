@@ -282,7 +282,7 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
         
     def validate_controls(ml):
         for i,mObj in enumerate(ml):
-            log.debug("|{0}| >> First pass: {1}".format(_str_func,mObj))
+            log.debug("|{0}| >> Register: {1}".format(_str_func,mObj))
             
             if not issubclass(type(mObj), cgmMeta.cgmControl):
                 log.debug("|{0}| >> Reclassing: {1}".format(_str_func,mObj))
@@ -317,6 +317,7 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
             md_sideControls[_side].append(mObj)
             
         if d1 and d2:
+            log.debug("|{0}| >> d1 and d2...".format(_str_func))            
             for key in BLOCKSHARE._l_controlOrder:
                 self_keyControls = d1['md_controls'].get(key,[])
                 mirr_keyControls = d2['md_controls'].get(key,[])
@@ -324,7 +325,7 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                 len_self = len(self_keyControls)
                 len_mirr = len(mirr_keyControls)
                 
-                log.debug(cgmGEN.logString_sub("|{0}| >> Key: {1} | self: {2} | mirror: {3}".format(_str_func,key,len_self,len_mirr)))
+                log.debug(cgmGEN.logString_msg("|{0}| >> Key: {1} | self: {2} | mirror: {3}".format(_str_func,key,len_self,len_mirr)))
                 
                 ml_primeControls = self_keyControls #...longer list of controls
                 ml_secondControls = mirr_keyControls
@@ -337,8 +338,10 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                 ml_cull_prime = copy.copy(ml_primeControls)
                 
                 for i,mObj in enumerate(ml_primeControls):
+                    log.debug("|{0}| >> Prime: {1}".format(_str_func, mObj))
+                    
                     if mObj not in ml_controlOrphans:
-                        log.info("already processed: {0}".format(mObj))
+                        log.debug("already processed control: {0}".format(mObj))
                         continue
                     if progressBar:
                         cgmUI.progressBar_set(progressBar,
@@ -346,20 +349,24 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                                               maxValue=len(ml_primeControls),
                                               progress=i, vis=True)
                         
-                    _side = mObj.getEnumValueString('mirrorSide')                
+                    _side = mObj.getEnumValueString('mirrorSide')
                     _v = d_Indices[_side]+1
-                    tags_prime = md_cgmTags[mObj]
+                    
+                    if  md_indicesToControls[_side].get(_v):
+                        log.error('already stored start value: {0}, finding new one'.format(_v))
+                        while md_indicesToControls[_side].get(_v):
+                            _v +=1
+                        log.error('New index: {0}'.format(_v))
                     
                     mObj.mirrorIndex = _v
                     log.debug("|{0}| >> Setting index: [{1}] | {2} | {3}".format(_str_func,_v,_side,mObj))
-                    if  md_indicesToControls[_side].get(_v):
-                        log.error('already stored start value')
-                        return False
+                    
                     
                     md_indicesToControls[_side][_v] = mObj
                     ml_controlOrphans.remove(mObj)
                     ml_cull_prime.remove(mObj)
                     
+                    tags_prime = md_cgmTags[mObj]
                     
                     mMirror = mObj.getMessageAsMeta('mirrorControl')
                     if mMirror:
@@ -374,6 +381,10 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                         ml_controlOrphans.remove(mMirror)                        
                         
                     else:
+                        log.debug("Looking for match...")
+                        
+                        mMatch = False
+                        
                         for mCandidate in ml_cull:
                             #First try a simple name match
                             #l_candSplit = mCandidate.p_nameBase.split('_')
@@ -384,20 +395,44 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                                 if tags_prime[a] != v:
                                     _match = False
                                     break
-                                
+                            
                             if _match:
-                                log.debug("|{0}| >> Match found: {1} | {2}".format(_str_func,mObj.p_nameShort,mCandidate.p_nameShort))
+                                mMatch = mCandidate
+                                break
+
+                        if not mMatch:
+                            log.debug("Trying name match...")
+                            _nameBase = mObj.p_nameBase
+                            _matchString = None
+                            if _nameBase.startswith('L_'):
+                                _matchString = 'R_' + _nameBase[2:]
+                            elif _nameBase.startswith('R_'):
+                                _matchString = 'L_' + _nameBase[2:]
+                            
+                            if _matchString:
+                                log.debug("matchstring: {0}".format(_matchString))
+                                for mCandidate in ml_cull:
+                                    #First try a simple name match
+                                    #l_candSplit = mCandidate.p_nameBase.split('_')
+                                    if _matchString == mCandidate.p_nameBase:
+                                        mMatch = mCandidate
+                                        break
+                             
                                 
-                                mObj.doStore('mirrorControl',mCandidate)
-                                mCandidate.doStore('mirrorControl',mObj)                        
-                                
-                                mCandidate.mirrorIndex = _v
-                                
-                                _sideMirror = mCandidate.getEnumValueString('mirrorSide')                
-                                d_Indices[_sideMirror] = _v#...push it back                
-                                ml_cull.remove(mCandidate)
-                                md_indicesToControls[_sideMirror][_v] = mCandidate
-                                ml_controlOrphans.remove(mCandidate)
+                        if mMatch:
+                            log.debug("|{0}| >> Match found: {1} | {2}".format(_str_func,mObj.p_nameShort,mMatch.p_nameShort))
+                            
+                            mObj.doStore('mirrorControl',mMatch)
+                            mMatch.doStore('mirrorControl',mObj)                        
+                            
+                            mMatch.mirrorIndex = _v
+                            
+                            _sideMirror = mMatch.getEnumValueString('mirrorSide')                
+                            d_Indices[_sideMirror] = _v#...push it back                
+                            ml_cull.remove(mMatch)
+                            md_indicesToControls[_sideMirror][_v] = mMatch
+                            ml_controlOrphans.remove(mMatch)
+                            
                             
                     d_Indices[_side] = _v
                     
@@ -421,6 +456,7 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                     
             return
         else:
+            log.debug("|{0}| >> self match".format(_str_func))                        
             ml_right = md_sideControls.get('Right',[])
             ml_left = md_sideControls.get('Left',[])
             ml_done = []
@@ -516,6 +552,8 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
         mMirror = d_module.get('mMirror')
         ml_controls = d_module['ml_controls']
         if mMirror:
+            log.info("|{0}| >> Block has mirror: {1} | {2}".format(_str_func,mModule.mNode, mMirror.mNode))
+            
             d_mirror =  mMirror.UTILS.get_mirrorDat(mMirror)
             ml_controls.extend(d_mirror['ml_controls'])
             

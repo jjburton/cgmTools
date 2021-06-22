@@ -3627,7 +3627,11 @@ class rigFactory(object):
         self.attachPoint = self.mModule.atUtils('get_driverPoint',_attachPoint,idx=_attachIdx )        
 
         if not self.mModule.getMessage('deformNull'):
-            if self.d_block['b_faceBlock'] or _blockType in ['eyeMain']:
+            if self.mBlock.hasAttr('hasJoint') and not self.mBlock.hasJoint:
+                mGrp = self.attachPoint.doCreateAt(setClass=True)
+                self.mModule.connectChildNode(mGrp,'constrainNull','module')
+                mGrp.parent = self.attachPoint
+            elif self.d_block['b_faceBlock'] or _blockType in ['eyeMain']:
                 log.debug("|{0}| >> Face deformNull".format(_str_func))
                 mGrp = self.attachPoint.doCreateAt(setClass=True)
                 self.mModule.connectChildNode(mGrp,'constrainNull','module')
