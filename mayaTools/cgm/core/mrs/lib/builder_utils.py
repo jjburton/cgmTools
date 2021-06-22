@@ -66,10 +66,13 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.classes.NodeFactory as NodeF
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 from cgm.core.classes import GuiFactory as cgmUI
+from cgm.core.cgmPy import dict_utils as CGMDICT
+
 #for m in BLOCKSHARE,MATH,DIST,RAYS,RIGGEN,SNAPCALLS:
 #    reload(m)
 
 from cgm.core.cgmPy import os_Utils as cgmOS
+from cgm.core.mrs.lib import general_utils as BLOCKGEN
 
 
 def eyeLook_get(self,autoBuild=False):
@@ -2647,13 +2650,6 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
 
-
-
-
-
-
-
-
 def joints_connectToParent(self):
     try:
         _start = time.clock()    
@@ -2685,4 +2681,75 @@ check_nameMatches = RIGGEN.check_nameMatches
 #...just linking for now because I want to only check against asset names in future and not scene wide
 
 
+
+def uiQuery_getAttrDict(report = True, unknown = True):
+    _str_func = ' uiQuery_getStateAttrDict'
+    log.debug(cgmGEN.logString_start(_str_func))
+        
+    _res = {}
+    _done = []
     
+    _dicts = [BLOCKSHARE._d_attrsTo_make]
+    _d = copy.deepcopy(BLOCKSHARE.d_uiAttrDict)
+    
+    
+    for b,mBlockModule in BLOCKGEN.get_modules_dict().iteritems():
+        log.info(cgmGEN.logString_sub(_str_func, b))
+        try:
+            _d = CGMDICT.blendDat(_d,mBlockModule.d_attrStateMask)
+            _dicts.append(mBlockModule.d_attrsToMake)
+        except Exception,err:
+            log.error(err)
+    
+    for t,l in _d.iteritems():
+        l.sort()
+        _d[t] = l
+        
+        for s in l:
+            for d in _dicts:
+                _dat = d.get(s)
+                if _dat:
+                    if _dat.count(':'):
+                        _options = _dat.split(':')
+                    else:
+                        _options = _dat
+                    _res[s] = _options
+                    break
+                
+    #pprint.pprint(_d)
+    return _d,_res
+    
+        
+    for k,l in d_use.iteritems():
+        log.debug(cgmGEN.logString_sub(_str_func, k))
+        if report:pprint.pprint(l)
+        _tmp = []
+        for s in l:
+            if s.endswith('List') or s in ['numSubShapers','rollCount']:
+                if ATTR.datList_exists(_short,s):
+                    for s2 in ATTR.datList_getAttrs(_short,s):
+                        _tmp.append(s2)
+                        _done.append(s2)
+                
+            if self.hasAttr(s):
+                if s in _done:
+                    log.debug("Already done: {0}".format(s))
+                else:
+                    _tmp.append(s)
+                    _done.append(s)
+        _tmp.sort()
+        _res[k] = _tmp
+        
+    if report:
+        pprint.pprint(_res)
+        
+    if unknown:
+        _tmp = []
+        for a in self.getAttrs(ud=True):
+            if a not in _done:
+                _tmp.append(str(a))
+        _tmp.sort()
+        log.info(cgmGEN.logString_sub(_str_func,'Unknown...'))
+        pprint.pprint(_tmp) 
+        
+    return _res

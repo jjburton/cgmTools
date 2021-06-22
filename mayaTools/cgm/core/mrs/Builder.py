@@ -794,6 +794,8 @@ class ui_blockPicker(cgmUI.cgmGUI):
         
         self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1, tearOff=1)
         self.uiMenu_vis = mUI.MelMenu( l='Vis', tearOff=1)
+        
+        
         self.buildMenu_vis()
         
         self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
@@ -4466,6 +4468,8 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_select = mUI.MelMenu( l='Select',pmc=self.buildMenu_select, tearOff=1)
         #self.uiMenu_picker = mUI.MelMenu( l='Picker',pmc=self.buildMenu_picker, tearOff=1)
         self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1, tearOff=1)
+        self.uiMenu_multiset = mUI.MelMenu( l='MultiSet', pmc=self.buildMenu_multiset, tearOff=1)
+        
         self.uiMenu_vis = mUI.MelMenu( l='Vis', tearOff=1)
         self.buildMenu_vis()
 
@@ -5224,7 +5228,61 @@ class ui(cgmUI.cgmGUI):
 
         log.info("Context menu rebuilt")        
         
-    
+    def buildMenu_multiset(self,*args,**kws):
+        _str_func = 'buildMenu_multiset'
+        
+        self.uiMenu_multiset.clear()   
+        _menu = self.uiMenu_multiset
+        
+        self._d_attrFields = {}
+        
+        
+        _d = BUILDERUTILS.uiQuery_getAttrDict()
+
+        
+        _keys = _d.keys()
+        _keys.sort()
+        l_order =['define','profile','basic','name',
+                  'form','proxySurface','prerig',
+                  'skeleton',
+                  'rig','squashStretch']
+        l_order.reverse()
+        
+        for k in l_order:
+            if k in _keys:
+                _keys.remove(k)
+                _keys.insert(0,k)
+                
+        l_end = ['data','wiring','advanced']
+        for k in l_end:
+            if k in _keys:
+                _keys.remove(k)
+                _keys.append(k)        
+        
+        
+        d_keyColors = {'profile':'define',
+                       'basic':'define',
+                       'name':'define',
+                       'proxySurface':'form',
+                       'squashStretch':'rig',
+                       'post':'rig'}
+        
+        for k in _keys:
+            log.debug(cgmGEN.logString_sub(_str_func,k))                
+            
+            l = _d.get(k)
+            if not l:
+                log.debug("|{0}| >> No attrs in : {1}".format(_str_func,k))                
+                continue
+            
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
+                            label = k, en=True,)
+            
+            for a in _d.get(k):
+                mUI.MelMenuItem(_sub, tearOff=True,
+                                label = a, en=True,)                
+            
+            
     def buildMenu_vis(self,*args,**kws):
         self.uiMenu_vis.clear()   
         _menu = self.uiMenu_vis
@@ -5242,18 +5300,6 @@ class ui(cgmUI.cgmGUI):
                                            'focus',True,'template',
                                            **{'updateUI':0})},},
                    }
-
-
-        
-        """
-        for state in ['define','form','prerig']:
-            d_s['blockDat']['order'].append('Load {0}'.format(state))
-            d_s['blockDat']['Load {0}'.format(state)] = {
-                'ann':"Load {0} blockDat in context".format(state),
-                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                       'atUtils','blockDat_load_state',state,
-                                       **{})}"""
-        
         
         l_keys = d_s.keys()
         l_keys.sort()

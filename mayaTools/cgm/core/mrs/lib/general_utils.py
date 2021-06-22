@@ -53,6 +53,7 @@ from cgm.core.lib import search_utils as SEARCH
 #from cgm.core.cgmPy import validateArgs as VALID
 #from cgm.core.cgmPy import path_Utils as PATH
 #from cgm.core.cgmPy import os_Utils as cgmOS
+from cgm.core.cgmPy import path_Utils as PATH
 
 def verify_sceneBlocks():
     """
@@ -824,3 +825,122 @@ def patch_templateToForm():
         cgmGEN.cgmExceptCB(Exception,err)
     finally:
         CGMUI.doEndMayaProgressBar()
+
+
+#====================================================================================	
+#>> Utilities
+#====================================================================================	
+global CGM_RIGBLOCK_DAT
+CGM_RIGBLOCK_DAT = None
+
+def get_modules_dict(update=False):
+    return get_modules_dat(update)[0]
+
+#@cgmGEN.Timer
+def get_modules_dat(update = False):
+    """
+    Data gather for available blocks.
+
+    :parameters:
+
+    :returns
+        _d_modules, _d_categories, _l_unbuildable
+        _d_modules(dict) - keys to modules
+        _d_categories(dict) - categories to list of entries
+        _l_unbuildable(list) - list of unbuildable modules
+    """
+    _str_func = 'get_modules_dict'    
+    global CGM_RIGBLOCK_DAT
+
+    if CGM_RIGBLOCK_DAT and not update:
+        log.debug("|{0}| >> passing buffer...".format(_str_func))          
+        return CGM_RIGBLOCK_DAT
+    
+    _b_debug = log.isEnabledFor(logging.DEBUG)
+
+    import cgm.core.mrs.blocks as blocks
+    _path = PATH.Path(blocks.__path__[0])
+    _l_duplicates = []
+    _l_unbuildable = []
+    _base = _path.split()[-1]
+    _d_files =  {}
+    _d_modules = {}
+    _d_import = {}
+    _d_categories = {}
+
+    log.info("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,_path))   
+    _i = 0
+    for root, dirs, files in os.walk(_path, True, None):
+        # Parse all the files of given path and reload python modules
+        _mBlock = PATH.Path(root)
+        _split = _mBlock.split()
+        _subRoot = _split[-1]
+        _splitUp = _split[_split.index(_base):]
+
+        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
+        log.debug("|{0}| >> On split: {1}".format(_str_func,_splitUp))   
+
+        if len(_split) == 1:
+            _cat = 'base'
+        else:_cat = _split[-1]
+        _l_cat = []
+        _d_categories[_cat]=_l_cat
+
+        for f in files:
+            key = False
+
+            if f.endswith('.py'):
+
+                if f == '__init__.py':
+                    continue
+                else:
+                    name = f[:-3]    
+            else:
+                continue
+
+            if _i == 'cat':
+                key = '.'.join([_base,name])                            
+            else:
+                key = '.'.join(_splitUp + [name])    
+                if key:
+                    log.debug("|{0}| >> ... {1}".format(_str_func,key))                      
+                    if name not in _d_modules.keys():
+                        _d_files[key] = os.path.join(root,f)
+                        _d_import[name] = key
+                        _l_cat.append(name)
+                        try:
+                            module = __import__('cgm.core.mrs.{0}'.format(key), globals(), locals(), ['*'], -1)
+                            #reload(module) 
+                            _d_modules[name] = module
+                            #if not is_buildable(module):
+                                #_l_unbuildable.append(name)
+                        except Exception, e:
+                            log.warning("|{0}| >> Module failed: {1}".format(_str_func,key))
+                            log.error(e)
+                            cgmGEN.cgmExceptCB(Exception,e,msg=vars())
+                    else:
+                        _l_duplicates.append("{0} >> {1} ".format(key, os.path.join(root,f)))
+            _i+=1
+
+
+    if _b_debug:
+        cgmGEN.walk_dat(_d_modules,"Modules")        
+        cgmGEN.walk_dat(_d_files,"Files")
+        cgmGEN.walk_dat(_d_import,"Imports")
+        cgmGEN.walk_dat(_d_categories,"Categories")
+
+    if _l_duplicates and _b_debug:
+        log.debug(cgmGEN._str_subLine)
+        log.debug("|{0}| >> DUPLICATE MODULES....".format(_str_func))
+        for m in _l_duplicates:
+            print(m)
+        raise Exception,"Must resolve"
+    log.debug("|{0}| >> Found {1} modules under: {2}".format(_str_func,len(_d_files.keys()),_path))     
+    if _l_unbuildable and _b_debug:
+        log.debug(cgmGEN._str_subLine)
+        log.debug("|{0}| >> ({1}) Unbuildable modules....".format(_str_func,len(_l_unbuildable)))
+        for m in _l_unbuildable:
+            print(">>>    " + m) 
+            
+    CGM_RIGBLOCK_DAT = _d_modules, _d_categories, _l_unbuildable
+    return _d_modules, _d_categories, _l_unbuildable
