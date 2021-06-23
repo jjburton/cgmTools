@@ -472,7 +472,7 @@ def define(self):
             md_vector = _resDefine['md_vector']
             md_handles = _resDefine['md_handles']
             
-            mAimGroup = mDefineNull._right('null',setClass='cgmObject')
+            mAimGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
             mAimGroup.p_parent = mDefineNull
             mAimGroup.rename('aim_null')
             mAimGroup.doConnectIn('visibility',"{0}.addAim".format(self.mNode))
@@ -517,7 +517,7 @@ def define(self):
         #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
         #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))        
     
-        #mLeverGroup = mDefineNull._right('null',setClass='cgmObject')
+        #mLeverGroup = mDefineNull.doCreateAt('null',setClass='cgmObject')
         #mLeverGroup.p_parent = mDefineNull
         #mLeverGroup.rename('lever_null')
         #mLeverGroup.doConnectIn('visibility',"{0}.buildLeverBase".format(self.mNode))
@@ -655,7 +655,7 @@ def form(self):
     #Create temple Null  ==================================================================================
     
     
-    mGeoGroup = self._right(setClass='cgmObject')
+    mGeoGroup = self.doCreateAt(setClass='cgmObject')
     mGeoGroup.rename("proxyGeo")
     mGeoGroup.parent = mFormNull
     #mGeoProxies.parent = mFormNull
@@ -782,7 +782,7 @@ def form(self):
         mDefineEndObj=mDefineEndObj)
         
         mOrientHelper = self.getMessageAsMeta('orientHelper')
-        mUpTrans = md_defineHandles['up']._right(setClass = True)
+        mUpTrans = md_defineHandles['up'].doCreateAt(setClass = True)
         mUpTrans.p_parent = mOrientHelper.mNode
         
         for mHandle in ml_handles:
@@ -1040,7 +1040,7 @@ def prerig(self):
                     
             mPivot = BLOCKSHAPES.pivotHelper(self,self,baseShape = 'square', baseSize=_size_pivot,loft=False, mParent = mPrerigNull)
             mPivot.p_parent = mPrerigNull
-            mDriverGroup = ml_formHandles[0]._right(setClass=True)
+            mDriverGroup = ml_formHandles[0].doCreateAt(setClass=True)
             mDriverGroup.rename("Pivot_driver_grp")
             mDriverGroup.p_parent = mPrerigNull
             mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
@@ -1198,7 +1198,7 @@ def skeleton_build(self, forceNew = True):
     ml_formHandles = self.msgList_get('formHandles')
     
     ml_jointHelpers = self.msgList_get('jointHelpers')
-    mJoint = ml_jointHelpers[0]._right('joint')
+    mJoint = ml_jointHelpers[0].doCreateAt('joint')
     JOINTS.freezeOrientation(mJoint)
 
     _l_namesToUse = self.atUtils('skeleton_getNameDicts',False, 1)
@@ -1399,11 +1399,11 @@ def rig_shapes(self):
     
     if _str_rotPivot == 'cog' and mBlock.addCog and mBlock.getMessage('cogHelper'):
         log.info("|{0}| >> Cog pivot setup... ".format(_str_func))    
-        mControl = mBlock.cogHelper._right()
+        mControl = mBlock.cogHelper.doCreateAt()
     elif _str_rotPivot == 'jointHelper':
-        mControl = mHelper._right()        
+        mControl = mHelper.doCreateAt()        
     else:
-        mControl = mMainHandle._right()
+        mControl = mMainHandle.doCreateAt()
         
     if mBlock.addScalePivot and mBlock.getMessage('scalePivotHelper'):
         log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
@@ -1412,7 +1412,7 @@ def rig_shapes(self):
         
     if mBlock.addCog and mBlock.getMessage('cogHelper'):
         log.info("|{0}| >> Cog helper setup... ".format(_str_func))
-        mCog = mBlock.cogHelper._right()
+        mCog = mBlock.cogHelper.doCreateAt()
         mCog.p_parent = False
         #ATTR.break_connection(mCog.mNode,'visibility')
         
@@ -1735,7 +1735,7 @@ def rig_frame(self):
         if mBlock.getMessage('pivotHelper'):
             log.info("|{0}| >> Pivot setup...".format(_str_func))
             
-            mPivotResultDriver = mHandle._right()
+            mPivotResultDriver = mHandle.doCreateAt()
             mPivotResultDriver.addAttr('cgmName','pivotResult')
             mPivotResultDriver.addAttr('cgmType','driver')
             mPivotResultDriver.doName()

@@ -5237,7 +5237,7 @@ class ui(cgmUI.cgmGUI):
         self._d_attrFields = {}
         
         
-        _d = BUILDERUTILS.uiQuery_getAttrDict()
+        _d = BUILDERUTILS.uiQuery_getAttrDict() or {}
 
         
         _keys = _d.keys()
@@ -6142,7 +6142,8 @@ class ui(cgmUI.cgmGUI):
             #if _mActiveBlock and b_changeState:
                 #self.uiUpdate_blockDat()
             if _selectRes:
-                mc.select([mObj.mNode for mObj in ml_res])
+                try:mc.select([mObj.mNode for mObj in ml_res])
+                except:pass
                 
             if b_dupMode and len(ml_res) > 1:
                 log.info(cgmGEN.logString_msg(_str_func,"mDup post process..."))
