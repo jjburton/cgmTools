@@ -5237,9 +5237,10 @@ class ui(cgmUI.cgmGUI):
         self._d_attrFields = {}
         
         
-        _d = BUILDERUTILS.uiQuery_getAttrDict() or {}
-
-        
+        _d = BUILDERUTILS.uiQuery_getAttrDict() or False
+        if not _d:
+            return
+        return
         _keys = _d.keys()
         _keys.sort()
         l_order =['define','profile','basic','name',
