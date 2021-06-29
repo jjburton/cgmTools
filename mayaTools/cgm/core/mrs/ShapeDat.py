@@ -227,8 +227,8 @@ def dat_get(mBlock=None):
     #FormHandles ... ---------------------------------------------------------------------------
     _d = {}
     _d['form'] = []
-    _d['loft'] = {}
-    _d['shapes'] = {}
+    _d['loft'] = []
+    _d['shapes'] = []
     
     _res['handles'] = _d
     
@@ -252,13 +252,12 @@ def dat_get(mBlock=None):
                 'r':mObj.rotate,
                 't':mObj.translate,
                 's':mObj.scale}
-        
         return d
     
     for i, mObj in enumerate(ml_handles):
         _d['form'].append( get(mObj))
-        _d['loft'][i] = []
-        _d['shapes'][i] = {}
+        _l_shapes = []
+        _l_loft = []
         
         mLoftCurve = mObj.getMessageAsMeta('loftCurve')
         
@@ -271,8 +270,11 @@ def dat_get(mBlock=None):
             ml_loft.extend(ml_subShapers)
             
         for ii,mObj in enumerate(ml_loft):
-            _d['loft'][i].append(get(mObj))
-            _d['shapes'][i][ii] = shapes_get(mObj)
+            _l_loft.append( get(mObj))
+            _l_shapes.append( shapes_get(mObj))
+            
+        _d['loft'].append(_l_loft)
+        _d['shapes'].append(_l_shapes)
 
     #pprint.pprint(_res)
     return _res
