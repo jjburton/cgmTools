@@ -1052,7 +1052,7 @@ def euclidVector3Arg(arg):
             raise ValueError,"|{0}| >> arg: {1}".format(_str_func,arg)
     return arg
     
-def transformDirection(node = None, v = None):
+def transformDirection(node = None, v = None, scale= False):
     """
     Get local position of vector transformed from world space of Transform
     
@@ -1075,24 +1075,29 @@ def transformDirection(node = None, v = None):
     current_matrix.n = 0
     current_matrix.o = 0
 
-    s = scaleLocal_get(_node,True)
 
     transform_matrix = EUCLID.Matrix4()
     transform_matrix.m = v.x
     transform_matrix.n = v.y
     transform_matrix.o = v.z
-
-    scale_matrix = EUCLID.Matrix4()
-    scale_matrix.a = 1 #s.x
-    scale_matrix.f = 1 #s.y
-    scale_matrix.k = 1 #s.z
-    scale_matrix.p = 1
-
-    result_matrix = transform_matrix * current_matrix * scale_matrix
+    
+    if scale:
+        s = scaleLocal_get(_node,True)
+        
+        scale_matrix = EUCLID.Matrix4()
+        scale_matrix.a = 1 #s.x
+        scale_matrix.f = 1 #s.y
+        scale_matrix.k = 1 #s.z
+        scale_matrix.p = 1
+    
+        result_matrix = transform_matrix * current_matrix * scale_matrix
+    else:
+        result_matrix = transform_matrix * current_matrix
+        
 
     return EUCLID.Vector3(result_matrix.m, result_matrix.n, result_matrix.o) - EUCLID.Vector3(current_matrix.m, current_matrix.n, current_matrix.o)
     
-def transformPoint(node = None, v = None):
+def transformPoint(node = None, v = None, scale = False):
     """
     Get world position of vector transformed from local space of Transform
     
@@ -1112,24 +1117,29 @@ def transformPoint(node = None, v = None):
     
     current_matrix = worldMatrix_get(_node,True)
     
-    s = scaleLocal_get(_node,True)
+
 
     transform_matrix = EUCLID.Matrix4()
     transform_matrix.m = v.x
     transform_matrix.n = v.y
     transform_matrix.o = v.z
 
-    scale_matrix = EUCLID.Matrix4()
-    scale_matrix.a = s.x
-    scale_matrix.f = s.y
-    scale_matrix.k = s.z
-    scale_matrix.p = 1
+    if scale:
+        s = scaleLocal_get(_node,True)    
+        scale_matrix = EUCLID.Matrix4()
+        scale_matrix.a = s.x
+        scale_matrix.f = s.y
+        scale_matrix.k = s.z
+        scale_matrix.p = 1
 
-    result_matrix = transform_matrix * current_matrix * scale_matrix
+        result_matrix = transform_matrix * current_matrix * scale_matrix
+    else:
+        result_matrix = transform_matrix * current_matrix
+        
 
     return EUCLID.Vector3(result_matrix.m, result_matrix.n, result_matrix.o) - EUCLID.Vector3(current_matrix.m, current_matrix.n, current_matrix.o)
     
-def transformInverseDirection(node = None, v = None):
+def transformInverseDirection(node = None, v = None, scale = False):
     """
     Get local position of vector transformed from world space of Transform
     
@@ -1148,7 +1158,6 @@ def transformInverseDirection(node = None, v = None):
     log.debug("|{0}| >> node: [{1}] | {2}".format(_str_func,_node,v))
     
     current_matrix = worldMatrix_get(_node,True)
-    s = scaleLocal_get(_node,True)
     
     current_matrix.m = 0
     current_matrix.n = 0
@@ -1158,17 +1167,24 @@ def transformInverseDirection(node = None, v = None):
     transform_matrix.m = v.x
     transform_matrix.n = v.y
     transform_matrix.o = v.z
-
-    scale_matrix = EUCLID.Matrix4()
-    scale_matrix.a = s.x
-    scale_matrix.f = s.y
-    scale_matrix.k = s.z
-    scale_matrix.p = 1
-
-    result_matrix = transform_matrix * current_matrix.inverse() * scale_matrix
+    
+    if scale:
+        s = scaleLocal_get(_node,True)
+        
+        scale_matrix = EUCLID.Matrix4()
+        scale_matrix.a = s.x
+        scale_matrix.f = s.y
+        scale_matrix.k = s.z
+        scale_matrix.p = 1
+    
+        result_matrix = transform_matrix * current_matrix.inverse() * scale_matrix
+    else:
+        result_matrix = transform_matrix * current_matrix.inverse()
+        
+        
     return EUCLID.Vector3(result_matrix.m, result_matrix.n, result_matrix.o)    
 
-def transformInversePoint(node = None, v = None):
+def transformInversePoint(node = None, v = None, scale = False):
     """
     Get local position of vector transformed from world space of Transform
     
@@ -1193,21 +1209,24 @@ def transformInversePoint(node = None, v = None):
     transform_matrix.m = v.x
     transform_matrix.n = v.y
     transform_matrix.o = v.z
-
-    scale_matrix = EUCLID.Matrix4()
-    scale_matrix.a = s.x
-    scale_matrix.f = s.y
-    scale_matrix.k = s.z
-    scale_matrix.p = 1
-
-    result_matrix = transform_matrix * current_matrix.inverse() * scale_matrix
+    
+    if scale:
+        scale_matrix = EUCLID.Matrix4()
+        scale_matrix.a = s.x
+        scale_matrix.f = s.y
+        scale_matrix.k = s.z
+        scale_matrix.p = 1
+    
+        result_matrix = transform_matrix * current_matrix.inverse() * scale_matrix
+    else:
+        result_matrix = transform_matrix * current_matrix.inverse()
+        
     return EUCLID.Vector3(result_matrix.m, result_matrix.n, result_matrix.o) 
 
 
-
-def relativePos_get(node = None, target = None, asEuclid = True):
+def relativeOrient_get(node = None, spaceObj = None, scale= False, asEuclid = True):
     """
-    Get local position of vector transformed from world space of Transform
+    Get reliave orient of vector transformed from world space of Transform
     
     :parameters:
         node(str): Object to check
@@ -1216,16 +1235,17 @@ def relativePos_get(node = None, target = None, asEuclid = True):
     :returns
         new value(Vector3)
     """   
-    _str_func = 'get_relativeToTarget'
+    _str_func = 'relativeOrient_get'
     _node =  VALID.mNodeString(node)
     
-    _res = transformInversePoint(target, POS.get(node))
+    _res = transformInverseDirection(spaceObj, orient_get(node),scale)
+    #_res = orient_get(spaceObj,asEuclid=1) - orient_get(node,asEuclid=1)
     
     if asEuclid:
         return _res
     return _res.x,_res.y,_res.z
 
-def relativePos_set(node = None, target = None, pos = None, asEuclid = True):
+def relativeOrient_set(node = None, spaceObj = None, vector = None,  scale= False, asEuclid = True):
     """
     Get local position of vector transformed from world space of Transform
     
@@ -1241,7 +1261,52 @@ def relativePos_set(node = None, target = None, pos = None, asEuclid = True):
     
     #mBlock.getTransformDirection(mPos) + (mBlock.getPosition(asEuclid=1))
     
-    _res = transformPoint(target, pos) + position_get(target, asEuclid=1)
+    _res = transformDirection(spaceObj, vector, scale) + orient_get(spaceObj, asEuclid=1)
+    #_res = orient_get(spaceObj,asEuclid=1) + euclidVector3Arg(vector)
+    
+    orient_set(node,_res)
+    
+    if asEuclid:
+        return _res
+    return _res.x,_res.y,_res.z
+
+def relativePos_get(node = None, spaceObj = None, scale= False, asEuclid = True):
+    """
+    Get local position of vector transformed from world space of Transform
+    
+    :parameters:
+        node(str): Object to check
+        v(d3): vector
+
+    :returns
+        new value(Vector3)
+    """   
+    _str_func = 'get_relativeToTarget'
+    _node =  VALID.mNodeString(node)
+    
+    _res = transformInversePoint(spaceObj, POS.get(node), scale)
+    
+    if asEuclid:
+        return _res
+    return _res.x,_res.y,_res.z
+
+def relativePos_set(node = None, spaceObj = None, pos = None,  scale= False, asEuclid = True):
+    """
+    Get local position of vector transformed from world space of Transform
+    
+    :parameters:
+        node(str): Object to check
+        v(d3): vector
+
+    :returns
+        new value(Vector3)
+    """   
+    _str_func = 'get_relativeToTarget'
+    _node =  VALID.mNodeString(node)
+    
+    #mBlock.getTransformDirection(mPos) + (mBlock.getPosition(asEuclid=1))
+    
+    _res = transformPoint(spaceObj, pos, scale) + position_get(spaceObj, asEuclid=1)
     
     POS.set(node,_res)
     

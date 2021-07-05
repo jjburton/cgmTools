@@ -134,7 +134,7 @@ def dat_set(mBlock,data,
                 ml_loft.extend(ml_subShapers)
         
         return _res
-    
+        
     def get_handles(ml_handles):
         if ml_handles:
             log.info("Found...")
@@ -146,14 +146,32 @@ def dat_set(mBlock,data,
     if settings:
         log.info(log_sub(_str_func,'Settings...'))
         
+        for a,v in data['settings'].iteritems():
+            
+            if a in l_enumLists:
+                ATTR.datList_connect(_str_block,a,v,enum=1)
+            elif a in l_datLists:
+                ATTR.datList_connect(_str_block,a,v)
+            else:
+                ATTR.set(_str_block, a, v)
+            
+
+        if mBlock.blockState < 1:
+            mBlock.p_blockState = 1
+            
+        
+        
     #Form Handles and shapes -----------------------------------------------------------    
     if formHandles: 
         log.info(log_sub(_str_func,'FormHandles...'))
         ml_handles = get_handles(ml_handles)
         
+        pprint.pprint(ml_handles)
+        
         dat_form = data['handles']['form']
         
         for i, mObj in enumerate(ml_handles):
+            
             mObj.translate = dat_form[i]['t']
             mObj.rotate = dat_form[i]['r']
             
@@ -193,6 +211,10 @@ def dat_set(mBlock,data,
         log.info(log_sub(_str_func,'loftShapes...'))
             
             
+l_dataAttrs = ['blockType','addLeverBase', 'addLeverEnd']
+l_enumLists = ['loftList']
+l_datLists = ['numSubShapers']
+
 def dat_get(mBlock=None):
     _str_func = 'dat_get'
     log.debug(log_start(_str_func))
@@ -203,6 +225,19 @@ def dat_get(mBlock=None):
     if mBlock.blockState < 1:
         raise ValueError,"Must be in form state"
     
+    def get_attr(obj,a,d = {}):
+        try:
+            if a in l_enumLists:
+                if ATTR.datList_exists(_str_block,a):
+                    _d[a] = ATTR.datList_get(_str_block,a,enum=1)
+            elif a in l_datLists:
+                if ATTR.datList_exists(_str_block,a):
+                    _d[a] = ATTR.datList_get(_str_block,a)                
+            elif ATTR.get_type(obj, a) == 'enum':
+                d[a] = ATTR.get_enumValueString(_str_block, a)
+            else:
+                d[a] = ATTR.get(_str_block, a)
+        except:pass        
     
     #Form count
     _res = {}
@@ -211,18 +246,17 @@ def dat_get(mBlock=None):
     _d = {}
     _res['settings'] = _d
     
-    for a in ['loftSetup','loftShape','numShapers','numSubShapers','shapersAim']:
-        try:
-            if ATTR.get_type(_str_block, a) == 'enum':
-                _d[a] = ATTR.get_enumValueString(_str_block, a)
-            else:
-                _d[a] = ATTR.get(_str_block, a)
-        except:pass
+    for a in ['loftSetup','loftShape','numShapers','numSubShapers','shapersAim','shapeDirection','loftList']:
+        get_attr(_str_block,a,_d)
     
-    #datLists
-    for a in ['loftList']:
-        if ATTR.datList_exists(_str_block,a):
-            _d[a] = ATTR.datList_get(_str_block,a,enum=1)
+            
+    #Dat ... ---------------------------------------------------------------------------
+    _d = {}
+    _res['base'] = _d
+    
+    for a in l_dataAttrs:
+        get_attr(_str_block,a,_d)
+
             
     #FormHandles ... ---------------------------------------------------------------------------
     _d = {}
@@ -233,7 +267,7 @@ def dat_get(mBlock=None):
     _res['handles'] = _d
     
     ml_handles = mBlock.msgList_get('formHandles')
-    
+    pprint.pprint(ml_handles)
     
     def getCVS(mObj):
         _obj = mObj.mNode
