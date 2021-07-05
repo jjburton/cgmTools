@@ -4041,8 +4041,6 @@ def rig_skeleton(self):
             
         
         #Segment/Parenting -----------------------------------------------------------------------------
-        self.md_roll
-        self.md_rollMulti
         ml_processed = []
         self.md_segHandleIndices
         self.ml_segHandles
@@ -8215,13 +8213,14 @@ def rig_pivotSetup(self):
         #Changing targets - these change based on how the setup rolls through
         #mIKHandleDriver = mIKControl#...this will change with pivot
         
-        mIKControl = mRigNull.controlIK        
-        mIKControlEnd = mRigNull.getMessageAsMeta('controlIKEnd')
-        if mIKControlEnd:
-            log.debug("|{0}| >> mIKControlEnd ...".format(_str_func))
-            mIKHandleDriver = mIKControlEnd
-        else:
-            mIKHandleDriver = mIKControl
+        if mBlock.ikSetup:
+            mIKControl = mRigNull.controlIK        
+            mIKControlEnd = mRigNull.getMessageAsMeta('controlIKEnd')
+            if mIKControlEnd:
+                log.debug("|{0}| >> mIKControlEnd ...".format(_str_func))
+                mIKHandleDriver = mIKControlEnd
+            else:
+                mIKHandleDriver = mIKControl
             
         #Follow parent bank ===============================================================================
         if self.b_followParentBank:
