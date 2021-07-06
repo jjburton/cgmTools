@@ -1996,7 +1996,7 @@ def ribbon(jointList = None,
                         
                 if not skipAim:
                     mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))                
-        else:
+        elif squashStretchMain == 'pointDist':
             for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
                 mActive_aim =  md_distDat['aim']['active']['mDist'][i]
     
