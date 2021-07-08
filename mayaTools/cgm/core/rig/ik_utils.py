@@ -3964,6 +3964,7 @@ def curve(jointList = None,
           attachStartToInfluence = None,
           attachEndToInfluence = None,
           moduleInstance = None,
+          parentDeformTo = False,
           parentGutsTo = None):
 
     """
@@ -4318,7 +4319,7 @@ def curve(jointList = None,
         else:
             mScaleReader = mObj.doCreateAt(setClass=True)
             mScaleReader.rename("{0}_scaleReader".format(mObj.p_nameBase))
-            mScaleReader.parent = False
+            mScaleReader.parent = parentDeformTo
             md_scaleReaders[mObj] = mScaleReader
             _scale = mc.scaleConstraint(l_targets,
                                         mScaleReader.mNode,
@@ -4344,7 +4345,7 @@ def curve(jointList = None,
     
     for mJnt in ml_curveJoints + ml_influences:
         if mJnt in ml_curveJoints:
-            mJnt.p_parent = False
+            mJnt.p_parent = parentDeformTo
         mJnt.segmentScaleCompensate = False
 
         
@@ -4490,6 +4491,29 @@ def curve(jointList = None,
 
     
     #cgmGEN.func_snapShot(vars())
+    
+    #>>> Connect our iModule vis stuff
+    if mModule:#if we have a module, connect vis
+        log.debug("|{0}| >> mModule wiring...".format(_str_func)+cgmGEN._str_subLine)            
+        
+        for mObj in ml_rigObjectsToConnect:
+            mObj.overrideEnabled = 1		
+            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+        for mObj in ml_rigObjectsToParent:
+            mObj.parent = mModule.rigNull.mNode
+            
+            
+        mRigNull = mModule.rigNull
+        _str_rigNull = mRigNull.mNode
+        for mObj in ml_toConnect:
+            mObj.overrideEnabled = 1
+            cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+            mObj.parent = mRigNull    
+            
+    if mArcLenDag:
+        mArcLenDag.p_parent = mGroup
     
     return
         
@@ -4732,16 +4756,7 @@ def curve(jointList = None,
     return
 
             
-    #>>> Connect our iModule vis stuff
-    if mModule:#if we have a module, connect vis
-        log.debug("|{0}| >> mModule wiring...".format(_str_func)+cgmGEN._str_subLine)            
-        
-        for mObj in ml_rigObjectsToConnect:
-            mObj.overrideEnabled = 1		
-            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
-            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
-        for mObj in ml_rigObjectsToParent:
-            mObj.parent = mModule.rigNull.mNode
+
 
     if ml_influences:
         log.debug("|{0}| >> Influences found. Attempting to skin...".format(_str_func)+cgmGEN._str_subLine)            

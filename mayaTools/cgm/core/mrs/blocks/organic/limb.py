@@ -6443,17 +6443,33 @@ def rig_segments(self):
             if _type in ['linear','curve']:
                 #reload(IK)
                 #pprint.pprint(_d)
+                _d['parentDeformTo'] = ml_blendJoints[i]
+                _d['setupAim'] = 1
                 
+                reload(IK)
+                _l_segJoints = _d['jointList']
+                _ml_segTmp = cgmMeta.asMeta(_l_segJoints)                                    
+                IK.curve(**_d)
+                
+
+                
+                if i == l_rollKeys[-1]:
+
+                    mc.scaleConstraint(_ml_segTmp[-1].mNode,
+                                       _ml_segTmp[-1].rigJoint.masterGroup.mNode,
+                                       #skip='z',
+                                       maintainOffset = 1)                
+                """                
                 l_handles = _d['influences']
                 _l_segJoints = _d['jointList']
                 
                 
                 mGroup = cgmMeta.cgmObject(name="{0}_{1}_grp".format(_d['baseName'],_type))
 
-                _trackCurve,l_clusters = CORERIG.create_at(_d['influences'], 'linearTrack',
+                _trackCurve,l_clusters = CORERIG.create_at(_d['influences'],
+                                                           'linearTrack',
                                                            baseName = _d['baseName'])
                 mCrv = cgmMeta.asMeta(_trackCurve)
-                
                 mCrv.p_parent = mGroup
 
                 _node = mc.rebuildCurve(mCrv.mNode, d=3, keepControlPoints=False,
@@ -6462,8 +6478,6 @@ def rig_segments(self):
                 mc.rename(_node[1],"{0}_reparamRebuild".format(mCrv.p_nameBase))
                 
                 _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
-                
-
                 
                 mGroup.p_parent = mRigNull
 
@@ -6519,7 +6533,7 @@ def rig_segments(self):
                         
                         mc.aimConstraint(mTar.mNode,
                                          mObj.mNode,
-                                         maintainOffset = True,**_d_aim)                        
+                                         maintainOffset = True,**_d_aim)"""
 
                 
                 
@@ -6527,17 +6541,17 @@ def rig_segments(self):
             else:
                 IK.ribbon(**_d)
             
-            ml_segJoints[0].parent = ml_blendJoints[i]
+                ml_segJoints[0].parent = ml_blendJoints[i]
+                    
+                if self.b_squashSetup:
+                    for mJnt in ml_segJoints:
+                        mJnt.segmentScaleCompensate = False
+                        if mJnt == ml_segJoints[0]:
+                            continue
+                        mJnt.p_parent = ml_blendJoints[i]
                 
-            if self.b_squashSetup:
-                for mJnt in ml_segJoints:
-                    mJnt.segmentScaleCompensate = False
-                    if mJnt == ml_segJoints[0]:
-                        continue
-                    mJnt.p_parent = ml_blendJoints[i]
-            
-                for mJnt in ml_handleJoints:
-                    mJnt.segmentScaleCompensate = False
+                    for mJnt in ml_handleJoints:
+                        mJnt.segmentScaleCompensate = False
                     
                     
                     
