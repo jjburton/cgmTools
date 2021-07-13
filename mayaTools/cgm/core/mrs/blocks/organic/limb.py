@@ -4078,6 +4078,8 @@ def rig_skeleton(self):
                 
             else:
                 ml_targets = self.ml_handleTargetsCulled
+                if self.b_ikNeedEnd:
+                    ml_targets = ml_targets[:-1]
             
             ml_handleJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                       ml_targets,#ml_parentJoints,#ml_parentJoints[:self.int_handleEndIdx+1],
