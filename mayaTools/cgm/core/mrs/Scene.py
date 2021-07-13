@@ -1516,9 +1516,12 @@ example:
         
         self.LoadVersionList()
         
-    def uiFunc_versionList_select(self):
+    def uiFunc_versionList_select(self, selectKey= None):
         _str_func = 'uiFunc_variationList_select'
         log.info(log_start(_str_func))
+        if selectKey:
+            #searchList['scrollList'].selectByValue(anims[-1])
+            self.versionList['scrollList'].selectByValue(selectKey)
         self.report_selectedPaths()
         
         self.assetMetaData = self.getMetaDataFromFile()
@@ -1527,15 +1530,6 @@ example:
         log.info( self.versionFile )
         
         
-    def uiFunc_selectVersionList(self):
-        _str_func = 'uiFunc_selectVersionList'
-        log.info(log_start(_str_func))
-        self.report_selectedPaths()
-        
-        self.assetMetaData = self.getMetaDataFromFile()
-        self.buildDetailsColumn()
-        self.StoreCurrentSelection()
-        log.info( self.versionFile )
         
     def buildProjectColumn(self):
         if not self._projectForm(q=True, vis=True):
@@ -2378,9 +2372,10 @@ example:
         searchList['scrollList'].setItems(anims)
         
         if anims:
-            searchList['scrollList'].selectByValue(anims[-1])
-
-        self.StoreCurrentSelection()
+            #searchList['scrollList'].selectByValue(anims[-1])
+            self.uiFunc_versionList_select(anims[-1])
+        else:
+            self.StoreCurrentSelection()
 
     def LoadFile(self, *args):
         if not self.assetList['scrollList'].getSelectedItem():
