@@ -39,6 +39,7 @@ import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
+import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.list_utils as LISTS
@@ -1215,7 +1216,7 @@ def ribbon(jointList = None,
         for arg in l_argBuild:
             log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
             NODEFAC.argsToNodes(arg).doBuild()
-            
+      
     #Settings ... ----------------------------------------------------------------------------------------
     if settingsControl:
         mSettings = cgmMeta.validateObjArg(settingsControl,'cgmObject')
@@ -1996,7 +1997,7 @@ def ribbon(jointList = None,
                         
                 if not skipAim:
                     mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))                
-        else:
+        elif squashStretchMain == 'pointDist':
             for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
                 mActive_aim =  md_distDat['aim']['active']['mDist'][i]
     
@@ -3928,41 +3929,43 @@ def ribbon_seal(driven1 = None,
         
         
 def curve(jointList = None,
-           useSurface = None,
-           extendEnds = False,
-           orientation = 'zyx',
-           secondaryAxis = 'y+',
-           loftAxis = 'x',
-           baseName = None,
-           connectBy = 'constraint',
-           stretchBy = 'translate',
-           squashStretchMain = 'arcLength',
-           squashStretch = None, 
-           sectionSpans = 1, 
-           driverSetup = None,#...aim.stable
-           msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
-           settingsControl = None,
-           additiveScaleEnds = False, 
-           extraSquashControl = False,#...setup extra attributes
-           specialMode = None,
-           masterScalePlug = None,
-           squashFactorMode = 'midPeak',
-           squashFactorMin = 0.0,
-           squashFactorMax = 1.0,
-           paramaterization='blend',
-           #advancedTwistSetup = False,
-           #extendTwistToEnd = False,
-           #reorient = False,
-           skipAim = True,
-           influences = None,
-           tightenWeights=True,
-           extraKeyable = True,
-           curveJoints = None,
-           attachEndsToInfluences = None,
-           attachStartToInfluence = None,
-           attachEndToInfluence = None,
-           moduleInstance = None,
-           parentGutsTo = None):
+          useCurve = None,
+          extendEnds = False,
+          orientation = 'zyx',
+          secondaryAxis = 'y+',
+          loftAxis = 'x',
+          baseName = None,
+          connectBy = 'constraint',
+          stretchBy = 'translate',
+          squashStretchMain = 'arcLength',
+          squashStretch = None, 
+          sectionSpans = 1,
+          setupAim = False,
+          driverSetup = None,#...aim.stable
+          msgDriver = None,#...msgLink on joint to a driver group for constaint purposes
+          settingsControl = None,
+          additiveScaleEnds = False, 
+          extraSquashControl = False,#...setup extra attributes
+          specialMode = None,
+          masterScalePlug = None,
+          squashFactorMode = 'midPeak',
+          squashFactorMin = 0.0,
+          squashFactorMax = 1.0,
+          paramaterization='blend',
+          #advancedTwistSetup = False,
+          #extendTwistToEnd = False,
+          #reorient = False,
+          skipAim = True,
+          influences = None,
+          tightenWeights=True,
+          extraKeyable = True,
+          curveJoints = None,
+          attachEndsToInfluences = None,
+          attachStartToInfluence = None,
+          attachEndToInfluence = None,
+          moduleInstance = None,
+          parentDeformTo = False,
+          parentGutsTo = None):
 
     """
     Root of the segment setup.
@@ -4056,11 +4059,8 @@ def curve(jointList = None,
         ml_curveJoints= cgmMeta.validateObjListArg(curveJoints,mType = 'cgmObject', mayaType=['joint'], noneValid = False)
         l_curveJoints = [mJnt.mNode for mJnt in ml_curveJoints]
     
-    mi_useCurve = cgmMeta.validateObjArg(useSurface,mayaType=['nurbsCurve'],noneValid = True)
+    mi_useCurve = cgmMeta.validateObjArg(useCurve,mayaType=['nurbsCurve'],noneValid = True)
     
-    mi_mayaOrientation = VALID.simpleOrientation(orientation)
-    str_orientation = mi_mayaOrientation.p_string
-    str_secondaryAxis = VALID.stringArg(secondaryAxis,noneValid=True)
     str_baseName = VALID.stringArg(baseName,noneValid=True)
     
     if specialMode and specialMode not in ['noStartEnd']:
@@ -4078,7 +4078,10 @@ def curve(jointList = None,
         if attachEndToInfluence == None:
             attachStartToInfluence = True
             
-            
+    
+    mi_mayaOrientation = VALID.simpleOrientation(orientation)
+    str_orientation = mi_mayaOrientation.p_string
+    
     #module -----------------------------------------------------------------------------------------------
     mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
 
@@ -4089,7 +4092,7 @@ def curve(jointList = None,
         mi_rigNull = mModule.rigNull	
         if str_baseName is None:
             str_baseName = mModule.getPartNameBase()#Get part base name	    
-    if not str_baseName:str_baseName = 'testRibbon' 
+    if not str_baseName:str_baseName = 'testCurve' 
     
     if parentGutsTo is None:
         mGroup = cgmMeta.cgmObject(name = 'newgroup')
@@ -4107,21 +4110,24 @@ def curve(jointList = None,
         extendEnds=True
 
     
-    #Good way to verify an instance list? #validate orientation             
-    #> axis -------------------------------------------------------------
-    axis_aim = VALID.simpleAxis("{0}+".format(str_orientation[0]))
-    axis_aimNeg = axis_aim.inverse
-    axis_up = VALID.simpleAxis("{0}+".format(str_orientation [1]))
-    axis_out = VALID.simpleAxis("{0}+".format(str_orientation [2]))
-
-    v_aim = axis_aim.p_vector#aimVector
-    v_aimNeg = axis_aimNeg.p_vector#aimVectorNegative
-    v_up = axis_up.p_vector   #upVector
-    v_out = axis_out.p_vector
+    if setupAim:
+        #Good way to verify an instance list? #validate orientation             
+        #> axis -------------------------------------------------------------
+        axis_aim = VALID.simpleAxis("{0}+".format(str_orientation[0]))
+        axis_aimNeg = axis_aim.inverse
+        axis_up = VALID.simpleAxis("{0}+".format(str_orientation [1]))
+        axis_out = VALID.simpleAxis("{0}+".format(str_orientation [2]))
     
-    str_up = axis_up.p_string
+        v_aim = axis_aim.p_vector#aimVector
+        v_aimNeg = axis_aimNeg.p_vector#aimVectorNegative
+        v_up = axis_up.p_vector   #upVector
+        v_out = axis_out.p_vector
+        
+        str_up = axis_up.p_string
 
-    
+        outChannel = str_orientation[2]#outChannel
+        upChannel = str_orientation[1]
+        
     #Ramp values -------------------------------------------------------------------------
     if extraSquashControl:
         l_scaleFactors = MATH.get_blendList(int_lenJoints,squashFactorMax,squashFactorMin,squashFactorMode)
@@ -4131,32 +4137,34 @@ def curve(jointList = None,
     if squashStretch is not None:
         b_squashStretch = True
             
-
         
-    outChannel = str_orientation[2]#outChannel
-    upChannel = str_orientation[1]
     l_param = []  
-    
-    
     ml_curves = []
     
-    #>>> Curves  ================================================================================        
+    #>>> Curves  Creation ================================================================================        
     if mi_useCurve:
         raise NotImplementedError,'Not done with passed curve'
     else:
         log.debug("|{0}| >> Creating curve...".format(_str_func))
-        _crv = CORERIG.create_at(create='curveLinear', l_pos=[mObj.p_position for mObj in ml_curveJoints])
+        #_crv = CORERIG.create_at(create='curveLinear', l_pos=[mObj.p_position for mObj in ml_curveJoints])
         #ribbon_createCurve(l_ribbonJoints,loftAxis,sectionSpans,extendEnds)
-    
-        mControlCurve = cgmMeta.validateObjArg( _crv,'cgmObject',setClass = True )
+        
+        _trackCurve,l_clusters = CORERIG.create_at(l_influences,
+                                                   'linearTrack',
+                                                   baseName = str_baseName)
+        
+        mControlCurve = cgmMeta.validateObjArg( _trackCurve,'cgmObject',setClass = True )
         mControlCurve.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
         mControlCurve.addAttr('cgmType','controlCurve',attrType='string',lock=True)
         mControlCurve.doName()
         
+        _node = mc.rebuildCurve(mControlCurve.mNode, d=3, keepControlPoints=False,
+                                ch=1,s=int_lenJoints,
+                                n="{0}_reparamRebuild".format(mControlCurve.p_nameBase))
+        mc.rename(_node[1],"{0}_reparamRebuild".format(mControlCurve.p_nameBase))                
+        
         ml_curves.append(mControlCurve)
         
-
-    
     
     #Settings ... ----------------------------------------------------------------------------------------
     if settingsControl:
@@ -4164,215 +4172,59 @@ def curve(jointList = None,
     else:
         mSettings = mControlCurve
         
+    
 
+    #Squash Stretch stuff =========================================================================
+    log.debug("mControlCurve: {0}".format(mControlCurve))
+    _surf_shape = mControlCurve.getShapes()[0]
+    minU = ATTR.get(_surf_shape,'minValue')
+    maxU = ATTR.get(_surf_shape,'maxValue')
+    
+    ml_toConnect = []
+    ml_toConnect.extend(ml_curves)
+    
+    mArcLenCurve = None
+    mArcLenDag = None
+    
+    if b_squashStretch and squashStretchMain == 'arcLength':
+        log.debug("|{0}| >> Creating arc curve setup...".format(_str_func))
+        
+        plug = '{0}_segScale'.format(str_baseName)
+        plug_dim = '{0}_arcLengthDim'.format(str_baseName)
+        plug_inverse = '{0}_segInverseScale'.format(str_baseName)
+        
+        mArcLen = cgmMeta.validateObjArg(mc.createNode('arcLengthDimension'),setClass=True)
+        mArcLenDag = mArcLen.getTransform(asMeta=True)
+        
+        mArcLen.uParamValue = maxU#MATH.average(minU,maxU)
+        mArcLenDag.rename('{0}_arcLengthNode'.format(str_baseName))
+        
+        mControlCurve.connectChildNode(mArcLen.mNode,plug_dim,'arcLenDim')
 
+        log.debug("|{0}| >> created: {1}".format(_str_func,mArcLen)) 
 
+        #infoNode = CURVES.create_infoNode(mCrv.mNode)
+        
+        ATTR.connect("{0}.worldSpace".format(mControlCurve.getShapes()[0]),
+                     "{0}.nurbsGeometry".format(mArcLen.mNode))
 
+        mArcLen.addAttr('baseDist', mArcLen.arcLength,attrType='float',lock=True)
+        log.debug("|{0}| >> baseDist: {1}".format(_str_func,mArcLen.baseDist)) 
 
-    if 'cat'=='dog':
+        mPlug_inverseScale = cgmMeta.cgmAttr(mArcLen.mNode,plug_inverse,'float')
         
-        log.debug("mControlCurve: {0}".format(mControlCurve))
-        _surf_shape = mControlCurve.getShapes()[0]
-        minU = ATTR.get(_surf_shape,'minValueU')
-        maxU = ATTR.get(_surf_shape,'maxValueU')
-        minV = ATTR.get(_surf_shape,'minValueV')
-        maxV = ATTR.get(_surf_shape,'maxValueV')
+        l_argBuild=[]
         
-        ml_toConnect = []
-        ml_toConnect.extend(ml_curves)
         
-        mArcLenCurve = None
-        mArcLenDag = None
+        l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedName,
+                                                   '{0}.arcLength'.format(mArcLen.mNode),
+                                                   "{0}.baseDist".format(mArcLen.mNode)))        
         
-        if b_squashStretch and squashStretchMain == 'arcLength':
-            log.debug("|{0}| >> Creating arc curve setup...".format(_str_func))
-            
-            minV = ATTR.get(_surf_shape,'minValueV')
-            maxV = ATTR.get(_surf_shape,'maxValueV')
-            
-            plug = '{0}_segScale'.format(str_baseName)
-            plug_dim = '{0}_arcLengthDim'.format(str_baseName)
-            plug_inverse = '{0}_segInverseScale'.format(str_baseName)
-            
-            mArcLen = cgmMeta.validateObjArg(mc.createNode('arcLengthDimension'),setClass=True)
-            mArcLenDag = mArcLen.getTransform(asMeta=True)
-            
-            mArcLen.uParamValue = MATH.average(minU,maxU)
-            mArcLen.vParamValue = maxV
-            mArcLenDag.rename('{0}_arcLengthNode'.format(str_baseName))
-            
-            mControlCurve.connectChildNode(mArcLen.mNode,plug_dim,'arcLenDim')
-    
-            log.debug("|{0}| >> created: {1}".format(_str_func,mArcLen)) 
-    
-            #infoNode = CURVES.create_infoNode(mCrv.mNode)
-            
-            ATTR.connect("{0}.worldSpace".format(mControlCurve.getShapes()[0]), "{0}.nurbsGeometry".format(mArcLen.mNode))
-    
-            mArcLen.addAttr('baseDist', mArcLen.arcLengthInV,attrType='float',lock=True)
-            log.debug("|{0}| >> baseDist: {1}".format(_str_func,mArcLen.baseDist)) 
-    
-            mPlug_inverseScale = cgmMeta.cgmAttr(mArcLen.mNode,plug_inverse,'float')
-            
-            l_argBuild=[]
-            
-            """
-            if not masterScalePlug or masterScalePlug == 'create':
-                plug_master = '{0}_segMasterScale'.format(str_baseName)
-                mPlug_masterScale = cgmMeta.cgmAttr(mArcLen.mNode,plug_master,'float')
-                l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedName,
-                                                           '{0}.arcLengthInV'.format(mArcLen.mNode),
-                                                           "{0}.baseDist".format(mArcLen.mNode)))
-                masterScalePlug = mPlug_masterScale"""
-                
-            
-            """
-            l_argBuild.append("{0} = {1} / {2}".format(mPlug_masterScale.p_combinedName,
-                                                       '{0}.arcLength'.format(mInfoNode.mNode),
-                                                       "{0}.baseDist".format(mCrv.mNode)))"""
-            
-            #l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedName,
-    
-            l_argBuild.append("{0} = {2} / {1}".format(mPlug_inverseScale.p_combinedName,
-                                                       '{0}.arcLengthInV'.format(mArcLen.mNode),
-                                                       "{0}.baseDist".format(mArcLen.mNode)))        
-            
-            
-            for arg in l_argBuild:
-                log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                NODEFAC.argsToNodes(arg).doBuild()
-                
-    
         
-        #Reparam ----------------------------------------------------------------------------------------
-        mCrv_reparam = False
-        str_paramaterization = str(paramaterization).lower()
-        if str_paramaterization in ['blend','floating']:
-            log.debug("|{0}| >> Reparameterization curve needed...".format(_str_func))
-            #crv = CORERIG.create_at(None,'curve',l_pos= [mJnt.p_position for mJnt in ml_joints])
-            _crv = mc.duplicateCurve("{0}.u[{1}]".format(_surf_shape,MATH.median(minU,maxU)),
-                                     ch = 1,
-                                     rn = 0,
-                                     local = 0)
-            
-    
-            mCrv_reparam = cgmMeta.validateObjArg(_crv[0],setClass=True)
-            mCrv_reparam.doStore("cgmName","{0}_reparam".format(str_baseName))
-            mCrv_reparam.doName()        
-            cgmMeta.cgmNode(_crv[1]).doName()
-            
-            mc.rebuildCurve(mCrv_reparam.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
-            #cubic keepC
-            md_floatTrackGroups = {}
-            md_floatTrackNodes = {}
-            md_floatParameters = {}
-            d_vParameters = {}
-            
-            mCrv_reparam.p_parent = mGroup
-            
-            l_argBuild = []
-            mPlug_vSize = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                          "{0}_vSize".format(str_baseName),
-                                          attrType = 'float',
-                                          hidden = False,
-                                          lock=False)
-            
-            l_argBuild.append("{0} = {1} - {2}".format(mPlug_vSize.p_combinedName,
-                                                       maxV,minV))        
-                    
-            if str_paramaterization == 'blend':
-                if not mSettings.hasAttr('blendParam'):
-                    mPlug_paramBlend = cgmMeta.cgmAttr(mSettings.mNode,
-                                                       "blendParam".format(str_baseName),
-                                                       attrType = 'float',
-                                                       minValue=0,
-                                                       maxValue=1.0,
-                                                       keyable=True,
-                                                       value= 1.0,
-                                                       defaultValue=1.0,
-                                                       hidden = False,
-                                                       lock=False)
-                else:
-                    mPlug_paramBlend = cgmMeta.cgmAttr(mSettings.mNode,"blendParam".format(str_baseName))
-                md_paramBlenders = {}
-            
-            #Set up per joint...
-            for i,mObj in enumerate(ml_joints):
-                mPlug_normalized = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                   "{0}_normalizedV_{1}".format(str_baseName,i),
-                                                   attrType = 'float',
-                                                   hidden = False,
-                                                   lock=False)
-                mPlug_sum = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                            "{0}_sumV_{1}".format(str_baseName,i),
-                                            attrType = 'float',
-                                            hidden = False,
-                                            lock=False)            
-                mLoc = mObj.doLoc()
+        for arg in l_argBuild:
+            log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+            NODEFAC.argsToNodes(arg).doBuild()
                 
-                _res = RIGCONSTRAINTS.attach_toShape(mObj,mCrv_reparam.mNode,None)
-                md_floatTrackGroups[i]=_res[0]
-                #res_closest = DIST.create_closest_point_node(mLoc.mNode, mCrv_reparam.mNode,True)
-                log.debug("|{0}| >> Closest info {1} : {2}".format(_str_func,i,_res))
-                mLoc.p_parent = mGroup
-    
-                srfNode = mc.createNode('closestPointOnCurve')
-                mc.connectAttr("%s.worldSpace[0]" % _surf_shape, "%s.inputCurve" % srfNode)
-                mc.connectAttr("%s.translate" % _res[0], "%s.inPosition" % srfNode)
-                mc.connectAttr("%s.position" % srfNode, "%s.translate" % mLoc.mNode, f=True) 
-                md_floatParameters[i] = mPlug_normalized            
-                mClosestPoint =  cgmMeta.validateObjArg(srfNode,setClass=True)
-                mClosestPoint.doStore('cgmName',mObj)
-                mClosestPoint.doName()
-                md_floatTrackNodes[i] = mClosestPoint
-                srfNode = mClosestPoint.mNode
-                
-                TRANS.parent_set(_res[0],mGroup.mNode)
-                
-                log.debug("|{0}| >> paramU {1} : {2}.parameterU | {3}".format(_str_func,i,srfNode,
-                                                                              ATTR.get(srfNode,'parameterU')))
-                log.debug("|{0}| >> paramV {1} : {2}.parameterV | {3}".format(_str_func,i,srfNode,
-                                                                              ATTR.get(srfNode,'parameterV')))
-                
-    
-                
-                l_argBuild.append("{0} = {1} + {2}.parameterV".format(mPlug_sum.p_combinedName,
-                                                                      minV,
-                                                                      srfNode))
-                
-                l_argBuild.append("{0} = {1} / {2}".format(mPlug_normalized.p_combinedName,
-                                                           mPlug_sum.p_combinedName,
-                                                           mPlug_vSize.p_combinedName))
-                
-                
-                if str_paramaterization == 'blend':
-                    mPlug_baseV = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                   "{0}_baseV_{1}".format(str_baseName,i),
-                                                   attrType = 'float',
-                                                   hidden = False,
-                                                   lock=False)
-                    mPlug_blendV = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                   "{0}_blendV_{1}".format(str_baseName,i),
-                                                   attrType = 'float',
-                                                   hidden = False,
-                                                   lock=False)
-                    
-                    mBlendNode = cgmMeta.cgmNode(nodeType = 'blendTwoAttr')
-                    mBlendNode.doStore('cgmName',"{0}_blendV".format(mObj.mNode))
-                    mBlendNode.doName()
-                    
-                    md_paramBlenders[i] = mBlendNode
-                    ATTR.set(md_paramBlenders[i].mNode,"input[0]",1)
-                    mPlug_normalized.doConnectOut("%s.input[1]"%mBlendNode.mNode)
-                    mPlug_paramBlend.doConnectOut("%s.attributesBlender"%mBlendNode.mNode)
-                    d_vParameters[i] = "{0}.output".format(mBlendNode.mNode)
-                    
-                else:
-                    d_vParameters[i] = mPlug_normalized.p_combinedName
-    
-            for arg in l_argBuild:
-                log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                NODEFAC.argsToNodes(arg).doBuild()
                 
         
         mPlug_masterScale = None
@@ -4427,8 +4279,376 @@ def curve(jointList = None,
                 d_attr = cgmMeta.validateAttrArg(masterScalePlug)
                 if not d_attr:
                     raise ValueError,"Ineligible masterScalePlug: {0}".format(masterScalePlug)
-                mPlug_masterScale  = d_attr['mPlug']        
+                mPlug_masterScale  = d_attr['mPlug']          
+    
+    
+    #Attach ... ===========================================================================
+    md_scaleReaders = {}
+    for mObj in ml_curveJoints:
+        RIGCONSTRAINTS.attach_toShape(mObj.mNode, mControlCurve.mNode,'conPoint',parentTo=mGroup)
+        l_constraints = []
+        
+        if mObj == ml_curveJoints[0]:
+            print 'start'
+            l_targets = [l_influences[0]]
+        elif mObj == ml_curveJoints[-1]:
+            print 'end'
+            l_targets = [l_influences[-1]]
+        else:
+            print 'mid'
+            l_targets = l_influences
+        
+        if len(l_targets) > 3:
+            l_targets = [t[0] for t in DIST.get_targetsOrderedByDist(mObj.mNode, l_targets)[:2]]
+        
+        
+        #if _type == 'curve':
+        mOrient = mObj.doGroup(True,True,asMeta=True,typeModifier = 'orient',setClass='cgmObject')
+        _orient = mc.orientConstraint(l_targets, mOrient.mNode, maintainOffset = 1)
+        #else:
+        #    _orient = mc.orientConstraint(l_handles, mObj.mNode, maintainOffset = 1)
+            
+        l_constraints.append(_orient)
+        
+        #if self.b_scaleSetup:
+        if not b_squashStretch:
+            _scale = mc.scaleConstraint(l_targets,
+                                        mObj.mNode,
+                                        skip='z',
+                                        maintainOffset = 1)
+        else:
+            mScaleReader = mObj.doCreateAt(setClass=True)
+            mScaleReader.rename("{0}_scaleReader".format(mObj.p_nameBase))
+            mScaleReader.parent = parentDeformTo
+            md_scaleReaders[mObj] = mScaleReader
+            _scale = mc.scaleConstraint(l_targets,
+                                        mScaleReader.mNode,
+                                        #skip='z',
+                                        maintainOffset = 1)            
+            
+        l_constraints.append(_scale)
+
+        
+        if len(l_targets) > 1:
+            _vList = DIST.get_normalizedWeightsByDistance(mObj.mNode,
+                                                          l_targets)                          
+    
+            if len(l_constraints) >1 :
+                for c in l_constraints:
+                    CONSTRAINT.set_weightsByDistance(c[0],_vList)
                 
+    #if i == l_rollKeys[-1]:
+    #    mc.scaleConstraint(_ml_segTmp[-1].mNode,
+    #                       _ml_segTmp[-1].rigJoint.masterGroup.mNode,
+    #                       #skip='z',
+    #                       maintainOffset = 1)                    
+    
+    for mJnt in ml_curveJoints + ml_influences:
+        if mJnt in ml_curveJoints:
+            mJnt.p_parent = parentDeformTo
+        mJnt.segmentScaleCompensate = False
+
+        
+    
+    #Now aim...
+    if setupAim:
+        _d_aim = {'worldUpType' : 'objectrotation',
+                  'upVector':v_up,#[0,1,0],
+                  'worldUpVector' :v_up}
+        
+        for ii,mObj in enumerate(ml_curveJoints):
+            _d_aim['worldUpObject'] = mObj.orientGroup.mNode
+            
+            if mObj == ml_curveJoints[-1]:
+                _d_aim['aimVector'] = [0,0,-1]
+                mTar = ml_curveJoints[-2]
+            else:
+                _d_aim['aimVector'] = [0,0,1]
+                mTar = ml_curveJoints[ii+1]
+            
+            mc.aimConstraint(mTar.mNode,
+                             mObj.mNode,
+                             maintainOffset = True,**_d_aim)         
+
+    #>>>Hook up stretch/scale #================================================================ 
+    if b_squashStretch:
+        log.debug("|{0}| >> SquashStretch...".format(_str_func)+cgmGEN._str_subLine)
+        
+        if extraSquashControl:
+            mPlug_segScale = cgmMeta.cgmAttr(mSettings.mNode,
+                                             "{0}_segScale".format(str_baseName),
+                                             attrType = 'float',
+                                             hidden = False,                                                 
+                                             initialValue=1.0,
+                                             defaultValue=1.0,
+                                             keyable = extraKeyable,
+                                             lock=False,
+                                             minValue = 0)
+            
+        if squashStretchMain == 'arcLength':
+            mPlug_inverseNormalized = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                             "{0}_normalInverse".format(str_baseName),
+                                             attrType = 'float',
+                                             hidden = False,)
+                
+            arg = "{0} = {1} * {2}".format(mPlug_inverseNormalized.p_combinedName,
+                                           mPlug_inverseScale.p_combinedName,
+                                           mPlug_masterScale.p_combinedName)
+            NODEFAC.argsToNodes(arg).doBuild()    
+    
+    
+    
+    if squashStretchMain == 'arcLength':
+        log.debug("|{0}| >> arcLength aim stretch setup ".format(_str_func)+cgmGEN._str_subLine)
+        for i,mJnt in enumerate(ml_curveJoints):
+            str_joint = mJnt.mNode
+            if extraSquashControl:
+                try:
+                    v_scaleFactor = l_scaleFactors[i]
+                except Exception,err:
+                    log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
+                    v_scaleFactor = 1.0                    
+                
+                mPlug_aimResult = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                                  "{0}_aimScaleResult_{1}".format(str_baseName,i),
+                                                  attrType = 'float',
+                                                  initialValue=0,
+                                                  lock=True,
+                                                  minValue = 0)                    
+
+                mPlug_jointFactor = cgmMeta.cgmAttr(mSettings.mNode,
+                                                    "{0}_factor_{1}".format(str_baseName,i),
+                                                    attrType = 'float',
+                                                    hidden = False,
+                                                    initialValue=v_scaleFactor,
+                                                    defaultValue=v_scaleFactor,
+                                                    keyable = extraKeyable,
+                                                    lock=False,
+                                                    minValue = 0)
+                
+                mPlug_jointRes = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                                 "{0}_factorRes_{1}".format(str_baseName,i),
+                                                 attrType = 'float')
+                
+                mPlug_jointDiff = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                                  "{0}_factorDiff_{1}".format(str_baseName,i),
+                                                  attrType = 'float')
+                mPlug_jointMult = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                                  "{0}_factorMult_{1}".format(str_baseName,i),
+                                                  attrType = 'float')                    
+                
+                #>> x + (y - x) * blend --------------------------------------------------------
+                mPlug_baseRes = mPlug_inverseNormalized
+
+                l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedName,
+                                                           mPlug_jointMult.p_combinedName))
+                l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedName,
+                                                         mPlug_baseRes.p_combinedName))
+                l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointMult.p_combinedName,
+                                                           mPlug_jointDiff.p_combinedName,
+                                                           mPlug_jointRes.p_combinedName))
+                
+                
+                l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedName,
+                                                           mPlug_jointFactor.p_combinedName,
+                                                           mPlug_segScale.p_combinedName))                    
+
+                
+            else:
+                mPlug_aimResult = mPlug_inverseNormalized
+            
+            for arg in l_argBuild:
+                log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                NODEFAC.argsToNodes(arg).doBuild()
+            
+                
+            
+            for axis in ['scaleX','scaleY']:
+                mPlug_aimResult.doConnectOut('{0}.{1}'.format(str_joint,axis))
+                    
+            if not skipAim:
+                mPlug_aimResult.doConnectOut('{0}.{1}'.format(str_joint,'scaleZ'))                    
+    
+            if md_scaleReaders.get(mJnt):
+                l_plugs = []
+                mReader = md_scaleReaders.get(mJnt)
+                mAdditiveScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
+                mAdditiveScale.operation = 1                
+                mAdditiveScale.rename("{}_additiveScale_mdNode".format(str_joint))
+                _mdNode = mAdditiveScale.mNode
+                for i,axis in enumerate(['X','Y','Z']):
+                    plug = ATTR.get_driver(str_joint,"scale"+axis)
+                    if plug:
+                        ATTR.connect(plug, "{}.input1{}".format(_mdNode,axis))
+                        ATTR.connect("{}.scale{}".format(mReader.mNode,axis),
+                                     "{}.input2{}".format(_mdNode,axis))
+                        ATTR.connect("{}.output.output{}".format(_mdNode,axis),
+                                     "{}.scale{}".format(str_joint,axis))                        
+                        
+                
+
+                    
+
+    
+    #cgmGEN.func_snapShot(vars())
+    
+    #>>> Connect our iModule vis stuff
+    if mModule:#if we have a module, connect vis
+        log.debug("|{0}| >> mModule wiring...".format(_str_func)+cgmGEN._str_subLine)            
+        
+        for mObj in ml_rigObjectsToConnect:
+            mObj.overrideEnabled = 1		
+            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+        for mObj in ml_rigObjectsToParent:
+            mObj.parent = mModule.rigNull.mNode
+            
+            
+        mRigNull = mModule.rigNull
+        _str_rigNull = mRigNull.mNode
+        for mObj in ml_toConnect:
+            mObj.overrideEnabled = 1
+            cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+            mObj.parent = mRigNull    
+            
+    if mArcLenDag:
+        mArcLenDag.p_parent = mGroup
+    
+    return
+        
+    #Reparam ----------------------------------------------------------------------------------------
+    mCrv_reparam = False
+    str_paramaterization = str(paramaterization).lower()
+    if str_paramaterization in ['blend','floating']:
+        log.debug("|{0}| >> Reparameterization curve needed...".format(_str_func))
+        #crv = CORERIG.create_at(None,'curve',l_pos= [mJnt.p_position for mJnt in ml_joints])
+        _crv = mc.duplicateCurve("{0}.u[{1}]".format(_surf_shape,MATH.median(minU,maxU)),
+                                 ch = 1,
+                                 rn = 0,
+                                 local = 0)
+        
+
+        mCrv_reparam = cgmMeta.validateObjArg(_crv[0],setClass=True)
+        mCrv_reparam.doStore("cgmName","{0}_reparam".format(str_baseName))
+        mCrv_reparam.doName()        
+        cgmMeta.cgmNode(_crv[1]).doName()
+        
+        mc.rebuildCurve(mCrv_reparam.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
+        #cubic keepC
+        md_floatTrackGroups = {}
+        md_floatTrackNodes = {}
+        md_floatParameters = {}
+        d_vParameters = {}
+        
+        mCrv_reparam.p_parent = mGroup
+        
+        l_argBuild = []
+        mPlug_vSize = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                      "{0}_vSize".format(str_baseName),
+                                      attrType = 'float',
+                                      hidden = False,
+                                      lock=False)
+        
+        l_argBuild.append("{0} = {1} - {2}".format(mPlug_vSize.p_combinedName,
+                                                   maxV,minV))        
+                
+        if str_paramaterization == 'blend':
+            if not mSettings.hasAttr('blendParam'):
+                mPlug_paramBlend = cgmMeta.cgmAttr(mSettings.mNode,
+                                                   "blendParam".format(str_baseName),
+                                                   attrType = 'float',
+                                                   minValue=0,
+                                                   maxValue=1.0,
+                                                   keyable=True,
+                                                   value= 1.0,
+                                                   defaultValue=1.0,
+                                                   hidden = False,
+                                                   lock=False)
+            else:
+                mPlug_paramBlend = cgmMeta.cgmAttr(mSettings.mNode,"blendParam".format(str_baseName))
+            md_paramBlenders = {}
+        
+        #Set up per joint...
+        for i,mObj in enumerate(ml_joints):
+            mPlug_normalized = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                               "{0}_normalizedV_{1}".format(str_baseName,i),
+                                               attrType = 'float',
+                                               hidden = False,
+                                               lock=False)
+            mPlug_sum = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                        "{0}_sumV_{1}".format(str_baseName,i),
+                                        attrType = 'float',
+                                        hidden = False,
+                                        lock=False)            
+            mLoc = mObj.doLoc()
+            
+            _res = RIGCONSTRAINTS.attach_toShape(mObj,mCrv_reparam.mNode,None)
+            md_floatTrackGroups[i]=_res[0]
+            #res_closest = DIST.create_closest_point_node(mLoc.mNode, mCrv_reparam.mNode,True)
+            log.debug("|{0}| >> Closest info {1} : {2}".format(_str_func,i,_res))
+            mLoc.p_parent = mGroup
+
+            srfNode = mc.createNode('closestPointOnCurve')
+            mc.connectAttr("%s.worldSpace[0]" % _surf_shape, "%s.inputCurve" % srfNode)
+            mc.connectAttr("%s.translate" % _res[0], "%s.inPosition" % srfNode)
+            mc.connectAttr("%s.position" % srfNode, "%s.translate" % mLoc.mNode, f=True) 
+            md_floatParameters[i] = mPlug_normalized            
+            mClosestPoint =  cgmMeta.validateObjArg(srfNode,setClass=True)
+            mClosestPoint.doStore('cgmName',mObj)
+            mClosestPoint.doName()
+            md_floatTrackNodes[i] = mClosestPoint
+            srfNode = mClosestPoint.mNode
+            
+            TRANS.parent_set(_res[0],mGroup.mNode)
+            
+            log.debug("|{0}| >> paramU {1} : {2}.parameterU | {3}".format(_str_func,i,srfNode,
+                                                                          ATTR.get(srfNode,'parameterU')))
+            log.debug("|{0}| >> paramV {1} : {2}.parameterV | {3}".format(_str_func,i,srfNode,
+                                                                          ATTR.get(srfNode,'parameterV')))
+            
+
+            
+            l_argBuild.append("{0} = {1} + {2}.parameterV".format(mPlug_sum.p_combinedName,
+                                                                  minV,
+                                                                  srfNode))
+            
+            l_argBuild.append("{0} = {1} / {2}".format(mPlug_normalized.p_combinedName,
+                                                       mPlug_sum.p_combinedName,
+                                                       mPlug_vSize.p_combinedName))
+            
+            
+            if str_paramaterization == 'blend':
+                mPlug_baseV = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                               "{0}_baseV_{1}".format(str_baseName,i),
+                                               attrType = 'float',
+                                               hidden = False,
+                                               lock=False)
+                mPlug_blendV = cgmMeta.cgmAttr(mControlCurve.mNode,
+                                               "{0}_blendV_{1}".format(str_baseName,i),
+                                               attrType = 'float',
+                                               hidden = False,
+                                               lock=False)
+                
+                mBlendNode = cgmMeta.cgmNode(nodeType = 'blendTwoAttr')
+                mBlendNode.doStore('cgmName',"{0}_blendV".format(mObj.mNode))
+                mBlendNode.doName()
+                
+                md_paramBlenders[i] = mBlendNode
+                ATTR.set(md_paramBlenders[i].mNode,"input[0]",1)
+                mPlug_normalized.doConnectOut("%s.input[1]"%mBlendNode.mNode)
+                mPlug_paramBlend.doConnectOut("%s.attributesBlender"%mBlendNode.mNode)
+                d_vParameters[i] = "{0}.output".format(mBlendNode.mNode)
+                
+            else:
+                d_vParameters[i] = mPlug_normalized.p_combinedName
+
+        for arg in l_argBuild:
+            log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+            NODEFAC.argsToNodes(arg).doBuild()
+                
+        
+        
     
         
             
@@ -4461,7 +4681,6 @@ def curve(jointList = None,
     range_joints = range(len(ml_joints))
     l_firstLastIndices = [range_joints[0],range_joints[-1]]
     
-    reload(RIGCONSTRAINTS)
     for i,mJnt in enumerate(ml_joints):
         log.debug("|{0}| >> On: {1}".format(_str_func,mJnt))        
         
@@ -4481,15 +4700,8 @@ def curve(jointList = None,
         
         _res = RIGCONSTRAINTS.attach_toShape(mDriven.mNode, mControlCurve.mNode, None)
         mTrack = _res[-1]['mTrack']#cgmMeta.asMeta(track)
-        
         mPoci = _res[-1]['mPoci']#cgmMeta.asMeta(shape)
-        
-        """
-        if mCrv_reparam:
-            if str_paramaterization == 'blend':
-                ATTR.set(md_paramBlenders[i].mNode,"input[0]",mPoci.parameterV)
-            ATTR.connect(d_vParameters[i],
-                         '{0}.parameter'.format(mPoci.mNode))"""
+
 
         ml_trackShapes.append(mPoci)
         ml_tracks.append(mTrack)
@@ -4538,803 +4750,16 @@ def curve(jointList = None,
             mUse = ml_influences[-1]
             #mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
             
-        #if b_attachToInfluences and mJnt in [ml_joints[0],ml_joints[-1]]:
-        #    if mJnt == ml_joints[0]:
-        #        mUse = ml_influences[0]
-        #    else:
-        #        mUse = ml_influences[-1]
-        #    mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
-        #else:
-            #mc.parentConstraint([mDriver.mNode], mDriven.mNode, maintainOffset=True)
-            
         mc.parentConstraint([mUse.mNode], mDriven.mNode, maintainOffset=True)            
-        
         mDriven.doStore('curveDriver',mDriver.mNode,attrType='msg')
         
     return
-    if extendEnds or additiveScaleEnds:
-        #End track...
-        _surf_shape = mControlCurve.getShapes()[0]
-        log.debug("|{0}| >> maxV track...".format(_str_func)+cgmGEN._str_subLine)                    
-        maxV = ATTR.get(_surf_shape,'maxValueV')
-        
-        l_FollicleInfo = NODES.createFollicleOnMesh( mControlCurve.mNode )
-                   
-        mTrack = cgmMeta.asMeta(l_FollicleInfo[1],'cgmObject',setClass=True)
-        mTrackShape = cgmMeta.asMeta(l_FollicleInfo[0],'cgmNode')
-        
-        mTrack.parent = mGroup.mNode
-        
-        #> Name...
-        mTrack.rename('{0}_maxV'.format(ml_joints[-1].p_nameBase))
-    
-        mTrackShape.parameterU = ml_trackShapes[-1].parameterU
-        mTrackShape.parameterV = maxV
-        
-        ml_tracks.append(mTrack)
-        ml_trackShapes.append(mTrackShape)
-        
-        mTrackMaxV = mTrack
-        mTrackMaxVShape = mTrackShape
-        
-        if additiveScaleEnds:
-            log.debug("|{0}| >> minV Follicle...".format(_str_func)+cgmGEN._str_subLine)                    
-            
-            #Start track
-            minV = ATTR.get(_surf_shape,'minValueV')
-            
-            l_FollicleInfo = NODES.createFollicleOnMesh( mControlCurve.mNode )
-            mTrack = cgmMeta.asMeta(l_FollicleInfo[1],'cgmObject',setClass=True)
-            mTrackShape = cgmMeta.asMeta(l_FollicleInfo[0],'cgmNode')
-            
-            mTrack.parent = mGroup.mNode
-            
-            #> Name...
-            mTrack.rename('{0}_minV'.format(ml_joints[0].p_nameBase))
-        
-            mTrackShape.parameterU = ml_trackShapes[0].parameterU
-            mTrackShape.parameterV = minV
-            
-            ml_tracks.append(mTrack)
-            ml_trackShapes.append(mTrackShape)
-            
-            mTrackMinV = mTrack
-            mTrackMinVShape = mTrackShape            
-        
-        
-    return
-        
-    
-    if ml_aimDrivers:
-        log.debug("|{0}| >> aimDrivers...".format(_str_func)+cgmGEN._str_subLine)            
-        if driverSetup == 'aim':
-            for i,mDriver in enumerate(ml_aimDrivers):
-                if specialMode == 'noStartEnd' and i in l_firstLastIndices:
-                    log.debug("|{0}| >> noStartEnd skip: {1}".format(_str_func,mDriver))                    
-                    continue
-                    
-                v_aimUse = v_aim
-                if mDriver == ml_aimDrivers[-1] and not extendEnds:
-                    s_aim = ml_tracks[-2].mNode
-                    v_aimUse = v_aimNeg
-                else:
-                    s_aim = ml_tracks[i+1].mNode
-            
-                mc.aimConstraint(s_aim, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
-                                 aimVector = v_aimUse, upVector = v_up, worldUpObject = ml_upGroups[i].mNode,
-                                 worldUpType = 'objectrotation', worldUpVector = v_up)            
-        else:
-            for i,mDriver in enumerate(ml_aimDrivers):
-                if specialMode == 'noStartEnd' and i in l_firstLastIndices:
-                    log.debug("|{0}| >> noStartEnd skip: {1}".format(_str_func,mDriver))                    
-                    continue                
-                #We need to make new tracks
-                l_stableFollicleInfo = NODES.createFollicleOnMesh( mControlCurve.mNode )
-            
-                mStableFollicle = cgmMeta.asMeta(l_stableFollicleInfo[1],'cgmObject',setClass=True)
-                mStableFollicleShape = cgmMeta.asMeta(l_stableFollicleInfo[0],'cgmNode')
-                mStableFollicle.parent = mGroup.mNode
-                
-                ml_tracksStable.append(mStableFollicle)
-                ml_tracksStableShapes.append(mStableFollicleShape)
-                
-                #> Name...
-                #mStableFollicleTrans.doStore('cgmName',mObj.mNode)
-                #mStableFollicleTrans.doStore('cgmTypeModifier','surfaceStable')            
-                #mStableFollicleTrans.doName()
-                mStableFollicle.rename('{0}_surfaceStable'.format(ml_joints[i].p_nameBase))
-            
-                mStableFollicleShape.parameterU = minU
-                #mStableFollicleShape.parameterV = ml_trackShapes[i].parameterV
-                ATTR.connect('{0}.parameterV'.format(ml_trackShapes[i].mNode),
-                             '{0}.parameterV'.format(mStableFollicleShape.mNode))
-                
-                if driverSetup == 'stable':
-                    if mDriver in [ml_aimDrivers[-1]]:
-                        #...now aim it
-                        mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
-                                         aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)                     
-                    else:
-                        #was aimint at tracks... ml_tracks
-                        mc.aimConstraint(ml_tracks[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
-                                         aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)
-                elif driverSetup == 'stableBlend': #stableBlend....
-                    if mDriver in [ml_aimDrivers[0],ml_aimDrivers[-1]]:
-                        #...now aim it
-                        mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
-                                         aimVector = v_aim,
-                                         upVector = v_up,
-                                         worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)
-                    else:
-                        mAimForward = mDriver.doCreateAt()
-                        mAimForward.parent = mDriver.p_parent
-                        mAimForward.doStore('cgmTypeModifier','forward')
-                        mAimForward.doStore('cgmType','aimer')
-                        mAimForward.doName()
-                    
-
-                        mAimBack = mDriver.doCreateAt()
-                        mAimBack.parent = mDriver.p_parent
-                        mAimBack.doStore('cgmTypeModifier','back')
-                        mAimBack.doStore('cgmType','aimer')
-                        mAimBack.doName()
-                        
-                        mc.aimConstraint(ml_tracks[i+1].mNode, mAimForward.mNode, maintainOffset = True, #skip = 'z',
-                                         aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)
-                        mc.aimConstraint(ml_tracks[i-1].mNode, mAimBack.mNode, maintainOffset = True, #skip = 'z',
-                                         aimVector = v_aimNeg, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)                        
-
-                        mc.orientConstraint([mAimForward.mNode,mAimBack.mNode], ml_aimDrivers[i].mNode, maintainOffset=True)
-                        #mc.aimConstraint(ml_tracks[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
-                        #                 aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                        #                 worldUpType = 'object', worldUpVector = v_up)
-                else:
-                    pass
-
-                    
-                
-        """
-        if mJnt != ml_joints[-1]:
-            mUpLoc = mJnt.doLoc()#Make up Loc
-            mLocRotateGroup = mJnt.doCreateAt()#group in place
-            mLocRotateGroup.parent = i_trackTrans.mNode
-            mLocRotateGroup.doStore('cgmName',mJnt)	    
-            mLocRotateGroup.addAttr('cgmTypeModifier','rotate',lock=True)
-            mLocRotateGroup.doName()
-        
-            #Store the rotate group to the joint
-            mJnt.connectChildNode(mLocRotateGroup,'rotateUpGroup','drivenJoint')
-            mZeroGrp = cgmMeta.asMeta( mLocRotateGroup.doGroup(True),'cgmObject',setClass=True )
-            mZeroGrp.addAttr('cgmTypeModifier','zero',lock=True)
-            mZeroGrp.doName()
-            #connect some other data
-            mLocRotateGroup.connectChildNode(i_trackTrans,'track','drivenGroup')
-            mLocRotateGroup.connectChildNode(mLocRotateGroup.parent,'zeroGroup')
-            mLocRotateGroup.connectChildNode(mUpLoc,'upLoc')
-        
-            mc.makeIdentity(mLocRotateGroup.mNode, apply=True,t=1,r=1,s=1,n=0)
-        
-            mUpLoc.parent = mLocRotateGroup.mNode
-            mc.move(0,10,0,mUpLoc.mNode,os=True)	
-            ml_upGroups.append(mUpLoc)
-        
-            if mModule:#if we have a module, connect vis
-                mUpLoc.overrideEnabled = 1		
-                cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mUpLoc.mNode,'overrideVisibility'))
-                cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mUpLoc.mNode,'overrideDisplayType'))    
-        
-        else:#if last...
-            pass"""
-    def createDist(mJnt, typeModifier = None):
-        mShape = cgmMeta.cgmNode( mc.createNode ('distanceDimShape') )        
-        mObject = mShape.getTransform(asMeta=True) 
-        mObject.doStore('cgmName',mJnt)
-        if typeModifier:
-            mObject.addAttr('cgmTypeModifier',typeModifier,lock=True)                
-        mObject.addAttr('cgmType','measureNode',lock=True)
-        mObject.doName(nameShapes = True)
-        mObject.parent = mGroup.mNode#parent it
-        mObject.overrideEnabled = 1
-        mObject.overrideVisibility = 1
-        
-        if mModule:#Connect hides if we have a module instance:
-            ATTR.connect("{0}.gutsVis".format(mModule.rigNull.mNode),"{0}.overrideVisibility".format(mObject.mNode))
-            ATTR.connect("{0}.gutsLock".format(mModule.rigNull.mNode),"{0}.overrideDisplayType".format(mObject.mNode))
-        
-        return mObject,mShape
-
-    if b_squashStretch:
-        log.debug("|{0}| >> SquashStretch...".format(_str_func)+cgmGEN._str_subLine)
-        
-        if extraSquashControl:
-            mPlug_segScale = cgmMeta.cgmAttr(mSettings.mNode,
-                                             "{0}_segScale".format(str_baseName),
-                                             attrType = 'float',
-                                             hidden = False,                                                 
-                                             initialValue=1.0,
-                                             defaultValue=1.0,
-                                             keyable = extraKeyable,
-                                             lock=False,
-                                             minValue = 0)
-            
-        if squashStretchMain == 'arcLength':
-            mPlug_inverseNormalized = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                             "{0}_normalInverse".format(str_baseName),
-                                             attrType = 'float',
-                                             hidden = False,)
-                
-            arg = "{0} = {1} * {2}".format(mPlug_inverseNormalized.p_combinedName,
-                                           mPlug_inverseScale.p_combinedName,
-                                           mPlug_masterScale.p_combinedName)
-            NODEFAC.argsToNodes(arg).doBuild()
-            
-        
-        log.debug("|{0}| >> Making our base dist stuff".format(_str_func))
-        
-        ml_distanceObjectsBase = []
-        ml_distanceShapesBase = []
-        
-        ml_distanceObjectsActive = []
-        ml_distanceShapesActive = []
-        
-        md_distDat = {}
-        for k in ['aim','up','out']:
-            md_distDat[k] = {}
-            for k2 in 'base','active':
-                md_distDat[k][k2] = {'mTrans':[],
-                                     'mDist':[]}
-
-        #mSegmentCurve.addAttr('masterScale',value = 1.0, minValue = 0.0001, attrType='float')
-        ml_outFollicles = []
-        if ml_tracksStable:
-            log.debug("|{0}| >> Found out tracks via stable...".format(_str_func))                
-            ml_outFollicles = ml_tracksStable
-        elif driverSetup:
-            raise ValueError,"Must create out tracks"
-        
-        #Up tracks =================================================================================
-        ml_upFollicles = []
-        ml_upFollicleShapes = []
-        
-        if mControlCurve2:
-            log.debug("|{0}| >> up track setup...".format(_str_func,)+cgmGEN._str_subLine)
-            
-            for i,mJnt in enumerate(ml_joints):
-                #We need to make new tracks
-                l_FollicleInfo = NODES.createFollicleOnMesh( mControlCurve2.mNode )
-            
-                mUpFollicle = cgmMeta.asMeta(l_FollicleInfo[1],'cgmObject',setClass=True)
-                mUpFollicleShape = cgmMeta.asMeta(l_FollicleInfo[0],'cgmNode')
-                
-                mUpFollicle.parent = mGroup.mNode
-                
-                ml_upFollicles.append(mUpFollicle)
-                ml_upFollicleShapes.append(mUpFollicleShape)
-                
-                #> Name...
-                mUpFollicle.rename('{0}_surfaceUp'.format(ml_joints[i].p_nameBase))
-            
-                mUpFollicleShape.parameterU = minU
-                #mUpFollicleShape.parameterV = ml_trackShapes[i].parameterV
-                ATTR.connect('{0}.parameterV'.format(ml_trackShapes[i].mNode),
-                             '{0}.parameterV'.format(mUpFollicleShape.mNode))
-            
 
             
-        if squashStretch != 'simple':
-            for i,mJnt in enumerate(ml_joints):#Base measure ===================================================
-                """
-                log.debug("|{0}| >> Base measure for: {1}".format(_str_func,mJnt))
-                
-                mDistanceDag,mDistanceShape = createDist(mJnt, 'base')
-                mDistanceDag.p_parent = mTransGroup
-                
-                #Connect things
-                ATTR.connect(ml_tracks[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
-                ATTR.connect(ml_tracks[i+1].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
-                
-                ATTR.break_connection(mDistanceShape.mNode+'.startPoint')
-                ATTR.break_connection(mDistanceShape.mNode+'.endPoint')
-                
-                md_distDat['aim']['base']['mTrans'].append(mDistanceDag)
-                md_distDat['aim']['base']['mDist'].append(mDistanceShape)
-                """
-                if mJnt == ml_joints[-1]:
-                    #use the the last....
-                    md_distDat['aim']['active']['mTrans'].append(mDistanceDag)
-                    md_distDat['aim']['active']['mDist'].append(mDistanceShape)                
-                else:
-                    #Active measures ---------------------------------------------------------------------
-                    log.debug("|{0}| >> Active measure for: {1}".format(_str_func,mJnt))
-                    #>> Distance nodes
-                    mDistanceDag,mDistanceShape = createDist(mJnt, 'active')
-        
-                    #Connect things
-                    #.on loc = position
-                    ATTR.connect(ml_tracks[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
-                    ATTR.connect(ml_tracks[i+1].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
-                    
-                    #ml_distanceObjectsActive.append(mDistanceDag)
-                    #ml_distanceShapesActive.append(mDistanceShape)
-                    md_distDat['aim']['active']['mTrans'].append(mDistanceDag)
-                    md_distDat['aim']['active']['mDist'].append(mDistanceShape)
-    
-            if ml_outFollicles or ml_upFollicles:
-                for i,mJnt in enumerate(ml_joints):
-                    if ml_outFollicles:
-                        """
-                        #Out Base ---------------------------------------------------------------------------------
-                        log.debug("|{0}| >> Out base measure for: {1}".format(_str_func,mJnt))
-                        
-                        mDistanceDag,mDistanceShape = createDist(mJnt, 'baseOut')
-                        mDistanceDag.p_parent = mTransGroup
-    
-                        #Connect things
-                        ATTR.connect(ml_tracks[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
-                        ATTR.connect(ml_outFollicles[i].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
-                        
-                        ATTR.break_connection(mDistanceShape.mNode+'.startPoint')
-                        ATTR.break_connection(mDistanceShape.mNode+'.endPoint')
-                        
-                        md_distDat['out']['base']['mTrans'].append(mDistanceDag)
-                        md_distDat['out']['base']['mDist'].append(mDistanceShape)
-                        """
-                        
-                        #ml_distanceObjectsBase.append(mDistanceDag)
-                        #ml_distanceShapesBase.append(mDistanceShape)
-                        
-                        #Out Active---------------------------------------------------------------------------------
-                        log.debug("|{0}| >> Out active measure for: {1}".format(_str_func,mJnt))
-                        
-                        mDistanceDag,mDistanceShape = createDist(mJnt, 'activeOut')
-                                        
-                        #Connect things
-                        ATTR.connect(ml_tracks[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
-                        ATTR.connect(ml_outFollicles[i].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
-                        
-                        #ml_distanceObjectsBase.append(mDistanceDag)
-                        #ml_distanceShapesBase.append(mDistanceShape)
-                        md_distDat['out']['active']['mTrans'].append(mDistanceDag)
-                        md_distDat['out']['active']['mDist'].append(mDistanceShape)
-                    
-                    if ml_upFollicles:
-                        """
-                        #Up Base ---------------------------------------------------------------------------------
-                        log.debug("|{0}| >> Up base measure for: {1}".format(_str_func,mJnt))
-                        
-                        mDistanceDag,mDistanceShape = createDist(mJnt, 'baseUp')
-                        mDistanceDag.p_parent = mTransGroup
-    
-                        #Connect things
-                        ATTR.connect(ml_tracks[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
-                        ATTR.connect(ml_upFollicles[i].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
-                        
-                        ATTR.break_connection(mDistanceShape.mNode+'.startPoint')
-                        ATTR.break_connection(mDistanceShape.mNode+'.endPoint')
-                        
-                        md_distDat['up']['base']['mTrans'].append(mDistanceDag)
-                        md_distDat['up']['base']['mDist'].append(mDistanceShape)
-                        #ml_distanceObjectsBase.append(mDistanceDag)
-                        #ml_distanceShapesBase.append(mDistanceShape)
-                        """
-                        
-                        #Up Active---------------------------------------------------------------------------------
-                        log.debug("|{0}| >> Up active measure for: {1}".format(_str_func,mJnt))
-                        
-                        mDistanceDag,mDistanceShape = createDist(mJnt, 'activeUp')
-                                        
-                        #Connect things
-                        ATTR.connect(ml_tracks[i].mNode+'.translate',mDistanceShape.mNode+'.startPoint')
-                        ATTR.connect(ml_upFollicles[i].mNode+'.translate',mDistanceShape.mNode+'.endPoint')
-                        
-                        #ml_distanceObjectsBase.append(mDistanceDag)
-                        #ml_distanceShapesBase.append(mDistanceShape)
-                        md_distDat['up']['active']['mTrans'].append(mDistanceDag)
-                        md_distDat['up']['active']['mDist'].append(mDistanceShape)                
 
-
-        
-        
-        #>>>Hook up stretch/scale #================================================================ 
-        if squashStretchMain == 'arcLength':
-            log.debug("|{0}| >> arcLength aim stretch setup ".format(_str_func)+cgmGEN._str_subLine)
-            for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
-                
-                
-                if extraSquashControl:
-                    try:
-                        v_scaleFactor = l_scaleFactors[i]
-                    except Exception,err:
-                        log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
-                        v_scaleFactor = 1.0                    
-                    
-                    mPlug_aimResult = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                      "{0}_aimScaleResult_{1}".format(str_baseName,i),
-                                                      attrType = 'float',
-                                                      initialValue=0,
-                                                      lock=True,
-                                                      minValue = 0)                    
-                    """
-                    mPlug_baseRes = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                     "{0}_baseRes_{1}".format(str_baseName,i),
-                                                     attrType = 'float')"""                    
-                    mPlug_jointFactor = cgmMeta.cgmAttr(mSettings.mNode,
-                                                        "{0}_factor_{1}".format(str_baseName,i),
-                                                        attrType = 'float',
-                                                        hidden = False,
-                                                        initialValue=v_scaleFactor,
-                                                        defaultValue=v_scaleFactor,
-                                                        keyable = extraKeyable,
-                                                        lock=False,
-                                                        minValue = 0)
-                    
-                    mPlug_jointRes = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                     "{0}_factorRes_{1}".format(str_baseName,i),
-                                                     attrType = 'float')
-                    
-                    mPlug_jointDiff = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                      "{0}_factorDiff_{1}".format(str_baseName,i),
-                                                      attrType = 'float')
-                    mPlug_jointMult = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                      "{0}_factorMult_{1}".format(str_baseName,i),
-                                                      attrType = 'float')                    
-                    
-                    #>> x + (y - x) * blend --------------------------------------------------------
-                    mPlug_baseRes = mPlug_inverseNormalized
-                    """
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedName,
-                                                               mPlug_aimBaseNorm.p_combinedName,
-                                                               "{0}.distance".format(mActive_aim.mNode)))"""
-                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedName,
-                                                               mPlug_jointMult.p_combinedName))
-                    l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedName,
-                                                             mPlug_baseRes.p_combinedName))
-                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointMult.p_combinedName,
-                                                               mPlug_jointDiff.p_combinedName,
-                                                               mPlug_jointRes.p_combinedName))
-                    
-                    
-                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedName,
-                                                               mPlug_jointFactor.p_combinedName,
-                                                               mPlug_segScale.p_combinedName))                    
-    
-                    
-                else:
-                    mPlug_aimResult = mPlug_inverseNormalized
-                
-                for arg in l_argBuild:
-                    log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                    NODEFAC.argsToNodes(arg).doBuild()
-                
-            
-                if squashStretch == 'simple':
-                    for axis in ['scaleX','scaleY']:
-                        mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
-                        
-                if not skipAim:
-                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))                
-        else:
-            for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
-                mActive_aim =  md_distDat['aim']['active']['mDist'][i]
-    
-                mPlug_aimResult = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                  "{0}_aimScaleResult_{1}".format(str_baseName,i),
-                                                  attrType = 'float',
-                                                  initialValue=0,
-                                                  lock=True,
-                                                  minValue = 0)
-                
-                mPlug_aimBase = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                               "{0}_aimBase_{1}".format(str_baseName,i),
-                                               attrType = 'float',
-                                               lock=True,
-                                               value=ATTR.get('{0}.distance'.format(mActive_aim.mNode)))
-    
-                mPlug_aimBaseNorm = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                  "{0}_aimBaseNorm_{1}".format(str_baseName,i),
-                                                  attrType = 'float',
-                                                  initialValue=0,
-                                                  lock=True,
-                                                  minValue = 0)
-                
-                l_argBuild = []
-                l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedName,
-                                                           mPlug_aimBase.p_combinedName,
-                                                           mPlug_masterScale.p_combinedName,))
-
-                
-                #baseSquashScale = distBase / distActual
-                #out scale = baseSquashScale * (outBase / outActual)
-                #mBase_aim =  md_distDat['aim']['base']['mDist'][i]
-                
-                
-                try:
-                    v_scaleFactor = l_scaleFactors[i]
-                except Exception,err:
-                    log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
-                    v_scaleFactor = 1.0
-                    
-                if extraSquashControl:
-                    #mPlug_segScale
-                    mPlug_baseRes = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                     "{0}_baseRes_{1}".format(str_baseName,i),
-                                                     attrType = 'float')                    
-                    mPlug_jointFactor = cgmMeta.cgmAttr(mSettings.mNode,
-                                                        "{0}_factor_{1}".format(str_baseName,i),
-                                                        attrType = 'float',
-                                                        hidden = False,
-                                                        initialValue=v_scaleFactor,#l_scaleFactors[i],
-                                                        defaultValue=v_scaleFactor,
-                                                        lock=False,
-                                                        minValue = 0)
-                    mPlug_jointRes = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                     "{0}_factorRes_{1}".format(str_baseName,i),
-                                                     attrType = 'float')
-                    
-                    mPlug_jointDiff = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                      "{0}_factorDiff_{1}".format(str_baseName,i),
-                                                      attrType = 'float')
-                    #mPlug_jointAdd = cgmMeta.cgmAttr(mControlCurve.mNode,
-                    #                                  "{0}_factorAdd_{1}".format(str_baseName,i),
-                    #                                  attrType = 'float')
-                    mPlug_jointMult = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                      "{0}_factorMult_{1}".format(str_baseName,i),
-                                                      attrType = 'float')                    
-                    
-                    #>> x + (y - x) * blend --------------------------------------------------------
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedName,
-                                                               mPlug_aimBaseNorm.p_combinedName,
-                                                               "{0}.distance".format(mActive_aim.mNode),
-                                                               ))
-                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedName,
-                                                               mPlug_jointMult.p_combinedName))
-                    l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedName,
-                                                             mPlug_baseRes.p_combinedName))
-                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointMult.p_combinedName,
-                                                               mPlug_jointDiff.p_combinedName,
-                                                               mPlug_jointRes.p_combinedName))
-                    
-                    
-                    l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedName,
-                                                               mPlug_jointFactor.p_combinedName,
-                                                               mPlug_segScale.p_combinedName))                    
-    
-                    
-                else:
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_aimResult.p_combinedName,
-                                                               mPlug_aimBaseNorm.p_combinedName,
-                                                               "{0}.distance".format(mActive_aim.mNode),
-                                                               ))
-                
-                
-                for arg in l_argBuild:
-                    log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                    NODEFAC.argsToNodes(arg).doBuild()
-                            
-                if not ml_outFollicles:
-                    for axis in ['scaleX','scaleY']:
-                        mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
-                        
-                if not skipAim:
-                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
-            
-        if squashStretch in ['single','both']:
-            if ml_outFollicles or ml_upFollicles:
-                for i,mJnt in enumerate(ml_joints):
-                    #if mJnt == ml_joints[-1]:
-                        #pass #...we'll pick up the last on the loop
-                    #else:
-                    mPlug_aimResult = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                    "{0}_aimScaleResult_{1}".format(str_baseName,i))
-                        #mActive_aim =  md_distDat['aim']['active']['mDist'][i]                        
-                        
-                    
-                    if ml_outFollicles:
-                        #mBase_out =  md_distDat['out']['base']['mDist'][i]
-                        mActive_out =  md_distDat['out']['active']['mDist'][i]
-                        
-                        mPlug_outResult = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                          "{0}_outScaleResult_{1}".format(str_baseName,i),
-                                                          attrType = 'float',
-                                                          lock=True,
-                                                          minValue = 0)
-                        
-                        mPlug_outBase = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                        "{0}_outBaseScaleResult_{1}".format(str_baseName,i),
-                                                        attrType = 'float',
-                                                        value=ATTR.get('{0}.distance'.format(mActive_out.mNode)))
-             
-                        mPlug_outBaseNorm = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                          "{0}_outBaseNorm_{1}".format(str_baseName,i),
-                                                          attrType = 'float',
-                                                          lock=True,
-                                                          minValue = 0)
-                        
-                        mPlug_outBaseRes = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                            "{0}_outBaseRes_{1}".format(str_baseName,i),
-                                                            attrType = 'float',
-                                                            lock=True)                    
-                         
-                        l_argBuild = []
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_outBaseNorm.p_combinedName,
-                                                                   mPlug_outBase.p_combinedName,
-                                                                   mPlug_masterScale.p_combinedName,))
-                        
-                        #baseSquashScale = distBase / distActual
-                        #out scale = baseSquashScale * (outBase / outActual)
-    
-     
-                        
-                        l_argBuild.append("{0} = {1} / {2}".format(mPlug_outBaseRes.p_combinedName,
-                                                                   '{0}.distance'.format(mActive_out.mNode),
-                                                                   mPlug_outBaseNorm.p_combinedName,))
-                        
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_outResult.p_combinedName,
-                                                                   mPlug_aimResult.p_combinedName,
-                                                                   mPlug_outBaseRes.p_combinedName))
-                        
-                        
-                        for arg in l_argBuild:
-                            log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                            NODEFAC.argsToNodes(arg).doBuild()
-                            
-                            
-                        #out scale ---------------------------------------------------------------
-                        for axis in ['scaleX','scaleY']:
-                            mPlug_outResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
-                            
-                    if ml_upFollicles:
-                        #mBase_up =  md_distDat['up']['base']['mDist'][i]
-                        mActive_up =  md_distDat['up']['active']['mDist'][i]
-                        
-                        mPlug_upResult = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                          "{0}_upScaleResult_{1}".format(str_baseName,i),
-                                                          attrType = 'float',
-                                                          lock=True,
-                                                          minValue = 0)
-                        
-                        mPlug_upBase = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                       "{0}_upBaseScaleResult_{1}".format(str_baseName,i),
-                                                       attrType = 'float',
-                                                       value=ATTR.get('{0}.distance'.format(mActive_up.mNode)))
-                        
-                        mPlug_upBaseRes = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                          "{0}_upBaseRes_{1}".format(str_baseName,i),
-                                                          attrType = 'float',
-                                                          lock=True,
-                                                          minValue = 0)
-            
-                        mPlug_upBaseNorm = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                          "{0}_upBaseNorm_{1}".format(str_baseName,i),
-                                                          attrType = 'float',
-                                                          lock=True,
-                                                          minValue = 0)
-                        
-                        l_argBuild = []
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_upBaseNorm.p_combinedName,
-                                                                   mPlug_upBase.p_combinedName,
-                                                                   mPlug_masterScale.p_combinedName,))                    
-                        
-                        #baseSquashScale = distBase / distActual
-                        #up scale = baseSquashScale * (upBase / upActual)
-    
-                        
-    
-                        
-                        l_argBuild.append("{0} = {1} / {2}".format(mPlug_upBaseRes.p_combinedName,
-                                                                   '{0}.distance'.format(mActive_up.mNode),
-                                                                   mPlug_upBaseNorm.p_combinedName,))
-                        
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_upResult.p_combinedName,
-                                                                   mPlug_aimResult.p_combinedName,
-                                                                   mPlug_upBaseRes.p_combinedName))
-                        
-                        
-                        for arg in l_argBuild:
-                            log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                            NODEFAC.argsToNodes(arg).doBuild()
-                            
-                            
-                        #up scale ---------------------------------------------------------------
-                        for axis in ['scaleY']:
-                            mPlug_upResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))                
-
-    if additiveScaleEnds:
-        log.debug("|{0}| >> Additive Scale Ends".format(_str_func)+cgmGEN._str_subLine)
-        
-        for i,mJnt in enumerate( [ml_joints[0],ml_joints[-1]] ):
-            
-            #Active measures ---------------------------------------------------------------------
-            log.debug("|{0}| >> Additve Scale measure for: {1}".format(_str_func,mJnt))
-            
-            #>> Distance nodes
-            mDistanceDag,mDistanceShape = createDist(mJnt, 'additiveEnd')
-            log.debug("|{0}| >> Dist created...".format(_str_func))
-            
-            
-
-            #Connect things
-            #.on loc = position
-            ATTR.connect(ml_tracks[ml_joints.index(mJnt)].mNode+'.translate',
-                         mDistanceShape.mNode+'.startPoint')
-            
-            if not i:
-                ATTR.connect(mTrackMinV.mNode+'.translate',
-                             mDistanceShape.mNode+'.endPoint')
-                str_tag = 'min'
-            else:
-                ATTR.connect(mTrackMaxV.mNode+'.translate',
-                             mDistanceShape.mNode+'.endPoint')
-                str_tag = 'max'
-                
-            log.debug("|{0}| >> track connected...".format(_str_func))
-                
-            #Normal Base -----------------------------------------------------------------
-            #normalbase = base value * master
-            #mult_normalBase = mc.createNode('multDoubleLinear')
-            #ATTR.connect(mPlug_masterScale.p_combinedName, mult_normalBase + '.input1')
-            #ATTR.set(mult_normalBase,'input2',mDistanceDag.mNode + '.distance')
-            #ATTR.connect(mDistanceDag.mNode + '.distance', mult_normalBase + '.input2')
-            
-            # Base -----------------------------------------------------------------
-            mPlug_aimResult = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                              "{0}_aimAdditiveResult_{1}".format(str_baseName,str_tag),
-                                              attrType = 'float',
-                                              initialValue=0,
-                                              lock=True,
-                                              minValue = 0)
-        
-            mPlug_aimBase = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                            "{0}_aimAdditiveBase_{1}".format(str_baseName,str_tag),
-                                            attrType = 'float',
-                                            lock=True,
-                                            value=ATTR.get('{0}.distance'.format(mDistanceShape.mNode)))
-    
-            mPlug_aimBaseNorm = cgmMeta.cgmAttr(mControlCurve.mNode,
-                                                "{0}_aimAdditveBaseNorm_{1}".format(str_baseName,str_tag),
-                                                attrType = 'float',
-                                                initialValue=0,
-                                                lock=True,
-                                                minValue = 0)
-            log.debug("|{0}| >> Attrs registered...".format(_str_func))
-            
-            l_argBuild = []
-            l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimBaseNorm.p_combinedName,
-                                                       mPlug_aimBase.p_combinedName,
-                                                       mPlug_masterScale.p_combinedName,))
-            l_argBuild.append("{0} = {2} / {1}".format(mPlug_aimResult.p_combinedName,
-                                                       mPlug_aimBaseNorm.p_combinedName,
-                                                       "{0}.distance".format(mDistanceShape.mNode),
-                                                       ))
-        
-            for arg in l_argBuild:
-                log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
-                NODEFAC.argsToNodes(arg).doBuild()
-                
-                
-            if not skipAim:
-                RIGGEN.plug_insertNewValues('{0}.scaleZ'.format(mJnt.mNode),
-                                            [mPlug_aimResult.p_combinedName],replace=False)
-            
-    #>>> Connect our iModule vis stuff
-    if mModule:#if we have a module, connect vis
-        log.debug("|{0}| >> mModule wiring...".format(_str_func)+cgmGEN._str_subLine)            
-        
-        for mObj in ml_rigObjectsToConnect:
-            mObj.overrideEnabled = 1		
-            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
-            cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
-        for mObj in ml_rigObjectsToParent:
-            mObj.parent = mModule.rigNull.mNode
 
     if ml_influences:
         log.debug("|{0}| >> Influences found. Attempting to skin...".format(_str_func)+cgmGEN._str_subLine)            
-        
         max_influences = 2
         mode_tighten = 'twoBlend'
         blendLength = int_lenJoints/2
@@ -5358,8 +4783,6 @@ def curve(jointList = None,
             
         #Tighten the weights...
         
-       
-            
         if mArcLenCurve:
             log.debug("|{0}| >> Skinning arcLen Curve: {1}".format(_str_func,mArcLenCurve))
             
