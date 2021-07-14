@@ -110,12 +110,21 @@ def dat_set(mBlock,data,
             settings = True,
             formHandles = True,
             loftHandles = True,
-            loftShapes=True):
+            loftShapes=True,
+            loftHandleMode = 'local',
+            loops=2):
     _str_func = 'dat_get'
     log.debug(log_start(_str_func))
     
     _str_block = mBlock.mNode
     ml_handles = None
+    
+    #First part of block reset to get/load data------------------------------------------------------
+    pos = mBlock.p_position
+    orient = mBlock.p_orient
+    
+    mBlock.p_position = 0,0,0
+    mBlock.p_orient = 0,0,0
     
     def get_loftShapes(ml_handles):
         _res = {}
@@ -166,19 +175,25 @@ def dat_set(mBlock,data,
         log.info(log_sub(_str_func,'FormHandles...'))
         ml_handles = get_handles(ml_handles)
         
+        if mBlock in ml_handles:
+            raise ValueError,"mBlock cannot be in handles"
+        
         pprint.pprint(ml_handles)
         
         dat_form = data['handles']['form']
         
-        for i, mObj in enumerate(ml_handles):
-            
-            mObj.translate = dat_form[i]['t']
-            mObj.rotate = dat_form[i]['r']
-            
-            mObj.scaleX = dat_form[i]['s'][0]
-            mObj.scaleY = dat_form[i]['s'][1]
-            try:mObj.scaleZ = dat_form[i]['s'][2]
-            except:pass
+        for ii in range(loops):
+            for i, mObj in enumerate(ml_handles):
+                
+                #mObj.translate = dat_form[i]['trans']
+                #mObj.rotate = dat_form[i]['rot']
+                mObj.p_position = dat_form[i]['pos']
+                mObj.p_orient = dat_form[i]['orient']
+                
+                mObj.scaleX = dat_form[i]['scale'][0]
+                mObj.scaleY = dat_form[i]['scale'][1]
+                try:mObj.scaleZ = dat_form[i]['scale'][2]
+                except:pass
         
     #loft handles and shapes -----------------------------------------------------------
     if loftHandles or loftShapes:
@@ -197,9 +212,15 @@ def dat_set(mBlock,data,
             for ii,mObj in enumerate(ml_loft):
                 
                 if loftHandles:
-                    mObj.translate = dat_loft[i][ii]['t']
-                    mObj.rotate = dat_loft[i][ii]['r']
-                    mObj.scale = dat_loft[i][ii]['s']
+                    if loftHandleMode == 'local':
+                        mObj.translate = dat_loft[i][ii]['trans']
+                        mObj.rotate = dat_loft[i][ii]['rot']                        
+                    else:
+                        mObj.p_position = dat_loft[i][ii]['pos']
+                        mObj.p_orient = dat_loft[i][ii]['orient']                    
+                        
+                    #mObj.p_position = dat_loft[i][ii]['pos']
+                    mObj.scale = dat_loft[i][ii]['scale']
                 
                 if loftShapes:
                     shapes_set(mObj, dat_shapes[i][ii])
@@ -209,7 +230,10 @@ def dat_set(mBlock,data,
         
     if loftShapes:
         log.info(log_sub(_str_func,'loftShapes...'))
-            
+        
+    #Restore our block...-----------------------------------------------------------------
+    mBlock.p_position = pos
+    mBlock.p_orient = orient         
             
 l_dataAttrs = ['blockType','addLeverBase', 'addLeverEnd']
 l_enumLists = ['loftList']
@@ -224,6 +248,14 @@ def dat_get(mBlock=None):
     #Check state. must be form state
     if mBlock.blockState < 1:
         raise ValueError,"Must be in form state"
+    
+    #First part of block reset to get/load data------------------------------------------------------
+    pos = mBlock.p_position
+    orient = mBlock.p_orient
+    
+    mBlock.p_position = 0,0,0
+    mBlock.p_orient = 0,0,0
+
     
     def get_attr(obj,a,d = {}):
         try:
@@ -281,11 +313,11 @@ def dat_get(mBlock=None):
                 _pos = POS.get(ep,space='os')
             
     def get(mObj):
-        d = {#'p':mObj.p_position,
-                #'o':mObj.p_orient,
-                'r':mObj.rotate,
-                't':mObj.translate,
-                's':mObj.scale}
+        d = {'pos':mObj.p_position,
+             'orient':mObj.p_orient,
+             'rot':mObj.rotate,
+             'trans':mObj.translate,
+             'scale':mObj.scale}
         return d
     
     for i, mObj in enumerate(ml_handles):
@@ -311,6 +343,10 @@ def dat_get(mBlock=None):
         _d['shapes'].append(_l_shapes)
 
     #pprint.pprint(_res)
+    
+    #Restore our block...-----------------------------------------------------------------
+    mBlock.p_position = pos
+    mBlock.p_orient = orient      
     return _res
     
     
