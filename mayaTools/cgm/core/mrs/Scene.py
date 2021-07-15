@@ -1654,7 +1654,9 @@ example:
         mUI.MelButton(_row, ut = 'cgmUITemplate', h=15, label="Refresh Data",
                       c=cgmGEN.Callback(self.refreshMetaData) )
         mUI.MelButton(_row, ut = 'cgmUITemplate', h=15, label="Report Data",
-                      c=cgmGEN.Callback(self.metaData_print) )        
+                      c=cgmGEN.Callback(self.metaData_print) )
+        mUI.MelButton(_row, ut = 'cgmUITemplate', h=15, label="Copy ShotList",
+                      c=cgmGEN.Callback(self.metaData_copyShotList) )                
         _row.layout()
         
         
@@ -1818,6 +1820,52 @@ example:
 
         return thumbFile
     
+    def metaData_copyShotList(self):
+        _d = self.getMetaDataFromFile() 
+        
+        _d.get('file')
+        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.project.userPaths_get()['content']), '')
+
+        """
+        {"arame_poker_cheer_left": [280, 420, 140], "arame_poker_cheer_right": [560, 700, 140], "arame_poker_cheer_lwrR": [700, 840, 140], "arame_poker_cheer_center": [0, 140, 140], "arame_poker_cheer_lwrL": [420, 560, 140], "arame_poker_cheer_down": [140, 280, 140]}
+        """
+        #Shots
+        _d_res = {}
+        
+        if _d.get('shots'):
+            _shots = _d.get('shots')
+            _total = 0
+            _lows = []
+            _highs = []
+            
+            _l_shots = []
+            
+            for s in _shots:
+                _d_res[str(s[0])] = s[1]
+                _total += s[1][2]
+                _l = [s[0], s[1][0], s[1][1], s[1][2]] 
+                _l = [str(v) for v in _l]
+                _l_shots.append( _l )
+                _lows.append(s[1][0])
+                _highs.append(s[1][1])
+                
+            """
+            print ','.join(['clip','start','end',str(_total), "{0}".format(max(_highs) - min(_lows))])
+            print ''
+            for s in _l_shots:
+                print ','.join(s)"""
+                
+            pprint.pprint(_d_res)
+            
+            mList = cgmMeta.validateObjArg('AnimListNode',noneValid=True)
+            
+            if mList is False:
+                mList = cgmMeta.cgmObject(name="AnimListNode")#node.Transform(name="AnimListNode")
+            mList.addAttr("subAnimList", attrType = 'string')
+            
+
+            mList.subAnimList = _d_res#json.dumps(self.animDict)            
+        
     def metaData_print(self):
         
         _d = self.getMetaDataFromFile() 
