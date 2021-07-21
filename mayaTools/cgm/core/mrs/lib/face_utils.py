@@ -154,6 +154,24 @@ _d_faceBufferAttributes = {
         "teeth":{'attrs':['arcUp']},
 
     },
+    'ara':{
+        "eye":{'attrs':['up','dn','left','right'],
+               'sideAttrs':'*'},
+        "lid":{'attrs':['arcUprUp','arcLwrUp',
+                        'arcUprDn','arcLwrDn',
+                        'uprUp','uprDn','lwrUp','lwrDn'],
+               "sideAttrs":'*'},
+        "brow":{'attrs':['arcUp','arcDn','furrow'],
+                "sideAttrs":'*'},
+        "pupil":{'attrs':['small'],
+                 "sideAttrs":'*'},        
+        "cheek":{'attrs':['out'],
+                 "sideAttrs":'*'},
+        "nose":{'attrs':['flare'],},
+        "tongue":{'attrs':['fix']},
+
+    },
+    
 
     
     'toon':{"nose":{'attrs':['out','in','sneer_up','sneer_dn',

@@ -530,6 +530,104 @@ _d_faceWiring = {
     },
 
 
+'ara':{
+    
+    #Eye... -----------------------------------------------
+    'L_eye':{'control':'L_eye_anim',
+           'wiringDict':{'eye_up_left':{'driverAttr':'ty'},
+                         'eye_dn_left':{'driverAttr':'-ty'},
+                         'eye_right_left':{'driverAttr':'-tx'},
+                         'eye_left_left':{'driverAttr':'tx'},
+                         }},
+    
+    'R_eye':{'control':'R_eye_anim',
+           'wiringDict':{'eye_up_right':{'driverAttr':'ty'},
+                         'eye_dn_right':{'driverAttr':'-ty'},
+                         'eye_right_right':{'driverAttr':'-tx'},
+                         'eye_left_right':{'driverAttr':'tx'},
+                         }},
+    
+
+    #Brow...-----------------------------------------------
+    'l_brow_anim':{'control':'l_brow_anim',
+                   'wiringDict':{'brow_arcUp_left':{'driverAttr':'ty'},
+                                 'brow_arcDn_left':{'driverAttr':'-ty'},
+                                 'brow_furrow_left':{'driverAttr':'-tx'}}},
+    'r_brow_anim':{'control':'r_brow_anim',
+                   'wiringDict':{'brow_arcUp_right':{'driverAttr':'ty'},
+                                 'brow_arcDn_right':{'driverAttr':'-ty'},
+                                 'brow_furrow_right':{'driverAttr':'-tx'}}},        
+
+    #Lid... --------------------------------------------
+    'L_lidArcUpr_anim':{'control':'L_lidArcUpr_anim',
+           'wiringDict':{'lid_arcUprUp_left':{'driverAttr':'ty'},
+                         'lid_arcUprDn_left':{'driverAttr':'-ty'},
+                         }},
+    'L_lidArcLwr_anim':{'control':'L_lidArcLwr_anim',
+           'wiringDict':{'lid_arcLwrUp_left':{'driverAttr':'ty'},
+                         'lid_arcLwrDn_left':{'driverAttr':'-ty'},
+                         }},    
+    
+    'L_lidUpr_anim':{'control':'L_lidUpr_anim',
+           'wiringDict':{'lid_uprUp_left':{'driverAttr':'ty'},
+                         'lid_uprDn_left':{'driverAttr':'-ty'},
+                         }},
+    'L_lidLwr_anim':{'control':'L_lidLwr_anim',
+           'wiringDict':{'lid_lwrUp_left':{'driverAttr':'ty'},
+                         'lid_lwrDn_left':{'driverAttr':'-ty'},
+                         }},
+
+
+    'R_lidArcUpr_anim':{'control':'R_lidArcUpr_anim',
+           'wiringDict':{'lid_arcUprUp_right':{'driverAttr':'ty'},
+                         'lid_arcUprDn_right':{'driverAttr':'-ty'},
+                         }},
+    'R_lidArcLwr_anim':{'control':'R_lidArcLwr_anim',
+           'wiringDict':{'lid_arcLwrUp_right':{'driverAttr':'ty'},
+                         'lid_arcLwrDn_right':{'driverAttr':'-ty'},
+                         }},    
+    
+    'R_lidUpr_anim':{'control':'R_lidUpr_anim',
+           'wiringDict':{'lid_uprUp_right':{'driverAttr':'ty'},
+                         'lid_uprDn_right':{'driverAttr':'-ty'},
+                         }},
+    'R_lidLwr_anim':{'control':'R_lidLwr_anim',
+           'wiringDict':{'lid_lwrUp_right':{'driverAttr':'ty'},
+                         'lid_lwrDn_right':{'driverAttr':'-ty'},
+                         }},
+    
+    #Pupil... --------------------------------------------
+    'L_pupil_anim':{'control':'L_pupil_anim',
+           'wiringDict':{'pupil_small_left':{'driverAttr':'ty'},
+                         }},
+    'R_pupil_anim':{'control':'R_pupil_anim',
+           'wiringDict':{'pupil_small_right':{'driverAttr':'ty'},
+                         }},
+    
+    #Cheek... --------------------------------------------
+    'L_cheek_anim':{'control':'L_cheek_anim',
+           'wiringDict':{'cheek_out_left':{'driverAttr':'ty'},
+                         }},
+    'R_cheek_anim':{'control':'R_cheek_anim',
+           'wiringDict':{'cheek_out_right':{'driverAttr':'ty'},
+                         }},    
+    
+    
+    #Nose... --------------------------------------------
+    'nose':{'control':'nose_anim',
+           'wiringDict':{'nose_flare':{'driverAttr':'ty'},
+                         }},
+    
+    #Tongue... --------------------------------------------
+    'tongue':{'control':'tongue_anim',
+           'wiringDict':{'tongue_fix':{'driverAttr':'ty'},
+                         }},    
+
+
+
+    },
+
+
 'Wump':{
 
     
@@ -785,3 +883,31 @@ def swordSetup():
         mDynGroup.rebuild()
     mSword.resetAttrs()
 
+
+
+def simpleLipHandleTrack():
+    _muzzle = 'muzzle_anim'
+    _lip = 'lip_anim'
+    _d = ['L_lip_anim','R_lip_anim']
+    
+    mMuzzle = cgmMeta.asMeta(_muzzle)
+    mLip = cgmMeta.asMeta(_lip)
+    
+    for o in _d:
+        mObj = cgmMeta.asMeta(o)        
+        mDynGroup = mObj.dynParentGroup
+
+        _name = "{0}_{1}_trackLoc".format(mObj.p_nameBase,mObj.p_nameBase)
+        _alias = 'trackLip'
+
+                
+        mLoc = mObj.doLoc(fastMode=True)
+        mLoc.rename(_name)
+        mLoc.p_parent = mMuzzle
+        mLoc.doStore('cgmAlias', _alias)
+         
+        mc.pointConstraint([mMuzzle.mNode, mLip.mNode], mLoc.mNode, maintainOffset = True)
+            
+        mDynGroup.addDynParent(mLoc.mNode)
+            
+        mDynGroup.rebuild()

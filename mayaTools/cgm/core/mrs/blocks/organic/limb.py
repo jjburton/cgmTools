@@ -3505,7 +3505,7 @@ def rig_dataBuffer(self):
             mBuffer = mPrerigNull.msgList_get('rollJoints_{0}'.format(_check))
             _len = len(mBuffer)
             self.md_rollMulti[_check] = False
-            
+            log.info(_check)
             if mBuffer:
                 mStart = ml_handleJoints[_check]
                 mEnd = ml_handleJoints[_check+1]            
@@ -4075,9 +4075,10 @@ def rig_skeleton(self):
             
             if mBlock.addLeverEnd:
                 ml_targets = self.ml_handleTargets
-                
             else:
                 ml_targets = self.ml_handleTargetsCulled
+                if self.b_ikNeedEnd:
+                    ml_targets = ml_targets[:-1]
             
             ml_handleJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                       ml_targets,#ml_parentJoints,#ml_parentJoints[:self.int_handleEndIdx+1],
@@ -6097,7 +6098,10 @@ def rig_segments(self):
             
             #Parent these to their handles ------------------------------------------------
             ml_segHandles[0].parent = ml_handleJoints[i]
-            ml_segHandles[-1].parent = ml_handleJoints[i+1]
+            try:ml_segHandles[-1].parent = ml_handleJoints[i+1]
+            except Exception,err:#...if we don't have a target end we're not processing this
+                log.error(err)
+                continue
             
             ml_segHandlesProcessed.extend([ml_handleJoints[i],ml_handleJoints[i+1]])
             
