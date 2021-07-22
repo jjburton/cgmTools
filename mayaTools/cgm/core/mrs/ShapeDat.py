@@ -1,25 +1,11 @@
 """
-skinDat
+SHAPEDAT
 Josh Burton 
 www.cgmonks.com
 
-Core skinning data handler for cgm going forward.
-
-Storing joint positions and vert positions so at some point can implement a method
-to apply a skin without a reference object in scene if geo or joint counts don't match
-
-Currently only regular skin clusters are storing...
-
-Features...
-- Skin data gather
-- Read/write skin data to a readable config file
-- Apply skinning data to geo of different vert count
-- 
-
-Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__MAYALOCAL = 'CGMPROJECT'
+__MAYALOCAL = 'SHAPEDAT'
 
 
 # From Python =============================================================
@@ -63,14 +49,17 @@ from cgm.core.lib import position_utils as POS
 #import cgm.core.lib.math_utils as COREMATH
 #import cgm.core.lib.string_utils as CORESTRINGS
 #import cgm.core.lib.shared_data as CORESHARE
+import cgm.core.lib.rigging_utils as CORERIG
+
 #import cgm.core.tools.lib.project_utils as PU
 #import cgm.core.lib.mayaSettings_utils as MAYASET
 #import cgm.core.mrs.lib.scene_utils as SCENEUTILS
 import cgm.core.lib.attribute_utils as ATTR
+import cgm.core.lib.locator_utils as LOC
 #from cgm.core.mrs.lib import general_utils as BLOCKGEN
-#from cgm.core.lib import math_utils as MATH
+from cgm.core.lib import math_utils as MATH
 #from cgm.core.lib import transform_utils as TRANS
-#from cgm.core.lib import distance_utils as DIST
+from cgm.core.lib import distance_utils as DIST
 
 log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
@@ -402,5 +391,123 @@ def shapes_set(mObj, dat, mode = 'os'):
             raise ValueError,"Len of source shape {} | ({}) != dat ({})".format(i,len(_l_ep_source),len(_l_pos))         
         
         for ii,ep in enumerate(_l_ep_source):
-            POS.set(ep, _l_pos[ii],space='os')    
+            POS.set(ep, _l_pos[ii],space='os')  
+            
+
+def relativePointDat_getFromObjs(target, start,end, vUp = [0,0,-1]):
+    """
+    pTar - point of the target
+    pStart - Start point
+    pEnd - endPoint
+    dBase - base distance start to end
+    pCrv - closest point on crv
+    dCrv - distance to point on crv
+    vCrv - vector from crv to point
+    vUp - vector up (not using this yet)
     
+    """
+    _str_func = 'relativePointDat_getFromObj'
+    log.debug(log_start(_str_func))
+    _res = {}
+    
+    mTarget = cgmMeta.validateObjArg(target)
+    mStart = cgmMeta.validateObjArg(start)
+    mEnd = cgmMeta.validateObjArg(end)
+    
+    
+    #p1, p2, pTar
+    _res['pTar'] = mTarget.p_position
+    _res['pStart'] = mStart.p_position
+    _pEnd = mEnd.p_position
+    
+    
+    #distance between p1 p2
+    _res['dBase'] = DIST.get_distance_between_points(_res['pStart'],_pEnd)
+    _res['vBase'] = MATH.get_vector_of_two_points(_res['pStart'],_pEnd)
+    
+    #closest point on linear curve between those
+    _crv = CORERIG.create_at(l_pos=[_res['pStart'],_pEnd],create='curveLinear')
+    _r = DIST.get_closest_point(_res['pTar'], _crv, loc=True)
+    _close = _r[0]
+    _d2 = _r[1]
+    #_d2 = DIST.get_distance_between_points(_close, _res['pTar'])
+    _vecCrv = MATH.get_vector_of_two_points(_close, _res['pTar'])
+    
+    #get dist from start to closest
+    _res['dClose'] = DIST.get_distance_between_points(_res['pStart'],_close)
+    
+    _res['dCrv'] = _d2
+    _res['vCrv'] = _vecCrv
+    _res['vUp'] = vUp
+    
+    mc.delete(_crv)
+    
+    for k in ['pTar','pStart']:
+        _res.pop(k)
+        
+    pprint.pprint(_res)
+
+    return _res
+
+
+def relativePointDat_setFromObjs(target, start, end, d = {}):
+    """
+    pTar - point of the target
+    pStart - Start point
+    pEnd - endPoint
+    dBase - base distance start to end
+    pCrv - closest point on crv
+    dCrv - distance to point on crv
+    vCrv - vector from crv to point
+    vUp - vector up (not using this yet)
+    
+    """
+    _str_func = 'relativePointDat_setFromObjs'
+    log.debug(log_start(_str_func))
+    _res = {}
+    
+    mTarget = cgmMeta.validateObjArg(target)
+    mStart = cgmMeta.validateObjArg(start)
+    mEnd = cgmMeta.validateObjArg(end)
+    
+    _pStart = mStart.p_position
+    _pEnd = mEnd.p_position    
+    
+    #Get factor -------------------------------------------------------------
+    _dCurrent = DIST.get_distance_between_points(_pStart,_pEnd)
+    _fac = _dCurrent / d['dBase'] 
+    
+    
+    #transform vector ------------------------------------------------------
+    vCurrent = MATH.get_vector_of_two_points(_pStart,_pEnd,True)
+    vOffset =  vCurrent - MATH.Vector3(d['vBase'][0],d['vBase'][1],d['vBase'][2])
+    
+    
+    vNew =  MATH.Vector3(d['vCrv'][0],d['vCrv'][1],d['vCrv'][2] ) - vOffset
+    
+    
+    #Get relative closest point - start > vector * dClose * factor
+    _close = DIST.get_pos_by_vec_dist(_pStart, vCurrent, d['dClose'] * _fac)
+    LOC.create(position=_close,name="close")
+    
+    _new = DIST.get_pos_by_vec_dist(_close, vNew, d['dCrv'] * _fac)
+    
+    
+    mTarget.p_position = _new
+    
+    
+    
+    pprint.pprint(vars())
+
+    return _res
+
+def relativePointDat_get(point, pStart,pEnd):
+    _str_func = 'relativePointDat_get'
+    log.debug(log_start(_str_func))
+    
+    _res = {}
+    
+    
+    
+    
+    return _res
