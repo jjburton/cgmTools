@@ -1023,8 +1023,8 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
                 _symDict = symDict
             else:
                 _symDict = get_symmetryDict(_baseObj,center,axis,tolerance,returnMode = 'indices')
-            if _symDict['asymmetrical']:
-                raise ValueError,"{0}>> Must have symmetrical target for mode: '{1}' | mode: {2}".format(_str_funcName,_obj,_mode)
+            #if _symDict['asymmetrical']:
+                #raise ValueError,"{0}>> Must have symmetrical target for mode: '{1}' | mode: {2}".format(_str_funcName,_obj,_mode)
 
             #_l_toEvaluate = meshMath_values(_l_pos_obj,_l_pos_targ,'diff',_multiplier)
             _l_toApply = copy.copy(_posDat)
