@@ -394,7 +394,7 @@ def shapes_set(mObj, dat, mode = 'os'):
             POS.set(ep, _l_pos[ii],space='os')  
             
 
-def relativePointDat_getFromObjs(target, start,end, vUp = [0,0,-1]):
+def relativePointDat_getFromObjs(targets, start,end, vUp = [0,0,-1]):
     """
     pTar - point of the target
     pStart - Start point
@@ -408,15 +408,14 @@ def relativePointDat_getFromObjs(target, start,end, vUp = [0,0,-1]):
     """
     _str_func = 'relativePointDat_getFromObj'
     log.debug(log_start(_str_func))
-    _res = {}
+    _res = {'tar':[]}
     
-    mTarget = cgmMeta.validateObjArg(target)
+    ml_targets = cgmMeta.validateObjListArg(targets)
     mStart = cgmMeta.validateObjArg(start)
     mEnd = cgmMeta.validateObjArg(end)
     
     
     #p1, p2, pTar
-    _res['pTar'] = mTarget.p_position
     _res['pStart'] = mStart.p_position
     _pEnd = mEnd.p_position
     
@@ -424,25 +423,31 @@ def relativePointDat_getFromObjs(target, start,end, vUp = [0,0,-1]):
     #distance between p1 p2
     _res['dBase'] = DIST.get_distance_between_points(_res['pStart'],_pEnd)
     _res['vBase'] = MATH.get_vector_of_two_points(_res['pStart'],_pEnd)
+    _res['vUp'] = vUp
     
     #closest point on linear curve between those
     _crv = CORERIG.create_at(l_pos=[_res['pStart'],_pEnd],create='curveLinear')
-    _r = DIST.get_closest_point(_res['pTar'], _crv, loc=True)
-    _close = _r[0]
-    _d2 = _r[1]
-    #_d2 = DIST.get_distance_between_points(_close, _res['pTar'])
-    _vecCrv = MATH.get_vector_of_two_points(_close, _res['pTar'])
     
-    #get dist from start to closest
-    _res['dClose'] = DIST.get_distance_between_points(_res['pStart'],_close)
-    
-    _res['dCrv'] = _d2
-    _res['vCrv'] = _vecCrv
-    _res['vUp'] = vUp
+    for mObj in ml_targets:
+        _dObj = {}
+        _p = mObj.p_position
+        _r = DIST.get_closest_point(_p, _crv, loc=True)
+        _close = _r[0]
+        _d2 = _r[1]
+        #_d2 = DIST.get_distance_between_points(_close, _res['pTar'])
+        _vecCrv = MATH.get_vector_of_two_points(_close, _p)
+        
+        #get dist from start to closest
+        _dObj['dClose'] = DIST.get_distance_between_points(_res['pStart'],_close)
+        
+        _dObj['dCrv'] = _d2
+        _dObj['vCrv'] = _vecCrv
+        
+        _res['tar'].append(_dObj)
     
     mc.delete(_crv)
     
-    for k in ['pTar','pStart']:
+    for k in ['pStart']:
         _res.pop(k)
         
     pprint.pprint(_res)
@@ -450,7 +455,7 @@ def relativePointDat_getFromObjs(target, start,end, vUp = [0,0,-1]):
     return _res
 
 
-def relativePointDat_setFromObjs(target, start, end, d = {}):
+def relativePointDat_setFromObjs(targets, start, end, d = {}):
     """
     pTar - point of the target
     pStart - Start point
@@ -466,9 +471,13 @@ def relativePointDat_setFromObjs(target, start, end, d = {}):
     log.debug(log_start(_str_func))
     _res = {}
     
-    mTarget = cgmMeta.validateObjArg(target)
+    ml_targets = cgmMeta.validateObjListArg(targets)
     mStart = cgmMeta.validateObjArg(start)
     mEnd = cgmMeta.validateObjArg(end)
+    
+    l_tarDat = d.get('tar',[])
+    if len(ml_targets) < len(l_tarDat):
+        raise ValueError,"must have same number of targets as data"
     
     _pStart = mStart.p_position
     _pEnd = mEnd.p_position    
@@ -479,21 +488,25 @@ def relativePointDat_setFromObjs(target, start, end, d = {}):
     
     
     #transform vector ------------------------------------------------------
+    
     vCurrent = MATH.get_vector_of_two_points(_pStart,_pEnd,True)
-    vOffset =  vCurrent - MATH.Vector3(d['vBase'][0],d['vBase'][1],d['vBase'][2])
+    vOffset =   MATH.dotproduct(MATH.Vector3(d['vBase'][0],d['vBase'][1],d['vBase'][2]), vCurrent)
     
+    #vOffset =   MATH.Vector3(d['vBase'][0],d['vBase'][1],d['vBase'][2]) - vCurrent
     
-    vNew =  MATH.Vector3(d['vCrv'][0],d['vCrv'][1],d['vCrv'][2] ) - vOffset
-    
-    
-    #Get relative closest point - start > vector * dClose * factor
-    _close = DIST.get_pos_by_vec_dist(_pStart, vCurrent, d['dClose'] * _fac)
-    LOC.create(position=_close,name="close")
-    
-    _new = DIST.get_pos_by_vec_dist(_close, vNew, d['dCrv'] * _fac)
-    
-    
-    mTarget.p_position = _new
+    for i,mTarget in enumerate(ml_targets):
+        dUse = l_tarDat[i] 
+        vNew =  MATH.Vector3(dUse['vCrv'][0],dUse['vCrv'][1],dUse['vCrv'][2] ) * (vOffset)
+        
+        
+        #Get relative closest point - start > vector * dClose * factor
+        _close = DIST.get_pos_by_vec_dist(_pStart, vCurrent, dUse['dClose'] * _fac)
+        LOC.create(position=_close,name="close")
+        
+        _new = DIST.get_pos_by_vec_dist(_close, vNew, dUse['dCrv'] * _fac)
+        
+        
+        mTarget.p_position = _new
     
     
     
