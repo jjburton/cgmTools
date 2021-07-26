@@ -3741,7 +3741,7 @@ class rigFactory(object):
     def doBuild(self,buildTo = '',**kws):
         _str_func = 'doBuild'  
         _start = time.clock()
-        
+        fnc = None
 
         try:
             _l_buildOrder = self.d_block['buildModule'].__dict__.get('__l_rigBuildOrder__')
@@ -3787,7 +3787,7 @@ class rigFactory(object):
                             _Break = True
                 
                         if _Break:
-                            log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, _str_subFunc))   
+                            log.debug("|{0}| >> Stopped at step: [{1}]".format(_str_func, fnc))   
                             break                                
                 
                     
@@ -3796,9 +3796,10 @@ class rigFactory(object):
             if mayaMainProgressBar:CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
             CGMUI.doEndMayaProgressBar()#Close out this progress bar
+
             cgmGEN.cgmException(Exception,err,msg=vars())
 
-            raise Exception,"|{0}| >> err: {1}".format(_str_func,err)
+            raise Exception,"|{}| >> {} | step: {} | err: {}".format(_str_func,self.mBlock.p_nameBase, fnc, err)
 
         log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
 
