@@ -6098,7 +6098,10 @@ def rig_segments(self):
             #pprint.pprint(ml_segHandles)
             
             #Parent these to their handles ------------------------------------------------
-            ml_segHandles[0].parent = ml_handleJoints[i]
+            try:ml_segHandles[0].parent = ml_handleJoints[i]
+            except Exception,err:
+                log.error(err)
+                continue                
             try:ml_segHandles[-1].parent = ml_handleJoints[i+1]
             except Exception,err:#...if we don't have a target end we're not processing this
                 log.error(err)
