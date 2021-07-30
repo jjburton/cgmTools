@@ -4080,6 +4080,7 @@ def rig_skeleton(self):
                 if self.b_ikNeedEnd:
                     ml_targets = ml_targets[:-1]
             
+            pprint.pprint(ml_targets)
             ml_handleJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                       ml_targets,#ml_parentJoints,#ml_parentJoints[:self.int_handleEndIdx+1],
                                                                       None, 
@@ -6446,7 +6447,7 @@ def rig_segments(self):
             
             if _type in ['linear','curve']:
                 #reload(IK)
-                #pprint.pprint(_d)
+                pprint.pprint(_d)
                 _d['parentDeformTo'] = ml_blendJoints[i]
                 _d['setupAim'] = 1
                 
@@ -7984,7 +7985,7 @@ def rig_blendFrame(self):
         for mJnt in ml_ikScaleDrivers[1:self.int_handleEndIdx]:
             _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
             _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True,
-                                        skip = str_aimAxis,
+                                        #skip = str_aimAxis,
                                         scaleCompensate=False)#Point contraint loc to the object
             CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
     
@@ -9180,6 +9181,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                         mBallLoc.delete()
         
                         #Add a ankleball ------------------------------------------------------------------------
+                        """
                         _target = ml_formHandles[-1].mNode
                         _bb_size = POS.get_bb_size(_target,True,'maxFill')#SNAPCALLS.get_axisBox_size(_target)
                         _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
@@ -9191,9 +9193,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
 
                         _mesh = mc.polyUnite([mHeelMesh.mNode,_sphere[0]], ch=False )[0]
                         
-                        mMeshHeel = cgmMeta.validateObjArg(_mesh)
+                        mMeshHeel = cgmMeta.validateObjArg(_mesh)"""
                         
-                        ml_segProxy.append(mMeshHeel)
+                        ml_segProxy.append(mHeelMesh)
                         
                         
                         #toe -----------------------------------------------------------------------------------

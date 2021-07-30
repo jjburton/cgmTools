@@ -172,6 +172,30 @@ _d_faceBufferAttributes = {
 
     },
     
+    'urd':{
+        "eye":{'attrs':['up','dn','left','right','hide'],
+               'sideAttrs':'*'},
+        "lid":{'attrs':['up','dn'],
+               "sideAttrs":'*'},
+        "brow":{'attrs':['arcUp','arcDn','up','sad','angry'],
+                "sideAttrs":'*'},
+        
+        "lip":{'attrs':['uprSneer','lwrSneer',
+                        'up','dn','seal','sealRaw',
+                        'smileRaw','frownRaw',
+                        'smile','frown','wide','narrow'],
+               "sideAttrs":'*'},        
+        "pupil":{'attrs':['small','big'],
+                 "sideAttrs":'*'},        
+        "cheek":{'attrs':['out'],
+                 "sideAttrs":'*'},
+        
+        "jaw":{'attrs':['open','openUse','close',
+                        'smileOpen','frownOpen'],
+                 "sideAttrs":['smileOpen','frownOpen','open']},        
+        "tongue":{'attrs':['hide','teethPose']},
+
+    },
 
     
     'toon':{"nose":{'attrs':['out','in','sneer_up','sneer_dn',

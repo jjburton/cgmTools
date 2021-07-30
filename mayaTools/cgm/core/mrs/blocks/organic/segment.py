@@ -2475,6 +2475,7 @@ def rig_segments(self):
               'settingsControl':_settingsControl,
               'attachStartToInfluence':False,
               'attachEndToInfluence':True,
+              'parentDeformTo':mRoot,
               'moduleInstance':mModule}
         if mBlock.getEnumValueString('ikBase') == 'hips':
             _d['attachStartToInfluence'] = True

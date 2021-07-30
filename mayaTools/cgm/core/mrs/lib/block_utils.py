@@ -5762,6 +5762,7 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
             
             ml_controls.append(mObj)
             md_controls[datType].append(mObj)
+            
             if mObj.getMessage('orientHelper'):
                 log.debug("|{0}| >> ... has orient helper".format(_str_func))
                 addMObj(mObj.orientHelper,datType)
@@ -5819,6 +5820,11 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
                 addMObj(mObj,'prerig')
             for mObj in ml_handles:#.second loop to push this tothe back
                 if mObj.getMessage('pivotHelper'):addPivotHelper(mObj.pivotHelper,'prerig')
+                
+            for h in ['settingsHelper']:
+                mObj = self.getMessageAsMeta(h)
+                if mObj:
+                    addMObj(mObj,'prerig')
         
         if asDict:
             return md_controls

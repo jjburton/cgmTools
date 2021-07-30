@@ -1961,7 +1961,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         
         
         ml_geo = self.msgList_get('proxyMeshGeo')
-        
+        ml_proxy = []
         str_setup = self.getEnumValueString('proxyShape')
         if str_setup == 'shapers':
             d_kws = {}
