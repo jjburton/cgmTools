@@ -94,20 +94,30 @@ def get_orphanedRigModules(select = True, delete=False):
     return ml or log.warning("No orphaned rigModules  found.")
 
 
-def block_getFromSelected():
+def block_getFromSelected(multi=False):
     _str_func = 'block_getFromSelected'
     _res = []
     
     mL = cgmMeta.asMeta(sl=1,noneValid=True) or []
     for mObj in mL:
         if mObj.getMayaAttr('mClass') == 'cgmRigBlock':
-            return mObj
+            if not multi:
+                return mObj
+            else:
+                _res.append(mObj)
         
         _found = SEARCH.seek_upStream(mObj.mNode,matchAttrValue = {'mClass':'cgmRigBlock'})
         log.info(_found)
         if _found:
-            return cgmMeta.asMeta(_found)
-        
+            mObj = cgmMeta.asMeta(_found)            
+            if not multi:
+                return mObj
+            else:
+                if mObj not in _res:
+                    _res.append(mObj)
+                    
+    if multi and _res:
+        return _res
     
     return False
 

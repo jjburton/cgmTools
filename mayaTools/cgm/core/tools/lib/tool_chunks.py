@@ -834,6 +834,10 @@ def uiSection_mrsTD(parent):
                 l='Block Editor',
                 ann = "MRS Block Editor Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsBlockEditor())
+    mc.menuItem(parent = parent,
+                l='ShapeDat',
+                ann = "MRS ShapeDat | Alpha",
+                c=lambda *a:TOOLCALLS.mrsShapeDat())      
 
     mUI.MelMenuItemDiv(parent,label='Manage')
     mc.menuItem(parent = parent,
@@ -918,7 +922,11 @@ def uiSection_mrs(parent):
                 ann = "MRS Rigging Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsUI())
     mc.menuItem(parent = parent,
-                l='Block Edtior',
+                l='ShapeDat',
+                ann = "MRS ShapeDat | Alpha",
+                c=lambda *a:TOOLCALLS.mrsShapeDat())    
+    mc.menuItem(parent = parent,
+                l='Block Editor',
                 ann = "MRS Block Editor Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsBlockEditor())
     mc.menuItem(parent = parent,

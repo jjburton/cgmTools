@@ -237,7 +237,10 @@ def uiMainMenu_rebuild():
         except:pass
         delattr(maya,'_cgmMenu')
     
+    import cgm.core.tools.lib.tool_calls as TOOLCALLS
+    
     reload(UICHUNKS)
+    reload(TOOLCALLS)
     uiMainMenu_add()
 
 

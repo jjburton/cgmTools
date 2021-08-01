@@ -172,11 +172,8 @@ def ui_get():
     global UI
     if UI:
         log.info('cached...')
-        #try:
         UI.show()
         return UI
-        #except Exception,err:
-        #    log.error(err)
     return ui()
 
 def blockPicker_get(mBlock=None):

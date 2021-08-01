@@ -130,6 +130,11 @@ def mrsScene():
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
+def mrsShapeDat():
+    import cgm.core.mrs.ShapeDat as SHAPEDAT
+    reload(SHAPEDAT)
+    SHAPEDAT.ui()
+        
 def animDraw():
     try:
         import cgm.core.tools.liveRecord as liveRecord
