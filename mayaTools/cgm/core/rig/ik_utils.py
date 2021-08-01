@@ -909,6 +909,7 @@ def ribbon(jointList = None,
            attachStartToInfluence = None,
            attachEndToInfluence = None,
            moduleInstance = None,
+           parentDeformTo = False,
            parentGutsTo = None):
 
     """
@@ -2222,7 +2223,9 @@ def ribbon(jointList = None,
                         #up scale ---------------------------------------------------------------
                         for axis in ['scaleY']:
                             mPlug_upResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))                
-
+        
+                    
+                    
     if additiveScaleEnds:
         log.debug("|{0}| >> Additive Scale Ends".format(_str_func)+cgmGEN._str_subLine)
         
@@ -2301,6 +2304,58 @@ def ribbon(jointList = None,
                                             [mPlug_aimResult.p_combinedName],replace=False)
             
     #>>> Connect our iModule vis stuff
+    
+    
+    if squashStretch == 'simple':
+        md_scaleReaders = {}
+        
+        #make our scale drivers...
+        for i,mJnt in enumerate(ml_joints):
+            str_joint = mJnt.mNode
+            
+            if mJnt == ml_joints[0]:
+                print 'start'
+                l_targets = [l_influences[0]]
+            elif mJnt == ml_joints[-1]:
+                print 'end'
+                l_targets = [l_influences[-1]]
+            else:
+                print 'mid'
+                l_targets = l_influences
+            
+            
+            if len(l_targets) > 4:
+                l_targets = [t[0] for t in DIST.get_targetsOrderedByDist(mJnt.mNode, l_targets)[:3]]                
+                
+            mScaleReader = mJnt.doCreateAt(setClass=True)
+            mScaleReader.rename("{0}_scaleReader".format(mJnt.p_nameBase))
+            mScaleReader.parent = parentDeformTo
+            
+            md_scaleReaders[mJnt] = mScaleReader
+            _scale = mc.scaleConstraint(l_targets,
+                                        mScaleReader.mNode,
+                                        #skip='z',
+                                        maintainOffset = 1)            
+                    
+            
+            if len(l_targets) > 1:
+                _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,
+                                                              l_targets)                          
+                CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
+                
+            mAdditiveScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
+            mAdditiveScale.operation = 1                
+            mAdditiveScale.rename("{}_additiveScale_mdNode".format(str_joint))
+            _mdNode = mAdditiveScale.mNode
+            for i,axis in enumerate(['X','Y','Z']):
+                plug = ATTR.get_driver(str_joint,"scale"+axis)
+                if plug:
+                    ATTR.connect(plug, "{}.input1{}".format(_mdNode,axis))
+                    ATTR.connect("{}.scale{}".format(mScaleReader.mNode,axis),
+                                 "{}.input2{}".format(_mdNode,axis))
+                    ATTR.connect("{}.output.output{}".format(_mdNode,axis),
+                                 "{}.scale{}".format(str_joint,axis))     
+    
     if mModule:#if we have a module, connect vis
         log.debug("|{0}| >> mModule wiring...".format(_str_func)+cgmGEN._str_subLine)            
         
