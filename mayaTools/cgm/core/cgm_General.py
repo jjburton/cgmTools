@@ -13,7 +13,7 @@ __MAYALOCAL = 'cgmGEN'
 
 __RELEASE = '21.8.1.1'
 
-__BRANCH = 'MRSDEV'
+__BRANCH = 'pipeline'
 
 import maya.cmds as mc
 import maya.mel as mel
