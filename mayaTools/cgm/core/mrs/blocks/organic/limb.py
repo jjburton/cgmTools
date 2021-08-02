@@ -5389,6 +5389,8 @@ def rig_shapes(self):
             #mKnee.p_position = self.atBuilderUtils('get_midIK_basePosOrient',self.ml_handleTargetsCulled,False)
             mKnee.p_position = self.mBlock.atUtils('prerig_get_rpBasePos',self.ml_handleTargetsCulled,False)
             mHandleFactory.color(mKnee.mNode, controlType = 'main')
+            
+            mKnee.p_orient = mBlock.ikOrientHandle.p_orient
     
             mKnee.doCopyNameTagsFromObject(ml_fkJoints[1].mNode,ignore=['cgmType','cgmTypeModifier'])
             mKnee.doStore('cgmAlias','midIK')
@@ -5407,7 +5409,8 @@ def rig_shapes(self):
         #bb_ik = mBlock.UTILS.get_castSize(mBlock,mIK_formHandle)['max'][0]
 
         bb_ik = POS.get_bb_size(mIK_formHandle.loftCurve.mNode,True,mode='maxFill')
-        _ik_shape = CURVES.create_fromName('sphere', size = bb_ik)#[v+_offset for v in bb_ik])
+        pprint.pprint(bb_ik)
+        _ik_shape = CURVES.create_fromName('sphere', size = [x * .6 for x in bb_ik])#[v+_offset for v in bb_ik])
         #ATTR.set(_ik_shape,'scale', 1.5)
 
         mIKBaseShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
