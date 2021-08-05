@@ -106,7 +106,7 @@ def uiAsset_add(self):
         self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
         
-        self.uiProject_save()
+        uiProject_save()
         
         #mUI.MelOptionMenu
         
@@ -137,7 +137,7 @@ def uiAsset_addSub(self):
         #uiAsset_rebuildOptionMenu(self)
         #self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
-        self.uiProject_save()
+        uiProject_save(self)
         
 def uiAsset_remove(self):
     _str_func = 'uiAsset_remove'
@@ -148,7 +148,7 @@ def uiAsset_remove(self):
     self.mDat.assetType_remove(idx=_value)
     uiAsset_rebuildOptionMenu(self)
     uiAsset_rebuildSub(self)
-    self.uiProject_save()
+    uiProject_save(self)
     
     #self.uiAssetTypeOptions.remove(_value)
     
@@ -178,7 +178,7 @@ def uiAsset_editName(self):
         uiAsset_rebuildSub(self)
         
         self.uiAssetTypeOptions.selectByValue(_name)
-        self.uiProject_save()
+        uiProject_save(self)
 
 def uiAsset_duplicate(self):
     _str_func = 'uiAsset_duplicate'
@@ -211,7 +211,7 @@ def uiAsset_duplicate(self):
         self.uiAssetTypeOptions.selectByValue(_name)
         
         uiAsset_rebuildSub(self)
-        self.uiProject_save()
+        uiProject_save(self)
         
 
 
@@ -449,7 +449,172 @@ def buildFrame_assetTypes(self,parent):
     
     """
 
+def buildFrame_paths(self,parent):
+    try:self.var_projectPathsCollapse
+    except:self.create_guiOptionVar('projectPathsCollapse',defaultValue = 0)
+    mVar_frame = self.var_projectPathsCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Paths',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    
+    #>>>Project =====================================================================================
+    cgmUI.add_Header('Project')
+    self.d_tf['pathsProject'] = {}
+    self.d_labels['pathsProject'] = {}
+    _d3 =  self.d_labels['pathsProject']
+    _d = self.d_tf['pathsProject']
+    self.d_uiTypes['pathsProject'] = {}
+    
+    self.d_buttons['pathsProject'] = {}
+    _d2 = self.d_buttons['pathsProject']
+    
+    for key in PU.l_projectPaths:
+        mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+        
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
 
+        mUI.MelSpacer(_row,w=5)                          
+        mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
+        #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
+        _d[key] =  mUI.MelTextField(_row,
+                                ann='Project Path | {0}'.format(key),
+                                cc = cgmGEN.Callback(uiCC_checkPath,self,key,'project'),
+                                )
+        _d3[key] =  mUI.MelLabel(_row,
+                                 ann='Project Path | {0}'.format(key),
+                                 vis=False,
+                                 )            
+        
+        _d2[key] = mUI.MelButton(_row,
+                                 l = 'Set',
+                                 ut = 'cgmUITemplate',
+                                 c = cgmGEN.Callback(uiButton_setPathToTextField,self,key,'project'),
+                                 #en = _d.get('en',True),
+                                 #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
+                                 #ann = _d.get('ann',b))
+                                 )            
+        
+        _row.setStretchWidget(_d[key])
+        mUI.MelSpacer(_row,w=5)
+        _row.layout()
+        
+    
+    #>>>Local =====================================================================================
+    mc.setParent(_inside)
+    cgmUI.add_LineSubBreak()
+    
+    cgmUI.add_Header('Local')
+    #cgmUI.add_LineSubBreak()
+    self.d_tf['paths'] = {}
+    _d = self.d_tf['paths']
+    self.d_uiTypes['paths'] = {}
+
+    for key in PU.l_projectPaths:
+        mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+        
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                          
+        mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
+        #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
+        _d[key] =  mUI.MelTextField(_row,
+                                    ann='Local Path | {0}'.format(key),
+                                    cc = cgmGEN.Callback(uiCC_checkPath,self,key,'local'),
+                                    text = '')
+        
+        mc.button(parent=_row,
+                  l = 'Set',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiButton_setPathToTextField,uiButton_setPathToTextField,key,'local'),
+                  
+                  #en = _d.get('en',True),
+                  #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
+                  #ann = _d.get('ann',b))
+                  )            
+        
+        _row.setStretchWidget(_d[key])
+        mUI.MelSpacer(_row,w=5)
+        _row.layout()
+        
+def buildFrame_baseDat(self,parent):
+    try:self.var_projectBaseDatCollapse
+    except:self.create_guiOptionVar('projectBaseDatCollapse',defaultValue = 0)
+    mVar_frame = self.var_projectBaseDatCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'General',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+            
+    
+    #>>>Hold ===================================================================================== 
+    cgmUI.add_LineSubBreak()
+    self.d_tf['general'] = {}
+    _d = self.d_tf['general']
+    self.d_uiTypes['general'] = {}
+    
+    for key in PU.l_projectDat:
+        mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+        
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row,w=5)                          
+        mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
+        if key == 'type':
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            for t in PU.l_projectTypes:
+                _d[key].append(t)
+    
+            #_d[key].selectByIdx(self.setMode,False)                
+        elif key == 'nameStyle':
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            for t in PU.l_nameConventions:
+                _d[key].append(t)
+                
+        elif key == 'mayaVersion':
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            for t in PU.l_mayaVersions:
+                _d[key].append(t)
+        
+        elif key == 'mayaFilePref':
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            for t in PU.l_mayaFileType:
+                _d[key].append(t)                
+                
+        elif key == 'projectPathMode':
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            
+        elif key in ['lock']:
+            _d[key] =   mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            for t in ['False','True']:
+                _d[key].append(t)
+            if key == 'lock':
+                _d[key](edit=True, cc = lambda *a:uiProject_lock(self))
+
+        else:
+            #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
+            _d[key] =  mUI.MelTextField(_row,
+                                        ann='Project settings | {0}'.format(key),
+                                        text = '')
+            
+        _row.setStretchWidget(_d[key])
+        mUI.MelSpacer(_row,w=5)
+        _row.layout()
+        
+    #bgc = self.v_bgc
+    self.uiLabel_file = mUI.MelLabel(_inside,ut='cgmUITemplate',en=False, label='')
+    
 def buildFrames(self,parent):
     _str_func = 'buildFrames'
     log.debug("|{0}| >>...".format(_str_func))
@@ -516,7 +681,7 @@ def buildFrames(self,parent):
                 self.d_uiTypes[k][_name] = 'bool'
             elif _type == 'color':
                 _d[_name] = mUI.MelButton(_row,bgc= [1,1,1], l = '',
-                                          c= cgmGEN.Callback(self.uiButton_colorSet,'colors',_name))
+                                          c= cgmGEN.Callback(uiButton_colorSet,self,'colors',_name))
                 self.d_uiTypes[k][_name] = 'color'
                 
             else:
@@ -647,7 +812,7 @@ def buildMenu_project(self,key, toProject=False):
         mUI.MelMenuItem(mMenu,
                         label = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
                         ann = "Set the project to: {0} | {1}".format(i,p),
-                        c=cgmGEN.Callback(self.uiProject_load,p))
+                        c=cgmGEN.Callback(uiProject_load,self,p))
         
     mUI.MelMenuItemDiv(mMenu)
     #mUI.MelMenuItem(mMenu,
@@ -696,324 +861,13 @@ class ui(cgmUI.cgmGUI):
         self.var_project = cgmMeta.cgmOptionVar('cgmVar_projectCurrent',defaultValue = '')
         self.var_pathProject = cgmMeta.cgmOptionVar('cgmVar_projectPath',defaultValue = '')
         self.var_pathLastProject = cgmMeta.cgmOptionVar('cgmVar_projectLastPath',defaultValue = '')
-        
         self.mPathList = pathList_project('cgmProjectPaths')
-        
         self.d_tf = {}
         self.d_uiTypes = {}
         self.d_buttons = {}
         self.d_labels = {}
         
         
-    def uiProject_new(self):
-        _str_func = 'uiProject_new'
-        log.debug("|{0}| >>...".format(_str_func))        
-        
-        
-        result = mc.promptDialog(
-                title="New Project",
-                message='Enter Name for a new Project',
-                button=['OK', 'Cancel'],
-                defaultButton='OK',
-                cancelButton='Cancel',
-                dismissString='Cancel')
-        
-        if result == 'OK':
-            self.uiProject_clear()
-            _name = mc.promptDialog(query=True, text=True)
-            self.mDat = data(_name)
-            self.d_tf['general']['name'].setValue(_name)
-            
-            #self.mDat.write()
-            self.uiProject_save(duplicateMode=True)
-            #self.uiProject_load(revert=True)
-            self.uiProject_fill()
-            return
-        return log.error("Project Creation cancelled")
-                
-    def reset(self):
-        self.mDat.fillDefaults(True)
-        self.uiProject_fill()
-        
-    def uiProject_getProjctPathsFromLocal(self):
-        self.mDat.projectPaths_getActive()
-        self.uiProject_fill()
-        
-    def uiProject_pushPaths(self):
-        _str_func = 'uiProject_load'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        
-        mPath = PATHS.Path( self.d_tf['paths']['content'].getValue() )
-        if mPath.exists():
-            mel.eval('setProject "{0}";'.format(mPath.asString()))
-        else:
-            log.debug('uiProject_pushPaths | Invalid Path: {0}'.format(mPath))
-            
-            
-    def uiProject_toScene(self):
-        _str_func = 'uiProject_toScene'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        cgmMeta.cgmOptionVar('cgmVar_sceneUI_export_directory').setValue(self.d_tf['paths']['export'].getValue())
-        cgmMeta.cgmOptionVar('cgmVar_sceneUI_last_directory').setValue(self.d_tf['paths']['content'].getValue())
-        
-        import cgm.core.mrs.Scene as SCENE
-        SCENE.ui()
-        
-    def uiProject_clear(self,path=None,revert=False):
-        _str_func = 'uiProject_clear'
-        log.info("|{0}| >>...".format(_str_func))
-        self.uiLabel_file(edit=True, label = '')
-
-        for dType in ui._l_sections:
-            log.debug(cgmGEN.logString_sub(_str_func,dType))
-            
-            for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
-                try:
-                    log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-                    _type = type(self.d_tf[dType][k])
-                    if _type not in [mUI.MelOptionMenu]:
-                        try:self.d_tf[dType][k].clear()
-                        except:pass
-                except Exception,err:
-                    log.error("err | {0}".format(err))
-                    
-        self.path_projectConfig = None
-        
-        for k,tf in self.d_tf['pathsProject'].iteritems():
-            tf.setValue('',executeChangeCB=False)
-            
-        for k, tf in self.d_tf['paths'].iteritems():
-            tf.setValue('',executeChangeCB=False)
-        
-        #Set pose path
-        
-        #Update file dir
-        self.uiScrollList_dirContent.rebuild(reset=1)
-        self.uiScrollList_dirExport.rebuild(reset=1)
-        
-        #Project image
-        log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
-        self.reload_headerImage()
-                    
-    def uiProject_lock(self):
-        _str_func = 'uiProject_lock'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        #Lock fields...
-        _enable = True
-        _editable = True
-        _color = 1,1,1
-        _template = 'cgmUITemplate'
-        
-        if self.d_tf['general']['lock'].getValue() == 'True':#self.mDat.d_project['lock'] == 'True':
-            _enable = False
-            _editable = False
-            _color = .2,.2,.2
-            _template = 'cgmUILockedTemplate'
-            
-            for k,tf in self.d_tf['pathsProject'].iteritems():
-                tf(edit=True,visible=False)
-                
-            for k,tf in self.d_labels['pathsProject'].iteritems():
-                tf(edit=True,visible=True,
-                   label = self.d_tf['pathsProject'][k].getValue())
-                
-            for k,tf in self.d_buttons['pathsProject'].iteritems():
-                tf(edit=True,
-                   visible =False)
-                
-            #self.uiFrame_AssetTypes(edit=True, collapse = True)
-            #self.uiFrame_AssetTypes(edit=True, collapse = True, collapsable =False)
-            self.uiFrame_AssetTypes(edit=True, vis = False)    
-        
-        else:
-            for k,tf in self.d_tf['pathsProject'].iteritems():
-                tf(edit=True,visible=True)
-            for k,tf in self.d_labels['pathsProject'].iteritems():
-                tf(edit=True,visible=False)
-            for k,tf in self.d_buttons['pathsProject'].iteritems():
-                tf(edit=True,
-                   visible =True)
-            
-            self.uiFrame_AssetTypes(edit=True, vis = True)    
-            #self.uiFrame_AssetTypes(edit=True, collapse = False, collapsable=True)            
-                
-        #Locking fields...
-        log.debug(cgmGEN.logString_sub(_str_func,'Locking fields...'))
-        
-        d_toDo  = {'world':PU._worldSettings,
-                   #'structure':PU._structureSettings,
-                   'anim':PU._animSettings}
-
-        #pprint.pprint(d_toDo)
-        for k,l in d_toDo.iteritems():
-            log.debug(cgmGEN.logString_sub(_str_func,k))
-            
-            _d = self.d_tf[k]
-            
-            for d in l:
-                try:
-                    log.debug(cgmGEN.logString_msg(_str_func,d))
-                    _type = d.get('t')
-                    _dv = d.get('dv')
-                    _name = d.get('n')
-                    _d[_name](edit=True,enable = _enable)
-                    
-                    if self.d_uiTypes[k][_name] in ['string','stringList']:
-                        _d[_name](edit=True,bgc = _color)
-                        
-                    
-                except Exception,err:
-                    log.error("Failure {0} | {1} | {2}".format(k,_name,err))
-               
-     
-            
-      
-        
-    def uiProject_fill(self,fillDir = True):
-        _str_func = 'uiProject_fill'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        l_errs = []
-        
-        for dType in ['general','anim','pathsProject','colors']:
-            log.debug(cgmGEN.logString_sub(_str_func,dType))
-            
-            for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
-                try:
-                    log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-                    try:_type = self.d_uiTypes[dType][k]
-                    except:_type = None
-                        
-                    if _type == 'stringList' and v:
-                        if len(v)>1:
-                            self.d_tf[dType][k].setValue(','.join(v))
-                        else:
-                            self.d_tf[dType][k].setValue(v[0])
-                    elif _type == 'color' and v:
-                        self.d_tf[dType][k](edit=True, bgc = v)
-                        
-                    else:
-                        if v is not None:
-                            if k in ['lock','mayaVersion','mayaFilePref']:
-                                self.d_tf[dType][k].setValue(str(v),executeChangeCB=False)
-                            else:
-                                self.d_tf[dType][k].setValue(v,executeChangeCB=False)
-                        else:
-                            self.d_tf[dType][k].setValue('',executeChangeCB=False)
-                            
-                            
-                except Exception,err:
-                    log.error("Missing data field or failure: dtype:{0} | {1}".format(dType,k))
-                    log.error("err | {0}".format(err))
-                    
-                    
-        self.uiImage_ProjectRow(edit=True, bgc = self.mDat.d_colors.get('project',[1,1,1]))
-
-        
-        #User paths...
-        _user = getpass.getuser()
-        d_user = self.mDat.d_pathsUser.get(_user,{})
-        d_pathsUse = copy.copy(self.mDat.d_pathsProject)
-        if d_user:
-            log.warning("Found user path dat!")
-            for k,v in d_user.iteritems():
-                if v:
-                    d_pathsUse[k]=v
-        else:
-            d_pathsUse = self.mDat.d_pathsProject
-            log.warning("Using project paths dat!")
-            
-            
-
-        l_pathsMissing = []
-        for k,v in d_pathsUse.iteritems():
-            try:
-                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
-                if v is not None:
-                    _exists = PATHS.Path(v).exists()
-                    if _exists:
-                        self.d_tf['paths'][k].setValue(v,executeChangeCB=False)
-                        self.d_tf['paths'][k](e=True, bgc= _colorGood)
-                        
-                    else:
-                        log.error("Invalid path | {0} || Please resolve locally: {1}".format(k,v))
-                        l_pathsMissing.append(k)
-                        self.d_tf['paths'][k].setValue('',executeChangeCB=False)
-                        self.d_tf['paths'][k](e=True, bgc=_colorBad)
-                        
-            except Exception,err:
-                log.error("{0} | Missing data field or failure: {0}".format(_str_func,k))
-                log.error("err | {0}".format(err))
-                
-                
-        if l_pathsMissing:
-            l_errs.append("Paths failed: {0}".format(','.join(l_pathsMissing)))
-        
-                    
-        
-        self.uiLabel_file(edit=True, label = self.mDat.str_filepath)
-        
-        #Project image
-        log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
-        self.reload_headerImage()
-        
-        #Update file dir
-        self.uiScrollList_dirContent.rebuild( self.mDat.d_paths.get('content'))
-        self.uiScrollList_dirExport.rebuild(self.mDat.d_paths.get('export'))
-        
-        self.uiScrollList_dirContent.mDat = self.mDat
-        self.uiScrollList_dirExport.mDat = self.mDat
-        
-            
-        self.uiProject_lock()
-        
-        if l_errs:
-            log.error(l_errs)
-        
-    def uiProject_load(self,path=None,revert=False):
-        _str_func = 'uiProject_load'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        if path == None and revert is True:
-            path = self.path_projectConfig or self.mDat.str_filepath
-        
-        #if self.mDat.str_filepath != path:
-        self.mDat.read(path)
-        
-        self.uiProject_clear()
-        self.uiProject_fill(fillDir = 1)
-        
-        #Set maya project path
-        log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
-        self.uiProject_pushPaths()
-        
-        log.debug(cgmGEN.logString_sub(_str_func,"PathList append: {0}".format(self.mDat.str_filepath)))
-        
-        self.path_projectConfig = self.mDat.str_filepath
-        self.mPathList.append(self.mDat.str_filepath)
-        
-        #self.mPathList.log_self()        
-        
-        #Set pose path
-
-        #self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
-        
-        #self.uiImage_Project.setImage(mThumb)
-        self.var_project.value = self.mDat.str_filepath
-        self.var_pathLastProject.value = self.mDat.str_filepath
-        
-        uiAsset_rebuildOptionMenu(self)
-        uiAsset_rebuildSub(self)
-            
-        #for t in _type:
-        #    _d[_name].append(t)        
-        
-    def uiAssetTypes_refill(self):
-        pass
-    
     def reload_headerImage(self, path = None):
         _str_func = 'reload_headerImage'
         log.debug("|{0}| >>...".format(_str_func))
@@ -1032,100 +886,6 @@ class ui(cgmUI.cgmGUI):
                                       'cgm_project_{0}.png'.format(self.d_tf['general']['type'].getValue()))
             
         self.uiImage_Project.setImage(_imagePath)        
-        
-    def uiProject_save(self, path = None, updateFile = True, duplicateMode = False):
-        _str_func = 'uiProject_save'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        if path == None and updateFile == True:
-            if self.mDat.str_filepath:
-                log.debug("|{0}| >> Saving to existing mDat: {1}".format(_str_func,self.mDat.str_filepath))
-                path = self.mDat.str_filepath        
-            
-            
-        for dType,d in PU._dataConfigToStored.iteritems():
-            if dType in ['enviornment','pathsUser']:
-                continue
-            
-            log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(dType,d)))
-            
-            for k,ui in self.d_tf.get(dType,{}).iteritems():
-                try:_type = self.d_uiTypes[dType][k]
-                except:_type = None
-                
-                log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(k,ui)))
-                    
-                if _type == 'stringList':
-                    _v = ui.getValue()                    
-                    if ',' in _v:
-                        _v = _v.split(',')
-                    else:
-                        _v = [_v]
-                    log.debug('StringList: {0} | {1} | {2}'.format(dType,k,_v))
-                    
-                    self.mDat.__dict__[d][k] = _v
-                elif _type == 'color':
-                    self.mDat.__dict__[d][k] = ui(q=True, bgc=True)
-                    
-                else:
-                    self.mDat.__dict__[d][k] = ui.getValue()            
-                    
-        if not duplicateMode:
-            ###Local paths
-            _d_local = {}
-            for k,v in self.mDat.__dict__['d_paths'].iteritems():
-                if v != self.mDat.__dict__['d_pathsProject'][k]:
-                    _d_local[k] = v
-                
-            _user = getpass.getuser()
-            self.mDat.d_pathsUser[_user] = _d_local
-            log.debug(cgmGEN.logString_sub(_str_func,"Local Dat user: {0}".format(k,_user)))
-        else:
-            log.debug(cgmGEN.logString_sub(_str_func,"Duplicate mode..."))
-            for d in self.mDat.d_paths,self.mDat.d_pathsProject:
-                for k,d2 in d.iteritems():
-                    d[k] = ''
-            self.mDat.d_pathsUser = {}
-            
-            
-        
-        """
-        for k,ui in self.d_tf['general'].iteritems():
-            self.mDat.d_project[k] = ui.getValue()
-
-        for k,ui in self.d_tf['paths'].iteritems():
-            self.mDat.d_paths[k] = ui.getValue()
-            """
-        #self.mDat.log_self()
-        self.mDat.write( path,False)
-        self.mPathList.append(self.mDat.str_filepath)
-        
-        return log.warning("Saved complete!")
-        
-    def uiProject_saveAs(self):
-        _str_func = 'uiProject_saveAs'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        self.uiProject_save(None,False)
-        self.uiProject_load(self.mDat.str_filepath)   
-        
-    def uiProject_duplicate(self):
-        _str_func = 'uiProject_duplicate'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        
-        self.uiProject_save(None,False,duplicateMode=True)
-        self.uiProject_clear()
-        self.uiProject_load(self.mDat.str_filepath)
-
-            
-        #self.reset()
-        
-    def uiProject_revert(self):
-        _str_func = 'uiProject_revert'
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        self.uiProject_load(None,True)    
     
 
     def build_menus(self):
@@ -1143,7 +903,7 @@ class ui(cgmUI.cgmGUI):
         #>>> Reset Options		                     
         mUI.MelMenuItemDiv( self.uiMenu_utils, label='Send To...' )
         mUI.MelMenuItem( self.uiMenu_utils, l="Scene",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_toScene,lp=True))
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_toScene,self),lp=True))
         
         mUI.MelMenuItemDiv( self.uiMenu_utils, label='Processes..' )
         mUI.MelMenuItem( self.uiMenu_utils, l="Push nameStyle",
@@ -1151,7 +911,7 @@ class ui(cgmUI.cgmGUI):
         
         
         mUI.MelMenuItem( self.uiMenu_utils, l="Get Project Paths from Local",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_getProjctPathsFromLocal,lp=True))        
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_getProjctPathsFromLocal,self),lp=True))        
         
         
         mUI.MelMenuItemDiv( self.uiMenu_utils, label='Maya Settings..' )
@@ -1208,29 +968,29 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Basic' )
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="New",
                          ann='Create a new project',                         
-                         c = lambda *a:mc.evalDeferred(self.uiProject_new,lp=True))        
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_new,self),lp=True))        
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Load",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_load,lp=True))
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_load,self),lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save ",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_save,lp=True))
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_save,self),lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save As",
-                         c = lambda *a:mc.evalDeferred(self.uiProject_saveAs,lp=True))
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_saveAs,self),lp=True))
         #mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Duplicate",
-        #                c = lambda *a:mc.evalDeferred(self.uiProject_duplicate,lp=True))
+        #                c = lambda *a:mc.evalDeferred(uiProject_duplicate,lp=True))
         
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Utils' )
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
                          ann='Reset data to default',
-                         c = lambda *a:mc.evalDeferred(self.reset,lp=True))
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_reset,self),lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Fill",
                          ann='Refill the ui fields from the mDat',                         
-                         c = lambda *a:mc.evalDeferred(self.uiProject_fill,lp=True))        
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_fill,self),lp=True))        
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Revert",
                          ann='Revert to saved file data',
-                         c = lambda *a:mc.evalDeferred(self.uiProject_revert,lp=True))
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_revert,self),lp=True))
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Clear",
                          ann='Clear the fields',
-                         c = lambda *a:mc.evalDeferred(self.uiProject_clear,lp=True))
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiProject_clear,self),lp=True))
         
         
         
@@ -1447,7 +1207,7 @@ class ui(cgmUI.cgmGUI):
         mPath = PATHS.Path(self.var_project.value )
         if mPath.exists():
             try:
-                self.uiProject_load(mPath)        
+                uiProject_load(self, mPath)        
             except Exception,err:
                 log.error("Failed to load last: {0} | {1}".format(mPath, err))
                 cgmGEN.cgmException(Exception,err)    
@@ -1502,9 +1262,7 @@ class ui(cgmUI.cgmGUI):
         # Image
         _imageFailPath = os.path.join(mImagesPath.asFriendly(),'cgm_project.png')
         imageRow = mUI.MelHRowLayout(parent,bgc=self.v_bgc)
-        
-        
-        
+
         #mUI.MelSpacer(imageRow,w=10)
         self.uiImage_ProjectRow = imageRow
         self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
@@ -1514,10 +1272,10 @@ class ui(cgmUI.cgmGUI):
         
         #self.uiPopup_setPath()
         
-        self.buildFrame_baseDat(parent)
+        buildFrame_baseDat(self, parent)
         buildFrame_assetTypes(self,parent)
         
-        self.buildFrame_paths(parent)
+        buildFrame_paths(self,parent)
         buildFrames(self,parent)
         
         #self.buildFrame_content(parent)
@@ -1572,191 +1330,7 @@ class ui(cgmUI.cgmGUI):
 
         return    
     
-    def buildFrame_baseDat(self,parent):
-        try:self.var_projectBaseDatCollapse
-        except:self.create_guiOptionVar('projectBaseDatCollapse',defaultValue = 0)
-        mVar_frame = self.var_projectBaseDatCollapse
-        
-        _frame = mUI.MelFrameLayout(parent,label = 'General',vis=True,
-                                    collapse=mVar_frame.value,
-                                    collapsable=True,
-                                    enable=True,
-                                    useTemplate = 'cgmUIHeaderTemplate',
-                                    expandCommand = lambda:mVar_frame.setValue(0),
-                                    collapseCommand = lambda:mVar_frame.setValue(1)
-                                    )	
-        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
-                
-        
-        #>>>Hold ===================================================================================== 
-        cgmUI.add_LineSubBreak()
-        self.d_tf['general'] = {}
-        _d = self.d_tf['general']
-        self.d_uiTypes['general'] = {}
-        
-        for key in PU.l_projectDat:
-            mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
-            
-            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-            mUI.MelSpacer(_row,w=5)                          
-            mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
-            if key == 'type':
-                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                for t in PU.l_projectTypes:
-                    _d[key].append(t)
-        
-                #_d[key].selectByIdx(self.setMode,False)                
-            elif key == 'nameStyle':
-                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                for t in PU.l_nameConventions:
-                    _d[key].append(t)
-                    
-            elif key == 'mayaVersion':
-                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                for t in PU.l_mayaVersions:
-                    _d[key].append(t)
-            
-            elif key == 'mayaFilePref':
-                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                for t in PU.l_mayaFileType:
-                    _d[key].append(t)                
-                    
-            elif key == 'projectPathMode':
-                _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                
-            elif key in ['lock']:
-                _d[key] =   mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
-                for t in ['False','True']:
-                    _d[key].append(t)
-                if key == 'lock':
-                    _d[key](edit=True, cc = lambda *a:self.uiProject_lock())
 
-            else:
-                #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
-                _d[key] =  mUI.MelTextField(_row,
-                                            ann='Project settings | {0}'.format(key),
-                                            text = '')
-                
-            _row.setStretchWidget(_d[key])
-            mUI.MelSpacer(_row,w=5)
-            _row.layout()
-            
-        #bgc = self.v_bgc
-        self.uiLabel_file = mUI.MelLabel(_inside,ut='cgmUITemplate',en=False, label='')
-        
-
-    def buildFrame_paths(self,parent):
-        try:self.var_projectPathsCollapse
-        except:self.create_guiOptionVar('projectPathsCollapse',defaultValue = 0)
-        mVar_frame = self.var_projectPathsCollapse
-        
-        _frame = mUI.MelFrameLayout(parent,label = 'Paths',vis=True,
-                                    collapse=mVar_frame.value,
-                                    collapsable=True,
-                                    enable=True,
-                                    useTemplate = 'cgmUIHeaderTemplate',
-                                    expandCommand = lambda:mVar_frame.setValue(0),
-                                    collapseCommand = lambda:mVar_frame.setValue(1)
-                                    )	
-        _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
-        
-        #>>>Project =====================================================================================
-        cgmUI.add_Header('Project')
-        self.d_tf['pathsProject'] = {}
-        self.d_labels['pathsProject'] = {}
-        _d3 =  self.d_labels['pathsProject']
-        _d = self.d_tf['pathsProject']
-        self.d_uiTypes['pathsProject'] = {}
-        
-        self.d_buttons['pathsProject'] = {}
-        _d2 = self.d_buttons['pathsProject']
-        
-        for key in PU.l_projectPaths:
-            mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
-            
-            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-
-            mUI.MelSpacer(_row,w=5)                          
-            mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
-            #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
-            _d[key] =  mUI.MelTextField(_row,
-                                    ann='Project Path | {0}'.format(key),
-                                    cc = cgmGEN.Callback(self.uiCC_checkPath,key,'project'),
-                                    )
-            _d3[key] =  mUI.MelLabel(_row,
-                                     ann='Project Path | {0}'.format(key),
-                                     vis=False,
-                                     )            
-            
-            _d2[key] = mUI.MelButton(_row,
-                                     l = 'Set',
-                                     ut = 'cgmUITemplate',
-                                     c = cgmGEN.Callback(self.uiButton_setPathToTextField,key,'project'),
-                                     #en = _d.get('en',True),
-                                     #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
-                                     #ann = _d.get('ann',b))
-                                     )            
-            
-            _row.setStretchWidget(_d[key])
-            mUI.MelSpacer(_row,w=5)
-            _row.layout()
-            
-        
-        #>>>Local =====================================================================================
-        mc.setParent(_inside)
-        cgmUI.add_LineSubBreak()
-        
-        cgmUI.add_Header('Local')
-        #cgmUI.add_LineSubBreak()
-        self.d_tf['paths'] = {}
-        _d = self.d_tf['paths']
-        self.d_uiTypes['paths'] = {}
-
-        for key in PU.l_projectPaths:
-            mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
-            
-            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-
-            mUI.MelSpacer(_row,w=5)                          
-            mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
-            #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
-            _d[key] =  mUI.MelTextField(_row,
-                                        ann='Local Path | {0}'.format(key),
-                                        cc = cgmGEN.Callback(self.uiCC_checkPath,key,'local'),
-                                        text = '')
-            
-            mc.button(parent=_row,
-                      l = 'Set',
-                      ut = 'cgmUITemplate',
-                      c = cgmGEN.Callback(self.uiButton_setPathToTextField,key,'local'),
-                      
-                      #en = _d.get('en',True),
-                      #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
-                      #ann = _d.get('ann',b))
-                      )            
-            
-            _row.setStretchWidget(_d[key])
-            mUI.MelSpacer(_row,w=5)
-            _row.layout()
-            
-    def uiCC_checkPath(self, key, mode='local'):
-        
-        if mode == 'local':
-            mField = self.d_tf['paths'][key]
-        else:
-            mField = self.d_tf['pathsProject'][key]
-            
-        _value = mField.getValue()
-        
-        if not PATHS.Path(_value).exists():
-            mField(edit=True,bgc = _colorBad)
-            
-            return log.error("uiCC_checkPath | Invalid path: {0}".format(_value))
-        else:
-            mField(edit=True,bgc = _colorGood)
-            
-            log.warning("Path {0}| {1} changed to: {2}".format(mode, key, _value))
-        
     def buildFrame_content(self,parent):
         try:self.var_projectContentCollapse
         except:self.create_guiOptionVar('projectContentCollapse',defaultValue = 0)
@@ -1791,7 +1365,7 @@ class ui(cgmUI.cgmGUI):
             mc.button(parent=_row,
                       l = 'Set',
                       ut = 'cgmUITemplate',
-                      c = cgmGEN.Callback(self.uiButton_setPathToTextField,key)
+                      c = cgmGEN.Callback(uiButton_setPathToTextField,self,key)
                       #c = lambda *x:self.uiButton_setPathToTextField(key),
                       #c= lambda *x:self.uiCB_setProjectPath(fileDialog=True),
                       #en = _d.get('en',True),
@@ -1803,56 +1377,414 @@ class ui(cgmUI.cgmGUI):
             mUI.MelSpacer(_row,w=5)
             _row.layout()
     
-    def uiButton_colorSet(self,d,key):
-        
-        result = mc.colorEditor(rgb = self.mDat.d_colors[key])
-        buffer = result.split()
-        if '1' == buffer[3]:
-            
-            values = mc.colorEditor(query=True, rgb=True)
-            print 'RGB = ' + str(values)
+    
 
-            self.d_tf[d][key](edit = 1, bgc = values)
             
-            if key == 'project':
-                self.uiImage_ProjectRow(edit=True, bgc = values)
             
-            self.mDat.d_colors[key] = values
-        else:
-            print 'Editor was dismissed'
-            
+def uiProject_new(self):
+    _str_func = 'uiProject_new'
+    log.debug("|{0}| >>...".format(_str_func))        
+    
+    
+    result = mc.promptDialog(
+            title="New Project",
+            message='Enter Name for a new Project',
+            button=['OK', 'Cancel'],
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel')
+    
+    if result == 'OK':
+        uiProject_clear(self)
+        _name = mc.promptDialog(query=True, text=True)
+        self.mDat = data(_name)
+        self.d_tf['general']['name'].setValue(_name)
         
-    def uiButton_setPathToTextField(self,key,mode='project'):
-        basicFilter = "*"
-        if key in ['image']:
-            x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=1)
-        else:
-            x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
+        #self.mDat.write()
+        uiProject_save(self, duplicateMode=True)
+        #uiProject_load(revert=True)
+        uiProject_fill(self)
+        return
+    return log.error("Project Creation cancelled")
             
-        if x:
-            if mode == 'project':
-                mField = self.d_tf['pathsProject'][key]
-            else:
-                mField = self.d_tf['paths'][key]
-            
-            if not PATHS.Path(x[0]).exists():
-                mField(edit=True,bgc = _colorBad)
-                raise ValueError,"Invalid path: {0}".format(x[0])
-            
-            mField.setValue( x[0] )
-            mField(edit=True,bgc = _colorGood)
-            
-            #self.optionVarExportDirStore.setValue( self.exportDirectory )    
-            
-            if key in ['image']:
-                self.reload_headerImage(x[0])
-            elif key == 'content':
-                self.uiScrollList_dirContent.clear()
-                #self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue())
-            elif key == 'export':
-                self.uiScrollList_dirExport.clear()
-                #self.uiScrollList_dirExport.rebuild( self.d_tf['paths']['export'].getValue())
+def uiProject_reset(self):
+    self.mDat.fillDefaults(True)
+    uiProject_fill(self)
+    
+def uiProject_getProjctPathsFromLocal(self):
+    self.mDat.projectPaths_getActive()
+    uiProject_fill(self)
+    
+def uiProject_pushPaths(self):
+    _str_func = 'uiProject_load'
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    
+    mPath = PATHS.Path( self.d_tf['paths']['content'].getValue() )
+    if mPath.exists():
+        mel.eval('setProject "{0}";'.format(mPath.asString()))
+    else:
+        log.debug('uiProject_pushPaths | Invalid Path: {0}'.format(mPath))
+        
+        
+def uiProject_toScene(self):
+    _str_func = 'uiProject_toScene'
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    cgmMeta.cgmOptionVar('cgmVar_sceneUI_export_directory').setValue(self.d_tf['paths']['export'].getValue())
+    cgmMeta.cgmOptionVar('cgmVar_sceneUI_last_directory').setValue(self.d_tf['paths']['content'].getValue())
+    
+    import cgm.core.mrs.Scene as SCENE
+    SCENE.ui()
+    
+def uiProject_clear(self,path=None,revert=False):
+    _str_func = 'uiProject_clear'
+    log.info("|{0}| >>...".format(_str_func))
+    self.uiLabel_file(edit=True, label = '')
+
+    for dType in ui._l_sections:
+        log.debug(cgmGEN.logString_sub(_str_func,dType))
+        
+        for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
+            try:
+                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                _type = type(self.d_tf[dType][k])
+                if _type not in [mUI.MelOptionMenu]:
+                    try:self.d_tf[dType][k].clear()
+                    except:pass
+            except Exception,err:
+                log.error("err | {0}".format(err))
                 
+    self.path_projectConfig = None
+    
+    for k,tf in self.d_tf['pathsProject'].iteritems():
+        tf.setValue('',executeChangeCB=False)
+        
+    for k, tf in self.d_tf['paths'].iteritems():
+        tf.setValue('',executeChangeCB=False)
+    
+    #Set pose path
+    
+    #Update file dir
+    self.uiScrollList_dirContent.rebuild(reset=1)
+    self.uiScrollList_dirExport.rebuild(reset=1)
+    
+    #Project image
+    log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
+    try:self.reload_headerImage()
+    except:
+        pass
+                
+def uiProject_lock(self):
+    _str_func = 'uiProject_lock'
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    #Lock fields...
+    _enable = True
+    _editable = True
+    _color = 1,1,1
+    _template = 'cgmUITemplate'
+    
+    if self.d_tf['general']['lock'].getValue() == 'True':#self.mDat.d_project['lock'] == 'True':
+        _enable = False
+        _editable = False
+        _color = .2,.2,.2
+        _template = 'cgmUILockedTemplate'
+        
+        for k,tf in self.d_tf['pathsProject'].iteritems():
+            tf(edit=True,visible=False)
+            
+        for k,tf in self.d_labels['pathsProject'].iteritems():
+            tf(edit=True,visible=True,
+               label = self.d_tf['pathsProject'][k].getValue())
+            
+        for k,tf in self.d_buttons['pathsProject'].iteritems():
+            tf(edit=True,
+               visible =False)
+            
+        #self.uiFrame_AssetTypes(edit=True, collapse = True)
+        #self.uiFrame_AssetTypes(edit=True, collapse = True, collapsable =False)
+        self.uiFrame_AssetTypes(edit=True, vis = False)    
+    
+    else:
+        for k,tf in self.d_tf['pathsProject'].iteritems():
+            tf(edit=True,visible=True)
+        for k,tf in self.d_labels['pathsProject'].iteritems():
+            tf(edit=True,visible=False)
+        for k,tf in self.d_buttons['pathsProject'].iteritems():
+            tf(edit=True,
+               visible =True)
+        
+        self.uiFrame_AssetTypes(edit=True, vis = True)    
+        #self.uiFrame_AssetTypes(edit=True, collapse = False, collapsable=True)            
+            
+    #Locking fields...
+    log.debug(cgmGEN.logString_sub(_str_func,'Locking fields...'))
+    
+    d_toDo  = {'world':PU._worldSettings,
+               #'structure':PU._structureSettings,
+               'anim':PU._animSettings}
+
+    #pprint.pprint(d_toDo)
+    for k,l in d_toDo.iteritems():
+        log.debug(cgmGEN.logString_sub(_str_func,k))
+        
+        _d = self.d_tf[k]
+        
+        for d in l:
+            try:
+                log.debug(cgmGEN.logString_msg(_str_func,d))
+                _type = d.get('t')
+                _dv = d.get('dv')
+                _name = d.get('n')
+                _d[_name](edit=True,enable = _enable)
+                
+                if self.d_uiTypes[k][_name] in ['string','stringList']:
+                    _d[_name](edit=True,bgc = _color)
+                    
+                
+            except Exception,err:
+                log.error("Failure {0} | {1} | {2}".format(k,_name,err))
+           
+ 
+        
+  
+    
+def uiProject_fill(self,fillDir = True):
+    _str_func = 'uiProject_fill'
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    l_errs = []
+    
+    for dType in ['general','anim','pathsProject','colors']:
+        log.debug(cgmGEN.logString_sub(_str_func,dType))
+        
+        for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
+            try:
+                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                try:_type = self.d_uiTypes[dType][k]
+                except:_type = None
+                    
+                if _type == 'stringList' and v:
+                    if len(v)>1:
+                        self.d_tf[dType][k].setValue(','.join(v))
+                    else:
+                        self.d_tf[dType][k].setValue(v[0])
+                elif _type == 'color' and v:
+                    self.d_tf[dType][k](edit=True, bgc = v)
+                    
+                else:
+                    if v is not None:
+                        if k in ['lock','mayaVersion','mayaFilePref']:
+                            self.d_tf[dType][k].setValue(str(v),executeChangeCB=False)
+                        else:
+                            self.d_tf[dType][k].setValue(v,executeChangeCB=False)
+                    else:
+                        self.d_tf[dType][k].setValue('',executeChangeCB=False)
+                        
+                        
+            except Exception,err:
+                log.error("Missing data field or failure: dtype:{0} | {1}".format(dType,k))
+                log.error("err | {0}".format(err))
+                
+                
+    self.uiImage_ProjectRow(edit=True, bgc = self.mDat.d_colors.get('project',[1,1,1]))
+
+    
+    #User paths...
+    _user = getpass.getuser()
+    d_user = self.mDat.d_pathsUser.get(_user,{})
+    d_pathsUse = copy.copy(self.mDat.d_pathsProject)
+    if d_user:
+        log.warning("Found user path dat!")
+        for k,v in d_user.iteritems():
+            if v:
+                d_pathsUse[k]=v
+    else:
+        d_pathsUse = self.mDat.d_pathsProject
+        log.warning("Using project paths dat!")
+        
+        
+
+    l_pathsMissing = []
+    for k,v in d_pathsUse.iteritems():
+        try:
+            log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+            if v is not None:
+                _exists = PATHS.Path(v).exists()
+                if _exists:
+                    self.d_tf['paths'][k].setValue(v,executeChangeCB=False)
+                    self.d_tf['paths'][k](e=True, bgc= _colorGood)
+                    
+                else:
+                    log.error("Invalid path | {0} || Please resolve locally: {1}".format(k,v))
+                    l_pathsMissing.append(k)
+                    self.d_tf['paths'][k].setValue('',executeChangeCB=False)
+                    self.d_tf['paths'][k](e=True, bgc=_colorBad)
+                    
+        except Exception,err:
+            log.error("{0} | Missing data field or failure: {0}".format(_str_func,k))
+            log.error("err | {0}".format(err))
+            
+            
+    if l_pathsMissing:
+        l_errs.append("Paths failed: {0}".format(','.join(l_pathsMissing)))
+    
+                
+    
+    self.uiLabel_file(edit=True, label = self.mDat.str_filepath)
+    
+    #Project image
+    log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
+    self.reload_headerImage()
+    
+    #Update file dir
+    self.uiScrollList_dirContent.rebuild( self.mDat.d_paths.get('content'))
+    self.uiScrollList_dirExport.rebuild(self.mDat.d_paths.get('export'))
+    
+    self.uiScrollList_dirContent.mDat = self.mDat
+    self.uiScrollList_dirExport.mDat = self.mDat
+    
+        
+    uiProject_lock(self)
+    
+    if l_errs:
+        log.error(l_errs)
+    
+def uiProject_load(self,path=None,revert=False):
+    _str_func = 'uiProject_load'
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    if path == None and revert is True:
+        path = self.path_projectConfig or self.mDat.str_filepath
+    
+    #if self.mDat.str_filepath != path:
+    self.mDat.read(path)
+    
+    uiProject_clear(self)
+    uiProject_fill(self,fillDir = 1)
+    
+    #Set maya project path
+    log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
+    uiProject_pushPaths(self)
+    
+    log.debug(cgmGEN.logString_sub(_str_func,"PathList append: {0}".format(self.mDat.str_filepath)))
+    
+    self.path_projectConfig = self.mDat.str_filepath
+    self.mPathList.append(self.mDat.str_filepath)
+    
+    #self.mPathList.log_self()        
+    
+    #Set pose path
+
+    #self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
+    
+    #self.uiImage_Project.setImage(mThumb)
+    self.var_project.value = self.mDat.str_filepath
+    self.var_pathLastProject.value = self.mDat.str_filepath
+    
+    uiAsset_rebuildOptionMenu(self)
+    uiAsset_rebuildSub(self)
+        
+    #for t in _type:
+    #    _d[_name].append(t)        
+    
+def uiAssetTypes_refill(self):
+    pass
+
+    
+def uiProject_save(self, path = None, updateFile = True, duplicateMode = False):
+    _str_func = 'uiProject_save'
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    if path == None and updateFile == True:
+        if self.mDat.str_filepath:
+            log.debug("|{0}| >> Saving to existing mDat: {1}".format(_str_func,self.mDat.str_filepath))
+            path = self.mDat.str_filepath        
+        
+        
+    for dType,d in PU._dataConfigToStored.iteritems():
+        if dType in ['enviornment','pathsUser']:
+            continue
+        
+        log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(dType,d)))
+        
+        for k,ui in self.d_tf.get(dType,{}).iteritems():
+            try:_type = self.d_uiTypes[dType][k]
+            except:_type = None
+            
+            log.debug(cgmGEN.logString_sub(_str_func,"{0} | {1}".format(k,ui)))
+                
+            if _type == 'stringList':
+                _v = ui.getValue()                    
+                if ',' in _v:
+                    _v = _v.split(',')
+                else:
+                    _v = [_v]
+                log.debug('StringList: {0} | {1} | {2}'.format(dType,k,_v))
+                
+                self.mDat.__dict__[d][k] = _v
+            elif _type == 'color':
+                self.mDat.__dict__[d][k] = ui(q=True, bgc=True)
+                
+            else:
+                self.mDat.__dict__[d][k] = ui.getValue()            
+                
+    if not duplicateMode:
+        ###Local paths
+        _d_local = {}
+        for k,v in self.mDat.__dict__['d_paths'].iteritems():
+            if v != self.mDat.__dict__['d_pathsProject'][k]:
+                _d_local[k] = v
+            
+        _user = getpass.getuser()
+        self.mDat.d_pathsUser[_user] = _d_local
+        log.debug(cgmGEN.logString_sub(_str_func,"Local Dat user: {0}".format(k,_user)))
+    else:
+        log.debug(cgmGEN.logString_sub(_str_func,"Duplicate mode..."))
+        for d in self.mDat.d_paths,self.mDat.d_pathsProject:
+            for k,d2 in d.iteritems():
+                d[k] = ''
+        self.mDat.d_pathsUser = {}
+        
+        
+    
+    """
+    for k,ui in self.d_tf['general'].iteritems():
+        self.mDat.d_project[k] = ui.getValue()
+
+    for k,ui in self.d_tf['paths'].iteritems():
+        self.mDat.d_paths[k] = ui.getValue()
+        """
+    #self.mDat.log_self()
+    self.mDat.write( path,False)
+    self.mPathList.append(self.mDat.str_filepath)
+    
+    return log.warning("Saved complete!")
+    
+def uiProject_saveAs(self):
+    _str_func = 'uiProject_saveAs'
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    uiProject_save(self, None,False)
+    uiProject_load(self, self.mDat.str_filepath)   
+    
+def uiProject_duplicate(self):
+    _str_func = 'uiProject_duplicate'
+    log.debug("|{0}| >>...".format(_str_func))
+
+    uiProject_save(self,None,False,duplicateMode=True)
+    uiProject_clear(self)
+    uiProject_load(self, self.mDat.str_filepath)
+
+        
+    #uiProject_reset()
+    
+def uiProject_revert(self):
+    _str_func = 'uiProject_revert'
+    log.debug("|{0}| >>...".format(_str_func))
+    uiProject_load(self,None,True)
+    
 def uiProject_addDir(self,pSet = None, mScrollList = None):
     _str_func = 'uiProject_addDir'
     log.debug("|{0}| >>...".format(_str_func))
@@ -3239,3 +3171,70 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
 #>>> Utilities
 #===================================================================
+
+def uiCC_checkPath(self, key, mode='local'):
+    
+    if mode == 'local':
+        mField = self.d_tf['paths'][key]
+    else:
+        mField = self.d_tf['pathsProject'][key]
+        
+    _value = mField.getValue()
+    
+    if not PATHS.Path(_value).exists():
+        mField(edit=True,bgc = _colorBad)
+        
+        return log.error("uiCC_checkPath | Invalid path: {0}".format(_value))
+    else:
+        mField(edit=True,bgc = _colorGood)
+        
+        log.warning("Path {0}| {1} changed to: {2}".format(mode, key, _value))
+        
+def uiButton_setPathToTextField(self,key,mode='project'):
+    basicFilter = "*"
+    if key in ['image']:
+        x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=1)
+    else:
+        x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
+        
+    if x:
+        if mode == 'project':
+            mField = self.d_tf['pathsProject'][key]
+        else:
+            mField = self.d_tf['paths'][key]
+        
+        if not PATHS.Path(x[0]).exists():
+            mField(edit=True,bgc = _colorBad)
+            raise ValueError,"Invalid path: {0}".format(x[0])
+        
+        mField.setValue( x[0] )
+        mField(edit=True,bgc = _colorGood)
+        
+        #self.optionVarExportDirStore.setValue( self.exportDirectory )    
+        
+        if key in ['image']:
+            self.reload_headerImage(x[0])
+        elif key == 'content':
+            self.uiScrollList_dirContent.clear()
+            #self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue())
+        elif key == 'export':
+            self.uiScrollList_dirExport.clear()
+            #self.uiScrollList_dirExport.rebuild( self.d_tf['paths']['export'].getValue())
+            
+def uiButton_colorSet(self,d,key):
+    
+    result = mc.colorEditor(rgb = self.mDat.d_colors[key])
+    buffer = result.split()
+    if '1' == buffer[3]:
+        
+        values = mc.colorEditor(query=True, rgb=True)
+        print 'RGB = ' + str(values)
+
+        self.d_tf[d][key](edit = 1, bgc = values)
+        
+        if key == 'project':
+            self.uiImage_ProjectRow(edit=True, bgc = values)
+        
+        self.mDat.d_colors[key] = values
+    else:
+        print 'Editor was dismissed'

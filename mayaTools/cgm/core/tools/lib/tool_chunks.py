@@ -889,6 +889,11 @@ def uiSection_mrsManage(parent):
                 ann = "Scene Management Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsScene())
     
+    mc.menuItem(parent = parent,
+                l='Scene | Rework',
+                ann = "Scene Management Tool | Alpha",
+                c=lambda *a:TOOLCALLS.mrsScene2())
+    
     mUI.MelMenuItemDiv(parent,label='Utils')
     
     mc.menuItem(parent = parent,

@@ -130,6 +130,13 @@ def mrsScene():
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
         
+def mrsScene2():
+    import cgm.core.mrs.Scene2 as SCENE2
+    reload(SCENE2)
+    #mel.eval('python "import cgm.core.mrs.Scene as SCENE;cgmSceneUI = SCENE.ui()"')
+    SCENE2.ui()
+
+        
 def mrsShapeDat():
     import cgm.core.mrs.ShapeDat as SHAPEDAT
     reload(SHAPEDAT)

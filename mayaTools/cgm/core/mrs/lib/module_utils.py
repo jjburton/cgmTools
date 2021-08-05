@@ -1112,7 +1112,7 @@ def anim_key(self,**kws):
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
-def siblings_get(self,matchType = False, excludeSelf = True, matchName=False):
+def siblings_get(self,matchType = True, excludeSelf = True, matchName=False):
     _str_func = 'siblings_get'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
 
