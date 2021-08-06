@@ -110,8 +110,8 @@ example:
         self.var_lastVariation = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
         self.var_lastVersion   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
         self.var_showAllFiles           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 0)
-        self.var_removeNamespace        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
-        self.var_zeroRoot               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
+        #self.var_removeNamespace        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
+        #self.var_zeroRoot               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
         self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
         self.var_categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
         self.var_subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
@@ -120,9 +120,9 @@ example:
         self.var_displayDetails         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
         self.var_displayProject         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_project", defaultValue = 1)
         
-        self.var_postEuler          = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postEuler", defaultValue = 1)
-        self.var_postTangent     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postTangent", varType = "string", defaultValue='auto')
-        self.var_mayaFilePref     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_mayaFilePref", varType = "string", defaultValue='ma')
+        #self.var_postEuler          = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postEuler", defaultValue = 1)
+        #self.var_postTangent     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postTangent", varType = "string", defaultValue='auto')
+        #self.var_mayaFilePref     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_mayaFilePref", varType = "string", defaultValue='ma')
         
         
         
@@ -161,14 +161,14 @@ example:
         self.uiPop_sendToProject_variant = None
         self.uiPop_sendToProject_sub = None
         
-        self.project                     = None
+        self.mDat                     = None
         self.assetMetaData               = {}
 
         self.exportCommand               = ""
 
         self.cb_showAllFiles          = None
-        self.cb_removeNamespace       = None
-        self.cb_zeroRoot              = None
+        #self.cb_removeNamespace       = None
+        #self.cb_zeroRoot              = None
         self.cb_useMayaPy             = None
         self.cb_showDirectories       = None
 
@@ -176,8 +176,8 @@ example:
         self.displayDetails              = self.var_displayDetails.getValue()
 
         self.showAllFiles                = self.var_showAllFiles.getValue()
-        self.removeNamespace             = self.var_removeNamespace.getValue()
-        self.zeroRoot                    = self.var_zeroRoot.getValue()
+        #self.removeNamespace             = self.var_removeNamespace.getValue()
+        #self.zeroRoot                    = self.var_zeroRoot.getValue()
         self.useMayaPy                   = self.var_useMayaPy.getValue()
 
         self.fileListMenuItems           = []
@@ -401,7 +401,7 @@ example:
         
         """
         try:
-            r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasSub', False)
+            r = self.mDat.assetType_get(self.category)['content'][self.subTypeIndex].get('hasSub', False)
             return r
         except:
             return True
@@ -494,7 +494,7 @@ example:
         return _res
         """
         try:
-            r = self.project.assetType_get(self.category)['content'][self.subTypeIndex].get('hasVariant', False)
+            r = self.mDat.assetType_get(self.category)['content'][self.subTypeIndex].get('hasVariant', False)
             return r
         except:
             return True"""
@@ -506,7 +506,7 @@ example:
         
         try:
             hasSub = True
-            for sub in self.project.assetType_get(category)['content']:
+            for sub in self.mDat.assetType_get(category)['content']:
                 if sub['n'] == subType:
                     hasSub = sub.get('hasSub', True)
             return hasSub
@@ -517,8 +517,8 @@ example:
         self.showAllFiles    = bool(self.var_showAllFiles.getValue())
         self.categoryIndex   = int(self.var_categoryStore.getValue())
         self.subTypeIndex    = int(self.var_subTypeStore.getValue())
-        self.removeNamespace = bool(self.var_removeNamespace.getValue())
-        self.zeroRoot        = bool(self.var_zeroRoot.getValue())
+        #self.removeNamespace = bool(self.var_removeNamespace.getValue())
+        #self.zeroRoot        = bool(self.var_zeroRoot.getValue())
         self.useMayaPy       = bool(self.var_useMayaPy.getValue())
         self.showDirectories = bool(self.var_showDirectories.getValue())
         self.displayDetails  = bool(self.var_displayDetails.getValue())
@@ -526,10 +526,10 @@ example:
 
         if self.cb_showAllFiles:
             self.cb_showAllFiles(e=True, checkBox = self.showAllFiles)
-        if self.cb_removeNamespace:
-            self.cb_removeNamespace(e=True, checkBox = self.removeNamespace)
-        if self.cb_zeroRoot:
-            self.cb_zeroRoot(e=True, checkBox = self.zeroRoot)
+        #if self.cb_removeNamespace:
+        #    self.cb_removeNamespace(e=True, checkBox = self.removeNamespace)
+        #if self.cb_zeroRoot:
+        #    self.cb_zeroRoot(e=True, checkBox = self.zeroRoot)
 
         self.SetSubType(self.subTypeIndex)
         self.buildMenu_subTypes()
@@ -539,20 +539,20 @@ example:
         self.uiFunc_displayDetails(self.displayDetails)
         self.uiFunc_displayProject( self.displayProject )
 
-        self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.project.d_project['name']))
+        self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.mDat.d_project['name']))
 
     def SaveOptions(self, *args):
         log.info( "Saving options" )
         self.showAllFiles = self.cb_showAllFiles( q=True, checkBox=True ) if self.cb_showAllFiles else False
-        self.removeNamespace = self.cb_removeNamespace( q=True, checkBox=True ) if self.cb_removeNamespace else False
-        self.zeroRoot = self.cb_zeroRoot( q=True, checkBox=True ) if self.cb_zeroRoot else False
+        #self.removeNamespace = self.cb_removeNamespace( q=True, checkBox=True ) if self.cb_removeNamespace else False
+        #self.zeroRoot = self.cb_zeroRoot( q=True, checkBox=True ) if self.cb_zeroRoot else False
 
         self.useMayaPy = self.cb_useMayaPy( q=True, checkBox=True ) if self.cb_useMayaPy else False
         self.showDirectories = self.cb_showDirectories( q=True, checkBox=True ) if self.cb_showDirectories else False
 
         self.var_showAllFiles.setValue(self.showAllFiles)
-        self.var_removeNamespace.setValue(self.removeNamespace)
-        self.var_zeroRoot.setValue(self.zeroRoot)
+        #self.var_removeNamespace.setValue(self.removeNamespace)
+        #self.var_zeroRoot.setValue(self.zeroRoot)
         self.var_useMayaPy.setValue(self.useMayaPy)
         self.var_showDirectories.setValue(self.showDirectories)
         self.var_displayDetails.setValue(self.displayDetails)
@@ -696,7 +696,7 @@ example:
         imageRow.layout()
 
         self._detailsColumn = mUI.MelScrollLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=294)
-        self._projectForm = mUI.MelTabLayout( _ParentForm, w=300, ut='cgmUITemplate')#w180 mUI.MelFormLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
+        self._projectForm = mUI.MelTabLayout( _ParentForm, w=400, ut='cgmUITemplate')#w180 mUI.MelFormLayout(_ParentForm,useTemplate = 'cgmUISubTemplate', w=250)
 
         _MainForm = mUI.MelFormLayout(_ParentForm,ut='cgmUITemplate')
 
@@ -786,7 +786,7 @@ example:
         
         _textField = mUI.MelTextField(_projectColumnTop,
                                       ann='Filter',
-                                      w=50,
+                                      #w=50,
                                       bgc = [.3,.3,.3],
                                       en=True,
                                       text = '')    
@@ -797,7 +797,7 @@ example:
                                                 allowMultiSelection=0, en=True,
                                                 ebg=0,
                                                 bgc = [.2,.2,.2],
-                                                w = 50,
+                                                #w = 50,
                                                 dcc = cgmGEN.Callback(self.uiFunc_contentDir_loadSelect))
         
         
@@ -843,7 +843,7 @@ example:
     
         _textField = mUI.MelTextField(_projectColumnTop,
                                           ann='Filter',
-                                          w=50,
+                                          #w=50,
                                           bgc = [.3,.3,.3],
                                           en=True,
                                           text = '')    
@@ -853,8 +853,8 @@ example:
         mScrollList2 = Project.cgmProjectDirList(uiTab_Export, ut='cgmUISubTemplate',
                                                 allowMultiSelection=0, en=True,
                                                 ebg=0,
-                                                bgc = [.2,.2,.2],
-                                                w = 50)
+                                                bgc = [.2,.2,.2],)
+                                                #w = 50)
     
     
     
@@ -1383,6 +1383,167 @@ example:
                                         tearOff=True)         
         self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help,pmo=True)
         
+        
+    def uiProject_saveAndRefresh(self):
+        PROJECT.uiProject_save(self)
+        self.uiProject_refreshDisplay()
+        
+    def reload_headerImage(self, path = None):
+        _str_func = 'reload_headerImage'
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        if path:
+            _path = PATHS.Path(path)
+            
+        else:
+            _path = PATHS.Path(self.d_tf['paths']['image'].getValue())
+            
+        if _path.exists():
+            log.warning('Image path: {0}'.format(_path))
+            _imagePath = _path
+        else:
+            _imagePath = os.path.join(mImagesPath.asFriendly(),
+                                      'cgm_project_{0}.png'.format(self.d_tf['general']['type'].getValue()))
+            
+        self.uiImage_Project.setImage(_imagePath)
+        
+    def uiProject_refreshDisplay(self):
+        _bgColor = self.v_bgc
+        try:
+            _bgColor = self.mDat.d_colors['project']
+            
+        except Exception,err:
+            log.warning("No project color stored | {0}".format(err))
+
+        try:self.uiImage_ProjectRow(edit=True, bgc = _bgColor)
+        except Exception,err:
+            log.warning("Failed to set bgc: {0} | {1}".format(_bgColor,err))
+
+        try:
+            
+            _c_secondary = self.mDat.d_colors['secondary']
+            print _c_secondary
+            vTmp = _c_secondary
+            vLite = [MATH.Clamp(1.7 * v, .5, 1.0) for v in vTmp]
+
+            
+            self._detailsToggleBtn(edit=True, bgc=vTmp)
+            self._projectToggleBtn(edit=True, bgc=vTmp)
+            self.uiScrollList_dirContent.v_hlc = vLite
+            self.uiScrollList_dirExport.v_hlc = vLite
+            
+        except Exception,err:
+            log.error("Load project color set error | {0}".format(err))
+            
+            self._detailsToggleBtn(edit=True, bgc=(1.0, .445, .08))
+            self._projectToggleBtn(edit=True, bgc=(1.0, .445, .08))
+            self.uiScrollList_dirContent(edit=True, hlc = (1.0, .445, .08))
+            self.uiScrollList_dirExport(edit=True, hlc = (1.0, .445, .08))
+
+        d_userPaths = self.mDat.userPaths_get()
+
+        if not d_userPaths.get('content'):
+            log.error("No Content path found")
+            return False
+        if not d_userPaths.get('export'):
+            log.error("No Export path found")
+            return False
+
+
+        if os.path.exists(d_userPaths['content']):
+
+            self.LoadCategoryList(d_userPaths['content'])
+            self.exportDirectory = d_userPaths['export']
+            
+            
+
+            self.exportDirectoryTF.setValue( self.exportDirectory )
+            
+            self.l_categoriesBase = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
+            self.categoryList = [c for c in self.l_categoriesBase]
+            
+            for i,f in enumerate(os.listdir(self.directory)):
+                if os.path.isfile(os.path.join(self.directory, f)):
+                    continue
+                if f in self.l_categoriesBase:
+                    continue
+                
+                self.categoryList.append(f)
+
+            if d_userPaths.get('image') and os.path.exists(d_userPaths.get('image')):
+                self.uiImage_Project.setImage(d_userPaths['image'])
+            else:
+                _imageFailPath = os.path.join(mImagesPath.asFriendly(),
+                                                              'cgm_project_{0}.png'.format(self.mDat.d_project.get('type','unity')))
+                self.uiImage_Project.setImage(_imageFailPath)
+
+            self.buildMenu_category()
+
+            mc.workspace( d_userPaths['content'], openWorkspace=True )
+
+            self.assetMetaData = {}
+            self.LoadOptions()
+        else:
+            mel.eval('error "Project path does not exist"')
+            
+            
+        self.uiScrollList_dirContent.mDat = self.mDat
+        self.uiScrollList_dirContent.rebuild( self.directory)
+        
+        self.uiScrollList_dirExport.mDat = self.mDat        
+        self.uiScrollList_dirExport.rebuild( self.exportDirectory)
+        
+        log.info( "+"*100)
+        log.info(self.d_tf['general']['mayaFilePref'].getValue())        
+        log.info(self.d_tf['exportOptions']['removeNameSpace'].getValue())
+        log.info(self.d_tf['exportOptions']['zeroRoot'].getValue())        
+        log.info(self.d_tf['exportOptions']['postEuler'].getValue())        
+        log.info(self.d_tf['exportOptions']['postTangent'].getValue())        
+        
+        """
+        
+        self.var_mayaFilePref.setValue( self.mDat.d_project.get('mayaFilePref','mb') )
+        
+        if self.mDat.d_exportOptions:
+            self.var_postEuler.setValue( self.mDat.d_exportOptions.get('postEuler',True) )
+            self.var_postTangent.setValue( self.mDat.d_exportOptions.get('postTangent',True) )
+            if self.mDat.d_exportOptions.get('removeNameSpace'):
+                self.var_removeNamespace.setValue( self.mDat.d_exportOptions.get('removeNameSpace',False) )
+                self.removeNamespace = self.mDat.d_exportOptions.get('removeNameSpace',False)
+            
+            self.var_zeroRoot.setValue( self.mDat.d_exportOptions.get('zeroRoot',False) )"""
+            
+            
+            
+            
+    def uiProject_reset(self):
+        PROJECT.uiProject_reset(self)
+        self.uiProject_refreshDisplay()
+    
+    def uiProject_revert(self):
+        PROJECT.uiProject_revert(self)
+        self.uiProject_refreshDisplay()
+        
+    def uiProject_clear(self):
+        PROJECT.uiProject_clear(self)
+        self.uiProject_refreshDisplay()
+        
+    def uiProject_new(self):
+
+        
+        if not PROJECT.uiProject_new(self):
+            return
+        
+        self.directory = ''
+        self.exportDirectoryTF.setValue('')
+        
+        self.assetList['scrollList'].clear()
+        self.subTypeSearchList['scrollList'].clear()
+        self.variationList['scrollList'].clear()
+        self.versionList['scrollList'].clear()                
+        
+        self.LoadProject(self.mDat.str_filepath)
+        
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         
@@ -1394,7 +1555,31 @@ example:
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Basic' )
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="New",
                          ann='Create a new project',                         
-                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(PROJECT.uiProject_new,self),lp=True))
+                         c = lambda *a:mc.evalDeferred(self.uiProject_new,lp=True))
+        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save ",
+                         c = lambda *a:mc.evalDeferred(self.uiProject_saveAndRefresh,lp=True))
+        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save As",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(PROJECT.uiProject_saveAs,self),lp=True))
+        
+        
+        mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Utils' )
+        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Reset",
+                         ann='Reset data to default',
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiProject_reset),lp=True))
+        
+        #mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Fill",
+        #                 ann='Refill the ui fields from the mDat',                         
+        #                 c = lambda *a:mc.evalDeferred(cgmGEN.Callback(PROJECT.uiProject_fill,self),lp=True))
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Revert",
+                         ann='Revert to saved file data',
+                         c = lambda *a:mc.evalDeferred(self.uiProject_revert,lp=True))
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Clear",
+                         ann='Clear the fields',
+                         c = lambda *a:mc.evalDeferred(self.uiProject_clear,lp=True))
+        
         
         """
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Load",
@@ -1426,7 +1611,7 @@ example:
         
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='UI' )
         
-        self.uiMenu_buildDock(self.uiMenu_FirstMenu)
+        #self.uiMenu_buildDock(self.uiMenu_FirstMenu)
         """
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Dock",
                          c = lambda *a:self.do_dock())"""        
@@ -1449,7 +1634,7 @@ example:
 
 
         mUI.MelMenuItem( _log, l="Dat",
-                                 c=lambda *a: self.project.log_self())
+                                 c=lambda *a: self.mDat.log_self())
         mUI.MelMenuItem( _log, l="States",
                                  c=lambda *a: self.report_states())
         mUI.MelMenuItem( _log, l="Export Batch",
@@ -1511,6 +1696,7 @@ example:
                                                  checkBox=self.useMayaPy,
                                                  c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))        
         
+        """
         self.cb_removeNamespace = mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Remove namespace upon export",
                                                       checkBox=self.removeNamespace,
                                                       c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
@@ -1556,7 +1742,7 @@ example:
                         c = cgmGEN.Callback(self.var_mayaFilePref.setValue,item),                                  
                         rb = _rb)        
         
-        
+        """
         
         mUI.MelMenuItemDiv( self.uiMenu_OptionsMenu, l = 'Other')
         
@@ -1967,7 +2153,7 @@ example:
         _d = self.getMetaDataFromFile() 
         
         _d.get('file')
-        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.project.userPaths_get()['content']), '')
+        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.mDat.userPaths_get()['content']), '')
 
         """
         {"arame_poker_cheer_left": [280, 420, 140], "arame_poker_cheer_right": [560, 700, 140], "arame_poker_cheer_lwrR": [700, 840, 140], "arame_poker_cheer_center": [0, 140, 140], "arame_poker_cheer_lwrL": [420, 560, 140], "arame_poker_cheer_down": [140, 280, 140]}
@@ -2028,7 +2214,7 @@ example:
         
         print ''
         _d.get('file')
-        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.project.userPaths_get()['content']), '')
+        _file =  os.path.normpath(_d.get('file')).replace(os.path.normpath(self.mDat.userPaths_get()['content']), '')
         _l_asset = [_name,_file]
         print ','.join(_l_asset)
         print ''
@@ -2212,7 +2398,6 @@ example:
 
     def RemapTextures(self, *args):
         import cgm.tools.findTextures as findTextures
-
         findTextures.FindAndRemapTextures()
 
     def buildMenu_category(self, *args):
@@ -2327,7 +2512,7 @@ example:
         self.var_categoryStore.setValue(self.categoryIndex)
         
         try:
-            self.l_subTypesBase = [x['n'] for x in self.project.assetType_get(self.category).get('content', [{'n':'animation'}])]
+            self.l_subTypesBase = [x['n'] for x in self.mDat.assetType_get(self.category).get('content', [{'n':'animation'}])]
         except:
             self.l_subTypesBase = []
         
@@ -2335,7 +2520,7 @@ example:
 
         # Set SubType -------------------------------------------------------------------------
         try:
-            self.subTypes = [x['n'] for x in self.project.assetType_get(self.category)['content']]
+            self.subTypes = [x['n'] for x in self.mDat.assetType_get(self.category)['content']]
         except:
             self.subTypes = ['None']
             
@@ -2761,7 +2946,7 @@ example:
         if self.hasVariant:
             wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
         
-        wantedName = "%s_%s.%s" % (wantedName, self.subType, self.var_mayaFilePref.value)
+        wantedName = "%s_%s.%s" % (wantedName, self.subType, self.d_tf['general']['mayaFilePref'].getValue())
             
         log.info(log_msg(_str_func,"Wanted: {0}".format(wantedName)))
     
@@ -2917,7 +3102,7 @@ example:
             log.error("No asset selected")
             return
         
-        _fileType = self.var_mayaFilePref.value
+        _fileType = self.d_tf['general']['mayaFilePref'].getValue()
         versionList = self.versionList if self.hasSub else self.subTypeSearchList
         existingFiles = versionList['items']
 
@@ -2995,13 +3180,23 @@ example:
     def LoadProject(self, path, *args):
         if not os.path.exists(path):
             mel.eval('warning "No Project Set"')
-
-        self.project = Project.data(filepath=path)
-        self.mDat = self.project
+            return
         
+        self.mDat = Project.data(filepath=path)
+        
+        PROJECT.uiProject_load(self, path=path)
+        
+        self.var_lastProject.setValue( path )
+        
+        self.uiProject_refreshDisplay()
+        return
+    
+    
+    
+    
         _bgColor = self.v_bgc
         try:
-            _bgColor = self.project.d_colors['project']
+            _bgColor = self.mDat.d_colors['project']
         except Exception,err:
             log.warning("No project color stored | {0}".format(err))
 
@@ -3028,11 +3223,12 @@ example:
             self.uiScrollList_dirContent(edit=True, hlc = (1.0, .445, .08))
             self.uiScrollList_dirExport(edit=True, hlc = (1.0, .445, .08))
 
-        d_userPaths = self.project.userPaths_get()
+        d_userPaths = self.mDat.userPaths_get()
 
         if not d_userPaths.get('content'):
             log.error("No Content path found")
             return False
+        
         if not d_userPaths.get('export'):
             log.error("No Export path found")
             return False
@@ -3049,7 +3245,7 @@ example:
             self.exportDirectoryTF.setValue( self.exportDirectory )
             # self.optionVarExportDirStore.setValue( self.exportDirectory )
             
-            self.l_categoriesBase = self.project.assetTypes_get() if self.project.assetTypes_get() else self.project.d_structure.get('assetTypes', [])
+            self.l_categoriesBase = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
             self.categoryList = [c for c in self.l_categoriesBase]
             
             for i,f in enumerate(os.listdir(self.directory)):
@@ -3067,7 +3263,7 @@ example:
                 self.uiImage_Project.setImage(d_userPaths['image'])
             else:
                 _imageFailPath = os.path.join(mImagesPath.asFriendly(),
-                                                              'cgm_project_{0}.png'.format(self.project.d_project.get('type','unity')))
+                                                              'cgm_project_{0}.png'.format(self.mDat.d_project.get('type','unity')))
                 self.uiImage_Project.setImage(_imageFailPath)
 
             self.buildMenu_category()
@@ -3087,18 +3283,21 @@ example:
         self.uiScrollList_dirContent.rebuild( self.directory)
         self.uiScrollList_dirExport.rebuild( self.exportDirectory)
         
-        self.var_mayaFilePref.setValue( self.project.d_project['mayaFilePref'] )
         
-        if self.project.d_exportOptions:
-            self.var_postEuler.setValue( self.project.d_exportOptions['postEuler'] )
-            self.var_postTangent.setValue( self.project.d_exportOptions['postTangent'] )
+        log.info( "+"*100)
+        log.info(self.d_tf['exportOptions']['removeNameSpace'].getValue())
+        self.var_mayaFilePref.setValue( self.mDat.d_project.get('mayaFilePref','mb') )
+        
+        if self.mDat.d_exportOptions:
+            self.var_postEuler.setValue( self.mDat.d_exportOptions.get('postEuler',True) )
+            self.var_postTangent.setValue( self.mDat.d_exportOptions.get('postTangent',True) )
             
             
-            if self.project.d_exportOptions.get('removeNameSpace'):
-                self.var_removeNamespace.setValue( self.project.d_exportOptions['removeNameSpace'] )
-                self.removeNamespace = self.project.d_exportOptions['removeNameSpace']
+            if self.mDat.d_exportOptions.get('removeNameSpace'):
+                self.var_removeNamespace.setValue( self.mDat.d_exportOptions.get('removeNameSpace',False) )
+                self.removeNamespace = self.mDat.d_exportOptions.get('removeNameSpace',False)
             
-            self.var_zeroRoot.setValue( self.project.d_exportOptions['zeroRoot'] )
+            self.var_zeroRoot.setValue( self.mDat.d_exportOptions.get('zeroRoot',False) )
             
             
             
@@ -3448,7 +3647,7 @@ example:
             name = mProj.d_project['name']
             project_names.append(name)
 
-            if self.project.userPaths_get().get('content') == mProj.userPaths_get().get('content'):
+            if self.mDat.userPaths_get().get('content') == mProj.userPaths_get().get('content'):
                 continue
 
             item = mUI.MelMenuItem( mMenu, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
@@ -3470,7 +3669,7 @@ example:
         _str_func = 'ui.SendVersionFileToProject'
         newProject = Project.data(filepath=infoDict['project'])
         _file = infoDict['filename']
-        newFilename = os.path.normpath(_file).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+        newFilename = os.path.normpath(_file).replace(os.path.normpath(self.mDat.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
         
         log.info( log_msg(_str_func,"Selected: {0}".format(_file)))            
         log.info( log_msg(_str_func,"New: {0}".format(newFilename)))            
@@ -3513,7 +3712,7 @@ example:
                 if not os.path.exists(refFile):
                     continue
 
-                newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.project.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
+                newRefFilename = os.path.normpath(refFile).replace(os.path.normpath(self.mDat.userPaths_get()['content']), os.path.normpath(newProject.userPaths_get()['content']))
                 print newRefFilename
                 if not os.path.exists(newRefFilename):
                     if not os.path.exists(os.path.dirname(newRefFilename)):
@@ -3557,7 +3756,7 @@ example:
         _str_func = 'Scene.VerifyAssetDirs'
         assetName = self.selectedAsset
         assetPath = os.path.normpath(os.path.join(self.path_dir_category, assetName))
-        #subTypes = [x['n'] for x in self.project.assetType_get(category).get('content', [{'n':'animation'}])]
+        #subTypes = [x['n'] for x in self.mDat.assetType_get(category).get('content', [{'n':'animation'}])]
 
         if not os.path.exists(assetPath):
             os.mkdir(charPath)
@@ -3637,13 +3836,13 @@ example:
 
 
             l_dat = []
-            d_base = {'removeNamespace' : self.removeNamespace,
+            d_base = {'removeNamespace' : self.d_tf['exportOptions']['removeNameSpace'].getValue(),
                       'bakeSetName':bakeSetName,
                       'exportSetName':exportSetName,
                       'deleteSetName':deleteSetName,
-                      'zeroRoot' : self.zeroRoot,
-                      'euler':self.var_postEuler.getValue(),
-                      'tangent':self.var_postTangent.getValue(),
+                      'zeroRoot' : self.d_tf['exportOptions']['zeroRoot'].getValue(),
+                      'euler':self.d_tf['exportOptions']['postEuler'].getValue(),
+                      'tangent':self.d_tf['exportOptions']['postTangent'].getValue(),
                       }
 
             for animDict in self.batchExportItems:
@@ -3761,11 +3960,11 @@ example:
         exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList['scrollList'].getSelectedItem()))
         exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))
 
-        d_userPaths = self.project.userPaths_get()
+        d_userPaths = self.mDat.userPaths_get()
 
 
-        postEuler = self.var_postEuler.getValue()
-        postTangent = self.var_postTangent.getValue()
+        postEuler = self.d_tf['exportOptions']['postEuler'].getValue()
+        postTangent = self.d_tf['exportOptions']['postTangent'].getValue()
         if postTangent == 'none':
             postTangent = False
 
@@ -3788,8 +3987,8 @@ example:
                 'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
                 'subType' : self.subType,
                 'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
-                'removeNamespace' : self.removeNamespace,
-                'zeroRoot' : self.zeroRoot,
+                'removeNamespace' : self.d_tf['exportOptions']['removeNameSpace'].getValue(),
+                'zeroRoot' : self.d_tf['exportOptions']['zeroRoot'].getValue(),
                 'bakeSetName':bakeSetName,
                 'exportSetName':exportSetName,
                 'deleteSetName':deleteSetName,
@@ -3812,8 +4011,8 @@ example:
                     subType = self.subType,
                     categoryExportPath = categoryExportPath,
                     exportAnimPath = exportAnimPath,
-                    removeNamespace = self.removeNamespace,
-                    zeroRoot = self.zeroRoot,
+                    removeNamespace = self.d_tf['exportOptions']['removeNameSpace'].getValue(),
+                    zeroRoot = self.d_tf['exportOptions']['zeroRoot'].getValue(),
                     animationName = self.selectedSubType,
                     tangent=postTangent,
                     euler=postEuler,                            

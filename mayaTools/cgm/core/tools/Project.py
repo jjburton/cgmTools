@@ -1404,8 +1404,10 @@ def uiProject_new(self):
         uiProject_save(self, duplicateMode=True)
         #uiProject_load(revert=True)
         uiProject_fill(self)
-        return
-    return log.error("Project Creation cancelled")
+        return True
+    
+    log.error("Project Creation cancelled")
+    return False 
             
 def uiProject_reset(self):
     self.mDat.fillDefaults(True)
@@ -1486,6 +1488,8 @@ def uiProject_lock(self):
     _template = 'cgmUITemplate'
     
     if self.d_tf['general']['lock'].getValue() == 'True':#self.mDat.d_project['lock'] == 'True':
+        log.debug("|{0}| >>...on".format(_str_func))
+        
         _enable = False
         _editable = False
         _color = .2,.2,.2
@@ -1507,6 +1511,8 @@ def uiProject_lock(self):
         self.uiFrame_AssetTypes(edit=True, vis = False)    
     
     else:
+        log.debug("|{0}| >>...off".format(_str_func))
+        
         for k,tf in self.d_tf['pathsProject'].iteritems():
             tf(edit=True,visible=True)
         for k,tf in self.d_labels['pathsProject'].iteritems():
@@ -1556,7 +1562,7 @@ def uiProject_fill(self,fillDir = True):
     
     l_errs = []
     
-    for dType in ['general','anim','pathsProject','colors']:
+    for dType in ['general','anim','pathsProject','colors','exportOptions']:
         log.debug(cgmGEN.logString_sub(_str_func,dType))
         
         for k,v in self.mDat.__dict__[PU._dataConfigToStored[dType]].iteritems():
@@ -1636,8 +1642,9 @@ def uiProject_fill(self,fillDir = True):
     
     #Project image
     log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
-    self.reload_headerImage()
-    
+    try:self.reload_headerImage()
+    except:
+        pass
     #Update file dir
     self.uiScrollList_dirContent.rebuild( self.mDat.d_paths.get('content'))
     self.uiScrollList_dirExport.rebuild(self.mDat.d_paths.get('export'))
@@ -1673,21 +1680,13 @@ def uiProject_load(self,path=None,revert=False):
     self.path_projectConfig = self.mDat.str_filepath
     self.mPathList.append(self.mDat.str_filepath)
     
-    #self.mPathList.log_self()        
-    
-    #Set pose path
 
-    #self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
-    
-    #self.uiImage_Project.setImage(mThumb)
     self.var_project.value = self.mDat.str_filepath
     self.var_pathLastProject.value = self.mDat.str_filepath
     
     uiAsset_rebuildOptionMenu(self)
     uiAsset_rebuildSub(self)
-        
-    #for t in _type:
-    #    _d[_name].append(t)        
+
     
 def uiAssetTypes_refill(self):
     pass
@@ -3223,7 +3222,7 @@ def uiButton_setPathToTextField(self,key,mode='project'):
             
 def uiButton_colorSet(self,d,key):
     
-    result = mc.colorEditor(rgb = self.mDat.d_colors[key])
+    result = mc.colorEditor(rgb = self.mDat.d_colors.get(key,[1,1,1]))
     buffer = result.split()
     if '1' == buffer[3]:
         

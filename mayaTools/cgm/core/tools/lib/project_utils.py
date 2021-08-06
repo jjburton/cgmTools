@@ -137,7 +137,7 @@ l_projectPaths = ['root','content','export','image']
 l_mayaFileType = ['ma','mb']
 
 
-_tangents = ['linear','spline','clamped','flat','plateau','auto']
+_tangents = ['linear','spline','clamped','flat','plateau','stepped','auto']
 _fps = [2,3,4,5,6,8,10,12,15,16,20,23.976,
         24,25,29.97,30,40,48,50,
         60,75,80,100,120]
@@ -169,6 +169,7 @@ _worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
                    ]
 
 _colorSettings = [{'n':'project','t':'color','dv':[.6,.3,.3]},
+                  {'n':'secondary','t':'color','dv':[.8,.15,.15]},
                   ]
 
 _cameraSettings = [{'n':'nearClip','t':'float','dv':.1},

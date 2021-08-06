@@ -168,6 +168,7 @@ def defaultTangents_set(arg, inTangent=True,outTangent=True):
                    'spline':['sp','spline'],
                    'clamped':['cl','clamped'],
                    'flat':['fl','flat'],
+                   'step':['st','step','stepped'],
                    'plateau':['pl','plateau'],
                    'auto':['au','auto']
                    }
@@ -182,6 +183,9 @@ def defaultTangents_set(arg, inTangent=True,outTangent=True):
         _d['itt']= _arg
     if outTangent:
         _d['ott'] = _arg
+        
+    if inTangent and _arg == 'step':
+        _d['itt'] = 'flat'
         
     mc.keyTangent(**_d)
     
