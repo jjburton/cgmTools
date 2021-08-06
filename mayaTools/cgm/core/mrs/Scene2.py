@@ -690,7 +690,7 @@ example:
 
         #mUI.MelSpacer(imageRow,w=10)
         self.uiImage_ProjectRow = imageRow
-        self.uiImage_Project= mUI.MelImage(imageRow,w=350, h=50)
+        self.uiImage_Project= mUI.MelImage(imageRow,w=800, h=50)#350
         self.uiImage_Project.setImage(_imageFailPath)
         #mUI.MelSpacer(imageRow,w=10)	
         imageRow.layout()
@@ -764,13 +764,14 @@ example:
         
         #Project Setup ========================================================================================
         #iColumn_project = mUI.MelScrollLayout(parent=uiTab_Project)
+        self.ui_projectDirty = mUI.MelLabel(uiTab_Project, label = 'Changes detected. Save to clear', vis = False, height = 15, bgc = PROJECT._colorBad)
         
-        PROJECT.buildFrame_baseDat(self, uiTab_Project)
+        PROJECT.buildFrame_baseDat(self, uiTab_Project, changeCommand=cgmGEN.Callback(self.uiFunc_projectDirtyState,True))
         
-        PROJECT.buildFrame_assetTypes(self,uiTab_Project)
+        PROJECT.buildFrame_assetTypes(self,uiTab_Project,changeCommand=cgmGEN.Callback(self.uiFunc_projectDirtyState,True))
         
-        PROJECT.buildFrame_paths(self,uiTab_Project)
-        PROJECT.buildFrames(self,uiTab_Project)        
+        PROJECT.buildFrame_paths(self,uiTab_Project,changeCommand=cgmGEN.Callback(self.uiFunc_projectDirtyState,True))
+        PROJECT.buildFrames(self,uiTab_Project,changeCommand=cgmGEN.Callback(self.uiFunc_projectDirtyState,True))
         
         
         
@@ -1387,6 +1388,7 @@ example:
     def uiProject_saveAndRefresh(self):
         PROJECT.uiProject_save(self)
         self.uiProject_refreshDisplay()
+        self.uiFunc_projectDirtyState(False)
         
     def reload_headerImage(self, path = None):
         _str_func = 'reload_headerImage'
@@ -2353,6 +2355,17 @@ example:
 
         if val:
             self.buildDetailsColumn()
+            
+    def uiFunc_projectDirtyState(self,arg=True):
+        _str_func = 'uiFunc_projectDirtyState'
+        log.info("|{}| >>...{}".format(_str_func,arg))
+        if arg:
+            self.b_projectDirty = True            
+            self.ui_projectDirty(edit=True,vis=True)
+        else:
+            self.b_projectDirty = False            
+            self.ui_projectDirty(edit=True,vis=False)
+            
     def uiFunc_displayProject(self,val):
         self._projectForm(e=True, vis=val)
         self._projectToggleBtn(e=True, label='<' if val else '>')
@@ -3189,6 +3202,8 @@ example:
         self.var_lastProject.setValue( path )
         
         self.uiProject_refreshDisplay()
+        self.uiFunc_projectDirtyState(False)
+        
         return
     
     

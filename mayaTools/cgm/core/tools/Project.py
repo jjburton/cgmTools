@@ -315,7 +315,7 @@ def uiAsset_rebuildSub(self):
     #for o in d.get('export',[]):
         #mUI.MelLabel(self.uiAsset_export, label=o)
     
-def buildFrame_assetTypes(self,parent):
+def buildFrame_assetTypes(self,parent,changeCommand = ''):
     try:self.var_projectAssetTypesFrameCollapse
     except:self.create_guiOptionVar('projectAssetTypesFrameCollapse',defaultValue = 0)
     mVar_frame = self.var_projectAssetTypesFrameCollapse
@@ -449,7 +449,7 @@ def buildFrame_assetTypes(self,parent):
     
     """
 
-def buildFrame_paths(self,parent):
+def buildFrame_paths(self,parent,changeCommand = ''):
     try:self.var_projectPathsCollapse
     except:self.create_guiOptionVar('projectPathsCollapse',defaultValue = 0)
     mVar_frame = self.var_projectPathsCollapse
@@ -543,7 +543,7 @@ def buildFrame_paths(self,parent):
         mUI.MelSpacer(_row,w=5)
         _row.layout()
         
-def buildFrame_baseDat(self,parent):
+def buildFrame_baseDat(self,parent,changeCommand = ''):
     try:self.var_projectBaseDatCollapse
     except:self.create_guiOptionVar('projectBaseDatCollapse',defaultValue = 0)
     mVar_frame = self.var_projectBaseDatCollapse
@@ -572,23 +572,23 @@ def buildFrame_baseDat(self,parent):
         mUI.MelSpacer(_row,w=5)                          
         mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
         if key == 'type':
-            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate',cc = changeCommand)
             for t in PU.l_projectTypes:
                 _d[key].append(t)
     
             #_d[key].selectByIdx(self.setMode,False)                
         elif key == 'nameStyle':
-            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate',cc = changeCommand)
             for t in PU.l_nameConventions:
                 _d[key].append(t)
                 
         elif key == 'mayaVersion':
-            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate',cc = changeCommand)
             for t in PU.l_mayaVersions:
                 _d[key].append(t)
         
         elif key == 'mayaFilePref':
-            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            _d[key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate',cc = changeCommand)
             for t in PU.l_mayaFileType:
                 _d[key].append(t)                
                 
@@ -605,6 +605,7 @@ def buildFrame_baseDat(self,parent):
         else:
             #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
             _d[key] =  mUI.MelTextField(_row,
+                                        cc = changeCommand,
                                         ann='Project settings | {0}'.format(key),
                                         text = '')
             
@@ -615,7 +616,7 @@ def buildFrame_baseDat(self,parent):
     #bgc = self.v_bgc
     self.uiLabel_file = mUI.MelLabel(_inside,ut='cgmUITemplate',en=False, label='')
     
-def buildFrames(self,parent):
+def buildFrames(self,parent, changeCommand = ''):
     _str_func = 'buildFrames'
     log.debug("|{0}| >>...".format(_str_func))
         
@@ -676,6 +677,7 @@ def buildFrames(self,parent):
             elif _type == 'bool':
                 _d[_name] =  mUI.MelCheckBox(_row,
                                              ann='{0} settings | {1}'.format(_name,d),
+                                             changeCommand = changeCommand,
                                               )
                 _d[_name].setValue(_dv)
                 self.d_uiTypes[k][_name] = 'bool'
@@ -1602,7 +1604,7 @@ def uiProject_fill(self,fillDir = True):
     d_user = self.mDat.d_pathsUser.get(_user,{})
     d_pathsUse = copy.copy(self.mDat.d_pathsProject)
     if d_user:
-        log.warning("Found user path dat!")
+        log.debug("Found user path dat!")
         for k,v in d_user.iteritems():
             if v:
                 d_pathsUse[k]=v
@@ -2179,7 +2181,7 @@ class data(object):
         
         d_pathsUse = copy.copy(self.d_pathsProject)
         if d_user:
-            log.warning("Found user path dat!")
+            log.debug("Found user path dat!")
             for k,v in d_user.iteritems():
                 if v:
                     d_pathsUse[k]=v
