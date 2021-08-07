@@ -882,7 +882,7 @@ def uiSection_mrsManage(parent):
     mUI.MelMenuItemDiv(parent,label='Pipeline')
     mc.menuItem(parent = parent,
                 l='Project',
-                ann = "Project Management Tool | Alpha",
+                ann = "Project Management Tool",
                 c=lambda *a:TOOLCALLS.cgmProject())
     mc.menuItem(parent = parent,
                 l='Scene',
@@ -890,9 +890,9 @@ def uiSection_mrsManage(parent):
                 c=lambda *a:TOOLCALLS.mrsScene())
     
     mc.menuItem(parent = parent,
-                l='Scene | Rework',
-                ann = "Scene Management Tool | Alpha",
-                c=lambda *a:TOOLCALLS.mrsScene2())
+                l='Scene | Legacy',
+                ann = "Scene Management Tool | Pre Merge Version",
+                c=lambda *a:TOOLCALLS.mrsSceneLegacy())
     
     mUI.MelMenuItemDiv(parent,label='Utils')
     
