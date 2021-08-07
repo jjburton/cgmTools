@@ -83,7 +83,7 @@ if cgmGEN.__mayaVersion__ >=2016:
 def uiSection_git(parent):
     _str_func = 'uiSection_git'  
     
-    l_branches = 'main','MRSDEV','MRSWORKSHOP'
+    l_branches = ['main','MRSDEV','MRSDAILY','MRSWORKSHOP']
     
     _git = mc.menuItem(parent = parent,subMenu=True,
                        l='Pull',
