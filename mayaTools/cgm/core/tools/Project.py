@@ -3224,13 +3224,15 @@ def uiButton_setPathToTextField(self,key,mode='project'):
             
 def uiButton_colorSet(self,d,key):
     
-    result = mc.colorEditor(rgb = self.mDat.d_colors.get(key,[1,1,1]))
+    result = mc.colorEditor(rgb = self.mDat.d_colors.get(key,[1,1,1]))#rgb = self.mDat.d_colors.get(key,[1,1,1])
     buffer = result.split()
     if '1' == buffer[3]:
-        
-        values = mc.colorEditor(query=True, rgb=True)
-        print 'RGB = ' + str(values)
 
+        #values = mc.colorEditor(query=True, hsv=True)
+        #print 'HSV = ' + str(values)
+        values = mc.colorEditor(query=True, rgb=True)
+        print ('RGB = ' + str(values))
+        
         self.d_tf[d][key](edit = 1, bgc = values)
         
         if key == 'project':
@@ -3238,4 +3240,4 @@ def uiButton_colorSet(self,d,key):
         
         self.mDat.d_colors[key] = values
     else:
-        print 'Editor was dismissed'
+        print ('Editor was dismissed')
