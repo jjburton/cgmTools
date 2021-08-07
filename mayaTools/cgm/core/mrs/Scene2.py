@@ -160,7 +160,7 @@ example:
         self.uiPop_sendToProject_version = None
         self.uiPop_sendToProject_variant = None
         self.uiPop_sendToProject_sub = None
-        
+        self.displayProject = True
         self.mDat                     = None
         self.assetMetaData               = {}
 
@@ -764,7 +764,8 @@ example:
         
         #Project Setup ========================================================================================
         #iColumn_project = mUI.MelScrollLayout(parent=uiTab_Project)
-        self.ui_projectDirty = mUI.MelLabel(uiTab_Project, label = 'Changes detected. Save to clear', vis = False, height = 15, bgc = PROJECT._colorBad)
+        self.ui_projectDirty = mUI.MelButton(uiTab_Project, label = 'Changes detected. Save?', vis = False, height = 15, bgc = PROJECT._colorBad,
+                                             command = cgmGEN.Callback(self.uiProject_saveAndRefresh))
         
         PROJECT.buildFrame_baseDat(self, uiTab_Project, changeCommand=cgmGEN.Callback(self.uiFunc_projectDirtyState,True))
         
@@ -1386,6 +1387,7 @@ example:
         
         
     def uiProject_saveAndRefresh(self):
+        self.SaveOptions()
         PROJECT.uiProject_save(self)
         self.uiProject_refreshDisplay()
         self.uiFunc_projectDirtyState(False)
@@ -1410,6 +1412,8 @@ example:
         self.uiImage_Project.setImage(_imagePath)
         
     def uiProject_refreshDisplay(self):
+        #self.uiFunc_displayProject(self.displayProject)
+        
         _bgColor = self.v_bgc
         try:
             _bgColor = self.mDat.d_colors['project']
@@ -2367,6 +2371,8 @@ example:
             self.ui_projectDirty(edit=True,vis=False)
             
     def uiFunc_displayProject(self,val):
+        _str_func = 'uiFunc_displayProject'
+        log.info("|{}| >>...{}".format(_str_func,val))        
         self._projectForm(e=True, vis=val)
         self._projectToggleBtn(e=True, label='<' if val else '>')
 

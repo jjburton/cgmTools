@@ -666,7 +666,7 @@ def buildFrames(self,parent, changeCommand = ''):
             
             if cgmValid.isListArg(_type):
                 
-                _d[_name] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+                _d[_name] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate',cc = changeCommand,)
                 
                 for t in _type:
                     _d[_name].append(t)
@@ -677,7 +677,7 @@ def buildFrames(self,parent, changeCommand = ''):
             elif _type == 'bool':
                 _d[_name] =  mUI.MelCheckBox(_row,
                                              ann='{0} settings | {1}'.format(_name,d),
-                                             changeCommand = changeCommand,
+                                             cc = changeCommand,
                                               )
                 _d[_name].setValue(_dv)
                 self.d_uiTypes[k][_name] = 'bool'
