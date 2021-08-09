@@ -692,6 +692,7 @@ example:
         self.uiImage_ProjectRow = imageRow
         self.uiImage_Project= mUI.MelImage(imageRow,w=1000, h=75)#350
         self.uiImage_Project.setImage(_imageFailPath)
+        self.uiImageRow_project = imageRow
         #mUI.MelSpacer(imageRow,w=10)	
         imageRow.layout()
 
@@ -1409,7 +1410,11 @@ example:
             _imagePath = os.path.join(mImagesPath.asFriendly(),
                                       'cgm_project_{0}.png'.format(self.d_tf['general']['type'].getValue()))
             
+        _height = CGMOS.get_image_size(_imagePath)[1]
+        print _height
+        self.uiImage_Project(edit=True, height = _height)
         self.uiImage_Project.setImage(_imagePath)
+        #self.uiImageRow_project.layout()
         
     def uiProject_refreshDisplay(self):
         #self.uiFunc_displayProject(self.displayProject)
@@ -1450,9 +1455,12 @@ example:
 
         if not d_userPaths.get('content'):
             log.error("No Content path found")
+            self.reload_headerImage()            
             return False
+            
         if not d_userPaths.get('export'):
             log.error("No Export path found")
+            self.reload_headerImage()
             return False
 
 
@@ -1477,11 +1485,12 @@ example:
                 self.categoryList.append(f)
 
             if d_userPaths.get('image') and os.path.exists(d_userPaths.get('image')):
-                self.uiImage_Project.setImage(d_userPaths['image'])
+                self.uiImage_Project.setImage(self.reload_headerImage(d_userPaths['image']))
             else:
                 _imageFailPath = os.path.join(mImagesPath.asFriendly(),
                                                               'cgm_project_{0}.png'.format(self.mDat.d_project.get('type','unity')))
-                self.uiImage_Project.setImage(_imageFailPath)
+                self.reload_headerImage(_imageFailPath)
+                
 
             self.buildMenu_category()
 
@@ -1491,7 +1500,7 @@ example:
             self.LoadOptions()
         else:
             mel.eval('error "Project path does not exist"')
-            
+            self.reload_headerImage()
             
         self.uiScrollList_dirContent.mDat = self.mDat
         self.uiScrollList_dirContent.rebuild( self.directory)
@@ -3775,6 +3784,12 @@ example:
 
     def VerifyAssetDirs(self):
         _str_func = 'Scene.VerifyAssetDirs'
+        
+        PROJECT.uiProject_verifyDir(self,'content',None)
+        self.uiProject_refreshDisplay()
+        
+        
+        return
         assetName = self.selectedAsset
         assetPath = os.path.normpath(os.path.join(self.path_dir_category, assetName))
         #subTypes = [x['n'] for x in self.mDat.assetType_get(category).get('content', [{'n':'animation'}])]
