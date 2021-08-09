@@ -28,7 +28,10 @@ import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core import cgm_RigMeta as cgmRigMeta
 mUI = cgmUI.mUI
 
+from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import shared_data as SHARED
+from cgm.core.lib import string_utils as CORESTRING
+
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
@@ -337,10 +340,18 @@ def uiFunc_buildActionsColumn(self):
 
 def uiFunc_run(self):
     _str_func = 'uiFunc_run[{0}]'.format(self.__class__.TOOLNAME)            
-    log.info("|{0}| >>...".format(_str_func)) 
-
+    log.info("|{0}| >>...".format(_str_func))
+    
+    d_time = SEARCH.get_timeline_dict()
+    _start = d_time['rangeStart']
+    _current = d_time['currentTime']
+    
     for i, action in enumerate(self._actionList):
+        mc.currentTime(_start)
+        
         uiFunc_run_action(self, i)
+        
+    mc.currentTime(_current)
 
 def uiFunc_run_action(self, idx):
     _str_func = 'uiFunc_run_action[{0}]'.format(self.__class__.TOOLNAME)            
@@ -352,7 +363,25 @@ def uiFunc_run_action(self, idx):
     
     mc.select(action._optionDict['objs'])
     
-    animLayerName = mc.animLayer(action.name if action.name else "")
+    animLayerName = None
+    
+    if action.name:#...if we have a name we try to to find the layer
+        _name = CORESTRING.stripInvalidChars(action.name)
+        
+        if mc.objExists(_name):
+            if SEARCH.get_mayaType(_name) == 'animLayer':
+                log.info("Found animLayer: {}".format(_name))
+                animLayerName = _name
+                mc.delete(mc.animLayer(animLayerName,q=True, anc=1))        
+
+    else:
+        _name = ''
+    
+    
+            
+    if not animLayerName:
+        animLayerName = mc.animLayer(action.name if action.name else "")
+          
     mc.setAttr( '{0}.rotationAccumulationMode'.format(animLayerName), 0)
     mc.setAttr( '{0}.scaleAccumulationMode'.format(animLayerName), 1)
     mc.animLayer( animLayerName, e=True, addSelectedObjects=True)
