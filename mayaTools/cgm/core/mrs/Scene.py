@@ -1386,6 +1386,10 @@ example:
                                         tearOff=True)         
         self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help,pmo=True)
         
+    def uiProject_open(self):
+        PROJECT.uiProject_load(self)
+        self.uiProject_refreshDisplay()
+        self.uiFunc_projectDirtyState(False)
         
     def uiProject_saveAndRefresh(self):
         self.SaveOptions()
@@ -1571,6 +1575,11 @@ example:
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="New",
                          ann='Create a new project',                         
                          c = lambda *a:mc.evalDeferred(self.uiProject_new,lp=True))
+        
+        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Open",
+                         ann='Open an existing project',                         
+                         c = lambda *a:mc.evalDeferred(self.uiProject_open,lp=True))        
         
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save ",
                          c = lambda *a:mc.evalDeferred(self.uiProject_saveAndRefresh,lp=True))
