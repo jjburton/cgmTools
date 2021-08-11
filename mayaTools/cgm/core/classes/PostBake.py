@@ -85,6 +85,8 @@ class PostBake(object):
 
         ak = mc.autoKeyframe(q=True, state=True)
         mc.autoKeyframe(state=False)
+        mc.currentTime(self.startTime)
+        
         mc.refresh(su=not self.showBake)
 
         _len = self.endTime - self.startTime
@@ -96,9 +98,14 @@ class PostBake(object):
             mc.refresh(su=False)
             mc.autoKeyframe(state=ak)
             return
-
+        
+        
         for i in range(self.startTime, self.endTime+1):
             mc.currentTime(i)
+            
+            if i == self.startTime:
+                #LOC.create(position=self.previousPosition, name='StartLoc')
+                self.previousPosition = VALID.euclidVector3Arg(self.obj.p_position)
             
             try:
                 self.update(fixedDeltaTime)

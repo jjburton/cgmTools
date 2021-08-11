@@ -348,7 +348,6 @@ def uiFunc_run(self):
     
     for i, action in enumerate(self._actionList):
         mc.currentTime(_start)
-        
         uiFunc_run_action(self, i)
         
     mc.currentTime(_current)
@@ -627,6 +626,62 @@ class ui_post_filter(object):
         self._optionDict['objs'] = mc.ls(sl=True)
         self.uiTF_objects(edit=True, label=', '.join(mc.ls(sl=True)))
 
+
+def add_timeRows(self):
+    # Start Frame --------------------------------------------------------------
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='Start Frame:')
+    self.uiCB_startFrame = mUI.MelCheckBox(_row,en=True,
+                                           v = self._optionDict.get('starFrameUse', False),
+                                           label = '',
+                                           ann='Use a start frame')
+    
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    self.uiIF_startFrame = mUI.MelIntField(_row,
+                                             en= True,
+                                             w= 50,
+                                             ut='cgmUISubTemplate',
+                                             v=self._optionDict.get('startFrame', 0))
+    
+    self.uiCB_startFrame(edit = True, cc = lambda *a:self.uiIF_startFrame(edit = 1,
+                                                                          bgc = [1,1,1],
+                                                                          en = self.uiCB_startFrame.getValue()))
+    self.uiIF_startFrame(edit=1, enable = self.uiCB_startFrame.getValue())
+    mUI.MelSpacer(_row,w=_padding)
+    _row.layout()
+    
+    
+    # End Frame --------------------------------------------------------------
+    #
+    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=_padding)
+    mUI.MelLabel(_row,l='End Frame:')
+    self.uiCB_endFrame = mUI.MelCheckBox(_row,en=True,
+                                           v = self._optionDict.get('starFrameUse', False),
+                                           label = '',
+                                           ann='Use a end frame')
+    
+    _row.setStretchWidget( mUI.MelSeparator(_row) )
+    self.uiIF_endFrame = mUI.MelIntField(_row,
+                                             en= True,
+                                             w= 50,
+                                             ut='cgmUISubTemplate',
+                                             v=self._optionDict.get('endFrame', 0))
+    
+    self.uiCB_endFrame(edit = True, cc = lambda *a:self.uiIF_endFrame(edit = 1,
+                                                                          bgc = [1,1,1],
+                                                                          en = self.uiCB_endFrame.getValue()))
+    self.uiIF_endFrame(edit=1, enable = self.uiCB_endFrame.getValue())
+    
+    mUI.MelSpacer(_row,w=_padding)
+    _row.layout()    
+    #
+    # End time Scale --------------------------------------------------------------    
+    
 class ui_post_dragger_column(ui_post_filter):
     filterType = 'dragger'
 
@@ -779,16 +834,11 @@ class ui_post_dragger_column(ui_post_filter):
         # Post Angular Up Damp
         #
         _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
-
         mUI.MelSpacer(_row,w=_padding)
         mUI.MelLabel(_row,l='Angular Up Damp:')
-
         _row.setStretchWidget( mUI.MelSeparator(_row) )
-
         self.uiFF_post_angular_up_damp = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('angularUpDamp', 7.0))
-
         mUI.MelSpacer(_row,w=_padding)
-
         _row.layout()
         #
         # End Angular Damp
@@ -812,6 +862,8 @@ class ui_post_dragger_column(ui_post_filter):
         _row.layout()
         #
         # End Object Scale
+        
+        add_timeRows(self)#...add our time rows
 
         self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
 
@@ -895,7 +947,8 @@ class ui_post_dragger_column(ui_post_filter):
         for obj in self._optionDict['objs']:
             mc.select(obj)
             postInstance = DRAGGER.Dragger(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], angularDamp = self._optionDict['angularDamp'], angularUpDamp = self._optionDict['angularUpDamp'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self._optionDict['objectScale'], debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
-            postInstance.bake()
+            postInstance.bake(startTime=self.uiIF_startFrame.getValue() if self.uiCB_startFrame.getValue() else None,
+                              endTime= self.uiIF_endFrame.getValue() if self.uiCB_endFrame.getValue() else None)
 
 
 class ui_post_spring_column(ui_post_filter):
@@ -1143,6 +1196,9 @@ class ui_post_spring_column(ui_post_filter):
 
         mc.setParent(parentColumn)
         cgmUI.add_LineSubBreak()  
+        
+        add_timeRows(self)#...add our time rows
+        
 
         # Debug
         #
@@ -1228,12 +1284,12 @@ class ui_post_spring_column(ui_post_filter):
 
     def run(self):
         self.update_dict()
-
         for obj in self._optionDict['objs']:
             mc.select(obj)
             postInstance = SPRING.Spring(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], springForce=self._optionDict['springForce'], angularDamp = self._optionDict['angularDamp'], angularSpringForce = self._optionDict['angularSpringForce'], angularUpDamp = self._optionDict['angularUpDamp'], angularUpSpringForce = self._optionDict['angularUpSpringForce'],objectScale=self._optionDict['objectScale'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'],debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
-            postInstance.bake()
-
+            postInstance.bake(startTime=self.uiIF_startFrame.getValue() if self.uiCB_startFrame.getValue() else None,
+                              endTime= self.uiIF_endFrame.getValue() if self.uiCB_endFrame.getValue() else None)
+            
 class ui_post_trajectory_aim_column(ui_post_filter):
     filterType = 'trajectory aim'
 
@@ -1319,9 +1375,11 @@ class ui_post_trajectory_aim_column(ui_post_filter):
         _row.layout()
         #
         # End Damp
+        add_timeRows(self)#...add our time rows
 
         mc.setParent(parentColumn)
         cgmUI.add_LineSubBreak()  
+        
 
         # Debug
         #
@@ -1341,6 +1399,8 @@ class ui_post_trajectory_aim_column(ui_post_filter):
         mUI.MelSpacer(_row,w=_padding)
 
         _row.layout()
+        
+        
         #
         # End Debug
 
