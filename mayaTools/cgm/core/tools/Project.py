@@ -106,7 +106,7 @@ def uiAsset_add(self):
         self.uiAssetTypeOptions.selectByValue(_name)
         uiAsset_rebuildSub(self)
         
-        uiProject_save()
+        uiProject_save(self)
         
         #mUI.MelOptionMenu
         
