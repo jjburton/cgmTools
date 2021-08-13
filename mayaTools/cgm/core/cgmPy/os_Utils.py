@@ -814,7 +814,7 @@ def dup_dirsBelow(pathSource = None, pathTarget = None,  search = '', replace = 
     """
     Function for walking below a given directory 
     
-    """
+    """    
     _str_func = 'dup_dirsInPath'
     #_b_debug = log.isEnabledFor(logging.DEBUG)
     
@@ -869,6 +869,107 @@ def dup_dirsBelow(pathSource = None, pathTarget = None,  search = '', replace = 
                 log.debug(log_msg(_str_func, "Target: {0}".format(dPathTarget)))
                 if not test:
                     pass#os.rename(dPathSource,dPathTarget)  """
+            
+def dup_structure(pathSource = None, pathTarget = None,  copyFiles = False, search = '', replace = '', test = False, skip = ['meta','.mayaSwatches']):
+    """
+    Function for walking below a given directory 
+    
+    """
+    _str_func = 'dup_dirsInPath'
+    from shutil import copyfile
+    
+    #_b_debug = log.isEnabledFor(logging.DEBUG)
+    
+    if not search and replace:
+        raise ValueError, log_msg(_str_func,"Must have search and replace")
+    
+    _path = PATH.Path(pathSource)
+    _base = _path.split()[-1]
+    
+    l_files = []
+    
+    log.info("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,_path))
+    
+    #First loop for dirs...
+    for root, dirs, files in os.walk(pathSource, True, None):
+        # Parse all the files of given path and reload python modules
+        _mRoot = PATH.Path(root)
+        _split = _mRoot.split()
+        _subRoot = _split[-1]
+        _splitUp = _split[_split.index(_base)+1:]
+        
+        #_rootUse = os.path.join(*_split)
+        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
+        log.debug("|{0}| >> On split: {1}".format(_str_func,_split))        
+        log.debug("|{0}| >> On splitup: {1}".format(_str_func,_splitUp))    
+        
+        if _splitUp and _splitUp[-1] in skip:
+            log.debug(log_sub(_str_func,"skip found: {0}".format(d)))                
+            continue
+
+        
+        for d in dirs:
+            if not _splitUp:
+                continue
+            if d in skip:
+                log.debug(log_sub(_str_func,"skip found: {0}".format(d)))                
+                continue
+            #if d == _split[0]:
+                #continue
+            
+            log.debug(log_sub(_str_func,d))
+            
+            dPathSource = os.path.join(root, d) #get path
+            _pathTarget = [pathTarget] + _splitUp + [d]
+            dPathTarget = os.path.join(*_pathTarget) #new path
+
+            log.debug(log_msg(_str_func, "Source: {0}".format(dPathSource)))
+            log.debug(log_msg(_str_func, "Target: {0}".format(dPathTarget)))            
+            if not test:
+                mkdir_recursive(dPathTarget)
+            
+        if copyFiles:
+            for f in files:
+                log.debug(log_sub(_str_func,"f: {0}".format(f)))
+                fPathSource =  os.path.join(dPathSource, f)
+                fPathTarget =  os.path.join(dPathTarget, f)
+                """
+                _good = True
+                for k in _splitUp:
+                    if k in skip:
+                        log.debug(log_sub(_str_func,"skip found: {0}".format(fPathSource)))
+                        _good = False
+                        continue                    
+                if not _good:
+                    continue"""
+                
+                log.debug(log_msg(_str_func, "Source: {0}".format(fPathSource)))
+                log.debug(log_msg(_str_func, "Target: {0}".format(fPathTarget)))
+                
+                if not test:
+                    copyfile(fPathSource, fPathTarget)
+                
+                
+                """
+                if search in f or search == f:#d.find(search) > 0:
+                    dRenamed = f.replace(search,replace)
+                    dPathSource = os.path.join(root, f) #get path
+                    dPathTarget = os.path.join(root, dRenamed) #new path
+                    
+                    log.debug(log_msg(_str_func, "Source: {0}".format(dPathSource)))
+                    log.debug(log_msg(_str_func, "Target: {0}".format(dPathTarget)))
+                    if not test:
+                        os.rename(dPathSource,dPathTarget)"""
+                """
+                if search in d or search == d:#d.find(search) > 0:
+                    dRenamed = d.replace(search,replace)
+                    dPathSource = os.path.join(root, d) #get path
+                    dPathTarget = os.path.join(root, dRenamed) #new path
+                    
+                    log.debug(log_msg(_str_func, "Source: {0}".format(dPathSource)))
+                    log.debug(log_msg(_str_func, "Target: {0}".format(dPathTarget)))
+                    if not test:
+                        pass#os.rename(dPathSource,dPathTarget)  """
             
             
 #-------------------------------------------------------------------------------

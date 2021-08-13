@@ -2723,7 +2723,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                 log.warning("Dir doesn't exists: {0}".format(mPath))
 
 
-    def uiFunc_sendDirToProject(self, path, toProjectPath):
+    def uiFunc_sendDirToProject(self, path, toProjectPath, copyfiles = True):
         _str_func = 'ui.uiFunc_sendToProject'
         from shutil import copyfile
         
@@ -2754,7 +2754,9 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             os.makedirs(os.path.dirname(_createPath))
             
             
+        CGMOS.dup_structure(path, newPath, copyFiles = copyfiles)
             
+        """
         for f in os.listdir(path):
             _fileSource = os.path.join(path,f)            
             if os.path.isfile(_fileSource):
@@ -2784,7 +2786,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
                         if not os.path.exists(newRefFilename):
                             if not os.path.exists(os.path.dirname(newRefFilename)):
                                 os.makedirs(os.path.dirname(newRefFilename))
-                            copyfile(refFile, newRefFilename)                    
+                            copyfile(refFile, newRefFilename) """                   
                     
             
         return
@@ -2888,7 +2890,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         mUI.MelMenuItem(_popUp,
                         ann = "Open Path to: {0}".format(_path),
                         c= cgmGEN.Callback(self.uiPath_openDir,_path),
-                        label = 'Open Dir')
+                        label = 'Show in Explorer')
         
         mUI.MelMenuItem(_popUp,
                         ann = "Open Maya file in: {0}".format(_path),
@@ -2917,7 +2919,8 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         
         
         #Send to Project =================================================================
-        _send = mUI.MelMenuItem(_popUp, l="Send To Project:",subMenu=True)
+        _send = mUI.MelMenuItem(_popUp, l="Send Structure To Project:",subMenu=True)
+        _sendAll = mUI.MelMenuItem(_popUp, l="Send Files To Project:",subMenu=True)
 
         mPathList = cgmMeta.pathList('cgmProjectPaths')
 
@@ -2935,9 +2938,12 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             mUI.MelMenuItem( _send,
                              l=name if project_names.count(name) == 1 else '%s {%i}' % (name,
                                                                                         project_names.count(name)-1),
-                                                c = cgmGEN.Callback(self.uiFunc_sendDirToProject,_path,p))
-            #self.d_subPops[mMenu].append(item)        
-        
+                            c = cgmGEN.Callback(self.uiFunc_sendDirToProject,_path,p,False))        
+            
+            mUI.MelMenuItem( _sendAll,
+                             l=name if project_names.count(name) == 1 else '%s {%i}' % (name,
+                                                                                        project_names.count(name)-1),
+                             c = cgmGEN.Callback(self.uiFunc_sendDirToProject,_path,p,True))        
         
         
         

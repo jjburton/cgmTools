@@ -915,8 +915,9 @@ example:
 
         self.assetTSLpum = mUI.MelPopupMenu(self.assetList['scrollList'], pmc=self.UpdateAssetTSLPopup)
 
-        mRow_asset = mUI.MelHLayout(_catForm)
+        mRow_asset = mUI.MelHLayout(_catForm,padding = 2)
         self.assetButton = mUI.MelButton(mRow_asset, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
+        #mUI.MelSpacer(mRow_asset,w=5)
         self.addSubTypeButton = mUI.MelButton(mRow_asset, ut='cgmUITemplate', label="Add SubType", command=self.CreateSubType)
         mRow_asset.layout()
 
