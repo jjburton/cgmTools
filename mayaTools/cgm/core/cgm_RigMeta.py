@@ -1466,6 +1466,9 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             
         if self.scaleMode == 2:
             i_child.addAttr('scaleSpace',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+        elif i_child.hasAttr('scaleSpace'):
+            ATTR.delete(i_child.mNode,'scaleSpace')
+            
             
         
         #Make our groups

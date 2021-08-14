@@ -63,7 +63,8 @@ class ui(cgmUI.cgmGUI):
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 250,300
     #_checkBoxKeys = ['shared','default','user','others']
-    __modes = 'space','orient','follow'
+    __modes = 'space','orient','follow','point'
+    __scaleModes = 'none','link','space'
     
     def insert_init(self,*args,**kws):
             if kws:log.debug("kws: %s"%str(kws))
@@ -78,7 +79,8 @@ class ui(cgmUI.cgmGUI):
 
             self.uiPopUpMenu_parent = False
             self._l_toEnable = []
-            self.create_guiOptionVar('dynParentMode',  defaultValue = ui.__modes[0])       
+            self.create_guiOptionVar('dynParentMode',  defaultValue = ui.__modes[0])
+            self.create_guiOptionVar('dynParentScaleMode',  defaultValue = ui.__scaleModes[0])                   
             self.uiScrollList_parents = False
             self._mNode = False
             self._mGroup = False
@@ -197,6 +199,7 @@ class ui(cgmUI.cgmGUI):
             self.uiField_report(edit=True, label = 'DynGroup: {0}'.format(' | '.join(_l_report)))                 
             
             self._uiList_modeButtons[_d['mode']].select()        
+            self._uiList_modeScaleButtons[_d['scaleMode']].select()        
             
             for o in self._l_toEnable:
                 o(e=True, en=True)  
@@ -346,9 +349,10 @@ class ui(cgmUI.cgmGUI):
         _uiRC_mode = mUI.MelRadioCollection()
         _v = self.var_dynParentMode.value
         
-        _d_annos = {'space':'Will use objects loaded to the ui',
-                    'follow':'Will use any selected objects primNode type',
-                    'orientTo':'Will use any objects below primeNode heirarchally and matching type'}
+        _d_annos = {'space':'Sets up via parentConstraint',
+                    'follow':'Sets up via point/orient constraint with sep modes',
+                    'orientTo':'Sets up via orient constraint',
+                    'point':'Sets up via point constraint'}
         self._uiList_modeButtons = []
         for i,item in enumerate(ui.__modes):
             _button = _uiRC_mode.createButton(_row_modeSelect,
@@ -362,9 +366,40 @@ class ui(cgmUI.cgmGUI):
         
         self._uiRC_mode = _uiRC_mode
         _row_modeSelect.layout()
+        #...mode row end-----------------------------------------------------------------------------------------
         
-        #self._l_toEnable.append(_row_modeSelect)
-        #if self.CreateAttrTypeOptionVar.value:
+        
+        #>>>Scale Mode Row ---------------------------------------------------------------------------------------
+        _row_modeScaleSelect = mUI.MelHSingleStretchLayout(_MainForm,ut='cgmUISubTemplate',padding = 5,en=True)
+        
+        mUI.MelLabel(_row_modeScaleSelect,l="scaleMode:")
+        _row_modeScaleSelect.setStretchWidget(mUI.MelSeparator(_row_modeScaleSelect))
+        
+        _uiRC_modeScale = mUI.MelRadioCollection()
+        _v = self.var_dynParentScaleMode.value
+        
+        _d_annos = {'none':'No scale setup',
+                    'link':'Scale follows the normal space driver',
+                    'space':'Setup separate scaleSpace attribute'}
+        self._uiList_modeScaleButtons = []
+        for i,item in enumerate(ui.__scaleModes):
+            _button = _uiRC_modeScale.createButton(_row_modeScaleSelect,
+                                              label=item,
+                                              ann=_d_annos.get(item,'Fill out the dict!'),
+                                              cc = cgmGEN.Callback(self.var_dynParentScaleMode.setValue,item))
+            if item == _v:
+                _button.select()
+            self._uiList_modeScaleButtons.append(_button)
+                  
+        
+        self._uiRC_modeScale = _uiRC_modeScale
+        _row_modeScaleSelect.layout()
+        #...mode row end-----------------------------------------------------------------------------------------        
+        
+        
+        
+        
+        
         
         #>>> Group Buttons Row ---------------------------------------------------------------------------------------
         _row_groupsButtons = mUI.MelHLayout(_MainForm,ut='cgmUISubTemplate',padding = 2,en=True)
@@ -448,6 +483,8 @@ class ui(cgmUI.cgmGUI):
                         (_header_parents,"right",0),
                         (_row_modeSelect,"left",5),
                         (_row_modeSelect,"right",5),
+                        (_row_modeScaleSelect,"left",5),
+                        (_row_modeScaleSelect,"right",5),                        
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),                        
                         (_row_cgm,"bottom",0),
@@ -456,7 +493,8 @@ class ui(cgmUI.cgmGUI):
                   ac = [(_row_objLoad,"top",2,_header_top),
                         (_row_report,"top",0,_row_objLoad),
                         (_row_modeSelect,"top",2,_row_report),
-                        (_row_groupsButtons,"top",2,_row_modeSelect),                        
+                        (_row_modeScaleSelect,"top",2,_row_modeSelect),                        
+                        (_row_groupsButtons,"top",2,_row_modeScaleSelect),                        
                         (_header_parents,"top",2,_row_groupsButtons),
                         (self.uiScrollList_parents,"top",0,_header_parents),
                         (self.uiScrollList_parents,"bottom",2,_row_parentsButtons),
@@ -619,6 +657,9 @@ class ui(cgmUI.cgmGUI):
         _idx = self._uiRC_mode.getSelectedIndex()
         _d['dynMode'] = _idx
         
+        _idx = self._uiRC_modeScale.getSelectedIndex()
+        _d['scaleMode'] = _idx
+        
         cgmGEN.log_info_dict(_d,_str_func)
         return _d
         
@@ -637,15 +678,18 @@ class ui(cgmUI.cgmGUI):
         _d_exists = get_dict(self._mNode.mNode)
         _d_build = self.uiFunc_get_buildDict()
         _d_build['dynChild'] = self._mNode
-        if _d_exists and _d_exists.get('dynMode') != _d_build.get('dynMode'):
-            log.error("|{0}| >> Modes don't match".format(_str_func))                                            
+        pprint.pprint(_d_build)
+        
+        #if _d_exists and _d_exists.get('dynMode') != _d_build.get('dynMode'):
+        #    log.error("|{0}| >> Modes don't match".format(_str_func))                                            
             
         
         
         #Build...
         verify_obj(self._mNode, _d_build.get('dynMode'))
+        self._mGroup.scaleMode = _d_build.get('scaleMode')
         
-        
+        self._mGroup.rebuild()
         self.uiFunc_updateDynParentDisplay()
         
         
@@ -1038,6 +1082,7 @@ def get_dict(obj = None):
     #log.info("|{0}| >> dynChild: {1}".format(_str_func,mObj.mNode))
     #log.info("|{0}| >> dynGroup: {1}".format(_str_func,mGroup.mNode))
     _d['mode'] = mGroup.dynMode
+    _d['scaleMode'] = mGroup.getMayaAttr('scaleMode') or 'none'
     _d['dynParents'] = mGroup.msgList_get('dynParents')
     _d['dynDrivers'] = mGroup.msgList_get('dynDrivers')
     _d['dynChild'] = mObj
