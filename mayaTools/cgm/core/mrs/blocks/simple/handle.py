@@ -219,6 +219,8 @@ d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
                  'proxyShape':'cube:sphere:cylinder:cone:torus:shapers',
                  'targetJoint':'messageSimple',
                  'shapersAim':'toEnd:chain',
+                 'dynParentMode':'space:orient:follow:point',
+                 'dynParentScaleMode':'off:link:space',
                  'rootJoint':'messageSimple'}
 
 d_defaultSettings = {'version':__version__,
@@ -1856,7 +1858,10 @@ def rig_cleanUp(self):
     mDynGroup = mHandle.getMessageAsMeta('dynParentGroup')
     if mDynGroup:
         log.info("|{0}| >> dynParentSetup : {1}".format(_str_func,mDynGroup))  
-        mDynGroup.dynMode = 0
+        
+        
+        mDynGroup.dynMode = mBlock.dynParentMode#0
+        mDynGroup.scaleMode = mBlock.dynParentScaleMode
     
         for o in ml_targetDynParents:
             mDynGroup.addDynParent(o)
@@ -1866,7 +1871,9 @@ def rig_cleanUp(self):
                             mHandle.masterGroup.mNode,maintainOffset = True)
         mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
                             mHandle.masterGroup.mNode,maintainOffset = True)
-    #mDynGroup.dynFollow.parent = mMasterDeformGroup
+    
+    if mDynGroup.getMessage('dynFollow'):
+        mDynGroup.dynFollow.parent = mMasterDeformGroup
     
     
     #Direct ---------------------------------------------------------------------------------------------

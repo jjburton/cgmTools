@@ -6550,6 +6550,7 @@ def rig_segments(self):
                 
                 #IK.spline(**_d)
             else:
+                _d['parentDeformTo'] = ml_blendJoints[i]                
                 IK.ribbon(**_d)
             
                 ml_segJoints[0].parent = ml_blendJoints[i]

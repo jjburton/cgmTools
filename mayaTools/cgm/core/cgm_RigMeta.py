@@ -1382,7 +1382,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         self.addAttr('cgmType','dynParentGroup',lock=True)#We're gonna set the class because it's necessary for this to work
 
         self.addAttr('dynMode',attrType = 'enum', enumName= 'space:orient:follow:point', keyable = False, hidden=True)
-        self.addAttr('scaleMode',attrType = 'enum', enumName= 'none:space', keyable = False, hidden=True)
+        self.addAttr('scaleMode',attrType = 'enum', enumName= 'off:link:space', keyable = False, hidden=True)
         self.addAttr('dynChild',attrType = 'messageSimple',lock=True)
         self.addAttr('dynFollow',attrType = 'messageSimple',lock=True)
 
@@ -1463,6 +1463,10 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 
         for a in d_DynParentGroupModeAttrs[self.dynMode]:
             i_child.addAttr(a,attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+            
+        if self.scaleMode == 2:
+            i_child.addAttr('scaleSpace',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+            
         
         #Make our groups
         #One per parent, copy parent transform
@@ -1563,6 +1567,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         self.msgList_append('dynParents',mDynParent)#Connect the nodes
         log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynParents',asMeta =False))
         return mDynParent
+    
     def verifyConstraints(self):
         """
         1) are we constrained
@@ -1647,7 +1652,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             i_dynConst = cgmMeta.cgmNode(cBuffer)
             log.debug("|{0}| >> Point: {1}".format(_str_func,i_dynConst))                    
         
-        if self.getEnumValueString('scaleMode') in ['space']:
+        if self.getEnumValueString('scaleMode') in ['space','link']:
             cBuffer = mc.scaleConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
             mDynScaleConst = cgmMeta.cgmNode(cBuffer)
             
@@ -1703,7 +1708,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
                 if self.scaleMode == 2:
                     mScaleCondNode = cgmMeta.cgmNode(mc.createNode('condition'))
                     mScaleCondNode.operation = 0
-                    mc.connectAttr("%s.scale"%mDynChild.mNode,"%s.firstTerm"%mScaleCondNode.mNode)
+                    mc.connectAttr("%s.%s"%(mDynChild.mNode,'scaleSpace'),"%s.firstTerm"%mScaleCondNode.mNode)
                     mc.setAttr("%s.secondTerm"%mScaleCondNode.mNode,i)
                     mc.setAttr("%s.colorIfTrueR"%mScaleCondNode.mNode,1)
                     mc.setAttr("%s.colorIfFalseR"%mScaleCondNode.mNode,0)

@@ -2297,7 +2297,10 @@ def pivots_setup(self, mControl = None,
                 
                 if a in ['left','right']:
                     mPivot.doStore('cgmName', d_bankNames[a])
-                    mPivot.doName()
+                
+                _str = NAMETOOLS.get_combinedNameDict(mControl.mNode,['cgmType','cgmTypeModifier'])
+                mPivot.doStore('cgmNameModifier',_str)
+                mPivot.doName()
                     
                 mPivot.rotateOrder = 2
                 mPivot.masterGroup.parent = mLastParent
