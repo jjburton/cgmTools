@@ -27,7 +27,7 @@ import cgm.core.cgm_General as cgmGEN
 
 from cgm.core.rigger.lib import rig_Utils as rUtils
 from cgm.core.lib import attribute_utils as ATTR
-
+from cgm.core.lib import transform_utils as TRANS
 from cgm.lib import (lists,
                      search,
                      attributes,
@@ -1289,16 +1289,16 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             """
             To pass a group in the initialzation as the group, we need to check a few things
             """
-            i_child = cgmMeta.validateObjArg(child,'cgmObject',noneValid=True)
+            mChild = cgmMeta.validateObjArg(child,'cgmObject',noneValid=True)
             i_group = cgmMeta.validateObjArg(group,'cgmObject',noneValid=True)
-            if not i_child or not i_group:#1) We need args
+            if not mChild or not i_group:#1) We need args
                 return False
 
-            if not i_child.isChildTo(i_group):#2) the child has to be a child of the group
+            if not mChild.isChildTo(i_group):#2) the child has to be a child of the group
                 return False
-            if i_child.hasAttr('dynParentGroup'):#3) the child is already connected
-                if i_child.dynParentGroup != i_group:
-                    log.debug("cgmDynParentGroup.isGroupValidForChild>> Child already has dynParentGroup: '%s'"%i_child.getMessage('dynParentGroup'))
+            if mChild.hasAttr('dynParentGroup'):#3) the child is already connected
+                if mChild.dynParentGroup != i_group:
+                    log.debug("cgmDynParentGroup.isGroupValidForChild>> Child already has dynParentGroup: '%s'"%mChild.getMessage('dynParentGroup'))
                     return False
                 else:
                     return True
@@ -1440,7 +1440,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             log.error("|{0}| >> Need at lesat two dynParents for rebuild.".format(_str_func))
             return False
         
-        i_child = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',noneValid=False)
+        mChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',noneValid=False)
 
         #TODO First scrub nodes and what not
         self.dagLock(False)
@@ -1450,24 +1450,24 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         d_attrBuffers = {}
         for a in self.l_dynAttrs:
             log.debug("|{0}| >> {1}... ".format(_str_func,a))                        
-            if i_child.hasAttr(a):#we probably need to index these to the previous settings in case order changes
+            if mChild.hasAttr(a):#we probably need to index these to the previous settings in case order changes
                 log.debug("|{0}| >> buffer... ".format(_str_func))                            
-                d_attrBuffers[a] = ATTR.get(i_child.mNode,a)
+                d_attrBuffers[a] = ATTR.get(mChild.mNode,a)
             if a not in d_DynParentGroupModeAttrs[self.dynMode]:
                 log.debug("|{0}| >> delete.. ".format(_str_func))                            
-                ATTR.delete(i_child.mNode,a)
+                ATTR.delete(mChild.mNode,a)
         if d_attrBuffers:log.debug("d_attrBuffers: %s"%d_attrBuffers)
 
         l_parentShortNames = [cgmMeta.cgmNode(o).getNameAlias() for o in l_dynParents]
         log.debug("parentShortNames: %s"%l_parentShortNames)
 
         for a in d_DynParentGroupModeAttrs[self.dynMode]:
-            i_child.addAttr(a,attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+            mChild.addAttr(a,attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
             
         if self.scaleMode == 2:
-            i_child.addAttr('scaleSpace',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
-        elif i_child.hasAttr('scaleSpace'):
-            ATTR.delete(i_child.mNode,'scaleSpace')
+            mChild.addAttr('scaleSpace',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+        elif mChild.hasAttr('scaleSpace'):
+            ATTR.delete(mChild.mNode,'scaleSpace')
             
             
         
@@ -1486,7 +1486,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             log.debug("verifyParentDriver: {0}".format(o))
             self.verifyParentDriver(o)
         
-        #i_child.addAttr('space',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
+        #mChild.addAttr('space',attrType='enum',enumName = ':'.join(l_parentShortNames),keyable = True, hidden=False)
         #pprint.pprint(vars())
         
         #Verify constraints   
@@ -1513,22 +1513,22 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         
     def addDynChild(self,arg):
         log.debug(">>> %s.addDynChild(arg = %s) >> "%(self.p_nameShort,arg) + "="*75) 		        		
-        i_child = cgmMeta.validateObjArg(arg,'cgmObject',noneValid=True)
-        if i_child == self:
+        mChild = cgmMeta.validateObjArg(arg,'cgmObject',noneValid=True)
+        if mChild == self:
             raise StandardError, "cgmDynParentGroup.addDynChild>> Cannot add self as dynChild"
 
         #Make sure the child is a descendant
-        if not self.isParentTo(i_child):
-            log.warning("cgmDynParentGroup.addDynChild>> dynChild isn't not heirarchal child: '%s'"%i_child.getShortName())
+        if not self.isParentTo(mChild):
+            log.warning("cgmDynParentGroup.addDynChild>> dynChild isn't not heirarchal child: '%s'"%mChild.getShortName())
             return False
 
-        if i_child.hasAttr('dynParentGroup') and i_child.dynParentGroup == self:
-            log.debug("cgmDynParentGroup.addDynChild>> dynChild already connected: '%s'"%i_child.getShortName())
+        if mChild.hasAttr('dynParentGroup') and mChild.dynParentGroup == self:
+            log.debug("cgmDynParentGroup.addDynChild>> dynChild already connected: '%s'"%mChild.getShortName())
             return True
 
-        log.debug("cgmDynParentGroup.addDynChild>> Adding dynChild: '%s'"%i_child.getShortName())
-        self.connectChildNode(i_child,'dynChild','dynParentGroup')#Connect the nodes
-        self.doStore('cgmName',i_child)
+        log.debug("cgmDynParentGroup.addDynChild>> Adding dynChild: '%s'"%mChild.getShortName())
+        self.connectChildNode(mChild,'dynChild','dynParentGroup')#Connect the nodes
+        self.doStore('cgmName',mChild)
         #Must be a descendant
         #Add attrs per mode
         #setup per mode
@@ -1827,13 +1827,13 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             sl = mc.ls(sl=True, l=True)
             
             #Swich setting shile holding 
-            l_attrs = ['space','follow','orientTo']
+            l_attrs = ['space','follow','orientTo','scaleSpace']
             if attr not in l_attrs:
                 raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Not a valid attr: %s"%attr	
     
-            i_child = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',True)
-            d_attr = cgmMeta.validateAttrArg([i_child.mNode,attr])
-            if not i_child and d_attr:
+            mChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',True)
+            d_attr = cgmMeta.validateAttrArg([mChild.mNode,attr])
+            if not mChild and d_attr:
                 raise StandardError,"cgmDynParentGroup.doSwitchSpace>> doSwitchSpace doesn't have enough info. Rebuild recommended"
     
             #Validate the arg
@@ -1844,22 +1844,39 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             else:
                 raise StandardError,"%s.doSwitchSpace>> faile to find index from -- arg: %s | attr: %s"%(self.getShortName(),arg,attr)
     
-            if index == i_child.getAttr(attr):
+            if index == mChild.getAttr(attr):
                 log.debug("cgmDynParentGroup.doSwitchSpace>> Already that mode")	    
                 return True
             elif index+1 > len(d_attr['mi_plug'].p_enum):
                 raise StandardError,"cgmDynParentGroup.doSwitchSpace>> Index(%s) greater than options: %s"%(index,d_attr['mi_plug'].getEnum())	
     
-    
-            objTrans = mc.xform (i_child.mNode, q=True, ws=True, rp=True)#Get trans
-            objRot = mc.xform (i_child.mNode, q=True, ws=True, ro=True)#Get rot
-            i_loc = i_child.doLoc()#loc
-    
-            mc.setAttr("%s.%s"%(i_child.mNode,attr),index)#Change it
-            mc.move (objTrans[0],objTrans[1],objTrans[2], [i_child.mNode])#Set trans
-            mc.rotate (objRot[0], objRot[1], objRot[2], [i_child.mNode], ws=True)#Set rot	
-    
-            if deleteLoc:i_loc.delete()
+            objTrans = mc.xform (mChild.mNode, q=True, ws=True, rp=True)#Get trans
+            objRot = mc.xform (mChild.mNode, q=True, ws=True, ro=True)#Get rot
+            mLoc = mChild.doLoc()#loc
+            
+            _scaleMode = self.getMayaAttr('scaleMode')
+            if _scaleMode:#attr == 'scaleSpace':
+                #bb = TRANS.bbSize_get(mChild.mNode)
+                _scaleGrp = self.scale
+                _scaleObj = mChild.scale
+                
+                if mChild.hasAttr('space'):
+                    mc.setAttr("%s.space"%(mChild.mNode),index)#Change it
+                    
+            mc.setAttr("%s.%s"%(mChild.mNode,attr),index)#Change it
+                
+            mc.move (objTrans[0],objTrans[1],objTrans[2], [mChild.mNode])#Set trans
+            mc.rotate (objRot[0], objRot[1], objRot[2], [mChild.mNode], ws=True)#Set rot	
+            
+            if _scaleMode:
+                #TRANS.scale_to_boundingBox(mChild.mNode, bb, freeze= False)
+                _scaleGrpNew = self.scale
+                _new = []
+                for i in range(3):
+                    _new.append( _scaleObj[i] * (_scaleGrp[i] / _scaleGrpNew[i]) )
+                mChild.scale = _new
+                
+            if deleteLoc:mLoc.delete()
     
             mc.select(sl)
         except Exception,err:
@@ -1874,14 +1891,14 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         self.clearParents()
 
         _parent = self.parent
-        i_child = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',noneValid=True)
-        if i_child:
+        mChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',noneValid=True)
+        if mChild:
             for a in self.l_dynAttrs:
-                if i_child.hasAttr(a):
-                    attributes.doDeleteAttr(i_child.mNode,a)
-            if i_child.hasAttr('dynParentGroup'):
-                attributes.doDeleteAttr(i_child.mNode,'dynParentGroup')
-            i_child.parent = _parent
+                if mChild.hasAttr(a):
+                    attributes.doDeleteAttr(mChild.mNode,a)
+            if mChild.hasAttr('dynParentGroup'):
+                attributes.doDeleteAttr(mChild.mNode,'dynParentGroup')
+            mChild.parent = _parent
             
         self.delete()
 
