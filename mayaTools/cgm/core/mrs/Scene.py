@@ -1220,15 +1220,18 @@ example:
         cgmUI.add_LineSubBreak()
 
         #_row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
-        _row = mUI.MelColumnLayout(_bottomColumn,useTemplate = 'cgmUISubTemplate') 
+        _row = mUI.MelHSingleStretchLayout(_bottomColumn,useTemplate = 'cgmUISubTemplate') 
         #mUI.MelSpacer(_row,w=5)
 
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Select Open File", c= partial(self.uiFunc_selectOpenFile), h=self.__itemHeight, w= 200)
         self.loadBtn = mUI.MelButton(_row, ut = 'cgmUITemplate', label="Load File", c=self.LoadFile, h=self.__itemHeight)
+        _row.setStretchWidget(self.loadBtn)
+        
         #_row.setStretchWidget( self.loadBtn )
 
         #mUI.MelSpacer(_row,w=5)
 
-        #_row.layout()
+        _row.layout()
 
         mc.setParent(_bottomColumn)
         cgmUI.add_LineSubBreak()
@@ -2803,7 +2806,115 @@ example:
             return
         
         VALID.fileOpen(self.versionFile,True,True)
-
+        
+    def uiFunc_selectOpenFile(self, *args):
+        _str_func = 'uiFunc_selectOpenFile'
+        log.debug(log_start(_str_func))
+        
+        _current = mc.file(q=True, sn=True)
+        
+        _content = self.directory
+        
+        if _content in _current:
+            pContent = PATHS.Path(_content)
+            pCurrent = PATHS.Path(_current)
+            pCurrent.split()
+            l_current = pCurrent.split()
+            
+            l = []
+            
+            for i,n in enumerate(pContent.split()):
+                l_current.pop(0)
+                
+            #l_current[-1] = '.'.join(l_current[-1].split('.')[:-1])
+            
+            pprint.pprint(l_current)
+            
+            l_fields = ['asset','sub','variation','version']
+            d_fields = {'asset':self.assetList['scrollList'],
+                        'sub':self.subTypeSearchList['scrollList'],
+                        'variation':self.variationList['scrollList'],
+                        'version':self.versionList['scrollList'],
+                        }
+            int_len = len(l_current)
+            for i,n in enumerate(l_current):
+                if i == 0:
+                    if n in self.categoryList:
+                        idx = self.categoryList.index(n)
+                        self.SetCategory(idx)
+                        continue                        
+                    else:
+                        log.warning('{0} not found in category list'.format(n) )
+                        return
+                if i == 2:
+                    if n in self.subTypes:
+                        self.SetSubType(self.subTypes.index(n))
+                        continue
+                    else:
+                        log.warning('{0} not found in subType list'.format(n) )
+                        return                    
+                    
+                for f in l_fields:
+                    print f
+                    try:
+                        d_fields[f].selectByValue(n)
+                        l_fields.remove(f)                        
+                    except Exception,err:
+                        log.error("Failed. {} | {}".format(n,err))
+                        
+                if int_len>3 and i == 2:
+                    self.LoadVariationList()
+                if int_len>4 and i == 3:
+                    self.LoadVariationList()
+                    
+                
+            
+            
+            return
+            if self.mDat:#Adding the ability to load to Scene                
+                for i,d in enumerate(self.mDat.assetDat):
+                    k = d.get('n')
+                    if k in _dat['split']:
+                        idx_split = _dat['split'].index(k)
+                        l_temp = _dat['split'][idx_split:]
+                        print ('Found: {0} | {1}'.format(k,l_temp))
+    
+                        numItemsFound = len(l_temp)   
+                        
+                        if numItemsFound > 0:
+                            if l_temp[0] in self.categoryList:
+                                idx = self.categoryList.index(l_temp[0])
+                                self.SetCategory(idx)
+                            else:
+                                log.warning('{0} not found in category list'.format(l_temp[0]) )
+                                return
+                        
+                        if numItemsFound > 1:
+                            self.assetList['scrollList'].clearSelection()
+                            self.assetList['scrollList'].selectByValue(l_temp[1])
+                        
+                        if numItemsFound > 2:
+                            if l_temp[2] in self.subTypes:
+                                self.SetSubType(self.subTypes.index(l_temp[2]))
+                            else:
+                                log.warning('{0} not found in subType list'.format(l_temp[2]) )
+                                return
+                        
+                        if numItemsFound > 3:
+                            self.subTypeSearchList['scrollList'].clearSelection()
+                            self.subTypeSearchList['scrollList'].selectByValue(l_temp[3])
+                            self.LoadVariationList()
+                            
+                        if numItemsFound > 4:                  
+                            if self.hasVariant:
+                                self.variationList['scrollList'].clearSelection()
+                                self.variationList['scrollList'].selectByValue(l_temp[4])
+                                self.LoadVersionList()
+                                if numItemsFound > 5:   
+                                    self.versionList['scrollList'].selectByValue(l_temp[5])
+                            else:
+                                self.versionList['scrollList'].selectByValue(l_temp[4])            
+        
 
     def SetAnimationDirectory(self, *args):
         basicFilter = "*"
