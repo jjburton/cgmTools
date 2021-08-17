@@ -3328,6 +3328,13 @@ def rig_prechecks(self):
             
         if mBlock.addLeverEnd and mBlock.numControls < 3:
             self.l_precheckErrors.append('Quad Setup needs at least 3 controls')
+            
+        str_squashMeasure = mBlock.getEnumValueString('squashMeasure')
+        str_segmentType = mBlock.getEnumValueString('segmentType')
+        if str_squashMeasure == 'pointDist' and str_segmentType in ['curve','linear'] and mBlock.scaleSetup:
+            self.l_precheckErrors.append("segmentType of curve/linear needs arcLength with scaleSetup".format(str_ikEnd))
+            
+        
         
         str_ikEnd = mBlock.getEnumValueString('ikEnd')
         if str_ikEnd in ['tipCombo']:
@@ -3489,145 +3496,10 @@ def rig_dataBuffer(self):
                 self.mPivotHelper = mPivotHolderHandle.getMessageAsMeta('pivotHelper')
                 log.debug(cgmGEN._str_subLine)
             
-        #Roll joints =============================================================================
-        #Look for roll chains...
-        log.debug("|{0}| >> Looking for rollChains...".format(_str_func))    
-        _check = 0
-        
-        self.md_roll = {}
-        self.md_rollMulti = {}
-        self.ml_segHandles = []
-        self.md_segHandleIndices = {}
-        #self.b_segmentSetup = False
-        #self.b_rollSetup = False
-        
-        while _check <= len(ml_handleJoints):
-            mBuffer = mPrerigNull.msgList_get('rollJoints_{0}'.format(_check))
-            _len = len(mBuffer)
-            self.md_rollMulti[_check] = False
-            log.info(_check)
-            if mBuffer:
-                mStart = ml_handleJoints[_check]
-                mEnd = ml_handleJoints[_check+1]            
-                
-                ml_roll = [mStart] + mBuffer + [mEnd]
-                
-                if mStart not in self.ml_segHandles:
-                    self.ml_segHandles.append(mStart)
-                    self.md_segHandleIndices[mStart] = _check
-                if mEnd not in self.ml_segHandles:
-                    self.ml_segHandles.append(mEnd)
-                    self.md_segHandleIndices[mEnd] = _check+1
-                
-                self.md_roll[_check] = ml_roll            
-                if _len > 1:
-                    self.md_rollMulti[_check] = True
-                log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
-                                                                                          _check,
-                                                                                          _len,
-                                                                                          self.md_rollMulti[_check]))
-            else:
-                try:
-                    mStart = ml_handleJoints[_check]
-                    
-                    mEnd = ml_handleJoints[_check+1]            
-                
-                    ml_roll = [mStart, mEnd]
-                    if mStart not in self.ml_segHandles:
-                        self.ml_segHandles.append(mStart)
-                        self.md_segHandleIndices[mStart] = _check
-                    if mEnd not in self.ml_segHandles:
-                        self.ml_segHandles.append(mEnd)
-                        self.md_segHandleIndices[mEnd] = _check+1
-                    
-                    self.md_roll[_check] = ml_roll
-                except:pass
-                
-            _check +=1
-            
-        #log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
-        #log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
-        
-        if self.b_leverJoint:
-            log.debug("|{0}| >> lever roll remap...".format(_str_func))
-            md_rollRemap = {}
-            for i,v in self.md_roll.iteritems():
-                md_rollRemap[i-1] = v
-            self.md_roll = md_rollRemap
-            
-            ml_indiceRemap = {}
-            for v,i in self.md_segHandleIndices.iteritems():
-                ml_indiceRemap[v] = i-1
-            self.md_segHandleIndices = ml_indiceRemap
-            
-        
-        log.debug("|{0}| >> self.md_roll...".format(_str_func))    
-        #pprint.pprint(self.md_roll)
-        log.debug(cgmGEN._str_subLine)
-        
-        log.debug("|{0}| >> self.ml_segHandles...".format(_str_func))        
-        #pprint.pprint(self.ml_segHandles)
-        log.debug(cgmGEN._str_subLine)
-        
-        #Squash stretch logic  =================================================================================
-        log.debug("|{0}| >> Squash stretch..".format(_str_func))
-        self.b_scaleSetup = mBlock.scaleSetup
-        self.b_squashSetup = False
-        
-        if not self.md_roll:
-            log.debug("|{0}| >> No roll joints found for squash and stretch to happen".format(_str_func))
-            
-        else:
-            
-            self.d_squashStretch = {}
-            self.d_squashStretchIK = {}
-            
-            _squashStretch = None
-            if mBlock.squash:
-                _squashStretch =  mBlock.getEnumValueString('squash')
-                self.b_squashSetup = True
-            self.d_squashStretch['squashStretch'] = _squashStretch
-            
-            _squashMeasure = None
-            if mBlock.squashMeasure:
-                _squashMeasure =  mBlock.getEnumValueString('squashMeasure')    
-            self.d_squashStretch['squashStretchMain'] = _squashMeasure    
-        
-            _driverSetup = None
-            if mBlock.ribbonAim:
-                _driverSetup =  mBlock.getEnumValueString('ribbonAim')
-            self.d_squashStretch['driverSetup'] = _driverSetup
-            
-            #self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
-            #self.d_squashStretch['additiveScaleEnds'] = 1
-            self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
-            self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
-            self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
-            
-            log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
-            #pprint.pprint(self.d_squashStretch)
-            
-            #Check for mid control and even handle count to see if w need an extra curve
-            if mBlock.segmentMidIKControl:
-                if MATH.is_even(mBlock.numControls):
-                    self.d_squashStretchIK['sectionSpans'] = 2
-                    
-            if self.d_squashStretchIK:
-                log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
-                #pprint.pprint(self.d_squashStretchIK)
-            
-            
-            if not self.b_scaleSetup:
-                pass
-            
-            log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
-            log.debug("|{0}| >> self.b_squashSetup: {1}".format(_str_func,self.b_squashSetup))
-            
-            log.debug(cgmGEN._str_subLine)    
-        
         
         #Frame Handles =============================================================================
-        self.ml_handleTargets = mPrerigNull.msgList_get('handleJoints')
+        _ml_handleTargetsRaw = mPrerigNull.msgList_get('handleJoints')
+        self.ml_handleTargets = copy.copy(_ml_handleTargetsRaw)
         if self.b_leverJoint:
             log.debug("|{0}| >> handleJoint lever cull...".format(_str_func))        
             self.ml_handleTargets = self.ml_handleTargets[1:]
@@ -3739,6 +3611,149 @@ def rig_dataBuffer(self):
         log.debug("|{0}| >> self.mIKEndSkinJnt: {1}".format(_str_func,
                                                             self.mIKEndSkinJnt))    
         log.debug(cgmGEN._str_subLine)
+
+        
+        #Roll joints =============================================================================
+        #Look for roll chains...
+        log.debug("|{0}| >> Looking for rollChains...".format(_str_func))    
+        _check = 0
+        
+        self.md_roll = {}
+        self.md_rollMulti = {}
+        self.ml_segHandles = []
+        self.md_segHandleIndices = {}
+        #self.b_segmentSetup = False
+        #self.b_rollSetup = False
+        
+        #while _check <= len(ml_handleJoints):
+        for mHandle in self.ml_handleTargets[:-1]:
+            if mHandle not in _ml_handleTargetsRaw:
+                continue
+            _check = _ml_handleTargetsRaw.index(mHandle)
+            
+            mBuffer = mPrerigNull.msgList_get('rollJoints_{0}'.format(_check))
+            _len = len(mBuffer)
+            self.md_rollMulti[_check] = False
+            log.info(_check)
+            if mBuffer:
+                mStart = ml_handleJoints[_check]
+                mEnd = ml_handleJoints[_check+1]            
+                
+                ml_roll = [mStart] + mBuffer + [mEnd]
+                
+                if mStart not in self.ml_segHandles:
+                    self.ml_segHandles.append(mStart)
+                    self.md_segHandleIndices[mStart] = _check
+                if mEnd not in self.ml_segHandles:
+                    self.ml_segHandles.append(mEnd)
+                    self.md_segHandleIndices[mEnd] = _check+1
+                
+                self.md_roll[_check] = ml_roll            
+                if _len > 1:
+                    self.md_rollMulti[_check] = True
+                log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
+                                                                                          _check,
+                                                                                          _len,
+                                                                                          self.md_rollMulti[_check]))
+            else:
+                try:
+                    mStart = ml_handleJoints[_check]
+                    
+                    mEnd = ml_handleJoints[_check+1]            
+                
+                    ml_roll = [mStart, mEnd]
+                    if mStart not in self.ml_segHandles:
+                        self.ml_segHandles.append(mStart)
+                        self.md_segHandleIndices[mStart] = _check
+                    if mEnd not in self.ml_segHandles:
+                        self.ml_segHandles.append(mEnd)
+                        self.md_segHandleIndices[mEnd] = _check+1
+                    
+                    self.md_roll[_check] = ml_roll
+                except:pass
+            #_check +=1
+            
+        #log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
+        #log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
+        
+        if self.b_leverJoint:
+            log.debug("|{0}| >> lever roll remap...".format(_str_func))
+            md_rollRemap = {}
+            for i,v in self.md_roll.iteritems():
+                md_rollRemap[i-1] = v
+            self.md_roll = md_rollRemap
+            
+            ml_indiceRemap = {}
+            for v,i in self.md_segHandleIndices.iteritems():
+                ml_indiceRemap[v] = i-1
+            self.md_segHandleIndices = ml_indiceRemap
+            
+        
+        log.debug("|{0}| >> self.md_roll...".format(_str_func))    
+        #pprint.pprint(self.md_roll)
+        log.debug(cgmGEN._str_subLine)
+        
+        log.debug("|{0}| >> self.ml_segHandles...".format(_str_func))        
+        #pprint.pprint(self.ml_segHandles)
+        log.debug(cgmGEN._str_subLine)
+        
+        #Squash stretch logic  =================================================================================
+        log.debug("|{0}| >> Squash stretch..".format(_str_func))
+        self.b_scaleSetup = mBlock.scaleSetup
+        self.b_squashSetup = False
+        
+        if not self.md_roll:
+            log.debug("|{0}| >> No roll joints found for squash and stretch to happen".format(_str_func))
+            
+        else:
+            
+            self.d_squashStretch = {}
+            self.d_squashStretchIK = {}
+            
+            _squashStretch = None
+            if mBlock.squash:
+                _squashStretch =  mBlock.getEnumValueString('squash')
+                self.b_squashSetup = True
+            self.d_squashStretch['squashStretch'] = _squashStretch
+            
+            _squashMeasure = None
+            if mBlock.squashMeasure:
+                _squashMeasure =  mBlock.getEnumValueString('squashMeasure')    
+            self.d_squashStretch['squashStretchMain'] = _squashMeasure    
+        
+            _driverSetup = None
+            if mBlock.ribbonAim:
+                _driverSetup =  mBlock.getEnumValueString('ribbonAim')
+            self.d_squashStretch['driverSetup'] = _driverSetup
+            
+            #self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
+            #self.d_squashStretch['additiveScaleEnds'] = 1
+            self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
+            self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
+            self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
+            
+            log.debug("|{0}| >> self.d_squashStretch..".format(_str_func))    
+            #pprint.pprint(self.d_squashStretch)
+            
+            #Check for mid control and even handle count to see if w need an extra curve
+            if mBlock.segmentMidIKControl:
+                if MATH.is_even(mBlock.numControls):
+                    self.d_squashStretchIK['sectionSpans'] = 2
+                    
+            if self.d_squashStretchIK:
+                log.debug("|{0}| >> self.d_squashStretchIK..".format(_str_func))    
+                #pprint.pprint(self.d_squashStretchIK)
+            
+            
+            if not self.b_scaleSetup:
+                pass
+            
+            log.debug("|{0}| >> self.b_scaleSetup: {1}".format(_str_func,self.b_scaleSetup))
+            log.debug("|{0}| >> self.b_squashSetup: {1}".format(_str_func,self.b_squashSetup))
+            
+            log.debug(cgmGEN._str_subLine)    
+        
+        
         
         #Offset ============================================================================    
         self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
@@ -6456,6 +6471,7 @@ def rig_segments(self):
                 pprint.pprint(_d)
                 _d['parentDeformTo'] = ml_blendJoints[i]
                 _d['setupAim'] = 1
+                _d['skipAim'] = False
                 
                 reload(IK)
                 _l_segJoints = _d['jointList']
@@ -6596,7 +6612,7 @@ def rig_segments(self):
                     #mJnt.masterGroup.p_parent = mRigNull
                     mc.scaleConstraint([mObj.mNode for mObj in ml_drivers],
                                        mJnt.masterGroup.mNode,
-                                       skip='z',
+                                       #skip='z',
                                        maintainOffset=True)
                     
                     

@@ -4369,7 +4369,7 @@ def curve(jointList = None,
         if not b_squashStretch:
             _scale = mc.scaleConstraint(l_targets,
                                         mObj.mNode,
-                                        skip='z',
+                                        #skip='z',
                                         maintainOffset = 1)
         else:
             mScaleReader = mObj.doCreateAt(setClass=True)
