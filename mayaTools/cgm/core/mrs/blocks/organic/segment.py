@@ -378,7 +378,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'squashFactorMin':'float',
                  'shapersAim':'toEnd:chain:orientToHandle',
                  'loftSetup':'default:loftList',
-                 
+                 'special_swim':'bool',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
                  'segmentMidIKControl':'none:ribbon:prntConstraint',
@@ -1534,6 +1534,10 @@ def rig_prechecks(self):
         if str_segmentType == 'parent' and mBlock.numControls != mBlock.numJoints:
             self.l_precheckErrors.append('segmentType parent requires same number of controls as joints')
             
+            
+        if mBlock.special_swim and str_segmentType != 'ribbon':
+            self.l_precheckErrors.append('Special Swim setup requires segmentType of ribbon')
+            
         
         str_settingPlace = mBlock.getEnumValueString('settingsPlace')
         if str_settingPlace == 'cog' and not mBlock.addCog:
@@ -1863,7 +1867,7 @@ def rig_skeleton(self):
                     mJnt.parent = ml_fkJoints[i]
                     """
         
-        if mBlock.ikSetup in [2,3]:#...ribbon/spline
+        if mBlock.ikSetup in [2,3,4]:#...ribbon/spline
             log.debug("|{0}| >> IK Drivers...".format(_str_func))            
             ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
             
@@ -2481,7 +2485,7 @@ def rig_segments(self):
             mPlug_masterScale = res_segScale[0]
             mMasterCurve = res_segScale[1]
             self.fnc_connect_toRigGutsVis( mMasterCurve )
-            
+
             
             _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
                   'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
@@ -2493,17 +2497,38 @@ def rig_segments(self):
                   'influences':ml_handleJoints,
                   'settingsControl':_settingsControl,
                   'attachStartToInfluence':False,
-                  'attachEndToInfluence':True,
+                  'attachEndToInfluence':1,#for autoswim
                   'parentDeformTo':mRoot,
                   'moduleInstance':mModule}
+            
             if mBlock.getEnumValueString('ikBase') == 'hips':
                 _d['attachStartToInfluence'] = True
+            if mBlock.special_swim:
+                _d['attachEndToInfluence'] = False
+                
                 
             reload(IK)
-            _d.update(self.d_squashStretch)
-            res_ribbon = IK.ribbon(**_d)
+            pprint.pprint(_d)
             
-            ml_surfaces = res_ribbon['mlSurfaces']
+            _d.update(self.d_squashStretch)
+            
+            
+            if self.str_segmentType == 'ribbon':
+                res_ribbon = IK.ribbon(**_d)
+                ml_surfaces = res_ribbon['mlSurfaces']
+            else:
+                _l_segJoints = _d['jointList']
+                _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+                _d['setupAim'] = 1                
+                _d['attachEndToInfluence'] = False                
+                pprint.pprint(_d)
+                IK.curve(**_d)
+
+                """
+                mc.scaleConstraint(_ml_segTmp[-1].mNode,
+                                   _ml_segTmp[-1].rigJoint.masterGroup.mNode,
+                                   #skip='z',
+                                   maintainOffset = 1)    """             
             
             mMasterCurve.p_parent = mRoot
     
@@ -2726,8 +2751,9 @@ def rig_frame(self):
                                mIKControl,mIKBaseControl,mIKHandleDriver,
                                mRoot,mIKGroup)                
 
-            elif _ikSetup == 'spline':# ==============================================================================
-                log.debug("|{0}| >> spline setup...".format(_str_func))
+            elif _ikSetup in ['spline','curve']:# ==============================================================================
+                log.debug("|{0}| >> {1} setup...".format(_str_func,_ikSetup))
+                
                 ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
                 if not ml_ribbonIkHandles:
                     raise ValueError,"No ribbon IKDriversFound"
@@ -2740,7 +2766,7 @@ def rig_frame(self):
                 if mSegMidIK:
                     RIGFRAME.segment_mid(self,mSegMidIK,ml_ribbonIkHandles,mIKGroup,
                                          mIKBaseControl,mIKControl,ml_ikJoints)
-                    ml_skinDrivers.append(mSegMidIK)
+                    ml_skinDrivers.insert(1,mSegMidIK)
                     max_influences+=1
 
                 
@@ -2752,41 +2778,38 @@ def rig_frame(self):
                     
                 ml_ribbonIkHandles[-1].parent = mIKControl
                 
-
-                RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,ml_skinDrivers,mPlug_masterScale)
-
-                ATTR.set_default(mIKControl.mNode,'twistType',1)
-                ATTR.set(mIKControl.mNode,'twistType',1)
-                
-            elif _ikSetup == 'curve':
-                _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
-                      'baseName' : "{0}_seg_{1}".format(ml_blendJoints[i].cgmName,i),
-                      'masterScalePlug':mPlug_masterScale,
-                      'paramaterization':mBlock.getEnumValueString('ribbonParam'),                            
-                      'influences':[mHandle.mNode for mHandle in ml_influences],
-                      }            
-                
-                if i == l_rollKeys[0]:
-                    _d['squashFactorMode'] = 'blendUpMid'
-                elif i == l_rollKeys[-1]:
-                    _d['squashFactorMode'] = 'midBlendDown'
+                if _ikSetup == 'spline':
+                    RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,ml_skinDrivers,mPlug_masterScale)
+    
+                    ATTR.set_default(mIKControl.mNode,'twistType',1)
+                    ATTR.set(mIKControl.mNode,'twistType',1)
                 else:
-                    _d['squashFactorMode'] = 'max'
+                    _d_ribbonShare = {'connectBy':'constraint',
+                                      'extendEnds':True,
+                                      'settingsControl':mSettings.mNode,
+                                      'moduleInstance':mModule}
+                    _d_ribbonShare.update(self.d_squashStretch)                    
                     
-                
-                
-                _d.update(_d_ribbonShare)
-                
-                if _type in ['linear','curve']:
-                    #reload(IK)
+                    
+                    _d = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
+                          'baseName' : "{0}_ikCrv".format(ml_blendJoints[0].cgmName),
+                          'masterScalePlug':mPlug_masterScale,
+                          'paramaterization':mBlock.getEnumValueString('ribbonParam'),                            
+                          'influences':[mHandle.mNode for mHandle in ml_skinDrivers],
+                          }            
+                    
+                    _d.update(_d_ribbonShare)
+                    
                     pprint.pprint(_d)
-                    _d['parentDeformTo'] = ml_blendJoints[i]
+                    _d['parentDeformTo'] = mIKGroup
                     _d['setupAim'] = 1
                     
                     reload(IK)
-                    _l_segJoints = _d['jointList']
-                    _ml_segTmp = cgmMeta.asMeta(_l_segJoints)                                    
-                    IK.curve(**_d)                
+                    #_l_segJoints = _d['jointList']
+                    #_ml_segTmp = cgmMeta.asMeta(_l_segJoints)                                    
+                    IK.curve(**_d)                                    
+
+                
                 
             elif _ikSetup == 'ribbon':#===============================================================================
                 log.debug("|{0}| >> ribbon setup...".format(_str_func))
@@ -2953,7 +2976,7 @@ def rig_frame(self):
             
 
             #Setup blend ----------------------------------------------------------------------------------
-            if self.b_scaleSetup and _ikSetup in ['ribbon']:
+            if self.b_scaleSetup and _ikSetup in ['ribbon','curve']:
                 log.debug("|{0}| >> scale blend chain setup...".format(_str_func))                
                 RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                             driver = mPlug_FKIK.p_combinedName,
@@ -2961,32 +2984,33 @@ def rig_frame(self):
                 
                 
                 #Scale setup for ik joints                
-                ml_ikScaleTargets = [mIKControl]
-
-                if mIKBaseControl:
-                    mc.scaleConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
-                    ml_ikScaleTargets.append(mIKBaseControl)
-                else:
-                    mc.scaleConstraint(mRoot.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
-                    ml_ikScaleTargets.append(mRoot)
+                if _ikSetup not in ['curve']:
+                    ml_ikScaleTargets = [mIKControl]
+    
+                    if mIKBaseControl:
+                        mc.scaleConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
+                        ml_ikScaleTargets.append(mIKBaseControl)
+                    else:
+                        mc.scaleConstraint(mRoot.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
+                        ml_ikScaleTargets.append(mRoot)
+                        
+                    mc.scaleConstraint(mIKControl.mNode, ml_ikJoints[-1].mNode,maintainOffset=True)
                     
-                mc.scaleConstraint(mIKControl.mNode, ml_ikJoints[-1].mNode,maintainOffset=True)
-                
-                _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
-                
-                #Scale setup for mid set IK
-                if mSegMidIK:
-                    mMasterGroup = mSegMidIK.masterGroup
-                    _vList = DIST.get_normalizedWeightsByDistance(mMasterGroup.mNode,_targets)
-                    _scale = mc.scaleConstraint(_targets,mMasterGroup.mNode,maintainOffset = True)#Point contraint loc to the object
-                    CONSTRAINT.set_weightsByDistance(_scale[0],_vList)                
-                    ml_ikScaleTargets.append(mSegMidIK)
                     _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
-
-                for mJnt in ml_ikJoints[1:-1]:
-                    _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
-                    _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True)#Point contraint loc to the object
-                    CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
+                    
+                    #Scale setup for mid set IK
+                    if mSegMidIK:
+                        mMasterGroup = mSegMidIK.masterGroup
+                        _vList = DIST.get_normalizedWeightsByDistance(mMasterGroup.mNode,_targets)
+                        _scale = mc.scaleConstraint(_targets,mMasterGroup.mNode,maintainOffset = True)#Point contraint loc to the object
+                        CONSTRAINT.set_weightsByDistance(_scale[0],_vList)                
+                        ml_ikScaleTargets.append(mSegMidIK)
+                        _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
+    
+                    for mJnt in ml_ikJoints[1:-1]:
+                        _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
+                        _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True)#Point contraint loc to the object
+                        CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
                 
                 for mJnt in ml_ikJoints[1:]:
                     mJnt.p_parent = mIKGroup

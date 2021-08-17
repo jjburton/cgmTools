@@ -45,6 +45,7 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.rig.create_utils as RIGCREATE
+import cgm.core.lib.string_utils as STRINGS
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.rayCaster as RAYS
 import cgm.core.lib.rigging_utils as CORERIG
@@ -70,6 +71,122 @@ from cgm.core import cgm_Meta as cgmMeta
 __version__ = 'alpha.1.09122018'
 
 log_start = cgmGEN.log_start
+
+
+def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = False):
+    _str_func = 'autoSwim'
+    log_start(_str_func)
+    
+    _nameTag = '{}autoSwim_{}'.format(baseName, deformer)
+    
+    mModule = cgmMeta.validateObjArg(mModule,mType='cgmRigModule')
+    mRigNull = mModule.rigNull
+    _str_rigNull = mRigNull.mNode
+    
+    mRoot = mRigNull.rigRoot
+    if not ml_joints:
+        ml_joints = mRigNull.msgList_get('segmentJoints')
+        
+    ml_blends = mRigNull.msgList_get('blendJoints')
+    
+    mTargetSurface = cgmMeta.validateObjArg(controlSurface,mayaType='nurbsSurface')
+    mSettings = cgmMeta.validateObjArg(waveControl)
+    
+    
+    #Duplicate our surface
+    mSwimSurface = mTargetSurface.doDuplicate(po=False)
+    #mSwimSurface.p_parent = False
+    mSwimSurface.rename("{}_autoSwim_surface".format(baseName))
+    
+    #Make our deformer
+    _buffer = mc.nonLinear (mSwimSurface.mNode, type = deformer, name = _nameTag)
+    
+    mDeformer = cgmMeta.asMeta(_buffer[0])
+    mDeformerHandle = cgmMeta.asMeta(_buffer[1])
+    mDeformerHandle.rename("{}_handle".format(_nameTag))
+    mDeformer.rename("{}_deformer".format(_nameTag))
+    
+    mDeformerHandle.p_position = ml_joints[0].p_position
+    mDeformerHandle.rx = 90
+    mDeformerHandle.ry = 90
+    
+    mDeformer.dropoff = 1
+    mDeformer.dropoffPosition = 1
+    mDeformer.maxRadius = 2
+    
+    mDeformerHandle.p_parent = ml_blends[0]
+    
+    #...blendshape
+    blendshapeNode = mc.blendShape (mSwimSurface.mNode, mTargetSurface.mNode, name = '{}_bsNode'.format(_nameTag) )
+    
+    
+    #...attributes =================================================================================================
+    _settings = mSettings.mNode
+    l_order = ['swim','speed','wavelength','amplitude','dropoff','dropoffPosition','minRadius','maxRadius']
+    d_attrs = {'swim':{'min':0,'max':1, 'dv':0,'target':"{0}.{1}".format(blendshapeNode[0],
+                                                                        mSwimSurface.p_nameBase)},
+               'speed':{'min':-100,'max':100,'dv':0,'v':1,'target':'deformer'},
+               'wavelength':{'min':0,'max':10,'dv':5,'v':5,'target':'deformer'},
+               'amplitude':{'min':0,'max':10,'dv':0,'v':0,'target':'deformer'},
+               'dropoff':{'min':0,'max':1,'dv':1,'v':1,'target':'deformer'},
+               'dropoffPosition':{'min':0,'max':1,'dv':0,'v':0,'target':'deformer'},
+               'minRadius':{'min':0,'max':10,'dv':10,'v':1,'target':'deformer'},
+               'maxRadius':{'min':0,'max':10,'dv':10,'v':10,'target':'deformer'},
+                 }
+    
+    if not setupCycle:
+        d_attrs['offset'] = {'dv':0,'v':0,'target':'deformer'}
+        l_order.append('offset')
+        
+        d_attrs.pop('speed')
+        l_order.remove('speed')
+    
+    for a in l_order:
+        _d = d_attrs[a]
+        _kws = {}
+        for k in ['min','max','dv']:
+            _v = _d.get(k)
+            if _v is not None:
+                if k == 'min':
+                    _kws['minValue'] = _v
+                elif k == 'max':
+                    _kws['maxValue'] = _v
+                elif k == 'dv':
+                    _kws['defaultValue'] = _v
+                    
+        ATTR.add(_settings, a, 'float', value = _d.get('v',0), hidden = False, keyable = True, **_kws)
+        
+        _target = _d.get('target')
+        if _target:
+            if _target == 'deformer':
+                ATTR.connect("{}.{}".format(_settings,a), "{}.{}".format(mDeformer.mNode,a))
+            else:
+                ATTR.connect("{}.{}".format(_settings,a), _target)
+                
+    mSettings.speed = 1
+    mSettings.wavelength = 4
+    mSettings.amplitude = .3
+    mSettings.dropoff = 1
+    mSettings.dropoffPosition = 1
+    mSettings.minRadius = 0    
+    mSettings.maxRadius = 2
+    
+    if setupCycle:
+        import cgm
+        reload(cgm.lib.nodes)
+        cgm.lib.nodes.offsetCycleSpeedControlNodeSetup (mDeformer.mNode,(_settings+'.speed'),100,-10)
+    
+    pprint.pprint(vars())
+    
+    
+    if mModule:#if we have a module, connect vis
+        for mObj in [mDeformerHandle]:
+            mObj.overrideEnabled = 1
+            cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+            cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+            #mObj.parent = mRigNull        
+    
+
 
 def skin_mesh(mMesh,ml_joints,**kws):
     try:

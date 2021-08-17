@@ -268,7 +268,8 @@ def offsetCycleSpeedControlNodeSetup (waveDeformer,speedAttr,cycleLength,offset)
     """ create the cycle """
     mc.setKeyframe ((waveDeformer+'.offset'), time=0, value = 0, inTangentType = 'spline', outTangentType = 'spline')
     mc.setKeyframe ((waveDeformer+'.offset'), time=cycleLength, value = (offset*.99), inTangentType = 'linear', outTangentType = 'linear')
-    mc.setInfinity ((waveDeformer+'.offset'),pri = 'linear', poi = 'linear')
+    mc.setInfinity ((waveDeformer+'.offset'),pri = 'cycleRelative', poi = 'cycleRelative')
+    
     """ Connect the nodes """
     mc.connectAttr(('time1.outTime'),(speedMDNode+'.input1X'))
     mc.connectAttr(speedAttr,(speedMDNode+'.input2.input2X'))

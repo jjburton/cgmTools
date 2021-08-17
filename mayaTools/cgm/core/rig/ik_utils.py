@@ -4415,6 +4415,8 @@ def curve(jointList = None,
             _d_aim['worldUpObject'] = mObj.orientGroup.mNode
             
             if mObj == ml_curveJoints[-1]:
+                if attachEndToInfluence:
+                    continue
                 _d_aim['aimVector'] = [0,0,-1]
                 mTar = ml_curveJoints[-2]
             else:
@@ -4424,7 +4426,11 @@ def curve(jointList = None,
             mc.aimConstraint(mTar.mNode,
                              mObj.mNode,
                              maintainOffset = True,**_d_aim)         
-
+        
+    if attachEndToInfluence:
+        mc.orientConstraint(ml_influences[-1].mNode,
+                            ml_curveJoints[-1].mNode,
+                            maintainOffset = True)        
     #>>>Hook up stretch/scale #================================================================ 
     if b_squashStretch:
         log.debug("|{0}| >> SquashStretch...".format(_str_func)+cgmGEN._str_subLine)
