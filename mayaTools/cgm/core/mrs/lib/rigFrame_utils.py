@@ -534,9 +534,18 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         _up = self.d_orientation['vectorUp']
         _out = self.d_orientation['vectorOut']
         
+        _l_posUse = [mObj.p_position for mObj in ml_ikJoints]
+        _l_posUse.append(ml_ikJoints[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
+                                                                    DIST.get_distance_between_points(_l_posUse[-1],_l_posUse[-2])))
+        
+        cgmMeta.cgmObject().getPositionByAxisDistance
+        _crv = CORERIG.create_at(create='curve',l_pos = _l_posUse)
+        
         res_spline = IK.spline([mObj.mNode for mObj in ml_ikJoints],
+                               useCurve= _crv,
                                orientation = _jointOrientation,
                                advancedTwistSetup=True,
+                               stretchBy='scale',
                                baseName= self.d_module['partName'] + '_spline',
                                moduleInstance = self.mModule)
         
@@ -563,7 +572,7 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         mSkinCluster.doStore('cgmName', mSplineCurve)
         mSkinCluster.doName()
         
-        mc.orientConstraint(mIKControl.mNode, ml_ikJoints[-1].mNode, maintainOffset=True)
+        #mc.orientConstraint(mIKControl.mNode, ml_ikJoints[-1].mNode, maintainOffset=True)
         
       
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())

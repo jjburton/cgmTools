@@ -142,7 +142,7 @@ d_build_profiles = {
                'earUp':{'numJoints':4,
                         'numControls':4}},
     'unityToon':{'default':{'squashMeasure':'arcLength',
-                            'squash':'both',
+                            'squash':'simple',
                             'scaleSetup':True,
                             }},
     'unityHigh':{'default':{'numJoints':4,
@@ -382,6 +382,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
                  'segmentMidIKControl':'none:ribbon:prntConstraint',
+                 'segmentType':'ribbon:curve:linear:parent',
                  
                  'settingsPlace':'start:end:cog',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
@@ -1525,10 +1526,15 @@ def rig_prechecks(self):
         #Lever ============================================================================    
         log.debug(cgmGEN._str_subLine)
         str_ikSetup = mBlock.getEnumValueString('ikSetup')
-        if mBlock.scaleSetup and str_ikSetup in ['spline']:
-            self.l_precheckErrors.append('scaleSetup with spline not ready. Use ribbon if you need scale')
+        #if mBlock.scaleSetup and str_ikSetup in ['spline']:
+        #    self.l_precheckErrors.append('scaleSetup with spline not ready. Use ribbon if you need scale')
             #return False
             
+        str_segmentType = mBlock.getEnumValueString('segmentType')
+        if str_segmentType == 'parent' and mBlock.numControls != mBlock.numJoints:
+            self.l_precheckErrors.append('segmentType parent requires same number of controls as joints')
+            
+        
         str_settingPlace = mBlock.getEnumValueString('settingsPlace')
         if str_settingPlace == 'cog' and not mBlock.addCog:
             self.l_precheckErrors.append('Settings place is cog and addCog off. Please resolve')
@@ -1577,9 +1583,13 @@ def rig_dataBuffer(self):
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
             mBlock.segmentMidIKControl = 0
             
+        for k in ['segmentType']:
+            self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
+                
         #Vector ====================================================================================
         self.mVec_up = mBlock.atUtils('prerig_get_upVector')
         log.debug("|{0}| >> self.mVec_up: {1} ".format(_str_func,self.mVec_up))
+        
 
         #Initial option checks ============================================================================    
         #if mBlock.scaleSetup:
@@ -2421,6 +2431,7 @@ def rig_controls(self):
 
 #@cgmGEN.Timer
 def rig_segments(self):
+    reload(DIST)
     try:
         _short = self.d_block['shortName']
         _str_func = 'rig_segments'
@@ -2451,52 +2462,60 @@ def rig_segments(self):
             mJnt.drawStyle = 2
             ATTR.set(mJnt.mNode,'radius',0)
         
-        #>> Ribbon setup ========================================================================================
-        log.debug("|{0}| >> Ribbon setup...".format(_str_func))
-        
-        _settingsControl = mRigNull.settings.mNode
-        
-        _extraSquashControl = mBlock.squashExtraControl
-               
-        res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
-        mPlug_masterScale = res_segScale[0]
-        mMasterCurve = res_segScale[1]
-        self.fnc_connect_toRigGutsVis( mMasterCurve )
-        
-        
-        _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
-              'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
-              'connectBy':'constraint',
-              'extendEnds':True,
-              #'sectionSpans':1,
-              'paramaterization':mBlock.getEnumValueString('ribbonParam'),          
-              'masterScalePlug':mPlug_masterScale,
-              'influences':ml_handleJoints,
-              'settingsControl':_settingsControl,
-              'attachStartToInfluence':False,
-              'attachEndToInfluence':True,
-              'parentDeformTo':mRoot,
-              'moduleInstance':mModule}
-        if mBlock.getEnumValueString('ikBase') == 'hips':
-            _d['attachStartToInfluence'] = True
-            
-        #reload(IK)
-        _d.update(self.d_squashStretch)
-        res_ribbon = IK.ribbon(**_d)
-        
-        ml_surfaces = res_ribbon['mlSurfaces']
-        
-        mMasterCurve.p_parent = mRoot
-
-        #cgmGEN.func_snapShot(vars())
-        ml_segJoints[0].parent = mRoot
-        
-        if self.b_squashSetup:
-            for mJnt in ml_segJoints:
+        if self.str_segmentType == 'parent':#len(ml_segJoints) == len(ml_handleJoints):
+            for i,mJnt in enumerate(ml_segJoints):
+                mJnt.p_parent = ml_handleJoints[i]
+            if self.b_squashSetup:
                 mJnt.segmentScaleCompensate = False
-                if mJnt == ml_segJoints[0]:
-                    continue
-                mJnt.p_parent = ml_segJoints[0].p_parent        
+                
+            
+        else:
+            #>> Ribbon setup ========================================================================================
+            log.debug("|{0}| >> Ribbon setup...".format(_str_func))
+            
+            _settingsControl = mRigNull.settings.mNode
+            
+            _extraSquashControl = mBlock.squashExtraControl
+                   
+            res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
+            mPlug_masterScale = res_segScale[0]
+            mMasterCurve = res_segScale[1]
+            self.fnc_connect_toRigGutsVis( mMasterCurve )
+            
+            
+            _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
+                  'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
+                  'connectBy':'constraint',
+                  'extendEnds':True,
+                  #'sectionSpans':1,
+                  'paramaterization':mBlock.getEnumValueString('ribbonParam'),          
+                  'masterScalePlug':mPlug_masterScale,
+                  'influences':ml_handleJoints,
+                  'settingsControl':_settingsControl,
+                  'attachStartToInfluence':False,
+                  'attachEndToInfluence':True,
+                  'parentDeformTo':mRoot,
+                  'moduleInstance':mModule}
+            if mBlock.getEnumValueString('ikBase') == 'hips':
+                _d['attachStartToInfluence'] = True
+                
+            reload(IK)
+            _d.update(self.d_squashStretch)
+            res_ribbon = IK.ribbon(**_d)
+            
+            ml_surfaces = res_ribbon['mlSurfaces']
+            
+            mMasterCurve.p_parent = mRoot
+    
+            #cgmGEN.func_snapShot(vars())
+            ml_segJoints[0].parent = mRoot
+        
+            if self.b_squashSetup:
+                for mJnt in ml_segJoints:
+                    mJnt.segmentScaleCompensate = False
+                    if mJnt == ml_segJoints[0]:
+                        continue
+                    mJnt.p_parent = ml_segJoints[0].p_parent        
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
     
@@ -2739,7 +2758,35 @@ def rig_frame(self):
                 ATTR.set_default(mIKControl.mNode,'twistType',1)
                 ATTR.set(mIKControl.mNode,'twistType',1)
                 
+            elif _ikSetup == 'curve':
+                _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
+                      'baseName' : "{0}_seg_{1}".format(ml_blendJoints[i].cgmName,i),
+                      'masterScalePlug':mPlug_masterScale,
+                      'paramaterization':mBlock.getEnumValueString('ribbonParam'),                            
+                      'influences':[mHandle.mNode for mHandle in ml_influences],
+                      }            
                 
+                if i == l_rollKeys[0]:
+                    _d['squashFactorMode'] = 'blendUpMid'
+                elif i == l_rollKeys[-1]:
+                    _d['squashFactorMode'] = 'midBlendDown'
+                else:
+                    _d['squashFactorMode'] = 'max'
+                    
+                
+                
+                _d.update(_d_ribbonShare)
+                
+                if _type in ['linear','curve']:
+                    #reload(IK)
+                    pprint.pprint(_d)
+                    _d['parentDeformTo'] = ml_blendJoints[i]
+                    _d['setupAim'] = 1
+                    
+                    reload(IK)
+                    _l_segJoints = _d['jointList']
+                    _ml_segTmp = cgmMeta.asMeta(_l_segJoints)                                    
+                    IK.curve(**_d)                
                 
             elif _ikSetup == 'ribbon':#===============================================================================
                 log.debug("|{0}| >> ribbon setup...".format(_str_func))
@@ -2906,7 +2953,7 @@ def rig_frame(self):
             
 
             #Setup blend ----------------------------------------------------------------------------------
-            if self.b_scaleSetup:
+            if self.b_scaleSetup and _ikSetup in ['ribbon']:
                 log.debug("|{0}| >> scale blend chain setup...".format(_str_func))                
                 RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                             driver = mPlug_FKIK.p_combinedName,
@@ -3333,12 +3380,17 @@ def rig_cleanUp(self):
         
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         if ml_handleJoints:
-            ATTR.set_default(ml_handleJoints[-1].mNode, 'followRoot', 1.0)
-            ml_handleJoints[-1].followRoot = 1.0
-            
+            #ATTR.set_default(ml_handleJoints[-1].mNode, 'followRoot', 1.0)
+            #ml_handleJoints[-1].followRoot = 1.0
+            for mHandle in ml_handleJoints:
+                ATTR.set_default(mHandle.mNode, 'followRoot', 1.0)
+                mHandle.followRoot = 1.0
+                
             if mBlock.getEnumValueString('ikBase') not in ['hips']:
                 ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 0.0)
-                ml_handleJoints[0].followRoot = 0.0        
+                ml_handleJoints[0].followRoot = 0.0
+                
+
             
         if mSettings.hasAttr('FKIK'):
             if mBlock.blockType in ['tail']:

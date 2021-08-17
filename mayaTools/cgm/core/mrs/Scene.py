@@ -2838,6 +2838,10 @@ example:
                         }
             int_len = len(l_current)
             for i,n in enumerate(l_current):
+                log.info(cgmGEN.logString_sub(_str_func, "{} | {}".format(i,n)))
+                if n == l_current[-1]:
+                    self.LoadVersionList()
+                
                 if i == 0:
                     if n in self.categoryList:
                         idx = self.categoryList.index(n)
@@ -2855,17 +2859,16 @@ example:
                         return                    
                     
                 for f in l_fields:
-                    print f
-                    try:
+                    log.info(f)
+                    if n in d_fields[f]._items:
+                        d_fields[f].clearSelection()
                         d_fields[f].selectByValue(n)
-                        l_fields.remove(f)                        
-                    except Exception,err:
-                        log.error("Failed. {} | {}".format(n,err))
+                        l_fields.remove(f)
+                        log.info(l_fields)
                         
-                if int_len>3 and i == 2:
-                    self.LoadVariationList()
-                if int_len>4 and i == 3:
-                    self.LoadVariationList()
+                        if f == 'sub':
+                            self.LoadVariationList()
+                            
                     
                 
             

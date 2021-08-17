@@ -645,7 +645,7 @@ def get_closestTarget(source = None, objects = None):
         l_dists.append (get_distance_between_points(_point, pos))
     return objects[(l_dists.index ((min(l_dists))))]
 
-def get_targetsOrderedByDist(source = None, objects = None):
+def get_targetsOrderedByDist(source = None, objects = None, allowDups = True):
     """
     Get the closest object to a give source
     
@@ -667,17 +667,26 @@ def get_targetsOrderedByDist(source = None, objects = None):
     if not _point:raise ValueError,"Must have point of reference"
     
     l_dists = []
+    d_dists = {}
     d_objs = {}
     for obj in objects:
         pos = POS.get(obj)
         _d = get_distance_between_points(_point, pos)
-        if _d in l_dists:
+        if _d in l_dists and not allowDups:
+            pprint.pprint(objects)
             raise ValueError,"Cannot handle matching distances. {0}".format(_str_func)
         l_dists.append(_d)
-        d_objs[_d] = obj
+        if not d_dists.get(_d):
+            d_dists[_d] = []
+        d_dists[_d].append(obj)
         
     l_dists.sort()
-    return [[d_objs[d],d] for d in l_dists]
+    _res = []
+    for d in l_dists:
+        for o in d_dists[d]:
+            _res.append([o,d])
+    return _res
+    #return [[d_dists[d],d] for d in l_dists]
         
 def get_closest_point(source = None, targetSurface = None, loc = False):
     """

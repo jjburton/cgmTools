@@ -7226,7 +7226,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                                  worldUpType = 'objectrotation', 
                                  worldUpVector = [0,1,0])
 
-
+        """
         if mHandle in [md_handles['start'],md_handles['end']]:
             _lock = []
             #if mHandle == md_handles['start']:
@@ -7239,7 +7239,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
         else:
             ATTR.set_standardFlags( mHandle.mNode, ['sz'])
-            ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
+            ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))"""
 
 
     ml_shapers = copy.copy(ml_handles_chain)
