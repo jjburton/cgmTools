@@ -1468,19 +1468,20 @@ example:
             
         if not d_userPaths.get('export'):
             log.error("No Export path found")
-            self.reload_headerImage()
-            return False
+            self.exportDirectoryTF(edit=1,en=False)
+        else:
+            self.exportDirectory = d_userPaths['export']
+            self.exportDirectoryTF(edit=1,en=True)            
+            self.exportDirectoryTF.setValue( self.exportDirectory )
+            
+            self.uiScrollList_dirExport.mDat = self.mDat        
+            self.uiScrollList_dirExport.rebuild( self.exportDirectory)            
 
 
         if os.path.exists(d_userPaths['content']):
 
             self.LoadCategoryList(d_userPaths['content'])
-            self.exportDirectory = d_userPaths['export']
-            
-            
-
-            self.exportDirectoryTF.setValue( self.exportDirectory )
-            
+                        
             self.l_categoriesBase = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
             self.categoryList = [c for c in self.l_categoriesBase]
             
@@ -1513,8 +1514,6 @@ example:
         self.uiScrollList_dirContent.mDat = self.mDat
         self.uiScrollList_dirContent.rebuild( self.directory)
         
-        self.uiScrollList_dirExport.mDat = self.mDat        
-        self.uiScrollList_dirExport.rebuild( self.exportDirectory)
         
         log.info( "+"*100)
         log.info(self.d_tf['general']['mayaFilePref'].getValue())        
@@ -1523,18 +1522,6 @@ example:
         log.info(self.d_tf['exportOptions']['postEuler'].getValue())        
         log.info(self.d_tf['exportOptions']['postTangent'].getValue())        
         
-        """
-        
-        self.var_mayaFilePref.setValue( self.mDat.d_project.get('mayaFilePref','mb') )
-        
-        if self.mDat.d_exportOptions:
-            self.var_postEuler.setValue( self.mDat.d_exportOptions.get('postEuler',True) )
-            self.var_postTangent.setValue( self.mDat.d_exportOptions.get('postTangent',True) )
-            if self.mDat.d_exportOptions.get('removeNameSpace'):
-                self.var_removeNamespace.setValue( self.mDat.d_exportOptions.get('removeNameSpace',False) )
-                self.removeNamespace = self.mDat.d_exportOptions.get('removeNameSpace',False)
-            
-            self.var_zeroRoot.setValue( self.mDat.d_exportOptions.get('zeroRoot',False) )"""
             
             
             
@@ -3385,18 +3372,20 @@ example:
         
         if not d_userPaths.get('export'):
             log.error("No Export path found")
-            return False
+            self.exportDirectoryTF(edit=1,en=False)
+            
+            #return False
+        else:
+            self.exportDirectory = d_userPaths['export']
+            self.exportDirectoryTF(edit=1,en=True)            
+            self.exportDirectoryTF.setValue( self.exportDirectory )
+            
 
 
         if os.path.exists(d_userPaths['content']):
             self.var_lastProject.setValue( path )
-
             self.LoadCategoryList(d_userPaths['content'])
-            self.exportDirectory = d_userPaths['export']
             
-            
-
-            self.exportDirectoryTF.setValue( self.exportDirectory )
             # self.optionVarExportDirStore.setValue( self.exportDirectory )
             
             self.l_categoriesBase = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
@@ -3410,9 +3399,6 @@ example:
                 
                 self.categoryList.append(f)
 
-    
-
-
             if d_userPaths.get('image') and os.path.exists(d_userPaths.get('image')):
                 self.uiImage_Project.setImage(d_userPaths['image'])
             else:
@@ -3422,7 +3408,6 @@ example:
 
             self.buildMenu_category()
 
-            #self.buildMenu_subTypes()
 
             mc.workspace( d_userPaths['content'], openWorkspace=True )
 

@@ -1914,7 +1914,7 @@ def rig_skeleton(self):
             
         
             
-        if mBlock.numJoints > mBlock.numControls or self.b_squashSetup:# or str_ikSetup == 'ribbon':
+        if self.str_segmentType != 'parent':#mBlock.numJoints > mBlock.numControls or self.b_squashSetup:# or str_ikSetup == 'ribbon':
             log.debug("|{0}| >> Handles...".format(_str_func))            
             ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
             if mBlock.ikSetup:
@@ -2497,7 +2497,7 @@ def rig_segments(self):
                   'influences':ml_handleJoints,
                   'settingsControl':_settingsControl,
                   'attachStartToInfluence':False,
-                  'attachEndToInfluence':1,#for autoswim
+                  'attachEndToInfluence':True,#for autoswim
                   'parentDeformTo':mRoot,
                   'moduleInstance':mModule}
             
@@ -2520,7 +2520,7 @@ def rig_segments(self):
                 _l_segJoints = _d['jointList']
                 _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
                 _d['setupAim'] = 1                
-                _d['attachEndToInfluence'] = False                
+                #_d['attachEndToInfluence'] = False                
                 pprint.pprint(_d)
                 IK.curve(**_d)
 
