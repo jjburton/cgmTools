@@ -1082,7 +1082,7 @@ def get_dict(obj = None):
     #log.info("|{0}| >> dynChild: {1}".format(_str_func,mObj.mNode))
     #log.info("|{0}| >> dynGroup: {1}".format(_str_func,mGroup.mNode))
     _d['mode'] = mGroup.dynMode
-    _d['scaleMode'] = mGroup.getMayaAttr('scaleMode') or 'none'
+    _d['scaleMode'] = mGroup.getMayaAttr('scaleMode') or 0
     _d['dynParents'] = mGroup.msgList_get('dynParents')
     _d['dynDrivers'] = mGroup.msgList_get('dynDrivers')
     _d['dynChild'] = mObj

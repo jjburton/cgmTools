@@ -748,8 +748,9 @@ class factory(object):
             self.call_kws = kws
             log.debug("|{0}| >> kws: {1}".format(_str_func,kws))
             
+        _sel = mc.ls(sl=1) or False
+        
         if constrainTo == 'selected':
-            _sel = mc.ls(sl=1) or False
             if _sel:
                 self.constrainTo = _sel[0]
         else:
@@ -763,13 +764,16 @@ class factory(object):
                 mLight.p_parent = mLightGroup
                 
             if self.constrainTo and constrainMode:
-                mConstrainTo = cgmMeta.cgmObject(self.constrainTo)
+                mConstrainTo = cgmMeta.cgmObject(cgmMeta.getTransform(self.constrainTo))
                 mLoc = mConstrainTo.doLoc()
                 mConstrainTo.resetAttrs(['translate','rotate'])
 
                 mc.orientConstraint(mConstrainTo.mNode,mLightGroup.mNode)
                 mConstrainTo.doSnapTo(mLoc)
                 mLoc.delete()
+                
+        if _sel:
+            mc.select(_sel)
 
     @cgmGEN.Timer
     def get_lights(self):

@@ -183,7 +183,6 @@ l_attrsStandard = ['side',
                    'attachPoint',
                    'attachIndex',
                    'blockState_BUFFER',
-                   'addAim',
                    'addPivot',
                    'addCog',
                    'buildSDK',
@@ -216,6 +215,8 @@ d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
                  'rotPivotPlace':'handle:jointHelper:cog',
                  'loftSetup':'default:loftList',
                  'parentToDriver':'bool',
+                 'addAim':'none:default:handle',
+                 'parentVisAttr':'bool',
                  'proxyShape':'cube:sphere:cylinder:cone:torus:shapers',
                  'targetJoint':'messageSimple',
                  'shapersAim':'toEnd:chain',
@@ -547,57 +548,59 @@ def define(self):
 #>> Form
 #=============================================================================================================
 def formDelete(self):
-    try:
-        _str_func = 'formDelete'
-        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
-        
-        if self.blockProfile not in ['snapPoint']:
-            for k in ['end','rp','up','lever','aim','start']:
-                mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
-                if mHandle:
-                    l_const = mHandle.getConstraintsTo()
-                    if l_const:
-                        log.debug("currentConstraints...")
-                        pos = mHandle.p_position
-                        
-                        for i,c in enumerate(l_const):
-                            log.debug("{0} : {1}".format(i,c))
-                            if not mc.ls(c,type='aimConstraint'):
-                                mc.delete(c)
-                        mHandle.p_position = pos
-                        
-                    if k == 'end':
-                        #_end = mHandle.mNode
-                        #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
-                        #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
-                        #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
-                        _end = mHandle.mNode                    
-                        _baseSize = []
-                        for a in 'width','height','length':
-                            _baseSize.append(ATTR.get(_end,a))
-                        self.baseSize = _baseSize
-                        _dat = self.baseDat
-                        _dat['baseSize'] = self.baseSize
-                        self.baseDat = _dat
+    _str_func = 'formDelete'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    if self.blockProfile not in ['snapPoint']:
+        for k in ['end','rp','up','lever','aim','start']:
+            mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
+            if mHandle:
+                l_const = mHandle.getConstraintsTo()
+                if l_const:
+                    log.debug("currentConstraints...")
+                    pos = mHandle.p_position
                     
-                        
-                    mHandle.v = True
-                    mHandle.template = False
+                    for i,c in enumerate(l_const):
+                        log.debug("{0} : {1}".format(i,c))
+                        if not mc.ls(c,type='aimConstraint'):
+                            mc.delete(c)
+                    mHandle.p_position = pos
                     
-                mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
-                if mHandle:
-                    mHandle.template=False
+                if k == 'end':
+                    #_end = mHandle.mNode
+                    #self.doConnectIn('baseSizeX',"{0}.width".format(_end))
+                    #self.doConnectIn('baseSizeY',"{0}.height".format(_end))
+                    #self.doConnectIn('baseSizeZ',"{0}.length".format(_end))
+                    _end = mHandle.mNode                    
+                    _baseSize = []
+                    for a in 'width','height','length':
+                        _baseSize.append(ATTR.get(_end,a))
+                    self.baseSize = _baseSize
+                    _dat = self.baseDat
+                    _dat['baseSize'] = self.baseSize
+                    self.baseDat = _dat
                 
-            self.defineLoftMesh.v = True
-            self.defineLoftMesh.template = False
+                    
+                mHandle.v = True
+                mHandle.template = False
+                
+            mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
+            if mHandle:
+                mHandle.template=False
             
-        mNoTransformNull = self.getMessageAsMeta('noTransFormNull')
-        if mNoTransformNull:
-            mNoTransformNull.delete()
+        self.defineLoftMesh.v = True
+        self.defineLoftMesh.template = False
+        
+    mFormNull = self.getMessageAsMeta('formNull')
+    if mFormNull:
+        mFormNull.delete
+        
+    mNoTransformNull = self.getMessageAsMeta('noTransFormNull')
+    if mNoTransformNull:
+        mNoTransformNull.delete()
         
         
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def form(self):
     _str_func = 'form'        
@@ -693,7 +696,10 @@ def form(self):
         if mHandle:
             log.debug("define handle: {0} | {1}".format(k,mHandle))                        
             md_defineHandles[k] = mHandle
-            mHandle.v=False
+            
+            if k not in ['aim']:
+                mHandle.v=False
+            
             if k in ['end']:
                 mHandle.template = True        
             #if k in ['up']:
@@ -880,7 +886,10 @@ def form(self):
         #if _shape in ['circle']:
         #    SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1], "z+",'y-','vector', _mVectorUp)
         #else:
-        SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1],"y",'z-','vector', vectorUp=_mVectorUp)
+        if _shape in ['pyramid']:
+            SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1],"z",'y+','vector', vectorUp=_mVectorUp)            
+        else:
+            SNAP.aim_atPoint(mHandle.mNode, _l_basePos[-1],"y",'z-','vector', vectorUp=_mVectorUp)
     
         mHandle.doStore('cgmNameModifier','main')
         mHandle.doStore('cgmType','handle')
@@ -901,6 +910,9 @@ def form(self):
         mProxy.doSnapTo(mHandle.mNode)
         if _shape in ['pyramid','semiSphere','circle','square']:
             mProxy.p_position = _pos_mid
+            
+
+        SNAP.aim_atPoint(mProxy.mNode, _l_basePos[-1],"y",'z-','vector', vectorUp=_mVectorUp)        
         #mProxy.p_position = _pos_mid
         #NAP.aim_atPoint(mHandle.mNode, _l_basePos[-1], "y",'z-','vector', _mVectorUp)
         
@@ -1301,7 +1313,7 @@ def rig_dataBuffer(self):
         
         #Settings Parent
         self.mSettingsParent = None
-        if mBlock.blockProfile in ['snapPoint']:
+        if mBlock.blockProfile in ['snapPoint'] or mBlock.parentVisAttr:
             mModuleParent =  self.d_module['mModuleParent']
             if mModuleParent:
                 mSettings = mModuleParent.rigNull.settings
@@ -1459,12 +1471,15 @@ def rig_shapes(self):
     #Aim=============================================================================================
     if mBlock.addAim:
         log.info("|{0}| >> Aim setup...".format(_str_func))  
-        _vec_aim = MATH.get_obj_vector(mBlock.vectorAimHelper.mNode,asEuclid=True)    
+        #_vec_aim = MATH.get_obj_vector(mBlock.vectorAimHelper.mNode,asEuclid=True)    
         #_ikPos = DIST.get_pos_by_vec_dist(mControl.p_position, _vec_aim, mBlock.baseSize[2])
-        _ikPos = mControl.getPositionByAxisDistance(mBlock.getEnumValueString('axisAim'), _size *2)
         
-        ikCurve = CURVES.create_fromName('sphere2',_size/2)
-        textCrv = CURVES.create_text(mBlock.getAttr('cgmName') or mBlock.blockType,_size/2)
+        #_dist = DIST.get_distance_between_points(mBlock.defineAimHelper.p_position, mControl.p_position)
+        #_ikPos = mControl.getPositionByAxisDistance(mBlock.getEnumValueString('axisAim'), _dist)
+        _ikPos = mBlock.defineAimHelper.p_position
+        _size_aim = TRANS.bbSize_get(mBlock.defineAimHelper.mNode, mode = 'max')
+        ikCurve = CURVES.create_fromName('sphere2',_size_aim)
+        textCrv = CURVES.create_text(mBlock.getAttr('cgmName') or mBlock.blockType,_size_aim/2)
         CORERIG.shapeParent_in_place(ikCurve,textCrv,False)
         
         mLookAt = cgmMeta.validateObjArg(ikCurve,'cgmObject',setClass=True)
@@ -1598,8 +1613,11 @@ def rig_controls(self):
             
             
         #Settings Parent ==================================================================================
-        if self.mSettingsParent:
-            str_attr = "snapPoint_{0}".format(self.d_module['partName'])
+        if self.mSettingsParent or mBlock.parentVisAttr:
+            if mBlock.parentVisAttr:
+                str_attr = "show_{0}".format(self.d_module['partName'])                
+            else:
+                str_attr = "snapPoint_{0}".format(self.d_module['partName'])
 
             #Build the network
             self.mSettingsParent.addAttr(str_attr,enumName = 'off:lock:on',
@@ -1755,6 +1773,7 @@ def rig_frame(self):
         #Aim ========================================================================================
         if mBlock.addAim:
             log.info("|{0}| >> Aim setup...".format(_str_func))
+            
             mSettings = mRigNull.settings
             
             mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',lock=False,keyable=True)
@@ -1762,35 +1781,56 @@ def rig_frame(self):
             mAimFKJoint = mRigNull.getMessage('aimFKJoint', asMeta=True)[0]
             mAimIKJoint = mRigNull.getMessage('aimIKJoint', asMeta=True)[0]
             mAimBlendJoint = mRigNull.getMessage('aimBlendJoint', asMeta=True)[0]
-            
-            mDirectDriver = mAimBlendJoint
+
             mAimLookAt = mRigNull.lookAtHandle
             
             ATTR.connect(mPlug_aim.p_combinedShortName, "{0}.v".format(mAimLookAt.mNode))
             
             #Setup Aim -------------------------------------------------------------------------------------
-            mc.aimConstraint(mAimLookAt.mNode,
-                             mAimIKJoint.mNode,
-                             maintainOffset = False, weight = 1,
-                             aimVector = self.d_orientation['vectorAim'],
-                             upVector = self.d_orientation['vectorUp'],
-                             worldUpVector = self.d_orientation['vectorUp'],
-                             worldUpObject = mAimDriver.mNode,
-                             worldUpType = 'objectRotation' )
+            if mBlock.addAim == 1:
+                mc.aimConstraint(mAimLookAt.mNode,
+                                 mAimIKJoint.mNode,
+                                 maintainOffset = True, weight = 1,
+                                 aimVector = self.d_orientation['vectorAim'],
+                                 upVector = self.d_orientation['vectorUp'],
+                                 worldUpVector = self.d_orientation['vectorUp'],
+                                 worldUpObject = mAimDriver.mNode,
+                                 worldUpType = 'objectRotation' )
+            else:
+                mc.aimConstraint(mAimLookAt.mNode,
+                                 mAimIKJoint.mNode,
+                                 maintainOffset = True, weight = 1,
+                                 aimVector = self.d_orientation['vectorAim'],
+                                 upVector = self.d_orientation['vectorUp'],
+                                 worldUpVector = self.d_orientation['vectorUp'],
+                                 worldUpObject = mAimLookAt.mNode,
+                                 worldUpType = 'objectRotation' )                
     
             #Setup blend ----------------------------------------------------------------------------------
             RIGCONSTRAINT.blendChainsBy(mAimFKJoint,mAimIKJoint,mAimBlendJoint,
                                         driver = mPlug_aim.p_combinedName,l_constraints=['orient'])
             
             #Parent pass ---------------------------------------------------------------------------------
-            mAimLookAt.masterGroup.parent = mAimDriver
+            if mBlock.addAim == 1:
+                mDirectDriver = mAimBlendJoint                        
             
-            for mObj in mAimFKJoint,mAimIKJoint,mAimBlendJoint:
-                mObj.parent = mAimDriver
+                mAimLookAt.masterGroup.parent = mAimDriver
+            
+                for mObj in mAimFKJoint,mAimIKJoint,mAimBlendJoint:
+                    mObj.parent = mAimDriver
+            else:#Handle
+                mAimLookAt.masterGroup.parent = mRootParent
+                                
+                for mObj in mAimFKJoint,mAimIKJoint,mAimBlendJoint:
+                    mObj.parent = mHandle.p_parent
+                    
+                mAimGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'aim',setClass='cgmObject')
+                mAimGroup.p_parent = mAimBlendJoint
+                
     
         else:
-            log.info("|{0}| >> NO Head IK setup...".format(_str_func))    
-        
+            log.info("|{0}| >> NO aim setup...".format(_str_func))    
+            
     
         #Direct  ===================================================================================
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
@@ -1913,10 +1953,13 @@ def rig_cleanUp(self):
         #...dynParentGroup...
         ml_headLookAtDynParents = copy.copy(ml_baseDynParents)
         ml_headLookAtDynParents.extend(mHeadLookAt.msgList_get('spacePivots',asMeta = True))
-        ml_headLookAtDynParents.extend(ml_baseDynParents_end)
+        ml_headLookAtDynParents.extend(ml_endDynParents)
         
-        ml_headLookAtDynParents.insert(0, mHandle)
-        
+        if mBlock.addAim == 1:
+            ml_headLookAtDynParents.insert(0, mHandle)
+        else:
+            ml_headLookAtDynParents.insert(0, mRoot)
+            
         
         mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
         if mPivotResultDriver:
@@ -1954,8 +1997,10 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         log.debug("{0}".format(self))
         
         if self.blockProfile in ['snapPoint']:
-            return True
+            return []
             
+        if not self.meshBuild:
+            return []
         
         if skin:
             mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
