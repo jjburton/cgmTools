@@ -532,7 +532,7 @@ def buildFrame_paths(self,parent,changeCommand = ''):
         mc.button(parent=_row,
                   l = 'Set',
                   ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(uiButton_setPathToTextField,uiButton_setPathToTextField,key,'local'),
+                  c = cgmGEN.Callback(uiButton_setPathToTextField,self,key,'local'),
                   
                   #en = _d.get('en',True),
                   #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
