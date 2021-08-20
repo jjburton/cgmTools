@@ -3328,13 +3328,6 @@ def rig_prechecks(self):
             
         if mBlock.addLeverEnd and mBlock.numControls < 3:
             self.l_precheckErrors.append('Quad Setup needs at least 3 controls')
-            
-        str_squashMeasure = mBlock.getEnumValueString('squashMeasure')
-        str_segmentType = mBlock.getEnumValueString('segmentType')
-        if str_squashMeasure == 'pointDist' and str_segmentType in ['curve','linear'] and mBlock.scaleSetup:
-            self.l_precheckErrors.append("segmentType of curve/linear needs arcLength with scaleSetup".format(str_ikEnd))
-            
-        
         
         str_ikEnd = mBlock.getEnumValueString('ikEnd')
         if str_ikEnd in ['tipCombo']:

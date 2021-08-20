@@ -599,58 +599,56 @@ def define(self):
 
 #is_form = BLOCKUTILS.is_form
 def formDelete(self):
-    try:
-        _str_func = 'formDelete'
-        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
-        
-        for k in ['end','start','rp','up','aim']:
-            mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
-            if mHandle:
-                mHandle.v = True
-                mHandle.template = False
-                if k in ['rp','up']:
-                    continue                
-                l_const = mHandle.getConstraintsTo()
-                if l_const:
-                    log.debug("currentConstraints...")
-                    pos = mHandle.p_position
-                    for i,c in enumerate(l_const):
-                        log.debug("    {0} : {1}".format(i,c))
-                        if k in ['start','end']:
-                            if mc.ls(c,type=['aimConstraint']):
-                                pass
-                            else:
-                                mc.delete(c)
+    _str_func = 'formDelete'
+    log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+    for k in ['end','start','rp','up','aim']:
+        mHandle = self.getMessageAsMeta("define{0}Helper".format(k.capitalize()))
+        if mHandle:
+            mHandle.v = True
+            mHandle.template = False
+            if k in ['rp','up']:
+                continue                
+            l_const = mHandle.getConstraintsTo()
+            if l_const:
+                log.debug("currentConstraints...")
+                pos = mHandle.p_position
+                for i,c in enumerate(l_const):
+                    log.debug("    {0} : {1}".format(i,c))
+                    if k in ['start','end']:
+                        if mc.ls(c,type=['aimConstraint']):
+                            pass
                         else:
                             mc.delete(c)
-                    mHandle.p_position = pos
-                    
-                if k == 'end':
-                    _end = mHandle.mNode
-                    self.doConnectIn('neckSizeX',"{0}.width".format(_end))
-                    self.doConnectIn('neckSizeY',"{0}.height".format(_end))
-                    self.doConnectIn('neckSizeZ',"{0}.length".format(_end))
-                    """
-                    _end = mHandle.mNode
-                    _neckSize = []
-                    for a in 'width','height','length':
-                        _neckSize.append(ATTR.get(_end,a))
-                    self.neckSize = _neckSize
-                    _dat = self.baseDat
-                    _dat['baseSize'] = self.baseSize
-                    self.baseDat = _dat"""
+                    else:
+                        mc.delete(c)
+                mHandle.p_position = pos
+                
+            if k == 'end':
+                _end = mHandle.mNode
+                self.doConnectIn('neckSizeX',"{0}.width".format(_end))
+                self.doConnectIn('neckSizeY',"{0}.height".format(_end))
+                self.doConnectIn('neckSizeZ',"{0}.length".format(_end))
+                """
+                _end = mHandle.mNode
+                _neckSize = []
+                for a in 'width','height','length':
+                    _neckSize.append(ATTR.get(_end,a))
+                self.neckSize = _neckSize
+                _dat = self.baseDat
+                _dat['baseSize'] = self.baseSize
+                self.baseDat = _dat"""
 
-                
-            mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
-            if mHandle:
-                mHandle.template=False
-                
-        
-        try:self.defineLoftMesh.v = True
-        except:pass
-        self.bbHelper.v = True
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+            
+        mHandle = self.getMessageAsMeta("vector{0}Helper".format(k.capitalize()))
+        if mHandle:
+            mHandle.template=False
+            
+    
+    try:self.defineLoftMesh.v = True
+    except:pass
+    self.bbHelper.v = True
     
   
 def form(self):
