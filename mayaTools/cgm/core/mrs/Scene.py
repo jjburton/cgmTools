@@ -2775,11 +2775,11 @@ example:
         searchList['scrollList'].clear()
         searchList['scrollList'].setItems(anims)
         
-        if anims:
+        #if anims:
             #searchList['scrollList'].selectByValue(anims[-1])
-            self.uiFunc_versionList_select(anims[-1])
-        else:
-            self.StoreCurrentSelection()
+        #    self.uiFunc_versionList_select(anims[-1])
+        #else:
+        #    self.StoreCurrentSelection()
 
     def LoadFile(self, *args):
         if not self.assetList['scrollList'].getSelectedItem():

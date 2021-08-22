@@ -90,7 +90,6 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                 'define':['basicShape','shapeDirection','jointRadius'],
                 'form':['numShapers','numSubShapers','shapersAim',
                         'loftSetup','loftList','loftShape',
-                        'ikEnd',                        
                         'proxyShape'],
                 'proxySurface':['loftSides','loftDegree','loftSplit'],
                 'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace',
@@ -105,14 +104,14 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                        'buildSDK',
                        'ikOrientToWorld',
                        'ikSetup',
-                       'ikBase',
+                       'ikBase','ikEnd',
                         'offsetMode','proxyDirect','parentToDriver','rigSetup','scaleSetup'],
                 'advanced':['baseDat'],
                 'squashStretch':['squash','squashExtraControl','squashFactorMin','squashFactorMax',
                                  'squashMeasure'],
                 'vis':[ 'visLabels','visMeasure','visProximityMode','visJointHandle','visRotatePlane'],
                 'data':['version','blockType','blockProfile'],
-                'post':['proxyLoft','proxyGeoRoot','proxyType']}
+                'post':['proxyLoft','proxyGeoRoot','proxyType','castVector']}
 
 
 #These are our default attrs to make library. To be called via modules

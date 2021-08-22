@@ -8120,7 +8120,19 @@ def rig_pivotSetup(self):
         #                    ml_followParentBankJoints[0].mNode,
         #                    maintainOffset = True)
     
-        mControlFollowParentBank.masterGroup.parent = self.d_module['mModuleParent'].rigNull.controlIK
+        mParentRigNull = self.d_module['mModuleParent'].rigNull
+        mParentDriver = None
+        for plug in ['controlIK','pivotResultDriver','handle']:
+            mParentDriver = mParentRigNull.getMessageAsMeta(plug)
+            if mParentDriver:
+                log.debug("|{0}| >> followParentBank parent: {1}".format(_str_func,mParentDriver)+'-'*40)                
+                break
+            
+        if not mParentDriver:
+            raise Exception,"No parent driver found for follow parent bank"
+        
+        mControlFollowParentBank.masterGroup.parent = mParentDriver
+        
         mIKControlTarget = ml_followParentBankJoints[-1]
         ml_fkAimJoints = ml_followParentBankJoints
     
@@ -8229,43 +8241,25 @@ def rig_pivotSetup(self):
         
         mParentSettings = self.d_module['mModuleParent'].rigNull.settings
         
-        create_digitParentBlendDag(mIKControlTarget,'bankParentIKDriver',
-                                   'followParentBank',mLimbRoot,mParentSettings,
-                                   'result_FKon','result_IKon')
+        if mParentSettings.hasAttr('result_IKon'):
+            create_digitParentBlendDag(mIKControlTarget,'bankParentIKDriver',
+                                       'followParentBank',mLimbRoot,mParentSettings,
+                                       'result_FKon','result_IKon')
         
         #mIKControlTarget.doStore('cgmAlias', 'followParentBank')        
         #mRigNull.connectChildNode(mIKControlTarget,'bankParentIKDriver','rigNull')#Connect        
         
+        if mParentSettings.hasAttr('result_FKon'):
         
-        log.debug("|{0}| >> pivotBank | fk connection setup ...".format(_str_func)+'-'*40)
-        #mRigNull.connectChildNode(ml_fkAimJoints[0].mNode,'bankParentFKDriver','rigNull')#Connect
-        create_digitParentBlendDag(ml_fkAimJoints[0],'bankParentFKDriver',
-                                   'followParentBank',mLimbRoot,mParentSettings,
-                                   'result_FKon','result_IKon')
+            log.debug("|{0}| >> pivotBank | fk connection setup ...".format(_str_func)+'-'*40)
+            #mRigNull.connectChildNode(ml_fkAimJoints[0].mNode,'bankParentFKDriver','rigNull')#Connect
+            create_digitParentBlendDag(ml_fkAimJoints[0],'bankParentFKDriver',
+                                       'followParentBank',mLimbRoot,mParentSettings,
+                                       'result_FKon','result_IKon')
     
         #Setup blends to turn off and on
         mFKGroup = self.mRigNull.getMessageAsMeta('fkGroup')
-        #mAimGroup = mFKGroup.doGroup(True,True,typeModifier='aim',asMeta=True)
-        #mAimDriver = mFKGroup.groupChild.doCreateAt(setClass=True)
-    
-        #mAimDriver.doStore('cgmName',self.d_module['partName'] + 'bankAimFK')
-        #mAimDriver.doStore('cgmType','driver')
-        #mAimDriver.doName()
-        #mAimDriver.p_parent = ml_followParentBankJoints[0]
-    
-        #mAimDriver.doStore('cgmAlias', 'followParentBank')
-        #mRigNull.connectChildNode(mAimDriver,'bankParentFKDriver','rigNull')#Connect
-        
-        """
-        d_aimFK = IK.handle(ml_fkAimJoints[0].mNode,
-                            ml_fkAimJoints[-1].mNode,
-                            solverType='ikSCsolver',
-                            baseName = self.d_module['partName'] + 'followFKBank',
-                            moduleInstance=mModule)
-        mHandle = d_aimFK['mHandle']
-        mHandle.parent = mControlFollowParentBank.mNode#toeIK to wiggle
-        """
-    
+
         
         mc.aimConstraint(mControlFollowParentBank.mNode, ml_fkAimJoints[0].mNode, maintainOffset = True,
                          aimVector = [0,0,1], upVector = [0,1,0], 
@@ -8286,12 +8280,7 @@ def rig_pivotSetup(self):
             mc.parentConstraint(mIKControlTarget.mNode,
                                 mIKControl.mNode,
                                 maintainOffset=True)"""
-    
-        return    
-    
-    
-    
-    
+
         
     #Pivot Driver ===============================================================================
     mBallPivotJoint = None

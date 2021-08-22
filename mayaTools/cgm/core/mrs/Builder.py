@@ -63,6 +63,7 @@ from cgm.core.mrs.lib import block_utils as BLOCKUTILS
 from cgm.core.mrs.lib import blockShapes_utils as BLOCKSHAPES
 from cgm.core.mrs.lib import ModuleControlFactory as MODULECONTROLFACTORY
 from cgm.core.mrs.lib import ModuleShapeCaster as MODULESHAPECASTER
+from cgm.core.rig import ik_utils as IK
 
 from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
 import cgm.core.lib.string_utils as CORESTRINGS
@@ -120,7 +121,7 @@ _sidePadding = 25
 
 def reloadMRSStuff():
     log.info("reloading...")
-    for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,
+    for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,IK,
               BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,MRSPOST,
               MODULECONTROLFACTORY,MODULESHAPECASTER]:
         print m

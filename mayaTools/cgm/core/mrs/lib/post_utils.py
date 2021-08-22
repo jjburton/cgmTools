@@ -73,7 +73,7 @@ __version__ = 'alpha.1.09122018'
 log_start = cgmGEN.log_start
 
 
-def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = False):
+def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = 1):
     _str_func = 'autoSwim'
     log_start(_str_func)
     
@@ -122,16 +122,18 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
     
     #...attributes =================================================================================================
     _settings = mSettings.mNode
-    l_order = ['swim','speed','wavelength','amplitude','dropoff','dropoffPosition','minRadius','maxRadius']
+    l_order = ['swim','speed','wavelength','amplitude','dropoff','dropoffPosition']
     d_attrs = {'swim':{'min':0,'max':1, 'dv':0,'target':"{0}.{1}".format(blendshapeNode[0],
                                                                         mSwimSurface.p_nameBase)},
-               'speed':{'min':-100,'max':100,'dv':0,'v':1,'target':'deformer'},
+               'speed':{'min':-100,'max':100,'dv':0,'v':1},
                'wavelength':{'min':0,'max':10,'dv':5,'v':5,'target':'deformer'},
                'amplitude':{'min':0,'max':10,'dv':0,'v':0,'target':'deformer'},
                'dropoff':{'min':0,'max':1,'dv':1,'v':1,'target':'deformer'},
                'dropoffPosition':{'min':0,'max':1,'dv':0,'v':0,'target':'deformer'},
                'minRadius':{'min':0,'max':10,'dv':10,'v':1,'target':'deformer'},
                'maxRadius':{'min':0,'max':10,'dv':10,'v':10,'target':'deformer'},
+               'lowBound':{'min':-100,'max':100,'dv':-1,'v':-1,'target':'deformer'},
+               'highBound':{'min':-100,'max':100,'dv':1,'v':1,'target':'deformer'},               
                  }
     
     if not setupCycle:
@@ -140,9 +142,21 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
         
         d_attrs.pop('speed')
         l_order.remove('speed')
+        
+    if deformer == 'wave':
+        l_order.extend(['minRadius','maxRadius'])
+    elif deformer == 'sine':
+        l_order.extend(['lowBound','highBound'])
     
     for a in l_order:
         _d = d_attrs[a]
+        _target = _d.get('target')
+        
+        if _target == 'deformer':
+            if not mc.objExists('{}.{}'.format(mDeformer.mNode,a)):
+                print("{} doesn't exist".format(a))
+                continue
+        
         _kws = {}
         for k in ['min','max','dv']:
             _v = _d.get(k)
@@ -156,7 +170,6 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
                     
         ATTR.add(_settings, a, 'float', value = _d.get('v',0), hidden = False, keyable = True, **_kws)
         
-        _target = _d.get('target')
         if _target:
             if _target == 'deformer':
                 ATTR.connect("{}.{}".format(_settings,a), "{}.{}".format(mDeformer.mNode,a))

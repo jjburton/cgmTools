@@ -1632,9 +1632,11 @@ def ribbon(jointList = None,
                 if driverSetup == 'stable':
                     if mDriver in [ml_aimDrivers[-1]]:
                         #...now aim it
-                        mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode, maintainOffset = True, #skip = 'z',
+                        mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode,
+                                         maintainOffset = True, #skip = 'z',
                                          aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)                     
+                                         worldUpType = 'object', worldUpVector = v_up)
+                        
                     else:
                         #was aimint at follicles... ml_follicles
                         mc.aimConstraint(ml_follicles[i+1].mNode, ml_aimDrivers[i].mNode, maintainOffset = True, #skip = 'z',
@@ -1806,7 +1808,7 @@ def ribbon(jointList = None,
             
 
             
-        if squashStretch != 'simple':
+        if squashStretchMain != 'none':#squashStretch != 'simple':
             for i,mJnt in enumerate(ml_joints):#Base measure ===================================================
                 """
                 log.debug("|{0}| >> Base measure for: {1}".format(_str_func,mJnt))
