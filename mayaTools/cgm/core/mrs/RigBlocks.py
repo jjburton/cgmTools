@@ -3795,11 +3795,15 @@ class rigFactory(object):
             
             if mayaMainProgressBar:CGMUI.doEndMayaProgressBar(mayaMainProgressBar)#Close out this progress bar    
         except Exception,err:
+            log.error("|{}| >> {} | step: {} | err: {}".format(_str_func,self.mBlock.p_nameBase, fnc, err))
             CGMUI.doEndMayaProgressBar()#Close out this progress bar
+            raise Exception,err
+        
+        #finally:CGMUI.doEndMayaProgressBar()#Close out this progress bar
 
-            cgmGEN.cgmException(Exception,err,msg=vars())
+        #    cgmGEN.cgmException(Exception,err,msg=vars())
 
-            raise Exception,"|{}| >> {} | step: {} | err: {}".format(_str_func,self.mBlock.p_nameBase, fnc, err)
+            #raise Exception,"|{}| >> {} | step: {} | err: {}".format(_str_func,self.mBlock.p_nameBase, fnc, err)
 
         log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
 

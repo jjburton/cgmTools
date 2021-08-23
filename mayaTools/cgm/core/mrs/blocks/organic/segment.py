@@ -125,7 +125,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                            'loftShapeEnd','loftShapeStart'],
                    'prerig':[],
                    'skeleton':['numJoints'],
-                   'rig':[]}
+                   'rig':['segmentType','special_swim']}
 
 
 #>>>Profiles =====================================================================================================
@@ -264,7 +264,36 @@ d_block_profiles = {
                 'settingsPlace':'end',
                 'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,-1]},
                 'baseSize':[14,9,76],
-                },    
+                },
+    'spineSwim':{'numShapers':4,
+                 'numSubShapers':2,
+                 'addCog':True,
+                 'loftSetup':'loftList',
+                 'loftList':['wideUp','circle','wideDown','wideDown'],             
+                 'loftShape':'circle',
+                 'ikSetup':'ribbon',
+                 'ikBase':'hips',
+                 'ikEnd':'tipBase',             
+                 'cgmName':'spine',
+                 'nameIter':'spine',
+                 'nameList':['head','tail'],
+                 'numControls':4,
+                 'squash':'simple',
+                 'squashExtraControl':True,
+                 'squashMeasure':'arcLength',
+                 'squashFactorMax':1.0,
+                 'squashFactorMin':1.0,
+                 'ribbonAim':'stable',
+                 'shapersAim':'toEnd',
+                 'segmentType':'ribbon',
+                 'settingsPlace':'cog',
+                 'shapeDirection':'z-',
+                 'special_swim':'wave',
+                 'numJoints':8,
+                 'baseAim':[0,0,1],
+                 #'baseUp':[0,0,-1],
+                 'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,-1]},
+                 'baseSize':[30,15,76]},    
     
     'spineFwd':{'numShapers':4,
              'numSubShapers':2,
@@ -378,7 +407,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'squashFactorMin':'float',
                  'shapersAim':'toEnd:chain:orientToHandle',
                  'loftSetup':'default:loftList',
-                 'special_swim':'bool',
+                 'special_swim':'none:wave:sine',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
                  'segmentMidIKControl':'none:ribbon:prntConstraint',
@@ -1587,7 +1616,7 @@ def rig_dataBuffer(self):
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
             mBlock.segmentMidIKControl = 0
             
-        for k in ['segmentType']:
+        for k in ['segmentType','settingsPlace']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
                 
         #Vector ====================================================================================
@@ -2166,9 +2195,6 @@ def rig_controls(self):
                                           attrType='bool', defaultValue = False,
                                           keyable = False,hidden = False)"""
         
-        #if self.mBlock.headAim:        
-            #mPlug_aim = cgmMeta.cgmAttr(mSettings.mNode,'blend_aim',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
-            
         
         #Root ==============================================================================================
         log.debug("|{0}| >> Root...".format(_str_func))
@@ -2248,13 +2274,6 @@ def rig_controls(self):
             self.atUtils('get_switchTarget', mControlIK,ml_blend[self.int_handleEndIdx])
             
             
-            """
-            mSnapTarget = mControlIK.doCreateAt(setClass=True)
-            mSnapTarget.p_parent = ml_blend[self.int_handleEndIdx]
-            mControlIK.doStore('switchTarget',mSnapTarget)
-            mSnapTarget.rename("{0}_switchTarget".format(mControlIK.p_nameBase))
-            log.debug("|{0}| >> IK handle snap target : {1}".format(_str_func, mSnapTarget))
-            mSnapTarget.setAttrFlags()"""
             
         mControlBaseIK = False
         if mRigNull.getMessage('controlIKBase'):
@@ -2275,13 +2294,6 @@ def rig_controls(self):
             
             #Register our snapToTarget -------------------------------------------------------------
             self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[0])
-            """
-            mSnapTarget = mControlBaseIK.doCreateAt(setClass=True)
-            mControlBaseIK.doStore('switchTarget',mSnapTarget)
-            mSnapTarget.rename("{0}_switchTarget".format(mControlBaseIK.p_nameBase))
-            log.debug("|{0}| >> IK Base handle snap target : {1}".format(_str_func, mSnapTarget))
-            mSnapTarget.p_parent = ml_blend[0]        
-            mSnapTarget.setAttrFlags()"""
             
             if str_ikBase == 'hips' and mBlock.scaleSetup:
                 log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
@@ -2329,7 +2341,7 @@ def rig_controls(self):
             self.atUtils('get_switchTarget', mControlSegMidIK,ml_blend[ MATH.get_midIndex(len(ml_blend))])        
     
     
-        if not b_cog:#>> settings ========================================================================================
+        if mSettings and self.str_settingsPlace != 'cog':#>> settings ==========================================
             log.debug("|{0}| >> Settings : {1}".format(_str_func, mSettings))
             
             MODULECONTROL.register(mSettings,
@@ -2504,11 +2516,12 @@ def rig_segments(self):
             if mBlock.getEnumValueString('ikBase') == 'hips':
                 _d['attachStartToInfluence'] = True
             if mBlock.special_swim:
+                _d['attachStartToInfluence'] = False                
                 _d['attachEndToInfluence'] = False
                 
                 
-            reload(IK)
-            pprint.pprint(_d)
+            #reload(IK)
+            #pprint.pprint(_d)
             
             _d.update(self.d_squashStretch)
             

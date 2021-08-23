@@ -73,7 +73,7 @@ __version__ = 'alpha.1.09122018'
 log_start = cgmGEN.log_start
 
 
-def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = 1):
+def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = 1, orient = 'zyx'):
     _str_func = 'autoSwim'
     log_start(_str_func)
     
@@ -88,9 +88,90 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
         ml_joints = mRigNull.msgList_get('segmentJoints')
         
     ml_blends = mRigNull.msgList_get('blendJoints')
+    if not ml_blends:
+        ml_blends = mRigNull.msgList_get('fkJoints')
     
     mTargetSurface = cgmMeta.validateObjArg(controlSurface,mayaType='nurbsSurface')
-    mSettings = cgmMeta.validateObjArg(waveControl)
+    
+    if not waveControl:
+        mSettings = ml_blends[0].doCreateAt()
+        mSettings.doStore('cgmName',_nameTag)
+        mSettings.doStore('cgmNameModifier','settings')
+        
+        mSettings.doName()
+        
+        mSettings.p_parent = ml_blends[0]
+        
+        #Shape
+        #bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
+        #bb_ik = [v * 1.5 for v in bb_ik]
+    
+        _ik_shape = CURVES.create_fromName('sphere', size = DIST.get_distance_between_points(ml_blends[0].p_position,
+                                                                                             ml_blends[-1].p_position))
+        SNAP.go(_ik_shape,mSettings.mNode)
+        CORERIG.shapeParent_in_place(mSettings.mNode, _ik_shape, False)        
+        
+        
+        #aim setup...
+        
+        mBaseOrientGroup = mSettings.doCreateAt()
+        mBaseOrientGroup.rename('{}_orient'.format(_nameTag))
+        mBaseOrientGroup.p_parent = mSettings
+        
+        ATTR.set(mBaseOrientGroup.mNode, 'rotateOrder', orient)
+    
+        mLocBase = mSettings.doCreateAt()
+        mLocAim = mSettings.doCreateAt()
+    
+        mLocAim.doStore('cgmType','aimDriver')
+        mLocBase.doStore('cgmType','baseDriver')
+    
+    
+        for mObj in mLocBase,mLocAim:
+            mObj.doStore('cgmName',mSettings.mNode)                        
+            mObj.doName()
+            mObj.p_parent = mSettings
+                        
+    
+        mAimTarget = ml_blends[-1]
+        """
+                            _direction = self.d_module['direction'] or 'center'
+                            if _direction.lower() == 'left':
+                                v_aim = [0,0,1]
+                            else:
+                                v_aim = [0,0,-1]"""
+    
+        mc.aimConstraint(mAimTarget.mNode, mLocAim.mNode, maintainOffset = True,
+                         aimVector = [0,0,1], upVector = [0,1,0], 
+                         worldUpObject = mSettings.mNode,
+                         worldUpType = 'objectrotation', 
+                         worldUpVector = [0,1,0])#self.v_twistUp
+    
+    
+        const = mc.orientConstraint([mLocAim.mNode,mLocBase.mNode],
+                                    mBaseOrientGroup.mNode, maintainOffset = True)[0]
+    
+        d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mSettings.mNode,
+                                                              'aim'],
+                                                             [mSettings.mNode,'resRootFollow'],
+                                                             [mSettings.mNode,'resFullFollow'],
+                                                             keyable=True)
+    
+        targetWeights = mc.orientConstraint(const,q=True,
+                                            weightAliasList=True,
+                                            maintainOffset=True)
+    
+        #Connect                                  
+        d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
+        d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
+        d_blendReturn['d_result1']['mi_plug'].p_hidden = True
+        d_blendReturn['d_result2']['mi_plug'].p_hidden = True                                            
+
+        
+                
+        
+    else:
+        mSettings = cgmMeta.validateObjArg(waveControl)
     
     
     #Duplicate our surface
@@ -114,7 +195,11 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
     mDeformer.dropoffPosition = 1
     mDeformer.maxRadius = 2
     
-    mDeformerHandle.p_parent = ml_blends[0]
+    if not waveControl:#Parent under out settings
+        mDeformerHandle.p_parent = mBaseOrientGroup
+        
+    else:
+        mDeformerHandle.p_parent = ml_blends[0]
     
     #...blendshape
     blendshapeNode = mc.blendShape (mSwimSurface.mNode, mTargetSurface.mNode, name = '{}_bsNode'.format(_nameTag) )
@@ -191,7 +276,7 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
     
     pprint.pprint(vars())
     
-    
+    return
     if mModule:#if we have a module, connect vis
         for mObj in [mDeformerHandle]:
             mObj.overrideEnabled = 1
