@@ -394,6 +394,9 @@ l_attrsStandard = ['side',
                    'visProximityMode',
                    'visLabels',
                    'visJointHandle',
+                   'root_dynParentMode',
+                   'root_dynParentScaleMode',
+                   
                    'settingsDirection',
                    'moduleTarget']
 
@@ -3126,8 +3129,7 @@ def rig_cleanUp(self):
         mRigNull = self.mRigNull
         mSettings = mRigNull.settings
         mRoot = mRigNull.rigRoot
-        if not mRoot.hasAttr('cgmAlias'):
-            mRoot.addAttr('cgmAlias','root')
+
         mBlock = self.mBlock
         b_ikOrientToWorld = mBlock.ikOrientToWorld
         
@@ -3181,7 +3183,11 @@ def rig_cleanUp(self):
             
         if not mRoot.hasAttr('cgmAlias'):
             mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
-            
+        
+        
+        if mBlock.root_dynParentScaleMode == 2:
+            ml_targetDynParents.extend(self.ml_dynParentsAbove)        
+        
         ml_targetDynParents.extend(self.ml_dynEndParents)
         mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=0)
         ml_targetDynParents.extend(mRoot.msgList_get('spacePivots',asMeta = True))
@@ -3191,8 +3197,16 @@ def rig_cleanUp(self):
         
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
+            
+        mDynGroup.dynMode = mBlock.root_dynParentMode
+        mDynGroup.scaleMode = mBlock.root_dynParentScaleMode
+            
         mDynGroup.rebuild()
-        #mDynGroup.dynFollow.p_parent = self.mConstrainNull    
+        #mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        
+        if mBlock.root_dynParentScaleMode == 2:
+            mRoot.scaleSpace = 'puppet'
+            ATTR.set_default(mRoot.mNode, 'scaleSpace', 'puppet')        
         
         ml_baseDynParents.append(mRoot)
         
