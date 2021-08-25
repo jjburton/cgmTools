@@ -1632,10 +1632,16 @@ def ribbon(jointList = None,
                 if driverSetup == 'stable':
                     if mDriver in [ml_aimDrivers[-1]]:
                         #...now aim it
-                        mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode,
-                                         maintainOffset = True, #skip = 'z',
-                                         aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                         worldUpType = 'object', worldUpVector = v_up)
+                        if extendEnds:
+                            mc.aimConstraint(ml_follicles[i+1].mNode, mDriver.mNode,
+                                             maintainOffset = True, #skip = 'z',
+                                             aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                             worldUpType = 'object', worldUpVector = v_up)                            
+                        else:
+                            mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode,
+                                             maintainOffset = True, #skip = 'z',
+                                             aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
+                                             worldUpType = 'object', worldUpVector = v_up)
                         
                     else:
                         #was aimint at follicles... ml_follicles
