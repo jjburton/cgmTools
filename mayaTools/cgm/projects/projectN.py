@@ -771,8 +771,6 @@ _d_faceWiring = {
 
 
 'Wump':{
-
-    
     #Brow... --------------------------------------------
     'l_eyebrow':{'control':'l_browHeight_anim',
            'wiringDict':{'brow_dn_left':{'driverAttr':'-ty'},
@@ -880,6 +878,111 @@ _d_faceWiring = {
     #Hide stuff .... ------------------------------------------------------------------
     'tongue_hide':{'control':'hide_tongue_anim',
            'wiringDict':{'tongue_hide':{'driverAttr':'-ty'}}},
+    
+    },
+'cha1':{
+    #Brow... --------------------------------------------
+    'l_eyebrow':{'control':'l_browCon_anim',
+           'wiringDict':{'brow_flat_left':{'driverAttr':'-ty'},
+                         'brow_arcUp_left':{'driverAttr':'ty'},
+                         'brow_angry_left':{'driverAttr':'-tx'},
+                         }},
+    'r_eyebrow':{'control':'r_browCon_anim',
+           'wiringDict':{'brow_flat_right':{'driverAttr':'-ty'},
+                         'brow_arcUp_right':{'driverAttr':'ty'},
+                         'brow_angry_right':{'driverAttr':'-tx'},
+                         }},    
+
+    
+    #Lid... --------------------------------------------
+    'L_smileFix':{'control':'L_eyeSmileFixConCon_anim',
+           'wiringDict':{'eye_fix_left':{'driverAttr':'ty'},
+                         }},
+    'l_eyeAngle':{'control':'L_eyeAngleCon_anim',
+           'wiringDict':{'lid_eyeAngle_left':{'driverAttr':'ty'},
+                         }},
+    'l_eyeArc':{'control':'L_eyeArcCon_anim',
+           'wiringDict':{'lid_arcUp_left':{'driverAttr':'ty'},
+                         'lid_arcDn_left':{'driverAttr':'-ty'},
+                         }},
+    'l_eyeBlink':{'control':'L_blinkCon_anim',
+           'wiringDict':{'lid_blink_left':{'driverAttr':'-ty'},
+                         }},    
+    
+
+    'R_smileFix':{'control':'R_eyeSmileFixConCon_anim',
+           'wiringDict':{'eye_fix_right':{'driverAttr':'ty'},
+                         }},
+    'R_eyeAngle':{'control':'R_eyeAngleCon_anim',
+           'wiringDict':{'lid_eyeAngle_right':{'driverAttr':'ty'},
+                         }},
+    'R_eyeArc':{'control':'R_eyeArcCon_anim',
+           'wiringDict':{'lid_arcUp_right':{'driverAttr':'ty'},
+                         'lid_arcDn_right':{'driverAttr':'-ty'},
+                         }},
+    'R_eyeBlink':{'control':'R_blinkCon_anim',
+           'wiringDict':{'lid_blink_right':{'driverAttr':'-ty'},
+                         }},    
+    
+    
+    #Mouth... --------------------------------------------
+    'lipClose':{'control':'lipSealCon_anim',
+           'wiringDict':{'lip_seal_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'lip_seal_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},
+    
+    'catLip':{'control':'catLipCon_anim',
+           'wiringDict':{'lip_cat_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'lip_cat_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},    
+    
+    'smileBig':{'control':'smileBigCon_anim',
+           'wiringDict':{'lip_smilePush_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'lip_smilePush_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},        
+
+    'jaw':{'control':'jawCon_anim',
+           'wiringDict':{'mouth_up':{'driverAttr':'ty'},
+                         'jaw_open':{'driverAttr':'-ty'},
+                         }},
+    
+    'mouthOut':{'control':'mouthOutCon_anim',
+           'wiringDict':{'mouth_out':{'driverAttr':'ty'},
+                         }},    
+
+    'lipCorner_left':{'control':'L_lipCornerCon_anim',
+                      'wiringDict':{'lip_smile_left':{'driverAttr':'ty'},
+                                    'lip_frown_left':{'driverAttr':'-ty'},                                                    
+                                    'lip_narrow_left':{'driverAttr':'-tx'},
+                                    'lip_wide_left':{'driverAttr':'tx'}}},
+    
+    'lipCorner_right':{'control':'R_lipCornerCon_anim',
+                      'wiringDict':{'lip_smile_right':{'driverAttr':'ty'},
+                                    'lip_frown_right':{'driverAttr':'-ty'},                                                    
+                                    'lip_narrow_right':{'driverAttr':'-tx'},
+                                    'lip_wide_right':{'driverAttr':'tx'}}},    
+    
+    #Teeth stuff .... ------------------------------------------------------------------
+    'teethClose':{'control':'teethCloseCon_anim',
+           'wiringDict':{'teeth_closeReg':{'driverAttr':'ty'},
+                         }},    
+    'teethCloseFlat':{'control':'teethFlatCloseCon_anim',
+           'wiringDict':{'teeth_closeFlat':{'driverAttr':'ty'},
+                         }},
+    
+    'teethUprFlat':{'control':'teethUprFlatCon_anim',
+           'wiringDict':{'teeth_flatUpr':{'driverAttr':'ty'},
+                         }},
+    'teethLwrFlat':{'control':'teethLwFlatCon_anim',
+           'wiringDict':{'teeth_flatLwr':{'driverAttr':'ty'},
+                         }},        
+ 
+    #Hide stuff .... ------------------------------------------------------------------
+    'teeth_hide':{'control':'teethHideCon_anim',
+           'wiringDict':{'teeth_hide':{'driverAttr':'ty'}}},
+    
+    'tongue_hide':{'control':'tongueHideCon_anim',
+           'wiringDict':{'tongue_hide':{'driverAttr':'ty'}}},
     
     },
     'test':{
@@ -1053,3 +1156,9 @@ def simpleLipHandleTrack(top = 'muzzle_anim', lwr = 'lip_anim'):
         mDynGroup.addDynParent(mLoc.mNode)
             
         mDynGroup.rebuild()
+        
+        
+        
+        
+d_wiring = {'cha':{u'R_lip_smile': u'|cha_faceBuffer.lip_smile_right', u'R_lip_narrow': u'|cha_faceBuffer.lip_narrow_right', u'R_lip_smileBig': u'|cha_faceBuffer.lip_smilePush_right', u'L_lid_happyBlink': u'|cha_faceBuffer.lid_arcUp_left', u'teeth_lwrFlat': u'|cha_faceBuffer.teeth_flatLwr', u'L_lip_wide': u'|cha_faceBuffer.lip_wide_left', u'R_lid_blink': u'|cha_faceBuffer.lid_blink_right', u'L_lid_blink': u'|cha_faceBuffer.lid_blink_left', u'R_lip_seal': u'|cha_faceBuffer.lip_seal_right', u'L_brow_anger': u'|cha_faceBuffer.brow_angry_left', u'mouth_up': u'|cha_faceBuffer.mouth_up', u'jaw_open': u'|cha_faceBuffer.jaw_open', u'teeth_hide': u'|cha_faceBuffer.teeth_hide', u'R_brow_flat': u'|cha_faceBuffer.brow_flat_right', u'tongueHide': u'|cha_faceBuffer.tongue_hide', u'R_lip_wide': u'|cha_faceBuffer.lip_wide_right', u'L_lid_downBlink': u'|cha_faceBuffer.lid_arcDn_left', u'L_brow_arcUp': u'|cha_faceBuffer.brow_arcUp_left', u'R_lip_cat': u'|cha_faceBuffer.lip_cat_right', u'R_lid_downBlink': u'|cha_faceBuffer.lid_arcDn_right', u'R_eye_mouthFix': u'|cha_faceBuffer.eye_fix_right', u'L_lip_smile': u'|cha_faceBuffer.lip_smile_left', u'R_brow_arcUp': u'|cha_faceBuffer.brow_arcUp_right', u'L_lip_narrow': u'|cha_faceBuffer.lip_narrow_left', u'R_lid_happyBlink': u'|cha_faceBuffer.lid_arcUp_right', u'L_brow_flat': u'|cha_faceBuffer.brow_flat_left', u'teeth_flatSeal': u'|cha_faceBuffer.teeth_closeFlat', u'L_lip_seal': u'|cha_faceBuffer.lip_seal_left', u'teeth_close': u'|cha_faceBuffer.teeth_closeReg', u'mouth_out': u'|cha_faceBuffer.mouth_out', u'R_lip_frown': u'|cha_faceBuffer.lip_frown_right', u'L_eye_mouthFix': u'|cha_faceBuffer.eye_fix_left', u'L_lip_smileBig': u'|cha_faceBuffer.lip_smilePush_left', u'R_brow_anger': u'|cha_faceBuffer.brow_angry_right', u'teeth_uprFlat': u'|cha_faceBuffer.teeth_flatUpr', u'L_lip_frown': u'|cha_faceBuffer.lip_frown_left', u'L_lip_cat': u'|cha_faceBuffer.lip_cat_left'} # 
+}

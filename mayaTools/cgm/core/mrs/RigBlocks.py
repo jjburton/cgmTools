@@ -3758,7 +3758,7 @@ class rigFactory(object):
 
             for i,fnc in enumerate(_l_buildOrder):
                 _str_func = '_'.join(fnc.split('_')[1:])
-                
+                self.step_start = fnc
                 if mayaMainProgressBar:
                     mc.progressBar(mayaMainProgressBar, edit=True,
                                    status = "|{0}| >>Rig>> step: {1}...".format(self.d_block['shortName'],fnc), progress=i+1)                    
@@ -3768,14 +3768,18 @@ class rigFactory(object):
                 
                 err=None
                 try:
-                    getattr(self.d_block['buildModule'],fnc)(self)            
+                    getattr(self.d_block['buildModule'],fnc)(self)
+                    self.step_complete = fnc                    
                 except Exception,err:
                     log.error(err)
+                    self.step_fail = fnc                    
+                    
             
                 finally:
                     mc.undoInfo(closeChunk=True)            
                     if err is not None:
-                        cgmGEN.cgmExceptCB(Exception,err,localDat=vars())                        
+                        self.log_self()
+                        cgmGEN.cgmExceptCB(Exception,err)                        
                 
                 
                     if buildTo is not None:

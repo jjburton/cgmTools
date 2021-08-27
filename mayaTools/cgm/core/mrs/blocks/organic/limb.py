@@ -3634,41 +3634,48 @@ def rig_dataBuffer(self):
         #self.b_rollSetup = False
         pprint.pprint(_ml_handleTargetsRaw)
         #while _check <= len(ml_handleJoints):
+        
         for mHandle in self.ml_handleTargets:#[:-1]:
-            log.debug("|{0}| >>Roll Check {1}".format(_str_func, mHandle))    
+            _check = _ml_handleTargetsRaw.index(mHandle)            
+            log.debug(cgmGEN.logString_sub("|{0}| >>Roll Check {1} | {2}".format(_str_func, _check, mHandle)))
             
             if mHandle not in _ml_handleTargetsRaw:
                 log.debug("|{0}| >>skipping {1}".format(_str_func, mHandle))    
                 continue
             
-            _check = _ml_handleTargetsRaw.index(mHandle)
             
             mBuffer = mPrerigNull.msgList_get('rollJoints_{0}'.format(_check))
             _len = len(mBuffer)
             self.md_rollMulti[_check] = False
-            log.info(_check)
+            
             if mBuffer:
                 log.debug("|{0}| >>roll buffer: {1}".format(_str_func, _check))    
                 
-                mStart = ml_handleJoints[_check]
-                mEnd = ml_handleJoints[_check+1]            
+                mStart = _ml_handleTargetsRaw[_check]
+                mEnd = False
+                try:
+                    mEnd = _ml_handleTargetsRaw[_check+1] 
+                except:
+                    log.debug("|{0}| >>fail...".format(_str_func,))                                        
+                    pass
                 
-                ml_roll = [mStart] + mBuffer + [mEnd]
-                
-                if mStart not in self.ml_segHandles:
-                    self.ml_segHandles.append(mStart)
-                    self.md_segHandleIndices[mStart] = _check
-                if mEnd not in self.ml_segHandles:
-                    self.ml_segHandles.append(mEnd)
-                    self.md_segHandleIndices[mEnd] = _check+1
-                
-                self.md_roll[_check] = ml_roll            
-                if _len > 1:
-                    self.md_rollMulti[_check] = True
-                log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
-                                                                                          _check,
-                                                                                          _len,
-                                                                                          self.md_rollMulti[_check]))
+                if mEnd:
+                    ml_roll = [mStart] + mBuffer + [mEnd]
+                    
+                    if mStart not in self.ml_segHandles:
+                        self.ml_segHandles.append(mStart)
+                        self.md_segHandleIndices[mStart] = _check
+                    if mEnd not in self.ml_segHandles:
+                        self.ml_segHandles.append(mEnd)
+                        self.md_segHandleIndices[mEnd] = _check+1
+                    
+                    self.md_roll[_check] = ml_roll            
+                    if _len > 1:
+                        self.md_rollMulti[_check] = True
+                    log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
+                                                                                              _check,
+                                                                                              _len,
+                                                                                              self.md_rollMulti[_check]))
             else:
                 log.debug("|{0}| >>no roll buffer: {1}".format(_str_func, _check))                    
                 mEnd = False
@@ -3688,7 +3695,6 @@ def rig_dataBuffer(self):
                         self.md_segHandleIndices[mEnd] = _check+1
                     
                     self.md_roll[_check] = ml_roll
-            #_check +=1
             
         #log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
         #log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
