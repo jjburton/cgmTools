@@ -121,8 +121,11 @@ _sidePadding = 25
 
 def reloadMRSStuff():
     log.info("reloading...")
+    from cgm.core.mrs.lib import module_utils as MODULEUTILS
+    from cgm.core.mrs.lib import puppet_utils as PUPPETUTILS
+    
     for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,IK,
-              BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,MRSPOST,
+              BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,MRSPOST,MODULEUTILS,PUPPETUTILS,
               MODULECONTROLFACTORY,MODULESHAPECASTER]:
         print m
         reload(m)

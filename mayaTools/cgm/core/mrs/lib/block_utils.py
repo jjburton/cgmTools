@@ -7733,10 +7733,9 @@ def rig(self,**kws):
         kws['autoBuild'] = True
     
     try:self.asRigFactory(**kws)
-    except ValueError,err:
+    except Exception,err:
         self.blockState = 'skeleton'
-        log.error(err)
-        return False
+        raise Exception,err
     
     if not is_rigged(self):
         log.error("|{0}| >> Failed to return is_rigged...".format(_str_func))                    

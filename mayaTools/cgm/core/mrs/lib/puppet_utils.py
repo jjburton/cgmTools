@@ -1022,7 +1022,7 @@ def groups_verify(self):
             raise ValueError, "No masterNull"
     
         for attr in ['rig','deform','noTransform','geo','skeleton',
-                     'parts','worldSpaceObjects','puppetSpaceObjects']:
+                     'parts','worldSpaceObjects','puppetSpaceObjects','spacePivots']:
             _link = attr+'Group'
             mGroup = mMasterNull.getMessage(_link,asMeta=True)# Find the group
             if mGroup:mGroup = mGroup[0]
@@ -1049,6 +1049,9 @@ def groups_verify(self):
                 mGroup.addAttr('cgmAlias','world')
             elif attr == 'puppetSpaceObjects':
                 mGroup.addAttr('cgmAlias','puppet')
+                
+            if attr == 'spacePivots':
+                mGroup.p_parent = mMasterNull.puppetSpaceObjectsGroup
                 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 

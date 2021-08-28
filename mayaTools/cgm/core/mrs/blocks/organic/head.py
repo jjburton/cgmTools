@@ -2857,6 +2857,7 @@ def rig_controls(self):
                 for mPivot in ml_pivots:
                     mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
                     ml_controlsAll.append(mPivot)
+                    mPivot.constraintGroup.p_parent = self.d_module['mMasterNull'].spacePivotsGroup
         
         if mHeadIK:
             ATTR.set(mHeadIK.mNode,'rotateOrder',self.ro_head)

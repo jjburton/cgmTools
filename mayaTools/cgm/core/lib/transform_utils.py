@@ -611,8 +611,12 @@ def scaleLocal_set(node=None, new_scale = [1,1,1]):
     
     log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_scale,_node))
     
-    ATTR.set(_node,'scale',new_scale)
-    
+    for i,v in enumerate(new_scale):
+        try:
+            mc.setAttr("{}.s{}".format(node,'xyz'[i]),v)
+            #ATTR.set(_node,'s{}'.format('xyz'[i]),v)
+        except Exception,err:
+            log.error(_str_func + " | {} | {} | {}".format(node,v,err))
     
 def scaleLossy_get(node=None, asEuclid = False):
     """
@@ -648,6 +652,7 @@ lossyScale = self.localScale
 
 
 #>>>Heirarchy ===================================================================================================
+import pprint
 def parent_set(node = None, parent = False):
     """
     Takes care of parenting transforms and returning new names.
@@ -669,11 +674,30 @@ def parent_set(node = None, parent = False):
     
     
     if parent:
+        if NAME.get_long(parent) in parents_get(node):
+            return parent
+        
+        #pos = position_get(node)
+        #orient = orient_get(node)
+        #scale = ATTR.get(node,'scale')
+        #scale = scaleLocal_get(node)
+        
         try:
-            return mc.parent(node,parent)[0]
+            _res = mc.parent(node, parent)[0]
+            log.debug("parent res | {}".format(_res))
+            #position_set(_res, pos)
+            #orient_set(_res,orient)
+            #ATTR.set(_res,'scale',scale)
+            #try:scaleLocal_set(_res, scale)
+            #except Exception,err2:
+                #log.error("Scale Fail: {}".format(err2))
         except Exception,err:
-            log.debug("|{0}| >> Failed to parent '{1}' to '{2}' | err: {3}".format(_str_func, node,parent, err))    
+            log.error("|{0}| >> Failed to parent '{1}' to '{2}' | err: {3}".format(_str_func, node,parent, err))
+            pprint.pprint(vars())
             return node
+
+        return _res
+
     else:
         _parents = mc.listRelatives(node,parent=True,type='transform')        
         if _parents:

@@ -2438,6 +2438,7 @@ def rig_controls(self):
                 for mPivot in ml_pivots:
                     mHandleFactory.color(mPivot.mNode, controlType = 'sub')        
                     ml_controlsAll.append(mPivot)
+                    mPivot.constraintGroup.p_parent = self.d_module['mMasterNull'].spacePivotsGroup
     
         
         #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)

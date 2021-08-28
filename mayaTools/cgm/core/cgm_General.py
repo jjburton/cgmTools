@@ -11,7 +11,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.08.27.1'
+__RELEASE = '21.08.28.1'
 
 __BRANCH = 'MRSDAILY'
 
@@ -1008,6 +1008,10 @@ class Callback(object):
             cgmException(Exception,err)
             #raise Exception,err
         finally:del self
+    
+    def __repr__(self):
+        return "(Callback | {}, | {} | {})".format(self._func, self._args, self._kwargs)
+        
             
 CB = Callback
 

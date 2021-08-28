@@ -448,184 +448,182 @@ def rig_prechecks(self):
 
 @cgmGEN.Timer
 def rig_cleanUp(self):
-    try:
-        _short = self.d_block['shortName']
-        _str_func = 'rig_cleanUp'.format(_short)
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
-        
-        #_start = time.clock()
+    _short = self.d_block['shortName']
+    _str_func = 'rig_cleanUp'.format(_short)
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
     
-        mBlock = self.mBlock
-        mMasterControl= self.d_module['mMasterControl']
-        mMasterDeformGroup= self.d_module['mMasterDeformGroup']    
-        mMasterNull = self.d_module['mMasterNull']
-        mPlug_globalScale = self.d_module['mPlug_globalScale']
-        _spacePivots = mBlock.numSpacePivots
-        
-        ml_controlsAll = []
-         
-        #MasterControl =======================================================================
-        log.debug("|{0}| >> MasterConrol | dynParent setup...".format(_str_func))
-        #reload(MODULECONTROL)
+    #_start = time.clock()
+
+    mBlock = self.mBlock
+    mMasterControl= self.d_module['mMasterControl']
+    mMasterDeformGroup= self.d_module['mMasterDeformGroup']    
+    mMasterNull = self.d_module['mMasterNull']
+    mPlug_globalScale = self.d_module['mPlug_globalScale']
+    _spacePivots = mBlock.numSpacePivots
     
-        
-        if not _spacePivots:
-            mConstrainGroup = mMasterControl.doGroup(True,True,asMeta=True,typeModifier = 'constrain')
-            mConstrainGroup.addAttr('cgmAlias','{0}_constrain'.format(mMasterNull.puppet.cgmName))
-        else:
-            MODULECONTROL.register(mMasterControl,
-                                   addDynParentGroup = True,
-                                   addSpacePivots=_spacePivots,
-                                   mirrorSide= 'Centre',
-                                   mirrorAxis="translateX,rotateY,rotateZ",
-                                   noFreeze = True)
-            
-            mMasterControl.masterGroup.setAttrFlags()
-            ml_dynParents = [mMasterNull]
-            
-            ml_spacePivots = mMasterControl.msgList_get('spacePivots',asMeta = True)
-            for mPivot in ml_spacePivots:
-                mDup = mPivot.doDuplicate(po=False)
-                mDup.scale = .25,.25,.25
-                CORERIG.shapeParent_in_place(mPivot.mNode, mDup.mNode,False,True)
-                
-            
-            ml_dynParents.extend(ml_spacePivots)    
-        
-            mDynGroup = mMasterControl.dynParentGroup
-            mDynGroup.dynMode = 0
+    ml_controlsAll = []
+     
+    #MasterControl =======================================================================
+    log.debug("|{0}| >> MasterConrol | dynParent setup...".format(_str_func))
+    #reload(MODULECONTROL)
+
     
-            for o in ml_dynParents:
-                mDynGroup.addDynParent(o)
-            mDynGroup.rebuild()
+    if not _spacePivots:
+        mConstrainGroup = mMasterControl.doGroup(True,True,asMeta=True,typeModifier = 'constrain')
+        mConstrainGroup.addAttr('cgmAlias','{0}_constrain'.format(mMasterNull.puppet.cgmName))
+    else:
+        MODULECONTROL.register(mMasterControl,
+                               addDynParentGroup = True,
+                               addSpacePivots=_spacePivots,
+                               mirrorSide= 'Centre',
+                               mirrorAxis="translateX,rotateY,rotateZ",
+                               noFreeze = True)
+        
+        mMasterControl.masterGroup.setAttrFlags()
+        ml_dynParents = [mMasterNull]
+        
+        ml_spacePivots = mMasterControl.msgList_get('spacePivots',asMeta = True)
+        for mPivot in ml_spacePivots:
+            mDup = mPivot.doDuplicate(po=False)
+            mDup.scale = .25,.25,.25
+            CORERIG.shapeParent_in_place(mPivot.mNode, mDup.mNode,False,True)
+            
+        
+        ml_dynParents.extend(ml_spacePivots)    
+    
+        mDynGroup = mMasterControl.dynParentGroup
+        mDynGroup.dynMode = 0
+
+        for o in ml_dynParents:
+            mDynGroup.addDynParent(o)
+        mDynGroup.rebuild()
+    #mMasterGroup = mMasterControl.masterGroup
+    #ml_dynParents.append(mMasterGroup)
+
+    #Add our parents
+    mPuppet = mBlock.moduleTarget
+ 
+    
+    
+    #Motion Joint ==========================================================================
+    if mBlock.addMotionJoint:
+        if not skeleton_check(mBlock):
+            skeleton_build(mBlock)
+        
+        mRootMotionHelper = mBlock.rootMotionHelper
+        mMasterNull = mPuppet.masterNull
+        
+        #Make joint =================================================================
+        mJoint = mBlock.moduleTarget.getMessage('rootJoint', asMeta = True)[0]
+        mJoint.p_parent = mBlock.moduleTarget.masterNull.skeletonGroup
+        
+        #Make the handle ===========================================================
+        log.debug("|{0}| >> Motion Joint | Main control shape...".format(_str_func))
+        mControl = mRootMotionHelper.doCreateAt()
+            
+            
+        CORERIG.shapeParent_in_place(mControl,mRootMotionHelper.mNode,True)
+        mControl = cgmMeta.validateObjArg(mControl,'cgmObject',setClass=True)
+        mControl.parent = False
+        
+        #ATTR.copy_to(mBlock.moduleTarget.mNode,'cgmName',mControl.mNode,driven='target')
+        mControl.doStore('cgmName','rootMotion')
+        mControl.doName()
+        
+        
+        #Color ---------------------------------------------------------------
+        log.debug("|{0}| >> Motion Joint | Color...".format(_str_func))            
+        #_side = mBlock.atBlockUtils('get_side')
+        #CORERIG.colorControl(mControl.mNode,_side,'main')        
+        
+        #Register ------------------------------------------------------------
+        log.debug("|{0}| >> Motion Joint | Register...".format(_str_func))
+        
+        MODULECONTROL.register(mControl,
+                               addDynParentGroup = True,
+                               mirrorSide= 'Centre',
+                               mirrorAxis="translateX,rotateY,rotateZ")
+        
+        mControl.masterGroup.parent = mPuppet.masterNull.deformGroup
+        
+        mMasterControl.controlVis.addAttr('rootMotionControl',value = True, keyable=False)
+        mMasterControl.rootMotionControl = 0
+        
+        mControl.doConnectIn('v',"{0}.rootMotionControl".format( mMasterControl.controlVis.mNode))
+        ATTR.set_standardFlags(mControl.mNode,['v'])
+        
+        #DynParent group ====================================================================
+        ml_dynParents = [mMasterNull.puppetSpaceObjectsGroup,
+                         mMasterNull.worldSpaceObjectsGroup]
+                         
         #mMasterGroup = mMasterControl.masterGroup
         #ml_dynParents.append(mMasterGroup)
-    
+
         #Add our parents
-        mPuppet = mBlock.moduleTarget
-     
-        
-        
-        #Motion Joint ==========================================================================
-        if mBlock.addMotionJoint:
-            if not skeleton_check(mBlock):
-                skeleton_build(mBlock)
-            
-            mRootMotionHelper = mBlock.rootMotionHelper
-            mMasterNull = mPuppet.masterNull
-            
-            #Make joint =================================================================
-            mJoint = mBlock.moduleTarget.getMessage('rootJoint', asMeta = True)[0]
-            mJoint.p_parent = mBlock.moduleTarget.masterNull.skeletonGroup
-            
-            #Make the handle ===========================================================
-            log.debug("|{0}| >> Motion Joint | Main control shape...".format(_str_func))
-            mControl = mRootMotionHelper.doCreateAt()
-                
-                
-            CORERIG.shapeParent_in_place(mControl,mRootMotionHelper.mNode,True)
-            mControl = cgmMeta.validateObjArg(mControl,'cgmObject',setClass=True)
-            mControl.parent = False
-            
-            #ATTR.copy_to(mBlock.moduleTarget.mNode,'cgmName',mControl.mNode,driven='target')
-            mControl.doStore('cgmName','rootMotion')
-            mControl.doName()
-            
-            
-            #Color ---------------------------------------------------------------
-            log.debug("|{0}| >> Motion Joint | Color...".format(_str_func))            
-            #_side = mBlock.atBlockUtils('get_side')
-            #CORERIG.colorControl(mControl.mNode,_side,'main')        
-            
-            #Register ------------------------------------------------------------
-            log.debug("|{0}| >> Motion Joint | Register...".format(_str_func))
-            
-            MODULECONTROL.register(mControl,
-                                   addDynParentGroup = True,
-                                   mirrorSide= 'Centre',
-                                   mirrorAxis="translateX,rotateY,rotateZ")
-            
-            mControl.masterGroup.parent = mPuppet.masterNull.deformGroup
-            
-            mMasterControl.controlVis.addAttr('rootMotionControl',value = True, keyable=False)
-            mMasterControl.rootMotionControl = 0
-            
-            mControl.doConnectIn('v',"{0}.rootMotionControl".format( mMasterControl.controlVis.mNode))
-            ATTR.set_standardFlags(mControl.mNode,['v'])
-            
-            #DynParent group ====================================================================
-            ml_dynParents = [mMasterNull.puppetSpaceObjectsGroup,
-                             mMasterNull.worldSpaceObjectsGroup]
-                             
-            #mMasterGroup = mMasterControl.masterGroup
-            #ml_dynParents.append(mMasterGroup)
+        mDynGroup = mControl.dynParentGroup
+        log.debug("|{0}| >> Motion Joint | dynParentSetup : {1}".format(_str_func,mDynGroup))  
+        mDynGroup.dynMode = 0
     
-            #Add our parents
-            mDynGroup = mControl.dynParentGroup
-            log.debug("|{0}| >> Motion Joint | dynParentSetup : {1}".format(_str_func,mDynGroup))  
-            mDynGroup.dynMode = 0
+        for o in ml_dynParents:
+            mDynGroup.addDynParent(o)
+        mDynGroup.rebuild()
         
-            for o in ml_dynParents:
-                mDynGroup.addDynParent(o)
-            mDynGroup.rebuild()
-            
-            #>>>>> INDEX CONTROLS
-            #>>>>> Setup VIS
-            mJoint.connectChildNode(mControl.mNode,'rigJoint','sourceJoint')
-            
-            """
-            mc.parentConstraint(mControl.mNode,
-                                mJoint.mNode,
-                                maintainOffset = True)
-            mc.scaleConstraint(mControl.mNode,
-                               mJoint.mNode,
-                               maintainOffset = True)            
-            """
-            ml_controlsAll.append(mControl)
-            mPuppet.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
-            mMasterControl.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
-            
-        for mCtrl in ml_controlsAll:            
-            if mCtrl.hasAttr('radius'):
-                ATTR.set(mCtrl.mNode,'radius',0)        
-            
-            ml_pivots = mCtrl.msgList_get('spacePivots')
-            if ml_pivots:
-                log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
-                for mPivot in ml_pivots:
-                    mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
-                    ml_controlsAll.append(mPivot)
+        #>>>>> INDEX CONTROLS
+        #>>>>> Setup VIS
+        mJoint.connectChildNode(mControl.mNode,'rigJoint','sourceJoint')
         
-        #Connect -------------------------------------------------------------
-        mPuppet.msgList_connect('controlsAll', ml_controlsAll)
-        mPuppet.puppetSet.extend( ml_controlsAll)
-        #self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
-        self.atBuilderUtils('check_nameMatches', ml_controlsAll)
+        """
+        mc.parentConstraint(mControl.mNode,
+                            mJoint.mNode,
+                            maintainOffset = True)
+        mc.scaleConstraint(mControl.mNode,
+                           mJoint.mNode,
+                           maintainOffset = True)            
+        """
+        ml_controlsAll.append(mControl)
+        mPuppet.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
+        mMasterControl.connectChildNode(mControl,'rootMotionHandle','puppet')#Connect
         
+    for mCtrl in ml_controlsAll:            
+        if mCtrl.hasAttr('radius'):
+            ATTR.set(mCtrl.mNode,'radius',0)        
+        
+        ml_pivots = mCtrl.msgList_get('spacePivots')
+        if ml_pivots:
+            log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
+            for mPivot in ml_pivots:
+                mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+                ml_controlsAll.append(mPivot)
     
-        #Connections =======================================================================================
-        #ml_controlsAll = mBlock.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
-        #mRigNull.msgList_connect('controlsAll',ml_controlsAll)
-        #mRigNull.moduleSet.extend(ml_controlsAll)        
-        
-        self.v = 0
-        
-        #mRigNull.version = self.d_block['buildVersion']
-        #mRigNull.version = __version__
-        mBlock.blockState = 'rig'
-        
-        mBlock.template = True
-        mBlock.noTransFormNull.template=True
-        self.UTILS.rigNodes_store(self)
-        
-        self.version = self.d_block['buildVersion']
-        
-        mMasterControl.doStore('version', self.d_block['buildVersion'])
-        
-        #log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
-        #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    #Connect -------------------------------------------------------------
+    mPuppet.msgList_connect('controlsAll', ml_controlsAll)
+    mPuppet.puppetSet.extend( ml_controlsAll)
+    #self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    self.atBuilderUtils('check_nameMatches', ml_controlsAll)
+    
+
+    #Connections =======================================================================================
+    #ml_controlsAll = mBlock.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
+    #mRigNull.msgList_connect('controlsAll',ml_controlsAll)
+    #mRigNull.moduleSet.extend(ml_controlsAll)        
+    
+    self.v = 0
+    
+    #mRigNull.version = self.d_block['buildVersion']
+    #mRigNull.version = __version__
+    mBlock.blockState = 'rig'
+    
+    mBlock.template = True
+    mBlock.noTransFormNull.template=True
+    self.UTILS.rigNodes_store(self)
+    
+    self.version = self.d_block['buildVersion']
+    
+    mMasterControl.doStore('version', self.d_block['buildVersion'])
+    
+    #log.info("|{0}| >> Time >> = {1} seconds".format(_str_func, "%0.3f"%(time.clock()-_start)))
+    #except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 @cgmGEN.Timer
 def rigDelete(self):
