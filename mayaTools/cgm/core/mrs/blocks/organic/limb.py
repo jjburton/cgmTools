@@ -774,6 +774,10 @@ l_attrsStandard = ['side',
                    'proxyGeoRoot',
                    'proxyDirect',
                    'proxyBuild',
+                   
+                   'root_dynParentMode',
+                   'root_dynParentScaleMode',
+                   
                    'numSubShapers',#...with limb this is the sub shaper count as you must have one per handle
                    #'buildProfile',
                    'moduleTarget']
@@ -791,7 +795,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'addLeverBase':'none:dag:joint',
                  'addLeverEnd':'none:dag:joint',
                  'proxyLoft':'default:toEnd:toStart:toBoth',
-                 
+
                  
                  'ikExtendSetup':'aim:full',
                  'mainRotAxis':'up:out',
@@ -3328,6 +3332,12 @@ def rig_prechecks(self):
             
         if mBlock.addLeverEnd and mBlock.numControls < 3:
             self.l_precheckErrors.append('Quad Setup needs at least 3 controls')
+            
+            
+        #if mBlock.root_dynParentScaleMode:
+        #    if mBlock.rigSetup:
+        #        self.l_precheckErrors.append('rigSetup should be default when dynParentScaleMode is on')
+            
         
         str_ikEnd = mBlock.getEnumValueString('ikEnd')
         if str_ikEnd in ['tipCombo']:
@@ -3399,7 +3409,8 @@ def rig_dataBuffer(self):
             #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
             
         
-        for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','ikOrientEndTo','addLeverBase','addLeverEnd','addToe','segmentType']:
+        for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','ikOrientEndTo','addLeverBase','addLeverEnd','addToe','segmentType',
+                  'root_dynParentMode','root_dynParentScaleMode']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
         #self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
         #self.str_ikRollSetup = ATTR.get_enumValueString(mBlock.mNode,'ikRollSetup')
@@ -3569,7 +3580,11 @@ def rig_dataBuffer(self):
         
         log.debug("|{0}| >> End self.int_handleEndIdx idx: {1} | {2}".format(_str_func,self.int_handleEndIdx,
                                                                                  ml_handleJoints[self.int_handleEndIdx]))
+        
+        
+        
         if not self.b_singleChain:
+            log.debug("|{0}| >> not single chiain".format(_str_func))            
             ml_use = ml_handleJoints[:self.int_handleEndIdx]
             if len(ml_use) == 1:
                 mid=0
@@ -3588,7 +3603,7 @@ def rig_dataBuffer(self):
     
             log.debug("|{0}| >> Mid self.int_handleMidIdx idx: {1} | {2}".format(_str_func,self.int_handleMidIdx,
                                                                                  ml_handleJoints[self.int_handleMidIdx]))    
-    
+        
         
         
         if self.int_handleEndIdx ==  -1:
@@ -3617,43 +3632,60 @@ def rig_dataBuffer(self):
         self.md_segHandleIndices = {}
         #self.b_segmentSetup = False
         #self.b_rollSetup = False
-        
+        pprint.pprint(_ml_handleTargetsRaw)
         #while _check <= len(ml_handleJoints):
-        for mHandle in self.ml_handleTargets[:-1]:
+        
+        for mHandle in self.ml_handleTargets:#[:-1]:
+            _check = _ml_handleTargetsRaw.index(mHandle)            
+            log.debug(cgmGEN.logString_sub("|{0}| >>Roll Check {1} | {2}".format(_str_func, _check, mHandle)))
+            
             if mHandle not in _ml_handleTargetsRaw:
+                log.debug("|{0}| >>skipping {1}".format(_str_func, mHandle))    
                 continue
-            _check = _ml_handleTargetsRaw.index(mHandle)
+            
             
             mBuffer = mPrerigNull.msgList_get('rollJoints_{0}'.format(_check))
             _len = len(mBuffer)
             self.md_rollMulti[_check] = False
-            log.info(_check)
+            
             if mBuffer:
-                mStart = ml_handleJoints[_check]
-                mEnd = ml_handleJoints[_check+1]            
+                log.debug("|{0}| >>roll buffer: {1}".format(_str_func, _check))    
                 
-                ml_roll = [mStart] + mBuffer + [mEnd]
-                
-                if mStart not in self.ml_segHandles:
-                    self.ml_segHandles.append(mStart)
-                    self.md_segHandleIndices[mStart] = _check
-                if mEnd not in self.ml_segHandles:
-                    self.ml_segHandles.append(mEnd)
-                    self.md_segHandleIndices[mEnd] = _check+1
-                
-                self.md_roll[_check] = ml_roll            
-                if _len > 1:
-                    self.md_rollMulti[_check] = True
-                log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
-                                                                                          _check,
-                                                                                          _len,
-                                                                                          self.md_rollMulti[_check]))
-            else:
+                mStart = _ml_handleTargetsRaw[_check]
+                mEnd = False
                 try:
-                    mStart = ml_handleJoints[_check]
-                    
-                    mEnd = ml_handleJoints[_check+1]            
+                    mEnd = _ml_handleTargetsRaw[_check+1] 
+                except:
+                    log.debug("|{0}| >>fail...".format(_str_func,))                                        
+                    pass
                 
+                if mEnd:
+                    ml_roll = [mStart] + mBuffer + [mEnd]
+                    
+                    if mStart not in self.ml_segHandles:
+                        self.ml_segHandles.append(mStart)
+                        self.md_segHandleIndices[mStart] = _check
+                    if mEnd not in self.ml_segHandles:
+                        self.ml_segHandles.append(mEnd)
+                        self.md_segHandleIndices[mEnd] = _check+1
+                    
+                    self.md_roll[_check] = ml_roll            
+                    if _len > 1:
+                        self.md_rollMulti[_check] = True
+                    log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
+                                                                                              _check,
+                                                                                              _len,
+                                                                                              self.md_rollMulti[_check]))
+            else:
+                log.debug("|{0}| >>no roll buffer: {1}".format(_str_func, _check))                    
+                mEnd = False
+                try:
+                    mEnd = _ml_handleTargetsRaw[_check+1] 
+                    log.debug("|{0}| >>fail...".format(_str_func,))                    
+                except:pass
+                
+                if mEnd:
+                    mStart = _ml_handleTargetsRaw[_check]
                     ml_roll = [mStart, mEnd]
                     if mStart not in self.ml_segHandles:
                         self.ml_segHandles.append(mStart)
@@ -3663,11 +3695,10 @@ def rig_dataBuffer(self):
                         self.md_segHandleIndices[mEnd] = _check+1
                     
                     self.md_roll[_check] = ml_roll
-                except:pass
-            #_check +=1
             
         #log.debug("|{0}| >> Segment setup: {1}".format(_str_func,self.b_segmentSetup))            
         #log.debug("|{0}| >> Roll setup: {1}".format(_str_func,self.b_rollSetup))
+        pprint.pprint(self.md_roll)
         
         if self.b_leverJoint:
             log.debug("|{0}| >> lever roll remap...".format(_str_func))
@@ -3683,7 +3714,7 @@ def rig_dataBuffer(self):
             
         
         log.debug("|{0}| >> self.md_roll...".format(_str_func))    
-        #pprint.pprint(self.md_roll)
+        pprint.pprint(self.md_roll)
         log.debug(cgmGEN._str_subLine)
         
         log.debug("|{0}| >> self.ml_segHandles...".format(_str_func))        
@@ -6003,6 +6034,7 @@ def rig_controls(self):
             for mPivot in ml_pivots:
                 mHandleFactory.color(mPivot.mNode, controlType = 'sub')
                 ml_controlsAll.append(mPivot)
+                mPivot.constraintGroup.p_parent = self.d_module['mMasterNull'].spacePivotsGroup
                 
         if mCtrl.hasAttr('radius'):
             ATTR.set(mCtrl.mNode,'radius',0)
@@ -7888,7 +7920,7 @@ def rig_blendFrame(self):
         return mDup
     
     
-    if mBlock.getEnumValueString('rigSetup') == 'digit':
+    if mBlock.getEnumValueString('rigSetup') == 'digit' and self.str_root_dynParentScaleMode != ['space']:
         #This was causing issues with toe setup , need to resolve...
         log.debug("|{0}| >> Digit mode. Scale constraining deform null...".format(_str_func))
         #raise ValueError,"This was causing issues with toe setup , need to resolve..."
@@ -8644,6 +8676,9 @@ def rig_cleanUp(self):
             mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
         
         #if str_rigSetup not in ['digit']:
+        if mBlock.root_dynParentScaleMode == 2:
+            ml_targetDynParents.extend(self.ml_dynParentsAbove)
+            
         ml_targetDynParents.extend(self.ml_dynEndParents)
     
         log.debug("|{0}| >>  Root Targets...".format(_str_func,mRoot))
@@ -8651,7 +8686,17 @@ def rig_cleanUp(self):
         
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
+            
+        mDynGroup.dynMode = mBlock.root_dynParentMode
+        mDynGroup.scaleMode = mBlock.root_dynParentScaleMode
+            
         mDynGroup.rebuild()
+        
+        
+        if mBlock.root_dynParentScaleMode == 2 and self.str_rigSetup != 'digit':
+            mRoot.scaleSpace = 'puppet'
+            ATTR.set_default(mRoot.mNode, 'scaleSpace', 'puppet')
+            
         #mDynGroup.dynFollow.p_parent = self.mConstrainNull
         
         log.debug(cgmGEN._str_subLine)

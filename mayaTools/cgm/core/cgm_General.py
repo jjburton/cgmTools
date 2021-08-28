@@ -11,7 +11,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.08.23.1'
+__RELEASE = '21.08.28.1'
 
 __BRANCH = 'MRSDEV'
 
@@ -1008,6 +1008,10 @@ class Callback(object):
             cgmException(Exception,err)
             #raise Exception,err
         finally:del self
+    
+    def __repr__(self):
+        return "(Callback | {}, | {} | {})".format(self._func, self._args, self._kwargs)
+        
             
 CB = Callback
 
@@ -1621,13 +1625,13 @@ def cgmException(etype = None, value = None, tb = None,msg=None,**kws):
     if 'args' in _d.keys():
         _args = _d.pop('args')
         if _args:
-            print("  Args...")
+            print("  Args..." + '-*80')
             for a in _args:
                 print("      {0}".format(a))
     if 'kws' in _d.keys():
         _kws = _d.pop('kws')
         if _kws:
-            print("  KWS...")
+            print("  KWS..." + '-'*80)
             for k,v in _kws.iteritems():
                 print("      {0} : {1}".format(k,v))
             
@@ -1643,6 +1647,7 @@ def cgmException(etype = None, value = None, tb = None,msg=None,**kws):
         for i,a in enumerate(value.args):
             print(" {0} : {1}".format(i,a))
             """
+    log.info("Release: "+get_releaseString())
     if etype:raise etype,value,tb
 
 cgmExceptCB = cgmException

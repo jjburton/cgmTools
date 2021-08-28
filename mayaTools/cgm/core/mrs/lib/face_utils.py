@@ -196,6 +196,26 @@ _d_faceBufferAttributes = {
         "tongue":{'attrs':['hide','teethPose']},
 
     },
+    'cha':{
+        "lid":{'attrs':['blink','eyeAngle','arcUp','arcDn'],
+               "sideAttrs":'*'},
+        "eye":{'attrs':['fix'],
+               "sideAttrs":'*'},
+        
+        "brow":{'attrs':['arcUp','flat','angry','thick'],
+                "sideAttrs":'*'},
+        
+        "lip":{'attrs':['cat',
+                        'seal',
+                        'smile','frown','wide','narrow','smilePush'],
+               "sideAttrs":'*'},
+
+        "mouth":{'attrs':['out','up']},        
+        "jaw":{'attrs':['open']},
+        "tongue":{'attrs':['hide']},        
+        "teeth":{'attrs':['hide', 'flatUpr','flatLwr', 'closeFlat','closeReg']},
+
+    },    
 
     
     'toon':{"nose":{'attrs':['out','in','sneer_up','sneer_dn',

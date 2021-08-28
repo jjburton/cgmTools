@@ -248,6 +248,10 @@ l_attrsStandard = ['side',
                    'visProximityMode',
                    'meshBuild',                   
                    'visLabels',
+                   
+                   'root_dynParentMode',
+                   'root_dynParentScaleMode',
+                   
                    'moduleTarget',]
 
 d_attrsToMake = {'visMeasure':'bool',
@@ -2853,6 +2857,7 @@ def rig_controls(self):
                 for mPivot in ml_pivots:
                     mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
                     ml_controlsAll.append(mPivot)
+                    mPivot.constraintGroup.p_parent = self.d_module['mMasterNull'].spacePivotsGroup
         
         if mHeadIK:
             ATTR.set(mHeadIK.mNode,'rotateOrder',self.ro_head)
@@ -3887,8 +3892,8 @@ def rig_cleanUp(self):
         b_ikOrientToWorld = mBlock.ikOrientToWorld
         
         mRoot = mRigNull.getMessageAsMeta('rigRoot')
-        if mRoot and not mRoot.hasAttr('cgmAlias'):
-            mRoot.addAttr('cgmAlias','root')    
+        #if mRoot and not mRoot.hasAttr('cgmAlias'):
+        #    mRoot.addAttr('cgmAlias','root')    
         
         mMasterControl= self.d_module['mMasterControl']
         mMasterDeformGroup= self.d_module['mMasterDeformGroup']    
@@ -3949,14 +3954,24 @@ def rig_cleanUp(self):
             #    mParent.addAttr('cgmAlias',self.d_module['partName'] + 'base')
             #ml_targetDynParents.append(mParent)    
             
+            if mBlock.root_dynParentScaleMode == 2:
+                ml_targetDynParents.extend(self.ml_dynParentsAbove)            
+            
             ml_targetDynParents.extend(ml_endDynParents)
         
             mDynGroup = mRoot.dynParentGroup
-            #mDynGroup.dynMode = 2
+            
+            mDynGroup.dynMode = mBlock.root_dynParentMode
+            mDynGroup.scaleMode = mBlock.root_dynParentScaleMode            
         
             for mTar in ml_targetDynParents:
                 mDynGroup.addDynParent(mTar)
             mDynGroup.rebuild()
+            
+            if mBlock.root_dynParentScaleMode == 2:
+                mRoot.scaleSpace = 'puppet'
+                ATTR.set_default(mRoot.mNode, 'scaleSpace', 'puppet')
+            
             #mDynGroup.dynFollow.p_parent = self.mDeformNull   
             
         """

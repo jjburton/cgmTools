@@ -857,6 +857,8 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
             if objRotAxis:
                 mc.xform(_created, ws=True, ra= objRotAxis,p=False)  
             
+            ATTR.set(_created,'scale',[1,1,1])
+            
         elif _create == 'joint':
             mc.select(cl=True)
             _created = mc.joint()

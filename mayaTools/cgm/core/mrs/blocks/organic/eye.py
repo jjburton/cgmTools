@@ -3932,6 +3932,7 @@ def rig_controls(self):
                 log.debug("|{0}| >> Coloring spacePivots for: {1}".format(_str_func,mCtrl))
                 for mPivot in ml_pivots:
                     mHandleFactory.color(mPivot.mNode, controlType = 'sub')            
+                    mPivot.constraintGroup.p_parent = self.d_module['mMasterNull'].spacePivotsGroup
 
         mRigNull.msgList_connect('controlsFace',ml_controlsAll)
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)
