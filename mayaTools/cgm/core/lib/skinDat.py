@@ -480,7 +480,7 @@ def applySkin(*args,**kws):
                 _l_jointTargets = []
                 for o in _l_configInfluenceList:
                     jnt = ATTR.get_message(o,_msgLink)
-                    log.info( "No msgLink on jnt | link: {0} | jnt: {1}".format(_msgLink,jnt) )
+                    log.info( "msgLink on jnt | link: {0} | jnt: {1}".format(_msgLink,jnt) )
                     if not jnt:
                         return self._FailBreak_("No msgLink on jnt | link: {0} | jnt: {1}".format(_msgLink,o))
                     _l_jointTargets.append(jnt[0])

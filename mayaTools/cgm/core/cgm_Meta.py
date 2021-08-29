@@ -6369,9 +6369,9 @@ class cgmAttr(object):
                                   mi_target.mNode,
                                   self.p_nameLong,
                                   convertToMatch = True,
-                                  values = True, inputConnections = True,
-                                  outgoingConnections = True, keepSourceConnections = False,
-                                  copyAttrSettings = True, connectSourceToTarget = False)
+                                  values = True, inConnection = True,
+                                  outConnections = True, keepSourceConnections = False,
+                                  copySettings = True, driven = False)
             self.doDelete()
             return cgmAttr(mi_target,s_attrBuffer)
         except Exception,error:

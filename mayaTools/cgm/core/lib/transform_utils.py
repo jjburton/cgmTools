@@ -674,7 +674,7 @@ def parent_set(node = None, parent = False):
     
     
     if parent:
-        if NAME.get_long(parent) in parents_get(node):
+        if NAME.get_long(parent) == parent_get(node,True):
             return parent
         
         #pos = position_get(node)

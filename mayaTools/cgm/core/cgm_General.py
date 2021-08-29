@@ -11,7 +11,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.08.28.1'
+__RELEASE = '21.08.29.1'
 
 __BRANCH = 'MRSDEV'
 
@@ -769,15 +769,15 @@ def log_start(str_func,split='-',intCount = 80):
 def log_sub(str_func,msg='break',split='_',intCount = 30):
     log.debug("{0} >> {1} ".format(str_func,msg)+split*intCount)
     
-def logString_start(str_func,split='-',intCount = 80):
+def logString_start(str_func = None,split='-',intCount = 80):
     if str_func:return "{0} >> ".format(str_func)+split*intCount
     return " ".format(str_func)+split*intCount
 
-def logString_sub(str_func,msg='break',split='_',intCount = 80):
+def logString_sub(str_func = None,msg='break',split='_',intCount = 80):
     if str_func:return "{0} >> {1} ...".format(str_func,msg)+split*intCount
     return "{0} ...".format(msg)+split*intCount
 
-def logString_msg(str_func,msg=''):
+def logString_msg(str_func = None,msg=''):
     if str_func:return "{0} >> {1} ...".format(str_func,msg)
     return "{0} ...".format(msg)
     

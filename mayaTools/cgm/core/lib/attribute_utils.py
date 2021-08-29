@@ -3616,26 +3616,26 @@ def copy_to(fromObject, fromAttr, toObject = None, toAttr = None,
                 for c in _children:
                     _d_c = get_standardFlagsDict(_node,c)
                     _buffer = "{0}.{1}".format(_d_targetAttr['node'],c)
-                    if _d_c['default']:
+                    if _d_c['default'] is not None:
                         mc.addAttr(_buffer,e=True,dv = _d_c['default'])
-                    if _d_c['max']:
+                    if _d_c['max'] is not None:
                         mc.addAttr(_buffer,e=True,maxValue = _d_c['max'])                
-                    if _d_c['min']:
+                    if _d_c['min'] is not None:
                         mc.addAttr(_buffer,e=True,minValue = _d_c['min'])                
-                    if _d_c['softMax']:
+                    if _d_c['softMax'] is not None:
                         mc.addAttr(_buffer,e=True,softMaxValue = _d_c['softMax'])                
-                    if _d_c['softMin']:
+                    if _d_c['softMin'] is not None:
                         mc.addAttr(_buffer,e=True,softMinValue = _d_c['softMin'])                      
             else:
-                if _d_sourceFlags['default']:
+                if _d_sourceFlags['default'] is not None:
                     mc.addAttr(_d_targetAttr['combined'],e=True,dv = _d_sourceFlags['default'])
-                if _d_sourceFlags['max']:
+                if _d_sourceFlags['max'] is not None:
                     mc.addAttr(_d_targetAttr['combined'],e=True,maxValue = _d_sourceFlags['max'])                
-                if _d_sourceFlags['min']:
+                if _d_sourceFlags['min'] is not None:
                     mc.addAttr(_d_targetAttr['combined'],e=True,minValue = _d_sourceFlags['min'])                
-                if _d_sourceFlags['softMax']:
+                if _d_sourceFlags['softMax'] is not None:
                     mc.addAttr(_d_targetAttr['combined'],e=True,softMaxValue = _d_sourceFlags['softMax'])                
-                if _d_sourceFlags['softMin']:
+                if _d_sourceFlags['softMin'] is not None:
                     mc.addAttr(_d_targetAttr['combined'],e=True,softMinValue = _d_sourceFlags['softMin'])                
  
         mc.setAttr(_d_targetAttr['combined'],e=True,channelBox = not _d_sourceFlags['hidden'])
