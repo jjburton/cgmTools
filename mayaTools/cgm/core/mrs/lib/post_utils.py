@@ -63,14 +63,17 @@ import cgm.core.cgm_RigMeta as cgmRIGMETA
 
 
 # From cgm ==============================================================
-from cgm.core import cgm_Meta as cgmMeta
+import cgm.core.cgm_Meta as cgmMeta
 
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = 'alpha.1.09122018'
+__version__ = cgmGEN.get_releaseString()
 
-log_start = cgmGEN.log_start
+log_start = cgmGEN.logString_start
+log_sub = cgmGEN.logString_sub
+log_msg = cgmGEN.logString_msg
+
 
 
 def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = 1, orient = 'zyx'):
@@ -807,7 +810,173 @@ def siblingSDK_wip(mTarget = 'L_ring_limb_part',matchType = False,
         md[mSib] = _d
         
 
+def dynParent_proxyControlAttributes(mDynParentGroups = None, test = 1):
+    l_dynParentAttributes = ['space','orientTo','follow','scaleSpace']
+    
+    _str_func = 'dynParent_proxyControlAttributes'
+    log.info(log_start(_str_func))
+    if not mDynParentGroups:
+        mDynParentGroups = r9Meta.getMetaNodes(mTypes = 'cgmDynParentGroup',nTypes=['transform'])
+    else:
+        mDynParentGroups = cgmMeta.validateObjListArg(mDynParentGroups,mType='cgmDynParentGroup')
 
+    for mGroup in mDynParentGroups:
+        mChild = mGroup.getMessageAsMeta('dynChild')
+        if not mChild:
+            log.info("Skip: {}".format(mGroup))
+            continue
+        
+        log.info("Child: {}".format(mChild))
+        _group = mGroup.mNode
+        _child = mChild.mNode
+        
+        for a in l_dynParentAttributes:
+            if mChild.hasAttr(a):
+                log.info( a )
+                
+                ATTR.copy_to(_child, a, _group, a,convertToMatch = True,
+                             values = True, inConnection= True,
+                             outConnections = True, keepSourceConnections = True,
+                             copySettings = True, driven = False)
+                ATTR.delete(_child,a)
+            
+                #proxy it back
+                mc.addAttr(_child, ln=a, proxy="{}.{}".format(_group,a))        
+        log.info('>'*8 + " End Group: {}".format(mGroup) + '-'*50)
+        
+        
+
+def settings_createRootHolder(mSettings = None):
+    _str_func = 'settings_createRootHolder'
+    log.info(log_start(_str_func))
+    if not mSettings:
+        mSettings = cgmMeta.asMeta(sl=1)
+    else:
+        mSettings = cgmMeta.validateObjListArg(mSettings)
+        
+        
+    for mCtrl in mSettings:
+        log.info(log_sub(mCtrl))
+        
+        #Create our curve...--------------------------------------------------------
+        try:_string = mCtrl.cgmOwner.module.ribBlock.cgmName
+        except:
+            _string = mCtrl.p_nameBase
+            
+        _size = TRANS.bbSize_get(mCtrl.mNode,True,'max')
+        mNew = cgmMeta.asMeta(CURVES.create_text(_string, _size))
+        mNew.doSnapTo(mCtrl)
+        
+        mNew.rename('rootHolder_{}'.format(mCtrl.p_nameBase))
+        
+        
+        #Prep...
+        
+        _orig = mCtrl.mNode
+        _new = mNew.mNode
+        
+        
+        #Move attrs...----------------------------------------------------------------------------
+        for a in ['FKIK', 'visSub', 'visSub_out', 'visRoot', 'visRoot_out', 'visDirect', 'visDirect_out',  'result_FKon', 'result_IKon', 'blendParam']:
+            if mCtrl.hasAttr(a):
+                reload(ATTR)
+                
+                #Move
+                ATTR.copy_to(_orig, a, _new, a,convertToMatch = True,
+                             values = True, inConnection= True,
+                             outConnections = True, keepSourceConnections = True,
+                             copySettings = True, driven = False)
+                ATTR.delete(_orig,a)
+        
+                #proxy it back
+                if a in ['FKIK','visSub','visRoot','visDirect','blendParam']:
+                    mc.addAttr(_orig, ln=a, proxy="{}.{}".format(_new,a))
+                
+        
+        return mNew
+        
+def repair_rigJointWiring(nodes=None):
+    _str_func = 'repair_rigJointWiring'
+    log.info(log_start(_str_func))
+    
+    
+    if not nodes:
+        mNodes = cgmMeta.asMeta(sl=1)
+    else:
+        mNodes = cgmMeta.validateObjListArg(nodes)
+        
+    for mObj in mNodes:
+        log.info(log_sub(_str_func,mObj))
+        
+        if not mObj.getMessage('rigJoint'):
+            log.info(log_msg(_str_func,"Needs rigJoint"))
+            mDrivers = mObj.getConstrainingObjects(asMeta=1)
+            if mDrivers:
+                ATTR.store_info(mObj.mNode, 'rigJoint',mDrivers[0])
+                log.info(log_msg(_str_func,"Used: {}".format(mDrivers[0])))
+            else:
+                log.error(log_msg(_str_func,"No driver found"))
+                
+            
+    
+
+def settings_pullFromDeformation(mPuppets = None, test = 1):
+    _str_func = 'settings_pullFromDeformation'
+    log.info(log_start(_str_func))
+    if not mPuppets:
+        mPuppets = r9Meta.getMetaNodes(mTypes = 'cgmRigPuppet',nTypes=['transform','network'])
+    else:
+        mPuppets = cgmMeta.validateObjListArg(mPuppets,mType='cgmRigPuppet')
+
+
+
+    for mPuppet in mPuppets:
+        log.info(log_sub(mPuppet))
+        mMasterSettings = mPuppet.masterControl.controlSettings
+        mModules = mPuppet.atUtils('modules_getHeirarchal')
+        
+        log.info(log_msg("MasterSettings: {}".format(mMasterSettings)))
+        
+        
+        
+        for mModule in mModules:
+            log.info(log_sub(mModule))
+            _type = mModule.moduleType
+            mRigNull = mModule.rigNull
+            
+            mSettings = mRigNull.getMessageAsMeta('settings')
+            if mSettings:
+                log.info(log_msg('Settings: {}'.format(mSettings)))
+                
+                mMasterGroup = mSettings.masterGroup
+
+                                
+                if test == 1:
+                    mProxyCtrl = settings_createRootHolder(mSettings)
+                    mProxyCtrl.p_parent = mMasterSettings
+                else:
+                    if 'cog' in mSettings.p_nameBase:
+                        continue
+                    if _type in ['eye']:
+                        continue
+                    
+                    mMasterGroup.dagLock(0)
+                    mMasterGroup.p_parent = False
+                    
+    log.info(log_msg("Test: {}".format(test)))
+    
+    return
+    
+    
+    for mObj in cgmMeta.asMeta(mc.ls('*_settings_anim')):
+        mRigNull = mObj.getMessageAsMeta('cgmOwner')
+        if mRigNull:
+            mRoot = mRigNull.getMessageAsMeta('rigRoot')
+            if mRoot:
+                mParent = mObj.getParent(asMeta=1)
+                mParent.dagLock(0)
+                mParent.p_parent = mRoot.dynParentGroup.p_parent    
+    
 
 #
 def gather_worldStuff(groupTo = 'worldStuff',parent=True):

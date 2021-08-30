@@ -2452,113 +2452,115 @@ def rig_controls(self):
 #@cgmGEN.Timer
 def rig_segments(self):
     reload(DIST)
-    try:
-        _short = self.d_block['shortName']
-        _str_func = 'rig_segments'
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug(self)    
+    _short = self.d_block['shortName']
+    _str_func = 'rig_segments'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug(self)    
+
     
+    mBlock = self.mBlock
+    mRigNull = self.mRigNull
+    ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    ml_segJoints = mRigNull.msgList_get('segmentJoints')
+    mModule = self.mModule
+    mRoot = mRigNull.rigRoot
+    
+    if len(ml_rigJoints)<2:
+        log.debug("|{0}| >> Not enough rig joints for setup".format(_str_func))                      
+        return True
+    
+    
+    mRootParent = self.mDeformNull
+    if not ml_segJoints:
+        log.debug("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
+        return True
+    
+    ml_handleJoints = mRigNull.msgList_get('handleJoints')
+    
+    for mJnt in ml_segJoints:
+        mJnt.drawStyle = 2
+        ATTR.set(mJnt.mNode,'radius',0)
+    
+    if self.str_segmentType == 'parent':#len(ml_segJoints) == len(ml_handleJoints):
+        for i,mJnt in enumerate(ml_segJoints):
+            mJnt.p_parent = ml_handleJoints[i]
+        if self.b_squashSetup:
+            mJnt.segmentScaleCompensate = False
+            
         
-        mBlock = self.mBlock
-        mRigNull = self.mRigNull
-        ml_rigJoints = mRigNull.msgList_get('rigJoints')
-        ml_segJoints = mRigNull.msgList_get('segmentJoints')
-        mModule = self.mModule
-        mRoot = mRigNull.rigRoot
+    else:
+        #>> Ribbon setup ========================================================================================
+        log.debug("|{0}| >> Ribbon setup...".format(_str_func))
         
-        if len(ml_rigJoints)<2:
-            log.debug("|{0}| >> Not enough rig joints for setup".format(_str_func))                      
-            return True
+        _settingsControl = mRigNull.settings.mNode
+        
+        _extraSquashControl = mBlock.squashExtraControl
+               
+        res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
+        mPlug_masterScale = res_segScale[0]
+        mMasterCurve = res_segScale[1]
+        self.fnc_connect_toRigGutsVis( mMasterCurve )
+
+        
+        _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
+              'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
+              'connectBy':'constraint',
+              'extendEnds':True,
+              #'sectionSpans':1,
+              'paramaterization':mBlock.getEnumValueString('ribbonParam'),          
+              'masterScalePlug':mPlug_masterScale,
+              'influences':ml_handleJoints,
+              'settingsControl':_settingsControl,
+              'attachStartToInfluence':False,
+              'attachEndToInfluence':True,#for autoswim
+              'parentDeformTo':mRoot,
+              'moduleInstance':mModule}
+        
+        if mBlock.getEnumValueString('ikBase') == 'hips':
+            _d['attachStartToInfluence'] = True
+        if mBlock.special_swim:
+            _d['attachStartToInfluence'] = False                
+            _d['attachEndToInfluence'] = False
+            
+            
+        #reload(IK)
+        #pprint.pprint(_d)
+        
+        _d.update(self.d_squashStretch)
         
         
-        mRootParent = self.mDeformNull
-        if not ml_segJoints:
-            log.debug("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
-            return True
+        if self.str_segmentType == 'ribbon':
+            res_ribbon = IK.ribbon(**_d)
+            ml_surfaces = res_ribbon['mlSurfaces']
+        else:
+            _l_segJoints = _d['jointList']
+            _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+            _d['setupAim'] = 1                
+            #_d['attachEndToInfluence'] = False                
+            pprint.pprint(_d)
+            IK.curve(**_d)
+
+            """
+            mc.scaleConstraint(_ml_segTmp[-1].mNode,
+                               _ml_segTmp[-1].rigJoint.masterGroup.mNode,
+                               #skip='z',
+                               maintainOffset = 1)    """             
         
-        ml_handleJoints = mRigNull.msgList_get('handleJoints')
-        
+        mMasterCurve.p_parent = mRoot
+
+        #cgmGEN.func_snapShot(vars())
+        ml_segJoints[0].parent = mRoot
+    
         for mJnt in ml_segJoints:
-            mJnt.drawStyle = 2
-            ATTR.set(mJnt.mNode,'radius',0)
-        
-        if self.str_segmentType == 'parent':#len(ml_segJoints) == len(ml_handleJoints):
-            for i,mJnt in enumerate(ml_segJoints):
-                mJnt.p_parent = ml_handleJoints[i]
             if self.b_squashSetup:
                 mJnt.segmentScaleCompensate = False
-                
+            if mJnt == ml_segJoints[0]:
+                continue
+            print mJnt
             
-        else:
-            #>> Ribbon setup ========================================================================================
-            log.debug("|{0}| >> Ribbon setup...".format(_str_func))
-            
-            _settingsControl = mRigNull.settings.mNode
-            
-            _extraSquashControl = mBlock.squashExtraControl
-                   
-            res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
-            mPlug_masterScale = res_segScale[0]
-            mMasterCurve = res_segScale[1]
-            self.fnc_connect_toRigGutsVis( mMasterCurve )
-
-            
-            _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
-                  'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
-                  'connectBy':'constraint',
-                  'extendEnds':True,
-                  #'sectionSpans':1,
-                  'paramaterization':mBlock.getEnumValueString('ribbonParam'),          
-                  'masterScalePlug':mPlug_masterScale,
-                  'influences':ml_handleJoints,
-                  'settingsControl':_settingsControl,
-                  'attachStartToInfluence':False,
-                  'attachEndToInfluence':True,#for autoswim
-                  'parentDeformTo':mRoot,
-                  'moduleInstance':mModule}
-            
-            if mBlock.getEnumValueString('ikBase') == 'hips':
-                _d['attachStartToInfluence'] = True
-            if mBlock.special_swim:
-                _d['attachStartToInfluence'] = False                
-                _d['attachEndToInfluence'] = False
-                
-                
-            #reload(IK)
-            #pprint.pprint(_d)
-            
-            _d.update(self.d_squashStretch)
-            
-            
-            if self.str_segmentType == 'ribbon':
-                res_ribbon = IK.ribbon(**_d)
-                ml_surfaces = res_ribbon['mlSurfaces']
-            else:
-                _l_segJoints = _d['jointList']
-                _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
-                _d['setupAim'] = 1                
-                #_d['attachEndToInfluence'] = False                
-                pprint.pprint(_d)
-                IK.curve(**_d)
-
-                """
-                mc.scaleConstraint(_ml_segTmp[-1].mNode,
-                                   _ml_segTmp[-1].rigJoint.masterGroup.mNode,
-                                   #skip='z',
-                                   maintainOffset = 1)    """             
-            
-            mMasterCurve.p_parent = mRoot
-    
-            #cgmGEN.func_snapShot(vars())
-            ml_segJoints[0].parent = mRoot
-        
-            if self.b_squashSetup:
-                for mJnt in ml_segJoints:
-                    mJnt.segmentScaleCompensate = False
-                    if mJnt == ml_segJoints[0]:
-                        continue
-                    mJnt.p_parent = ml_segJoints[0].p_parent        
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+            mJnt.p_parent =ml_segJoints[0].p_parent
+        log.debug('ribbon done')
+    log.debug("done")
 
     
 #@cgmGEN.Timer
@@ -2572,7 +2574,7 @@ def rig_frame(self):
         mRigNull = self.mRigNull
         mRootParent = self.mDeformNull
         mModule = self.mModule
-        
+        reload(IK)
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         ml_fkJoints = mRigNull.msgList_get('fkJoints')
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
