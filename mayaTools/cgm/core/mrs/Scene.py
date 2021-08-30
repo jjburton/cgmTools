@@ -1187,18 +1187,18 @@ example:
         mc.setParent(_bottomColumn)
         cgmUI.add_LineSubBreak()
 
-        _row = mUI.MelHSingleStretchLayout(_bottomColumn,ut='cgmUISubTemplate',padding = 5)
+        _row = mUI.MelHLayout(_bottomColumn,ut='cgmUISubTemplate', padding = 5)
 
         mUI.MelSpacer(_row,w=10)
         mUI.MelLabel(_row, label="Process: ", h=self.__itemHeight, align = 'right')
         
         self.exportButton = mUI.MelButton(_row, label="Export", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,1), h=self.__itemHeight)
-        mc.popupMenu()
-        mc.menuItem( l="Bake Without Export", c=partial(self.RunExportCommand,0))
-        mc.menuItem( l="Export Rig", c=partial(self.RunExportCommand,3))
-        mc.menuItem( l="Force Export As Cutscene", c=partial(self.RunExportCommand,2))
+        #mc.popupMenu()
+        #mc.menuItem( l="Bake Only", c=partial(self.RunExportCommand,0))
+        #mc.menuItem( l="Export Rig", c=partial(self.RunExportCommand,3))
+        #mc.menuItem( l="Force Export As Cutscene", c=partial(self.RunExportCommand,2))
 
-        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Bake Without Export", c=partial(self.RunExportCommand,0), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Bake Only", c=partial(self.RunExportCommand,0), h=self.__itemHeight)
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Rig", c=partial(self.RunExportCommand,3), h=self.__itemHeight)
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Cutscene", c=partial(self.RunExportCommand,2), h=self.__itemHeight)
         
@@ -1209,7 +1209,7 @@ example:
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Rig", w=100, c=lambda *a:(self.AddToExportQueue('rig')), h=self.__itemHeight)
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Cutscene", w=100, c=lambda *a:(self.AddToExportQueue('cutscene')), h=self.__itemHeight)
 
-        _row.setStretchWidget(_split)
+        #_row.setStretchWidget(_split)
 
         #mUI.MelSpacer(_row,w=0)
         mUI.MelSpacer(_row,w=10)
@@ -1779,6 +1779,7 @@ example:
         log.info(log_start(_str_func))
         
         path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() ))
+        
         if not os.path.exists(path_subType):
             self.LoadCategoryList()
             return
@@ -1827,7 +1828,7 @@ example:
             #self.LoadSubTypeList()
             
         self.buildAssetForm()
-        self.LoadPreviousSelection()
+        self.LoadPreviousSelection(skip=['asset'])
                 
     def uiFunc_subTypeList_select(self):
         _str_func = 'uiFunc_subTypeList_select'
@@ -2952,9 +2953,10 @@ example:
         #else:
         #	mc.optionVar(rm=self.var_lastVersion)
 
-    def LoadPreviousSelection(self, *args):
-        if self.var_lastAsset.getValue():
-            self.assetList['scrollList'].selectByValue( self.var_lastAsset.getValue() )
+    def LoadPreviousSelection(self, skip = [], *args):
+        if 'asset' not in skip:
+            if self.var_lastAsset.getValue():
+                self.assetList['scrollList'].selectByValue( self.var_lastAsset.getValue() )
 
         self.LoadSubTypeList()
 
