@@ -1639,8 +1639,7 @@ def uiProject_fill(self,fillDir = True):
         l_errs.append("Paths failed: {0}".format(','.join(l_pathsMissing)))
     
                 
-    
-    self.uiLabel_file(edit=True, label = self.mDat.str_filepath)
+    self.uiLabel_file(edit=True, label = CORESTRINGS.short(self.mDat.str_filepath,30,10))
     
     #Project image
     log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        

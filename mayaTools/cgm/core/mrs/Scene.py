@@ -109,7 +109,7 @@ example:
         self.var_lastAnim      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
         self.var_lastVariation = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
         self.var_lastVersion   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
-        self.var_showAllFiles           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 0)
+        self.var_showAllFiles           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 1)
         #self.var_removeNamespace        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
         #self.var_zeroRoot               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
         self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
@@ -1190,9 +1190,10 @@ example:
         _row = mUI.MelHLayout(_bottomColumn,ut='cgmUISubTemplate', padding = 5)
 
         mUI.MelSpacer(_row,w=10)
-        mUI.MelLabel(_row, label="Process: ", h=self.__itemHeight, align = 'right')
+        mUI.MelLabel(_row, label="Export: ", h=self.__itemHeight, align = 'right')
         
-        self.exportButton = mUI.MelButton(_row, label="Export", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,1), h=self.__itemHeight)
+        self.exportButton = mUI.MelButton(_row, label="Static", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,4), h=self.__itemHeight)
+        self.exportButton = mUI.MelButton(_row, label="Anim", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,1), h=self.__itemHeight)
         #mc.popupMenu()
         #mc.menuItem( l="Bake Only", c=partial(self.RunExportCommand,0))
         #mc.menuItem( l="Export Rig", c=partial(self.RunExportCommand,3))
@@ -1203,11 +1204,12 @@ example:
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Cutscene", c=partial(self.RunExportCommand,2), h=self.__itemHeight)
         
         _split = mUI.MelLabel(_row, label=" | ", h=self.__itemHeight, align = 'center')
+        
         mUI.MelLabel(_row, label="Add to queue as: ", h=self.__itemHeight, align = 'right')
         
-        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export", w=100, c=lambda *a:(self.AddToExportQueue('export')), h=self.__itemHeight)
-        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Rig", w=100, c=lambda *a:(self.AddToExportQueue('rig')), h=self.__itemHeight)
-        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Cutscene", w=100, c=lambda *a:(self.AddToExportQueue('cutscene')), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Anim",  c=lambda *a:(self.AddToExportQueue('export')), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Rig",  c=lambda *a:(self.AddToExportQueue('rig')), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Cutscene",  c=lambda *a:(self.AddToExportQueue('cutscene')), h=self.__itemHeight)
 
         #_row.setStretchWidget(_split)
 
@@ -1650,6 +1652,8 @@ example:
 
         mUI.MelMenuItem( _log, l="Dat",
                                  c=lambda *a: self.mDat.log_self())
+        mUI.MelMenuItem( _log, l="Open File Dat",
+                                 c=lambda *a: self.uiFunc_getOpenFileDict())        
         mUI.MelMenuItem( _log, l="States",
                                  c=lambda *a: self.report_states())
         mUI.MelMenuItem( _log, l="Export Batch",
@@ -2795,6 +2799,75 @@ example:
         
         VALID.fileOpen(self.versionFile,True,True)
         
+    def uiFunc_getOpenFileDict(self,*args):
+        
+        _str_func = 'uiFunc_selectOpenFile'
+        log.debug(log_start(_str_func))
+        
+        _current = mc.file(q=True, sn=True)
+        
+        _content = self.directory
+        
+        if _content in _current:
+            pContent = PATHS.Path(_content)
+            pCurrent = PATHS.Path(_current)
+            pCurrent.split()
+            l_current = pCurrent.split()
+            
+            l = []
+            
+            for i,n in enumerate(pContent.split()):
+                l_current.pop(0)
+                
+            #l_current[-1] = '.'.join(l_current[-1].split('.')[:-1])
+            
+            pprint.pprint(l_current)
+            
+            return
+            l_fields = ['asset','sub','variation','version']
+            d_fields = {'asset':self.assetList['scrollList'],
+                        'sub':self.subTypeSearchList['scrollList'],
+                        'variation':self.variationList['scrollList'],
+                        'version':self.versionList['scrollList'],
+                        }
+            int_len = len(l_current)
+            for i,n in enumerate(l_current):
+                log.info(cgmGEN.logString_sub(_str_func, "{} | {}".format(i,n)))
+                if n == l_current[-1]:
+                    self.LoadVersionList()
+                
+                if i == 0:
+                    if n in self.categoryList:
+                        idx = self.categoryList.index(n)
+                        self.SetCategory(idx)
+                        continue                        
+                    else:
+                        log.warning('{0} not found in category list'.format(n) )
+                        return
+                if i == 2:
+                    if n in self.subTypes:
+                        self.SetSubType(self.subTypes.index(n))
+                        continue
+                    else:
+                        log.warning('{0} not found in subType list'.format(n) )
+                        return                    
+                    
+                for f in l_fields:
+                    log.info(f)
+                    if n in d_fields[f]._items:
+                        d_fields[f].clearSelection()
+                        d_fields[f].selectByValue(n)
+                        l_fields.remove(f)
+                        log.info(l_fields)
+                        
+                        if f == 'sub':
+                            self.LoadVariationList()
+                            
+                    
+                
+            
+            
+            return
     def uiFunc_selectOpenFile(self, *args):
         _str_func = 'uiFunc_selectOpenFile'
         log.debug(log_start(_str_func))
@@ -3996,19 +4069,32 @@ example:
                 
                 categoryDirectory = os.path.normpath(os.path.join( self.directory, animDict["category"] ))
                 path_asset = os.path.normpath(os.path.join( categoryDirectory, animDict["asset"] ))
-                path_subType = os.path.normpath(os.path.join( path_asset, animDict["subType"], animDict["animation"] ))
+                
+                
+                pprint.pprint(animDict)
+                #path_subType = os.path.normpath(os.path.join( path_asset, animDict["subType"], animDict["animation"] ))
+                
+                path_subType = os.path.normpath(os.path.join( path_asset, animDict["subType"] ))
                 
                 if animDict.get('path'):
                     versionFile = animDict.get('path')
                 else:
-                    path_variationDirectory = os.path.normpath(os.path.join( path_subType, animDict["variation"] ))                    
+                    if animDict.get('variation'):
+                        path_variationDirectory = os.path.normpath(os.path.join( path_subType, animDict["variation"] ))                    
+                    else:
+                        path_variationDirectory = path_subType
+                        
                     versionFile = os.path.normpath(os.path.join( path_variationDirectory, animDict["version"] ))
-
+                
                 categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, animDict["category"]))
                 exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, animDict["asset"]))
                 exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, animDict["subType"]))                
                 
-                _exportFileName = [animDict["asset"], animDict["animation"]]
+                if animDict.get('exportMode') == 'rig':
+                    _exportFileName = [animDict["asset"], 'rig']
+                else:
+                    _exportFileName = [animDict["asset"], animDict["animation"]]
+                
                 if animDict.get("variation"):
                     _exportFileName.append(animDict["variation"])
                 
@@ -4036,6 +4122,7 @@ example:
 
 
             pprint.pprint(l_dat)
+            
             
             BATCH.create_Scene_batchFile(l_dat)
             return
@@ -4399,12 +4486,13 @@ def ExportScene(mode = -1,
     exportFBXFile = False
     exportAsRig = False
     exportAsCutscene = False
-
+    exportStatic = False
 
     log.info("mode check...")
     d_exportModes = {'export':1,
                      'cutscene':2,
-                     'rig':3}
+                     'rig':3,
+                     'static':4}
     
     if exportMode is not None:
         mode = d_exportModes[exportMode]
@@ -4424,7 +4512,7 @@ def ExportScene(mode = -1,
                 if mc.objExists(objName):
                     exportObjs.append(objName)
     
-                        
+        
     if mode == -1:
         log.info("unknown mode, attempting to auto detect")
 
@@ -4444,8 +4532,8 @@ def ExportScene(mode = -1,
     
     log.info("Mode: {0}".format(mode))    
     pprint.pprint(exportObjs)
-
-    if len(exportObjs) > 1 and mode != 2:
+    
+    if len(exportObjs) > 1 and mode not in  [2,4]:
         log.info("Multi check")            
         result = mc.confirmDialog(
                     title='Multiple Object Selected',
@@ -4462,12 +4550,16 @@ def ExportScene(mode = -1,
         exportAsCutscene = True
 
     if mode== 2:
-        log.info("mode 2...")        
+        log.info("mode 2 | Anim...")        
         addNamespaceSuffix = True
         exportAsCutscene = True
     if mode == 3:
-        log.info("mode 3...")                
+        log.info("mode 3 | Rig...")                
         exportAsRig = True
+        
+    if mode == 4:
+        log.info("mode 4 | Static..")                
+        exportStatic = True        
 
     # make the relevant directories if they dont exist
     #categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, self.category))
@@ -4555,8 +4647,10 @@ def ExportScene(mode = -1,
     #Bake Check -----------------------------------------------------------------------------------------------
     #if mc.objExists(bakeSetName) and mc.sets(bakeSetName, q=True):
     #    log.info("bake...")        
-    bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
-                     euler=euler,tangent=tangent)
+    
+    if not exportStatic:
+        bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
+                         euler=euler,tangent=tangent)
     #else:
     #    log.info("bake skip...")
         
@@ -4571,7 +4665,12 @@ def ExportScene(mode = -1,
         mc.select(obj)
 
         assetName = obj.split(':')[0].split('|')[-1]
-        exportFile = os.path.normpath(os.path.join(exportAnimPath, exportName) )
+        
+        if exportStatic:
+            exportFile = os.path.normpath(os.path.join(exportAssetPath, "{}.fbx".format(cgmObj.p_nameBase)) )
+            
+        else:
+            exportFile = os.path.normpath(os.path.join(exportAnimPath, exportName) )
 
         if( addNamespaceSuffix ):
             exportFile = exportFile.replace(".fbx", "_%s.fbx" % assetName )

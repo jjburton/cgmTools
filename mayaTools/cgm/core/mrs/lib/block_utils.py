@@ -7218,8 +7218,8 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                                  aimVector = [0,0,1], upVector = [0,1,0], 
                                  worldUpObject = mBaseOrientCurve.mNode,
                                  worldUpType = 'objectrotation', 
-                                 worldUpVector = [0,1,0])                        
-            else:
+                                 worldUpVector = [0,1,0])
+            elif _formAim == 'chain':
                 mc.aimConstraint(_aimForward, mHandleAimGroup.mNode, maintainOffset = False,
                                  aimVector = [0,0,1], upVector = [0,1,0], 
                                  worldUpObject = mBaseOrientCurve.mNode,
