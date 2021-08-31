@@ -1639,7 +1639,7 @@ example:
                          c = lambda *a:mc.evalDeferred(self.reload,lp=True))    
     def buildMenu_utils(self):
         self.uiMenu_Utils.clear()
-
+        
         SCENEUTILS.buildMenu_utils(self, self.uiMenu_Utils)
         
 
@@ -2425,7 +2425,12 @@ example:
         mUI.MelMenuItem( _exportMenu, l="Reset",
                          c = lambda *a:mc.evalDeferred(self.ResetExportSets,lp=True))
         mUI.MelMenuItem( _exportMenu, l="Query",
-                         c = lambda *a:mc.evalDeferred(self.QueryExportSets,lp=True))        
+                         c = lambda *a:mc.evalDeferred(self.QueryExportSets,lp=True))
+        
+        mUI.MelMenuItem( self.uiMenu_ToolsMenu, l='Verify Sets',
+                            c = lambda *a:mc.evalDeferred(SCENEUTILS.verify_ObjectSets,lp=True))
+                            
+        
 
         
 
