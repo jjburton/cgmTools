@@ -1194,14 +1194,10 @@ example:
         
         self.exportButton = mUI.MelButton(_row, label="Static", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,4), h=self.__itemHeight)
         self.exportButton = mUI.MelButton(_row, label="Anim", ut = 'cgmUITemplate', c=partial(self.RunExportCommand,1), h=self.__itemHeight)
-        #mc.popupMenu()
-        #mc.menuItem( l="Bake Only", c=partial(self.RunExportCommand,0))
-        #mc.menuItem( l="Export Rig", c=partial(self.RunExportCommand,3))
-        #mc.menuItem( l="Force Export As Cutscene", c=partial(self.RunExportCommand,2))
 
-        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Bake Only", c=partial(self.RunExportCommand,0), h=self.__itemHeight)
-        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Rig", c=partial(self.RunExportCommand,3), h=self.__itemHeight)
-        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Export Cutscene", c=partial(self.RunExportCommand,2), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Bake", c=partial(self.RunExportCommand,0), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Rig", c=partial(self.RunExportCommand,3), h=self.__itemHeight)
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Cutscene", c=partial(self.RunExportCommand,2), h=self.__itemHeight)
         
         _split = mUI.MelLabel(_row, label=" | ", h=self.__itemHeight, align = 'center')
         
@@ -4181,6 +4177,34 @@ example:
         else:
             mc.frameLayout(self.exportQueueFrame, e=True, collapse=True)
 
+
+
+    def uiFunc_getOpenFilePathTokens(self,*args):
+        
+        _str_func = 'uiFunc_getOpenFilePathTokens'
+        log.debug(log_start(_str_func))
+        _current = mc.file(q=True, sn=True)
+        _content = self.directory
+        
+        if _content in _current:
+            pContent = PATHS.Path(_content)
+            pCurrent = PATHS.Path(_current)
+            pCurrent.split()
+            l_current = pCurrent.split()
+            
+            l = []
+            
+            for i,n in enumerate(pContent.split()):
+                l_current.pop(0)
+                
+            l_current.pop(-1)
+                
+            #l_current[-1] = '.'.join(l_current[-1].split('.')[:-1])
+            
+            pprint.pprint(l_current)
+            return l_current
+        return []
+        
     # args[0]:
     # 0 is bake and prep, don't export
     # 1 is export as a regular asset
@@ -4195,9 +4219,22 @@ example:
     def RunExportCommand(self, *args):
         _str_func = 'RunExportCommand'
         log.info(log_start(_str_func))
+        
+        _l_openTokens = self.uiFunc_getOpenFilePathTokens()
+        
+        
+        categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, _l_openTokens[0]))
+        _l_openTokens.pop(0)
+        exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, _l_openTokens[0]))
+        _l_openTokens.pop(0)
+        _tmp  = os.path.join(*_l_openTokens)
+        exportAnimPath = os.path.normpath(os.path.join(exportAssetPath,_tmp))        
+        
+    
+        '''Old method
         categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, self.category))
         exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, self.assetList['scrollList'].getSelectedItem()))
-        exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))
+        exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, self.subType))'''
 
         d_userPaths = self.mDat.userPaths_get()
 
@@ -4215,7 +4252,6 @@ example:
             deleteSetName = self.var_deleteSet.getValue()
             exportSetName = self.var_exportSet.getValue()
             
-
 
             d = {
                 'file':mc.file(q=True, sn=True),
@@ -4241,8 +4277,8 @@ example:
 
             BATCH.create_Scene_batchFile([d])
             return
-
-
+        #pprint.pprint(vars())
+        
         ExportScene(mode = args[0],
                     exportObjs = None,
                     exportName = self.exportFileName,
@@ -4252,7 +4288,7 @@ example:
                     exportAnimPath = exportAnimPath,
                     removeNamespace = self.d_tf['exportOptions']['removeNameSpace'].getValue(),
                     zeroRoot = self.d_tf['exportOptions']['zeroRoot'].getValue(),
-                    animationName = self.selectedSubType,
+                    animationName = _l_openTokens[0],#self.selectedSubType,
                     tangent=postTangent,
                     euler=postEuler,                            
                     workspace=d_userPaths['content']
@@ -4309,122 +4345,12 @@ def BatchExport(dataList = []):
 
         mc.file(_path, open = 1, f = 1, iv = 1)
 
-        # if not _d['exportObjs']:
-        # 	log.info(log_sub(_str_func,"Trying to find masters..."))
-
-        # 	l_masters = []
-        # 	for item in mc.ls("*:master", r=True):
-        # 		if len(item.split(":")) == 2:
-        # 			masterNode = item
-        # 			l_masters.append(item)
-
-        # 		#if mc.checkBox(self.updateCB, q=True, v=True):
-        # 			#rig = ASSET.Asset(item)
-        # 			#if rig.UpdateToLatest():
-        # 				#self.SaveVersion()
-
-        # 	if l_masters:
-        # 		log.info(log_msg(_str_func,"Found..."))
-        # 		pprint.pprint(l_masters)
-
-        # 		_d['exportObjs'] = l_masters
-
-
-        #if _objs:
-        #    mc.select(_objs)
         ExportScene(**_d)        
 
     t2 = time.time()
     log.info("|{0}| >> Total Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 )))         
 
     return
-
-    mFile = PATHS.Path(f)
-
-    if not mFile.exists():
-        raise ValueError,"Invalid file: {0}".format(f)
-
-    _path = mFile.asFriendly()
-
-    log.info("Good Path: {0}".format(_path))
-    """
-    if 'template' in _path:
-        _newPath = _path.replace('template','build')
-    else:"""
-    _name = mFile.name()
-    _d = mFile.up().asFriendly()
-    log.debug(log_msg(_str_func,_name))
-    _newPath = os.path.join(_d,_name+'_BUILD.{0}'.format(mFile.getExtension()))        
-
-    log.info("New Path: {0}".format(_newPath))
-
-    #log_msg(_str_func,'File Open...')
-    mc.file(_path, open = 1, f = 1)
-
-    #log_msg(_str_func,'Process...')
-    t1 = time.time()
-
-    try:
-        if not blocks:
-            #log_sub(_str_func,'No blocks arg')
-
-            ml_masters = r9Meta.getMetaNodes(mTypes = 'cgmRigBlock',
-                                                         nTypes=['transform','network'],
-                                                         mAttrs='blockType=master')
-
-            for mMaster in ml_masters:
-                #log_sub(_str_func,mMaster)
-
-                RIGBLOCKS.contextual_rigBlock_method_call(mMaster, 'below', 'atUtils','changeState','rig',forceNew=False)
-
-                ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(mMaster,'below',True,False)
-                l_fails = []
-
-                for mSubBlock in ml_context:
-                    _state =  mSubBlock.getState(False)
-                    if _state != 4:
-                        l_fails.append(mSubBlock)
-
-                if l_fails:
-                    log.info('The following failed...')
-                    pprint.pprint(l_fails)
-                    raise ValueError,"Modules failed to rig: {0}".format(l_fails)
-
-                log.info("Begin Rig Prep cleanup...")
-                '''
-
-                Begin Rig Prep process
-
-                '''
-                mPuppet = mMaster.moduleTarget#...when mBlock is your masterBlock
-
-                if postProcesses:
-                    log.info('mirror_verify...')
-                    mPuppet.atUtils('mirror_verify')
-                    log.info('collect worldSpace...')                        
-                    mPuppet.atUtils('collect_worldSpaceObjects')
-                    log.info('qss...')                        
-                    mPuppet.atUtils('qss_verify',puppetSet=1,bakeSet=1,deleteSet=1,exportSet=1)
-                    log.info('proxyMesh...')
-                    mPuppet.atUtils('proxyMesh_verify')
-                    log.info('ihi...')                        
-                    mPuppet.atUtils('rigNodes_setAttr','ihi',0)
-                    log.info('rig connect...')                        
-                    mPuppet.atUtils('rig_connectAll')
-    except Exception,err:
-        log.error(err)
-
-
-    t2 = time.time()
-    log.info("|{0}| >> Total Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 ))) 
-
-
-    #log_msg(_str_func,'File Save...')
-    newFile = mc.file(rename = _newPath)
-    mc.file(save = 1)            
-
-
-
 
 
 # args[0]:
