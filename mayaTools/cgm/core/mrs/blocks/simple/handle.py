@@ -89,7 +89,7 @@ d_attrStateMask = {'define':[],
                    'prerig':[],
                    'skeleton':['hasJoint'],
                    'proxySurface':['proxy'],
-                   'rig':['rotPivotPlace','scaleSetup'],
+                   'rig':['rotPivotPlace','scaleSetup','dynParentMode','dynParentScaleMode'],
                    'vis':[]}
 
 d_block_profiles = {

@@ -1014,3 +1014,14 @@ def ratio(nodes = [],mode = 'finger', move = True):
             log.error("{0} | {1}".format(mNode,err))
     pprint.pprint(_res)
     return _res
+
+def parentScaleForce(mObj,mStop=None):
+    mObj = cgmMeta.validateObjArg(mObj)
+    mStop = cgmMeta.validateObjArg(mStop,noneValid=True)
+    ml_parents =  mObj.getParents(asMeta=True)
+    mObj.scale = 1,1,1
+    for mParent in ml_parents:
+        try:
+            mParent.scale = 1,1,1
+            print("Set: {}".format(mParent.mNode))
+        except:"Fail: {}".format(mParent.mNode)

@@ -988,7 +988,7 @@ example:
         
         self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=1)
         
-        #mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
+        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
         
         
         mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
