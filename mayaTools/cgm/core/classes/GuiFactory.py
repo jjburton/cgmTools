@@ -64,7 +64,7 @@ log.setLevel(logging.INFO)
 
 #>>> Root settings =============================================================
 
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __toolName__ = 'cgmGUI'
 __toolURL__ = 'www.cgmonks.com'
 __description__ = "This is a default cgm gui example"

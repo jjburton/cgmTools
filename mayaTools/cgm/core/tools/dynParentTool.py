@@ -43,7 +43,7 @@ from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 #>>> Root settings =============================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'
@@ -676,7 +676,7 @@ class ui(cgmUI.cgmGUI):
             return False
         
         _d_exists = get_dict(self._mNode.mNode)
-        _d_build = self.uiFunc_get_buildDict()
+        _d_build = self.uiFunc_get_buildDict() or {}
         _d_build['dynChild'] = self._mNode
         pprint.pprint(_d_build)
         

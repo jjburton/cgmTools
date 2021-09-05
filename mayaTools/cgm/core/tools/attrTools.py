@@ -41,7 +41,7 @@ import Red9.core.Red9_CoreUtils as r9Core
 #reload(STRINGS)
 #reload(SEARCH)
 #>>> Root settings =============================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 
 #__toolURL__ = 'www.cgmonks.com'
 #__author__ = 'Josh Burton'

@@ -45,7 +45,7 @@ import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.lib.annotations as TOOLANNO
 
 #>>> Root settings =============================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='cgmJointTools'
 
 class ui(cgmUI.cgmGUI):

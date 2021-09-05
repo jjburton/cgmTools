@@ -30,7 +30,7 @@ from cgm.core.tools import controllerPuppet as controllerPuppet
 import json
 
 #>>> Root settings =============================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='controllerPuppetTool'
 
 

@@ -11,7 +11,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.08.29.1'
+__RELEASE = '21.9.5.1'
 
 __BRANCH = 'MRSDEV'
 
@@ -58,6 +58,8 @@ def get_releaseString():
     try:return __BRANCH + ' | ' + __RELEASE
     except:
         return __RELEASE
+
+__RELEASESTRING = get_releaseString()
 
 class cgmFuncCls(object):  
     '''

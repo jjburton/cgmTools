@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 from cgm.core import cgm_General as cgmGen
-__version__ = cgmGen.__RELEASE
+__version__ = cgmGen.__RELEASESTRING
 
 import cgm.core.classes.GuiFactory as cgmUI
 #try:

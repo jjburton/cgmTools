@@ -80,7 +80,7 @@ from cgm.core import cgm_Meta as cgmMeta
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __autoForm__ = False
 __dimensions = __baseSize__ = [15.2, 23.2, 19.7]
 __menuVisible__ = True

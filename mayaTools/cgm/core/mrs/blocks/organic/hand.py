@@ -63,7 +63,7 @@ import cgm.core.tools.lib.snap_calls as SNAPCALLS
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __autoForm__ = False
 __component__ = False
 __menuVisible__ = True

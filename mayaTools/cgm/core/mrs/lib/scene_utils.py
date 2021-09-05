@@ -31,7 +31,7 @@ log.setLevel(logging.DEBUG)
 
 import maya.cmds as mc
 from cgm.core import cgm_General as cgmGEN
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 
 
 from cgm.core.cgmPy import path_Utils as PATH

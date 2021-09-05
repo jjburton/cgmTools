@@ -82,7 +82,7 @@ DPCTDIST = DIST.get_pos_by_linearPct
 #=============================================================================================================
 #>> Block Settings
 #=============================================================================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __autoForm__ = False
 __menuVisible__ = True
 __faceBlock__ = True

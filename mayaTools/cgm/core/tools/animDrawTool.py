@@ -43,7 +43,7 @@ from cgm.core.tools import animDraw
 #from cgm.core.tools import animFilterTool as AFT
 
 #>>> Root settings =============================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='cgmAnimDraw'
 
 _padding = 5

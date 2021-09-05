@@ -61,7 +61,7 @@ _d_ann = SCENEUTILS.d_annotations
 
 
 #>>> Root settings =============================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]

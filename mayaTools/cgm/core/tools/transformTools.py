@@ -45,7 +45,7 @@ from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 #>>> Root settings =============================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 
 __l_spaceModes = SHARED._d_spaceArgs.keys()
 __l_pivots = SHARED._d_pivotArgs.keys()

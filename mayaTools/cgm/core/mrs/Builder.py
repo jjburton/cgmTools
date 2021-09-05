@@ -114,7 +114,7 @@ for k,color in d_state_colors.iteritems():
 
 
 #>>> Root settings =============================================================
-__version__ =  cgmGEN.__RELEASE
+__version__ =  cgmGEN.__RELEASESTRING
 _sidePadding = 25
 
 

@@ -68,7 +68,7 @@ log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
 log_start = cgmGEN.logString_start
 
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='ShapeDat'
 _padding = 5
 

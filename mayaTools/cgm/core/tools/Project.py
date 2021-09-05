@@ -70,7 +70,7 @@ mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
 mUI = cgmUI.mUI
 
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 _colorGood = CORESHARE._d_colors_to_RGB['greenWhite']
 _colorBad = CORESHARE._d_colors_to_RGB['redWhite']
         

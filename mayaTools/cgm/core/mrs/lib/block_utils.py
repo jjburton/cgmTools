@@ -912,7 +912,7 @@ def stateNull_verify(self,state='define'):
         mNull.p_parent = self
         mNull.setAttrFlags()
         
-        mNull.doStore('cgmRelease',cgmGEN.__RELEASE)
+        mNull.doStore('cgmRelease',cgmGEN.__RELEASESTRING)
     else:
         mNull = self.getMessageAsMeta(_strPlug)
     return mNull

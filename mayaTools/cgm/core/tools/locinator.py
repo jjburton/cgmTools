@@ -36,7 +36,7 @@ from cgm.core.lib import search_utils as SEARCH
 import cgm.core.classes.GuiFactory as cgmUI
 from cgm.core.tools.markingMenus.lib import contextual_utils as MMCONTEXT
 
-__version__ = cgmGen.__RELEASE
+__version__ = cgmGen.__RELEASESTRING
 
 import cgm.core.classes.GuiFactory as cgmUI
 #reload(cgmUI)

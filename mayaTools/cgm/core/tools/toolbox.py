@@ -70,7 +70,7 @@ from cgm.lib.ml import (ml_breakdownDragger,
                         ml_convertRotationOrder,
                         ml_copyAnim)
 
-__version__ = cgmGen.__RELEASE
+__version__ = cgmGen.__RELEASESTRING
 
 mUI = cgmUI.mUI
 

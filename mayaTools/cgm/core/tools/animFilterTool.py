@@ -46,7 +46,7 @@ from cgm.core.tools import keyframeToMotionCurve as K2MC
 from cgm.core.tools import spring as SPRING
 
 #>>> Root settings =============================================================
-__version__ = cgmGEN.__RELEASE
+__version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='postFilter'
 
 _padding = 5
