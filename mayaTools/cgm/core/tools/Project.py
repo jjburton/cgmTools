@@ -3228,7 +3228,8 @@ def uiUpdate_fbxVersionLabel(self):
     try:self.uiLabel_fbxVersion(edit=True, label = mel.eval('FBXExportFileVersion -q') )
     except Exception,err:
         log.error(err)
-        self.uiLabel_fbxVersion(edit=True, label = 'Error' )        
+        self.uiLabel_fbxVersion(edit=True, label = 'Error' )
+    log.info("FBX Version: {}".format(self.uiLabel_fbxVersion.getValue()))
     
 def uiButton_fbxVersion_query(self,uiLabel):
     uiUpdate_fbxVersionLabel(self)
