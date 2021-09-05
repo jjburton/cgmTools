@@ -237,7 +237,11 @@ def Prep(removeNamespace = False,
                     mc.setAttr('{0}.rotate'.format(exportObj.mNode), 0, 0, 0, type='float3')
 
     if removeNamespace and len(exportSetObjs) > 0:
-        for obj in cgmMeta.asMeta(mc.listRelatives([x.mNode for x in exportSetObjs], ad=True, fullPath = 1)) + exportSetObjs:
+        l_deformers = []
+        for mObj in exportSetObjs:
+            l_deformers.extend(mObj.getDeformers(asMeta=1) or [])
+            
+        for obj in cgmMeta.asMeta(mc.listRelatives([x.mNode for x in exportSetObjs], ad=True, fullPath = 1)) + exportSetObjs + l_deformers:
             if ':' in obj.mNode:
                 mc.rename(obj.mNode, obj.mNode.split(':')[-1])
 

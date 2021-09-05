@@ -89,7 +89,7 @@ d_attrStateMask = {'define':[],
                    'prerig':[],
                    'skeleton':['hasJoint'],
                    'proxySurface':['proxy'],
-                   'rig':['rotPivotPlace','scaleSetup'],
+                   'rig':['rotPivotPlace','scaleSetup','dynParentMode','dynParentScaleMode'],
                    'vis':[]}
 
 d_block_profiles = {
@@ -219,7 +219,7 @@ d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
                  'parentVisAttr':'bool',
                  'proxyShape':'cube:sphere:cylinder:cone:torus:shapers',
                  'targetJoint':'messageSimple',
-                 'shapersAim':'toEnd:chain',
+                 'shapersAim':'toEnd:chain:orientToHandle',
                  'dynParentMode':'space:orient:follow:point',
                  'dynParentScaleMode':'off:link:space',
                  'rootJoint':'messageSimple'}

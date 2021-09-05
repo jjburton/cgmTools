@@ -1441,7 +1441,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
             return False
         
         mChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',noneValid=False)
-
+        
+        
         #TODO First scrub nodes and what not
         self.dagLock(False)
         
@@ -1469,8 +1470,7 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         elif mChild.hasAttr('scaleSpace'):
             ATTR.delete(mChild.mNode,'scaleSpace')
             
-            
-        
+
         #Make our groups
         #One per parent, copy parent transform
         #Make our attrs
@@ -1571,6 +1571,12 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         log.debug(">>>>>>>>>>>>> after add %s"%self.msgList_get('dynParents',asMeta =False))
         return mDynParent
     
+    def scaleCheck(self):
+        if self.scale != (1,1,1):
+            self.scale = 1,1,1
+        if self.scale != (1,1,1):
+            raise ValueError,'Scale error | {}'.format(self.scale)
+        
     def verifyConstraints(self):
         """
         1) are we constrained
@@ -1629,10 +1635,11 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
         mDynScaleConst = False
 
         if self.dynMode == 0:#Parent
-            cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = 0)[0]
+            cBuffer = mc.parentConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
             i_dynConst = cgmMeta.cgmNode(cBuffer)
             log.debug("|{0}| >> Parent: {1}".format(_str_func,i_dynConst))                    
-            
+        self.scaleCheck()
+
         if self.dynMode == 1:#Orient
             cBuffer = mc.orientConstraint(l_dynDrivers,self.mNode,maintainOffset = True)[0]
             i_dynConst = cgmMeta.cgmNode(cBuffer)
@@ -1795,7 +1802,8 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 
         #self.connectChildNode(i_driver,'dynDriver_%s'%index,'dynMaster')	
         i_driver.connectChildNode(i_dynChild,'dynTarget')	
-
+        return i_driver
+    
     def verifyFollowDriver(self):
         log.debug(">>> %s.verifyFollowDriver() >> "%(self.p_nameShort) + "="*75) 		        			
         i_dynChild = cgmMeta.validateObjArg(self.getMessage('dynChild')[0],'cgmObject',True)
@@ -1818,7 +1826,9 @@ class cgmDynParentGroup(cgmMeta.cgmObject):
 
         self.connectChildNode(i_followDriver,'dynFollow','dynMaster')
         self._mi_followDriver = i_followDriver
-
+        
+        i_followDriver.scale = 1,1,1
+        
     #@cgmGeneral.Timer
     def doSwitchSpace(self,attr,arg,deleteLoc = True):
         try:

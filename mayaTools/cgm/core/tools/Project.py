@@ -705,7 +705,33 @@ def buildFrames(self,parent, changeCommand = ''):
                 
             _row.setStretchWidget(_d[_name])
             mUI.MelSpacer(_row,w=5)
-            _row.layout()            
+            _row.layout()
+            
+            if _name == 'fbxVersion':
+                _rowFBX = mUI.MelHSingleStretchLayout(_inside, padding = 5)
+                mUI.MelSpacer(_rowFBX,w=5)
+                mUI.MelLabel(_rowFBX, label = 'Current FBX Version:')
+                self.uiLabel_fbxVersion = mUI.MelLabel(_rowFBX,ut='cgmUITemplate',en=False, label='')
+                
+                try:
+                     self.uiLabel_fbxVersion(edit=True, label = mel.eval('FBXExportFileVersion -q') )
+                except:
+                    pass
+                _rowFBX.setStretchWidget(self.uiLabel_fbxVersion)
+                
+                mUI.MelButton(_rowFBX,
+                              l = 'Query',
+                              ut = 'cgmUITemplate',
+                              c = cgmGEN.Callback(uiUpdate_fbxVersionLabel,self),
+                              )
+                mUI.MelButton(_rowFBX,
+                              l = 'Set',
+                              ut = 'cgmUITemplate',
+                              c = cgmGEN.Callback(uiButton_fbxVersion_set,self, _d[_name],
+                                                  self.uiLabel_fbxVersion),
+                              )                
+                mUI.MelSpacer(_rowFBX,w=5)                                          
+                _rowFBX.layout()
 
 class pathList_project(cgmMeta.pathList):
     def __init__(self, optionVar = 'testPath'):
@@ -1639,8 +1665,7 @@ def uiProject_fill(self,fillDir = True):
         l_errs.append("Paths failed: {0}".format(','.join(l_pathsMissing)))
     
                 
-    
-    self.uiLabel_file(edit=True, label = self.mDat.str_filepath)
+    self.uiLabel_file(edit=True, label = CORESTRINGS.short(self.mDat.str_filepath,30,10))
     
     #Project image
     log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
@@ -3196,7 +3221,37 @@ def uiCC_checkPath(self, key, mode='local'):
         mField(edit=True,bgc = _colorGood)
         
         log.warning("Path {0}| {1} changed to: {2}".format(mode, key, _value))
-        
+
+
+
+def uiUpdate_fbxVersionLabel(self):
+    try:self.uiLabel_fbxVersion(edit=True, label = mel.eval('FBXExportFileVersion -q') )
+    except Exception,err:
+        log.error(err)
+        self.uiLabel_fbxVersion(edit=True, label = 'Error' )
+    log.info("FBX Version: {}".format(self.uiLabel_fbxVersion.getValue()))
+    
+def uiButton_fbxVersion_query(self,uiLabel):
+    uiUpdate_fbxVersionLabel(self)
+
+def uiButton_fbxVersion_set(self,uiOption, uiLabel):
+    _v =  uiOption.getValue()
+    if _v == 'default':
+        for v in PU._fbxVersions:
+            try:
+                mel.eval('FBXExportFileVersion -v {}'.format(v))
+                break
+            except:
+                continue
+    else:
+        try:mel.eval('FBXExportFileVersion -v {}'.format(_v))
+        except Exception,err:
+            log.error("Failed to set to: {} | {}".foramt(_v,err))
+    uiUpdate_fbxVersionLabel(self)
+    
+    
+
+
 def uiButton_setPathToTextField(self,key,mode='project'):
     basicFilter = "*"
     if key in ['image']:

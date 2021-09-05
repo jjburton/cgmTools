@@ -33,7 +33,7 @@ import maya.cmds as mc
 from cgm.core import cgm_General as cgmGEN
 __version__ = cgmGEN.__RELEASESTRING
 
-
+from cgm.core import cgm_Meta as cgmMeta
 from cgm.core.cgmPy import path_Utils as PATH
 import cgm.core.cgmPy.os_Utils as CGMOS
 
@@ -47,7 +47,6 @@ import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 
 """
 # From cgm ==============================================================
-from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 
 from cgm.core.lib import curve_Utils as CURVES
@@ -266,3 +265,16 @@ def fncMayaSett_query(self):
                 log.error("Failure {0} | {1} | {2}".format(k,_name,err))
                 
                 
+def verify_ObjectSets():
+    log.info("verify_ObjectSets..."+cgmGEN._str_subLine)
+    for n in 'bake','delete','export':
+        str_name = mc.optionVar(q='cgm_{0}_set'.format(n))
+        if not mc.objExists(str_name):
+            mSet = cgmMeta.cgmObjectSet(setType='tdSet',qssState=True)        
+            mSet.doStore('cgmName',n)
+            mSet.doName()
+            log.info("{} created".format(str_name))
+        else:
+            log.info("{} exists".format(str_name))
+    log.info(cgmGEN._str_subLine)
+    

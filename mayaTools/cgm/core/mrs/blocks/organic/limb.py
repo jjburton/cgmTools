@@ -3635,7 +3635,7 @@ def rig_dataBuffer(self):
         pprint.pprint(_ml_handleTargetsRaw)
         #while _check <= len(ml_handleJoints):
         
-        for mHandle in self.ml_handleTargets:#[:-1]:
+        for mHandle in self.ml_handleTargets[:-1]:
             _check = _ml_handleTargetsRaw.index(mHandle)            
             log.debug(cgmGEN.logString_sub("|{0}| >>Roll Check {1} | {2}".format(_str_func, _check, mHandle)))
             

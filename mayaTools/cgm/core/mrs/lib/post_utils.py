@@ -76,7 +76,7 @@ log_msg = cgmGEN.logString_msg
 
 
 
-def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = 1, orient = 'zyx'):
+def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = 1,cycleLength = 100, cycleOffset = -20, orient = 'zyx'):
     _str_func = 'autoSwim'
     log_start(_str_func)
     
@@ -275,7 +275,7 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
     if setupCycle:
         import cgm
         reload(cgm.lib.nodes)
-        cgm.lib.nodes.offsetCycleSpeedControlNodeSetup (mDeformer.mNode,(_settings+'.speed'),100,-10)
+        cgm.lib.nodes.offsetCycleSpeedControlNodeSetup (mDeformer.mNode,(_settings+'.speed'),cycleLength,cycleOffset)
     
     pprint.pprint(vars())
     

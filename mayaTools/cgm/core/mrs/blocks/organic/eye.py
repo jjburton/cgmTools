@@ -1290,7 +1290,7 @@ def prerig(self):
             
             
             _bbSize = TRANS.bbSize_get(self.getMessageAsMeta('{0}Helper'.format(k)).mNode, True, 'max')
-            TRANS.scaleLocal_set(mShape.mNode,_bbSize)
+            #TRANS.scaleLocal_set(mShape.mNode,_bbSize)
             mShape.sz = _bbSize * .5
             
             md_handles[k] = mDag
