@@ -670,13 +670,40 @@ class ui_post_filter(object):
 
         mUI.MelSpacer(_row,w=_padding)
 
-        _row.layout()        
+        _row.layout()
+        
+    def add_cycleRow(self,parentColumn):
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Cycle (NOTIMPLEMENTED):')
+
+        _row.setStretchWidget( mUI.MelSeparator(_row) )
+
+        self.uiFF_cycleState = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('translate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_translate))
+        
+        mUI.MelLabel(_row,l='Blend:')
+        
+        self.uiIF_cycleBlend = mUI.MelIntField(_row,
+                                               en= True,
+                                               w= 50,
+                                               ut='cgmUISubTemplate',
+                                               v=self._optionDict.get('cycleBlend', 0))
+                
+
+
+        
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()            
         
 
-def add_timeRows(self):
+
+
+def add_timeRows(self,parent):
     # Start Frame --------------------------------------------------------------
     #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row,l='Start Frame:')
@@ -702,7 +729,7 @@ def add_timeRows(self):
     
     # End Frame --------------------------------------------------------------
     #
-    _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
 
     mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row,l='End Frame:')
@@ -921,12 +948,15 @@ class ui_post_dragger_column(ui_post_filter):
         #
         # End Object Scale
         
-        add_timeRows(self)#...add our time rows
-
+        #Extra rows -------------------------------------------------------------
+        add_timeRows(self,parentColumn)#...add our time rows
         self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
 
         mc.setParent(parentColumn)
         cgmUI.add_LineSubBreak()  
+        
+        self.add_cycleRow(parentColumn)
+        #Extra rows end...
 
         # Debug
         #
@@ -1262,12 +1292,14 @@ class ui_post_spring_column(ui_post_filter):
         _row.layout()
         #
         # End Object Scale
-
+        
+        #Extra rows ------------------------------------
         mc.setParent(parentColumn)
         cgmUI.add_LineSubBreak()  
         
-        add_timeRows(self)#...add our time rows
-        
+        add_timeRows(self,parentColumn)#...add our time rows
+        self.add_cycleRow(parentColumn)
+        #End Extra rows ...
 
         # Debug
         #
@@ -1446,12 +1478,16 @@ class ui_post_trajectory_aim_column(ui_post_filter):
         _row.layout()
         #
         # End Damp
-        #add_timeRows(self)#...add our time rows
+        
+        #Extra rows ---------------------------------------------------------
+        add_timeRows(self,parentColumn)#...add our time rows
 
         mc.setParent(parentColumn)
         cgmUI.add_LineSubBreak()  
         
-
+        self.add_cycleRow(parentColumn)
+        #End Extra rows ...
+        
         # Debug
         #
         _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
