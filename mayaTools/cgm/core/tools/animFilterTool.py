@@ -622,10 +622,56 @@ class ui_post_filter(object):
     def uiFunc_setObjects(self):
         if not hasattr(self, 'uiTF_objects'):
             return
+        
+        _buffer = mc.ls(sl=True)
+        if not _buffer:
+            return log.error("Nothing selected to load")
+            
+        self._optionDict['objs'] = _buffer
+        
+        self.uiFunc_updateObjectsString()
+        
+    def uiFunc_updateObjectsString(self):
+        if not self._optionDict['objs']:
+            self.uiTF_objects(edit=True, label='')
+            return
+        
+        _string = "[{}] | {}".format(len(self._optionDict['objs']),
+                                         CORESTRING.short(','.join(mc.ls(sl=True)),max=30,start=10))
+        
+        self.uiTF_objects(edit=True, label=_string)
+        
+    def uiFunc_selectObjects(self):
+        if not self._optionDict['objs']:
+            return log.error("No objects stored")
+        mc.select(self._optionDict['objs'])
+        
+    def add_objectsRow(self,parentColumn):
+        _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
-        self._optionDict['objs'] = mc.ls(sl=True)
-        self.uiTF_objects(edit=True, label=', '.join(mc.ls(sl=True)))
+        mUI.MelSpacer(_row,w=_padding)
+        mUI.MelLabel(_row,l='Objects:')
 
+        self.uiTF_objects = mUI.MelLabel(_row, ut='cgmUIInstructionsTemplate', l= '')
+        
+        if self._optionDict.get('objs'):
+            self.uiFunc_updateObjectsString()
+        else:
+            self.uiFunc_setObjects()
+
+        _row.setStretchWidget( self.uiTF_objects )
+
+        cgmUI.add_Button(_row,'Set',
+            cgmGEN.Callback(self.uiFunc_setObjects),
+            'Set Objects')
+        cgmUI.add_Button(_row,'Sel',
+            cgmGEN.Callback(self.uiFunc_selectObjects),
+            'Select Objects')
+
+        mUI.MelSpacer(_row,w=_padding)
+
+        _row.layout()        
+        
 
 def add_timeRows(self):
     # Start Frame --------------------------------------------------------------
@@ -695,6 +741,9 @@ class ui_post_dragger_column(ui_post_filter):
 
         # Objects
         #
+        self.add_objectsRow(parentColumn)
+        
+        """
         _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
         mUI.MelSpacer(_row,w=_padding)
@@ -707,10 +756,13 @@ class ui_post_dragger_column(ui_post_filter):
         cgmUI.add_Button(_row,'Set',
             cgmGEN.Callback(self.uiFunc_setObjects),
             'Set Objects')
-
+        cgmUI.add_Button(_row,'Sel',
+            cgmGEN.Callback(self.uiFunc_selectObjects),
+            'Select Objects')
+        
         mUI.MelSpacer(_row,w=_padding)
 
-        _row.layout()
+        _row.layout()"""
         
         #
         # End Objects
@@ -855,7 +907,13 @@ class ui_post_dragger_column(ui_post_filter):
 
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-        self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('objectScale', 10.0))
+        self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate',
+                                                        w= 50,
+                                                        v=self._optionDict.get('objectScale', 10.0))
+        
+        cgmUI.add_Button(_row,'Guess',
+            cgmGEN.Callback(uiFunc_guessObjScale,self),
+            'Guess Object Size and use it')
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -929,7 +987,8 @@ class ui_post_dragger_column(ui_post_filter):
     def update_dict(self):
         self._optionDict['name'] = self.name
         self._optionDict['filterType'] = self.filterType
-        self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
+        #self._optionDict['objsString'] = self.uiTF_objects.getValue() if hasattr(self, 'uiTF_objects') else []
+        #self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
         self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
         self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
         self._optionDict['damp'] = self.uiFF_post_damp.getValue() if hasattr(self, 'uiFF_post_damp') else 7.0
@@ -964,6 +1023,9 @@ class ui_post_spring_column(ui_post_filter):
 
         # Objects
         #
+        self.add_objectsRow(parentColumn)
+        
+        """
         _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
         mUI.MelSpacer(_row,w=_padding)
@@ -976,10 +1038,13 @@ class ui_post_spring_column(ui_post_filter):
         cgmUI.add_Button(_row,'Set',
             cgmGEN.Callback(self.uiFunc_setObjects),
             'Set Objects')
+        cgmUI.add_Button(_row,'Sel',
+            cgmGEN.Callback(self.uiFunc_selectObjects),
+            'Select Objects')
 
         mUI.MelSpacer(_row,w=_padding)
 
-        _row.layout()
+        _row.layout()"""
         
         #
         # End Objects
@@ -1187,6 +1252,10 @@ class ui_post_spring_column(ui_post_filter):
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
         self.uiFF_post_object_scale = mUI.MelFloatField(_row, ut='cgmUISubTemplate', w= 50, v=self._optionDict.get('objectScale', 10.0))
+        
+        cgmUI.add_Button(_row,'Guess',
+            cgmGEN.Callback(uiFunc_guessObjScale,self),
+            'Guess Object Size and use it')        
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -1266,7 +1335,7 @@ class ui_post_spring_column(ui_post_filter):
     def update_dict(self):
         self._optionDict['name'] = self.name
         self._optionDict['filterType'] = self.filterType
-        self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
+        #self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
         self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
         self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
         self._optionDict['damp'] = self.uiFF_post_damp.getValue() if hasattr(self, 'uiFF_post_damp') else .3
@@ -1303,6 +1372,8 @@ class ui_post_trajectory_aim_column(ui_post_filter):
 
         # Objects
         #
+        self.add_objectsRow(parentColumn)
+        """
         _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
         mUI.MelSpacer(_row,w=_padding)
@@ -1318,7 +1389,7 @@ class ui_post_trajectory_aim_column(ui_post_filter):
 
         mUI.MelSpacer(_row,w=_padding)
 
-        _row.layout()
+        _row.layout()"""
         
         #
         # End Objects
@@ -1375,7 +1446,7 @@ class ui_post_trajectory_aim_column(ui_post_filter):
         _row.layout()
         #
         # End Damp
-        add_timeRows(self)#...add our time rows
+        #add_timeRows(self)#...add our time rows
 
         mc.setParent(parentColumn)
         cgmUI.add_LineSubBreak()  
@@ -1425,7 +1496,7 @@ class ui_post_trajectory_aim_column(ui_post_filter):
     def update_dict(self):
         self._optionDict['name'] = self.name
         self._optionDict['filterType'] = self.filterType
-        self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
+        #self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
         self._optionDict['aimFwd'] = self.post_fwdMenu.getValue() if hasattr(self, 'post_fwdMenu') else 'z+'
         self._optionDict['aimUp'] = self.post_upMenu.getValue() if hasattr(self, 'post_upMenu') else 'y+'
         self._optionDict['damp'] = self.uiFF_post_damp.getValue() if hasattr(self, 'uiFF_post_damp') else .3
@@ -1452,6 +1523,8 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
 
         # Objects
         #
+        self.add_objectsRow(parentColumn)
+        """
         _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
         mUI.MelSpacer(_row,w=_padding)
@@ -1467,7 +1540,7 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
 
         mUI.MelSpacer(_row,w=_padding)
 
-        _row.layout()
+        _row.layout()"""
         
         #
         # End Objects
@@ -1523,7 +1596,7 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
     def update_dict(self):
         self._optionDict['name'] = self.name
         self._optionDict['filterType'] = self.filterType
-        self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
+        #self._optionDict['objs'] = [x.strip() for x in self.uiTF_objects.getValue().split(',')] if hasattr(self, 'uiTF_objects') else []
         self._optionDict['debug'] = self.uiCB_post_debug.getValue() if hasattr(self, 'uiCB_post_debug') else False
         self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
 
@@ -1535,6 +1608,18 @@ class ui_post_keyframe_to_motion_curve_column(ui_post_filter):
             mc.select(obj)
             postInstance = K2MC.KeyframeToMotionCurve(debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
             postInstance.bake()
+
+
+
+def uiFunc_guessObjScale(self):
+    import cgm.core.lib.position_utils as POS
+    _objs = self._optionDict.get('objs',[])
+    if not _objs:
+        return log.error("No objs loaded")
+    l_sizes = []
+    for o in _objs:
+        l_sizes.append( POS.get_bb_size(o,True,'max') )    
+    self.uiFF_post_object_scale.setValue(MATH.average(l_sizes))
 
 action_class = {
     'dragger':ui_post_dragger_column,
