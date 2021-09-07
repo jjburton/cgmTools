@@ -4227,9 +4227,12 @@ example:
         _l_openTokens.pop(0)
         exportAssetPath = os.path.normpath(os.path.join( categoryExportPath, _l_openTokens[0]))
         _l_openTokens.pop(0)
-        _tmp  = os.path.join(*_l_openTokens)
+        _tmp  = _l_openTokens[0]##os.path.join(*_l_openTokens)
         exportAnimPath = os.path.normpath(os.path.join(exportAssetPath,_tmp))        
         
+        #pprint.pprint(vars())
+        
+        #return
     
         '''Old method
         categoryExportPath = os.path.normpath(os.path.join( self.exportDirectory, self.category))

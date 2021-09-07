@@ -376,10 +376,11 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                         _sideMirror = mMirror.getEnumValueString('mirrorSide')                
                         
                         d_Indices[_sideMirror] = _v#...push it back                
-                        ml_cull.remove(mMirror)
+                        try:ml_cull.remove(mMirror)
+                        except:pass
                         md_indicesToControls[_sideMirror][_v] = mMirror
-                        ml_controlOrphans.remove(mMirror)                        
-                        
+                        try:ml_controlOrphans.remove(mMirror)                        
+                        except:pass
                     else:
                         log.debug("Looking for match...")
                         

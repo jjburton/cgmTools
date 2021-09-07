@@ -290,6 +290,7 @@ def register(controlObject = None,#(mObject - None) -- The object to use as a co
                 #ATTR.connect(mObj.mNode + 'mirrorSide',"{0}.mirrorSide".format(mi_control.mNode))
     
         #Freeze ============================================================================================
+        
         if not shapeParentTo and noFreeze is not True:
             l_cons = CONSTRAINTS.get_constraintsTo(mi_control.mNode)
             if l_cons:

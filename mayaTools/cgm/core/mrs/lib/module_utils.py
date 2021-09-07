@@ -471,7 +471,7 @@ def rig_disconnect(self,force=False):
             return True
         
         mRigNull = self.rigNull
-        mRigNull.moduleSet.reset()
+        #mRigNull.moduleSet.reset()
         
         mi_rigNull = self.rigNull
         ml_skinJoints = rig_getSkinJoints(self,asMeta=True)

@@ -2225,6 +2225,22 @@ def rig_controls(self):
             for mShape in mRoot.getShapes(asMeta=True):
                 ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
                 
+                
+        #Scale Root --------------------------------------------------------------------------------------
+        mScaleRoot = mRigNull.getMessageAsMeta('scaleRoot')
+        if mScaleRoot:
+            log.debug("|{0}| >> Scale Root...".format(_str_func))
+            _d = MODULECONTROL.register(mScaleRoot,
+                                        addDynParentGroup = False,
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = True)
+            mScaleRoot = _d['mObj']
+            mRootParent = mScaleRoot#Change parent going forward...
+            ml_controlsAll.append(mScaleRoot)            
+            
+            
+                
         #FK controls =============================================================================================
         log.debug("|{0}| >> FK Controls...".format(_str_func))
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
@@ -2463,8 +2479,10 @@ def rig_segments(self):
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
     ml_segJoints = mRigNull.msgList_get('segmentJoints')
     mModule = self.mModule
-    mRoot = mRigNull.rigRoot
     
+    try:mRoot = mRigNull.scaleRoot
+    except:mRoot = mRigNull.rigRoot
+        
     if len(ml_rigJoints)<2:
         log.debug("|{0}| >> Not enough rig joints for setup".format(_str_func))                      
         return True
@@ -2581,7 +2599,11 @@ def rig_frame(self):
         ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
         mPlug_globalScale = self.d_module['mPlug_globalScale']
-        mRoot = mRigNull.rigRoot
+        
+        
+        try:mRoot = mRigNull.scaleRoot
+        except:mRoot = mRigNull.rigRoot
+        
         mSettings = mRigNull.settings
         
         b_cog = False
@@ -3131,8 +3153,10 @@ def rig_cleanUp(self):
     
         mRigNull = self.mRigNull
         mSettings = mRigNull.settings
+        
         mRoot = mRigNull.rigRoot
-
+        mScaleRoot = mRigNull.getMessageAsMeta('scaleRoot')
+        
         mBlock = self.mBlock
         b_ikOrientToWorld = mBlock.ikOrientToWorld
         
@@ -3213,23 +3237,10 @@ def rig_cleanUp(self):
         
         ml_baseDynParents.append(mRoot)
         
-        """
-        mParent = mRoot.getParent(asMeta=True)
-        ml_targetDynParents = []
-    
-        if not mParent.hasAttr('cgmAlias'):
-            mParent.addAttr('cgmAlias',self.d_module['partName'] + 'base')
-        ml_targetDynParents.append(mParent)    
-        
-        ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
-    
-        mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=2)
-        #mDynGroup.dynMode = 2
-    
-        for mTar in ml_targetDynParents:
-            mDynGroup.addDynParent(mTar)
-        mDynGroup.rebuild()
-        mDynGroup.dynFollow.p_parent = self.mDeformNull"""
+        if mScaleRoot:
+            mScaleRoot.addAttr('cgmAlias','{0}_scaleRoot'.format(self.d_module['partName']))            
+            ml_baseDynParents.insert(0,mScaleRoot)
+
         mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
         
         
@@ -3322,40 +3333,7 @@ def rig_cleanUp(self):
             log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
             #pprint.pprint(ml_targetDynParents)                
             log.debug(cgmGEN._str_subLine)    
-        
-        
-        """
-        #...Ik controls ========================================================================================
-        ml_ikControls = []
-        mControlIK = mRigNull.getMessage('controlIK')
-        
-        if mControlIK:
-            ml_ikControls.append(mRigNull.controlIK)
-        if mRigNull.getMessage('controlIKBase'):
-            ml_ikControls.append(mRigNull.controlIKBase)
-            
-        for mHandle in ml_ikControls:
-            log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))                
-            
-            mParent = mHandle.getParent(asMeta=True)
-            ml_targetDynParents = []
-        
-            if not mParent.hasAttr('cgmAlias'):
-                mParent.addAttr('cgmAlias','conIK_base')
-            ml_targetDynParents.append(mParent)    
-            
-            ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
-            ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
-        
-            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=2)
-            #mDynGroup.dynMode = 2
-        
-            for mTar in ml_targetDynParents:
-                mDynGroup.addDynParent(mTar)
-            mDynGroup.rebuild()
-            mDynGroup.dynFollow.p_parent = self.mDeformNull"""
-        
-        
+
         #...rigjoints ============================================================================================
         if mBlock.spaceSwitch_direct:
             log.debug("|{0}| >>  Direct...".format(_str_func))                

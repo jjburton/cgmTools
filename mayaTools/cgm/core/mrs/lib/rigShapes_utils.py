@@ -329,69 +329,80 @@ def limbRoot(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 def rootOrCog(self,mHandle = None):
-    try:
-        _str_func = 'rootOrCog'
-        log_start(_str_func)
-        
-        mBlock = self.mBlock
-        ml_prerigHandles = self.ml_prerigHandles
-        ml_formHandles = self.ml_formHandles
-        _offset = self.v_offset
-        if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
-            log.debug("|{0}| >> Cog...".format(_str_func))
-            mCogHelper = mBlock.cogHelper
-        
-            mCog = mCogHelper.doCreateAt(setClass=True)
-            CORERIG.shapeParent_in_place(mCog.mNode, mCogHelper.shapeHelper.mNode)
-        
-            #Cast a simple curve
-            #Cv's 4,2 | 
-        
-            ml_shapes = self.atBuilderUtils('shapes_fromCast',
-                                            targets = mCogHelper.shapeHelper,
-                                            offset = _offset * 2.0,
-                                            mode = 'singleCast')#'segmentHan            
-            CORERIG.shapeParent_in_place(mCog.mNode, ml_shapes[0].mNode,False)
-        
-            CORERIG.override_color(mCog.mNode,'white')
-        
-            mCog.doStore('cgmName','{0}_cog'.format(self.d_module['partName']))
-            mCog.doStore('cgmAlias','cog')
-            mCog.doName()
-        
-            self.mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect
-            self.mRigNull.connectChildNode(mCog,'settings','rigNull')#Connect
-        
-        
-        else:#Root =============================================================================
-            log.debug("|{0}| >> Root...".format(_str_func))
+    _str_func = 'rootOrCog'
+    log_start(_str_func)
     
-            mRootHandle = ml_prerigHandles[0]
-            #mRoot = ml_joints[0].doCreateAt()
+    mBlock = self.mBlock
+    ml_prerigHandles = self.ml_prerigHandles
+    ml_formHandles = self.ml_formHandles
+    _offset = self.v_offset
+    if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
+        log.debug("|{0}| >> Cog...".format(_str_func))
+        mCogHelper = mBlock.cogHelper
+    
+        mCog = mCogHelper.doCreateAt(setClass=True)
+        CORERIG.shapeParent_in_place(mCog.mNode, mCogHelper.shapeHelper.mNode)
+    
+        #Cast a simple curve
+        #Cv's 4,2 | 
+    
+        ml_shapes = self.atBuilderUtils('shapes_fromCast',
+                                        targets = mCogHelper.shapeHelper,
+                                        offset = _offset * 2.0,
+                                        mode = 'singleCast')#'segmentHan            
+        CORERIG.shapeParent_in_place(mCog.mNode, ml_shapes[0].mNode,False)
+    
+        CORERIG.override_color(mCog.mNode,'white')
+    
+        mCog.doStore('cgmName','{0}_cog'.format(self.d_module['partName']))
+        mCog.doStore('cgmAlias','cog')
+        mCog.doName()
+    
+        self.mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect
+        self.mRigNull.connectChildNode(mCog,'settings','rigNull')#Connect
+        
+        if mBlock.getMayaAttr('scaleSetup'):
+            _bb_cog = POS.get_bb_size(mCog.mNode,True,'max')
+            mScaleRoot = cgmMeta.validateObjArg(CURVES.create_fromName('fatCross', _bb_cog * .7),'cgmObject',setClass=True)
+            mScaleRoot.doSnapTo(mCog)
             
-            ml_joints = self.d_joints['ml_moduleJoints']
-            mRoot = ml_joints[0].doCreateAt()
-    
-            #_size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_formHandles[0].mNode))
-            _bb_root = POS.get_bb_size(ml_formHandles[0].loftCurve.mNode,True)
-            _size_root = MATH.average(_bb_root)
-            mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('cubeOpen', _size_root * 1.5),'cgmObject',setClass=True)
-            mRootCrv.doSnapTo(mRootHandle)
-    
-            #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
-    
-            CORERIG.shapeParent_in_place(mRoot.mNode,mRootCrv.mNode, False)
-            
-            mRoot.doStore('cgmName',self.d_module['partName'])
+            mScaleRoot.doStore('cgmName',self.d_module['partName'])
             #ATTR.copy_to(self.mModule.mNode,'cgmName',mRoot.mNode,driven='target')
-            mRoot.doStore('cgmTypeModifier','root')
-            mRoot.doName()
+            mScaleRoot.doStore('cgmTypeModifier','scaleRoot')
+            mScaleRoot.doName()
     
-            self.mHandleFactory.color(mRoot.mNode, controlType = 'sub')
+            self.mHandleFactory.color(mScaleRoot.mNode, controlType = 'sub')
+            self.mRigNull.connectChildNode(mScaleRoot,'scaleRoot','rigNull')#Connect                    
+            mScaleRoot.p_parent = mCog
     
-            self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect        
+    else:#Root =============================================================================
+        log.debug("|{0}| >> Root...".format(_str_func))
+
+        mRootHandle = ml_prerigHandles[0]
+        #mRoot = ml_joints[0].doCreateAt()
+        
+        ml_joints = self.d_joints['ml_moduleJoints']
+        mRoot = ml_joints[0].doCreateAt()
+
+        #_size_root =  MATH.average(mHandleFactory.get_axisBox_size(ml_formHandles[0].mNode))
+        _bb_root = POS.get_bb_size(ml_formHandles[0].loftCurve.mNode,True)
+        _size_root = MATH.average(_bb_root)
+        mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('cubeOpen', _size_root * 1.5),'cgmObject',setClass=True)
+        mRootCrv.doSnapTo(mRootHandle)
+
+        #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
+
+        CORERIG.shapeParent_in_place(mRoot.mNode,mRootCrv.mNode, False)
+        
+        mRoot.doStore('cgmName',self.d_module['partName'])
+        #ATTR.copy_to(self.mModule.mNode,'cgmName',mRoot.mNode,driven='target')
+        mRoot.doStore('cgmTypeModifier','root')
+        mRoot.doName()
+
+        self.mHandleFactory.color(mRoot.mNode, controlType = 'sub')
+
+        self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect        
        
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
 
 
 def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkShapes = None,
@@ -453,7 +464,7 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
                 
             else:
-                CORERIG.shapeParent_in_place(mIKCrv.mNode, ml_fkShapes[-1].mNode, True)
+                CORERIG.shapeParent_in_place(mIKCrv.mNode, ml_fkShapes[-2].mNode, True)
                 
         elif ikEnd == 'shapeArg':
             mIK_formHandle = ml_formHandles[ self.int_handleEndIdx ]

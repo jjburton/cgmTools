@@ -199,7 +199,7 @@ _d_faceBufferAttributes = {
     'cha':{
         "lid":{'attrs':['blink','eyeAngle','arcUp','arcDn'],
                "sideAttrs":'*'},
-        "eye":{'attrs':['fix'],
+        "eye":{'attrs':['fix','pupilRound'],
                "sideAttrs":'*'},
         
         "brow":{'attrs':['arcUp','flat','angry','thick'],

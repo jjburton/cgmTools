@@ -892,7 +892,13 @@ _d_faceWiring = {
                          'brow_arcUp_right':{'driverAttr':'ty'},
                          'brow_angry_right':{'driverAttr':'-tx'},
                          }},    
-
+    
+    'l_browThick':{'control':'L_browThickConCon_anim',
+           'wiringDict':{'brow_thick_left':{'driverAttr':'ty'},
+                         }},
+    'r_browThick':{'control':'R_browThickConCon_anim',
+           'wiringDict':{'brow_thick_right':{'driverAttr':'ty'},
+                         }},
     
     #Lid... --------------------------------------------
     'L_smileFix':{'control':'L_eyeSmileFixConCon_anim',
@@ -908,7 +914,10 @@ _d_faceWiring = {
     'l_eyeBlink':{'control':'L_blinkCon_anim',
            'wiringDict':{'lid_blink_left':{'driverAttr':'-ty'},
                          }},    
-    
+    'l_eyeRound':{'control':'L_roundIrisCon_anim',
+           'wiringDict':{'eye_pupilRound_left':{'driverAttr':'ty'},
+                         }},    
+        
 
     'R_smileFix':{'control':'R_eyeSmileFixConCon_anim',
            'wiringDict':{'eye_fix_right':{'driverAttr':'ty'},
@@ -922,7 +931,11 @@ _d_faceWiring = {
                          }},
     'R_eyeBlink':{'control':'R_blinkCon_anim',
            'wiringDict':{'lid_blink_right':{'driverAttr':'-ty'},
-                         }},    
+                         }},  
+    
+    'R_eyeRound':{'control':'R_roundIrisCon_anim',
+           'wiringDict':{'eye_pupilRound_right':{'driverAttr':'ty'},
+                         }},        
     
     
     #Mouth... --------------------------------------------
@@ -1162,3 +1175,53 @@ def simpleLipHandleTrack(top = 'muzzle_anim', lwr = 'lip_anim'):
         
 d_wiring = {'cha':{u'R_lip_smile': u'|cha_faceBuffer.lip_smile_right', u'R_lip_narrow': u'|cha_faceBuffer.lip_narrow_right', u'R_lip_smileBig': u'|cha_faceBuffer.lip_smilePush_right', u'L_lid_happyBlink': u'|cha_faceBuffer.lid_arcUp_left', u'teeth_lwrFlat': u'|cha_faceBuffer.teeth_flatLwr', u'L_lip_wide': u'|cha_faceBuffer.lip_wide_left', u'R_lid_blink': u'|cha_faceBuffer.lid_blink_right', u'L_lid_blink': u'|cha_faceBuffer.lid_blink_left', u'R_lip_seal': u'|cha_faceBuffer.lip_seal_right', u'L_brow_anger': u'|cha_faceBuffer.brow_angry_left', u'mouth_up': u'|cha_faceBuffer.mouth_up', u'jaw_open': u'|cha_faceBuffer.jaw_open', u'teeth_hide': u'|cha_faceBuffer.teeth_hide', u'R_brow_flat': u'|cha_faceBuffer.brow_flat_right', u'tongueHide': u'|cha_faceBuffer.tongue_hide', u'R_lip_wide': u'|cha_faceBuffer.lip_wide_right', u'L_lid_downBlink': u'|cha_faceBuffer.lid_arcDn_left', u'L_brow_arcUp': u'|cha_faceBuffer.brow_arcUp_left', u'R_lip_cat': u'|cha_faceBuffer.lip_cat_right', u'R_lid_downBlink': u'|cha_faceBuffer.lid_arcDn_right', u'R_eye_mouthFix': u'|cha_faceBuffer.eye_fix_right', u'L_lip_smile': u'|cha_faceBuffer.lip_smile_left', u'R_brow_arcUp': u'|cha_faceBuffer.brow_arcUp_right', u'L_lip_narrow': u'|cha_faceBuffer.lip_narrow_left', u'R_lid_happyBlink': u'|cha_faceBuffer.lid_arcUp_right', u'L_brow_flat': u'|cha_faceBuffer.brow_flat_left', u'teeth_flatSeal': u'|cha_faceBuffer.teeth_closeFlat', u'L_lip_seal': u'|cha_faceBuffer.lip_seal_left', u'teeth_close': u'|cha_faceBuffer.teeth_closeReg', u'mouth_out': u'|cha_faceBuffer.mouth_out', u'R_lip_frown': u'|cha_faceBuffer.lip_frown_right', u'L_eye_mouthFix': u'|cha_faceBuffer.eye_fix_left', u'L_lip_smileBig': u'|cha_faceBuffer.lip_smilePush_left', u'R_brow_anger': u'|cha_faceBuffer.brow_angry_right', u'teeth_uprFlat': u'|cha_faceBuffer.teeth_flatUpr', u'L_lip_frown': u'|cha_faceBuffer.lip_frown_left', u'L_lip_cat': u'|cha_faceBuffer.lip_cat_left'} # 
 }
+
+
+
+d_cha = {'tail_settings_anim':{'tail_rigRibbon_segScale':0,'visRoot':False},
+         'head_root_anim':{'scaleSpace':'cog','orientTo':'cog'},
+         'head_settings_anim':{'visRoot':True},
+         
+         'L_UPR_whisker_root_anim':{'scaleSpace':'head_root'},
+         'L_LWR_whisker_root_anim':{'scaleSpace':'head_root'},
+         'L_UPR_whisker_settings_anim':{'visRoot':False},
+         'L_LWR_whisker_settings_anim':{'visRoot':False},         
+         
+         'L_ear_root_anim':{'scaleSpace':'head_root'},
+         'L_ear_settings_anim':{'visRoot':False},         
+         'L_arm_root_anim':{'scaleSpace':'cog'},
+         'L_leg_root_anim':{'scaleSpace':'cog'},
+         
+         'L_arm_settings_anim':{'shoulder_seg_0_factor_0':.6,
+                                'shoulder_seg_0_factor_1':.6,
+                                'elbow_seg_1_factor_0':0,
+                                'elbow_seg_1_factor_1':0,
+                                'visRoot':False},
+         'L_leg_settings_anim':{'hip_seg_0_factor_0':.6,
+                                'hip_seg_0_factor_1':.6,
+                                'knee_seg_1_factor_0':0,
+                                'knee_seg_1_factor_1':0,
+                                'visRoot':False},
+         
+         'R_UPR_whisker_root_anim':{'scaleSpace':'head_root'},
+         'R_LWR_whisker_root_anim':{'scaleSpace':'head_root'},
+         'whisker_settings_anim':{'visRoot':False},
+         'R_LWR_whisker_settings_anim':{'visRoot':False},    
+         
+         'R_ear_root_anim':{'scaleSpace':'head_root'},
+         'R_ear_settings_anim':{'visRoot':False},                  
+         'R_arm_root_anim':{'scaleSpace':'cog'},
+         'R_leg_root_anim':{'scaleSpace':'cog'},
+         
+         'R_arm_settings_anim':{'shoulder_seg_0_factor_0':.6,
+                                'shoulder_seg_0_factor_1':.6,
+                                'elbow_seg_1_factor_0':0,
+                                'elbow_seg_1_factor_1':0,
+                                'visRoot':False},
+         'R_leg_settings_anim':{'hip_seg_0_factor_0':.6,
+                                'hip_seg_0_factor_1':.6,
+                                'knee_seg_1_factor_0':0,
+                                'knee_seg_1_factor_1':0,
+                                'visRoot':False},              
+
+              }
