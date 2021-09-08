@@ -199,7 +199,7 @@ _d_faceBufferAttributes = {
     'cha':{
         "lid":{'attrs':['blink','eyeAngle','arcUp','arcDn'],
                "sideAttrs":'*'},
-        "eye":{'attrs':['fix','pupilRound'],
+        "eye":{'attrs':['fix','pupilRound','pupilBottom'],
                "sideAttrs":'*'},
         
         "brow":{'attrs':['arcUp','flat','angry','thick'],
@@ -1247,7 +1247,6 @@ _d_faceControlsToConnect = {
 
                   
 }}
-
 
 
 

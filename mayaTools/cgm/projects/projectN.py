@@ -917,7 +917,9 @@ _d_faceWiring = {
     'l_eyeRound':{'control':'L_roundIrisCon_anim',
            'wiringDict':{'eye_pupilRound_left':{'driverAttr':'ty'},
                          }},    
-        
+    'l_pupilUp':{'control':'L_pupilBottomUpFixConCon_anim',
+           'wiringDict':{'eye_pupilBottom_left':{'driverAttr':'ty'},
+                         }},    
 
     'R_smileFix':{'control':'R_eyeSmileFixConCon_anim',
            'wiringDict':{'eye_fix_right':{'driverAttr':'ty'},
@@ -936,6 +938,11 @@ _d_faceWiring = {
     'R_eyeRound':{'control':'R_roundIrisCon_anim',
            'wiringDict':{'eye_pupilRound_right':{'driverAttr':'ty'},
                          }},        
+    'R_pupilUp':{'control':'R_pupilBottomUpFixConCon_anim',
+           'wiringDict':{'eye_pupilBottom_right':{'driverAttr':'ty'},
+                         }},       
+    
+    
     
     
     #Mouth... --------------------------------------------
@@ -1173,8 +1180,8 @@ def simpleLipHandleTrack(top = 'muzzle_anim', lwr = 'lip_anim'):
         
         
         
-d_wiring = {'cha':{u'R_lip_smile': u'|cha_faceBuffer.lip_smile_right', u'R_lip_narrow': u'|cha_faceBuffer.lip_narrow_right', u'R_lip_smileBig': u'|cha_faceBuffer.lip_smilePush_right', u'L_lid_happyBlink': u'|cha_faceBuffer.lid_arcUp_left', u'teeth_lwrFlat': u'|cha_faceBuffer.teeth_flatLwr', u'L_lip_wide': u'|cha_faceBuffer.lip_wide_left', u'R_lid_blink': u'|cha_faceBuffer.lid_blink_right', u'L_lid_blink': u'|cha_faceBuffer.lid_blink_left', u'R_lip_seal': u'|cha_faceBuffer.lip_seal_right', u'L_brow_anger': u'|cha_faceBuffer.brow_angry_left', u'mouth_up': u'|cha_faceBuffer.mouth_up', u'jaw_open': u'|cha_faceBuffer.jaw_open', u'teeth_hide': u'|cha_faceBuffer.teeth_hide', u'R_brow_flat': u'|cha_faceBuffer.brow_flat_right', u'tongueHide': u'|cha_faceBuffer.tongue_hide', u'R_lip_wide': u'|cha_faceBuffer.lip_wide_right', u'L_lid_downBlink': u'|cha_faceBuffer.lid_arcDn_left', u'L_brow_arcUp': u'|cha_faceBuffer.brow_arcUp_left', u'R_lip_cat': u'|cha_faceBuffer.lip_cat_right', u'R_lid_downBlink': u'|cha_faceBuffer.lid_arcDn_right', u'R_eye_mouthFix': u'|cha_faceBuffer.eye_fix_right', u'L_lip_smile': u'|cha_faceBuffer.lip_smile_left', u'R_brow_arcUp': u'|cha_faceBuffer.brow_arcUp_right', u'L_lip_narrow': u'|cha_faceBuffer.lip_narrow_left', u'R_lid_happyBlink': u'|cha_faceBuffer.lid_arcUp_right', u'L_brow_flat': u'|cha_faceBuffer.brow_flat_left', u'teeth_flatSeal': u'|cha_faceBuffer.teeth_closeFlat', u'L_lip_seal': u'|cha_faceBuffer.lip_seal_left', u'teeth_close': u'|cha_faceBuffer.teeth_closeReg', u'mouth_out': u'|cha_faceBuffer.mouth_out', u'R_lip_frown': u'|cha_faceBuffer.lip_frown_right', u'L_eye_mouthFix': u'|cha_faceBuffer.eye_fix_left', u'L_lip_smileBig': u'|cha_faceBuffer.lip_smilePush_left', u'R_brow_anger': u'|cha_faceBuffer.brow_angry_right', u'teeth_uprFlat': u'|cha_faceBuffer.teeth_flatUpr', u'L_lip_frown': u'|cha_faceBuffer.lip_frown_left', u'L_lip_cat': u'|cha_faceBuffer.lip_cat_left'} # 
-}
+d_wiring = {u'R_lip_smile': u'|cha_faceBuffer.lip_smile_right', u'R_lip_narrow': u'|cha_faceBuffer.lip_narrow_right', u'R_lip_smileBig': u'|cha_faceBuffer.lip_smilePush_right', u'L_lid_happyBlink': u'|cha_faceBuffer.lid_arcUp_left', u'teeth_lwrFlat': u'|cha_faceBuffer.teeth_flatLwr', u'L_lip_wide': u'|cha_faceBuffer.lip_wide_left', u'R_lid_blink': u'|cha_faceBuffer.lid_blink_right', u'L_lid_blink': u'|cha_faceBuffer.lid_blink_left', u'R_lip_seal': u'|cha_faceBuffer.lip_seal_right', u'L_brow_anger': u'|cha_faceBuffer.brow_angry_left', u'mouth_up': u'|cha_faceBuffer.mouth_up', u'jaw_open': u'|cha_faceBuffer.jaw_open', u'L_brow_thicken': u'|cha_faceBuffer.brow_thick_left', u'teeth_hide': u'|cha_faceBuffer.teeth_hide', u'R_brow_flat': u'|cha_faceBuffer.brow_flat_right', u'tongueHide': u'|cha_faceBuffer.tongue_hide', u'R_lip_wide': u'|cha_faceBuffer.lip_wide_right', u'L_lid_downBlink': u'|cha_faceBuffer.lid_arcDn_left', u'L_brow_arcUp': u'|cha_faceBuffer.brow_arcUp_left', u'R_lip_cat': u'|cha_faceBuffer.lip_cat_right', u'R_lid_downBlink': u'|cha_faceBuffer.lid_arcDn_right', u'R_eye_mouthFix': u'|cha_faceBuffer.eye_fix_right', u'L_lip_smile': u'|cha_faceBuffer.lip_smile_left', u'R_brow_thicken': u'|cha_faceBuffer.brow_thick_right', u'R_brow_arcUp': u'|cha_faceBuffer.brow_arcUp_right', u'L_lip_narrow': u'|cha_faceBuffer.lip_narrow_left', u'L_eyeRound': u'|cha_faceBuffer.eye_pupilRound_left', u'L_brow_flat': u'|cha_faceBuffer.brow_flat_left', u'teeth_flatSeal': u'|cha_faceBuffer.teeth_closeFlat', u'L_lip_seal': u'|cha_faceBuffer.lip_seal_left', u'teeth_close': u'|cha_faceBuffer.teeth_closeReg', u'mouth_out': u'|cha_faceBuffer.mouth_out', u'R_eyeRound': u'|cha_faceBuffer.eye_pupilRound_right', u'R_lip_frown': u'|cha_faceBuffer.lip_frown_right', u'L_eye_mouthFix': u'|cha_faceBuffer.eye_fix_left', u'L_lip_smileBig': u'|cha_faceBuffer.lip_smilePush_left', u'R_brow_anger': u'|cha_faceBuffer.brow_angry_right', u'teeth_uprFlat': u'|cha_faceBuffer.teeth_flatUpr', u'L_lip_frown': u'|cha_faceBuffer.lip_frown_left', u'L_lip_cat': u'|cha_faceBuffer.lip_cat_left'} # 
+
 
 
 

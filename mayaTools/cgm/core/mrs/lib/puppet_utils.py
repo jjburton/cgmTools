@@ -872,7 +872,7 @@ def rig_connect(self):
         log.error("|{0}| >> No root motion handle".format(_str_func))        
         raise Exception,"No root motion handle found. "
     
-    RIGCONSTRAINT.driven_connect(mRootJoint,mRootMotionHandle)
+    RIGCONSTRAINT.driven_connect(mRootJoint,mRootMotionHandle,'noScale')
     
     return True
     

@@ -353,7 +353,10 @@ def driven_connect(driven = None, driver = None, mode = 'best'):
     if mode == 'rigDefault':
         mc.pointConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1)
         mc.orientConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1) 
-        mc.scaleConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1)
+        mc.scaleConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=True,weight=1)#...we do this because sometimes very minor scale values sneak into a rig and this is just easier
+    elif mode == 'noScale':
+        mc.pointConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1)
+        mc.orientConstraint(mDriver.mNode,mDriven.mNode,maintainOffset=False,weight=1)         
     else:
         pprint.pprint(vars())
         raise ValueError,"Unknown mode: {0}".format(mode)
