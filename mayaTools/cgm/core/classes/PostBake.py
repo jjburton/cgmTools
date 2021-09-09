@@ -25,6 +25,7 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+import pprint
 import maya.cmds as mc
 import maya.mel as mel
 
@@ -33,6 +34,8 @@ class PostBake(object):
         self.obj = None
         self.velocityDamp = velocityDamp
         self.showBake = showBake
+        self.cycleState = None
+        self.cycleBlend = 5
 
         self.velocity = MATH.Vector3.zero()
         self.previousPosition = MATH.Vector3.zero()
@@ -127,7 +130,61 @@ class PostBake(object):
                     break
                 
                 mc.progressBar(_progressBar, edit=True, status = ("{0} On frame {1}".format(_str_func,i)), step=1, maxValue = _len)                    
+                
+        if self.cycleState:
+            log.info("Cycle state.... | {} | {}".format(self.cycleMode,self.cycleBlend))
+            
+            l_dat = []
+            #...collect a series of back frames
+            for i in xrange(self.cycleBlend):
+                _frame = self.endTime - (self.cycleBlend - i)
+                
+                log.info("...frame: {}".format(_frame))
+                mc.currentTime(_frame)
+                
+                d = {}
+                d['frame']= _frame
+                if self.translate:
+                    d['trans'] = self.obj.translate
+                if self.rotate:
+                    d['rot'] = self.obj.rotate
+                l_dat.append(d)
+            #pprint.pprint(l_dat)
+            #l_dat.reverse()#...reverse the dat
+            
+            #....paste it back in reverse
+            if self.cycleMode == 'reverseBlend':
+                l_dat.reverse()#...reverse the dat
+                for i,d in enumerate(l_dat):
+                    
+                    mc.currentTime(self.startTime+i)
+                    if self.translate:
+                        self.obj.translate = d['trans'] 
+                    if self.rotate:
+                       self.obj.rotate  = d['rot']
+                       
+                    mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
+            else:
+                mc.currentTime(self.startTime)                
+                mc.copyKey(self.obj.mNode, time=(self.endTime,self.endTime),
+                          attribute=self.keyableAttrs, option="keys")# al = self.animLayerName)
+                mc.pasteKey(self.obj.mNode, time=(self.startTime,self.startTime),
+                          attribute=self.keyableAttrs, option="insert")#al = self.animLayerName)
+                
+                mc.cutKey(self.obj.mNode, time=(self.startTime+1,self.startTime+self.cycleBlend),
+                          attribute=self.keyableAttrs, option="keys" )
+                """
+                mc.currentTime(self.startTime)
+                
+                if self.translate:
+                    self.obj.translate = l_dat[-1]['trans'] 
+                if self.rotate:
+                   self.obj.rotate  = l_dat[-1]['rot']
+                   
+                mc.setKeyframe(self.obj.mNode, at=self.keyableAttrs)
+                """
 
+            
 
         mc.refresh(su=False)
         mc.autoKeyframe(state=ak)

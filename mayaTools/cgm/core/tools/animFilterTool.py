@@ -40,7 +40,10 @@ from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
 
+from cgm.core.classes import PostBake as PostBake
 from cgm.core.tools import dragger as DRAGGER
+reload(PostBake)
+reload(DRAGGER)
 from cgm.core.tools import trajectoryAim as TRAJECTORYAIM
 from cgm.core.tools import keyframeToMotionCurve as K2MC
 from cgm.core.tools import spring as SPRING
@@ -349,7 +352,7 @@ def uiFunc_run(self):
     for i, action in enumerate(self._actionList):
         mc.currentTime(_start)
         uiFunc_run_action(self, i)
-        
+        return
     mc.currentTime(_current)
 
 def uiFunc_run_action(self, idx):
@@ -371,8 +374,10 @@ def uiFunc_run_action(self, idx):
             if SEARCH.get_mayaType(_name) == 'animLayer':
                 log.info("Found animLayer: {}".format(_name))
                 animLayerName = _name
-                mc.delete(mc.animLayer(animLayerName,q=True, anc=1))        
-
+                mc.animLayer(animLayerName,e=True, raa=True)#...remove stuff so we can re do it
+                #mc.delete(mc.animLayer(animLayerName,q=True, anc=1))        
+                #mc.refresh()
+                
     else:
         _name = ''
     
@@ -393,6 +398,7 @@ def uiFunc_run_action(self, idx):
     action.run()
     
     mc.animLayer(animLayerName, e=True, preferred=False)
+    self.animLayerName = animLayerName
 
 def uiFunc_copy_action(self, idx):
     _str_func = 'uiFunc_copy_action[{0}]'.format(self.__class__.TOOLNAME)            
@@ -637,7 +643,7 @@ class ui_post_filter(object):
             return
         
         _string = "[{}] | {}".format(len(self._optionDict['objs']),
-                                         CORESTRING.short(','.join(mc.ls(sl=True)),max=30,start=10))
+                                         CORESTRING.short(','.join(self._optionDict['objs']),max=30,start=10))
         
         self.uiTF_objects(edit=True, label=_string)
         
@@ -676,7 +682,7 @@ class ui_post_filter(object):
         _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
         mUI.MelSpacer(_row,w=_padding)
-        mUI.MelLabel(_row,l='Cycle (NOTIMPLEMENTED):')
+        mUI.MelLabel(_row,l='Cycle:')
 
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
@@ -690,8 +696,11 @@ class ui_post_filter(object):
                                                ut='cgmUISubTemplate',
                                                v=self._optionDict.get('cycleBlend', 0))
                 
-
-
+        self.uiOM_cycleMode = mUI.MelOptionMenu(_row,useTemplate = 'cgmUITemplate') #, changeCommand=cgmGEN.Callback(uiFunc_setPostAction,self)
+        for o in ['reverseBlend','singleCut']:
+            self.uiOM_cycleMode.append(o)
+        
+        self.uiOM_cycleMode.setValue( self._optionDict.get('cycleMode','reverseBlend') )
         
         mUI.MelSpacer(_row,w=_padding)
 
@@ -1029,15 +1038,27 @@ class ui_post_dragger_column(ui_post_filter):
         self._optionDict['objectScale'] = self.uiFF_post_object_scale.getValue() if hasattr(self, 'uiFF_post_object_scale') else 10.0
         self._optionDict['debug'] = self.uiCB_post_debug.getValue() if hasattr(self, 'uiCB_post_debug') else False
         self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
+        
+        self._optionDict['cycleState'] = self.uiFF_cycleState.getValue()
+        self._optionDict['cycleBlend'] = self.uiIF_cycleBlend.getValue()
+        self._optionDict['cycleMode'] = self.uiOM_cycleMode.getValue()
+
 
     def run(self):
         self.update_dict()
+        
+        pprint.pprint(self._optionDict)
 
         for obj in self._optionDict['objs']:
             mc.select(obj)
-            postInstance = DRAGGER.Dragger(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], angularDamp = self._optionDict['angularDamp'], angularUpDamp = self._optionDict['angularUpDamp'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self._optionDict['objectScale'], debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
+            postInstance = DRAGGER.Dragger(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], angularDamp = self._optionDict['angularDamp'], angularUpDamp = self._optionDict['angularUpDamp'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self._optionDict['objectScale'], debug=self._optionDict['debug'], showBake=self._optionDict['showBake'],
+            cycleState = self._optionDict['cycleState'],
+            cycleBlend =  self._optionDict['cycleBlend'],
+            cycleMode =  self._optionDict['cycleMode'])
+            
             postInstance.bake(startTime=self.uiIF_startFrame.getValue() if self.uiCB_startFrame.getValue() else None,
-                              endTime= self.uiIF_endFrame.getValue() if self.uiCB_endFrame.getValue() else None)
+                              endTime= self.uiIF_endFrame.getValue() if self.uiCB_endFrame.getValue() else None,
+                              )
 
 
 class ui_post_spring_column(ui_post_filter):
