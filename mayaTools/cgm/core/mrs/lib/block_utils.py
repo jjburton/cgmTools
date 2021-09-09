@@ -488,6 +488,13 @@ def set_nameTag(self,nameTag = None):
         self.cgmName = nameTag
         self.doName()
         
+        l_nameList = self.datList_get('nameList')
+        for i,n in enumerate(l_nameList):
+            if _cgmName in n:
+                l_nameList[i] = n.replace(_cgmName,nameTag)
+                
+        self.datList_connect('nameList',l_nameList)
+        pprint.pprint(l_nameList)
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
 def set_nameIter(self,nameTag = None):
@@ -3758,7 +3765,7 @@ def duplicate(self, uiPrompt = True):
         _str_func = 'duplicate'
         _blockType = self.blockType
         _side = get_side(self)
-        
+        _nameOriginal = self.cgmName
         
         _d = {'blockType':self.blockType,
               'autoForm':False,
@@ -3851,6 +3858,16 @@ def duplicate(self, uiPrompt = True):
                 l = self.datList_get(a)
                 mDup.datList_connect(a,l)
                 
+                
+        l_nameList = mDup.datList_get('nameList')
+        for i,n in enumerate(l_nameList):
+            if _nameOriginal in n:
+                l_nameList[i] = n.replace(_nameOriginal,_d['name'])
+                
+        mDup.datList_connect('nameList',l_nameList)
+        pprint.pprint(l_nameList)                
+        
+        
         blockDat_load(mDup,redefine=True)
         #log.debug('here...')
         #blockDat_load(mDup)#...investigate why we need two...
@@ -3863,6 +3880,8 @@ def duplicate(self, uiPrompt = True):
                 mChild.p_blockParent = mDup
                 
             self.delete()"""
+        
+
             
         return mDup
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
@@ -6714,8 +6733,11 @@ def shapeDirection_toBaseDat(self):
                                'z+':{'end':[0,0,1],'up':[0,1,0]},
                                'z-':{'end':[0,0,-1],'up':[0,1,0]}}
     _shapeDirection = self.getEnumValueString('shapeDirection')
-
-    _dBase = self.baseDat
+    
+    _dBase = self.baseDat or {}
+    if issubclass(type(_dBase),dict):
+        _dBase = {}
+        
     _dBase.update(_d_baseDatFromDirection.get(_shapeDirection,{}))
     _dBase['lever'] = [-1 * v for v in _dBase['end']]
     self.baseDat = _dBase            
@@ -8785,6 +8807,69 @@ def buildProfile_load(self, arg):
     self.doStore('buildProfile',arg)
     log.debug("|{0}| >>  [LOADED] Block: {1} | profile: {2}".format(_str_func,_short,arg))
 
+def blockProfile_get(self, bySection = False, skipSections = ['advanced','data','wiring','vis','proxySurface'],
+                     attrMask = ['baseSizeX','baseSizeY','baseSizeZ','blockProfile','meshBuild','offsetMode','proxyShape','jointRadius','buildProfile',
+                                 'root_dynParentMode','root_dynParentScaleMode']):
+    _str_func = 'buildProfile_get'
+    log.debug(cgmGEN.logString_start(_str_func))
+
+    _short = self.mNode
+    mBlockModule = self.p_blockModule
+    log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+    #reload(mBlockModule)
+    
+
+    _res = {}
+
+    for section,l in uiQuery_getStateAttrDict(self,unknown=False).iteritems():
+        if section in skipSections:
+            continue
+        if bySection:
+            _res[section] = {}
+        for a in l:
+            if a in attrMask:
+                continue
+            if bySection:
+                _d = _res[section]
+            else:
+                _d = _res
+                
+            _type = ATTR.get_type(_short,a)
+            if _type == 'enum':
+                _d[str(a)] = str(ATTR.get_enumValueString(_short,a))
+            else:
+                _d[str(a)] =ATTR.get(_short,a)
+                
+    pprint.pprint(_res)
+    return
+    log.debug("|{0}| >>  Loading: {1}...".format(_str_func,arg))
+    for a,v in _d.iteritems():
+        try:
+            log.info("|{0}| attr >> '{1}' | v: {2}".format(_str_func,a,v)) 
+            _done = False
+            if issubclass(type(v),list):
+                if self.datList_exists(a):
+                    log.debug("|{0}| datList...".format(_str_func))                                     
+                    mc.select(cl=True)
+                    ATTR.datList_connect(_short, a, v, mode='string')
+                    _done = True
+            if not _done and mc.objExists("{0}.{1}".format(_short,a)):
+                ATTR.set(_short,a,v)
+                
+            if a == 'numRoll':
+                log.debug("special...")                            
+                if ATTR.datList_exists(_short,'rollCount'):
+                    log.debug("numRoll...")                            
+                    l = ATTR.datList_getAttrs(_short,'rollCount')
+                    for a2 in l:
+                        log.debug("{0}...".format(a2))
+                        ATTR.set(_short,a2, v)
+                        
+        except Exception,err:
+            log.error("|{0}| Set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+    
+    self.doStore('buildProfile',arg)
+    log.debug("|{0}| >>  [LOADED] Block: {1} | profile: {2}".format(_str_func,_short,arg))
 
 #Profile stuff ==============================================================================================
 def doSize(self, mode = None, postState = None):

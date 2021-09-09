@@ -352,7 +352,7 @@ d_default = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':50, '-':-50, 'ease':{
            'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
            'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':70, '-':-30,'ease':{0:.25, 1:.5}},}
 
-def SDK_wip(ml = [], matchType = False,
+def SDK_wip(ml = [], matchType = False, settings = None,
             d_attrs = d_default, skipLever = True, skipFKBase = []):
     _str_func = 'siblingSDK_wip'
     log.info(cgmGEN.logString_start(_str_func))
@@ -364,8 +364,10 @@ def SDK_wip(ml = [], matchType = False,
     
     #mParent -----------------------------------------------------------------------------
     mParent = ml[0].moduleParent
-    mParentSettings = mParent.rigNull.settings
-    
+    if not settings:
+        mParentSettings = mParent.rigNull.settings
+    else:
+        mParentSettings = cgmMeta.asMeta(settings)
     #pprint.pprint([mParent,mParentSettings])
     _settings = mParentSettings.mNode
 
@@ -668,6 +670,18 @@ d_pawBack = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{
                2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':1}},#middle
                3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':5, '-':-10}},#ring
                4:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
+
+d_attrs = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5}},
+           'side':{'d':'ry', '+d':10.0, '-d':-10.0, '+':25, '-':-25,'ease':{0:.25, 1:.5}},
+           'roll':{'d':'rx', '+d':10.0, '-d':-10.0, '+':80, '-':-40,
+                   0:{0:{'d':'rx', '+d':10.0, '-d':-10.0, '+':10,'-':-40},
+                      1:{'d':'rx', '+d':10.0, '-d':-10.0, '+':10,'-':-10}}},     
+            'spread':{'d':'ry','+d':10.0, '-d':-10.0,'+':1,'-':-1,
+                      0:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':40, '-':-25}},#thumb
+                      1:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-10, '-':25}},#index
+                      2:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':-5, '-':1}},#middle
+                      3:{0:{'d':'ry', '+d':10.0, '-d':-10.0, '+':10, '-':-30}}}}#pinky
+
 
 
 d_talons = {'twist':{'d':'rz', '+d':10.0, '-d':-10.0, '+':30, '-':-30, 'ease':{0:.25, 1:.5,2:0}, 'reverse':[0]},

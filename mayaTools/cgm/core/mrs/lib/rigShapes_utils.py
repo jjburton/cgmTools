@@ -464,7 +464,7 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
                 CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
                 
             else:
-                CORERIG.shapeParent_in_place(mIKCrv.mNode, ml_fkShapes[-2].mNode, True)
+                CORERIG.shapeParent_in_place(mIKCrv.mNode, ml_fkShapes[-1].mNode, True)
                 
         elif ikEnd == 'shapeArg':
             mIK_formHandle = ml_formHandles[ self.int_handleEndIdx ]
