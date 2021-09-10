@@ -26,7 +26,10 @@ log.setLevel(logging.INFO)
 #=========================================================================
 
 class Spring(PostBake.PostBake):
-    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, angularDamp = .1, angularUpDamp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, angularSpringForce = 5.0, angularUpSpringForce = 5.0, collider = None, rotate=True, translate=True, debug=False, showBake=False):
+    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, angularDamp = .1, angularUpDamp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, angularSpringForce = 5.0, angularUpSpringForce = 5.0, collider = None, rotate=True, translate=True,
+                 cycleState = False, cycleBlend = 5, cycleMode = 'reverseBlend',
+
+                 debug=False, showBake=False):
         PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
 
         self.translate = translate
@@ -68,6 +71,11 @@ class Spring(PostBake.PostBake):
         
         self.keyableAttrs = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz']
 
+
+        self.cycleBlend = cycleBlend
+        self.cycleState = cycleState
+        self.cycleMode = cycleMode
+        
         #self.lastFwd = MATH.Vector3.forward()
         #self.lastUp = MATH.Vector3.up()
 

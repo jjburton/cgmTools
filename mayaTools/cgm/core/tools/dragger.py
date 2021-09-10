@@ -19,7 +19,7 @@ import maya.cmds as mc
 import maya.mel as mel
 
 class Dragger(PostBake.PostBake):
-    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = 7.0, angularDamp=7.0, angularUpDamp=7.0,objectScale=100, rotate=True, translate=True,  cycleState = False, cycleBlend = 5, cycleMode = 'reverseBlend', animLayerName = None, debug=False, showBake=False):
+    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = 7.0, angularDamp=7.0, angularUpDamp=7.0,objectScale=100, rotate=True, translate=True,  cycleState = False, cycleBlend = 5, cycleMode = 'reverseBlend', debug=False, showBake=False):
         PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
 
         self.aimFwd = VALID.simpleAxis(aimFwd)
@@ -48,7 +48,6 @@ class Dragger(PostBake.PostBake):
         self.cycleBlend = cycleBlend
         self.cycleState = cycleState
         self.cycleMode = cycleMode
-        self.animLayerName = animLayerName
 
     def update(self, deltaTime=.04):
         #dir = self.obj.getTransformDirection(self.aimFwd.p_vector)

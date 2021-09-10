@@ -42,8 +42,10 @@ from cgm.lib import lists
 
 from cgm.core.classes import PostBake as PostBake
 from cgm.core.tools import dragger as DRAGGER
-reload(PostBake)
-reload(DRAGGER)
+from cgm.core.tools import spring as SPRING
+#reload(PostBake)
+#reload(DRAGGER)
+#reload(SPRING)
 from cgm.core.tools import trajectoryAim as TRAJECTORYAIM
 from cgm.core.tools import keyframeToMotionCurve as K2MC
 from cgm.core.tools import spring as SPRING
@@ -352,7 +354,7 @@ def uiFunc_run(self):
     for i, action in enumerate(self._actionList):
         mc.currentTime(_start)
         uiFunc_run_action(self, i)
-        return
+        
     mc.currentTime(_current)
 
 def uiFunc_run_action(self, idx):
@@ -398,7 +400,7 @@ def uiFunc_run_action(self, idx):
     action.run()
     
     mc.animLayer(animLayerName, e=True, preferred=False)
-    self.animLayerName = animLayerName
+    #self.animLayerName = animLayerName
 
 def uiFunc_copy_action(self, idx):
     _str_func = 'uiFunc_copy_action[{0}]'.format(self.__class__.TOOLNAME)            
@@ -686,7 +688,7 @@ class ui_post_filter(object):
 
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
-        self.uiFF_cycleState = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('translate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_translate))
+        self.uiCB_cycleState = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('cycleState', False))
         
         mUI.MelLabel(_row,l='Blend:')
         
@@ -1039,9 +1041,9 @@ class ui_post_dragger_column(ui_post_filter):
         self._optionDict['debug'] = self.uiCB_post_debug.getValue() if hasattr(self, 'uiCB_post_debug') else False
         self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
         
-        self._optionDict['cycleState'] = self.uiFF_cycleState.getValue()
-        self._optionDict['cycleBlend'] = self.uiIF_cycleBlend.getValue()
-        self._optionDict['cycleMode'] = self.uiOM_cycleMode.getValue()
+        self._optionDict['cycleState'] = self.uiCB_cycleState.getValue() if hasattr(self,'uiCB_cycleState') else False
+        self._optionDict['cycleBlend'] = self.uiIF_cycleBlend.getValue() if hasattr(self,'uiIF_cycleBlend') else 5
+        self._optionDict['cycleMode'] = self.uiOM_cycleMode.getValue() if hasattr(self,'uiOM_cycleMode') else 'singleCut'
 
 
     def run(self):
@@ -1402,13 +1404,25 @@ class ui_post_spring_column(ui_post_filter):
         self._optionDict['objectScale'] = self.uiFF_post_object_scale.getValue() if hasattr(self, 'uiFF_post_object_scale') else 10.0
         self._optionDict['debug'] = self.uiCB_post_debug.getValue() if hasattr(self, 'uiCB_post_debug') else False
         self._optionDict['showBake'] = self.uiCB_post_show_bake.getValue() if hasattr(self, 'uiCB_post_show_bake') else False
+        
+        self._optionDict['cycleState'] = self.uiCB_cycleState.getValue() if hasattr(self,'uiCB_cycleState') else False
+        self._optionDict['cycleBlend'] = self.uiIF_cycleBlend.getValue() if hasattr(self,'uiIF_cycleBlend') else 5
+        self._optionDict['cycleMode'] = self.uiOM_cycleMode.getValue() if hasattr(self,'uiOM_cycleMode') else 'singleCut'
+
+        
 
 
     def run(self):
         self.update_dict()
         for obj in self._optionDict['objs']:
             mc.select(obj)
-            postInstance = SPRING.Spring(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], springForce=self._optionDict['springForce'], angularDamp = self._optionDict['angularDamp'], angularSpringForce = self._optionDict['angularSpringForce'], angularUpDamp = self._optionDict['angularUpDamp'], angularUpSpringForce = self._optionDict['angularUpSpringForce'],objectScale=self._optionDict['objectScale'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'],debug=self._optionDict['debug'], showBake=self._optionDict['showBake'])
+            postInstance = SPRING.Spring(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], springForce=self._optionDict['springForce'], angularDamp = self._optionDict['angularDamp'], angularSpringForce = self._optionDict['angularSpringForce'], angularUpDamp = self._optionDict['angularUpDamp'], angularUpSpringForce = self._optionDict['angularUpSpringForce'],objectScale=self._optionDict['objectScale'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'],debug=self._optionDict['debug'], showBake=self._optionDict['showBake'],
+                                        cycleState = self._optionDict['cycleState'],
+                                        cycleBlend =  self._optionDict['cycleBlend'],
+                                        cycleMode =  self._optionDict['cycleMode'])                                         
+            
+            
+            
             postInstance.bake(startTime=self.uiIF_startFrame.getValue() if self.uiCB_startFrame.getValue() else None,
                               endTime= self.uiIF_endFrame.getValue() if self.uiCB_endFrame.getValue() else None)
             
