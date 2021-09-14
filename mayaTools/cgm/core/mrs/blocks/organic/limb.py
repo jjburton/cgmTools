@@ -4185,8 +4185,8 @@ def rig_skeleton(self):
                 ml_targets = self.ml_handleTargets
             else:
                 ml_targets = self.ml_handleTargetsCulled
-                #if self.b_ikNeedEnd:
-                    #ml_targets = ml_targets[:-1]
+                if self.b_ikNeedEnd:#...this is necessary
+                    ml_targets = ml_targets[:-1]
             
             pprint.pprint(ml_targets)
             ml_handleJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,

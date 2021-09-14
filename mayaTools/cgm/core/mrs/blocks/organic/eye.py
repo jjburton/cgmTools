@@ -503,11 +503,13 @@ def define(self):
     mBlockVolume.tz = -.5
     
     mBlockVolume.rename('blockVolume')
-    
+    """
+    #mBlockVolume = self.bbVisualize
+    """
     #Mid driver ....
     log.debug(cgmGEN.logString_msg(_str_func,'midDriver...'))
     
-    mMidDriver = mBlockVolume.doCreateAt(setClass=1)
+    mMidDriver = mMidDriver.doCreateAt(setClass=1)
     mMidDriver.rename('midDriver')
     mMidDriver.p_parent = mBlockVolume
     mMidDriver.dagLock()
@@ -521,7 +523,8 @@ def define(self):
     mMidGroup.dagLock()
     self.connectChildNode(mMidGroup.mNode,'midDrivenDag','module')
 
-    CORERIG.copy_pivot(mBlockVolume.mNode,self.mNode)
+    CORERIG.copy_pivot(mMidDriver.mNode,self.mNode)"""
+    
 
     #Create Pivot =====================================================================================
     log.debug(cgmGEN.logString_msg(_str_func,'pivot...'))
@@ -529,7 +532,7 @@ def define(self):
     mShape = cgmMeta.validateObjArg(_irisPosHelper)
 
     mShape.doSnapTo(self.mNode)
-    mShape.p_parent = mMidGroup
+    mShape.p_parent = mMidDriver
 
     mShape.tz = self.baseSizeZ
     mShape.rz = 90    
@@ -552,7 +555,7 @@ def define(self):
     ml_handles.append(mIrisPosHelper)    
     mPupilTrackDriver.p_parent = mIrisPosHelper#...parent our tracker to the orient handle    
     
-
+    """
     #Bounding sphere ==================================================================
     #_bb_shape = CURVES.create_fromName('sphere', 1.0, baseSize=1.0)
     #_bb_shape = CORERIG.create_proxyGeo('sphere', [.5,.5,.5], 'z+',bakeScale=False)[0]
