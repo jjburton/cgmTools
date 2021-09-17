@@ -3007,368 +3007,365 @@ def skeleton_check(self):
     return True
 
 def skeleton_build(self, forceNew = True):
-    try:
-        _short = self.mNode
-        _str_func = 'skeleton_build'
-        log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    _short = self.mNode
+    _str_func = 'skeleton_build'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    ml_joints = []
+    
+    #Get our roll section count
+    #if self.addLeverEnd == 2:
+        #_baseCount +=1
+                  
+    
+    mPrerigNull = self.prerigNull
+    self.atUtils('module_verify')
+    mModule = self.moduleTarget
+    if not mModule:
+        raise ValueError,"No moduleTarget connected"
+    mRigNull = mModule.rigNull
+    if not mRigNull:
+        raise ValueError,"No rigNull connected"
+    
+    ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+    if not ml_formHandles:
+        raise ValueError,"No formHandles connected"
+    
+    ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
+    if not ml_prerigHandles:
+        raise ValueError,"No prerig connected"
+    
+    ml_handleHelpers = [mHandle.jointHelper for mHandle in ml_prerigHandles]
+    if len(ml_handleHelpers) != len(ml_prerigHandles):
+        raise ValueError,"Must have matching handleHelper length to prerig."
         
-        ml_joints = []
-        
-        #Get our roll section count
-        #if self.addLeverEnd == 2:
-            #_baseCount +=1
-                      
-        
-        mPrerigNull = self.prerigNull
-        self.atUtils('module_verify')
-        mModule = self.moduleTarget
-        if not mModule:
-            raise ValueError,"No moduleTarget connected"
-        mRigNull = mModule.rigNull
-        if not mRigNull:
-            raise ValueError,"No rigNull connected"
-        
-        ml_formHandles = self.msgList_get('formHandles',asMeta = True)
-        if not ml_formHandles:
-            raise ValueError,"No formHandles connected"
-        
-        ml_prerigHandles = self.msgList_get('prerigHandles',asMeta = True)
-        if not ml_prerigHandles:
-            raise ValueError,"No prerig connected"
-        
-        ml_handleHelpers = [mHandle.jointHelper for mHandle in ml_prerigHandles]
-        if len(ml_handleHelpers) != len(ml_prerigHandles):
-            raise ValueError,"Must have matching handleHelper length to prerig."
-            
-        ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
-        if not ml_jointHelpers:
-            raise ValueError,"No jointHelpers connected"
-        
-        
-          
-        
-        
-        #>> If skeletons there, delete ------------------------------------------------------------------- 
-        _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
-        if _bfr:
-            log.debug("|{0}| >> Joints detected...".format(_str_func))            
-            if forceNew:
-                log.debug("|{0}| >> force new...".format(_str_func))                            
-                mc.delete([mObj.mNode for mObj in _bfr])
-            else:
-                return _bfr
-        
-        #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
-        
-        _d_base = self.atBlockUtils('skeleton_getNameDictBase')
-        #_l_names = ATTR.datList_get(self.mNode,'nameList')
-        
-
-        #pprint.pprint([_d_base,_l_names,ml_jointHelpers])
-        
-        #Deal with Lever joint or not --------------------------------------------------
-        _b_lever = False
-        if self.addLeverBase:
-            if self.addLeverBase == 1:
-                log.debug(cgmGEN.logString_msg(_str_func,'lever Base helper cull'))                
-                #_l_names = _l_names[1:]
-                ml_handleHelpers = ml_handleHelpers[1:]
-            else:
-                log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
-                _b_lever = True
-                
-        #Before building things, 
-        for i,mJnt in enumerate(ml_handleHelpers):
-            log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
-            ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
-            _expected = self.getMayaAttr('rollCount_{0}'.format(i))
-            if _expected and len(ml_rollHelpers) != _expected:
-                if self.addLeverBase:
-                    continue
-                return log.error("RollCount of section {0} | len: {1} != expected: {2}. Recreate your joint helpers.".format(i,len(ml_rollHelpers),_expected))
-                
-
-        """
-        _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
-        log.debug("|{0}| >> rollCount: {1}".format(_str_func,_rollCounts))
-        _int_rollStart = 0
-        if self.addLeverBase == 2:
-            _int_rollStart = 1
-        _d_rollCounts = {i+_int_rollStart:v for i,v in enumerate(_rollCounts)}
-        
-        
-        if len(_l_names) < len(ml_jointHelpers):
-            log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_jointHelpers)))
-            return False
-            """
-        _d_base['cgmType'] = 'skinJoint'
-        _buildBall = self.addBall
-        _buildToe = self.addToe
-        _buildLeverEnd = self.addLeverEnd
-        
-        #Build our handle chain ======================================================
-        l_pos = []
-        _specialEndHandling = False
-        mEndAim = False
-        
-        if _buildToe == 1:
-            ml_handleHelpers.pop(-1)
-        if _buildBall == 1:
-            ml_handleHelpers.pop(-1)
-            
-        if _buildBall == 2 or _buildToe == 2 or _buildLeverEnd == 2:
-            log.debug(cgmGEN.logString_msg(_str_func,'Special end handling'))
-            _specialEndHandling=True
-            
-        if self.numControls == 2 and self.buildEnd == 0:
-            if len(ml_handleHelpers) > 1:
-                log.info(cgmGEN.logString_msg(_str_func,' 2 controls | Pulling endJoint'))                                            
-                mEndAim = ml_handleHelpers.pop(-1)
-                
-            
-        if not _specialEndHandling and self.buildEnd != 1:
-            if len(ml_handleHelpers) > 1:
-                log.info(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
-                ml_handleHelpers.pop(-1)#...changed from handle helpers
-                
- 
-        for mObj in ml_handleHelpers:
-            l_pos.append(mObj.p_position)
-                
-        #pprint.pprint(l_pos)
-        mOrientHelper = self.orientHelper
-        
-        mVecUp = self.atUtils('prerig_get_upVector')
-        
-        ml_handleJoints = JOINT.build_chain(l_pos, parent=True,
-                                            worldUpAxis= mVecUp, orient= True)
-        
-        _d_orient = {'worldUpAxis':mVecUp,
-                     'relativeOrient':False}
-        
-        
-        if len(ml_handleJoints) == 1:
-            if mEndAim:
-                mJoint = ml_handleJoints[0]
-                _vec =  ml_handleHelpers[0].getAxisVector('y+')
-                SNAP.aim(mJoint.mNode, mEndAim.mNode, 'z+','y+','vector',
-                         _vec)
-                JOINT.freezeOrientation(mJoint.mNode)
-            else:
-                raise ValueError,"Josh fix this case"
+    ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
+    if not ml_jointHelpers:
+        raise ValueError,"No jointHelpers connected"
+    
+    
+      
+    
+    
+    #>> If skeletons there, delete ------------------------------------------------------------------- 
+    _bfr = mRigNull.msgList_get('moduleJoints',asMeta=True)
+    if _bfr:
+        log.debug("|{0}| >> Joints detected...".format(_str_func))            
+        if forceNew:
+            log.debug("|{0}| >> force new...".format(_str_func))                            
+            mc.delete([mObj.mNode for mObj in _bfr])
         else:
-            if _b_lever:
-                log.debug("|{0}| >> lever...".format(_str_func))            
-                ml_handleJoints[1].p_parent = False
-                #Lever...
-                mLever = ml_handleJoints[0]
-                log.debug("|{0}| >> lever helper: {1}".format(_str_func,ml_handleHelpers[0]))                        
-                _vec =  ml_handleHelpers[0].getAxisVector('y+')
-                log.debug("|{0}| >> lever vector: {1}".format(_str_func,_vec))            
-                
-                SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',
-                         _vec)
-                
-                JOINT.freezeOrientation(mLever.mNode)
-                
-                #Rest...
-                JOINT.orientChain(ml_handleJoints[1:],
-                                 **_d_orient)
-                ml_handleJoints[1].p_parent = ml_handleJoints[0]
-                
-            else:
-                JOINT.orientChain(ml_handleJoints,
-                                  **_d_orient)        
-        
-        
-        ml_joints = []
-        d_rolls = {}
-        
-        def nameJoint(mJnt,mHelper):
-            d = mHelper.getNameDict()
-            d['cgmType'] = 'skinJoint'
-            for t,v in d.iteritems():
-                if v not in [False,None]:
-                    mJnt.doStore(t,v)
-            mJnt.doName()
-            
-        for i,mJnt in enumerate(ml_handleJoints):
-            log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
-            nameJoint(mJnt, ml_handleHelpers[i])
-            
-            ml_joints.append(mJnt)
-            ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
-            
-            
-            if ml_rollHelpers:
-                log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))
-               
-                mJnt.select()
-                ml_rolls = []
-                
-                for ii,mHelper in enumerate(ml_rollHelpers):
-                    mRoll = mHelper.doCreateAt('joint')
-                    nameJoint(mRoll,mHelper)
-                    
-                    if  ii:
-                        mRoll.p_parent = ml_rolls[-1]
-                    else:
-                        mRoll.p_parent = mJnt
-                        
-                    ml_rolls.append(mRoll)
-                    ml_joints.append(mRoll)
-                    
-                JOINT.orientChain(ml_rolls,
-                                 worldUpAxis=mVecUp,
-                                 relativeOrient=True)
-                
-                
-                SNAP.aim_atPoint(ml_rolls[-1].mNode,
-                                 ml_handleJoints[i+1].p_position,
-                                 aimAxis='z+',mode = 'vector',vectorUp=mVecUp)                
-                JOINT.freezeOrientation(ml_rolls[-1].mNode)
-
-                d_rolls[i] = ml_rolls
-                
-        
+            return _bfr
     
-        ml_joints[0].parent = False
-        
-        _radius = self.jointRadius
-        
-        for mJoint in ml_joints:
-            mJoint.displayLocalAxis = 1
-            mJoint.radius = _radius
+    #_baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
     
-        mRigNull.msgList_connect('moduleJoints', ml_joints)
-        mPrerigNull.msgList_connect('handleJoints', ml_handleJoints)
-        #mPrerigNull.msgList_connect('moduleJoints', ml_joints)
-        
-        for i,l in d_rolls.iteritems():
-            mPrerigNull.msgList_connect('rollJoints_{0}'.format(i), l)
-            for mJnt in l:
-                mJnt.radius = _radius / 2
-        self.atBlockUtils('skeleton_connectToParent')
-        
-        
-        #reload(JOINT)
-        ml_children = []
-        #PivotHelper -------------------------------------------------------------------------------------
-        if ml_formHandles[-1].getMessage('pivotHelper'):
-            log.debug("|{0}| >> Pivot helper found".format(_str_func))
+    _d_base = self.atBlockUtils('skeleton_getNameDictBase')
+    #_l_names = ATTR.datList_get(self.mNode,'nameList')
+    
 
-            if not self.addLeverEnd:
-                cnt_lever = 0
-                if _b_lever:cnt_lever = 1
-                log.debug("|{0}| >> Non quad setup finding end...".format(_str_func))
-                _idx = (cnt_lever + self.numControls) - 1
-                log.debug("|{0}| >> non quad end: {1}".format(_str_func,_idx))
-                try:mEnd = ml_handleJoints[_idx]
-                except:mEnd=False
-                
-                
-                if mEnd:
-                    log.info("|{0}| >> non quad end: {1}".format(_str_func,mEnd))
-                    idx_end = ml_joints.index(mEnd)
-                    #ml_children = mEnd.getChildren(asMeta=True)
-                    ml_childrenToDo = ml_joints[idx_end+1:]
-                    ml_childrenHelpers = ml_prerigHandles[_idx+1:]
-                    mFirstChild = None
-                    #pprint.pprint(ml_childrenToDo)
-                    #pprint.pprint(ml_childrenHelpers)
-                    for i,mChild in enumerate(ml_childrenToDo):
-                        #print mChild
-                        mChild.parent = False
-                        mChild.doSnapTo(ml_childrenHelpers[i].jointHelper)
-                        JOINT.freezeOrientation(mChild.mNode)
-                        
-                        #JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
-                        #                  worldUpAxis= ml_jointHelpers[-1].getAxisVector('y+') )
-                        
-                        
-                        if i:
-                            mChild.p_parent = ml_childrenToDo[i-1]
-                        else:
-                            mFirstChild = mChild
-                            
-                    mEnd.jointOrient = 0,0,0
-                    
-                    if mFirstChild:
-                        mFirstChild.p_parent = mEnd
-                    #if ml_childrenToDo:ml_childrenToDo[0].p_parent = mEnd
-                    #mChild.parent = mEnd   
+    #pprint.pprint([_d_base,_l_names,ml_jointHelpers])
+    
+    #Deal with Lever joint or not --------------------------------------------------
+    _b_lever = False
+    if self.addLeverBase:
+        if self.addLeverBase == 1:
+            log.debug(cgmGEN.logString_msg(_str_func,'lever Base helper cull'))                
+            #_l_names = _l_names[1:]
+            ml_handleHelpers = ml_handleHelpers[1:]
+        else:
+            log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
+            _b_lever = True
+            
+    #Before building things, 
+    for i,mJnt in enumerate(ml_handleHelpers):
+        log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
+        ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
+        _expected = self.getMayaAttr('rollCount_{0}'.format(i))
+        if _expected and len(ml_rollHelpers) != _expected:
+            if self.addLeverBase:
+                continue
+            return log.error("RollCount of section {0} | len: {1} != expected: {2}. Recreate your joint helpers.".format(i,len(ml_rollHelpers),_expected))
+            
+
+    """
+    _rollCounts = ATTR.datList_get(self.mNode,'rollCount')
+    log.debug("|{0}| >> rollCount: {1}".format(_str_func,_rollCounts))
+    _int_rollStart = 0
+    if self.addLeverBase == 2:
+        _int_rollStart = 1
+    _d_rollCounts = {i+_int_rollStart:v for i,v in enumerate(_rollCounts)}
+    
+    
+    if len(_l_names) < len(ml_jointHelpers):
+        log.error("Namelist lengths and handle lengths doesn't match | len {0} != {1}".format(_l_names,len(ml_jointHelpers)))
+        return False
         """
-        if len(ml_handleJoints) > self.numControls:
-            log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
-            mEnd = ml_handleJoints[self.numControls - 1]
-            ml_children = mEnd.getChildren(asMeta=True)
-            for mChild in ml_children:
-                mChild.parent = False
-                
-                JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
-                                  worldUpAxis= ml_formHandles[-1].pivotHelper.getAxisVector('y+') )
-                
-            mEnd.jointOrient = 0,0,0
+    _d_base['cgmType'] = 'skinJoint'
+    _buildBall = self.addBall
+    _buildToe = self.addToe
+    _buildLeverEnd = self.addLeverEnd
+    
+    #Build our handle chain ======================================================
+    l_pos = []
+    _specialEndHandling = False
+    mEndAim = False
+    
+    if _buildToe == 1:
+        ml_handleHelpers.pop(-1)
+    if _buildBall == 1:
+        ml_handleHelpers.pop(-1)
+        
+    if _buildBall == 2 or _buildToe == 2 or _buildLeverEnd == 2:
+        log.debug(cgmGEN.logString_msg(_str_func,'Special end handling'))
+        _specialEndHandling=True
+        
+    if self.numControls == 2 and self.buildEnd == 0:
+        if len(ml_handleHelpers) > 1:
+            log.info(cgmGEN.logString_msg(_str_func,' 2 controls | Pulling endJoint'))                                            
+            mEndAim = ml_handleHelpers.pop(-1)
             
-            for mChild in ml_children:
-                mChild.parent = mEnd"""
         
-        #End joint fix when not end joint is there...
-        
-        #End Fixing --------------------------------
-        #if len(ml_handleJoints) > self.numControls:
-            #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+    if not _specialEndHandling and self.buildEnd != 1:
+        if len(ml_handleHelpers) > 1:
+            log.info(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
+            ml_handleHelpers.pop(-1)#...changed from handle helpers
             
+
+    for mObj in ml_handleHelpers:
+        l_pos.append(mObj.p_position)
+            
+    #pprint.pprint(l_pos)
+    mOrientHelper = self.orientHelper
+    
+    mVecUp = self.atUtils('prerig_get_upVector')
+    
+    ml_handleJoints = JOINT.build_chain(l_pos, parent=True,
+                                        worldUpAxis= mVecUp, orient= True)
+    
+    _d_orient = {'worldUpAxis':mVecUp,
+                 'relativeOrient':False}
+    
+    
+    if len(ml_handleJoints) == 1:
+        if mEndAim:
+            mJoint = ml_handleJoints[0]
+            _vec =  ml_handleHelpers[0].getAxisVector('y+')
+            SNAP.aim(mJoint.mNode, mEndAim.mNode, 'z+','y+','vector',
+                     _vec)
+            JOINT.freezeOrientation(mJoint.mNode)
+        else:
+            raise ValueError,"Josh fix this case"
+    else:
+        if _b_lever:
+            log.debug("|{0}| >> lever...".format(_str_func))            
+            ml_handleJoints[1].p_parent = False
+            #Lever...
+            mLever = ml_handleJoints[0]
+            log.debug("|{0}| >> lever helper: {1}".format(_str_func,ml_handleHelpers[0]))                        
+            _vec =  ml_handleHelpers[0].getAxisVector('y+')
+            log.debug("|{0}| >> lever vector: {1}".format(_str_func,_vec))            
+            
+            SNAP.aim(mLever.mNode, ml_handleJoints[1].mNode, 'z+','y+','vector',
+                     _vec)
+            
+            JOINT.freezeOrientation(mLever.mNode)
+            
+            #Rest...
+            JOINT.orientChain(ml_handleJoints[1:],
+                             **_d_orient)
+            ml_handleJoints[1].p_parent = ml_handleJoints[0]
+            
+        else:
+            JOINT.orientChain(ml_handleJoints,
+                              **_d_orient)        
+    
+    
+    ml_joints = []
+    d_rolls = {}
+    
+    def nameJoint(mJnt,mHelper):
+        d = mHelper.getNameDict()
+        d['cgmType'] = 'skinJoint'
+        for t,v in d.iteritems():
+            if v not in [False,None]:
+                mJnt.doStore(t,v)
+        mJnt.doName()
         
-        mEndOrient = self.ikOrientHandle
+    for i,mJnt in enumerate(ml_handleJoints):
+        log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
+        nameJoint(mJnt, ml_handleHelpers[i])
         
-        _idx_end = -1
-        if _buildToe == 2:
-            _idx_end -=1
-        if _buildBall == 2:
-            _idx_end -=1
-        mEnd = ml_handleJoints[_idx_end]
-        log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+        ml_joints.append(mJnt)
+        ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
+        
+        
+        if ml_rollHelpers:
+            log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))
+           
+            mJnt.select()
+            ml_rolls = []
+            
+            for ii,mHelper in enumerate(ml_rollHelpers):
+                mRoll = mHelper.doCreateAt('joint')
+                nameJoint(mRoll,mHelper)
+                
+                if  ii:
+                    mRoll.p_parent = ml_rolls[-1]
+                else:
+                    mRoll.p_parent = mJnt
+                    
+                ml_rolls.append(mRoll)
+                ml_joints.append(mRoll)
+                
+            JOINT.orientChain(ml_rolls,
+                             worldUpAxis=mVecUp,
+                             relativeOrient=True)
+            
+            
+            SNAP.aim_atPoint(ml_rolls[-1].mNode,
+                             ml_handleJoints[i+1].p_position,
+                             aimAxis='z+',mode = 'vector',vectorUp=mVecUp)                
+            JOINT.freezeOrientation(ml_rolls[-1].mNode)
+
+            d_rolls[i] = ml_rolls
+            
+    
+
+    ml_joints[0].parent = False
+    
+    _radius = self.jointRadius
+    
+    for mJoint in ml_joints:
+        mJoint.displayLocalAxis = 1
+        mJoint.radius = _radius
+
+    mRigNull.msgList_connect('moduleJoints', ml_joints)
+    mPrerigNull.msgList_connect('handleJoints', ml_handleJoints)
+    
+    for i,l in d_rolls.iteritems():
+        mPrerigNull.msgList_connect('rollJoints_{0}'.format(i), l)
+        for mJnt in l:
+            mJnt.radius = _radius / 2
+    self.atBlockUtils('skeleton_connectToParent')
+    
+    
+    #reload(JOINT)
+    ml_children = []
+    #PivotHelper -------------------------------------------------------------------------------------
+    if ml_formHandles[-1].getMessage('pivotHelper'):
+        log.debug("|{0}| >> Pivot helper found".format(_str_func))
+
+        if not self.addLeverEnd:
+            cnt_lever = 0
+            if _b_lever:cnt_lever = 1
+            log.debug("|{0}| >> Non quad setup finding end...".format(_str_func))
+            _idx = (cnt_lever + self.numControls) - 1
+            log.debug("|{0}| >> non quad end: {1}".format(_str_func,_idx))
+            try:mEnd = ml_handleJoints[_idx]
+            except:mEnd=False
+            
+            
+            if mEnd:
+                log.info("|{0}| >> non quad end: {1}".format(_str_func,mEnd))
+                idx_end = ml_joints.index(mEnd)
+                #ml_children = mEnd.getChildren(asMeta=True)
+                ml_childrenToDo = ml_joints[idx_end+1:]
+                ml_childrenHelpers = ml_prerigHandles[_idx+1:]
+                mFirstChild = None
+                #pprint.pprint(ml_childrenToDo)
+                #pprint.pprint(ml_childrenHelpers)
+                for i,mChild in enumerate(ml_childrenToDo):
+                    #print mChild
+                    mChild.parent = False
+                    mChild.doSnapTo(ml_childrenHelpers[i].jointHelper)
+                    JOINT.freezeOrientation(mChild.mNode)
+                    
+                    #JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
+                    #                  worldUpAxis= ml_jointHelpers[-1].getAxisVector('y+') )
+                    
+                    
+                    if i:
+                        mChild.p_parent = ml_childrenToDo[i-1]
+                    else:
+                        mFirstChild = mChild
+                        
+                mEnd.jointOrient = 0,0,0
+                
+                if mFirstChild:
+                    mFirstChild.p_parent = mEnd
+                #if ml_childrenToDo:ml_childrenToDo[0].p_parent = mEnd
+                #mChild.parent = mEnd   
+    """
+    if len(ml_handleJoints) > self.numControls:
+        log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+        mEnd = ml_handleJoints[self.numControls - 1]
         ml_children = mEnd.getChildren(asMeta=True)
-        if ml_children:
-            ml_children[0].p_parent = False
+        for mChild in ml_children:
+            mChild.parent = False
+            
+            JOINT.orientChain(ml_handleJoints[self.numControls - 1:],
+                              worldUpAxis= ml_formHandles[-1].pivotHelper.getAxisVector('y+') )
             
         mEnd.jointOrient = 0,0,0
+        
+        for mChild in ml_children:
+            mChild.parent = mEnd"""
+    
+    #End joint fix when not end joint is there...
+    
+    #End Fixing --------------------------------
+    #if len(ml_handleJoints) > self.numControls:
+        #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
+        
+    
+    mEndOrient = self.ikOrientHandle
+    
+    _idx_end = -1
+    if _buildToe == 2:
+        _idx_end -=1
+    if _buildBall == 2:
+        _idx_end -=1
+    mEnd = ml_handleJoints[_idx_end]
+    log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+    ml_children = mEnd.getChildren(asMeta=True)
+    if ml_children:
+        ml_children[0].p_parent = False
+        
+    mEnd.jointOrient = 0,0,0
+        
+    SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
+                     vectorUp=mEndOrient.getAxisVector('y+'))
+    JOINT.freezeOrientation(mEnd.mNode)
+    
+    
+    if ml_children:
+        log.info('Children')
+        ml_children[0].p_parent = mEnd
+        #JOINT.freezeOrientation(ml_children[0].mNode)
             
-        SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
-                         vectorUp=mEndOrient.getAxisVector('y+'))
-        JOINT.freezeOrientation(mEnd.mNode)
-        
-        
-        if ml_children:
-            log.info('Children')
-            ml_children[0].p_parent = mEnd
-            #JOINT.freezeOrientation(ml_children[0].mNode)
+
                 
- 
-                    
-            
-            
-            
-            
-            
-        """
-        if not self.buildEnd and not self.addLeverEnd:
-            mEnd = ml_joints[-1]        
-            log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
-            
-            if self.addBall:
-                mEnd.doSnapTo(ml_prerigHandles[-1])
-            if self.addToe:
-                mEnd.doSnapTo(ml_prerigHandles[-1])
-                
-            JOINT.freezeOrientation(mEnd.mNode)"""
-            
-        for mJnt in ml_joints:mJnt.rotateOrder = 5
-        self.blockState = 'skeleton'#...buffer
         
-        return ml_joints
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+        
+        
+        
+        
+    """
+    if not self.buildEnd and not self.addLeverEnd:
+        mEnd = ml_joints[-1]        
+        log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+        
+        if self.addBall:
+            mEnd.doSnapTo(ml_prerigHandles[-1])
+        if self.addToe:
+            mEnd.doSnapTo(ml_prerigHandles[-1])
+            
+        JOINT.freezeOrientation(mEnd.mNode)"""
+        
+    for mJnt in ml_joints:mJnt.rotateOrder = 5
+    self.blockState = 'skeleton'#...buffer
+    
+    return ml_joints
 
 #=============================================================================================================
 #>> rig
@@ -6182,9 +6179,6 @@ def rig_segments(self):
 
         _extraSquashControl = mBlock.squashExtraControl
 
-        #res_segScale = self.UTILS.get_blockScale(self,'segMeasure')
-        #mPlug_masterScale = res_segScale[0]
-        #mMasterCurve = res_segScale[1]
 
         _d_ribbonShare = {'connectBy':'constraint',
                           'extendEnds':True,
@@ -6272,6 +6266,19 @@ def rig_segments(self):
                     mAimStable.doStore('cgmTypeModifier','stableStart')
                     mAimStable.doStore('cgmType','aimer')
                     mAimStable.doName()
+                    
+                    #...driver setup rotateOrder
+                    if mBlock.getEnumValueString('mainRotAxis') == 'up':
+                        _defaultStable = 'zxy'
+                    else:
+                        _defaultStable = 'xyz'
+                        
+                    mAttr = cgmMeta.cgmAttr(mParent, 'roStableUp', keyable=True, attrType = 'enum',
+                                    enum='xyz:yzx:zxy:xzy:yxz:zyx',
+                                    hidden=False, value = _defaultStable)
+                    mAttr.doConnectOut("{}.rotateOrder".format(mStableUp.mNode))
+                    ATTR.set_default(mParent.mNode, 'roStableUp', _defaultStable)
+                    #....--------------------------------------------------------------------------
                     
                     mAimFollow = mSegHandle.doCreateAt()
                     mAimFollow.p_parent = mBlendParent

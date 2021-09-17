@@ -3211,6 +3211,7 @@ def skeleton_connectToParent(self):
                 return True
             else:
                 log.debug("|{0}| >> No root joint".format(_str_func))
+                ml_moduleJoints[0].p_parent = mParentModule.masterNull.skeletonGroup
                 return True
         else:
             ml_targetJoints = mParentModule.rigNull.msgList_get('moduleJoints',asMeta = True, cull = True)
