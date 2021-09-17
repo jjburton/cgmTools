@@ -9023,6 +9023,79 @@ def get_module(self):
     log.debug("|{0}| >> mModuleTarget: {1}".format(_str_func,mModuleTarget[0]))
     return mModuleTarget[0]
 
+
+@cgmGEN.Timer
+def skeleton_getReport(self):
+    """
+    Verify the mirror setup of the puppet modules
+    """
+    _str_func = ' skeleton_getReport'.format(self)
+    log.debug("|{0}| >> ... [{1}]".format(_str_func,self)+ '-'*80)
+    
+    #ml_modules = modules_getHeirarchal(self,False)
+    ml_blocks = BLOCKGEN.get_rigBlock_heirarchy_context(self,asList=True)
+    ml_processed = []
+    
+    _cnt =0
+    _len = 0
+    _modules = 0
+    #>> Process ======================================================================================
+    for i,mBlock in enumerate(ml_blocks):
+        if mBlock in ml_processed:
+            log.debug("|{0}| >> Already processed: {1}".format(_str_func,mBlock))
+            continue
+        
+        
+        log.debug("|{0}| >> Processing: {1}".format(_str_func,mBlock))
+        
+        
+        ml = mBlock.moduleTarget.atUtils('rig_getSkinJoints',asMeta=True)
+
+        mMirror = mBlock.blockMirror
+        
+        if mMirror:
+            _modules+=2
+            log.debug("|{0}| >> Block has mirror: {1} | {2}".format(_str_func,mBlock.mNode, mMirror.mNode))
+            ml_mirror = mMirror.moduleTarget.atUtils('rig_getSkinJoints',asMeta=True)
+            for i,j in enumerate(ml):
+                try:
+                    print("{} | {} >><<>> {}".format(_cnt, j.p_nameBase, ml_mirror[i].p_nameBase))
+                    _cnt +=1
+                    _len+=2
+                except Exception,err:
+                    log.error(err)
+
+        else:
+            _modules+=1            
+            for mObj in ml:
+                print("{} | {}".format(_cnt, mObj.p_nameBase))
+                _cnt +=1
+                _len+=1
+                
+            
+        ml_processed.append(mBlock)
+        if mMirror:ml_processed.append(mMirror)
+
+    
+    print("[{}] Joints in [{}] modules.".format(_len, _modules))
+    return
+    log.info(cgmGEN.logString_sub(_str_func,'Centre'))
+    for k,v in md_list['Centre'].iteritems():
+        print "{0} | {1} ".format(k,v.p_nameShort)
+        
+    log.info(cgmGEN.logString_sub(_str_func,'Left/Right'))
+    for k,v in md_list['Left'].iteritems():
+        try:print "{0} | {1} >><< {2}".format(k,v.p_nameShort,md_list['Right'][k].p_nameShort)
+        except:
+            pass
+
+
+
+        
+    return
+
+
+
     
 def get_puppet(self):
     _str_func = 'get_puppet'

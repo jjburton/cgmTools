@@ -105,6 +105,10 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
         
         mSettings.p_parent = ml_blends[0]
         
+        
+        mRigNull.connectChildNode(mSettings.mNode,'swimControl','rigNull')
+        
+        
         #Shape
         #bb_ik = POS.get_bb_size(mIKFormHandle.mNode,True,mode='maxFill')
         #bb_ik = [v * 1.5 for v in bb_ik]
@@ -206,6 +210,8 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
     
     #...blendshape
     blendshapeNode = mc.blendShape (mSwimSurface.mNode, mTargetSurface.mNode, name = '{}_bsNode'.format(_nameTag) )
+    
+    mRigNull.connectChildNode(mDeformerHandle.mNode,'swimHandle','rigNull')
     
     
     #...attributes =================================================================================================

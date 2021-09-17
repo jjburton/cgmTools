@@ -3316,26 +3316,28 @@ def skeleton_build(self, forceNew = True):
     #End Fixing --------------------------------
     #if len(ml_handleJoints) > self.numControls:
         #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
-        
     
-    mEndOrient = self.ikOrientHandle
-    
-    _idx_end = -1
-    if _buildToe == 2:
-        _idx_end -=1
-    if _buildBall == 2:
-        _idx_end -=1
-    mEnd = ml_handleJoints[_idx_end]
-    log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
-    ml_children = mEnd.getChildren(asMeta=True)
-    if ml_children:
-        ml_children[0].p_parent = False
+    print _specialEndHandling
+    if _specialEndHandling:
+        mEndOrient = self.ikOrientHandle
         
-    mEnd.jointOrient = 0,0,0
+        _idx_end = -1
+        if _buildToe == 2:
+            _idx_end -=1
+        if _buildBall == 2:
+            _idx_end -=1
+        mEnd = ml_handleJoints[_idx_end]
         
-    SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
-                     vectorUp=mEndOrient.getAxisVector('y+'))
-    JOINT.freezeOrientation(mEnd.mNode)
+        log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+        ml_children = mEnd.getChildren(asMeta=True)
+        if ml_children:
+            ml_children[0].p_parent = False
+            
+        mEnd.jointOrient = 0,0,0
+            
+        SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
+                         vectorUp=mEndOrient.getAxisVector('y+'))
+        JOINT.freezeOrientation(mEnd.mNode)
     
     
     if ml_children:
@@ -4223,6 +4225,10 @@ def rig_skeleton(self):
                     mJnt.doStore('cgmTypeModifier',"seg_{0}".format(i))
                     mJnt.doName()
                     
+                #reorient last
+                ml_segmentHandles[-1].p_orient = ml_segmentHandles[-2].p_orient
+                JOINT.freezeOrientation(ml_segmentHandles[-1].mNode)                
+                    
                 if mBlock.ikSetup:
                     for ii,mJnt in enumerate(ml_segmentHandles):
                         mJnt.parent = ml_blendJoints[ self.md_segHandleIndices[self.ml_segHandles[ii]]]
@@ -4257,6 +4263,11 @@ def rig_skeleton(self):
                 for mJnt in ml_segmentChain:
                     mJnt.doStore('cgmTypeModifier',"seg_{0}".format(i))
                     mJnt.doName()
+                    
+                ml_segmentChain[-1].p_orient = ml_segmentChain[0].p_orient
+                JOINT.freezeOrientation(ml_segmentChain[-1].mNode)
+                
+                
                     
                 #ml_jointsToConnect.extend(ml_segmentChain)
                 

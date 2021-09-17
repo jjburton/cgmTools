@@ -363,8 +363,14 @@ def rootOrCog(self,mHandle = None):
         
         if mBlock.getMayaAttr('scaleSetup'):
             _bb_cog = POS.get_bb_size(mCog.mNode,True,'max')
-            mScaleRoot = cgmMeta.validateObjArg(CURVES.create_fromName('fatCross', _bb_cog * .7),'cgmObject',setClass=True)
-            mScaleRoot.doSnapTo(mCog)
+            mScaleRootShape = cgmMeta.validateObjArg(CURVES.create_fromName('fatCross', _bb_cog * .7),'cgmObject',setClass=True)
+            mScaleRootShape.doSnapTo(mCog)
+            
+            mScaleRootShape.doAimAtPoint(ml_prerigHandles[-1].p_position, 'z+')
+            
+            mScaleRoot = mCog.doCreateAt(setClass=True)
+            CORERIG.shapeParent_in_place(mScaleRoot.mNode, mScaleRootShape.mNode,False)
+            
             
             mScaleRoot.doStore('cgmName',self.d_module['partName'])
             #ATTR.copy_to(self.mModule.mNode,'cgmName',mRoot.mNode,driven='target')

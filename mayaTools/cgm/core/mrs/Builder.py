@@ -1922,6 +1922,10 @@ class ui_blockEditor(cgmUI.cgmGUI):
                                'call':cgmGEN.Callback(self.uiFunc_blockCall,
                                       'atUtils','skeleton_getBind',
                                       **{'select':1,'mode':'noSelect'})},
+                           'Joints | get report':{'ann':self._d_ui_annotations.get('Joints | get report'),
+                                                          'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                                                 'atUtils','skeleton_getReport',
+                                                                 **{'updateUI':0})},
                            'Joints | tag':{'ann':self._d_ui_annotations.get('Joints | tag'),
                                                           'call':cgmGEN.Callback(self.uiFunc_blockCall,
                                                                  'atUtils','skeleton_getBind',
@@ -4807,6 +4811,10 @@ class ui(cgmUI.cgmGUI):
                                'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','skeleton_getBind',
                                       **{'select':1,'mode':'noSelect'})},
+                           'Joints | get report':{'ann':self._d_ui_annotations.get('Joints | get report'),
+                                                          'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                 'atUtils','skeleton_getReport',
+                                                                 **{'updateUI':0})},                           
                            'Joints | tag':{'ann':self._d_ui_annotations.get('Joints | tag'),
                                                           'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                                                  'atUtils','skeleton_getBind',
@@ -6012,9 +6020,9 @@ class ui(cgmUI.cgmGUI):
                     b_dupMode = True
             
             try:
-                if args[1] in ['puppetMesh_create','puppetMesh_delete']:
+                if args[1] in ['puppetMesh_create','puppetMesh_delete','skeleton_getReport']:
                     _contextMode = 'self'
-                    log.error("|{0}| >> Puppet Mesh".format(_str_func,_mode))
+                    log.error("|{0}| >> Self context: {}".format(_str_func,args[1] ))
             except:pass
             
             if _contextMode != 'self':

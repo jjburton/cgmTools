@@ -875,6 +875,18 @@ def rig_connect(self):
     RIGCONSTRAINT.driven_connect(mRootJoint,mRootMotionHandle,'noScale')
     
     return True
+
+def rig_getSkinJoints(self,**kws):
+    ml = []
+    mRootJoint = self.getMessageAsMeta('rootJoint')
+    if mRootJoint:
+        ml.append(mRootJoint)
+    
+    mRootMotionHandle =  self.getMessageAsMeta('rootMotionHandle')
+    if mRootMotionHandle:
+        ml.append(mRootMotionHandle)
+        
+    return ml
     
     
 def rig_disconnect(self):
@@ -1125,8 +1137,10 @@ def get_joints(self,mode='bind'):
         _res.extend(ml)
         
     return _res
-        
 
+#=============================================================================================================
+#>> Mirror
+#=============================================================================================================
 def get_deleteSetDat(self):
     """
     First pass on qss verification

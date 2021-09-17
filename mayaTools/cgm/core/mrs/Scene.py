@@ -3332,7 +3332,6 @@ example:
             if not os.path.exists(currentFile):
                 wantedName = "{0}_{1}.{2}".format(wantedName, 1, _fileType)
                 
-                
             print wantedName
             baseFile = os.path.split(currentFile)[-1]
             baseName, ext = baseFile.split('.')
@@ -3381,10 +3380,12 @@ example:
 
         self.LoadVersionList()
 
-        versionList['scrollList'].selectByValue( wantedName )
+        #versionList['scrollList'].selectByValue( wantedName )
         self.StoreCurrentSelection()
 
+        self.uiFunc_selectOpenFile()
         self.refreshMetaData()
+        
 
     def OpenDirectory(self, path):
         if os.path.exists(path):
