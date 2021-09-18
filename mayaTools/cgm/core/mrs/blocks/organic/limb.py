@@ -4202,7 +4202,9 @@ def rig_skeleton(self):
                 mJnt.doName()
                 mJnt.parent = ml_parentJoints[i]
                 
-            
+            ml_handleJoints[-1].p_orient = ml_handleJoints[-2].p_orient
+            JOINT.freezeOrientation(ml_handleJoints[-1].mNode)      
+                
             for i,ml_set in self.md_roll.iteritems():
                 if i == -1:
                     continue
@@ -4226,7 +4228,7 @@ def rig_skeleton(self):
                     mJnt.doName()
                     
                 #reorient last
-                ml_segmentHandles[-1].p_orient = ml_segmentHandles[-2].p_orient
+                ml_segmentHandles[-1].p_orient = ml_segmentHandles[0].p_orient
                 JOINT.freezeOrientation(ml_segmentHandles[-1].mNode)                
                     
                 if mBlock.ikSetup:
@@ -4250,7 +4252,9 @@ def rig_skeleton(self):
                         mJnt.doName()
                         mJnt.p_parent = ml_segmentHandles[0].p_parent#...used to be i
                         
-                    
+                    #reorient last
+                    ml_segmentMidHandles[-1].p_orient = ml_segmentMidHandles[0].p_orient
+                    JOINT.freezeOrientation(ml_segmentMidHandles[-1].mNode)                          
                     
                 #Seg chain -------------------------------------------------------------------------------------
                 log.debug("|{0}| >> SegChain {1} ...".format(_str_func, i))
