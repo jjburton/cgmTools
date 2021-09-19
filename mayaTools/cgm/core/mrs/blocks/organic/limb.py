@@ -3121,15 +3121,15 @@ def skeleton_build(self, forceNew = True):
         
     if self.numControls == 2 and self.buildEnd == 0:
         if len(ml_handleHelpers) > 1:
-            log.info(cgmGEN.logString_msg(_str_func,' 2 controls | Pulling endJoint'))                                            
+            log.info(cgmGEN.logString_msg(_str_func,' 2 controls | Pulling endJoint'))
             mEndAim = ml_handleHelpers.pop(-1)
             
-        
+    b_deleteEnd = False
     if not _specialEndHandling and self.buildEnd != 1:
         if len(ml_handleHelpers) > 1:
-            log.info(cgmGEN.logString_msg(_str_func,'Pulling endJoint'))                            
-            ml_handleHelpers.pop(-1)#...changed from handle helpers
-            
+            log.info(cgmGEN.logString_msg(_str_func,'no special handling Pulling endJoint'))                            
+            #ml_handleHelpers.pop(-1)#...changed from handle helpers
+            b_deleteEnd = True
 
     for mObj in ml_handleHelpers:
         l_pos.append(mObj.p_position)
@@ -3145,7 +3145,8 @@ def skeleton_build(self, forceNew = True):
     _d_orient = {'worldUpAxis':mVecUp,
                  'relativeOrient':False}
     
-    
+
+        
     if len(ml_handleJoints) == 1:
         if mEndAim:
             mJoint = ml_handleJoints[0]
@@ -3179,7 +3180,11 @@ def skeleton_build(self, forceNew = True):
             JOINT.orientChain(ml_handleJoints,
                               **_d_orient)        
     
-    
+    if b_deleteEnd:
+        ml_handleJoints[-1].delete()
+        ml_handleHelpers.pop(-1)
+        ml_handleJoints.pop(-1)
+        
     ml_joints = []
     d_rolls = {}
     
@@ -6895,6 +6900,8 @@ def rig_frame(self):
             ATTR.set_default(mLeverFK.mNode, 'aim', 1.0)
             mLeverFK.aim = 1.0
             #mLeverFK.aim = .5        
+            
+            self.fnc_connect_toRigGutsVis( mAimLoc )
             
     
         log.debug("|{0}| >> Lever setup | LimbRoot".format(_str_func))            
