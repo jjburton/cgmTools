@@ -192,9 +192,29 @@ def uiSection_selection(parent = None):
 
 def uiSection_query(parent = None):
     uiQuery = mc.menuItem(parent = parent, l='Query', subMenu=True,tearOff = True)
-    
+    import cgm.core.lib.name_utils as NAMESUTILS
+    import cgm.core.cgmPy.validateArgs as VALID
     def printLen():
         log.warning( "Selected: {0}".format(len(mc.ls(sl=1)) ))
+        
+    def queryType():
+        sl = mc.ls(sl=1)
+        if sl:
+            print(cgmGEN._str_hardBreak)
+            
+            for o in sl:
+                print("'{}' | mayaType: {}".format(NAMESUTILS.short(o), VALID.get_mayaType(o)))
+                
+            print(cgmGEN._str_hardBreak)
+        else:
+            log.warning("Nothing selected")
+                
+    
+    mc.menuItem(parent=uiQuery,
+              l = 'Maya Type',
+              ut = 'cgmUITemplate',
+              c = lambda *a:queryType(),
+              ann = 'What is the maya type of my selection?')                
     
     mc.menuItem(parent=uiQuery,
               l = 'Len',
