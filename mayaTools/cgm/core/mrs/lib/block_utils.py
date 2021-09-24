@@ -1376,14 +1376,7 @@ def get_castMesh(self,extend=False,pivotEnd=False):
         l_targets = []
         ml_formHandles = self.msgList_get('formHandles')
         
-        """
-        mHandleLast = ml_formHandles[-2]
-        l_targets.append(mHandleLast.loftCurve.mNode)        
-        ml_sub = mHandleLast.msgList_get('subShapers')
-        if ml_sub:
-            for mSub in ml_sub:
-                l_targets.append(mSub.mNode)
-        """
+
         mHandle = ml_formHandles[-1]
         try:l_targets.append(mHandle.loftCurve.mNode)
         except:
@@ -4063,21 +4056,30 @@ def blockMirror_settings(blockSource, blockMirror = None,
                 _l_done.append(k)"""
         
                 
-        _mask = ['side','version','blockState','baseAim','baseAimY','cgmDirection']
+        _mask = ['side','version','blockState','baseAim','baseAimY','cgmDirection','castVector']
         for a,v in _ud.iteritems():
             if a in _mask or a in _l_done:
                 continue
             _type = ATTR.get_type(_short,a)
             
             if VALID.stringArg(v):
-                #log.debug("string...")                
-                if v.endswith('Pos'):
-                    log.debug("{0} | Pos > Neg".format(v))
-                    v = str(v).replace('Pos','Neg')
-                elif v.endswith('Neg'):
-                    v = str(v).replace('Neg','Pos')
-                    log.debug("{0} | Neg > Pos".format(v))
-                    
+                #log.debug("string...")
+                if a == 'castVector':
+                    if v.startswith('out'):
+                        if v.endswith('Neg'):
+                            v = str(v).replace('Neg','')
+                            log.debug("{0} | Neg > Pos".format(v))
+                        else:
+                            log.debug("{0} | Pos > Neg".format(v))
+                            v = v + 'Neg'                  
+                else:
+                    if v.endswith('Pos'):
+                        log.debug("{0} | Pos > Neg".format(v))
+                        v = str(v).replace('Pos','Neg')
+                    elif v.endswith('Neg'):
+                        v = str(v).replace('Neg','Pos')
+                        log.debug("{0} | Neg > Pos".format(v))
+                        
                 
             if _type == 'enum':
                 _current = ATTR.get_enumValueString(_short,a)
@@ -12932,3 +12934,13 @@ def form_templateMesh(self,arg=None):
         return False
     
     mLoftMesh.template = arg
+    
+def mesh_skinable(self):
+    mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
+    if not mModuleTarget:
+        return log.error("|{0}| >> Must have moduleTarget for skining mode".format(_str_func))
+    mModuleTarget = mModuleTarget[0]
+    ml_moduleJoints = mModuleTarget.rigNull.msgList_get('moduleJoints')
+    if not ml_moduleJoints:
+        return log.error("|{0}| >> Must have moduleJoints for skining mode".format(_str_func))        
+    return True

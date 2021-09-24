@@ -4309,6 +4309,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
         log.debug("{0}".format(self))
         #pprint.pprint(vars())
+        
         if skin:
             mModuleTarget = self.getMessage('moduleTarget',asMeta=True)
             if not mModuleTarget:
@@ -4451,72 +4452,91 @@ def asdfasdfasdf(self, forceNew = True, skin = False):
         log.debug("|{0}| >> neckBuild...".format(_str_func))
 
 
-def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
+def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False):
     """
     Build our proxyMesh
     """
-    try:
-        _short = self.p_nameShort
-        _str_func = '[{0}] > build_proxyMesh'.format(_short)
-        log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+    _short = self.p_nameShort
+    _str_func = '[{0}] > build_proxyMesh'.format(_short)
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
+
+    _start = time.clock()
+    mBlock = self
     
-        _start = time.clock()
-        mBlock = self
-        if not mBlock.meshBuild:
-            log.error("|{0}| >> meshBuild off".format(_str_func))                        
+    if not mBlock.meshBuild:
+        log.error("|{0}| >> meshBuild off".format(_str_func))                        
+        return False
+    if skin:
+        if not self.atUtils('mesh_skinable'):
             return False
+    
+    mModule = self.moduleTarget
+    mRigNull = mModule.rigNull
+    mSettings = mRigNull.settings
+    mPuppet = self.atUtils('get_puppet')
+    mMaster = mPuppet.masterControl
+    mPuppetSettings = mMaster.controlSettings
+    str_partName = mModule.get_partNameBase()
+    directProxy = mBlock.proxyDirect        
+    
+    directProxy = mBlock.proxyDirect
+    
+    _side = BLOCKUTILS.get_side(self)
+    ml_neckProxy = []
+    
+    ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
+    if not ml_rigJoints:
+        raise ValueError,"No rigJoints connected"
+    
+    #>> If proxyMesh there, delete ---------------------------------------------------------------------- 
+    if puppetMeshMode:
+        _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
+        ml_proxyExisting = mRigNull.msgList_get('proxyMesh',asMeta=True)        
         
-        mModule = self.moduleTarget
-        mRigNull = mModule.rigNull
-        mSettings = mRigNull.settings
-        mPuppet = self.atUtils('get_puppet')
-        mMaster = mPuppet.masterControl
-        mPuppetSettings = mMaster.controlSettings
-        str_partName = mModule.get_partNameBase()
-        directProxy = mBlock.proxyDirect        
+        if _bfr:
+            log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr        
+    else:
+        _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr
         
-        directProxy = mBlock.proxyDirect
+    
+    if not mBlock.meshBuild:
+        log.error("|{0}| >> meshBuild off".format(_str_func))                        
+        return False
+    
+    
+    #Mesh build logic...
+    _buildMesh = True
+    if puppetMeshMode and ml_proxyExisting:
+        _buildMesh = False
+        ml_segProxy = ml_proxyExisting    
         
-        _side = BLOCKUTILS.get_side(self)
-        ml_neckProxy = []
+    #>> Head ===================================================================================
+    log.debug("|{0}| >> Head...".format(_str_func))       
+    if directProxy:
+        for mJnt in ml_rigJoints:
+            for shape in mJnt.getShapes():
+                mc.delete(shape)
+        _settings = mRigNull.settings.mNode
+        log.debug("|{0}| >> directProxy... ".format(_str_func))
         
-        ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
-        if not ml_rigJoints:
-            raise ValueError,"No rigJoints connected"
-        
-        #>> If proxyMesh there, delete ---------------------------------------------------------------------- 
-        if puppetMeshMode:
-            _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
-            if _bfr:
-                log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
-                if forceNew:
-                    log.debug("|{0}| >> force new...".format(_str_func))                            
-                    mc.delete([mObj.mNode for mObj in _bfr])
-                else:
-                    return _bfr        
-        else:
-            _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
-            if _bfr:
-                log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
-                if forceNew:
-                    log.debug("|{0}| >> force new...".format(_str_func))                            
-                    mc.delete([mObj.mNode for mObj in _bfr])
-                else:
-                    return _bfr
-            
-        #>> Head ===================================================================================
-        log.debug("|{0}| >> Head...".format(_str_func))
-        if directProxy:
-            log.debug("|{0}| >> directProxy... ".format(_str_func))
-            _settings = mRigNull.settings.mNode
-            
-        if directProxy:
-            for mJnt in ml_rigJoints:
-                for shape in mJnt.getShapes():
-                    mc.delete(shape)
-        
-        mGroup = mBlock.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
-        
+    mGroup = mBlock.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
+    
+    
+    ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
+    
+    if _buildMesh:
         l_headGeo = mGroup.getChildren(asMeta=False)
         #l_vis = mc.ls(l_headGeo, visible = True)
         ml_segProxy = []
@@ -4526,7 +4546,140 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         _ballMode = False
         if mBlock.proxyGeoRoot:
             _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
-            _ballBase=True        
+            _ballBase=True
+
+                    
+        if mBlock.neckBuild:
+            if mBlock.neckJoints == 1:
+                mProxy = ml_moduleJoints[0].doCreateAt(setClass=True)
+                mPrerigProxy = mBlock.getMessage('prerigLoftMesh',asMeta=True)[0]
+                mPrerigProxyDup = mPrerigProxy.doDuplicate(po=False)
+                CORERIG.shapeParent_in_place(mProxy.mNode, mPrerigProxyDup.mNode,False,True)
+                ATTR.copy_to(ml_moduleJoints[0].mNode,'cgmName',mProxy.mNode,driven = 'target')
+                mProxy.addAttr('cgmType','proxyPuppetGeo')
+                mProxy.doName()
+                
+                if not puppetMeshMode:
+                    mProxy.parent = ml_rigJoints[0]
+                elif puppetMeshMode and skin == False:
+                    mProxy.parent = ml_moduleJoints[0]
+                    
+                ml_segProxy = [mProxy]
+                
+                
+
+                
+            else:
+                # Create ---------------------------------------------------------------------------
+                _extendToStart = True
+                _ballBase = False
+                _ballMode = False
+                if mBlock.proxyGeoRoot:
+                    _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
+                    _ballBase=True
+
+                ml_neckProxy = cgmMeta.validateObjListArg(BLOCKUTILS.mesh_proxyCreate(self,
+                                                                                      ml_rigJoints,
+                                                                                      ballBase = _ballBase,
+                                                                                      ballMode = _ballMode,
+                                                                                      extendToStart=_extendToStart),
+                                                          'cgmObject')                
+                
+                
+                log.debug("|{0}| >> created: {1}".format(_str_func,ml_neckProxy))
+                
+                for i,mGeo in enumerate(ml_neckProxy):
+                    if not puppetMeshMode:
+                        mGeo.parent = ml_rigJoints[i]
+                    elif puppetMeshMode and skin == False:
+                        mGeo.parent = ml_moduleJoints[i]
+                        
+                    mGeo.doStore('cgmName',str_partName)
+                    mGeo.addAttr('cgmIterator',i+1)
+                    mGeo.addAttr('cgmType','proxyGeo')
+                    mGeo.doName()
+                    ml_segProxy.append(mGeo)
+                    
+                    
+                    if directProxy:
+                        CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,False)
+                        CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)                            
+        
+        #head stuff
+        for i,o in enumerate(l_headGeo):
+            log.debug("|{0}| >> geo: {1}...".format(_str_func,o))                    
+            if ATTR.get(o,'v'):
+                log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))            
+                mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
+                ml_headStuff.append(  mObj )
+                mObj.p_arent = ml_rigJoints[-1]
+                
+                ATTR.copy_to(ml_rigJoints[-1].mNode,'cgmName',mObj.mNode,driven = 'target')
+                
+                if not puppetMeshMode:
+                    mObj.addAttr('cgmIterator',i)
+                    mObj.addAttr('cgmType','proxyGeo')
+                    mObj.doName()
+                
+                if directProxy:
+                    CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mObj.mNode,True,False)
+                    CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)             
+        
+        if puppetMeshMode:
+            #Unify our head stuff
+            if len(ml_headStuff) > 1:
+                _res = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False,objectPivot=True)
+                _mesh = mc.rename(_res[0],'{0}_head_UnifiedPuppetProxy_geo'.format(self.p_nameBase))
+                mMesh = cgmMeta.asMeta(_mesh)
+                ml_headStuff = [mMesh]
+            
+        """
+        for i,o in enumerate(l_headGeo):
+            log.debug("|{0}| >> geo: {1}...".format(_str_func,o))                    
+            if ATTR.get(o,'v'):
+                log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))            
+                mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
+                ml_headStuff.append(  mObj )
+                mObj.p_parent = False
+                mObj.parent = ml_rigJoints[-1]
+                
+                ATTR.copy_to(ml_rigJoints[-1].mNode,'cgmName',mObj.mNode,driven = 'target')
+                mObj.addAttr('cgmIterator',i)
+                mObj.addAttr('cgmType','proxyGeo')
+                mObj.doName()
+                
+                if directProxy:
+                    CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mObj.mNode,True,False)
+                    CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)        
+            
+        
+        if mBlock.neckBuild:#...Neck =====================================================
+            log.debug("|{0}| >> neckBuild...".format(_str_func))
+            
+            ml_neckProxy = cgmMeta.validateObjListArg(self.atUtils('mesh_proxyCreate', ml_rigJoints[:-1],
+                                                                   ballBase = _ballBase,
+                                                                   ballMode = _ballMode,
+                                                                   extendToStart=_extendToStart),
+                                                             'cgmObject')             
+            log.debug("|{0}| >> created: {1}".format(_str_func,ml_neckProxy))
+    
+            for i,mGeo in enumerate(ml_neckProxy):
+                mGeo.parent = ml_rigJoints[i]
+                ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
+                mGeo.addAttr('cgmIterator',i+1)
+                mGeo.addAttr('cgmType','proxyGeo')
+                mGeo.doName()
+    
+                if directProxy:
+                    CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,False)
+                    CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)        
+            
+            
+            # Create ---------------------------------------------------------------------------
+            if mBlock.neckJoints == 1:
+                pass
+        
+        
         if puppetMeshMode:
             log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
             ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
@@ -4571,6 +4724,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                         mGeo.doName()
                         ml_segProxy.append(mGeo)
             
+            
+        if puppetMeshMode:
             for i,o in enumerate(l_headGeo):
                 log.debug("|{0}| >> geo: {1}...".format(_str_func,o))                    
                 if ATTR.get(o,'v'):
@@ -4584,99 +4739,86 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
                     ml_segProxy.append( mGeo )
                     
             for mGeo in ml_segProxy:
-                CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
-                
+                CORERIG.color_mesh(mGeo.mNode,_side,'main',transparent=False,proxy=True)
+            
             mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
             return ml_segProxy    
-        
-        
-        
-        
-        for i,o in enumerate(l_headGeo):
-            log.debug("|{0}| >> geo: {1}...".format(_str_func,o))                    
-            if ATTR.get(o,'v'):
-                log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))            
-                mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
-                ml_headStuff.append(  mObj )
-                mObj.p_parent = False
-                mObj.parent = ml_rigJoints[-1]
-                
-                ATTR.copy_to(ml_rigJoints[-1].mNode,'cgmName',mObj.mNode,driven = 'target')
-                mObj.addAttr('cgmIterator',i)
-                mObj.addAttr('cgmType','proxyGeo')
-                mObj.doName()
-                
-                if directProxy:
-                    CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mObj.mNode,True,False)
-                    CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)        
-            
-        if mBlock.neckBuild:#...Neck =====================================================
-            log.debug("|{0}| >> neckBuild...".format(_str_func))
-            
-            ml_neckProxy = cgmMeta.validateObjListArg(self.atUtils('mesh_proxyCreate', ml_rigJoints[:-1],
-                                                                   ballBase = _ballBase,
-                                                                   ballMode = _ballMode,
-                                                                   extendToStart=_extendToStart),
-                                                             'cgmObject')             
-            log.debug("|{0}| >> created: {1}".format(_str_func,ml_neckProxy))
+        """        
     
-            for i,mGeo in enumerate(ml_neckProxy):
-                mGeo.parent = ml_rigJoints[i]
-                ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
+    ml_united = []
+    if puppetMeshMode:
+        log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
+        ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
+        
+        for i,mGeo in enumerate(ml_segProxy):
+            if ml_proxyExisting:
+                mGeo = ml_proxyExisting[i].doDuplicate(po=False)
+                mGeo.p_parent = False
+                ATTR.break_connection(mGeo.mNode,'v')
+                mGeo.v = True    
+                
+            ml_united.append(mGeo)    
+            log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
+            if skin:
+                MRSPOST.skin_mesh(mGeo,[ml_moduleJoints[i]])                
+            else:
+                mGeo.p_parent = ml_moduleJoints[i]
+                mGeo.doStore('cgmName',str_partName)
                 mGeo.addAttr('cgmIterator',i+1)
-                mGeo.addAttr('cgmType','proxyGeo')
+                mGeo.addAttr('cgmType','proxyPuppetGeo')
                 mGeo.doName()
+                
+            CORERIG.color_mesh(mGeo.mNode,_side,'main',transparent=False,proxy=True)
+                
+            
+        if skin:
+            if len(ml_united) > 1:
+                _res = mc.polyUniteSkinned([mObj.mNode for mObj in ml_united],ch=False,objectPivot=True)
+                _mesh = mc.rename(_res[0],'{0}_UnifiedPuppetProxy_geo'.format(self.p_nameBase))
+                mc.rename(_res[1],'{0}_skinCluster'.format(_mesh))
+                mMesh = cgmMeta.asMeta(_mesh)
     
-                if directProxy:
-                    CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,False)
-                    CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)        
+                ml_segProxy = [mMesh]
+            else:
+                ml_segProxy = ml_united            
             
             
-            # Create ---------------------------------------------------------------------------
-            if mBlock.neckJoints == 1:
-                
-                pass
-                """
-                mProxy = ml_rigJoints[0].doCreateAt(setClass=True)
-                mPrerigProxy = mBlock.getMessage('prerigLoftMesh',asMeta=True)[0]
-                CORERIG.shapeParent_in_place(mProxy.mNode, mPrerigProxy.mNode)
-                
-                ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mProxy.mNode,driven = 'target')
-                mProxy.addAttr('cgmType','proxyGeo')
-                mProxy.doName()
-                mProxy.parent = ml_rigJoints[0]
-                ml_neckProxy = [mProxy]
-                #mc.polyNormal(mProxy.mNode,setUserNormal = True)
-                
-                if directProxy:
-                    CORERIG.shapeParent_in_place(ml_rigJoints[0].mNode,mProxy.mNode,True,False)
-                    CORERIG.colorControl(ml_rigJoints[0].mNode,_side,'main',directProxy=True)            
-                """
-     
+        mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
+        return ml_segProxy    
+    
+    return
+            
+            
+            
         
-        for mProxy in ml_neckProxy + ml_headStuff:
-            CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
-            mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
+        
+        
+        
+        
+     
     
-            #Vis connect -----------------------------------------------------------------------
-            mProxy.overrideEnabled = 1
-            ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
-            ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
-            for mShape in mProxy.getShapes(asMeta=1):
-                str_shape = mShape.mNode
-                mShape.overrideEnabled = 0
-                #ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(str_shape) )
-                ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
-                
-        if directProxy:
-            for mObj in ml_rigJoints:
-                for mShape in mObj.getShapes(asMeta=True):
-                    #mShape.overrideEnabled = 0
-                    mShape.overrideDisplayType = 0
-                    ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
+    for mProxy in ml_neckProxy + ml_headStuff:
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
+        mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
+
+        #Vis connect -----------------------------------------------------------------------
+        mProxy.overrideEnabled = 1
+        ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
+        ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )
+        for mShape in mProxy.getShapes(asMeta=1):
+            str_shape = mShape.mNode
+            mShape.overrideEnabled = 0
+            #ATTR.connect("{0}.proxyVis".format(mPuppetSettings.mNode),"{0}.visibility".format(str_shape) )
+            ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
             
-        mRigNull.msgList_connect('proxyMesh', ml_neckProxy + ml_headStuff)
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    if directProxy:
+        for mObj in ml_rigJoints:
+            for mShape in mObj.getShapes(asMeta=True):
+                #mShape.overrideEnabled = 0
+                mShape.overrideDisplayType = 0
+                ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
+        
+    mRigNull.msgList_connect('proxyMesh', ml_neckProxy + ml_headStuff)
     
 
 def controller_getDat(self):

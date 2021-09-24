@@ -766,7 +766,7 @@ def shapes_get(node = None, fullPath = False):
 
     return mc.listRelatives(_node, s=True, fullPath = fullPath) or []
   
-def children_get(node = None, fullPath = False):
+def children_get(node = None, fullPath = False, type = 'transform'):
     """
     Get the immediate children of a given node
     
@@ -779,9 +779,9 @@ def children_get(node = None, fullPath = False):
     """   
     _str_func = 'children_get'
     _node =  VALID.mNodeString(node)
-    return mc.listRelatives (_node, children = True,type='transform',fullPath=fullPath) or []
+    return mc.listRelatives (_node, children = True,type=type,fullPath=fullPath) or []
 
-def descendents_get(node = None, fullPath = False):
+def descendents_get(node = None, fullPath = False, type = 'transform'):
     """
     Get all children of a given node
     
@@ -795,7 +795,7 @@ def descendents_get(node = None, fullPath = False):
     _str_func = 'descendents_get'
     _node =  VALID.mNodeString(node)
 
-    return  mc.listRelatives (_node, allDescendents = True,type='transform',fullPath=fullPath) or []
+    return  mc.listRelatives (_node, allDescendents = True,type=type,fullPath=fullPath) or []
 
 def child_create(node, childName = None):
     """

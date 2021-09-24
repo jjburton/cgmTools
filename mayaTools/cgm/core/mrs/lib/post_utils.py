@@ -74,6 +74,40 @@ log_start = cgmGEN.logString_start
 log_sub = cgmGEN.logString_sub
 log_msg = cgmGEN.logString_msg
 
+def swimSettings_get(node = None,handle = None):
+    d = {}
+    mObj = cgmMeta.asMeta(node)
+    d['node_t'] = mObj.translate
+    d['node_r'] = mObj.rotate
+    d['node_s'] = mObj.scale
+
+    for a in mObj.getAttrs(ud=True):
+        d[a] = ATTR.get(mObj.mNode,a)
+        
+    mHandle = cgmMeta.asMeta(handle)
+    d['handle_t'] = mHandle.translate
+    d['handle_r'] = mHandle.rotate
+    d['handle_s'] = mHandle.scale
+
+    pprint.pprint(d)
+    return d
+
+def swimSettings_set(node = None,handle = None, d=None):
+    mObj = cgmMeta.asMeta(node)
+    mObj.translate = d['node_t']
+    mObj.rotate = d['node_r']
+    mObj.scale = d['node_s']
+    
+    for a,v in d.iteritems(): 
+        try:ATTR.set(mObj.mNode, a, v)
+        except Exception,err:
+            print("{} | {} | {}".format(a,v,err))
+    mHandle = cgmMeta.asMeta(handle)
+    mHandle.translate =  d['handle_t'] 
+    mHandle.rotated = ['handle_r'] 
+    mHandle.scaled = ['handle_s']  
+
+    return d
 
 
 def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = 1,cycleLength = 100, cycleOffset = -20, orient = 'zyx'):

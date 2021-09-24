@@ -74,6 +74,8 @@ import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 from cgm.core.lib import locator_utils as LOC
+import cgm.core.mrs.lib.post_utils as MRSPOST
+
 #for m in RIGSHAPES,CURVES,BUILDUTILS,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
 #    reload(m)
     
@@ -3679,63 +3681,75 @@ def rig_cleanUp(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 
-def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
+def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False, skin = False):
     """
     Build our proxyMesh
     """
-    try:
-        _short = self.p_nameShort
-        _str_func = '[{0}] > build_proxyMesh'.format(_short)
-        log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
-    
-        _start = time.clock()
-        mBlock = self
-        
-        
-        mModule = self.moduleTarget
-        mRigNull = mModule.rigNull
-        mSettings = mRigNull.settings
-        mPuppet = self.atUtils('get_puppet')
-        mMaster = mPuppet.masterControl
-        mPuppetSettings = mMaster.controlSettings
-        str_partName = mModule.get_partNameBase()
-        
-        directProxy = mBlock.proxyDirect
-        
-        _side = BLOCKUTILS.get_side(self)
-        ml_proxy = []
-        
-        ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
-        if not ml_rigJoints:
-            raise ValueError,"No rigJoints connected"
-        
-        #>> If proxyMesh there, delete ------------------------------------------------------------------------- 
-        if puppetMeshMode:
-            _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
-            if _bfr:
-                log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
-                if forceNew:
-                    log.debug("|{0}| >> force new...".format(_str_func))                            
-                    mc.delete([mObj.mNode for mObj in _bfr])
-                else:
-                    return _bfr        
-        else:
-            _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
-            if _bfr:
-                log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
-                if forceNew:
-                    log.debug("|{0}| >> force new...".format(_str_func))                            
-                    mc.delete([mObj.mNode for mObj in _bfr])
-                else:
-                    return _bfr
+    _short = self.p_nameShort
+    _str_func = '[{0}] > build_proxyMesh'.format(_short)
+    log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
 
-        if not mBlock.meshBuild:
-            log.error("|{0}| >> meshBuild off".format(_str_func))                        
-            return False        
-        # Create ---------------------------------------------------------------------------
-        #ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints,firstToStart=True),'cgmObject')
-        
-        # Create ---------------------------------------------------------------------------
+    _start = time.clock()
+    mBlock = self
+    
+    if not mBlock.meshBuild:
+        log.error("|{0}| >> meshBuild off".format(_str_func))                        
+        return False
+    if skin:
+        if not self.atUtils('mesh_skinable'):return False    
+    
+    
+    mModule = self.moduleTarget
+    mRigNull = mModule.rigNull
+    mSettings = mRigNull.settings
+    mPuppet = self.atUtils('get_puppet')
+    mMaster = mPuppet.masterControl
+    mPuppetSettings = mMaster.controlSettings
+    str_partName = mModule.get_partNameBase()
+    
+    directProxy = mBlock.proxyDirect
+    
+    _side = BLOCKUTILS.get_side(self)
+    
+    ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
+    if not ml_rigJoints:
+        raise ValueError,"No rigJoints connected"
+    
+    #>> If proxyMesh there, delete ------------------------------------------------------------------------- 
+    if puppetMeshMode:
+        _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
+        ml_proxyExisting = mRigNull.msgList_get('proxyMesh',asMeta=True)        
+        if _bfr:
+            log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr        
+    else:
+        _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
+        if _bfr:
+            log.debug("|{0}| >> proxyMesh detected...".format(_str_func))            
+            if forceNew:
+                log.debug("|{0}| >> force new...".format(_str_func))                            
+                mc.delete([mObj.mNode for mObj in _bfr])
+            else:
+                return _bfr
+
+    if not mBlock.meshBuild:
+        log.error("|{0}| >> meshBuild off".format(_str_func))                        
+        return False        
+    # Create ---------------------------------------------------------------------------
+    #ml_segProxy = cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate', ml_rigJoints,firstToStart=True),'cgmObject')
+    
+    # Create ---------------------------------------------------------------------------
+    #Mesh build logic...
+    _buildMesh = True
+    if puppetMeshMode and ml_proxyExisting:
+        _buildMesh = False
+        ml_segProxy = ml_proxyExisting    
+    
+    if _buildMesh:
         _extendToStart = True
         _ballBase = False
         _ballMode = False
@@ -3757,62 +3771,87 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False ):
                                                               ballBase = _ballBase,
                                                               ballMode = _ballMode,
                                                               extendToStart=_extendToStart),
-                                                 'cgmObject')    
+                                                 'cgmObject')
+    
+    
+    if directProxy:
+        _settings = mRigNull.settings.mNode
+        log.debug("|{0}| >> directProxy... ".format(_str_func))    
+    
+    ml_united = []
+    if puppetMeshMode:
+        log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
+        ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
         
-        
-        if directProxy:
-            _settings = mRigNull.settings.mNode
-            log.debug("|{0}| >> directProxy... ".format(_str_func))    
-        
-        if puppetMeshMode:
-            log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
-            ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
-            
-            for i,mGeo in enumerate(ml_segProxy):
-                log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
-                mGeo.parent = ml_moduleJoints[i]
+        for i,mGeo in enumerate(ml_segProxy):
+            if ml_proxyExisting:
+                mGeo = ml_proxyExisting[i].doDuplicate(po=False)
+                mGeo.p_parent = False
+                ATTR.break_connection(mGeo.mNode,'v')
+                mGeo.v = True    
+                
+            ml_united.append(mGeo)    
+            log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
+            if skin:
+                MRSPOST.skin_mesh(mGeo,[ml_moduleJoints[i]])                
+            else:
+                mGeo.p_parent = ml_moduleJoints[i]
                 mGeo.doStore('cgmName',str_partName)
                 mGeo.addAttr('cgmIterator',i+1)
                 mGeo.addAttr('cgmType','proxyPuppetGeo')
                 mGeo.doName()
                 
-            mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
-            return ml_segProxy
-            
-        for i,mGeo in enumerate(ml_segProxy):
-            mGeo.parent = ml_rigJoints[i]
-            ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
-            mGeo.addAttr('cgmIterator',i+1)
-            mGeo.addAttr('cgmType','proxyGeo')
-            mGeo.doName()
-            
-            if directProxy:
-                CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,True)
-                CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)
+            CORERIG.color_mesh(mGeo.mNode,_side,'main',transparent=False,proxy=True)
                 
-                for mShape in ml_rigJoints[i].getShapes(asMeta=True):
-                    ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
-                
-        
-        for mProxy in ml_segProxy:
-            CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
-            mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
+            
+        if skin:
+            if len(ml_united) > 1:
+                _res = mc.polyUniteSkinned([mObj.mNode for mObj in ml_united],ch=False,objectPivot=True)
+                _mesh = mc.rename(_res[0],'{0}_UnifiedPuppetProxy_geo'.format(self.p_nameBase))
+                mc.rename(_res[1],'{0}_skinCluster'.format(_mesh))
+                mMesh = cgmMeta.asMeta(_mesh)
     
-            #Vis connect -----------------------------------------------------------------------
-            mProxy.overrideEnabled = 1
-            ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
-            ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )        
-            for mShape in mProxy.getShapes(asMeta=1):
-                str_shape = mShape.mNode
-                mShape.overrideEnabled = 0
-                ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
+                ml_segProxy = [mMesh]
+            else:
+                ml_segProxy = ml_united            
             
-        mRigNull.msgList_connect('proxyMesh', ml_segProxy)
+            
+        mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
+        return ml_segProxy
         
-        #l_args = [self.d_module['mPuppet'].displayLayer.mNode] + [mObj.mNode for mObj in ml_segProxy]
-        #mc.editDisplayLayerMembers(*l_args,
-        #                           noRecurse=True)
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+    for i,mGeo in enumerate(ml_segProxy):
+        mGeo.p_parent = ml_rigJoints[i]
+        ATTR.copy_to(ml_rigJoints[0].mNode,'cgmName',mGeo.mNode,driven = 'target')
+        mGeo.addAttr('cgmIterator',i+1)
+        mGeo.addAttr('cgmType','proxyGeo')
+        mGeo.doName()
+        
+        if directProxy:
+            CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,True)
+            CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)
+            
+            for mShape in ml_rigJoints[i].getShapes(asMeta=True):
+                ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
+            
+    
+    for mProxy in ml_segProxy:
+        CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
+        mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
+
+        #Vis connect -----------------------------------------------------------------------
+        mProxy.overrideEnabled = 1
+        ATTR.connect("{0}.proxyVis_out".format(mRigNull.mNode),"{0}.visibility".format(mProxy.mNode) )
+        ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayType".format(mProxy.mNode) )        
+        for mShape in mProxy.getShapes(asMeta=1):
+            str_shape = mShape.mNode
+            mShape.overrideEnabled = 0
+            ATTR.connect("{0}.proxyLock".format(mPuppetSettings.mNode),"{0}.overrideDisplayTypes".format(str_shape) )
+        
+    mRigNull.msgList_connect('proxyMesh', ml_segProxy)
+    
+    #l_args = [self.d_module['mPuppet'].displayLayer.mNode] + [mObj.mNode for mObj in ml_segProxy]
+    #mc.editDisplayLayerMembers(*l_args,
+    #                           noRecurse=True)
     
     
 def controller_getDat(self):

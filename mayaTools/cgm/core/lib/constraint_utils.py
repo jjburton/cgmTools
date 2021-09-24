@@ -368,7 +368,11 @@ def copy_constraint(sourceConstraint=None, targetObj=None, constraintType=None, 
     
     log.debug("|{0}| >> constraint: {1} ".format(_str_func,sourceConstraint))
     
-    d_source = get_datDict(sourceConstraint)
+    if issubclass(type(sourceConstraint),'dict'):
+        d_source = sourceConstraint
+    else:
+        d_source = get_datDict(sourceConstraint)
+        
     _type = d_source['type']
 
     if constraintType is None:

@@ -625,7 +625,7 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                         
                         log.info('puppetMesh...')
                         t1 = time.clock()                                                
-                        mPuppet.atUtils('puppetMesh_create', **{'unified':True,'skin':True})
+                        mPuppet.atUtils('puppetMesh_create', **{'unified':True,'skin':True, 'proxy':True})
                         t2 = time.clock()
                         l_timeReports.append(['puppetMesh', get_time(t2-t1)])
 

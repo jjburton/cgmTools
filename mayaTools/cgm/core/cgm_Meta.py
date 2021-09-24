@@ -2857,7 +2857,7 @@ class cgmObject(cgmNode):
             return validateObjListArg(_res)
         return _res  
     
-    def getDescendents(self, asMeta = False, fullPath = False):
+    def getDescendents(self, asMeta = False, fullPath = False, type = 'transform'):
         """
         Get all the children of a given node
         
@@ -2869,13 +2869,13 @@ class cgmObject(cgmNode):
         :returns
             children(list)
         """         
-        _res = TRANS.descendents_get(self, fullPath)
+        _res = TRANS.descendents_get(self, fullPath,type)
         if _res and asMeta:
             return validateObjListArg(_res)
         return _res 
     getAllChildren = getDescendents
     
-    def getChildren(self, asMeta = False, fullPath = True):
+    def getChildren(self, asMeta = False, fullPath = True, type = 'transform'):
         """
         Get the children of a given node
         
@@ -2887,7 +2887,7 @@ class cgmObject(cgmNode):
         :returns
             children(list)
         """         
-        _res = TRANS.children_get(self, fullPath)
+        _res = TRANS.children_get(self, fullPath, type)
         if _res and asMeta:
             return validateObjListArg(_res)
         return _res  

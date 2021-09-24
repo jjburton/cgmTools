@@ -415,6 +415,14 @@ class ui_blockPicker(cgmUI.cgmGUI):
                        'ann':"Create proxy puppet mesh parented to skin joints from the active block's basis.",
                        'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_create',
                                          **{'proxy':True,'unified':False,'skin':False})},
+                   'Unified Proxy [Skinned]':{
+                       'ann':"Create proxy puppet mesh skinned and unified to the puppet",
+                       'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_create',
+                                         **{'proxy':True,'unified':True,'skin':True})},
+                   'Unified Proxy':{
+                       'ann':"Create unified proxy puppet",
+                       'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_create',
+                                         **{'proxy':True,'unified':False,'skin':True})},
                    'Delete':{
                        'ann':"Remove skinned or wired puppet mesh",
                        'call':cgmGEN.CB(self.uiFunc_blockCall,'atUtils','puppetMesh_delete')},
@@ -4785,7 +4793,17 @@ class ui(cgmUI.cgmGUI):
         mUI.MelMenuItem(_mMesh, l="Unified [Skinned]",
                         ann = "Create parts skinned puppet mesh from the active block's basis.",
                         c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
-                                            **{'unified':True,'skin':True}))        
+                                            **{'unified':True,'skin':True}))
+        mUI.MelMenuItem(_mMesh, l="Unified Proxy [Skinned]",
+                        ann = "Create proxy skinned puppet mesh.",
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                            **{'unified':True,'skin':True,'proxy':True}))        
+        mUI.MelMenuItem(_mMesh, l="Unified Proxy",
+                        ann = "Create proxy puppet mesh",
+                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                                            **{'unified':True,'skin':False,'proxy':True}))        
+        
+        
         mUI.MelMenuItem(_mMesh, l="Parts Mesh",
                         ann = "Create parts unskinned puppet mesh from the active block's basis.",
                         c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',

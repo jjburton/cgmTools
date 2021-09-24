@@ -1213,7 +1213,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         return res
     
     @cgmGEN.Timer
-    def verify_proxyMesh(self, forceNew = True, puppetMeshMode = False):
+    def verify_proxyMesh(self, **kws):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """
@@ -1225,12 +1225,12 @@ class cgmRigBlock(cgmMeta.cgmControl):
             log.error("|{0}| >> [{1}] Block module lacks 'build_proxyMesh' call.".format(_str_func, self.blockType))                        
             return False
         
-        return self.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
+        return self.atBlockModule('build_proxyMesh', **kws)
         #mRigFac = rigFactory(self, autoBuild = False)
         #return mRigFac.atBlockModule('build_proxyMesh', forceNew, puppetMeshMode = puppetMeshMode)
         
     @cgmGEN.Timer
-    def proxyMesh_delete(self, forceNew = True, puppetMeshMode = False):
+    def proxyMesh_delete(self):
         """
         Function to call a blockModule function by string. For menus and other reasons
         """

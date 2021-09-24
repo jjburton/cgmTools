@@ -83,6 +83,8 @@ import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
+import cgm.core.mrs.lib.post_utils as MRSPOST
+
 #for m in RIGSHAPES,CURVES,BUILDUTILS,BLOCKSHAPES,CORERIG,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
 #    reload(m)
 import cgm.core.cgm_RigMeta as cgmRIGMETA
@@ -9041,7 +9043,7 @@ def rigDelete2(self):
 
     
 @cgmGEN.Timer
-def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
+def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False):
     """
     Build our proxyMesh
     """
@@ -9056,7 +9058,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         if not mBlock.meshBuild:
             log.error("|{0}| >> meshBuild off".format(_str_func))                        
             return False
-        
+        if skin:
+            if not self.atUtils('mesh_skinable'):return False
+            
         mModule = self.moduleTarget
         mRigNull = mModule.rigNull
         mSettings = mRigNull.settings
@@ -9067,7 +9071,6 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         directProxy = mBlock.proxyDirect
         
         _side = BLOCKUTILS.get_side(self)
-        ml_proxy = []
         
         ml_rigJoints = mRigNull.msgList_get('rigJoints',asMeta = True)
         ml_formHandles = mBlock.msgList_get('formHandles',asMeta = True)
@@ -9075,19 +9078,21 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         if not ml_rigJoints:
             raise ValueError,"No rigJoints connected"
         
-        pprint.pprint(ml_rigJoints)
+        #print.pprint(ml_rigJoints)
         
         
         #>> If proxyMesh there, delete -------------------------------------------------------------------------- 
         if puppetMeshMode:
             _bfr = mRigNull.msgList_get('puppetProxyMesh',asMeta=True)
+            ml_proxyExisting = mRigNull.msgList_get('proxyMesh',asMeta=True)
             if _bfr:
                 log.debug("|{0}| >> puppetProxyMesh detected...".format(_str_func))            
                 if forceNew:
                     log.debug("|{0}| >> force new...".format(_str_func))                            
                     mc.delete([mObj.mNode for mObj in _bfr])
                 else:
-                    return _bfr        
+                    return _bfr
+            
         else:
             _bfr = mRigNull.msgList_get('proxyMesh',asMeta=True)
             if _bfr:
@@ -9104,244 +9109,275 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         _str_rigSetup = mBlock.getEnumValueString('rigSetup')
         _str_ikEnd = mBlock.getEnumValueString('ikEnd')
         
-        mToe = False
-        mBall = False
-        int_handleEndIdx = -1
-        mEnd = False
-        ml_rigJointsBase = copy.copy(ml_rigJoints)
-        if _str_ikEnd in ['foot']:
-            l= []
-            if mBlock.addToe == 2:
-                mToe = ml_rigJoints.pop(-1)
-                log.debug("|{0}| >> mToe: {1}".format(_str_func,mToe))
-                int_handleEndIdx -=1
-            if mBlock.addBall == 2:
-                mBall = ml_rigJoints.pop(-1)
-                log.debug("|{0}| >> mBall: {1}".format(_str_func,mBall))        
-                int_handleEndIdx -=1
-                pprint.pprint(ml_rigJoints)
+        #Mesh build logic...
+        _buildMesh = True
+        if puppetMeshMode and ml_proxyExisting:
+            _buildMesh = False
+            ml_segProxy = ml_proxyExisting        
+        
+        if _buildMesh:
+            mToe = False
+            mBall = False
+            int_handleEndIdx = -1
+            mEnd = False
+            ml_rigJointsBase = copy.copy(ml_rigJoints)
+            if _str_ikEnd in ['foot']:
+                l= []
+                if mBlock.addToe == 2:
+                    mToe = ml_rigJoints.pop(-1)
+                    log.debug("|{0}| >> mToe: {1}".format(_str_func,mToe))
+                    int_handleEndIdx -=1
+                if mBlock.addBall == 2:
+                    mBall = ml_rigJoints.pop(-1)
+                    log.debug("|{0}| >> mBall: {1}".format(_str_func,mBall))        
+                    int_handleEndIdx -=1
+                    pprint.pprint(ml_rigJoints)
+                
+                
+                if mBall or mToe:
+                    mEnd = ml_rigJoints.pop(-1)
+                    log.debug("|{0}| >> mEnd: {1}".format(_str_func,mEnd))        
+                    int_handleEndIdx -=1
+                    pprint.pprint(ml_rigJoints)
+                    
+            elif _str_rigSetup == 'digit':
+                pass
+                #if mBlock.hasEndJoint:
+                    #mEnd = ml_rigJoints.pop(-1)
+                    #log.debug("|{0}| >> digit end: {1}".format(_str_func,mEnd))                        
+                    
+            else:
+                log.info('default...')
+                mEnd = ml_rigJoints[-1]
+                    
             
+            log.info("|{0}| >> Handles Targets: {1}".format(_str_func,ml_rigJoints))            
+            log.info("|{0}| >> End idx: {1} | {2}".format(_str_func,int_handleEndIdx,
+                                                           int_handleEndIdx))                
+                
             
-            if mBall or mToe:
-                mEnd = ml_rigJoints.pop(-1)
-                log.debug("|{0}| >> mEnd: {1}".format(_str_func,mEnd))        
-                int_handleEndIdx -=1
-                pprint.pprint(ml_rigJoints)
-                
-        elif _str_rigSetup == 'digit':
-            pass
-            #if mBlock.hasEndJoint:
-                #mEnd = ml_rigJoints.pop(-1)
-                #log.debug("|{0}| >> digit end: {1}".format(_str_func,mEnd))                        
-                
-        else:
-            log.info('default...')
-            mEnd = ml_rigJoints[-1]
-                
-        
-        log.info("|{0}| >> Handles Targets: {1}".format(_str_func,ml_rigJoints))            
-        log.info("|{0}| >> End idx: {1} | {2}".format(_str_func,int_handleEndIdx,
-                                                       int_handleEndIdx))                
-            
-        
-        # Create ---------------------------------------------------------------------------
-        _extendToStart = True
-        _blockProfile = mBlock.blockProfile
-        _ballBase = False
-        _ballMode = False
-        if mBlock.proxyGeoRoot:
-            _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
-            _ballBase=True
-        
-                
-        if mBlock.addLeverBase < 2:
-            _extendToStart = False        
-        
-        _extendToEnd = False
-        _proxyLoft = mBlock.getEnumValueString('proxyLoft')
-        if _proxyLoft == 'toEnd':
-            _extendToEnd = True
-        elif _proxyLoft == 'toStart':
+            # Create ---------------------------------------------------------------------------
             _extendToStart = True
-        elif _proxyLoft == 'toBoth':
-            _extendToEnd = True
-            _extendToStart = True
+            _blockProfile = mBlock.blockProfile
+            _ballBase = False
+            _ballMode = False
+            if mBlock.proxyGeoRoot:
+                _ballMode = mBlock.getEnumValueString('proxyGeoRoot')
+                _ballBase=True
             
-
+                    
+            if mBlock.addLeverBase < 2:
+                _extendToStart = False        
             
-        """
-        _ballMode = 'sdf'#loft
-        _ballBase = True
-        if _blockProfile in ['finger','thumb']:
-            _ballMode = 'loft'
-        if _blockProfile in ['wingBase']:
-            _ballBase = False"""
-        
-        ml_clav = []
-        ml_casters = copy.copy(ml_rigJoints)
-        """
-        if mBlock.addLeverBase:
-            ml_casters = ml_casters[1:]
-            ml_clav =  cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
-                                                                     ml_casters[:2],
-                                                                     ballBase = _ballBase,
-                                                                     ballMode = _ballMode,
-                                                                     reverseNormal=mBlock.loftReverseNormal,
-                                                                     extendCastSurface = False,
-                                                                     extendToStart=False),#_extendToStart),
-                                                 'cgmObject')"""
+            _extendToEnd = False
+            _proxyLoft = mBlock.getEnumValueString('proxyLoft')
+            if _proxyLoft == 'toEnd':
+                _extendToEnd = True
+            elif _proxyLoft == 'toStart':
+                _extendToStart = True
+            elif _proxyLoft == 'toBoth':
+                _extendToEnd = True
+                _extendToStart = True
+                                
+    
+                
+            """
+            _ballMode = 'sdf'#loft
+            _ballBase = True
+            if _blockProfile in ['finger','thumb']:
+                _ballMode = 'loft'
+            if _blockProfile in ['wingBase']:
+                _ballBase = False"""
+            
+            ml_clav = []
+            ml_casters = copy.copy(ml_rigJoints)
+            """
+            if mBlock.addLeverBase:
+                ml_casters = ml_casters[1:]
+                ml_clav =  cgmMeta.validateObjListArg(self.atBuilderUtils('mesh_proxyCreate',
+                                                                         ml_casters[:2],
+                                                                         ballBase = _ballBase,
+                                                                         ballMode = _ballMode,
+                                                                         reverseNormal=mBlock.loftReverseNormal,
+                                                                         extendCastSurface = False,
+                                                                         extendToStart=False),#_extendToStart),
+                                                     'cgmObject')"""
+                
+                
+            """
+            print [[mObj.p_nameShort for mObj in ml_casters]]
+            return {'ballBase':_ballBase,
+                    'ballMode':_ballMode,
+                    'reverseNormal':0,
+                    'extendCastSurface':_extendToEnd,
+                    'extendToStart':_extendToStart}"""
+            ml_segProxy = cgmMeta.validateObjListArg(mBlock.atUtils('mesh_proxyCreate',
+                                                                    ml_casters,
+                                                                    ballBase = _ballBase,
+                                                                    ballMode = _ballMode,
+                                                                    reverseNormal=0,#mBlock.loftReverseNormal,
+                                                                    extendCastSurface = _extendToEnd,
+                                                                    extendToStart=_extendToStart),#_extendToStart),
+                                                     'cgmObject')
             
             
+            #if ml_clav:
+                #ml_segProxy = [ml_clav[0]] + ml_segProxy
             
-        ml_segProxy = cgmMeta.validateObjListArg(mBlock.atUtils('mesh_proxyCreate',
-                                                                ml_casters,
-                                                                ballBase = _ballBase,
-                                                                ballMode = _ballMode,
-                                                                reverseNormal=0,#mBlock.loftReverseNormal,
-                                                                extendCastSurface = _extendToEnd,
-                                                                extendToStart=_extendToStart),#_extendToStart),
-                                                 'cgmObject')
-        
-        
-        #if ml_clav:
-            #ml_segProxy = [ml_clav[0]] + ml_segProxy
-        
-        #Proxyhelper-----------------------------------------------------------------------------------
-        if not _extendToEnd:
-            if _str_rigSetup != 'digit':
-                log.debug("|{0}| >> proxyHelper... ".format(_str_func))
-                mProxyHelper = ml_formHandles[-1].getMessage('proxyHelper',asMeta=1)
-                if mProxyHelper:
+            #Proxyhelper-----------------------------------------------------------------------------------
+            if not _extendToEnd:
+                if _str_rigSetup != 'digit':
                     log.debug("|{0}| >> proxyHelper... ".format(_str_func))
-                    mProxyHelper = mProxyHelper[0]
-                    mNewShape = mProxyHelper.doDuplicate(po=False)
-                    mNewShape.parent = False
-                    ml_segProxy.append(mNewShape)
-                    ml_rigJoints.append(ml_rigJoints[-1])
-                    
-                    
-                # Foot --------------------------------------------------------------------------
-                elif ml_formHandles[-1].getMessage('pivotHelper') and mBlock.blockProfile not in ['arm']:
-                    if mEnd:ml_rigJoints.append(mEnd)#...add this back
-                    mPivotHelper = ml_formHandles[-1].pivotHelper
-                    log.debug("|{0}| >> foot ".format(_str_func))
-                    
-                    #make the foot geo....
-                    l_targets = [ml_formHandles[-1].loftCurve.mNode]
-                    
-                    mBaseCrv = mPivotHelper.doDuplicate(po=False)
-                    mBaseCrv.parent = False
-                    mShape2 = False
-                    mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
-                    if mTopLoft:
-                        mShape2 = mTopLoft.doDuplicate(po=False)
-                        l_targets.append(mShape2.mNode)
-
+                    mProxyHelper = ml_formHandles[-1].getMessage('proxyHelper',asMeta=1)
+                    if mProxyHelper:
+                        log.debug("|{0}| >> proxyHelper... ".format(_str_func))
+                        mProxyHelper = mProxyHelper[0]
+                        mNewShape = mProxyHelper.doDuplicate(po=False)
+                        mNewShape.parent = False
+                        ml_segProxy.append(mNewShape)
+                        ml_rigJoints.append(ml_rigJoints[-1])
+                        
+                        
+                    # Foot --------------------------------------------------------------------------
+                    elif ml_formHandles[-1].getMessage('pivotHelper') and mBlock.blockProfile not in ['arm']:
                             
-                    l_targets.append(mBaseCrv.mNode)
-                    #l_targets.reverse()
-                    
-                    _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),merge=False,
-                                                       degree=1,divisions=3)
-                    #if mBlock.loftReverseNormal:
-                        #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
-                    
-                    
-                    _l_combine = []
-
-                    mBaseCrv.delete()
-                    if mShape2:mShape2.delete()
-                    
-                    mMesh = cgmMeta.validateObjArg(_mesh)
-
-                    #...cut it up
-                    if mBall:
-                        mHeelMesh = mMesh.doDuplicate(po=False)
-                        mBallMesh = mMesh.doDuplicate(po=False)
+                        if mEnd:ml_rigJoints.append(mEnd)#...add this back
+                        mPivotHelper = ml_formHandles[-1].pivotHelper
+                        log.debug("|{0}| >> foot ".format(_str_func))
                         
-                        mc.polyCut(mBallMesh.getShapes()[0],
-                                   ch=0, pc=mBall.p_position,
-                                   ro=mBall.p_orient, deleteFaces=True)
-                        mc.polyCloseBorder(mBallMesh.mNode)
+                        #make the foot geo....
+                        l_targets = [ml_formHandles[-1].loftCurve.mNode]
                         
-                        mBallLoc = mBall.doLoc()
-                        mc.rotate(0, 180, 0, mBallLoc.mNode, r=True, os=True, fo=True)
-                        mc.polyCut(mHeelMesh.getShapes()[0],
-                                   ch=0, pc=mBall.p_position,
-                                   ro=mBallLoc.p_orient, deleteFaces=True)
-                        mc.polyCloseBorder(mHeelMesh.mNode)
-                        mBallLoc.delete()
-        
-                        #Add a ankleball ------------------------------------------------------------------------
-                        """
-                        _target = ml_formHandles[-1].mNode
-                        _bb_size = POS.get_bb_size(_target,True,'maxFill')#SNAPCALLS.get_axisBox_size(_target)
-                        _size = [_bb_size[0],_bb_size[1],MATH.average(_bb_size)]
-                        _size = [v*.8 for v in _size]
-                        _sphere = mc.polySphere(axis = [1,0,0], radius = 1, subdivisionsX = 10, subdivisionsY = 10)
-                        TRANS.scale_to_boundingBox(_sphere[0], _size)
-                    
-                        SNAP.go(_sphere[0],_target)
-
-                        _mesh = mc.polyUnite([mHeelMesh.mNode,_sphere[0]], ch=False )[0]
+                        mBaseCrv = mPivotHelper.doDuplicate(po=False)
+                        mBaseCrv.parent = False
+                        mShape2 = False
+                        mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+                        if mTopLoft:
+                            mShape2 = mTopLoft.doDuplicate(po=False)
+                            l_targets.append(mShape2.mNode)
+    
+                                
+                        l_targets.append(mBaseCrv.mNode)
+                        #l_targets.reverse()
                         
-                        mMeshHeel = cgmMeta.validateObjArg(_mesh)"""
-                        
-                        ml_segProxy.append(mHeelMesh)
+                        _mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),merge=False,
+                                                           degree=1,divisions=3)
+                        #if mBlock.loftReverseNormal:
+                            #mc.polyNormal(_mesh, normalMode = 0, userNormalMode=1,ch=0)
                         
                         
-                        #toe -----------------------------------------------------------------------------------
-                        if mToe:
-                            mToeMesh = mBallMesh.doDuplicate(po=False)
-                            
-                            mToeLoc = mToe.doLoc()
-                            mc.rotate(0, 180, 0, mToeLoc.mNode, r=True, os=True, fo=True)
+                        _l_combine = []
+    
+                        mBaseCrv.delete()
+                        if mShape2:mShape2.delete()
+                        
+                        mMesh = cgmMeta.validateObjArg(_mesh)
+    
+                        #...cut it up
+                        if mBall:
+                            mHeelMesh = mMesh.doDuplicate(po=False)
+                            mBallMesh = mMesh.doDuplicate(po=False)
                             
                             mc.polyCut(mBallMesh.getShapes()[0],
-                                       ch=0, pc=mToe.p_position,
-                                       ro=mToeLoc.p_orient, deleteFaces=True)
+                                       ch=0, pc=mBall.p_position,
+                                       ro=mBall.p_orient, deleteFaces=True)
                             mc.polyCloseBorder(mBallMesh.mNode)
                             
-        
-                            mc.polyCut(mToeMesh.getShapes()[0],
-                                       ch=0, pc=mToe.p_position,
-                                       ro=mToe.p_orient, deleteFaces=True)
-                            mc.polyCloseBorder(mToeMesh.mNode)                    
-                            mToeLoc.delete()
+                            mBallLoc = mBall.doLoc()
+                            mc.rotate(0, 180, 0, mBallLoc.mNode, r=True, os=True, fo=True)
+                            mc.polyCut(mHeelMesh.getShapes()[0],
+                                       ch=0, pc=mBall.p_position,
+                                       ro=mBallLoc.p_orient, deleteFaces=True)
+                            mc.polyCloseBorder(mHeelMesh.mNode)
+                            mBallLoc.delete()
+            
+                            #Add a ankleball ------------------------------------------------------------------------
+                            ml_segProxy.append(mHeelMesh)
                             
                             
-                            ml_segProxy.append(mBallMesh)
-                            ml_rigJoints.append(mBall)
-                            ml_segProxy.append(mToeMesh)
-                            ml_rigJoints.append(mToe)
-                        else:
-                            #ball -----------------------------------------------------------------------------------
-                            log.debug("|{0}| >> ball... ".format(_str_func))            
-                            ml_segProxy.append(mBallMesh)
-                            ml_rigJoints.append(mBall)                    
-                            
-                        mMesh.delete()
-                    else: 
-                        _mesh = mc.polyUnite([mMesh.mNode,ml_segProxy[-1].mNode], ch=False )[0]
-                        mMesh = cgmMeta.validateObjArg(_mesh)                
-                        ml_segProxy[-1] = mMesh
-                    
+                            #toe -----------------------------------------------------------------------------------
+                            if mToe:
+                                mToeMesh = mBallMesh.doDuplicate(po=False)
+                                
+                                mToeLoc = mToe.doLoc()
+                                mc.rotate(0, 180, 0, mToeLoc.mNode, r=True, os=True, fo=True)
+                                
+                                mc.polyCut(mBallMesh.getShapes()[0],
+                                           ch=0, pc=mToe.p_position,
+                                           ro=mToeLoc.p_orient, deleteFaces=True)
+                                mc.polyCloseBorder(mBallMesh.mNode)
+                                
+            
+                                mc.polyCut(mToeMesh.getShapes()[0],
+                                           ch=0, pc=mToe.p_position,
+                                           ro=mToe.p_orient, deleteFaces=True)
+                                mc.polyCloseBorder(mToeMesh.mNode)                    
+                                mToeLoc.delete()
+                                
+                                
+                                ml_segProxy.append(mBallMesh)
+                                ml_rigJoints.append(mBall)
+                                ml_segProxy.append(mToeMesh)
+                                ml_rigJoints.append(mToe)
+                            else:
+                                #ball -----------------------------------------------------------------------------------
+                                log.debug("|{0}| >> ball... ".format(_str_func))            
+                                ml_segProxy.append(mBallMesh)
+                                ml_rigJoints.append(mBall)                    
+                                
+                            mMesh.delete()
+                        else: 
+                            _mesh = mc.polyUnite([mMesh.mNode,ml_segProxy[-1].mNode], ch=False )[0]
+                            mMesh = cgmMeta.validateObjArg(_mesh)                
+                            ml_segProxy[-1] = mMesh
+                        
+            
+            
         
         if directProxy:
             log.debug("|{0}| >> directProxy... ".format(_str_func))
             _settings = mRigNull.settings.mNode
-            
+        
+        ml_united = []
+        
         if puppetMeshMode:
             log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
             ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
             
             for i,mGeo in enumerate(ml_segProxy):
                 log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
-                mGeo.parent = ml_moduleJoints[i]
-                mGeo.doStore('cgmName',str_partName)
-                mGeo.addAttr('cgmIterator',i+1)
-                mGeo.addAttr('cgmType','proxyPuppetGeo')
-                mGeo.doName()        
+                
+                if ml_proxyExisting:
+                    mGeo = ml_proxyExisting[i].doDuplicate(po=False)
+                    mGeo.p_parent = False
+                    ATTR.break_connection(mGeo.mNode,'v')
+                    mGeo.v = True
+
+                ml_united.append(mGeo)
+                
+                if skin:
+                    MRSPOST.skin_mesh(mGeo,[ml_moduleJoints[i]])
+                else:
+                    mGeo.p_parent = ml_moduleJoints[i]
+                    mGeo.doStore('cgmName',str_partName)
+                    mGeo.addAttr('cgmIterator',i+1)
+                    mGeo.addAttr('cgmType','proxyPuppetGeo')
+                    mGeo.doName()
+                #CORERIG.color_mesh(mGeo.mNode,'puppetmesh')                
+                CORERIG.color_mesh(mGeo.mNode,_side,'main',transparent=False,proxy=True)
+                    
+            
+            if skin:
+                if len(ml_united) > 1:
+                    _res = mc.polyUniteSkinned([mObj.mNode for mObj in ml_united],ch=False,objectPivot=True)
+                    _mesh = mc.rename(_res[0],'{0}_UnifiedPuppetProxy_geo'.format(self.p_nameBase))
+                    mc.rename(_res[1],'{0}_skinCluster'.format(_mesh))
+                    mMesh = cgmMeta.asMeta(_mesh)
+        
+                    ml_segProxy = [mMesh]
+                else:
+                    ml_segProxy = ml_united               
+                
             
             mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
             return ml_segProxy

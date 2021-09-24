@@ -1388,12 +1388,13 @@ def colorControl(target = None, direction = 'center', controlType = 'main', push
         mc.sets(t, edit=True, remove = 'initialShadingGroup')
     return True
 
-def color_mesh(target=None,mode='puppetmesh'):
+def color_mesh(target=None, direction = 'center', controlType = 'main', transparent = False,proxy=False, directProxy=False):
     _str_func = "color_mesh"    
     if not target:raise ValueError,"|{0}|  >> Must have a target".format(_str_func)
     l_targets = VALID.listArg(target)
     
-    _shader, _set = getControlShader(None,'puppetmesh',False,False,False)
+    _shader, _set = getControlShader(direction,controlType,transparent,proxy,directProxy)    
+    #_shader, _set = getControlShader(None,'puppetmesh',False,False,False)
             
     for t in l_targets:
         log.debug("|{0}| >> t: {1} ...".format(_str_func,t))
