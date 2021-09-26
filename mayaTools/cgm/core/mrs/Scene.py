@@ -1778,8 +1778,11 @@ example:
         _str_func = 'uiFunc_assetList_select'
         log.info(log_start(_str_func))
         
-        path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() ))
-        
+        try:
+            path_subType = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() ))
+        except:
+            return
+            
         if not os.path.exists(path_subType):
             self.LoadCategoryList()
             return

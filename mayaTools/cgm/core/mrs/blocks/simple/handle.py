@@ -2144,6 +2144,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
         ml_proxy = ml_proxyExisting
     
     if _buildMesh:
+        log.warning("|{0}| >> building mesh...".format(_str_func))            
+        
         if str_setup == 'shapers':
             d_kws = {}
             mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]

@@ -3750,6 +3750,8 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False, skin = False
         ml_segProxy = ml_proxyExisting    
     
     if _buildMesh:
+        log.warning("|{0}| >> building mesh...".format(_str_func))            
+        
         _extendToStart = True
         _ballBase = False
         _ballMode = False

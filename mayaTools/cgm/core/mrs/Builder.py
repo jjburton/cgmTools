@@ -4796,7 +4796,7 @@ class ui(cgmUI.cgmGUI):
                                             **{'unified':True,'skin':True}))
         mUI.MelMenuItem(_mMesh, l="Unified Proxy [Skinned]",
                         ann = "Create proxy skinned puppet mesh.",
-                        c = cgmGEN.Callback(self.uiFunc_contextBlockCall,'atUtils','puppetMesh_create',
+                        c = cgmGEN.Callback(self.uiFunc_contextPuppetCall,'puppetMesh_create',
                                             **{'unified':True,'skin':True,'proxy':True}))        
         mUI.MelMenuItem(_mMesh, l="Unified Proxy",
                         ann = "Create proxy puppet mesh",

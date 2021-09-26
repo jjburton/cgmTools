@@ -1332,7 +1332,7 @@ def proxyMesh_verify(self, forceNew = True, puppetMeshMode = False,progressBar =
                                   status = mRigBlock.p_nameShort,
                                   progress=i, vis=True)
         try:
-            mRigBlock.verify_proxyMesh(forceNew,puppetMeshMode)
+            mRigBlock.verify_proxyMesh(forceNew=forceNew,puppetMeshMode=puppetMeshMode)
         except Exception,err:
             log.error("{0} | {1}".format(mRigBlock,err))
     
@@ -2159,7 +2159,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             log.debug("|{0}| >> Meshing... {1}".format(_str_func,mBlock))
             
             if proxy:
-                _res = mBlock.verify_proxyMesh(puppetMeshMode=True,skin=subSkin)
+                _res = mBlock.verify_proxyMesh(forceNew = True, puppetMeshMode=True,skin=subSkin)
                 if _res:ml_mesh.extend(_res)
                 
             else:

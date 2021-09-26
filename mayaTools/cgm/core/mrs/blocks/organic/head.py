@@ -4468,6 +4468,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
         return False
     if skin:
         if not self.atUtils('mesh_skinable'):
+            log.error("|{0}| >> not skinnable".format(_str_func))                                    
             return False
     
     mModule = self.moduleTarget
@@ -4509,19 +4510,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                 mc.delete([mObj.mNode for mObj in _bfr])
             else:
                 return _bfr
-        
-    
-    if not mBlock.meshBuild:
-        log.error("|{0}| >> meshBuild off".format(_str_func))                        
-        return False
-    
     
     #Mesh build logic...
     _buildMesh = True
     if puppetMeshMode and ml_proxyExisting:
         _buildMesh = False
-        ml_segProxy = ml_proxyExisting    
+        ml_segProxy = ml_proxyExisting
         
+    
     #>> Head ===================================================================================
     log.debug("|{0}| >> Head...".format(_str_func))       
     if directProxy:
@@ -4537,6 +4533,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
     ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
     
     if _buildMesh:
+        log.warning("|{0}| >> building mesh...".format(_str_func))
+        
         l_headGeo = mGroup.getChildren(asMeta=False)
         #l_vis = mc.ls(l_headGeo, visible = True)
         ml_segProxy = []
@@ -4600,19 +4598,18 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                     mGeo.doName()
                     ml_segProxy.append(mGeo)
                     
-                    
                     if directProxy:
                         CORERIG.shapeParent_in_place(ml_rigJoints[i].mNode,mGeo.mNode,True,False)
                         CORERIG.colorControl(ml_rigJoints[i].mNode,_side,'main',directProxy=True)                            
         
         #head stuff
         for i,o in enumerate(l_headGeo):
-            log.debug("|{0}| >> geo: {1}...".format(_str_func,o))                    
+            log.debug("|{0}| >> geo: {1}...".format(_str_func,o))
             if ATTR.get(o,'v'):
                 log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))            
                 mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
                 ml_headStuff.append(  mObj )
-                mObj.p_arent = ml_rigJoints[-1]
+                mObj.p_parent = ml_rigJoints[-1]
                 
                 ATTR.copy_to(ml_rigJoints[-1].mNode,'cgmName',mObj.mNode,driven = 'target')
                 
@@ -4621,17 +4618,32 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                     mObj.addAttr('cgmType','proxyGeo')
                     mObj.doName()
                 
-                if directProxy:
-                    CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mObj.mNode,True,False)
-                    CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)             
+                #if directProxy:
+                #    CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mObj.mNode,True,False)
+                #    CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)
+                    
+                CORERIG.shapeParent_in_place(ml_segProxy[-1].mNode, mObj.mNode,False,False)
         
-        if puppetMeshMode:
-            #Unify our head stuff
-            if len(ml_headStuff) > 1:
-                _res = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False,objectPivot=True)
-                _mesh = mc.rename(_res[0],'{0}_head_UnifiedPuppetProxy_geo'.format(self.p_nameBase))
-                mMesh = cgmMeta.asMeta(_mesh)
-                ml_headStuff = [mMesh]
+        
+        #Unify our head stuff
+        if len(ml_headStuff) > 1:
+            l_headTargets = [mObj.mNode for mObj in ml_headStuff]
+            if mBlock.neckBuild and mBlock.neckJoints > 1:
+                l_headTargets.append(ml_segProxy.pop(-1).mNode)
+
+            _res = mc.polyUnite(l_headTargets,ch=False,objectPivot=True)
+            _mesh = mc.rename(_res[0],'{0}_head_geo'.format(self.p_nameBase))
+            mMesh = cgmMeta.asMeta(_mesh)
+            ml_headStuff = [mMesh]
+            mMesh.p_parent = ml_rigJoints[-1]
+            
+            ml_segProxy.append(mMesh)
+            
+            if directProxy:
+                CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mMesh.mNode,True,True)
+                CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)            
+            
+            
             
         """
         for i,o in enumerate(l_headGeo):
@@ -4750,19 +4762,22 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
         log.debug("|{0}| >> puppetMesh setup... ".format(_str_func))
         ml_moduleJoints = mRigNull.msgList_get('moduleJoints')
         
-        for i,mGeo in enumerate(ml_segProxy):
+        for i,mJnt in enumerate(ml_moduleJoints):
+            
             if ml_proxyExisting:
                 mGeo = ml_proxyExisting[i].doDuplicate(po=False)
                 mGeo.p_parent = False
                 ATTR.break_connection(mGeo.mNode,'v')
-                mGeo.v = True    
+                mGeo.v = True
+            else:
+                mGeo = ml_segProxy[i]
                 
             ml_united.append(mGeo)    
-            log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
+            #log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
             if skin:
-                MRSPOST.skin_mesh(mGeo,[ml_moduleJoints[i]])                
+                MRSPOST.skin_mesh(mGeo,[mJnt])                
             else:
-                mGeo.p_parent = ml_moduleJoints[i]
+                mGeo.p_parent = mJnt
                 mGeo.doStore('cgmName',str_partName)
                 mGeo.addAttr('cgmIterator',i+1)
                 mGeo.addAttr('cgmType','proxyPuppetGeo')
@@ -4784,20 +4799,10 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
             
             
         mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
-        return ml_segProxy    
-    
-    return
-            
-            
-            
-        
-        
-        
-        
-        
+        return ml_segProxy            
      
     
-    for mProxy in ml_neckProxy + ml_headStuff:
+    for mProxy in ml_segProxy:
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
 
@@ -4818,7 +4823,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                 mShape.overrideDisplayType = 0
                 ATTR.connect("{0}.visDirect".format(_settings), "{0}.overrideVisibility".format(mShape.mNode))
         
-    mRigNull.msgList_connect('proxyMesh', ml_neckProxy + ml_headStuff)
+    mRigNull.msgList_connect('proxyMesh', ml_segProxy)
     
 
 def controller_getDat(self):
