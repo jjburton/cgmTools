@@ -47,14 +47,14 @@ from cgm.lib import (search,
                      dictionary)
 
 from cgm.core import cgm_General as cgmGEN
+import cgm.core.cgmPy.path_Utils as PATHS
 
 from cgm.core.lib.zoo import baseMelUI as mUI
 from cgm.core.lib import name_utils as NAMES
-from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.cgmPy.validateArgs as VALID 
 
 import cgm.images as cgmImages
-mImagesPath = CGMPATH.Path(cgmImages.__path__[0])
+mImagesPath = PATHS.Path(cgmImages.__path__[0])
 #>>>======================================================================
 import logging
 logging.basicConfig()
@@ -1908,7 +1908,7 @@ def add_cgmFooter(parent = False):
     
     _row_cgm = mUI.MelHRowLayout(parent, bgc = [.20,.20,.20], h = 20)
     try:
-        _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
+        _path_imageFolder = PATHS.Path(cgmImagesFolder.__file__).up().asFriendly()
         #_path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
         _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')        
         mc.iconTextButton(style='iconOnly',image =_path_image,
@@ -1925,7 +1925,7 @@ def add_cgMonaseryFooter(parent = False):
     
     _row_cgm = mUI.MelHRowLayout(parent, bgc = [.25,.25,.25], h = 20)
     try:
-        _path_imageFolder = CGMPATH.Path(cgmImagesFolder.__file__).up().asFriendly()
+        _path_imageFolder = PATHS.Path(cgmImagesFolder.__file__).up().asFriendly()
         _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')
         mc.iconTextButton(style='iconOnly',image =_path_image,
                           c=lambda *a:(webbrowser.open("http://www.cgmonastery.com/")))  
@@ -2520,3 +2520,34 @@ class cgmScrollList(mUI.BaseMelWidget):
             log.error("|{0}| >> err: {1}".format(_str_func, err))  
             for a in err:
                 log.error(a)
+                
+def uiPrompt_removeDir(path = None):
+    '''
+    Insert a new SubFolder to the path, makes the dir and sets
+    '''
+    mPath = PATHS.Path(path)
+    if not mPath.exists():
+        raise StandardError('uiPath_removeDir | Invalid Path: {0}'.format(path))
+    
+    promptstring = 'Remove Dir '.format(mPath.asFriendly())
+    
+    result = mc.confirmDialog(
+            title=promptstring,
+            message='Are you sure you want to delete... \n Path: {0}'.format(mPath.asFriendly()),
+            button=['OK', 'Cancel'],
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel')
+    
+    if result == 'OK':            
+        if mPath.exists():
+            if os.path.isfile(mPath):
+                os.remove(mPath)
+            else:
+                import shutil
+                shutil.rmtree(mPath)
+            log.warning("deleted: {0}".format(mPath))
+        else:
+            log.warning("Dir doesn't exists: {0}".format(mPath))
+            
+        return True
