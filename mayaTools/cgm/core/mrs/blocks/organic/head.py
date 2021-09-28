@@ -4772,9 +4772,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
             else:
                 mGeo = ml_segProxy[i]
                 
-            ml_united.append(mGeo)    
             #log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
             if skin:
+                if len(mGeo.getShapes()) > 1:
+                    _strBase  = mGeo.p_nameBase
+                    _res = mc.polyUnite(mGeo.mNode,ch=False,objectPivot=True)
+                    _mesh = mc.rename(_res[0],_strBase)
+                    mGeo = cgmMeta.asMeta(_mesh)
+                    
                 MRSPOST.skin_mesh(mGeo,[mJnt])                
             else:
                 mGeo.p_parent = mJnt
@@ -4782,7 +4787,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                 mGeo.addAttr('cgmIterator',i+1)
                 mGeo.addAttr('cgmType','proxyPuppetGeo')
                 mGeo.doName()
-                
+            ml_united.append(mGeo)    
+
             CORERIG.color_mesh(mGeo.mNode,_side,'main',transparent=False,proxy=True)
                 
             
