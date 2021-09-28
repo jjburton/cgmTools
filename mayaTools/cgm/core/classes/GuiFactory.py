@@ -2360,7 +2360,12 @@ class cgmScrollList(mUI.BaseMelWidget):
             return items[0]
         else:
             return None
-
+    
+    def select_last(self):
+        try:self( e=True, selectIndexedItem=len(self.getItems()) )  
+        except Exception,err:
+            log.error("select_last | {}".format(err))
+            
     def getSelectedIdxs( self ):
         return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
         

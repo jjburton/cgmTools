@@ -106,7 +106,7 @@ example:
         
         self.var_lastProject       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
         self.var_lastAsset     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
-        self.var_lastAnim      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_animation", varType = "string")
+        self.var_lastSet      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_set", varType = "string")
         self.var_lastVariation = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
         self.var_lastVersion   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
         self.var_showAllFiles           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 1)
@@ -377,6 +377,9 @@ example:
         _res = False
         _path  = self.path_subType
         if not _path:
+            return False
+        
+        if not os.path.isdir(_path):
             return False
         
         log.debug(log_start(_str_func))    
@@ -918,7 +921,7 @@ example:
 
         mRow_asset = mUI.MelHLayout(_catForm,padding = 2)
         self.assetButton = mUI.MelButton(mRow_asset, ut='cgmUITemplate', label="New Asset", command=self.CreateAsset)
-        self.addSubTypeButton = mUI.MelButton(mRow_asset, ut='cgmUITemplate', label="Add SubType", command=self.CreateSubType)
+        #self.addSubTypeButton = mUI.MelButton(mRow_asset, ut='cgmUITemplate', label="Add SubType", command=self.CreateSubType)
         mRow_asset.layout()
 
         _catForm( edit=True, 
@@ -950,7 +953,7 @@ example:
                                pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_sub))        
         
         mUI.MelMenuItem( pum, label='        Subtype', en=False )
-        
+        """
         mUI.MelMenuItem(pum,label="Add Subtype",
                         command=self.CreateSubType)
         
@@ -964,7 +967,7 @@ example:
         
         mUI.MelMenuItem(pum,label="Add Variation",
                         command=self.CreateVariation)
-        
+        """
         mUI.MelMenuItemDiv( pum, label='Selected' )
                 
         
@@ -1673,8 +1676,16 @@ example:
                          c = lambda *a:mc.evalDeferred(self.set_loggingInfo,lp=True))                         
                          
         mUI.MelMenuItem( iMenu_loggerMaster, l='Debug',
-                         c = lambda *a:mc.evalDeferred(self.set_loggingDebug,lp=True))            
-
+                         c = lambda *a:mc.evalDeferred(self.set_loggingDebug,lp=True))
+        
+    def set_loggingInfo(self):
+        self.var_DebugMode.value = 0
+        log.setLevel(logging.INFO)
+        
+    def set_loggingDebug(self):
+        self.var_DebugMode.value = 1
+        log.setLevel(logging.DEBUG)    
+        
     #@cgmGEN.Timer
     def buildMenu_project( self, *args):
         self.uiMenu_Projects.clear()
@@ -1846,7 +1857,30 @@ example:
             
         self.buildAssetForm()
         self.LoadPreviousSelection(skip=['asset'])
+        self.uiUpdate_setsButtons()
                 
+    def uiUpdate_setsButtons(self):
+        _str_func = 'uiUpdate_setsButtons'
+        log.debug(log_start(_str_func))
+        
+        if self.hasSub:
+            log.debug(log_msg(_str_func,"hasSub"))
+            self.mRow_setButtons.clear()
+            mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="New {0}".format(self.subType.capitalize()), command=self.CreateSubAsset)
+            if self.hasVariant == False:
+                mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Add Variation", command=self.CreateVariation)
+            #self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()), command=self.CreateSubAsset)
+            self.mRow_setButtons.layout()
+        else:
+            log.debug(log_msg(_str_func,"no sub"))            
+            self.mRow_setButtons.clear()
+            mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
+            mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Add Set", command=self.CreateSubAsset)
+            #self.subTypeButton(edit=True, label="Save New Version", command=self.SaveVersion)
+            self.mRow_setButtons.layout()
+            
+        log.debug(log_msg(_str_func,cgmGEN._str_hardBreak))        
+        
     def uiFunc_subTypeList_select(self):
         _str_func = 'uiFunc_subTypeList_select'
         log.debug(log_start(_str_func))
@@ -1865,7 +1899,7 @@ example:
            
         if _path and os.path.isfile(_path):
             self.file_subType = _path
-            log.info(log_msg(_str_func,"File passed"))
+            log.debug(log_msg(_str_func,"File passed"))
             self.variationList['scrollList'].clear()
             self.versionList['scrollList'].clear()
             
@@ -1880,20 +1914,11 @@ example:
             self.LoadVariationList()
         else:
             self.LoadVersionList()
+        
+        self.uiUpdate_setsButtons()
             
-        if self.hasSub:
-            self.mRow_setButtons.clear()
-            mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="New {0}".format(self.subType.capitalize()), command=self.CreateSubAsset)
-            if self.hasVariant == False:
-                mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Add Variation", command=self.CreateVariation)
-            #self.subTypeButton(edit=True, label="New {0}".format(self.subType.capitalize()), command=self.CreateSubAsset)
-            self.mRow_setButtons.layout()
-        else:
-            self.mRow_setButtons.clear()
-            mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
-            mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Add Set", command=self.CreateSubAsset)
-            #self.subTypeButton(edit=True, label="Save New Version", command=self.SaveVersion)
-            self.mRow_setButtons.layout()                                
+        log.debug(log_msg(_str_func,cgmGEN._str_hardBreak))
+        
             
     def uiFunc_variationList_select(self):
         _str_func = 'uiFunc_variationList_select'
@@ -2515,7 +2540,12 @@ example:
                 mUI.MelMenuItemDiv( self.subTypeMenu, label='Extras..' )
                 b_extra = True
             self.subTypeMenuItemList.append( mc.menuItem(label=subType, enable=i!=self.subTypeIndex, c=cgmGEN.Callback(self.SetSubType,i)) ) #mUI.MelMenuItem(self.subTypeMenu, label=subType, c=partial(self.SetSubType,i)) )
-
+        
+        mUI.MelMenuItemDiv( self.subTypeMenu, label='Utils..' )
+        mUI.MelMenuItem(self.subTypeMenu, label = 'Create Subtype', c=partial(self.CreateSubType) )
+        try:mUI.MelMenuItem(self.subTypeMenu, label="Rename '{}'".format(self.subTypes[self.subTypeIndex]), command= partial(self.rename_below,'subtype') )
+        except:mUI.MelMenuItem(self.subTypeMenu, label="Rename subtype", command= partial(self.rename_below,'subtype') )
+        
         
     #####
     ## Searchable Lists
@@ -2654,7 +2684,6 @@ example:
 
         self.subTypeBtn( e=True, label=self.subType )
 
-
         self.LoadSubTypeList()
         self.var_subTypeStore.setValue(self.subTypeIndex)
 
@@ -2668,6 +2697,8 @@ example:
             
         mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
         self.buildAssetForm()
+        
+        self.LoadPreviousSelection(skip=['asset'])
         
 
     def LoadSubTypeList(self, *args):
@@ -2802,28 +2833,36 @@ example:
             # animDir = (self.path_variationDirectory if self.hasVariant else self.path_set) if self.hasSub else self.path_dir_category
 
             # if os.path.exists(animDir):
-            for d in os.listdir(searchDir):
-                if d[0] == '_' or d[0] == '.':
+            for f in os.listdir(searchDir):
+                if f[0] == '_' or f[0] == '.':
                     continue
 
                 if self.showAllFiles:
-                    if d not in ['meta']:
-                        anims.append(d)
-                elif os.path.splitext(d)[-1].lower()[1:] in fileExtensions:
+                    if f in ['meta']:
+                        continue
+                    for chk in ['MRSbatch']:
+                        if chk in f:
+                            continue
+                    anims.append(f)
+                    
+                elif os.path.splitext(f)[-1].lower()[1:] in fileExtensions:
                     if self.hasSub:
                         if self.hasVariant:
-                            if '{0}_{1}_{2}_'.format(self.selectedAsset, self.selectedSubType, self.selectedVariation) in d:
-                                anims.append(d)
+                            if '{0}_{1}_{2}_'.format(self.selectedAsset, self.selectedSubType, self.selectedVariation) in f:
+                                anims.append(f)
                         else:
-                            if '{0}_{1}_'.format(self.selectedAsset, self.selectedSubType) in d:
-                                anims.append(d)							
+                            if '{0}_{1}_'.format(self.selectedAsset, self.selectedSubType) in f:
+                                anims.append(f)							
                     else:
-                        if '{0}_{1}_'.format(self.selectedAsset, self.subType) in d:
-                            anims.append(d)
+                        if '{0}_{1}_'.format(self.selectedAsset, self.subType) in f:
+                            anims.append(f)
 
         searchList['items'] = anims
         searchList['scrollList'].clear()
         searchList['scrollList'].setItems(anims)
+        
+        if anims:
+            searchList['scrollList'].select_last()
         
         #if anims:
             #searchList['scrollList'].selectByValue(anims[-1])
@@ -3057,9 +3096,9 @@ example:
         #	mc.optionVar(rm=self.var_lastAsset)
 
         if self.subTypeSearchList['scrollList'].getSelectedItem():
-            self.var_lastAnim.setValue(self.subTypeSearchList['scrollList'].getSelectedItem())
+            self.var_lastSet.setValue(self.subTypeSearchList['scrollList'].getSelectedItem())
         #else:
-        #	mc.optionVar(rm=self.var_lastAnim)
+        #	mc.optionVar(rm=self.var_lastSet)
 
         if self.variationList['scrollList'].getSelectedItem():
             self.var_lastVariation.setValue(self.variationList['scrollList'].getSelectedItem())
@@ -3072,32 +3111,37 @@ example:
         #	mc.optionVar(rm=self.var_lastVersion)
 
     def LoadPreviousSelection(self, skip = [], *args):
+        
         if 'asset' not in skip:
             if self.var_lastAsset.getValue():
                 self.assetList['scrollList'].selectByValue( self.var_lastAsset.getValue() )
+        
+        #self.LoadSubTypeList()
+        
+        if self.var_lastSet.getValue():
+            self.subTypeSearchList['scrollList'].selectByValue( self.var_lastSet.getValue() )
+        
+        if not  self.subTypeSearchList['scrollList'].getSelectedItem():
+            self.subTypeSearchList['scrollList'].select_last()
+                
+        
+        #self.LoadVariationList()
 
-        self.LoadSubTypeList()
-
-        if self.var_lastAnim.getValue():
-            self.subTypeSearchList['scrollList'].selectByValue( self.var_lastAnim.getValue() )
-
-        self.LoadVariationList()
-
-        if not self.hasSub:
-            self.assetMetaData = self.getMetaDataFromFile()		
-            return
 
         if self.var_lastVariation.getValue():
             self.variationList['scrollList'].selectByValue( self.var_lastVariation.getValue() )
-
-        self.LoadVersionList()
+        
+        
+        #self.LoadVersionList()
 
         if self.var_lastVersion.getValue():
             self.versionList['scrollList'].selectByValue( self.var_lastVersion.getValue() )
-        #else:
-        #self.versionList['scrollList'].selectByIdx(-1)
+            
+        if not  self.versionList['scrollList'].getSelectedItem():
+            self.versionList['scrollList'].select_last()        
 
         self.assetMetaData = self.getMetaDataFromFile()	
+
 
     def ClearPreviousDirectories(self, *args):		
         self.optionVarDirStore.clear()
@@ -3362,8 +3406,13 @@ example:
                 self.CreateStartingFile()
 
                 self.LoadVersionList()
+                
 
+        
     def SaveVersion(self, *args):
+        _str_func = 'SaveVersion'
+        log.debug("|{}| >>...".format(_str_func))
+        
         if not self.path_asset:
             log.error("No asset selected")
             return
@@ -3374,25 +3423,39 @@ example:
 
         #animationName = self.subTypeSearchList['scrollList'].getSelectedItem()
         wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem() if self.hasSub else self.subType)
+        log.debug("Wanted name: {}".format(wantedName))
+        
         if self.hasVariant:
             wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
+            log.debug("Has variant name: {}".format(wantedName))
+            
         if len(existingFiles) == 0:
             wantedName = "{0}_0{1}.{2}".format(wantedName, 1, _fileType)
         else:
-            currentFile = mc.file(q=True, loc=True)
-            if not os.path.exists(currentFile):
-                wantedName = "{0}_{1}.{2}".format(wantedName, 1, _fileType)
-                
             print wantedName
-            baseFile = os.path.split(currentFile)[-1]
-            baseName, ext = baseFile.split('.')
             
-            if '_BUILD' in baseName:
-                baseName = baseName.replace('_BUILD','')
+            wantedBasename = wantedName #"%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())      
+            
+            currentFile = mc.file(q=True, loc=True)
+            
+            if not os.path.exists(currentFile):
+                #If the open file hasn't been saved
+                log.debug("Doesn't exist: {}".format(currentFile))
+                baseFile = self.versionList['scrollList'].getSelectedItem()
+                baseName, ext = baseFile.split('.')
+                
+                if not wantedBasename in baseName:
+                    baseName = "%s_%02d" % (wantedBasename, 1)                      
+            
+            else:
+                #If it does exit, split data
+                currentFile = os.path.split(currentFile)[-1]#...split out the directory stuff
+                baseName, ext = currentFile.split('.')                
+            
+            #if '_BUILD' in baseName:
+            #    baseName = baseName.replace('_BUILD','')
 
-            wantedBasename = wantedName #"%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
-            if not wantedBasename in baseName:
-                baseName = "%s_%02d" % (wantedBasename, 1)
+
 
             noVersionName = '_'.join(baseName.split('_')[:-1])
             versionString = baseName.split('_')[-1]
@@ -3417,6 +3480,10 @@ example:
                 newVersion = 1
 
             wantedName = "%s_%s%02d.%s" % (noVersionName, versionPrefix, newVersion, _fileType)
+            
+            
+            pprint.pprint(vars())
+            return            
 
         saveLocation = os.path.join(self.path_asset, self.subType)
         if self.hasSub:
@@ -3590,6 +3657,7 @@ example:
         
         result = mc.promptDialog(
                     title='Rename {0}'.format(mode.capitalize()),
+                    text = sourceName,
                     message='Current: {0} | Enter Name:'.format(sourceName),
                     button=['OK', 'Cancel'],
                             defaultButton='OK',
@@ -3633,7 +3701,7 @@ example:
             if mode == 'subtype':
                 self.subTypeSearchList['scrollList'].selectByValue( newName )
             else:
-                self.subTypeSearchList['scrollList'].selectByValue( self.var_lastAnim.getValue() )
+                self.subTypeSearchList['scrollList'].selectByValue( self.var_lastSet.getValue() )
 
             
             #Var...
@@ -3699,8 +3767,8 @@ example:
 
             self.LoadSubTypeList()
 
-            if self.var_lastAnim.getValue():
-                self.subTypeSearchList['scrollList'].selectByValue( self.var_lastAnim.getValue() )
+            if self.var_lastSet.getValue():
+                self.subTypeSearchList['scrollList'].selectByValue( self.var_lastSet.getValue() )
 
             self.LoadVariationList()
 
@@ -4041,8 +4109,8 @@ example:
         #else:
         #    log.debug( log_msg(_str_func,"Path mismatch, no ref possible"))
             
-        log.debug( log_msg(_str_func,"Done"))
 
+        log.debug( log_msg(_str_func,"Done"))
     def SendLatestRigToProject():
         pass
 
@@ -4742,7 +4810,7 @@ def ExportScene(mode = -1,
 
 
 
-def PurgeData():
+def PurgeOptionVars():
 
     optionVarProjectStore       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
     optionVarProjectStore.purge()
