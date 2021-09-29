@@ -2841,8 +2841,12 @@ example:
                     if f in ['meta']:
                         continue
                     for chk in ['MRSbatch']:
+                        _break = False
                         if chk in f:
+                            _break = True
                             continue
+                    if _break:
+                        continue
                     anims.append(f)
                     
                 elif os.path.splitext(f)[-1].lower()[1:] in fileExtensions:
@@ -3482,8 +3486,8 @@ example:
             wantedName = "%s_%s%02d.%s" % (noVersionName, versionPrefix, newVersion, _fileType)
             
             
-            pprint.pprint(vars())
-            return            
+            #pprint.pprint(vars())
+                        
 
         saveLocation = os.path.join(self.path_asset, self.subType)
         if self.hasSub:
