@@ -1019,7 +1019,7 @@ example:
         mRow_sets.layout()"""
         
         mRow_sets = mUI.MelHLayout(_setsForm,padding = 2)
-        self.subTypeButton = mUI.MelButton(mRow_sets, ut='cgmUITemplate', label="Save Version", command=self.CreateAsset)
+        self.subTypeButton = mUI.MelButton(mRow_sets, ut='cgmUITemplate', label="Save Version", command=self.SaveVersion)
         #self.addSetButton = mUI.MelButton(mRow_sets, ut='cgmUITemplate', label="Add Set", command=self.CreateSubAsset)
         mRow_sets.layout()        
         self.mRow_setButtons = mRow_sets
@@ -3451,21 +3451,32 @@ example:
                 if not wantedBasename in baseName:
                     baseName = "%s_%02d" % (wantedBasename, 1)                      
             
-            else:
+            elif 'cat' == 'dog':
                 #If it does exit, split data
                 currentFile = os.path.split(currentFile)[-1]#...split out the directory stuff
-                baseName, ext = currentFile.split('.')                
+                baseName, ext = currentFile.split('.')
             
-            #if '_BUILD' in baseName:
-            #    baseName = baseName.replace('_BUILD','')
+            else:
+                 baseName = wantedBasename
+            
+            
+            
+            if '_BUILD' in baseName:
+                baseName = baseName.replace('_BUILD','')
 
 
+            if baseName != wantedBasename:
+                noVersionName = '_'.join(baseName.split('_')[:-1])
+                versionString = baseName.split('_')[-1]
+                try:versionNumString = re.findall('[0-9]+', versionString)[0]
+                except:pass
+                try:versionPrefix = versionString[:versionString.find(versionNumString)]
+                except:versionPrefix = ''                
+            else:
+                noVersionName = baseName
+                versionPrefix = ''
 
-            noVersionName = '_'.join(baseName.split('_')[:-1])
-            versionString = baseName.split('_')[-1]
-            versionNumString = re.findall('[0-9]+', versionString)[0]
-            versionPrefix = versionString[:versionString.find(versionNumString)]
-            version = int(versionNumString)
+            #version = int(versionNumString)
             
             versionFiles = []
             versions = []
@@ -3808,6 +3819,12 @@ example:
             _path =  self.path_asset
         elif mode == 'sets':
             _path = self.path_set
+            #cgmUI.cgmScrollList(parent).getSelectedItem
+            
+            _file = self.subTypeSearchList['scrollList'].getSelectedItem()
+            if _file and not _path.endswith(_file):
+                _path = os.path.join(_path,_file)
+                
         elif mode == 'variation':
             _path = self.path_variationDirectory
         elif mode == 'version':
@@ -3815,7 +3832,7 @@ example:
             
         log.debug(_path)
         
-        reload(cgmUI)
+        #reload(cgmUI)
         if cgmUI.uiPrompt_removeDir(_path):
             
             self.buildAssetForm()
