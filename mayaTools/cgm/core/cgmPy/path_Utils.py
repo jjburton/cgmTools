@@ -910,3 +910,6 @@ def findInPyPath( filename ):
     return findFirstInPaths( filename, sys.path )
 
 #end
+
+
+
