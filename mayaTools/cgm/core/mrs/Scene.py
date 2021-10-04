@@ -566,9 +566,9 @@ example:
         # self.optionVarExportDirStore.setValue( self.exportDirectory )
         self.var_categoryStore.setValue( self.categoryIndex )
         self.var_subTypeStore.setValue( self.subTypeIndex )
-        self.uiFunc_showDirectories( self.showDirectories )
-        self.uiFunc_displayDetails( self.displayDetails )
-        self.uiFunc_displayProject( self.displayProject )
+        #self.uiFunc_showDirectories( self.showDirectories )
+        #self.uiFunc_displayDetails( self.displayDetails )
+        #self.uiFunc_displayProject( self.displayProject )
 
     def UpdateToLatestRig(self, *args):
         for obj in mc.ls(sl=True):
@@ -678,10 +678,10 @@ example:
                     #return
                         
                     
-    def uiFunc_reloadContentBrowswer(self):
+    def uiFunc_reloadContentBrowser(self):
         self.uiScrollList_dirContent.rebuild( self.directory)
         
-    def uiFunc_reloadExportBrowswer(self):
+    def uiFunc_reloadExportBrowser(self):
         self.uiScrollList_dirExport.rebuild( self.exportDirectory)
         
     def build_layoutWrapper(self,parent):
@@ -824,7 +824,7 @@ example:
         
         
         _refresh = mUI.MelButton(uiTab_Content,l='Refresh', h=15, ut = 'cgmUITemplate',
-                                 c=lambda *a:self.uiFunc_reloadContentBrowswer())        
+                                 c=lambda *a:self.uiFunc_reloadContentBrowser())        
         
         
         uiTab_Content( edit=True, 
@@ -880,7 +880,7 @@ example:
     
     
         _refresh = mUI.MelButton(uiTab_Export,l='Refresh', h=15, ut = 'cgmUITemplate',
-                                     c=lambda *a:self.uiFunc_reloadExportBrowswer())        
+                                     c=lambda *a:self.uiFunc_reloadExportBrowser())        
     
     
         uiTab_Export( edit=True, 
@@ -2629,10 +2629,6 @@ example:
             self.subTypes = [x['n'] for x in self.mDat.assetType_get(self.category)['content']]
         except:
             self.subTypes = ['None']
-            
-
-        
-        
 
         if self.subTypeBtn(q=True, label=True) in self.subTypes:
             self.subTypeIndex = self.subTypes.index(self.subTypeBtn(q=True, label=True))
@@ -2950,12 +2946,9 @@ example:
                         
                         if f == 'sub':
                             self.LoadVariationList()
-                            
-                    
-                
-            
-            
+
             return
+
     def uiFunc_selectOpenFile(self, *args):
         _str_func = 'uiFunc_selectOpenFile'
         log.debug(log_start(_str_func))
