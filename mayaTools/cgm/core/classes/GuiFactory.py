@@ -2361,25 +2361,35 @@ class cgmScrollList(mUI.BaseMelWidget):
         else:
             return None
     
-    def select_last(self):
+    def select_last(self,selCommand=True):
         if not self._items:
             return False
-        try:self( e=True, selectIndexedItem=len(self.getItems()) )  
+        try:
+            self( e=True, selectIndexedItem=len(self.getItems()) )  
+            if selCommand and self.selCommand:
+                self.selCommand()
+            
         except Exception,err:
             log.error("select_last | {}".format(err))
             
     def getSelectedIdxs( self ):
         return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
         
-    def selectByIdx( self, idx, preclear=True ):
+    def selectByIdx( self, idx, preclear=True, selCommand = True ):
         if preclear:self.clearSelection()        
-        try:self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
+        try:
+            self( e=True, selectIndexedItem=idx+1 )#indices are 1-based in mel land - fuuuuuuu alias!!!
+            if selCommand and self.selCommand:
+                self.selCommand()
         except Exception,err:log.error(err)
         
         
-    def selectByValue( self, value, preclear=True ):
+    def selectByValue( self, value, preclear=True, selCommand=True ):
         if preclear:self.clearSelection()        
-        try:self( e=True, selectItem=value )
+        try:
+            self( e=True, selectItem=value )
+            if selCommand and self.selCommand:
+                self.selCommand()            
         except Exception,err:
             if value in self._items:
                 log.error(err)

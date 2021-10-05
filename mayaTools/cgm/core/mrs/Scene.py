@@ -28,6 +28,7 @@ import cgm.core.tools.Project as PROJECT
 import Red9.core.Red9_General as r9General
 
 import cgm.core.classes.GuiFactory as cgmUI
+reload(cgmUI)
 mUI = cgmUI.mUI
 
 import cgm.core.cgmPy.path_Utils as PATHS
@@ -97,6 +98,7 @@ example:
     reload(SCENEUTILS)
 
     def insert_init(self,*args,**kws):
+        self.b_loadState = False
         
         self.categoryList                = ["Character", "Environment", "Props"]
         self.categoryIndex               = 0
@@ -107,6 +109,7 @@ example:
         
         self.var_lastProject       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
         self.var_lastAsset     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
+        self.var_lastSubtype      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_subtype", varType = "string")        
         self.var_lastSet      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_set", varType = "string")
         self.var_lastVariation = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_variation", varType = "string")
         self.var_lastVersion   = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType = "string")
@@ -229,7 +232,7 @@ example:
     def report_selectedPaths(self):
         _str_func = 'report_selectedPaths'
 
-        log.debug(log_start(_str_func))    
+        log.info(log_start(_str_func))    
         
         log.info("Directory: {0}".format(self.directory))        
         log.info("Asset: {0}".format(self.path_asset))
@@ -238,14 +241,27 @@ example:
         log.info("Variation: {0}".format(self.path_variationDirectory))
         log.info("Version: {0}".format(self.path_versionDirectory))
         
-    def report_states(self):
-        _str_func = 'report_selectedPaths'
+    def report_lastSelection(self):
+        _str_func = 'report_lastSelection'
 
-        log.debug(log_start(_str_func))    
+        log.info(log_start(_str_func))    
+        
+        log.info("Project: {0}".format(self.var_lastProject.value))        
+        log.info("Asset: {0}".format(self.var_lastAsset.value))        
+        log.info("Subtype: {0}".format(self.var_lastSubtype.value))
+        log.info("Set: {0}".format(self.var_lastSet.value))        
+        log.info("Variation: {0}".format(self.var_lastVariation.value))
+        log.info("Version: {0}".format(self.var_lastVersion.value))
+        
+    def report_states(self):
+        _str_func = 'report_states'
+
+        log.info(log_start(_str_func))    
         
         log.info(log_sub(_str_func,'Options...'))
-        log.info("Asset: {0}".format(self.category))     
-        log.info("Subtype: {0}".format(self.selectedSet))
+        log.info("Asset: {0}".format(self.category))
+        log.info("Subtype: {0}".format(self.subType))        
+        log.info("Set: {0}".format(self.selectedSet))
         log.info("Variation: {0}".format(self.selectedVariation))        
         log.info("Version: {0}".format(self.selectedVersion))        
         
@@ -1525,7 +1541,8 @@ example:
             self.LoadOptions()
             
             self.assetList['scrollList'].clearSelection()
-            self.assetList['scrollList'].selectByIdx(0)
+            #self.assetList['scrollList'].selectByIdx(0)
+            #self.LoadPreviousSelection()
         else:
             mel.eval('error "Project path does not exist"')
             self.reload_headerImage()
@@ -1534,13 +1551,13 @@ example:
         self.uiScrollList_dirContent.rebuild( self.directory)
         
         
-        
+        """
         log.debug( "+"*100)
         log.debug(self.d_tf['general']['mayaFilePref'].getValue())        
         log.debug(self.d_tf['exportOptions']['removeNameSpace'].getValue())
         log.debug(self.d_tf['exportOptions']['zeroRoot'].getValue())        
         log.debug(self.d_tf['exportOptions']['postEuler'].getValue())        
-        log.debug(self.d_tf['exportOptions']['postTangent'].getValue())        
+        log.debug(self.d_tf['exportOptions']['postTangent'].getValue()) """       
         
             
             
@@ -1671,7 +1688,7 @@ example:
                             rp = 'N')    
         mUI.MelMenuItemDiv(self.uiMenu_HelpMenu, l="Dev")
 
-        _log = mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Logs:",subMenu=True)
+        _log = mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Logs:",subMenu=True, tearOff = True)
 
         
         mUI.MelMenuItem( _log, l="Dat",
@@ -1682,7 +1699,8 @@ example:
                                  c=lambda *a: self.report_states())
         mUI.MelMenuItem( _log, l="Export Batch",
                                  c=lambda *a: pprint.pprint(self.batchExportItems))        
- 
+        mUI.MelMenuItem( _log, l="Last Selection",
+                                 c=lambda *a: self.report_lastSelection() ) 
         mUI.MelMenuItem( _log, l="Log Self",
                                  c=lambda *a: cgmUI.log_selfReport(self) )
         
@@ -1830,7 +1848,6 @@ example:
             self.LoadCategoryList()
             return
         
-        
         self.subTypeSearchList['items'] = []
         self.subTypeSearchList['scrollList'].clear()
 
@@ -1876,6 +1893,8 @@ example:
         self.buildAssetForm()
         self.LoadPreviousSelection(skip=['asset'])
         self.uiUpdate_setsButtons()
+        
+        self.SaveCurrentSelection()
                 
     def uiUpdate_setsButtons(self):
         _str_func = 'uiUpdate_setsButtons'
@@ -1942,10 +1961,10 @@ example:
         
         if self.hasVariant:
             self.LoadVariationList()
-        else:
-            self.LoadVersionList()
+        self.LoadVersionList()
         
         self.uiUpdate_setsButtons()
+        self.SaveCurrentSelection()
             
         log.debug(log_end(_str_func))
         
@@ -1956,6 +1975,9 @@ example:
         #self.report_selectedPaths()
         
         _path = self.path_variationDirectory
+        
+        if not _path:
+            return
         #if _path:
         #    _path = os.path.normpath(_path)
         """
@@ -1970,6 +1992,7 @@ example:
             _path = None"""
            
         #if _path:
+        #print _path
         if os.path.isfile(_path):
             log.debug(log_msg(_str_func,"file passed"))
             for mUI in self.ml_fileOptions_set:
@@ -1989,6 +2012,8 @@ example:
                 mUI(edit=True,en=True)                 
         
             self.LoadVersionList()
+            
+        self.SaveCurrentSelection()
         
     def uiFunc_versionList_select(self, selectKey= None):
         _str_func = 'uiFunc_variationList_select'
@@ -1996,11 +2021,11 @@ example:
         #if selectKey:
             #self.versionList['scrollList'].selectByValue(selectKey)
             
-        self.report_selectedPaths()
+        #self.report_selectedPaths()
         
         self.assetMetaData = self.getMetaDataFromFile()
         self.buildDetailsColumn()
-        self.StoreCurrentSelection()
+        self.SaveCurrentSelection()
         log.debug( self.versionFile )
         
         
@@ -2636,7 +2661,9 @@ example:
         tsl.allowMultiSelect(False)
 
         if sc != None:
-            tsl(edit = True, sc=sc)
+            #tsl.set_selCallBack(sc)
+            tsl.cmd_select = sc
+            #tsl(edit = True, sc=sc)
 
         form( edit=True, attachForm=[(rcl, 'top', _margin), (rcl, 'left', _margin), (rcl, 'right', _margin), (tsl, 'bottom', _margin), (tsl, 'right', _margin), (tsl, 'left', _margin)], attachControl=[(tsl, 'top', _margin, rcl)] )
 
@@ -2740,7 +2767,7 @@ example:
         self.versionList['items'] = []
         self.versionList['scrollList'].clear()
 
-        self.StoreCurrentSelection()
+        #self.SaveCurrentSelection()
 
     def SetSubType(self, index, *args):
         _str_func = 'LoadSubTypeList'
@@ -2751,7 +2778,13 @@ example:
 
         self.LoadSubTypeList()
         self.var_subTypeStore.setValue(self.subTypeIndex)
-
+        
+        if not self.b_loadState:
+            try:self.var_lastSubtype.setValue(self.subTypes[self.subTypeIndex])
+            except:
+                log.error("Failed to load subTypes index {}".format(self.subTypeIndex))
+                return
+        
         for i,item in enumerate(self.subTypeMenuItemList):
             mc.menuItem(item, e=True, enable= i != self.subTypeIndex)
 
@@ -2809,7 +2842,7 @@ example:
         self.versionList['items'] = []
         self.versionList['scrollList'].clear()
 
-        #self.StoreCurrentSelection()
+        #self.SaveCurrentSelection()
 
     def LoadVariationList(self, *args):
         _str_func = 'LoadVariationList'
@@ -2872,7 +2905,7 @@ example:
         #if len(self.versionList['items']) > 0:
         #    self.versionList['scrollList'].selectByIdx( len(self.versionList['items'])-1 )
 
-        #self.StoreCurrentSelection()
+        #self.SaveCurrentSelection()
 
     def LoadVersionList(self, *args):
         _str_func = 'LoadVersionList'
@@ -2887,6 +2920,8 @@ example:
             searchDir = self.path_variationDirectory
 
         if not searchDir:
+            searchList['items'] = []
+            searchList['scrollList'].clear()            
             return
 
         versionList = []
@@ -2941,7 +2976,7 @@ example:
             #searchList['scrollList'].selectByValue(anims[-1])
         #    self.uiFunc_versionList_select(anims[-1])
         #else:
-        #    self.StoreCurrentSelection()
+        #    self.SaveCurrentSelection()
 
     def LoadFile(self, *args):
         if not self.assetList['scrollList'].getSelectedItem():
@@ -3156,14 +3191,19 @@ example:
     # 	else:
     # 		return None
 
-    def StoreCurrentSelection(self, *args):
-        _str_func = 'StoreCurrentSelection'
+    def SaveCurrentSelection(self, *args):
+        _str_func = 'SaveCurrentSelection'
+        
+        if self.b_loadState:
+            return
         log.debug(log_start(_str_func))
         
         if self.assetList['scrollList'].getSelectedItem():
             self.var_lastAsset.setValue(self.assetList['scrollList'].getSelectedItem())
         #else:
         #	mc.optionVar(rm=self.var_lastAsset)
+        
+        self.var_lastSubtype.setValue(self.subType)
 
         if self.subTypeSearchList['scrollList'].getSelectedItem():
             self.var_lastSet.setValue(self.subTypeSearchList['scrollList'].getSelectedItem())
@@ -3182,34 +3222,44 @@ example:
 
     def LoadPreviousSelection(self, skip = [], *args):
         _str_func = 'LoadPreviousSelection'
-        log.info(log_start(_str_func))
+        log.debug(log_start(_str_func))
         
         if 'asset' not in skip:
             val_asset = self.var_lastAsset.getValue()
             if val_asset:
                 self.assetList['scrollList'].selectByValue(val_asset )
         
+        _last_subType = self.var_lastSubtype.getValue()
+        #print "last subType: {}".format(_last_subType)
+        try:self.SetSubType(self.subTypes.index(_last_subType))
+        except:
+            log.warning("Failed to load subtype: {}".format(_last_subType))
+        
         
         #self.LoadSubTypeList()
-        
-        if self.var_lastSet.getValue():
-            self.subTypeSearchList['scrollList'].selectByValue( self.var_lastSet.getValue() )
+        _last_set = self.var_lastSet.getValue()
+        #print "last set: {}".format(_last_set)
+        if _last_set:
+            self.subTypeSearchList['scrollList'].selectByValue( _last_set )
         
         if not  self.subTypeSearchList['scrollList'].getSelectedItem():
             self.subTypeSearchList['scrollList'].select_last()
                 
         
         #self.LoadVariationList()
-
-
-        if self.var_lastVariation.getValue():
-            self.variationList['scrollList'].selectByValue( self.var_lastVariation.getValue() )
+        
+        _last_variation = self.var_lastVariation.getValue()
+        #print "last variation: {}".format(_last_variation)
+        
+        if _last_variation:
+            self.variationList['scrollList'].selectByValue( _last_variation )
         
         
         #self.LoadVersionList()
-
-        if self.var_lastVersion.getValue():
-            self.versionList['scrollList'].selectByValue( self.var_lastVersion.getValue() )
+        _last_version = self.var_lastVersion.getValue()        
+        #print "last version: {}".format(_last_version)
+        if _last_version:
+            self.versionList['scrollList'].selectByValue( _last_version )
             
         if not  self.versionList['scrollList'].getSelectedItem():
             self.versionList['scrollList'].select_last()        
@@ -3328,7 +3378,7 @@ example:
         
         wantedName = "%s_%s.%s" % (wantedName, self.subType, self.d_tf['general']['mayaFilePref'].getValue())
             
-        log.info(log_msg(_str_func,"Wanted: {0}".format(wantedName)))
+        log.debug(log_msg(_str_func,"Wanted: {0}".format(wantedName)))
     
         """
         if len(existingFiles) == 0:
@@ -3390,7 +3440,7 @@ example:
         self.LoadVersionList()
 
         versionList['scrollList'].selectByValue( wantedName )
-        self.StoreCurrentSelection()
+        self.SaveCurrentSelection()
 
         self.refreshMetaData()
             
@@ -3586,7 +3636,7 @@ example:
         self.LoadVersionList()
 
         #versionList['scrollList'].selectByValue( wantedName )
-        self.StoreCurrentSelection()
+        self.SaveCurrentSelection()
 
         #self.uiFunc_selectOpenFile()
         self.refreshMetaData()
@@ -3603,16 +3653,31 @@ example:
             mel.eval('warning "No Project Set"')
             return
         
+        self.b_loadState = True
+        
+        self.report_lastSelection()
+        
         self.mDat = Project.data(filepath=path)
         
+        #print"{}...".format('projectload')                
         PROJECT.uiProject_load(self, path=path)
+        #self.report_lastSelection()
         
         self.var_lastProject.setValue( path )
         
+        #print"{}...".format('refresh')        
         self.uiProject_refreshDisplay()
+        #self.report_lastSelection()
+        
+        #print"{}...".format('dirty')        
         self.uiFunc_projectDirtyState(False)
+        #self.report_lastSelection()
         
+        #print"{}...".format('previous')                
+        self.LoadPreviousSelection()
+        #self.report_lastSelection()
         
+        self.b_loadState = False        
         return
     
     
