@@ -128,7 +128,8 @@ example:
         #self.var_postTangent     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_postTangent", varType = "string", defaultValue='auto')
         #self.var_mayaFilePref     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_mayaFilePref", varType = "string", defaultValue='ma')
         
-        
+        self.var_posePathLocal = cgmMeta.cgmOptionVar('cgmVar_mrs_localPosePath',defaultValue = '')
+        self.var_posePathProject = cgmMeta.cgmOptionVar('cgmVar_mrs_projectPosePath',defaultValue = '')        
         
         
         self.var_bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
@@ -1511,7 +1512,6 @@ example:
 
 
         if os.path.exists(d_userPaths['content']):
-
             self.LoadCategoryList(d_userPaths['content'])
                         
             self.l_categoriesBase = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
@@ -1549,6 +1549,11 @@ example:
             
         self.uiScrollList_dirContent.mDat = self.mDat
         self.uiScrollList_dirContent.rebuild( self.directory)
+        
+        
+        if d_userPaths.get('poses') and os.path.exists(d_userPaths.get('poses')):
+            self.var_posePathProject.value = d_userPaths['poses']
+            self.var_posePathLocal.value = d_userPaths['poses']
         
         
         """
