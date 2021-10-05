@@ -11,9 +11,9 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.10.02.1'
+__RELEASE = '21.10.04.1'
 
-__BRANCH = 'MRSDEV'
+__BRANCH = 'MRSDAILY'
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -782,7 +782,11 @@ def logString_sub(str_func = None,msg='break',split='_',intCount = 80):
 def logString_msg(str_func = None,msg=''):
     if str_func:return "{0} >> {1} ...".format(str_func,msg)
     return "{0} ...".format(msg)
-    
+
+def logString_end(str_func = None):
+    if str_func:return "{0} >> DONE ... ".format(str_func) + _str_hardBreak
+    return "DONE ... {0} ".format(_str_hardBreak)
+
 def log_info_dict(arg = None,tag = 'Stored Dict'):
     '''
     Log a dictionary.

@@ -594,19 +594,25 @@ def find_tmpFiles(path = None, level = None, cleanFiles = False,
         _i +=1
         
     if cleanFiles:
+        _len = 0
         for f,_path in _d_weirdFiles.iteritems():
             try:
                 log.warning("Remove: {0}".format(_path))
                 os.remove( _path )
+                _len+=1                
             except WindowsError, e:
                 try:
                     log.info("|{0}| >> Initial delete fail. attempting chmod... ".format(_str_func))                          
                     os.chmod( _path, stat.S_IWRITE )
-                    os.remove( _path )                          
+                    os.remove( _path )
+                    _len+=1                    
                 except Exception,e:
                     for arg in e.args:
                         log.error(arg)   
                     raise RuntimeError,"Stop"
+            
+                
+        log.warning("|{}| >> deleted [{}] files".format(_str_func,_len))                          
     else:
         if _d_weirdFiles:
             pprint.pprint(_d_weirdFiles)
