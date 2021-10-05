@@ -2372,10 +2372,11 @@ class cgmScrollList(mUI.BaseMelWidget):
         return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
         
     def selectByIdx( self, idx ):
-        self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
-
+        try:self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
+        except Exception,err:log.error(err)
     def selectByValue( self, value):
-        self( e=True, selectItem=value )
+        try:self( e=True, selectItem=value )
+        except Exception,err:log.error(err)
         
     def append( self, item ):
         self( e=True, append=item )
