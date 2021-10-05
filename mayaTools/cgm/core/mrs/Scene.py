@@ -3158,7 +3158,7 @@ example:
             charName = mc.promptDialog(query=True, text=True)
             charPath = os.path.normpath(os.path.join(self.path_dir_category, charName))
             if not os.path.exists(charPath):
-                os.mkdir(charPath)
+                os.makedirs(charPath)
                 for subType in self.l_subTypesBase:
                     os.mkdir(os.path.normpath(os.path.join(charPath, subType)))
 
