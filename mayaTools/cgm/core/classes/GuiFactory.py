@@ -2362,6 +2362,8 @@ class cgmScrollList(mUI.BaseMelWidget):
             return None
     
     def select_last(self):
+        if not self._items:
+            return False
         try:self( e=True, selectIndexedItem=len(self.getItems()) )  
         except Exception,err:
             log.error("select_last | {}".format(err))

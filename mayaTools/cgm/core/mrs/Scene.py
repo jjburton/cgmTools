@@ -48,6 +48,7 @@ def ui_get():
     return ui()
 
 log_start = cgmGEN.logString_start
+log_end = cgmGEN.logString_end
 log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
 
@@ -244,7 +245,7 @@ example:
         
         log.info(log_sub(_str_func,'Options...'))
         log.info("Asset: {0}".format(self.category))     
-        log.info("Subtype: {0}".format(self.selectedSubType))
+        log.info("Subtype: {0}".format(self.selectedSet))
         log.info("Variation: {0}".format(self.selectedVariation))        
         log.info("Version: {0}".format(self.selectedVersion))        
         
@@ -258,6 +259,7 @@ example:
         log.info("Asset: {0}".format(self.path_asset))
         log.info("Subtype Dir: {0}".format(self.path_subType))        
         log.info("Set: {0}".format(self.path_set))
+
         log.info("Variation: {0}".format(self.path_variationDirectory))
         log.info("Version: {0}".format(self.path_versionDirectory))
         
@@ -278,7 +280,7 @@ example:
             log.debug(err)
             return False        
     @property
-    def selectedSubType(self):
+    def selectedSet(self):
         return self.subTypeSearchList['scrollList'].getSelectedItem()	
 
     @property
@@ -907,8 +909,8 @@ example:
         # Category
         _catForm = mUI.MelFormLayout(self._assetsForm,ut='cgmUISubTemplate')
         self.categoryBtn = mUI.MelButton(_catForm,
-                                                 label=self.category,ut='cgmUITemplate',
-                                                  ann='Select the asset category')
+                                         label=self.category,ut='cgmUITemplate',
+                                          ann='Select the asset category')
 
         self.categoryMenu = mUI.MelPopupMenu(self.categoryBtn, button=1 )
         # for i,category in enumerate(self.categoryList):
@@ -969,28 +971,33 @@ example:
                         command=self.CreateVariation)
         """
         mUI.MelMenuItemDiv( pum, label='Selected' )
-                
         
-        self._referenceSubTypePUM = mUI.MelMenuItem(pum,label="Reference",
-                                                    ann = _d_ann.get('reference'),
-                                                    command=self.ReferenceFile,en=1 )
-        self._importSubTypePUM = mUI.MelMenuItem(pum,label="Import",
-                                                 ann = _d_ann.get('import'),
-                                                 command=self.ImportFile,en=1 )
-        self._importSubTypePUM = mUI.MelMenuItem(pum,label="Replace",
-                                                 ann=_d_ann.get('replace','Replace'),
-                                                 command=self.file_replace,en=1 )
+        self.ml_dirOptions_set = []
+        
+        self.ml_dirOptions_set.append(mUI.MelMenuItem(pum, label="Rename Set", command= partial(self.rename_below,'set') ))
+        
+        self.ml_fileOptions_set = []
+        
+        self.ml_fileOptions_set.append(mUI.MelMenuItem(pum,label="Reference",
+                                                       ann = _d_ann.get('reference'),
+                                                       command=self.ReferenceFile,en=1 ))
+        self.ml_fileOptions_set.append(mUI.MelMenuItem(pum,label="Import",
+                                                       ann = _d_ann.get('import'),
+                                                       command=self.ImportFile,en=1 ))
+        self.ml_fileOptions_set.append(mUI.MelMenuItem(pum,label="Replace",
+                                                      ann=_d_ann.get('replace','Replace'),
+                                                      command=self.file_replace,en=1 ))
                 
         self.uiPop_sendToProject_sub = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True, en=1)
+        self.ml_fileOptions_set.append(self.uiPop_sendToProject_sub)
         
-        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
-        
-        
-        mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
-        
-        mUI.MelMenuItem( pum, label="Create SubTypeRef", command= lambda *a:self.CreateSubTypeRef() )
+        self.ml_fileOptions_set.append(mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1))
+        self.ml_fileOptions_set.append(mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue ))
+        self.ml_fileOptions_set.append(mUI.MelMenuItem( pum, label="Create SubTypeRef", command= lambda *a:self.CreateSubTypeRef() ))
         
         _batch = mUI.MelMenuItem(pum, label="To Queue as:", subMenu=True )
+        self.ml_fileOptions_set.append(_batch)
+        
         for t in ['export','rig','cutscene']:
             mUI.MelMenuItem( _batch, label= t.capitalize(),
                              command = partial(self.AddToExportQueue,t))        
@@ -1055,22 +1062,27 @@ example:
         mUI.MelMenuItem( pum, label='        Variant', en=False )
         mUI.MelMenuItemDiv( pum, label='Selected' )
         
-        mUI.MelMenuItem(pum, label="Rename Variant", command= partial(self.rename_below,'variant') )
+        self.ml_dirOptions_variant = []
         
-        mUI.MelMenuItem(pum, label="Reference File",
-                        ann = _d_ann.get('reference'),
-                        command=self.ReferenceFile )
-        mUI.MelMenuItem(pum,label="Import",
-                        ann = _d_ann.get('import'),
-                        command=self.ImportFile)        
-        mUI.MelMenuItem(pum,label="Replace",
-                        ann=_d_ann.get('replace','Replace'),
-                        command=self.file_replace)        
+        self.ml_dirOptions_variant.append(mUI.MelMenuItem(pum, label="Rename Variant", command= partial(self.rename_below,'variant') ))
+        
+        self.ml_fileOptions_variant = []
+        
+        self.ml_fileOptions_variant.append(mUI.MelMenuItem(pum, label="Reference File",
+                                                           ann = _d_ann.get('reference'),
+                                                           command=self.ReferenceFile ))
+        self.ml_fileOptions_variant.append(mUI.MelMenuItem(pum,label="Import",
+                                                           ann = _d_ann.get('import'),
+                                                           command=self.ImportFile))        
+        self.ml_fileOptions_variant.append(mUI.MelMenuItem(pum,label="Replace",
+                                                           ann=_d_ann.get('replace','Replace'),
+                                                           command=self.file_replace))
 
         self.uiPop_sendToProject_variant = mUI.MelMenuItem(pum, label="Send To Project", subMenu=True )
-        mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1)
-        
-        mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue )
+        self.ml_fileOptions_variant.append(self.uiPop_sendToProject_variant)
+      
+        self.ml_fileOptions_variant.append(mUI.MelMenuItem(pum, label="Send To Build", command=self.SendToBuild,en=1))
+        self.ml_fileOptions_variant.append(mUI.MelMenuItem( pum, label="Send Last To Queue", command=self.AddLastToExportQueue ))
         
 
         mUI.MelMenuItemDiv( pum, label='Directory' )
@@ -1511,12 +1523,16 @@ example:
 
             self.assetMetaData = {}
             self.LoadOptions()
+            
+            self.assetList['scrollList'].clearSelection()
+            self.assetList['scrollList'].selectByIdx(0)
         else:
             mel.eval('error "Project path does not exist"')
             self.reload_headerImage()
             
         self.uiScrollList_dirContent.mDat = self.mDat
         self.uiScrollList_dirContent.rebuild( self.directory)
+        
         
         
         log.debug( "+"*100)
@@ -1903,11 +1919,23 @@ example:
             self.variationList['scrollList'].clear()
             self.versionList['scrollList'].clear()
             
+            for mUI in self.ml_fileOptions_set:
+                mUI(edit=True,en=True)
+                
+            for mUI in self.ml_dirOptions_set:
+                mUI(edit=True,en=False)
+            
             #mc.formLayout( self._subForms[3], e=True, vis=False )
             #mc.formLayout( self._subForms[2], e=True, vis=False )
             
             return
-        
+        else:
+            for mUI in self.ml_fileOptions_set:
+                mUI(edit=True,en=False)
+            for mUI in self.ml_dirOptions_set:
+                mUI(edit=True,en=True)
+                
+                
         self.buildAssetForm()
         
         if self.hasVariant:
@@ -1917,16 +1945,48 @@ example:
         
         self.uiUpdate_setsButtons()
             
-        log.debug(log_msg(_str_func,cgmGEN._str_hardBreak))
+        log.debug(log_end(_str_func))
         
             
     def uiFunc_variationList_select(self):
         _str_func = 'uiFunc_variationList_select'
         log.debug(log_start(_str_func))
-        self.report_selectedPaths()
+        #self.report_selectedPaths()
         
+        _path = self.path_variationDirectory
+        #if _path:
+        #    _path = os.path.normpath(_path)
+        """
+        try: 
+            _path = os.path.normpath(os.path.join( self.path_dir_category,
+                                                   self.assetList['scrollList'].getSelectedItem(),
+                                                   self.subType, 
+                                                   self.subTypeSearchList['scrollList'].getSelectedItem(),
+                                                   self.variationList['scrollList'].getSelectedItem(),                                                   
+                                                   ))
+        except:
+            _path = None"""
+           
+        #if _path:
+        if os.path.isfile(_path):
+            log.debug(log_msg(_str_func,"file passed"))
+            for mUI in self.ml_fileOptions_set:
+                mUI(edit=True,en=True)
+            
+            for mUI in self.ml_fileOptions_variant:
+                mUI(edit=True,en=True)            
+            for mUI in self.ml_dirOptions_variant:
+                mUI(edit=True,en=False)
+                
+            self.versionList['scrollList'].clear()
+        elif os.path.isdir(_path):
+            log.debug(log_msg(_str_func,"dir passed"))            
+            for mUI in self.ml_fileOptions_variant:
+                mUI(edit=True,en=False)            
+            for mUI in self.ml_dirOptions_variant:
+                mUI(edit=True,en=True)                 
         
-        self.LoadVersionList()
+            self.LoadVersionList()
         
     def uiFunc_versionList_select(self, selectKey= None):
         _str_func = 'uiFunc_variationList_select'
@@ -2386,7 +2446,14 @@ example:
         return data
 
     def refreshMetaData(self):
-        if os.path.normpath(self.versionFile) != os.path.normpath(mc.file(q=True, loc=True)):
+        currentFile = mc.file(q=True, loc=True)
+        if not os.path.exists(currentFile):
+            log.warning("Can't refresh unsaved files")
+            return False
+        if not self.versionFile:
+            log.warning("No version file")            
+            return
+        if os.path.normpath(self.versionFile) != os.path.normpath(currentFile):
             mc.confirmDialog(title="No. Just no.", message="The open file doesn't match the selected file. I refuse to refresh this metaData with the wrong file. It just wouldn't feel right.", button=["Cancel", "Sorry"])
             return
 
@@ -2428,7 +2495,7 @@ example:
     def uiFunc_toggleProjectColumn(self):
         self.displayProject = not self.displayProject
         self.uiFunc_displayProject(self.displayProject)
-        #self.SaveOptions()
+        self.SaveOptions()
         
     def uiFunc_displayDetails(self, val):
         self._detailsColumn(e=True, vis=val)
@@ -2704,10 +2771,10 @@ example:
         
         if not self.hasSub:
             self.LoadVersionList()
-            self._referenceSubTypePUM(e=True, en=True)
+            #self._referenceSubTypePUM(e=True, en=True)
             return
 
-        self._referenceSubTypePUM(e=True, en=False)
+        #self._referenceSubTypePUM(e=True, en=False)
 
         subList = []
 
@@ -2785,8 +2852,8 @@ example:
 
                         
                     animDir = os.path.normpath(os.path.join(animationDir, d))
-                    if os.path.isdir(animDir):
-                        variationList.append(d)
+                    #if os.path.isdir(animDir):
+                    variationList.append(d)
 
         self.variationList['items'] = variationList
         self.variationList['scrollList'].setItems(variationList)
@@ -2829,6 +2896,8 @@ example:
             # animDir = (self.path_variationDirectory if self.hasVariant else self.path_set) if self.hasSub else self.path_dir_category
 
             # if os.path.exists(animDir):
+            if not os.path.isdir(searchDir):
+                return
             for f in os.listdir(searchDir):
                 if f[0] == '_' or f[0] == '.':
                     continue
@@ -2848,10 +2917,10 @@ example:
                 elif os.path.splitext(f)[-1].lower()[1:] in fileExtensions:
                     if self.hasSub:
                         if self.hasVariant:
-                            if '{0}_{1}_{2}_'.format(self.selectedAsset, self.selectedSubType, self.selectedVariation) in f:
+                            if '{0}_{1}_{2}_'.format(self.selectedAsset, self.selectedSet, self.selectedVariation) in f:
                                 anims.append(f)
                         else:
-                            if '{0}_{1}_'.format(self.selectedAsset, self.selectedSubType) in f:
+                            if '{0}_{1}_'.format(self.selectedAsset, self.selectedSet) in f:
                                 anims.append(f)							
                     else:
                         if '{0}_{1}_'.format(self.selectedAsset, self.subType) in f:
@@ -3108,6 +3177,8 @@ example:
         #	mc.optionVar(rm=self.var_lastVersion)
 
     def LoadPreviousSelection(self, skip = [], *args):
+        _str_func = 'LoadPreviousSelection'
+        log.debug(log_start(_str_func))
         
         if 'asset' not in skip:
             if self.var_lastAsset.getValue():
@@ -3138,6 +3209,8 @@ example:
             self.versionList['scrollList'].select_last()        
 
         self.assetMetaData = self.getMetaDataFromFile()	
+        
+        log.debug(log_end(_str_func))
 
 
     def ClearPreviousDirectories(self, *args):		
@@ -3509,7 +3582,7 @@ example:
         #versionList['scrollList'].selectByValue( wantedName )
         self.StoreCurrentSelection()
 
-        self.uiFunc_selectOpenFile()
+        #self.uiFunc_selectOpenFile()
         self.refreshMetaData()
         
 
@@ -3532,6 +3605,7 @@ example:
         
         self.uiProject_refreshDisplay()
         self.uiFunc_projectDirtyState(False)
+        
         
         return
     
@@ -3652,8 +3726,11 @@ example:
         if mode == 'asset':
             sourceName = self.selectedAsset
             path = self.path_dir_category
+        elif mode == 'set':
+            sourceName = self.selectedSet
+            path = self.path_set            
         elif mode == 'subtype':
-            sourceName = self.selectedSubType
+            sourceName = self.selectedSet
             path = self.path_subType
         elif mode in ['variant','variation']:
             sourceName = self.selectedVariation
@@ -4445,7 +4522,7 @@ example:
                 'bakeSetName':bakeSetName,
                 'exportSetName':exportSetName,
                 'deleteSetName':deleteSetName,
-                'animationName':self.selectedSubType,
+                'animationName':self.selectedSet,
                 'tangent':postTangent,
                 'euler':postEuler,
             'workspace':d_userPaths['content']
@@ -4466,7 +4543,7 @@ example:
                     exportAnimPath = exportAnimPath,
                     removeNamespace = self.d_tf['exportOptions']['removeNameSpace'].getValue(),
                     zeroRoot = self.d_tf['exportOptions']['zeroRoot'].getValue(),
-                    animationName = _l_openTokens[0],#self.selectedSubType,
+                    animationName = _l_openTokens[0],#self.selectedSet,
                     tangent=postTangent,
                     euler=postEuler,                            
                     workspace=d_userPaths['content']
