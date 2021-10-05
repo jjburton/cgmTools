@@ -2371,12 +2371,14 @@ class cgmScrollList(mUI.BaseMelWidget):
     def getSelectedIdxs( self ):
         return [ idx-1 for idx in self( q=True, sii=True ) or [] ]
         
-    def selectByIdx( self, idx ):
+    def selectByIdx( self, idx, preclear=True ):
+        if preclear:self.clearSelection()        
         try:self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
         except Exception,err:log.error(err)
         
         
-    def selectByValue( self, value):
+    def selectByValue( self, value, preclear=True ):
+        if preclear:self.clearSelection()        
         try:self( e=True, selectItem=value )
         except Exception,err:
             if value in self._items:
