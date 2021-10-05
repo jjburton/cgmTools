@@ -541,7 +541,7 @@ example:
         self.SetSubType(self.subTypeIndex)
         self.buildMenu_subTypes()
         self.SetCategory(self.categoryIndex)
-        self.LoadPreviousSelection()
+        #self.LoadPreviousSelection()
         self.uiFunc_showDirectories(self.showDirectories)	
         self.uiFunc_displayDetails(self.displayDetails)
         self.uiFunc_displayProject( self.displayProject )
@@ -1697,10 +1697,12 @@ example:
     def set_loggingInfo(self):
         self.var_DebugMode.value = 0
         log.setLevel(logging.INFO)
+        cgmUI.log.setLevel(logging.INFO)
         
     def set_loggingDebug(self):
         self.var_DebugMode.value = 1
         log.setLevel(logging.DEBUG)    
+        cgmUI.log.setLevel(logging.DEBUG)
         
     #@cgmGEN.Timer
     def buildMenu_project( self, *args):
@@ -1991,9 +1993,9 @@ example:
     def uiFunc_versionList_select(self, selectKey= None):
         _str_func = 'uiFunc_variationList_select'
         log.debug(log_start(_str_func))
-        if selectKey:
-            #searchList['scrollList'].selectByValue(anims[-1])
-            self.versionList['scrollList'].selectByValue(selectKey)
+        #if selectKey:
+            #self.versionList['scrollList'].selectByValue(selectKey)
+            
         self.report_selectedPaths()
         
         self.assetMetaData = self.getMetaDataFromFile()
@@ -2761,7 +2763,7 @@ example:
         mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
         self.buildAssetForm()
         
-        self.LoadPreviousSelection(skip=['asset'])
+        #self.LoadPreviousSelection(skip=['asset'])
         
 
     def LoadSubTypeList(self, *args):
@@ -2807,7 +2809,7 @@ example:
         self.versionList['items'] = []
         self.versionList['scrollList'].clear()
 
-        self.StoreCurrentSelection()
+        #self.StoreCurrentSelection()
 
     def LoadVariationList(self, *args):
         _str_func = 'LoadVariationList'
@@ -2858,17 +2860,19 @@ example:
         self.variationList['items'] = variationList
         self.variationList['scrollList'].setItems(variationList)
 
-        self.variationList['scrollList'].selectByValue(selectedVariation) # if selectedVariation else variationList[0]
+        #self.variationList['scrollList'].selectByValue(selectedVariation) # if selectedVariation else variationList[0]
+        
+        #...hunting loop
+        #self.versionList['items'] = []
+        #self.versionList['scrollList'].clear()
 
-        self.versionList['items'] = []
-        self.versionList['scrollList'].clear()
+        #self.LoadVersionList()
+        
+        
+        #if len(self.versionList['items']) > 0:
+        #    self.versionList['scrollList'].selectByIdx( len(self.versionList['items'])-1 )
 
-        self.LoadVersionList()
-
-        if len(self.versionList['items']) > 0:
-            self.versionList['scrollList'].selectByIdx( len(self.versionList['items'])-1 )
-
-        self.StoreCurrentSelection()
+        #self.StoreCurrentSelection()
 
     def LoadVersionList(self, *args):
         _str_func = 'LoadVersionList'
@@ -3178,11 +3182,13 @@ example:
 
     def LoadPreviousSelection(self, skip = [], *args):
         _str_func = 'LoadPreviousSelection'
-        log.debug(log_start(_str_func))
+        log.info(log_start(_str_func))
         
         if 'asset' not in skip:
-            if self.var_lastAsset.getValue():
-                self.assetList['scrollList'].selectByValue( self.var_lastAsset.getValue() )
+            val_asset = self.var_lastAsset.getValue()
+            if val_asset:
+                self.assetList['scrollList'].selectByValue(val_asset )
+        
         
         #self.LoadSubTypeList()
         
