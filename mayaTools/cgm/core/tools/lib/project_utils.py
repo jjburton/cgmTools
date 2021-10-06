@@ -134,7 +134,7 @@ l_nameConventions = ['none','lower','capital','upper','camelCase','capFirst']
 l_mayaVersions = ['2016','2017','2018','2019','2020','2021']
 l_userMode = ['general','master']
 l_projectTypes = ['unity','unreal','commercial']
-l_projectPaths = ['root','content','export','image','sciptUI','poses']
+l_projectPaths = ['root','content','export','image','scriptUI','poses']
 l_mayaFileType = ['ma','mb']
 
 

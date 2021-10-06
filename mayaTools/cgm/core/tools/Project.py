@@ -3254,7 +3254,7 @@ def uiButton_fbxVersion_set(self,uiOption, uiLabel):
 
 def uiButton_setPathToTextField(self,key,mode='project'):
     basicFilter = "*"
-    if key in ['image']:
+    if key in ['image','scriptUI']:
         x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=1)
     else:
         x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
@@ -3276,6 +3276,10 @@ def uiButton_setPathToTextField(self,key,mode='project'):
         
         if key in ['image']:
             self.reload_headerImage(x[0])
+        elif key == 'scriptUI':
+            if self.__dict__.get('rebuild_scriptUI'):
+                log.info('rebuilding scriptUI')
+                self.rebuild_scriptUI()
         elif key == 'content':
             self.uiScrollList_dirContent.clear()
             #self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue())

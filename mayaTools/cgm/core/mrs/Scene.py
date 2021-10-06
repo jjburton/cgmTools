@@ -229,10 +229,40 @@ example:
     def path_dir_category(self):
         return os.path.normpath(os.path.join( self.directory, self.category ))
     
+    def rebuild_scriptUI(self):
+        _str_func = 'rebuild_scriptUI'
+        log.info(log_start(_str_func))
+        self.uiMenu_projectUtils(edit=True, vis=False)
+        
+        _path = self.d_userPaths.get('scriptUI')
+        if not _path:
+            return log.warning(cgmGEN.logString_msg(_str_func, "No scriptUI path"))
+        
+        if not os.path.exists(_path):
+            return log.warning(cgmGEN.logString_msg(_str_func, "path doesn't exist: {}".format(_path)))
+        
+        log.info(cgmGEN.logString_msg(_str_func, _path))
+        module = None
+        if float(cgmGEN.__mayaVersion__) < 2022:
+            import imp
+            if _path.endswith('.py'):
+                os.remove(_path.replace('.py','.pyc'))
+            module = imp.load_source('tmp',_path)
+            
+        if not module:
+            return
+        self.uiMenu_projectUtils(edit=True, vis=True)
+        
+        self.uiMenu_projectUtils.clear()
+        
+        if module.__dict__.get('uiMenu'):
+            log.info(log_msg(_str_func, "trying to load..."))
+            module.uiMenu(self, self.uiMenu_projectUtils)
+        
+        
     
     def report_selectedPaths(self):
         _str_func = 'report_selectedPaths'
-
         log.info(log_start(_str_func))    
         
         log.info("Directory: {0}".format(self.directory))        
@@ -1365,21 +1395,28 @@ example:
     # Menu Building
     #=========================================================================
     def buildAssetForm(self):
-        mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
-        _hasSub = self.hasSub
-        
-        if not self.hasSubTypes:
-            #mc.formLayout( self._subForms[1], e=True, vis=False )
-            mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
-        
+        pprint.pprint(self.subTypes)
+        if not self.subTypes:
+            mc.formLayout( self._subForms[1], e=True, vis=False )            
+            mc.formLayout( self._subForms[3], e=True, vis=True )
+            
         else:
-            mc.formLayout( self._subForms[3], e=True, vis=self.hasSub)#self.hasSub )
-                
-            #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
-            #else:
-            #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
-                
-            mc.formLayout( self._subForms[1], e=True, vis=True )
+            mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
+            mc.formLayout( self._subForms[1], e=True, vis=True )            
+            
+            _hasSub = self.hasSub
+            
+            if not self.hasSubTypes:
+                mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
+            
+            else:
+                mc.formLayout( self._subForms[3], e=True, vis=self.hasSub)#self.hasSub )
+                    
+                #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
+                #else:
+                #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
+                    
+                mc.formLayout( self._subForms[1], e=True, vis=True )
             
         
         attachForm = []
@@ -1420,7 +1457,10 @@ example:
         self.uiMenu_ToolsMenu = mUI.MelMenu( l='Tools', pmc=self.buildMenu_tools,pmo=True)
         self.uiMenu_Utils = mUI.MelMenu(l='Utils', pmo=1,
                                         pmc = cgmGEN.Callback(self.buildMenu_utils),
-                                        tearOff=True)         
+                                        tearOff=True)
+        self.uiMenu_projectUtils = mUI.MelMenu(l='Project Scripts',
+                                        tearOff=True)
+        
         self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help,pmo=True)
         
     def uiProject_open(self):
@@ -1461,6 +1501,7 @@ example:
         #self.uiFunc_displayProject(self.displayProject)
         
         _bgColor = self.v_bgc
+        self.d_userPaths = {}
         try:
             _bgColor = self.mDat.d_colors['project']
             
@@ -1493,7 +1534,8 @@ example:
             self.uiScrollList_dirExport(edit=True, hlc = (1.0, .445, .08))
 
         d_userPaths = self.mDat.userPaths_get()
-
+        self.d_userPaths = d_userPaths
+        
         if not d_userPaths.get('content'):
             log.error("No Content path found")
             self.reload_headerImage()            
@@ -1555,6 +1597,7 @@ example:
             self.var_posePathProject.value = d_userPaths['poses']
             self.var_posePathLocal.value = d_userPaths['poses']
         
+        self.rebuild_scriptUI()
         
         """
         log.debug( "+"*100)
@@ -1709,6 +1752,9 @@ example:
         mUI.MelMenuItem( _log, l="Log Self",
                                  c=lambda *a: cgmUI.log_selfReport(self) )
         
+        mUI.MelMenuItem( _log, l="Rebuild scriptUI",
+                         c=lambda *a: self.rebuild_scriptUI() )
+        
         #Logger toggle
         iMenu_loggerMaster = mUI.MelMenuItem( self.uiMenu_HelpMenu, l='Logger Level', subMenu=True)
         mUI.MelMenuItem( iMenu_loggerMaster, l='Info',
@@ -1853,6 +1899,7 @@ example:
             self.LoadCategoryList()
             return
         
+        
         self.subTypeSearchList['items'] = []
         self.subTypeSearchList['scrollList'].clear()
 
@@ -1861,6 +1908,7 @@ example:
 
         self.versionList['items'] = []
         self.versionList['scrollList'].clear()        
+        
         
         
         l_newTypes = []
@@ -1879,7 +1927,8 @@ example:
             self.subTypes.extend(l_expected)
         if l_newTypes:
             self.subTypes.extend(l_newTypes)
-
+            
+        
         #print self.subType
         #pprint.pprint(self.subTypes)        
         
@@ -1894,10 +1943,16 @@ example:
         #if self.subTypes:
             #self.buildMenu_subTypes()
             #self.LoadSubTypeList()
-            
+        
         self.buildAssetForm()
+        
+        if not self.subTypes:#...if 
+            self.LoadVersionList()
+        
         self.LoadPreviousSelection(skip=['asset'])
-        self.uiUpdate_setsButtons()
+        
+        if self.subTypes:
+            self.uiUpdate_setsButtons()
         
         self.SaveCurrentSelection()
                 
@@ -2522,6 +2577,7 @@ example:
 
     def uiFunc_toggleDisplayInfo(self):
         self.displayDetails = not self.displayDetails
+        self.uiFunc_displayDetails(self.displayDetails)
         self.SaveOptions()
         
     def uiFunc_toggleProjectColumn(self):
@@ -2915,14 +2971,18 @@ example:
     def LoadVersionList(self, *args):
         _str_func = 'LoadVersionList'
         log.debug(log_start(_str_func))
-
-        searchDir = os.path.join(self.path_asset if self.path_asset else self.path_dir_category, self.subType if self.subType else "")
-        searchList = self.subTypeSearchList
-        if self.hasSub:
-            searchDir = self.path_set
+        
+        if not self.subTypes:#...if we have 
+            searchDir = self.path_asset
             searchList = self.versionList
-        if self.hasVariant and self.hasSub:
-            searchDir = self.path_variationDirectory
+        else:
+            searchDir = os.path.join(self.path_asset if self.path_asset else self.path_dir_category, self.subType if self.subType else "")
+            searchList = self.subTypeSearchList
+            if self.hasSub:
+                searchDir = self.path_set
+                searchList = self.versionList
+            if self.hasVariant and self.hasSub:
+                searchDir = self.path_variationDirectory
 
         if not searchDir:
             searchList['items'] = []
@@ -3234,30 +3294,31 @@ example:
             if val_asset:
                 self.assetList['scrollList'].selectByValue(val_asset )
         
-        _last_subType = self.var_lastSubtype.getValue()
-        #print "last subType: {}".format(_last_subType)
-        try:self.SetSubType(self.subTypes.index(_last_subType))
-        except:
-            log.warning("Failed to load subtype: {}".format(_last_subType))
+        if self.subTypes:
+            _last_subType = self.var_lastSubtype.getValue()
+            #print "last subType: {}".format(_last_subType)
+            try:self.SetSubType(self.subTypes.index(_last_subType))
+            except:
+                log.warning("Failed to load subtype: {}".format(_last_subType))
+            
+            
+            #self.LoadSubTypeList()
+            _last_set = self.var_lastSet.getValue()
+            #print "last set: {}".format(_last_set)
+            if _last_set:
+                self.subTypeSearchList['scrollList'].selectByValue( _last_set )
+            
+            if not  self.subTypeSearchList['scrollList'].getSelectedItem():
+                self.subTypeSearchList['scrollList'].select_last()
+                    
+            
+            #self.LoadVariationList()
         
-        
-        #self.LoadSubTypeList()
-        _last_set = self.var_lastSet.getValue()
-        #print "last set: {}".format(_last_set)
-        if _last_set:
-            self.subTypeSearchList['scrollList'].selectByValue( _last_set )
-        
-        if not  self.subTypeSearchList['scrollList'].getSelectedItem():
-            self.subTypeSearchList['scrollList'].select_last()
-                
-        
-        #self.LoadVariationList()
-        
-        _last_variation = self.var_lastVariation.getValue()
-        #print "last variation: {}".format(_last_variation)
-        
-        if _last_variation:
-            self.variationList['scrollList'].selectByValue( _last_variation )
+            _last_variation = self.var_lastVariation.getValue()
+            #print "last variation: {}".format(_last_variation)
+            
+            if _last_variation:
+                self.variationList['scrollList'].selectByValue( _last_variation )
         
         
         #self.LoadVersionList()
@@ -3682,7 +3743,7 @@ example:
         self.LoadPreviousSelection()
         #self.report_lastSelection()
         
-        self.b_loadState = False        
+        self.b_loadState = False
         return
     
     
