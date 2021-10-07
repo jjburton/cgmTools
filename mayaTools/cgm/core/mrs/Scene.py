@@ -593,7 +593,7 @@ example:
         self.uiFunc_displayDetails(self.displayDetails)
         self.uiFunc_displayProject( self.displayProject )
 
-        self.setTitle('%s - %s' % (self.WINDOW_TITLE, self.mDat.d_project['name']))
+        self.setTitle('|[ {} ]| --- {}'.format(self.mDat.d_project.get('name','No Name'),self.WINDOW_TITLE ))
 
     def SaveOptions(self, *args):
         log.info( "Saving options" )
