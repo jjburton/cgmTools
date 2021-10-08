@@ -290,7 +290,8 @@ example:
         log.info(log_start(_str_func))    
         
         log.info(log_sub(_str_func,'Options...'))
-        log.info("Asset: {0}".format(self.category))
+        log.info("Category: {0}".format(self.category))
+        log.info("Asset: {0}".format(self.selectedAsset))
         log.info("Subtype: {0}".format(self.subType))        
         log.info("Set: {0}".format(self.selectedSet))
         log.info("Variation: {0}".format(self.selectedVariation))        
@@ -732,7 +733,28 @@ example:
         
     def uiFunc_reloadExportBrowser(self):
         self.uiScrollList_dirExport.rebuild( self.exportDirectory)
+    
+    def uiFunc_exportFindSelected(self):
+        _category = self.category        
+        _asset = self.selectedAsset
+        _subType = self.subType
         
+        k_use = None
+        for k,d in self.uiScrollList_dirExport._d_dir.iteritems():
+            print d['split']
+            if d['split'][-3:] == [_category,_asset, _subType]:
+                k_use = d['uiString']
+                break
+            if d['split'][-2:] == [_category,_asset]:
+                k_use = d['uiString']
+                break
+            if d['split'][-1] == [_category]:
+                k_use = d['uiString']
+                break
+        if k_use:
+            self.uiScrollList_dirExport.selectByValue(k_use,True)
+
+    
     def build_layoutWrapper(self,parent):
 
         _ParentForm = mUI.MelFormLayout(self,ut='cgmUISubTemplate')
@@ -927,8 +949,10 @@ example:
         self.uiScrollList_dirExport = mScrollList2        
         mScrollList2.mScene = self
     
-    
-        _refresh = mUI.MelButton(uiTab_Export,l='Refresh', h=15, ut = 'cgmUITemplate',
+        _findSelected = mUI.MelButton(uiTab_Export,l='Find Selected', h=25, ut = 'cgmUITemplate',
+                                      c=lambda *a:self.uiFunc_exportFindSelected())        
+        
+        _refresh = mUI.MelButton(uiTab_Export,l='Refresh', h=25, ut = 'cgmUITemplate',
                                      c=lambda *a:self.uiFunc_reloadExportBrowser())        
     
     
@@ -939,12 +963,15 @@ example:
                                (_projectColumnTop, 'right', 0),
                                (mScrollList2, 'left', 0), 
                                (mScrollList2, 'right', 0),
+                               (_findSelected, 'left', 0), 
+                               (_findSelected, 'right', 0),                                
                                (_refresh, 'left', 0), 
                                (_refresh, 'right', 0),                           
                                (_refresh, 'bottom', 0)], 
                            attachControl=[
                                (mScrollList2, 'top', 0, _projectColumnTop),
-                               (mScrollList2, 'bottom', 0, _refresh)] )        
+                               (_findSelected, 'bottom', 0, _refresh),
+                               (mScrollList2, 'bottom', 0, _findSelected)] )        
         
         #--------------------------------------
 
@@ -2006,6 +2033,12 @@ example:
             for mUI in self.ml_dirOptions_set:
                 mUI(edit=True,en=False)
             
+            
+            log.debug(log_msg(_str_func,'is versionList'))            
+            self.assetMetaData = self.getMetaDataFromFile()
+            self.buildDetailsColumn()
+            log.debug( self.versionFile )            
+            
             #mc.formLayout( self._subForms[3], e=True, vis=False )
             #mc.formLayout( self._subForms[2], e=True, vis=False )
             
@@ -2021,8 +2054,10 @@ example:
         
         if self.hasVariant:
             self.LoadVariationList()
+            
+
         self.LoadVersionList()
-        
+            
         self.uiUpdate_setsButtons()
         self.SaveCurrentSelection()
             

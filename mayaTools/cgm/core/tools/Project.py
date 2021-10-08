@@ -2615,11 +2615,16 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             _indices.append(int(i))
             #_indices.append(int(str(i).split('L')[0]))
         return _indices
-    def selectByIdx( self, idx ):
+    def selectByIdx( self, idx,preclear=False,selCommand= True):
+        if preclear:self.clearSelection()                
         self( e=True, selectIndexedItem=idx+1 )  #indices are 1-based in mel land - fuuuuuuu alias!!!
-
-    def selectByValue( self, value):
+        if selCommand and self.selCommand:
+            self.selCommand()
+    def selectByValue( self, value,preclear=False,selCommand = True):
+        if preclear:self.clearSelection()        
         self( e=True, selectItem=value )
+        if selCommand and self.selCommand:
+            self.selCommand()        
 
     def append( self, item ):
         self( e=True, append=item )
@@ -2778,7 +2783,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             log.info( cgmGEN.logString_msg(_str_func,"Creating path : {0}".format(_createPath)))            
             os.makedirs(os.path.dirname(_createPath))
             
-            
+        reload(CGMOS)
         CGMOS.dup_structure(path, newPath, copyFiles = copyfiles)
             
         """

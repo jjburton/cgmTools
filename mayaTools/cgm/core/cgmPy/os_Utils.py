@@ -876,7 +876,7 @@ def dup_dirsBelow(pathSource = None, pathTarget = None,  search = '', replace = 
                 if not test:
                     pass#os.rename(dPathSource,dPathTarget)  """
             
-def dup_structure(pathSource = None, pathTarget = None,  copyFiles = False, search = '', replace = '', test = False, skip = ['meta','.mayaSwatches']):
+def dup_structure(pathSource = None, pathTarget = None,  copyFiles = False, search = '', replace = '', test = False, skip = ['.mayaSwatches']):
     """
     Function for walking below a given directory 
     
@@ -935,6 +935,12 @@ def dup_structure(pathSource = None, pathTarget = None,  copyFiles = False, sear
                 mkdir_recursive(dPathTarget)
             
         if copyFiles:
+            dPathSource = root #get path
+            _pathTarget = [pathTarget] + _splitUp
+            dPathTarget = os.path.join(*_pathTarget) #new path
+            if not test:
+                mkdir_recursive(dPathTarget)
+            
             for f in files:
                 log.debug(log_sub(_str_func,"f: {0}".format(f)))
                 fPathSource =  os.path.join(dPathSource, f)
@@ -954,6 +960,7 @@ def dup_structure(pathSource = None, pathTarget = None,  copyFiles = False, sear
                 
                 if not test:
                     copyfile(fPathSource, fPathTarget)
+                    log.info(log_msg(_str_func, "Target: {0}".format(fPathTarget)))
                 
                 
                 """
