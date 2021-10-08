@@ -1069,11 +1069,15 @@ def load_MorpheusMaker( *a ):
 def uiSection_dev(parent):
     _str_func = 'uiSection_dev' 
     
-    mc.menuItem(parent = parent,
-                l='Purge Option Vars',
-                ann = "Purge all cgm option vars. Warning will break any open tools",
-                c=lambda *a: optionVars.purgeCGM())
     
+    mc.menuItem(parent = parent,
+                l='Maya Scanner',
+                ann = "Run Maya scanner on a given directory",
+                c=lambda *a: MAYABEODD.mayaScanner_batch())
+    
+
+    
+    mUI.MelMenuItemDiv(parent,label = 'Code')
     mc.menuItem(parent = parent,
                 l='Connect to Wing IDE',
                 ann = "Attempts to connect to Wing IDE",
@@ -1091,10 +1095,7 @@ def uiSection_dev(parent):
                 l='Reload Core',
                 ann = "Reload the cgm core to local python",
                 c=lambda *a: reloadCore())    
-    mc.menuItem(parent = parent,
-                l='Load Morpheus Maker',
-                ann = "Attempt to load the Morpheus Maker - ALPHA",
-                c=lambda *a: load_MorpheusMaker())
+
     
     _mayaOdd = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
                            l='Maya Be Odd:')
@@ -1112,7 +1113,10 @@ def uiSection_dev(parent):
                 ann = "When the progress bar gets stuck",
                 c=lambda *a: cgmUI.doEndMayaProgressBar())    
     
-    
+    mc.menuItem(parent = parent,
+                l='Purge Option Vars',
+                ann = "Purge all cgm option vars. Warning will break any open tools",
+                c=lambda *a: optionVars.purgeCGM())    
     
     #...------------------------------------------------------------------
     _wipTools = mc.menuItem(parent = parent,subMenu = True,tearOff = True,

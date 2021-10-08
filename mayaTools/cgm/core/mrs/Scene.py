@@ -206,7 +206,7 @@ example:
         self.d_uiTypes = {}
         self.d_buttons = {}
         self.d_labels = {}        
-        
+        self.d_userPaths = {}
         global UI
         UI = self
 
@@ -219,7 +219,7 @@ example:
             except:pass
     @property
     def directory(self):
-        return self.directoryTF.getValue()
+        return self.directoryTF.getValue() #self.d_userPaths.get('content')
 
     @directory.setter
     def directory(self, directory):
@@ -2683,9 +2683,24 @@ example:
         mUI.MelMenuItem( self.uiMenu_ToolsMenu, l='Verify Sets',
                             c = lambda *a:mc.evalDeferred(SCENEUTILS.verify_ObjectSets,lp=True))
                             
+        mUI.MelMenuItemDiv( self.uiMenu_ToolsMenu, label='Project..' )
+        mUI.MelMenuItem( self.uiMenu_ToolsMenu, l="Maya Scanner",
+                         c = lambda *a:mc.evalDeferred(self.uiFunc_mayaScannerProject,lp=True))
         
+    def uiFunc_mayaScannerProject(self):
+        
+        mc.loadPlugin("MayaScanner")
+        #mPath = PATHS.Path(self.directory)
+        #print mPath
+        #split = mPath.split()
+        #print split
+        #return
+        path = r"{}".format(self.directory)
+        print path
+        reload(MAYABEODD)
+        if path and os.path.exists(path):
+            MAYABEODD.mayaScanner_batch(path)
 
-        
 
     def RemapTextures(self, *args):
         import cgm.tools.findTextures as findTextures
@@ -5017,16 +5032,13 @@ def ExportScene(mode = -1,
     mc.loadPlugin("fbxmaya")
 
     for obj in exportObjs:			
-        log.debug( log_sub(_str_func,'On: {0}'.format(obj)) )
-
+        log.info( log_sub(_str_func,'On: {0}'.format(obj)) )
+        print obj
         cgmObj = cgmMeta.asMeta(obj)
-        mc.select(obj)
-
-        assetName = obj.split(':')[0].split('|')[-1]
         
+        assetName = obj.split(':')[0].split('|')[-1]
         if exportStatic:
             exportFile = os.path.normpath(os.path.join(exportAssetPath, "{}.fbx".format(cgmObj.p_nameBase)) )
-            
         else:
             exportFile = os.path.normpath(os.path.join(exportAnimPath, exportName) )
 
@@ -5035,39 +5047,54 @@ def ExportScene(mode = -1,
         if( exportAsRig ):
             exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
-        bakeAndPrep.Prep(removeNamespace=removeNamespace, deleteSetName=deleteSetName,exportSetName=exportSetName, zeroRoot=zeroRoot)
-
-        exportTransforms = mc.ls(sl=True)
-
-        mc.select(exportTransforms, hi=True)		
-
-        log.debug("Heirarchy...")
-
-        for i,o in enumerate(mc.ls(sl=1)):
-            log.debug("{0} | {1}".format(i,o))
-
-        if(exportFBXFile):
-            mel.eval('FBXExportSplitAnimationIntoTakes -c')
-            for shot in animList.shotList:
-                log.debug( log_msg(_str_func, "shot..."))
-                log.debug(shot)
-                mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
-            
-            exportDir = os.path.split(exportFile)[0]
-            if not os.path.exists(exportDir):
-                log.debug("making export dir... {0}".format(exportDir))
-                os.makedirs(exportDir)
-
-            log.debug('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
-            mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
-
-            if len(exportObjs) > 1 and removeNamespace:
-                # Deleting the exported transforms in case another file has duplicate export names
-                mc.delete(cgmObj.mNode)
-                try:
-                    mc.delete(exportTransforms)
-                except:
-                    pass
+        cgmObj.select()
+        
+        log.info("Export: {}".format(exportFile))
+        
+        if exportStatic:
+            if(exportFBXFile):
+                exportDir = os.path.split(exportFile)[0]
+                if not os.path.exists(exportDir):
+                    log.info("making export dir... {0}".format(exportDir))
+                    os.makedirs(exportDir)
+    
+                log.debug('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
+                mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
+                
+        else:
+            bakeAndPrep.Prep(removeNamespace=removeNamespace, deleteSetName=deleteSetName,exportSetName=exportSetName, zeroRoot=zeroRoot)
+    
+            exportTransforms = mc.ls(sl=True)
+    
+            mc.select(exportTransforms, hi=True)		
+    
+            log.info("Heirarchy...")
+    
+            for i,o in enumerate(mc.ls(sl=1)):
+                log.info("{0} | {1}".format(i,o))
+    
+            if(exportFBXFile):
+                mel.eval('FBXExportSplitAnimationIntoTakes -c')
+                for shot in animList.shotList:
+                    log.info( log_msg(_str_func, "shot..."))
+                    log.info(shot)
+                    mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
+                
+                exportDir = os.path.split(exportFile)[0]
+                if not os.path.exists(exportDir):
+                    log.info("making export dir... {0}".format(exportDir))
+                    os.makedirs(exportDir)
+    
+                log.debug('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
+                mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
+    
+                if len(exportObjs) > 1 and removeNamespace:
+                    # Deleting the exported transforms in case another file has duplicate export names
+                    mc.delete(cgmObj.mNode)
+                    try:
+                        mc.delete(exportTransforms)
+                    except:
+                        pass
 
     return True
 
