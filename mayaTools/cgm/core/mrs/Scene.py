@@ -1807,7 +1807,8 @@ example:
         #>>> Reset Options			
 
         mPathList = cgmMeta.pathList('cgmProjectPaths')
-
+        mPathList.verify()
+        
         project_names = []
         for i,p in enumerate(mPathList.mOptionVar.value):
             proj = Project.data(filepath=p)
