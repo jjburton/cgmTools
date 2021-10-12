@@ -62,6 +62,7 @@ import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
+from cgm.core.classes import NodeFactory as NODEFAC
 
 
 # From cgm ==============================================================
@@ -524,6 +525,7 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         _offset = self.v_offset
         _jointOrientation = self.d_orientation['str']
         
+        ml_ikUse = [mObj for mObj in ml_ikJoints]
         
         ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
         if not ml_ribbonIkHandles:
@@ -534,14 +536,40 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         _up = self.d_orientation['vectorUp']
         _out = self.d_orientation['vectorOut']
         
-        _l_posUse = [mObj.p_position for mObj in ml_ikJoints]
-        _l_posUse.append(ml_ikJoints[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
+        _l_posUse = [mObj.p_position for mObj in ml_ikUse]
+        _l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
                                                                     DIST.get_distance_between_points(_l_posUse[-1],_l_posUse[-2])))
         
         cgmMeta.cgmObject().getPositionByAxisDistance
         _crv = CORERIG.create_at(create='curve',l_pos = _l_posUse)
         
-        res_spline = IK.spline([mObj.mNode for mObj in ml_ikJoints],
+        """We're going to add another end joint so we can orient it"""
+        mEnd = ml_ikUse.pop(-1)
+        mEndHelp = mEnd.doDuplicate(po=True, ic=False)
+        mEndHelp.rename("{}_endHelp".format(mEnd.p_nameBase))
+        mEnd.p_parent = mEndHelp
+        ml_ikUse.append(mEndHelp)
+        
+        
+        #Then we want to setup our aim
+        mEndAim = mEnd.doCreateAt()
+        mEndAim.rename("{}_endHelpAim".format(mEnd.p_nameBase))
+        mEndAim.p_position = _l_posUse[-1]
+        mEndAim.p_parent = mIKControl or mEndHelp
+        
+        mc.aimConstraint(mEndAim.mNode,
+                         mEnd.mNode,
+                         maintainOffset = True, weight = 1,
+                         aimVector = self.d_orientation['vectorAim'],
+                         upVector = self.d_orientation['vectorUp'],
+                         worldUpVector = self.d_orientation['vectorOut'],
+                         worldUpObject = mEndHelp.mNode,
+                         worldUpType = 'objectRotation' ) 
+        
+        
+        l = []
+        
+        res_spline = IK.spline([mObj.mNode for mObj in ml_ikUse],
                                useCurve= _crv,
                                orientation = _jointOrientation,
                                advancedTwistSetup=True,
@@ -554,10 +582,23 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         
         mSplineCurve.doConnectIn('masterScale',mPlug_masterScale.p_combinedShortName)
     
-        ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode,driven='source')
-        ATTR.copy_to(mSplineCurve.mNode,'twistStart',mIKBaseControl.mNode,driven='source')
-        ATTR.copy_to(mSplineCurve.mNode,'twistType',mIKControl.mNode,driven='source')
-    
+        #Twist end...--------------------------------------------------------------------
+        mPlug_addEnd = cgmMeta.cgmAttr(mIKControl.mNode,'twistEndAdd',attrType='float',keyable=True, hidden=False)
+
+        arg1 = "{}.twistEnd = {}.r{} + {}".format(mSplineCurve.mNode,
+                                                  mIKControl.mNode,
+                                                  _jointOrientation[0],
+                                                  mPlug_addEnd.p_combinedName)    
+        
+        NODEFAC.argsToNodes(arg1).doBuild()
+        #ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode, driven='source')
+        
+        
+        
+        ATTR.copy_to(mSplineCurve.mNode,'twistStart',mIKBaseControl.mNode, driven='source')
+        ATTR.copy_to(mSplineCurve.mNode,'twistType',mIKControl.mNode, driven='source')
+        #...-------------------------------------------------------------------------------
+        
         #ATTR.set_default(mIKControl.mNode,'twistType',1)
         #ATTR.set(mIKControl.mNode,'twistType',1)        
         

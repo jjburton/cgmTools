@@ -1018,6 +1018,7 @@ def qss_verify(self,puppetSet=True,bakeSet=True,deleteSet=False, exportSet = Fal
         mMasterSet.addObj(mSet.mNode)        
         log.debug("|{0}| >> exportSet: {1}".format(_str_func,mSet))
         mMaster = self.masterNull
+        mSet.addObj(mMaster.geoGroup.mNode)
         for mGrp in mMaster.skeletonGroup,mMaster.geoGroup:
             for mChild in mGrp.getChildren(asMeta=1):
                 mSet.addObj(mChild.mNode)

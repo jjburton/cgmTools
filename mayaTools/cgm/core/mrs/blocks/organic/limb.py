@@ -612,6 +612,7 @@ d_block_profiles = {
           'addLeverEnd':'none',
           'loftList':['wideDown','wideDown','wideDown','digit'],                            
           'loftShapeEnd':'wideUp',
+          'segmentType':'curve',
           
           'shapeDirection':'z+',
           
@@ -640,7 +641,7 @@ d_block_profiles = {
        'followParentBank':True,           
        'nameList':['index'],
        'scaleSetup':False,
-       
+       'segmentType':'curve',
        'buildEnd':'dag',
        'ikRollSetup':'control',
        'addBall':'none',
@@ -676,6 +677,7 @@ d_block_profiles = {
           'offsetMode':'default',
           'nameList':['thumb'],
           'scaleSetup':False,
+          'segmentType':'curve',
           
           'buildEnd':'dag',
           'ikRollSetup':'control',
@@ -3745,7 +3747,7 @@ def rig_dataBuffer(self):
                         self.md_segHandleIndices[mEnd] = _check+1
                     
                     self.md_roll[_check] = ml_roll            
-                    if _len > 1:
+                    if _len > 0:
                         self.md_rollMulti[_check] = True
                     log.debug("|{0}| >> Roll joints found on seg: {1} | len: {2} | multi: {3}".format(_str_func,
                                                                                               _check,
@@ -6216,6 +6218,7 @@ def rig_segments(self):
         for i in l_rollKeys:
             if i == -1:
                 continue
+            
             log.debug("|{0}| >> Segment {1}".format(_str_func,i))
             
             ml_segHandles = mRigNull.msgList_get('segmentHandles_{0}'.format(i))
@@ -6574,7 +6577,7 @@ def rig_segments(self):
                 if self.b_squashSetup:
                     mc.scaleConstraint([mObj.mNode for mObj in ml_segHandles], mControlMid.masterGroup.mNode, maintainOffset=True)
                 
-            #Ribbon... --------------------------------------------------------------------------------------------
+            #Segment... --------------------------------------------------------------------------------------------
             log.debug("|{0}| >> Segment {1} setup {2}".format(_str_func,i,_type))
             #reload(IK)
             #mSurf = IK.ribbon([mObj.mNode for mObj in ml_rigJoints], baseName = mBlock.cgmName, connectBy='constraint', msgDriver='masterGroup', moduleInstance = mModule)
@@ -6666,8 +6669,12 @@ def rig_segments(self):
                 mc.delete(mRigJoint.getConstraintsTo())
                 mRigJoint.masterGroup.p_parent = ml_blendJoints[self.int_handleEndBaseIdx]
         
-        
-        
+        #...no roll setups end not following the segment handles
+        for key,v in self.md_rollMulti.iteritems():
+            if not v:
+                try:self.md_roll[key][-1].rigJoint.masterGroup.p_parent = self.md_segHandles[key][-1].p_parent
+                except:
+                    pass
         
         if self.b_squashSetup:
             log.debug("|{0}| >> Final squash stretch stuff...".format(_str_func))
@@ -8745,6 +8752,7 @@ def rig_cleanUp(self):
         
         log.debug(cgmGEN._str_subLine)
         
+        
         #...ik controls ==================================================================================
         log.debug("|{0}| >>  IK Handles ... ".format(_str_func))                
         
@@ -8970,7 +8978,8 @@ def rig_cleanUp(self):
             mJnt.dagLock(True)
             
         self.mDeformNull.dagLock(True)
-                
+        
+        
         #Defaults/settings =================================================================================
         log.debug("|{0}| >> Settings...".format(_str_func))
         mSettings.visRoot = 0
@@ -8993,13 +9002,15 @@ def rig_cleanUp(self):
         if self.b_lever:
             ml_fkJoints[0].resetAttrs()
             
-            
+        
+        
         if mBlock.addLeverEnd:
             log.debug("|{0}| >> Quad setup...".format(_str_func))            
             mIKBallRotationControl = mRigNull.getMessageAsMeta('controlBallRotation')
             ATTR.set_default(mControlIK.mNode, 'extendIK', 1.0)
             mControlIK.extendIK = 1.0        
-           
+        
+        
         #Close out ===============================================================================================
         mRigNull.version = self.d_block['buildVersion']
         mBlock.blockState = 'rig'

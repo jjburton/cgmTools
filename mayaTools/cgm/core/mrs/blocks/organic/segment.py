@@ -1724,6 +1724,10 @@ def skeleton_build(self, forceNew = True):
     self.atBlockUtils('skeleton_connectToParent')
     for mJnt in ml_joints:mJnt.rotateOrder = 5
     
+    if self.scaleSetup:
+        for mJnt in ml_joints[1:]:
+            mJnt.p_parent = ml_joints[0]
+    
     return ml_joints
     #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
@@ -3013,12 +3017,15 @@ def rig_frame(self):
                     ml_ribbonIkHandles[0].parent = mSpinGroup
                     
                 ml_ribbonIkHandles[-1].parent = mIKControl
-                
+                reload(RIGFRAME)
                 if _ikSetup == 'spline':
                     RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,ml_skinDrivers,mPlug_masterScale)
     
                     ATTR.set_default(mIKControl.mNode,'twistType',1)
                     ATTR.set(mIKControl.mNode,'twistType',1)
+                    
+                    #pprint.pprint(ml_ikJoints)
+                    
                 else:
                     _d_ribbonShare = {'connectBy':'constraint',
                                       'extendEnds':True,
