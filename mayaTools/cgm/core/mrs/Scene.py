@@ -106,7 +106,7 @@ example:
         self.subTypes                    = ['animation']
         self.subTypeIndex                = 0
         self.l_subTypesBase = []
-        
+        self.b_subFile = False
         self.var_lastProject       = cgmMeta.cgmOptionVar("cgmVar_projectCurrent", varType = "string")
         self.var_lastAsset     = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_asset", varType = "string")
         self.var_lastSubtype      = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_subtype", varType = "string")        
@@ -434,17 +434,18 @@ example:
         
         log.debug(log_start(_str_func))    
         log.debug(log_msg(_str_func, self.category))
+        log.debug(log_msg(_str_func, _path))
         
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
         try:
             _dirs = CGMOS.get_lsFromPath(_path,'dir')
             for d in _l_directoryMask:
-                try:_dirs = _dirs.remove(d)
+                try:_dirs.remove(d)
                 except:pass
         except Exception,err:
             log.error(log_msg(_str_func, err))
             return False
-                
+        
         if _dirs:
             _res = True
             
@@ -1422,28 +1423,38 @@ example:
     # Menu Building
     #=========================================================================
     def buildAssetForm(self):
-        pprint.pprint(self.subTypes)
+        _str_func = 'buildAssetForm'
+        #pprint.pprint(self.subTypes)
         if not self.subTypes:
+            log.debug(log_msg(_str_func,"subtypes..."))
+            
             mc.formLayout( self._subForms[1], e=True, vis=False )            
             mc.formLayout( self._subForms[3], e=True, vis=True )
             
         else:
+            log.debug(log_msg(_str_func,"no subtypes..."))            
             mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
             mc.formLayout( self._subForms[1], e=True, vis=True )            
             
             _hasSub = self.hasSub
             
-            if not self.hasSubTypes:
-                mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
-            
+            if self.b_subFile:
+                log.debug(log_msg(_str_func,"subfile..."))                
+                mc.formLayout( self._subForms[3], e=True, vis=False)
             else:
-                mc.formLayout( self._subForms[3], e=True, vis=self.hasSub)#self.hasSub )
-                    
-                #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
-                #else:
-                #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
-                    
-                mc.formLayout( self._subForms[1], e=True, vis=True )
+                log.debug(log_msg(_str_func,"subdir..."))                                
+                mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
+                
+                if not self.hasSubTypes:
+                    mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
+                
+                else:
+                        
+                    #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
+                    #else:
+                    #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
+                        
+                    mc.formLayout( self._subForms[1], e=True, vis=True )
             
         
         attachForm = []
@@ -2021,8 +2032,9 @@ example:
                                                    ))
         except:
             _path = None
-           
+        
         if _path and os.path.isfile(_path):
+            self.b_subFile = True
             self.file_subType = _path
             log.debug(log_msg(_str_func,"File passed"))
             self.variationList['scrollList'].clear()
@@ -2039,25 +2051,30 @@ example:
             self.assetMetaData = self.getMetaDataFromFile()
             self.buildDetailsColumn()
             log.debug( self.versionFile )            
+            self.buildAssetForm()
             
             #mc.formLayout( self._subForms[3], e=True, vis=False )
             #mc.formLayout( self._subForms[2], e=True, vis=False )
             
             return
         else:
+            self.b_subFile = False            
             for mUI in self.ml_fileOptions_set:
                 mUI(edit=True,en=False)
             for mUI in self.ml_dirOptions_set:
                 mUI(edit=True,en=True)
                 
-                
-        self.buildAssetForm()
+        
         
         if self.hasVariant:
             self.LoadVariationList()
-            
+        
 
+        #if not self.subTypes:#...if we have 
         self.LoadVersionList()
+        #else:
+        #self.LoadSubTypeList()
+        self.buildAssetForm()
             
         self.uiUpdate_setsButtons()
         self.SaveCurrentSelection()
@@ -2128,7 +2145,7 @@ example:
         
     def buildProjectColumn(self):
         if not self._projectForm(q=True, vis=True):
-            log.info("Project column isn't visible")
+            log.debug("Project column isn't visible")
             return
         
         log.debug("Project column...")
@@ -2559,13 +2576,13 @@ example:
             basefile = os.path.splitext(filename)[0]
             metaFile = os.path.join(path, 'meta', '{0}.dat'.format(basefile))
             if not os.path.exists(metaFile):
-                log.info("{0} | No meta file found".format(_func_str))
+                log.debug("{0} | No meta file found".format(_func_str))
                 metaFile = None
             else:
                 f = open(metaFile, 'r')
                 data = json.loads(f.read())
         else:
-            log.info("{0} | No version file found".format(_func_str))
+            log.debug("{0} | No version file found".format(_func_str))
         return data
 
     def refreshMetaData(self):
@@ -2805,7 +2822,7 @@ example:
         searchableList['selectCommand']
 
     def clear_search_filter(self, searchableList, *args):
-        log.info( "Clearing search filter for %s with search term %s" % (searchableList['scrollList'], searchableList['searchField'].getValue()) )
+        log.debug( "Clearing search filter for %s with search term %s" % (searchableList['scrollList'], searchableList['searchField'].getValue()) )
         searchableList['searchField'].setValue("")
         selected = searchableList['scrollList'].getSelectedItem()
         searchableList['scrollList'].setItems(searchableList['items'])
@@ -2916,10 +2933,10 @@ example:
         log.debug(log_start(_str_func))
         
         
-        if not self.hasSub:
-            self.LoadVersionList()
+        #if not self.hasSub:
+        #    self.LoadVersionList()
             #self._referenceSubTypePUM(e=True, en=True)
-            return
+        #    return
 
         #self._referenceSubTypePUM(e=True, en=False)
 
@@ -2937,6 +2954,17 @@ example:
                     #    continue
 
                     animDir = os.path.normpath(os.path.join(charDir, d))
+                    if self.showAllFiles:
+                        if d in ['meta']:
+                            continue
+                        for chk in ['MRSbatch']:
+                            _break = False
+                            if chk in d:
+                                _break = True
+                                continue
+                        if _break:
+                            continue
+                    
                     if os.path.isdir(animDir):
                         subList.append(d)
                     else:
@@ -2958,21 +2986,22 @@ example:
 
     def LoadVariationList(self, *args):
         _str_func = 'LoadVariationList'
-        log.debug(log_start(_str_func))
-        
+        log.info(log_start(_str_func))
+        """
         if not self.hasSub and self.hasNested:
             self.LoadVersionList()            
-            #self.uiFunc_versionList_select()
-            return
+            return"""
         
         
         if not self.hasVariant:
+            log.debug(log_msg(_str_func, "not hasVariant"))
             self.LoadVersionList()
             #self.buildAssetForm()
             mc.formLayout( self._subForms[2], e=True, vis=False )
             self.buildAssetForm()            
             return
         else:
+            log.debug(log_msg(_str_func, "hasVariant"))            
             mc.formLayout( self._subForms[2], e=True, vis=False )                        
             self.buildAssetForm()
             
@@ -2984,26 +3013,34 @@ example:
         self.variationList['items'] = []
         self.variationList['scrollList'].clear()
 
-        if self.path_dir_category and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
+        if self.path_set:#self.path_dir_category and self.assetList['scrollList'].getSelectedItem() and self.subTypeSearchList['scrollList'].getSelectedItem():
             animationDir = self.path_set
+            log.debug(log_msg(_str_func, "path walk: {}".format(animationDir)))                                    
             if os.path.isfile(animationDir):
+                log.debug(log_msg(_str_func, "is file..."))                                        
                 return
             
             
             if os.path.exists(animationDir):
-                for d in os.listdir(animationDir):
+                for d in CGMOS.get_lsFromPath(animationDir,'dir'):#os.listdir(animationDir):
                     #for ext in fileExtensions:
                     #	if os.path.splitext(f)[-1].lower() == ".%s" % ext :
                     if d[0] == '_' or d[0] == '.':
                         continue
 
                         
-                    animDir = os.path.normpath(os.path.join(animationDir, d))
+                    #animDir = os.path.normpath(os.path.join(animationDir, d))
                     #if os.path.isdir(animDir):
                     variationList.append(d)
-
+            else:
+                log.error(log_msg(_str_func, "path doesn't exist? {}".format(animationDir)))                                    
+        
+        #pprint.pprint(variationList)
         self.variationList['items'] = variationList
         self.variationList['scrollList'].setItems(variationList)
+        
+        if variationList:
+            self.variationList['scrollList'].select_last()        
 
         #self.variationList['scrollList'].selectByValue(selectedVariation) # if selectedVariation else variationList[0]
         
@@ -3022,30 +3059,38 @@ example:
     def LoadVersionList(self, *args):
         _str_func = 'LoadVersionList'
         log.debug(log_start(_str_func))
+        searchList = self.versionList
         
         if not self.subTypes:#...if we have 
+            log.debug(log_msg(_str_func,"no subtypes"))
             searchDir = self.path_asset
-            searchList = self.versionList
         else:
-            searchDir = os.path.join(self.path_asset if self.path_asset else self.path_dir_category, self.subType if self.subType else "")
-            searchList = self.subTypeSearchList
-            if self.hasSub:
-                searchDir = self.path_set
-                searchList = self.versionList
-            if self.hasVariant and self.hasSub:
+            log.debug(log_msg(_str_func,"subtypes"))            
+            #searchDir = os.path.join(self.path_asset if self.path_asset else self.path_dir_category, self.subType if self.subType else "")
+            #searchList = self.subTypeSearchList
+            #if self.hasSub:
+            if self.hasVariant:
+                log.debug(log_msg(_str_func,"subtypes"))                            
                 searchDir = self.path_variationDirectory
-
+            else:
+                log.debug(log_msg(_str_func,"has sub"))                            
+                searchDir = self.path_set
+        
+        log.debug(log_msg(_str_func,"searchDir: {}".format(searchDir)))            
+        log.debug(log_msg(_str_func,"searchList: {}".format(searchList)))            
+        
+        
         if not searchDir:
             searchList['items'] = []
             searchList['scrollList'].clear()            
             return
-
+        
         versionList = []
         anims = []
 
         # populate animation info list
         fileExtensions = ['mb', 'ma']
-
+        
         #log.debug('{0} >> searchDir: {1}'.format(_str_func, searchDir))
         if os.path.exists(searchDir):
             # animDir = (self.path_variationDirectory if self.hasVariant else self.path_set) if self.hasSub else self.path_dir_category
@@ -3053,7 +3098,8 @@ example:
             # if os.path.exists(animDir):
             if not os.path.isdir(searchDir):
                 return
-            for f in os.listdir(searchDir):
+            
+            for f in CGMOS.get_lsFromPath(searchDir):
                 if f[0] == '_' or f[0] == '.':
                     continue
 
@@ -3140,7 +3186,7 @@ example:
                         }
             int_len = len(l_current)
             for i,n in enumerate(l_current):
-                log.info(cgmGEN.logString_sub(_str_func, "{} | {}".format(i,n)))
+                log.debug(cgmGEN.logString_sub(_str_func, "{} | {}".format(i,n)))
                 if n == l_current[-1]:
                     self.LoadVersionList()
                 
@@ -3161,12 +3207,12 @@ example:
                         return                    
                     
                 for f in l_fields:
-                    log.info(f)
+                    log.debug(f)
                     if n in d_fields[f]._items:
                         d_fields[f].clearSelection()
                         d_fields[f].selectByValue(n)
                         l_fields.remove(f)
-                        log.info(l_fields)
+                        log.debug(l_fields)
                         
                         if f == 'sub':
                             self.LoadVariationList()
@@ -3770,11 +3816,35 @@ example:
             mel.eval('warning "No Project Set"')
             return
         
+        
+        mDat = Project.data(filepath=path)
+        
+        
+        
+        #We want to check our project version at open
+        if mDat.d_project.get('mayaVersionCheck'):
+            _expected = float(mDat.d_project.get('mayaVersion'))
+            _current = cgmGEN.__mayaVersion__
+            
+            if _current != _expected:
+                _name = mDat.d_project.get('name')            
+                log.warning("Expected maya version not found. Current: {} | Expected: {}".format(_current,_expected))
+                result = mc.confirmDialog(title="Open Anyway?",
+                                          message= "Project '{}' Expects another maya version: {}. \n Open anyway?".format(_name, _expected),
+                                          icon='warning',
+                                          button=['Open',"Cancel"],
+                                          defaultButton='Save',
+                                          cancelButton='Cancel',
+                                          dismissString='Cancel')
+                if result == "Cancel":
+                    return log.warning("Project load aborted: {0}".format(path))
+        
+        
+        
         self.b_loadState = True
+        self.report_lastSelection()        
         
-        self.report_lastSelection()
-        
-        self.mDat = Project.data(filepath=path)
+        self.mDat = mDat
         
         #print"{}...".format('projectload')                
         PROJECT.uiProject_load(self, path=path)

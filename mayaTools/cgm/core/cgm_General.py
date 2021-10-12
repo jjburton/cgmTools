@@ -11,7 +11,7 @@ For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.10.12.1'
+__RELEASE = '21.10.12.2'
 
 __BRANCH = 'MRSDAILY'
 
@@ -968,7 +968,8 @@ def get_mayaEnviornmentDict():
         except Exception,error:log.error("%s | %s"%(kw,error))	
     return _d
 
-__mayaVersion__ = int( mel.eval( 'getApplicationVersionAsFloat' ) )
+__mayaVersion__ = mel.eval( 'getApplicationVersionAsFloat' )
+__mayaVersionInt__ = int( __mayaVersion__ )
 __mayaApiVersion__ = int( mel.eval( 'about -apiVersion' ) )
 
 def report_enviornment():

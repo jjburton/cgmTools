@@ -601,7 +601,11 @@ def buildFrame_baseDat(self,parent,changeCommand = ''):
                 _d[key].append(t)
             if key == 'lock':
                 _d[key](edit=True, cc = lambda *a:uiProject_lock(self))
-
+        elif key in ['mayaVersionCheck']:       
+            _d[key] =  mUI.MelCheckBox(_row,
+                                       ann='settings | {}'.format(key),
+                                       cc = changeCommand,
+                                        )
         else:
             #_rowContextKeys.setStretchWidget( mUI.MelSeparator(_rowContextKeys) )
             _d[key] =  mUI.MelTextField(_row,
