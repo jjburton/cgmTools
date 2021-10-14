@@ -243,7 +243,7 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
             mBlockModule = self.p_blockModule
         elif not mBlockModule:
             raise NotImplementedError,"Haven't implemented blocktype changing..."
-        
+        reload(mBlockModule)
         try:d_attrsFromModule = mBlockModule.d_attrsToMake
         except:d_attrsFromModule = {}
         

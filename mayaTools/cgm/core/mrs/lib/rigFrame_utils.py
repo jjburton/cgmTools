@@ -165,10 +165,9 @@ def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None,
             
             
         elif _str_mode == 'prntConstraint':
-            
             mc.parentConstraint([mObj.mNode for mObj in ml_ribbonHandles], mDriver.mNode, maintainOffset = 1)
-
-    
+        else:
+            raise Exception, "unknown mode : {}".format(_str_mode)
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     
@@ -515,7 +514,7 @@ def get_spinGroup(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
-           mIKBaseControl=None,ml_skinDrivers=None,mPlug_masterScale=None):
+           mIKBaseControl=None,ml_skinDrivers=None,mPlug_masterScale=None,stretchBy='scale'):
     try:
         _str_func = 'spline'
         log_start(_str_func)
@@ -573,7 +572,7 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
                                useCurve= _crv,
                                orientation = _jointOrientation,
                                advancedTwistSetup=True,
-                               stretchBy='scale',
+                               stretchBy=stretchBy,
                                baseName= self.d_module['partName'] + '_spline',
                                moduleInstance = self.mModule)
         

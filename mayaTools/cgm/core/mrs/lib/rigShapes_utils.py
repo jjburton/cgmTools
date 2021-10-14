@@ -674,7 +674,8 @@ def direct(self,ml_rigJoints = None, mult = 2.0):
         
         mBlock = self.mBlock
         mRigNull = self.mRigNull
-        _offset = self.v_offset * mult
+        try:_offset = mBlock.jointRadius
+        except:_offset = self.v_offset * mult
         _jointOrientation = self.d_orientation['str']        
         
         if not ml_rigJoints:
@@ -682,7 +683,6 @@ def direct(self,ml_rigJoints = None, mult = 2.0):
             
         
         if len(ml_rigJoints) < 3:
-            #_size_direct = DIST.get_distance_between_targets([mObj.mNode for mObj in ml_rigJoints], average=True)        
             d_direct = {'size':_offset}
         else:
             d_direct = {'size':_offset}

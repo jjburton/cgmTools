@@ -3017,7 +3017,6 @@ def rig_frame(self):
                     ml_ribbonIkHandles[0].parent = mSpinGroup
                     
                 ml_ribbonIkHandles[-1].parent = mIKControl
-                reload(RIGFRAME)
                 if _ikSetup == 'spline':
                     RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,ml_skinDrivers,mPlug_masterScale)
     
@@ -3043,7 +3042,7 @@ def rig_frame(self):
                     
                     _d.update(_d_ribbonShare)
                     
-                    pprint.pprint(_d)
+                    #pprint.pprint(_d)
                     _d['parentDeformTo'] = mIKGroup
                     _d['setupAim'] = 1
                     
@@ -3075,28 +3074,7 @@ def rig_frame(self):
                     ml_skinDrivers.append(mSegMidIK)
                     max_influences+=1
                     
-                    """
-                    log.debug("|{0}| >> seg mid IK control found...".format(_str_func))
-                    mSegMidIK.masterGroup.parent = mIKGroup
-                    ml_skinDrivers.append(mSegMidIK)
-                    max_influences+=1
-                    
-                    ml_midTrackJoints = copy.copy(ml_ribbonIkHandles)
-                    ml_midTrackJoints.insert(1,mSegMidIK)
-                    
-                    d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
-                             'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
-                             'baseName' :self.d_module['partName'] + '_midRibbon',
-                             'driverSetup':None,
-                             'squashStretch':None,
-                             'msgDriver':'masterGroup',
-                             'specialMode':'noStartEnd',
-                             'paramaterization':'floating',
-                             'connectBy':'constraint',
-                             'influences':ml_ribbonIkHandles,
-                             'moduleInstance' : mModule}
-                    #reload(IK)
-                    l_midSurfReturn = IK.ribbon(**d_mid)"""
+
                     
                     
                 
@@ -3521,7 +3499,6 @@ def rig_cleanUp(self):
             
             mMainDriver = mHandle.getMessageAsMeta('mainDriver')
             if mMainDriver:
-                
                 ml_targetDynParents.insert(0,mMainDriver)
             
             mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)

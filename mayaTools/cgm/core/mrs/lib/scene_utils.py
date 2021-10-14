@@ -26,7 +26,7 @@ from Red9.core import Red9_AnimationUtils as r9Anim
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 #========================================================================
 
 import maya.cmds as mc
@@ -93,7 +93,8 @@ log_msg = cgmGEN.logString_msg
 find_tmpFiles = CGMOS.find_tmpFiles
     
 def buildMenu_utils(self, mMenu):
-
+    mUI.MelMenuItem( mMenu, l="New Scene",
+                    c = lambda *a:uiFunc_newProjectScene(self))    
     mUI.MelMenuItemDiv( mMenu, label='Maya Settings..' )
     
     for a in 'inTangent','outTangent','both':
@@ -173,7 +174,7 @@ d_nameToKey = {'world':'d_world',
 
 def fncMayaSett_do(self,world=False,anim=False):
     _str_func = 'ui.fncMayaSett_do'
-    log.info("|{0}| >>...".format(_str_func))
+    log.debug("|{0}| >>...".format(_str_func))
     
     d_settings  = {'world':PU._worldSettings,
                    'anim':PU._animSettings}
@@ -193,7 +194,7 @@ def fncMayaSett_do(self,world=False,anim=False):
     
     #pprint.pprint(d_toDo)
     for k,l in d_toDo.iteritems():
-        log.info(cgmGEN.logString_sub(_str_func,k))
+        log.debug(cgmGEN.logString_sub(_str_func,k))
         
         #_d = self.d_tf[k]
         _d = self.mDat.__dict__.get(d_nameToKey.get(k))
@@ -201,7 +202,7 @@ def fncMayaSett_do(self,world=False,anim=False):
         for d in l:
             try:
                 
-                log.info(cgmGEN.logString_msg(_str_func,d))
+                log.debug(cgmGEN.logString_msg(_str_func,d))
                 _type = d.get('t')
                 _dv = d.get('dv')
                 _name = d.get('n')
@@ -209,7 +210,7 @@ def fncMayaSett_do(self,world=False,anim=False):
                 _value = _d[_name]#_d[_name].getValue()
                 
                 fnc = d_nameToSet.get(k,{}).get(_name)
-                log.info(cgmGEN.logString_msg(_str_func,"name: {0} | value: {1}".format(_name,_value)))
+                log.debug(cgmGEN.logString_msg(_str_func,"name: {0} | value: {1}".format(_name,_value)))
                 
                 if fnc:
                     fnc(_value)
@@ -220,7 +221,7 @@ def fncMayaSett_do(self,world=False,anim=False):
     
 def fncMayaSett_query(self):
     _str_func = 'ui.fncMayaSett_query'
-    log.info("|{0}| >>...".format(_str_func))
+    log.debug("|{0}| >>...".format(_str_func))
     
     d_settings  = {'world':PU._worldSettings,
                    'anim':PU._animSettings}
@@ -235,7 +236,7 @@ def fncMayaSett_query(self):
 
     #pprint.pprint(d_toDo)
     for k,l in d_settings.iteritems():
-        log.info(cgmGEN.logString_sub(_str_func,k))
+        log.debug(cgmGEN.logString_sub(_str_func,k))
         
         _d = self.mDat.__dict__.get(d_nameToKey.get(k))
         
@@ -266,7 +267,7 @@ def fncMayaSett_query(self):
                 
                 
 def verify_ObjectSets():
-    log.info("verify_ObjectSets..."+cgmGEN._str_subLine)
+    log.debug("verify_ObjectSets..."+cgmGEN._str_subLine)
     for n in 'bake','delete','export':
         str_name = mc.optionVar(q='cgm_{0}_set'.format(n))
         if not mc.objExists(str_name):
@@ -276,5 +277,18 @@ def verify_ObjectSets():
             log.info("{} created".format(str_name))
         else:
             log.info("{} exists".format(str_name))
-    log.info(cgmGEN._str_subLine)
+    log.debug(cgmGEN._str_subLine)
+    
+    
+def uiFunc_newProjectScene(self):
+    str_func = 'uiFunc_newProjectScene'
+    log.debug(log_start(str_func))
+    
+    mc.file(f=True, new=True)
+    fncMayaSett_do(self, True, True)
+    
+    log.debug(cgmGEN._str_hardBreak)
+    
+    
+
     

@@ -19,6 +19,7 @@ from cgm.core.mrs.lib import batch_utils as BATCH
 from cgm.core import cgm_General as cgmGEN
 from cgm.core.lib import math_utils as MATH
 from cgm.core.mrs.lib import scene_utils as SCENEUTILS
+#reload(SCENEUTILS)
 from cgm.core.lib import skinDat as SKINDAT
 import cgm.core.mrs.Builder as BUILDER
 import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
@@ -28,7 +29,7 @@ import cgm.core.tools.Project as PROJECT
 import Red9.core.Red9_General as r9General
 
 import cgm.core.classes.GuiFactory as cgmUI
-reload(cgmUI)
+#reload(cgmUI)
 mUI = cgmUI.mUI
 
 import cgm.core.cgmPy.path_Utils as PATHS
@@ -533,7 +534,7 @@ example:
         log.debug(log_start(_str_func))
         log.debug(log_msg(_str_func, _path_set))        
         try:
-            if _path_set:
+            if _path_set and os.path.isdir(_path_set):
                 _dirs = CGMOS.get_lsFromPath(_path_set,'dir')
                 for d in _l_directoryMask:
                     try:_dirs = _dirs.remove(d)
@@ -1530,7 +1531,7 @@ example:
                                       'cgm_project_{0}.png'.format(self.d_tf['general']['type'].getValue()))
             
         _height = CGMOS.get_image_size(_imagePath)[1]
-        print _height
+        log.debug(log_msg(_str_func,"Height: {}".format( _height )))
         self.uiImage_Project(edit=True, height = _height)
         self.uiImage_Project.setImage(_imagePath)
         #self.uiImageRow_project.layout()
@@ -1553,7 +1554,7 @@ example:
         try:
             
             _c_secondary = self.mDat.d_colors['secondary']
-            print _c_secondary
+            #print _c_secondary
             vTmp = _c_secondary
             vLite = [MATH.Clamp(1.7 * v, .5, 1.0) for v in vTmp]
 
@@ -1621,8 +1622,6 @@ example:
             self.LoadOptions()
             
             self.assetList['scrollList'].clearSelection()
-            #self.assetList['scrollList'].selectByIdx(0)
-            #self.LoadPreviousSelection()
         else:
             mel.eval('error "Project path does not exist"')
             self.reload_headerImage()
@@ -2068,7 +2067,9 @@ example:
         
         if self.hasVariant:
             self.LoadVariationList()
-        
+        else:
+            self.variationList['items'] = []
+            self.variationList['scrollList'].clear()            
 
         #if not self.subTypes:#...if we have 
         self.LoadVersionList()
@@ -2986,7 +2987,7 @@ example:
 
     def LoadVariationList(self, *args):
         _str_func = 'LoadVariationList'
-        log.info(log_start(_str_func))
+        log.debug(log_start(_str_func))
         """
         if not self.hasSub and self.hasNested:
             self.LoadVersionList()            
