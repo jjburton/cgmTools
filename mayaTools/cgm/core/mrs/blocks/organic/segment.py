@@ -2701,8 +2701,8 @@ def rig_segments(self):
     if self.str_segmentType == 'parent':#len(ml_segJoints) == len(ml_handleJoints):
         for i,mJnt in enumerate(ml_segJoints):
             mJnt.p_parent = ml_handleJoints[i]
-        if self.b_squashSetup:
-            mJnt.segmentScaleCompensate = False
+            if self.b_squashSetup:
+                mJnt.segmentScaleCompensate = False
             
         
     else:

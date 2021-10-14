@@ -280,6 +280,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'neckJoints':'int',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  #'blockProfile':':'.join(d_block_profiles.keys()),
+                 'segmentType':'ribbon:curve:linear:parent',                 
                  'neckIK':BLOCKSHARE._d_attrsTo_make.get('ikSetup')#we wanna match this one
                  }
 
@@ -1873,6 +1874,12 @@ def rig_prechecks(self):
         #if mBlock.neckControls > 1:
             #self.l_precheckErrors.append("Don't have support for more than one neckControl yet. Found: {0}".format(mBlock.neckControls))
         
+        if mBlock.neckBuild:
+            str_segmentType = mBlock.getEnumValueString('segmentType')
+            if str_segmentType == 'parent' and mBlock.neckControls != mBlock.neckJoints:
+                self.l_precheckErrors.append('segmentType parent requires same number of controls as joints')        
+        
+        
         if mBlock.segmentMidIKControl and mBlock.neckJoints < 2:
             mBlock.segmentMidIKControl = False
             self.l_precheckWarnings.append("Must have more than one neck joint with segmentMidIKControl, turning off")    
@@ -1916,6 +1923,9 @@ def rig_dataBuffer(self):
         self.mHandleFactory = mBlock.asHandleFactory()
         self.mRootFormHandle = ml_formHandles[0]
         
+        for k in ['segmentType','settingsPlace']:
+            self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
+            
         #Vector ====================================================================================
         self.mVec_up = mBlock.atUtils('prerig_get_upVector')
         log.debug("|{0}| >> self.mVec_up: {1} ".format(_str_func,self.mVec_up))
@@ -2152,7 +2162,7 @@ def rig_skeleton(self):
                         mJnt.doName()
                     ml_jointsToConnect.extend(ml_ribbonIKDrivers)
                     
-            if mBlock.neckJoints > mBlock.neckControls:
+            if self.str_segmentType != 'parent':#if mBlock.neckJoints > mBlock.neckControls:
                 log.debug("|{0}| >> Handles...".format(_str_func))            
                 ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'handle',
                                                                          'handleJoints',
@@ -2185,19 +2195,10 @@ def rig_skeleton(self):
                         
                 ml_jointsToHide.extend(ml_segmentChain)
             else:
+                log.debug("|{0}| >> Simple setup. Parenting rigJoints to blend...".format(_str_func))                
                 for i,mJnt in enumerate(ml_rigJoints):
                     mJnt.p_parent = ml_parentJoints[i]
-                
-            """
-            if mBlock.neckControls > 2 and ml_segmentHandles:
-                log.debug("|{0}| >> IK Drivers...".format(_str_func))            
-                ml_baseIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(ml_segmentHandles,
-                                                                           None, mRigNull,
-                                                                           'baseIKDrivers',
-                                                                           cgmType = 'baseIKDriver', indices=[0,-1])
-                for mJnt in ml_baseIKDrivers:
-                    mJnt.parent = False
-                ml_jointsToConnect.extend(ml_baseIKDrivers)"""
+                  
                 
                 
         #...joint hide -----------------------------------------------------------------------------------
@@ -2916,6 +2917,13 @@ def rig_segments(self):
         #ml_rigJoints[-1].parent = mHeadFK
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         
+        if self.str_segmentType == 'parent':#len(ml_segJoints) == len(ml_handleJoints):
+            for i,mJnt in enumerate(ml_segJoints):
+                mJnt.p_parent = ml_handleJoints[i]
+                if self.b_squashSetup:
+                    mJnt.segmentScaleCompensate = False
+            return
+        
         
         if not ml_segJoints:
             log.debug("|{0}| >> No segment joints. No segment setup necessary.".format(_str_func))
@@ -2960,9 +2968,17 @@ def rig_segments(self):
             _d['sectionSpans'] = 2
             
         _d.update(self.d_squashStretch)
-        res_ribbon = IK.ribbon(**_d)
         
-        ml_surfaces = res_ribbon['mlSurfaces']
+        if self.str_segmentType == 'ribbon':
+            res_ribbon = IK.ribbon(**_d)
+            ml_surfaces = res_ribbon['mlSurfaces']
+        else:
+            _l_segJoints = _d['jointList']
+            _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+            _d['setupAim'] = 1                
+            #_d['attachEndToInfluence'] = False                
+            pprint.pprint(_d)
+            IK.curve(**_d)        
         
         mMasterCurve.p_parent = mRoot    
         

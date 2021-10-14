@@ -259,7 +259,7 @@ def uiAsset_rebuildSub(self):
         uiAsset_rebuildSub(self)
     
     for i,d2 in enumerate(d.get('content',[])):
-        log.info(d2)
+        log.debug(d2)
         
         _row = mUI.MelHSingleStretchLayout(self.uiAsset_content)
         mUI.MelSpacer(_row,w=5)                          
@@ -1043,7 +1043,7 @@ class ui(cgmUI.cgmGUI):
         
     def fncMayaSett_do(self,world=False,anim=False):
         _str_func = 'ui.fncMayaSett_do'
-        log.info("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >>...".format(_str_func))
         
         d_settings  = {'world':PU._worldSettings,
                        'anim':PU._animSettings}
@@ -1138,7 +1138,7 @@ class ui(cgmUI.cgmGUI):
     def fncMayaSett_query(self):
         
         _str_func = 'ui.fncMayaSett_do'
-        log.info("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >>...".format(_str_func))
         
         d_settings  = {'world':PU._worldSettings,
                        'anim':PU._animSettings}
@@ -1473,7 +1473,7 @@ def uiProject_toScene(self):
     
 def uiProject_clear(self,path=None,revert=False):
     _str_func = 'uiProject_clear'
-    log.info("|{0}| >>...".format(_str_func))
+    log.debug("|{0}| >>...".format(_str_func))
     self.uiLabel_file(edit=True, label = '')
 
     for dType in ui._l_sections:
@@ -1878,7 +1878,7 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None, addHo
     log.debug(cgmGEN.logString_msg(_str_func,'Path: {0}'.format(mPath)))
     
     _dat = self.mDat.assetType_getTypeDict().keys()#PU.dirCreateList_get(pType,pSet)
-    pprint.pprint(_dat)
+    #pprint.pprint(_dat)
     _type = type(_dat)
     
     if issubclass(_type,dict):
@@ -2870,7 +2870,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         #else:
         #    log.info( cgmGEN.logString_msg(_str_func,"Path mismatch, no ref possible"))
             
-        log.info( cgmGEN.logString_msg(_str_func,"Done"))
+        log.debug( cgmGEN.logString_msg(_str_func,"Done"))
         
         
     #@cgmGEN.Timer

@@ -120,7 +120,7 @@ example:
         self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
         self.var_categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
         self.var_subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
-        self.var_alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
+        self.var_alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType= 'int', defaultValue = 0)
         self.var_showDirectories        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
         self.var_displayDetails         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
         self.var_displayProject         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_project", defaultValue = 1)
@@ -1919,6 +1919,11 @@ example:
         self.cb_showDirectories =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Show Directories",
                                                                checkBox=self.showDirectories,
                                                          c = lambda *a:mc.evalDeferred(self.SaveOptions,lp=True))
+        self.cb_alwaysSendReferenceFiles =  mUI.MelMenuItem( self.uiMenu_OptionsMenu, l="Always Send References",
+                                                               checkBox= int(self.var_alwaysSendReferenceFiles.getValue()),
+                                                         c = lambda *a:mc.evalDeferred(self.var_alwaysSendReferenceFiles.toggle,lp=True))        
+        
+        
 
     def uiFunc_showAllFiles(self):
         self.SaveOptions()
@@ -3981,16 +3986,16 @@ example:
     
     def rename_below(self, mode = 'asset',*args):
         _str_func = 'rename_below'
-        
+        #remember, you need to pass a path up
         if mode == 'asset':
             sourceName = self.selectedAsset
             path = self.path_dir_category
         elif mode == 'set':
             sourceName = self.selectedSet
-            path = self.path_set            
+            path = self.path_subType            
         elif mode == 'subtype':
             sourceName = self.selectedSet
-            path = self.path_subType
+            path = self.path_asset
         elif mode in ['variant','variation']:
             sourceName = self.selectedVariation
             path = self.path_set
@@ -4018,11 +4023,9 @@ example:
             
             #_path = r"{0}".format(path)
             #print os.path.normpath(path)
-            log.debug(log_msg(_str_func,"Current: {0}".format(sourceName)))
-            log.debug(log_msg(_str_func,"New: {0}".format(newName)))
-            #log.debug(log_msg(_str_func,"path: {0}".format(_path)))
-            log.debug(log_msg(_str_func,"path: {0}".format(path)))
-            
+            log.info(log_msg(_str_func,"Current: {0}".format(sourceName)))
+            log.info(log_msg(_str_func,"New: {0}".format(newName)))
+            log.info(log_msg(_str_func,"path: {0}".format(path)))
             
             
             #Do the rename pass...
