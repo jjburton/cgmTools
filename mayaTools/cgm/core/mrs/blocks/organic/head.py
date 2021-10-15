@@ -261,7 +261,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'headAim':'bool',
                  'headRotate':'double3',
                  'loftSetup':'default:loftList',
-                 
+                 'fkHeadOrientTo':'joint:chain',
                  'squashMeasure' : 'none:arcLength:pointDist',
                  'squash' : 'none:simple:single:both',
                  'squashExtraControl' : 'bool',
@@ -1923,7 +1923,7 @@ def rig_dataBuffer(self):
         self.mHandleFactory = mBlock.asHandleFactory()
         self.mRootFormHandle = ml_formHandles[0]
         
-        for k in ['segmentType','settingsPlace']:
+        for k in ['segmentType','settingsPlace','fkHeadOrientTo']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
             
         #Vector ====================================================================================
@@ -2066,7 +2066,7 @@ def rig_skeleton(self):
         ml_jointsToHide = []
         ml_joints = mRigNull.msgList_get('moduleJoints')
         self.d_joints['ml_moduleJoints'] = ml_joints
-        ml_formHandles = mBlock.msgList_get('formHandles')
+        #ml_formHandles = mBlock.msgList_get('formHandles')
         
         BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'])
                                          #d_rotateOrders, d_preferredAngles)
@@ -2108,6 +2108,11 @@ def rig_skeleton(self):
                                                                'fkJoints',
                                                                mOrientHelper=mOrientHelper)
             self.ml_fkJoints = ml_fkJoints
+            
+            if self.str_fkHeadOrientTo == 'joint':
+                #ml_fkJoints[-1].jointOrient = ml_rigJoints[-1].jointOrient
+                ml_fkJoints[-1].doSnapTo(ml_rigJoints[-1].mNode, position=False,rotation=True)
+                JOINT.freezeOrientation(ml_fkJoints[-1].mNode)            
             
             #ml_fkJoints[-1].doSnapTo(position=False,rotation=True)
             #JOINT.freezeOrientation(ml_fkJoints[-1].mNode)
@@ -3295,6 +3300,8 @@ def rig_frame(self):
                                        ml_ikJoints[-1].mNode,
                                        maintainOffset = True)
                     
+                    mIKControl = mRigNull.controlIK
+                    mSettings = mRigNull.settings
                     
                     mc.orientConstraint(mHeadIK.mNode,ml_ikJoints[-1].mNode, maintainOffset = True)
                     
@@ -3341,9 +3348,12 @@ def rig_frame(self):
                         
                     if mSegMidIK:
                         log.debug("|{0}| >> seg mid IK control found | single neck control".format(_str_func))
-                        mSegMidIK.masterGroup.parent = mRoot
-                        #mc.pointConstraint([mObj.mNode for mObj in ml_handleJoints], mSegMidIK.masterGroup.mNode,maintainOffset = True )
+                        #mSegMidIK.masterGroup.parent = mRoot
                         
+                        ml_midTrackJoints = copy.copy(ml_handleJoints)
+                        ml_midTrackJoints.insert(1,mSegMidIK)                        
+                        #mc.pointConstraint([mObj.mNode for mObj in ml_handleJoints], mSegMidIK.masterGroup.mNode,maintainOffset = True )
+                        """
                         
                         ml_midTrackJoints = copy.copy(ml_handleJoints)
                         ml_midTrackJoints.insert(1,mSegMidIK)
@@ -3360,8 +3370,20 @@ def rig_frame(self):
                                  'influences':ml_handleJoints,
                                  'moduleInstance' : mModule}
                         #reload(IK)
-                        l_midSurfReturn = IK.ribbon(**d_mid)
-                    
+                        l_midSurfReturn = IK.ribbon(**d_mid)"""
+                        #ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
+                        #if not ml_ribbonIkHandles:
+                        #    raise ValueError,"No ribbon IKDriversFound"
+                        
+                        #ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
+                        #max_influences = 2
+        
+                        
+                        RIGFRAME.segment_mid(self,mSegMidIK,ml_handleJoints,mRoot,
+                                             mIKBaseControl,mIKControl,ml_ikJoints)
+                        #ml_skinDrivers.insert(1,mSegMidIK)
+                        #max_influences+=1                        
+                
                 if ml_handleJoints:                    
                     log.debug("|{0}| >> Neck IK | handleJoints...".format(_str_func))
                     for i,mHandle in enumerate(ml_handleJoints):
@@ -3680,30 +3702,6 @@ def rig_frame(self):
                         
                         mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
                         if mSegMidIK:
-                            """
-                            
-                            SegMidIK.masterGroup.parent = mIKGroup
-                            ml_skinDrivers.append(mSegMidIK)
-                            max_influences+=1
-            
-                            ml_midTrackJoints = copy.copy(ml_ribbonIkHandles)
-                            ml_midTrackJoints.insert(1,mSegMidIK)
-            
-                            d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
-                                     'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
-                                     'baseName' :self.d_module['partName'] + '_midRibbon',
-                                     'driverSetup':None,
-                                     'squashStretch':None,
-                                     'msgDriver':'masterGroup',
-                                     'specialMode':'noStartEnd',
-                                     'paramaterization':'floating',
-                                     'connectBy':'constraint',
-                                     'influences':ml_ribbonIkHandles,
-                                     'moduleInstance' : mModule}
-                            
-                            """
-                            
-                            
                             RIGFRAME.segment_mid(self,mSegMidIK,ml_ribbonIkHandles,mIKGroup,
                                                  mIKBaseControl,mIKControl,ml_ikJoints)
                             ml_skinDrivers.insert(1,mSegMidIK)
@@ -4183,7 +4181,7 @@ def rig_cleanUp(self):
             log.debug(cgmGEN._str_subLine)
                   
         
-        if mRigNull.getMessage('controlSegMidIK'):
+        if mRigNull.getMessage('controlSegMidIK') and mBlock.neckControls > 1:
             log.debug("|{0}| >>  IK Mid Handle ... ".format(_str_func))                
             mHandle = mRigNull.controlSegMidIK
             
@@ -4209,10 +4207,12 @@ def rig_cleanUp(self):
         
             mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
             #mDynGroup.dynMode = 2
-        
+            
+            #mHandle.p_parent = False
             for mTar in ml_targetDynParents:
                 mDynGroup.addDynParent(mTar)
             mDynGroup.rebuild()
+            #mHandle.p_parent = mDynGroup
             #mDynGroup.dynFollow.p_parent = self.mConstrainNull
             
             log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
