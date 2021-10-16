@@ -120,7 +120,7 @@ example:
         self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
         self.var_categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
         self.var_subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
-        self.var_alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", varType= 'int', defaultValue = 0)
+        self.var_alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_alwaysSendReferences", varType= 'int', defaultValue = 0)
         self.var_showDirectories        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_directories", defaultValue = 0)
         self.var_displayDetails         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_details", defaultValue = 1)
         self.var_displayProject         = cgmMeta.cgmOptionVar("cgmVar_sceneUI_display_project", defaultValue = 1)
@@ -3062,7 +3062,7 @@ example:
 
         #self.SaveCurrentSelection()
 
-    def LoadVersionList(self, *args):
+    def LoadVersionList(self, selectValue = None, *args):
         _str_func = 'LoadVersionList'
         log.debug(log_start(_str_func))
         searchList = self.versionList
@@ -3078,9 +3078,13 @@ example:
             if self.hasVariant:
                 log.debug(log_msg(_str_func,"subtypes"))                            
                 searchDir = self.path_variationDirectory
-            else:
+            elif self.hasSub:
                 log.debug(log_msg(_str_func,"has sub"))                            
                 searchDir = self.path_set
+            else:
+                searchDir = self.path_subType                
+                searchList = self.subTypeSearchList
+                
         
         log.debug(log_msg(_str_func,"searchDir: {}".format(searchDir)))            
         log.debug(log_msg(_str_func,"searchList: {}".format(searchList)))            
@@ -3137,8 +3141,15 @@ example:
         searchList['scrollList'].clear()
         searchList['scrollList'].setItems(anims)
         
-        if anims:
-            searchList['scrollList'].select_last()
+        if anims and selectValue:
+            if selectValue:
+                searchList['scrollList'].selectByValue(selectValue)
+            else:
+                _lastVersion = self.var_lastVersion.getValue()
+                if _lastVersion and _lastVersion in searchList['scrollList']._items:
+                    searchList['scrollList'].selectByValue(_lastVersion)
+                else:
+                    searchList['scrollList'].select_last()
         
         #if anims:
             #searchList['scrollList'].selectByValue(anims[-1])
@@ -3711,8 +3722,9 @@ example:
         if not self.path_asset:
             log.error("No asset selected")
             return
-        
+        _saveTypeDict = {'ma':'mayaAscii', 'mb':'mayaBinary'}
         _fileType = self.d_tf['general']['mayaFilePref'].getValue()
+        _saveType = _saveTypeDict[_fileType]
         versionList = self.versionList if self.hasSub else self.subTypeSearchList
         existingFiles = versionList['items']
 
@@ -3800,15 +3812,14 @@ example:
         saveFile = os.path.normpath(os.path.join(saveLocation, wantedName) ) 
         log.info( "Saving file: %s" % saveFile )
         mc.file( rename=saveFile )
-        mc.file( save=True )
-
-        self.LoadVersionList()
-
+        mc.file( save=True, typ = _saveType)
+        
+        self.LoadVersionList(wantedName)
         #versionList['scrollList'].selectByValue( wantedName )
         self.SaveCurrentSelection()
 
         #self.uiFunc_selectOpenFile()
-        self.refreshMetaData()
+        #self.refreshMetaData()
         
 
     def OpenDirectory(self, path):
@@ -5201,5 +5212,5 @@ def PurgeOptionVars():
     categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
     categoryStore.purge()
 
-    alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_last_version", defaultValue = 0)
+    alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_alwaysSendReferences", defaultValue = 0)
     alwaysSendReferenceFiles.purge()

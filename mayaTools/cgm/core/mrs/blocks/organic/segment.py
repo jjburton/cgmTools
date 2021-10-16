@@ -1699,12 +1699,13 @@ def skeleton_build(self, forceNew = True):
         #log.debug("|{0}| >> Extra joints, checking last handle".format(_str_func))
 
     mEndOrient = self.ikEndHandle
-    mEnd = ml_joints[-1]
-    log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
-    mEnd.jointOrient = 0,0,0
-    SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
-                     vectorUp=mEndOrient.getAxisVector('y+'))
-    JOINT.freezeOrientation(mEnd.mNode) 
+    """Don't do this aim thing, Josh, it breaks ray casting"""
+    #mEnd = ml_joints[-1]
+    #log.debug("|{0}| >> Fixing end: {1}".format(_str_func,mEnd))
+    #mEnd.jointOrient = 0,0,0
+    #SNAP.aim_atPoint(mEnd.mNode, DIST.get_pos_by_axis_dist(mEndOrient.mNode,'z+'),mode='vector',
+    #                 vectorUp=mEndOrient.getAxisVector('y+'))
+    #JOINT.freezeOrientation(mEnd.mNode) 
     #-------------------------------------------------------------------------
         
     ml_joints[0].parent = False
