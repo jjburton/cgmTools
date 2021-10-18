@@ -1,9 +1,21 @@
 import maya.cmds as mc
 #import pyunify.lib.node as node
 import cgm.core.cgm_Meta as cgmMeta
+import cgm.core.cgm_General as cgmGEN
 import json
+import pprint
 from functools import partial
 import operator
+import cgm.core.classes.GuiFactory as cgmUI
+#reload(cgmUI)
+mUI = cgmUI.mUI
+
+#========================================================================
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+#========================================================================
 
 class ShotUI(object):
     '''
@@ -53,6 +65,9 @@ example:
 
         mc.menu( label='Options' )
         self.autoAdjustFramesMI = mc.menuItem( label='Auto Adjust Frames', checkBox=True, command = self.SaveOptions )
+        mc.menuItem( label='Find and Replace names', command = self.FindAndReplaceShotsUI )
+        
+        
 
         mc.columnLayout(w=self.width)
 
@@ -120,13 +135,86 @@ example:
         self.animListNode.subAnimList = self.animDict#json.dumps(self.animDict)
 
         self.Sort(self.sortType)
+        
+    def FindAndReplaceShotsUI(self, *args):
+        if not self.animList:
+            return log.warning("No animlist to search")
+        
+        window = mc.window(title="Find/Replace in Shots", iconName='Find/Replace in Shots') #cgmUI.cgmGUI()
+        mc.columnLayout()
+        mc.rowColumnLayout( numberOfColumns=2, columnWidth=[(1, 80), (2, 200)], h=60  )
+        mc.text( label='Find')
+
+        find = mc.textField()
+        
+        mc.text( label='Replace')
+        replace = mc.textField()
+        
+        mc.setParent('..')
+        #mc.rowColumnLayout( numberOfColumns=2, columnWidth=[(1, 140), (2, 140)]  )
+        mc.button(label="OK", w=140, h=30, command=partial(self.FindAndReplaceFromUI, window, find, replace))
+        #mc.button(label="Cancel", h=30, command=partial(mc.windoC, window) )
+        mc.setParent('..')
+        mc.setParent('..')
+
+        mc.showWindow( window )        
+        
+    def FindAndReplaceFromUI(self, *args):
+        str_func = 'FindAndReplaceFromUI'
+        find = mc.textField(args[1], q=True, text=True)
+        replace = mc.textField(args[2], q=True, text=True)
+        mc.deleteUI(args[0], window=True)
+        
+        log.info(cgmGEN.logString_msg(str_func,"find: {}".format(find)))
+        log.info(cgmGEN.logString_msg(str_func,"replace: {}".format(replace)))
+        
+        
+        _dTmp = self.animDict
+        _done = False
+        for k,l in _dTmp.iteritems():
+            if find in k:
+                _new = k.replace(find,replace)
+                log.info("Replacing: {} | {}".format(k,_new))
+                _dTmp.pop(k)
+                _dTmp[_new] = l
+                _done = True
+                
+        if _done:
+            self.animDict = _dTmp
+            self.animListNode.subAnimList = self.animDict#json.dumps(self.animDict)        
+        
+        self.RefreshUI()
+        #self.AddShot(name, minVal, maxVal)
+        
 
     def AddShotUI(self, *args):
         window = mc.window(title="Add Shot", iconName='Add Shot')
         mc.columnLayout()
         mc.rowColumnLayout( numberOfColumns=2, columnWidth=[(1, 80), (2, 200)], h=60  )
         mc.text( label='Shot Name')
-        name = mc.textField()
+        import cgm.core.cgmPy.path_Utils as PATHS
+        
+        #pprint.pprint(self.animList)
+        
+        
+        
+        if self.animList:
+            _text = self.animList[-1][0]
+            
+            minVal =  self.animList[-1][1][1]
+            maxVal =  self.animList[-1][1][1] + self.animList[-1][1][2]          
+            
+        else:
+            try:
+                _text = PATHS.Path(mc.file(q=True, sn=True)).name()
+            except:
+                _text = ''
+                
+            minVal = mc.playbackOptions(q=True, min=True)
+            maxVal = mc.playbackOptions(q=True, max=True)                
+        
+        name = mc.textField(text = _text)
+
         mc.text( label='Range' )
         shotRange = mc.intFieldGrp(numberOfFields=2, columnWidth=[(1, 96), (2, 99)])
         mc.setParent('..')
@@ -136,8 +224,7 @@ example:
         mc.setParent('..')
         mc.setParent('..')
 
-        minVal = mc.playbackOptions(q=True, min=True)
-        maxVal = mc.playbackOptions(q=True, max=True)
+
 
         mc.intFieldGrp(shotRange, e=True, v1=minVal, v2=maxVal)
 

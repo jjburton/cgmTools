@@ -131,6 +131,7 @@ example:
         
         self.var_posePathLocal = cgmMeta.cgmOptionVar('cgmVar_mrs_localPosePath',defaultValue = '')
         self.var_posePathProject = cgmMeta.cgmOptionVar('cgmVar_mrs_projectPosePath',defaultValue = '')        
+        self.var_updateRigs               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_updateRigs", defaultValue = 0)
         
         
         self.var_bakeSet                     = cgmMeta.cgmOptionVar('cgm_bake_set', varType="string",defaultValue = 'bake_tdSet')
@@ -192,7 +193,7 @@ example:
         self.exportDirectory             = None
 
         self.v_bgc                       = [.6,.3,.3]
-        
+        self.updateRigsCB = None
         
         #Project migration ---------------------------------------------------------------------------------------
         self.pathProject = None
@@ -620,6 +621,11 @@ example:
         # self.optionVarExportDirStore.setValue( self.exportDirectory )
         self.var_categoryStore.setValue( self.categoryIndex )
         self.var_subTypeStore.setValue( self.subTypeIndex )
+        
+
+        
+        
+        
         #self.uiFunc_showDirectories( self.showDirectories )
         #self.uiFunc_displayDetails( self.displayDetails )
         #self.uiFunc_displayProject( self.displayProject )
@@ -1352,6 +1358,7 @@ example:
 
         _c2 = mUI.MelColumnLayout(_options_fl, adjustableColumn=True)
         self.updateCB = mUI.MelCheckBox(_c2, label="Update and Save Increment", v=False)
+        self.updateRigsCB = mUI.MelCheckBox(_c2, label="Update and Save", v=self.var_updateRigs.getValue(), cc=cgmGEN.Callback(self.var_updateRigs.toggle))
 
         _rcl( edit=True, 
                       attachForm=[
@@ -1440,24 +1447,27 @@ example:
             mc.formLayout( self._subForms[1], e=True, vis=True )            
             
             _hasSub = self.hasSub
-            
-            if self.b_subFile:
-                log.debug(log_msg(_str_func,"subfile..."))                
+            if not self.subTypeSearchList['scrollList'].getSelectedItem():
                 mc.formLayout( self._subForms[3], e=True, vis=False)
+                
             else:
-                log.debug(log_msg(_str_func,"subdir..."))                                
-                mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
-                
-                if not self.hasSubTypes:
-                    mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
-                
+                if self.b_subFile:
+                    log.debug(log_msg(_str_func,"subfile..."))                
+                    mc.formLayout( self._subForms[3], e=True, vis=False)
                 else:
-                        
-                    #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
-                    #else:
-                    #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
-                        
-                    mc.formLayout( self._subForms[1], e=True, vis=True )
+                    log.debug(log_msg(_str_func,"subdir..."))                                
+                    mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
+                    
+                    if not self.hasSubTypes:
+                        mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
+                    
+                    else:
+                            
+                        #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
+                        #else:
+                        #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
+                            
+                        mc.formLayout( self._subForms[1], e=True, vis=True )
             
         
         attachForm = []
@@ -2924,8 +2934,10 @@ example:
         
         for i,item in enumerate(self.subTypeMenuItemList):
             mc.menuItem(item, e=True, enable= i != self.subTypeIndex)
-
-        if not self.hasNested:
+            
+        if not self.hasSub:
+            mc.formLayout( self._subForms[3], e=True, vis=False )            
+        elif not self.hasNested:
             mc.formLayout( self._subForms[3], e=True, vis=False )
         else:
             mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
@@ -4640,7 +4652,9 @@ example:
                     'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
                     'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
                     'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
-                    'updateAndIncrement' : int(mc.checkBox(self.updateCB, q=True, v=True))
+                    'updateAndIncrement' : int(mc.checkBox(self.updateCB, q=True, v=True)),
+                    'updateRigs' : int(mc.checkBox(self.updateRigsCB, q=True, v=True))
+                    
                 }                
 
                 d.update(d_base)
@@ -4859,6 +4873,7 @@ def BatchExport(dataList = []):
         _d['animationName'] = fileDat.get('animationName')
         _d['workspace'] = fileDat.get('workspace')
         _d['updateAndIncrement'] = fileDat.get('updateAndIncrement')
+        _d['updateRigs'] = fileDat.get('updateRigs')
         
         _euler =  fileDat.get('euler', "0")        
         _d['euler'] = False if _euler == '0' else True
@@ -4874,6 +4889,10 @@ def BatchExport(dataList = []):
             continue
 
         mc.file(_path, open = 1, f = 1, iv = 1)
+        
+
+                    
+        
 
         ExportScene(**_d)        
 
@@ -4912,6 +4931,7 @@ def ExportScene(mode = -1,
                 animationName = None,
                 workspace = None,
                 updateAndIncrement = False,
+                updateRigs = False,
                 euler = False,
                 tangent = False,
                 ):
@@ -4926,8 +4946,25 @@ def ExportScene(mode = -1,
     reload(bakeAndPrep)
     import cgm.core.mrs.Shots as SHOTS
     _str_func = 'ExportScene'
-    log.debug(log_start(_str_func))
+    log.info(log_start(_str_func))
+    
+    
+    
+    if updateRigs:
+        log.info(log_sub(_str_func,'Rig update'))
+        
+        masterNode = None
+        for item in mc.ls("*:master", r=True):
+            if len(item.split(":")) == 2:
+                masterNode = item
 
+            rig = ASSET.Asset(item)
+            if rig.UpdateToLatest():
+                log.info(log_sub(_str_func,'Rig update: {}'.format(item)))                
+                mc.file(save = 1)    
+            else:
+                log.info(log_sub(_str_func,'Rig up to date: {}'.format(item)))                
+    
     if not exportObjs:
         exportObjs = mc.ls(sl=True)
 
@@ -4935,7 +4972,7 @@ def ExportScene(mode = -1,
     exportCams = []
 
     for obj in exportObjs:
-        log.debug("Checking: {0}".format(obj))
+        log.info("Checking: {0}".format(obj))
         if mc.listRelatives(obj, shapes=True, type='camera'):
             cameras.append(obj)
             exportCams.append( bakeAndPrep.MakeExportCam(obj) )
