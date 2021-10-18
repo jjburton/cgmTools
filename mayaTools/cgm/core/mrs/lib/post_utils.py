@@ -74,9 +74,9 @@ log_start = cgmGEN.logString_start
 log_sub = cgmGEN.logString_sub
 log_msg = cgmGEN.logString_msg
 
-def swimSettings_get(node = None,handle = None):
+def swimSettings_get(deformer = None,handle = None):
     d = {}
-    mObj = cgmMeta.asMeta(node)
+    mObj = cgmMeta.asMeta(deformer)
     d['node_t'] = mObj.translate
     d['node_r'] = mObj.rotate
     d['node_s'] = mObj.scale
@@ -92,8 +92,8 @@ def swimSettings_get(node = None,handle = None):
     pprint.pprint(d)
     return d
 
-def swimSettings_set(node = None,handle = None, d=None):
-    mObj = cgmMeta.asMeta(node)
+def swimSettings_set(deformer = None,handle = None, d=None):
+    mObj = cgmMeta.asMeta(deformer)
     mObj.translate = d['node_t']
     mObj.rotate = d['node_r']
     mObj.scale = d['node_s']

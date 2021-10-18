@@ -247,7 +247,9 @@ example:
         if float(cgmGEN.__mayaVersion__) < 2022:
             import imp
             if _path.endswith('.py'):
-                os.remove(_path.replace('.py','.pyc'))
+                _pyc = _path.replace('.py','.pyc')
+                if os.path.exists(_pyc):
+                    os.remove(_pyc)
             module = imp.load_source('tmp',_path)
             
         if not module:
