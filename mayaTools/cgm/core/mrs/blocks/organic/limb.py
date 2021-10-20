@@ -6669,12 +6669,13 @@ def rig_segments(self):
                 mc.delete(mRigJoint.getConstraintsTo())
                 mRigJoint.masterGroup.p_parent = ml_blendJoints[self.int_handleEndBaseIdx]
         
-        #...no roll setups end not following the segment handles
-        for key,v in self.md_rollMulti.iteritems():
-            if not v:
-                try:self.md_roll[key][-1].rigJoint.masterGroup.p_parent = self.md_segHandles[key][-1].p_parent
-                except:
-                    pass
+        elif not self.mToe:
+            #...no roll setups end not following the segment handles
+            for key,v in self.md_rollMulti.iteritems():
+                if not v:
+                    try:self.md_roll[key][-1].rigJoint.masterGroup.p_parent = self.md_segHandles[key][-1].p_parent
+                    except:
+                        pass
         
         if self.b_squashSetup:
             log.debug("|{0}| >> Final squash stretch stuff...".format(_str_func))
