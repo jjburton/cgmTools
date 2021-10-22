@@ -2380,7 +2380,7 @@ example:
                 path = os.path.normpath(self.directory) +  os.path.normpath(ref)
                 mUI.MelSpacer(_row,w=_spacer)		
                 _row.setStretchWidget(mUI.MelTextField(_row, text=ref, editable = False, bgc=(.8,.8,.8)))
-                cgmUI.add_Button(_row,'Load', lambda *a: VALID.fileOpen(path,True,True))
+                cgmUI.add_Button(_row,'Load', cgmGEN.Callback(VALID.fileOpen,path,True,True))
                 
                 
                 mUI.MelSpacer(_row,w=_spacer)
