@@ -1588,65 +1588,78 @@ def uiSection_snap(parent, selection = None ):
     #>>Arrange ----------------------------------------------------------------------------------------
     _arrange= mc.menuItem(parent=parent,subMenu = True,tearOff=True,
                           l = 'Arrange',
-                          ann = "Ordered layout of selected items")    
-    mc.menuItem(parent=_arrange,
-                  l = 'Linear[Even]',
-                  ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{}),                                               
-                  ann = ARRANGE._d_arrangeLine_ann.get('linearEven'))
-    mc.menuItem(parent=_arrange,
-                l = 'Linear[Spaced]',
-              ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced'}),                                               
-              ann = ARRANGE._d_arrangeLine_ann.get('linearSpaced'))
+                          ann = "Ordered layout of selected items")
     
-    mUI.MelMenuItemDiv(_arrange)        
-
-    mc.menuItem(parent=_arrange,
-              l = 'Curve[Even]',
-              ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubic'}),                                               
-              ann = ARRANGE._d_arrangeLine_ann.get('cubicEven'))
-    mc.menuItem(parent=_arrange,
-              l = 'Arc[Even]',
-              ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicArc'}),                                               
-              ann = ARRANGE._d_arrangeLine_ann.get('cubicArcEven'))
-    mc.menuItem(parent=_arrange,
-              l = 'Arc[Spaced]',
-              ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicArc'}),                                               
-              ann = ARRANGE._d_arrangeLine_ann.get('cubicArcSpaced'))    
-    
-    mUI.MelMenuItemDiv(_arrange)        
-    mc.menuItem(parent=_arrange,
-              l = '2[Even]',
-              ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicRebuild','spans':2}),
-              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild2Even'))
-    mc.menuItem(parent=_arrange,
-              l = '2[Spaced]',
-              ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicRebuild','spans':2}),
-              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild2Spaced'))
-    mc.menuItem(parent=_arrange,
-              l = '3[Even]',
-              ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicRebuild','spans':3}),
-              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Even'))
-    mc.menuItem(parent=_arrange,
-              l = '3[Spaced]',
-              ut = 'cgmUITemplate',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicRebuild','spans':3}),
-              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))
-    
-    mUI.MelMenuItemDiv(_arrange)        
     mc.menuItem(parent=_arrange,
               l = 'Ratio | Finger',
               ut = 'cgmUITemplate',
               c = cgmGEN.Callback(MMCONTEXT.func_process, RIGGEN.ratio, None,'all', 'ratioFinger',noSelect = 0, **{'mode':'finger'}),
-              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))    
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))        
     
+    mUI.MelMenuItemDiv(_arrange,l='Linear')
+    mc.menuItem(parent=_arrange,
+                  l = 'Even',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{}),                                               
+                  ann = ARRANGE._d_arrangeLine_ann.get('linearEven'))
+    mc.menuItem(parent=_arrange,
+                l = 'Spaced',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced'}),                                               
+              ann = ARRANGE._d_arrangeLine_ann.get('linearSpaced'))
+    
+    mUI.MelMenuItemDiv(_arrange,l='Curve')
+    mc.menuItem(parent=_arrange,
+              l = 'Even',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubic'}),                                               
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicEven'))
+    mc.menuItem(parent=_arrange,
+              l = 'Arc Even',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicArc'}),                                               
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicArcEven'))
+    mc.menuItem(parent=_arrange,
+              l = 'Arc Spaced',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicArc'}),                                               
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicArcSpaced'))    
+    
+    mUI.MelMenuItemDiv(_arrange,l='Curve 2')
+    mc.menuItem(parent=_arrange,
+              l = 'Even',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicRebuild','spans':2}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild2Even'))
+    mc.menuItem(parent=_arrange,
+              l = 'Spaced',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicRebuild','spans':2}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild2Spaced'))
+    
+    mUI.MelMenuItemDiv(_arrange,l='Curve 3')
+    mc.menuItem(parent=_arrange,
+              l = 'Even',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'cubicRebuild','spans':3}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Even'))
+    mc.menuItem(parent=_arrange,
+              l = 'Spaced',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'cubicRebuild','spans':3}),
+              ann = ARRANGE._d_arrangeLine_ann.get('cubicRebuild3Spaced'))
+    
+    mUI.MelMenuItemDiv(_arrange,l='Target')
+    mc.menuItem(parent=_arrange,
+              l = 'Even',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'even','curve':'target'}),
+              ann = ARRANGE._d_arrangeLine_ann.get('targetEven'))
+    mc.menuItem(parent=_arrange,
+              l = 'Closest',
+              ut = 'cgmUITemplate',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, ARRANGE.alongLine, None,'all', 'AlongLine',noSelect = 0, **{'mode':'spaced','curve':'target'}),
+              ann = ARRANGE._d_arrangeLine_ann.get('targetClosest'))    
     
     #cgmUI.mUI.MelSeparator(parent)
     mc.menuItem(parent=parent,

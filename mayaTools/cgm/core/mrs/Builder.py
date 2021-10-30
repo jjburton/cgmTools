@@ -4413,7 +4413,8 @@ class ui(cgmUI.cgmGUI):
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 600,400
     __modes = 'space','orient','follow'
-    
+    _l_contextModes = ['self','below','root','scene']
+    _l_contextStartModes = ['active','selected']
     check_cgm()
     _d_ui_annotations = {'select':"Select rigBlocks in maya from ui.",
                          'step build':"DEV | Generate a step build ui for the block",
@@ -4463,6 +4464,11 @@ class ui(cgmUI.cgmGUI):
             self.create_guiOptionVar('blockInfoFrameCollapse',defaultValue = 0) 
             self.create_guiOptionVar('blockMasterFrameCollapse',defaultValue = 0) 
             self.create_guiOptionVar('blockUtilsFrameCollapse',defaultValue = 0) 
+            
+            self.create_guiOptionVar('contextMode',defaultValue = 1) 
+            self.create_guiOptionVar('contextStartMode',defaultValue = 0) 
+            self.create_guiOptionVar('contextForceMode',defaultValue = 0) 
+            
             
             self.var_mrsDevMode = cgmMeta.cgmOptionVar('cgmVar_mrsDevMode', defaultValue = 0)
             self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
@@ -4658,6 +4664,77 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_options.clear()
         #>>> Reset Options
         _menu = self.uiMenu_options
+        
+        mUI.MelMenuItemDiv(_menu, l='Context')
+        
+        #Context ...---------------------------------------------------------------------------------
+        _context = mUI.MelMenuItem(_menu, l="Context",tearOff=True,
+                                   subMenu = True)
+        
+        uiRC = mc.radioMenuItemCollection()
+        
+        #self._l_contextModes = ['self','below','root','scene']
+        _d_ann = {'self':'Context is only of the active/sel block',
+                  'below':'Context is active/sel block and below',
+                  'root':'Context is active/sel root and below',
+                  'scene':'Context is all blocks in the scene. Careful skippy!',}
+        
+        _on = self.var_contextMode.value
+        for i,item in enumerate(self._l_contextModes):
+            if i == _on:_rb = True
+            else:_rb = False
+            mUI.MelMenuItem(_context,label=self._l_contextModes[i],
+                            collection = uiRC,
+                            rb=_rb,
+                            ann = _d_ann[item],
+                            c = cgmGEN.Callback(self.uiUpdate_context,
+                                                self.var_contextMode,i))        
+       
+        #=============================================================================
+        
+        #Begin with ...---------------------------------------------------------------------------------
+        _beginWith = mUI.MelMenuItem(_menu, l="Begin With",tearOff=True,
+                                   subMenu = True)
+        
+        uiRC = mc.radioMenuItemCollection()
+        
+        #self._l_contextStartModes = ['active','selected']
+        _d_ann = {'active':'Context begins with active block',
+                  'selected':'Context beghins with selected block in the picker on the left',}
+        
+        _on = self.var_contextStartMode.value
+        for i,item in enumerate(self._l_contextStartModes):
+            if i == _on:_rb = True
+            else:_rb = False
+            mUI.MelMenuItem(_beginWith,label=self._l_contextStartModes[i],
+                            collection = uiRC,
+                            rb=_rb,
+                            ann = _d_ann[item],
+                            c = cgmGEN.Callback(self.uiUpdate_context,
+                                                self.var_contextStartMode,i))
+            
+        #=============================================================================
+        
+        #Force ...---------------------------------------------------------------------------------
+        uiRC = mc.radioMenuItemCollection()
+        
+        _contextForce = mUI.MelMenuItem(_menu, l="Force",tearOff=True,
+                                   subMenu = True)
+        
+        _on = self.var_contextForceMode.value
+        for i,item in enumerate(['False','True']):        
+            if i == _on:_rb = True
+            else:_rb = False
+            mUI.MelMenuItem(_contextForce,label=item,
+                            collection = uiRC,
+                            rb=_rb,
+                            c = cgmGEN.Callback(self.uiUpdate_context,
+                                                self.var_contextForceMode,i))        
+        #=============================================================================
+        
+        
+        mUI.MelMenuItemDiv(_menu, l='Other')
+        
         
         _Profiles = mUI.MelMenuItem(_menu, l="Profiles",tearOff=True,
                                     subMenu = True)
@@ -7549,8 +7626,10 @@ class ui(cgmUI.cgmGUI):
         #=============================================================================================
         #>> Top
         #=============================================================================================
+        self.uiFrame_context = mUI.MelLabel(_RightUpperColumn,l='',align='center')
+        """
         self.create_guiOptionVar('contextSettingsFrameCollapse',defaultValue = 0)       
-            
+        
         _frame_context = mUI.MelFrameLayout(_RightUpperColumn,label = 'Utilities - Contextual',vis=True,
                                                 collapse=self.var_contextSettingsFrameCollapse.value,
                                                 collapsable=True,
@@ -7560,22 +7639,12 @@ class ui(cgmUI.cgmGUI):
                                                 collapseCommand = lambda:self.var_contextSettingsFrameCollapse.setValue(1)
                                                 )	
         self.uiFrame_context = _frame_context
-        _frame_context_inside = mUI.MelColumnLayout(_frame_context,useTemplate = 'cgmUISubTemplate')          
-        
-        
-        
-        
-        
-        
-        
-        #mc.setParent(_RightUpperColumn)
+        _frame_context_inside = mUI.MelColumnLayout(_frame_context,useTemplate = 'cgmUISubTemplate') """
+
         """
-        _row = mUI.MelHLayout(_frame_context_inside)
-        self.uiField_contextReport = mUI.MelLabel(_row,
-                                                  ut='cgmUIHeaderTemplate',
-                                                  label = '...',
-                                                  h=20) 
-        _row.layout()"""
+        
+        
+        #mc.setParent(_RightUpperColumn
         
         #Context mode  -------------------------------------------------------------------------------          
         self.create_guiOptionVar('contextMode',defaultValue = 0)       
@@ -7620,20 +7689,16 @@ class ui(cgmUI.cgmGUI):
         _row_contextStartModes = mUI.MelHSingleStretchLayout(_frame_context_inside,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row_contextStartModes,w=1)
         mUI.MelLabel(_row_contextStartModes,l = 'Begin with:')
+        
+        self.uiOM_beginWith = mUI.MelOptionMenu(_row_contextStartModes,
+                                                ut = 'cgmUITemplate', h=25,
+                                                cc=lambda *a: self.uiUpdate_context)
+        
         _on = self.var_contextStartMode.value
         for i,item in enumerate(self._l_contextStartModes):
-            mc.button(l=self._l_contextStartModes[i],
-                      ann=_d_ann[item],
-                      ut='cgmUITemplate',
-                      c=cgmGEN.Callback(self.uiUpdate_context,self.var_contextStartMode,i))            
-            """
-            if i == _on:_rb = True
-            else:_rb = False
-            _rc_contextStartMode.createButton(_row_contextStartModes,label=self._l_contextStartModes[i],sl=_rb,
-                                              ann = _d_ann[item],
-                                              onCommand = cgmGEN.Callback(self.var_contextStartMode.setValue,i))"""
+            self.uiOM_beginWith.append(item)
+
             mUI.MelSpacer(_row_contextStartModes,w=2)
-        
         _row_contextStartModes.setStretchWidget( mUI.MelSeparator(_row_contextStartModes) )
         
         #..force modes
@@ -7645,24 +7710,20 @@ class ui(cgmUI.cgmGUI):
         #MelHSingleStretchLayout
         mUI.MelSpacer(_row_contextStartModes,w=1)
         mUI.MelLabel(_row_contextStartModes,l = 'Force:')
+        self.uiOM_forceMode = mUI.MelOptionMenu(_row_contextStartModes,
+                                                ut = 'cgmUITemplate', h=25,
+                                                cc=lambda *a: self.uiUpdate_context)
         
         _on = self.var_contextForceMode.value
         for i,item in enumerate(['False','True']):
-            mc.button(l=item,
-                      ann="Force Mode: {0}".format(item),
-                      ut='cgmUITemplate',
-                      c=cgmGEN.Callback(self.uiUpdate_context,self.var_contextForceMode,i))
+            self.uiOM_forceMode.append(item)
+
             mUI.MelSpacer(_row_contextStartModes,w=2)
             
-            """
-            if i == _on:_rb = True
-            else:_rb = False
-            _rc_contextForceMode.createButton(_row_contextStartModes,label=item,sl=_rb,
-                                              ann = "Force Mode: {0}".format(item),
-                                              onCommand = cgmGEN.Callback(self.var_contextForceMode.setValue,i))
-            mUI.MelSpacer(_row_contextStartModes,w=2)"""
+
     
         _row_contextStartModes.layout()       
+        """
         
         #Push Rows  -------------------------------------------------------------------------------  
         mc.setParent(_RightUpperColumn)

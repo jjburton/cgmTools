@@ -466,7 +466,7 @@ d_block_profiles = {
                  'loftList':['wideUp','circle','wideDown','wideDown'],             
                  'loftShape':'circle',
                  'ikSetup':'ribbon',
-                 'ikBase':'hips',
+                 'ikBase':'head',
                  'ikEnd':'tipBase',             
                  'cgmName':'spine',
                  'nameIter':'spine',
@@ -564,7 +564,6 @@ l_attrsStandard = ['side',
                    'loftSplit',
                    'loftShape',
                    'ikSetup',
-                   'ikBase',
                    'nameIter',
                    'numControls',
                    'numShapers',
@@ -609,7 +608,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ribbonConnectBy': 'constraint:matrix',
                  'segmentMidIKControl':'none:ribbon:prntConstraint',
                  'segmentType':'ribbon:curve:linear:parent',
-                 
+                 'ikBase':'none:cube:simple:hips:head',
                  'settingsPlace':'start:end:cog',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  #'blockProfile':':'.join(d_block_profiles.keys()),
@@ -1281,7 +1280,7 @@ def prerig(self):
                    'end':{'idx':-1}}
     
     str_start = self.getEnumValueString('ikBase')
-    if str_start == 'hips':
+    if str_start in ['hips','head']:
         d_ikHandles['start']['idx'] = 1
         
     str_end = self.getEnumValueString('ikEnd')
@@ -1924,7 +1923,7 @@ def rig_dataBuffer(self):
         str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
         log.debug("|{0}| >> IK Base: {1}".format(_str_func,str_ikBase))    
         self.int_segBaseIdx = 0
-        if str_ikBase in ['hips']:
+        if str_ikBase in ['hips','head']:
             self.int_segBaseIdx = 1
         log.debug("|{0}| >> self.int_segBaseIdx: {1}".format(_str_func,self.int_segBaseIdx))
         
@@ -2172,7 +2171,7 @@ def rig_skeleton(self):
             for i,mJnt in enumerate(ml_rigJoints):
                 mJnt.parent = ml_rigParents[i]
                 
-            if str_ikBase == 'hips':
+            if str_ikBase in ['hips','head']:
                 log.debug("|{0}| >> Simple setup. Need single handle.".format(_str_func))
                 ml_segmentHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
                                                                             ml_fkJoints, 
@@ -2325,7 +2324,7 @@ def rig_shapes(self):
             mJnt = ml_fkJoints[i]
             #CORERIG.match_orientation(mCrv.mNode,mJnt.mNode)
             
-            if i == 0 and str_ikBase == 'hips':
+            if i == 0 and str_ikBase in ['hips','head']:
                 log.debug("|{0}| >> FK hips. no shape on frame...".format(_str_func))
                 mCrv.delete()
                 continue
@@ -2445,7 +2444,7 @@ def rig_controls(self):
         log.debug("|{0}| >> FK Controls...".format(_str_func))
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
         
-        if str_ikBase == 'hips':
+        if str_ikBase in ['hips','head']:
             p_pelvis = ml_fkJoints[0].p_position
             ml_fkJoints = ml_fkJoints[1:]
         
@@ -2514,7 +2513,7 @@ def rig_controls(self):
             #Register our snapToTarget -------------------------------------------------------------
             self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[0])
             
-            if str_ikBase == 'hips' and mBlock.scaleSetup:
+            if str_ikBase in ['hips','head'] and mBlock.scaleSetup:
                 log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
                 TRANS.scalePivot_set(mControlBaseIK.mNode, p_pelvis)                
             
@@ -2734,7 +2733,7 @@ def rig_segments(self):
               'parentDeformTo':mRoot,
               'moduleInstance':mModule}
         
-        if mBlock.getEnumValueString('ikBase') == 'hips':
+        if mBlock.getEnumValueString('ikBase') in ['hips','head']:
             _d['attachStartToInfluence'] = True
         if mBlock.special_swim:
             _d['attachStartToInfluence'] = False                
@@ -2904,7 +2903,7 @@ def rig_frame(self):
             if mRigNull.getMessage('controlIKBase'):
                 mIKBaseControl = mRigNull.controlIKBase
                 
-                if str_ikBase == 'hips':
+                if str_ikBase in ['hips','head']:
                     mIKBaseControl.masterGroup.parent = mRoot
                 else:
                     mIKBaseControl.masterGroup.parent = mIKGroup
@@ -3114,7 +3113,7 @@ def rig_frame(self):
                         'influences':ml_skinDrivers,
                         'moduleInstance' : self.mModule}
                 
-                if str_ikBase == 'hips':
+                if str_ikBase in ['hips','head']:
                     d_ik['attachEndsToInfluences'] = True
                     
                 #if mBlock.numControls == mBlock.numJoints:
@@ -3157,7 +3156,7 @@ def rig_frame(self):
             
             #Parent --------------------------------------------------
             #Fk...
-            if str_ikBase == 'hips':
+            if str_ikBase in ['hips','head']:
                 mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[1].masterGroup.mNode))
                 ml_fkJoints[0].p_parent = mIKBaseControl
             else:
@@ -3443,7 +3442,7 @@ def rig_cleanUp(self):
             
             
             if b_ikOrientToWorld:
-                if mHandle == mControlIKBase and str_ikBase not in ['hips']:
+                if mHandle == mControlIKBase and str_ikBase not in ['hips','head']:
                     pass
                 else:
                     BUILDUTILS.control_convertToWorldIK(mHandle)
@@ -3598,7 +3597,7 @@ def rig_cleanUp(self):
                 ATTR.set_default(mHandle.mNode, 'followRoot', 1.0)
                 mHandle.followRoot = 1.0
                 
-            if mBlock.getEnumValueString('ikBase') not in ['hips']:
+            if mBlock.getEnumValueString('ikBase') not in ['hips','head']:
                 ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 0.0)
                 ml_handleJoints[0].followRoot = 0.0
                 

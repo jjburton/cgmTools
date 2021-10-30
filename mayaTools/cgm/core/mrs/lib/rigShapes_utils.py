@@ -531,11 +531,11 @@ def ik_base(self,ikBase = None, ml_baseJoints = None, ml_fkShapes = None):
         
         log.debug("|{0}| >> {1} ...".format(_str_func,ikBase))
             
-        if ikBase in ['hips','simple']:
-            if ikBase ==  'hips':
+        if ikBase in ['hips','simple','head']:
+            if ikBase in  ['hips','head']:
                 mIKBaseCrv = mBlock.ikStartHandle.doCreateAt(setClass=True)#ml_baseJoints[1]
                 mIKBaseCrv.doCopyNameTagsFromObject(ml_baseJoints[0].mNode,ignore=['cgmType'])                
-                mIKBaseCrv.doStore('cgmName','hips')
+                mIKBaseCrv.doStore('cgmName',ikBase)
             else:
                 mIKBaseCrv = mBlock.ikStartHandle.doCreateAt(setClass=True)
                 mIKBaseCrv.doCopyNameTagsFromObject(ml_baseJoints[0].mNode,ignore=['cgmType'])

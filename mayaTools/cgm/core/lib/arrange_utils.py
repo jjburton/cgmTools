@@ -93,7 +93,9 @@ _d_arrangeLine_ann = {'linearEven':"Layout on line from first to last item evenl
                       'linearSpaced':'Layout on line from first to last item closest as possible to original position',
                       'cubicEven':'Layout evenly on a curve created from the list',
                       'cubicArcEven':'Layout evenly on an arc defined by start,mid,last',
-                      'cubicArcSpaced':'Layout spaced on an arc defined by start,mid,last',                      
+                      'cubicArcSpaced':'Layout spaced on an arc defined by start,mid,last',
+                      'targetEven':'First objects along last item (must be curve',
+                      'targetClosest':'First objects along last item (must be curve',                      
                       'cubicRebuild2Even':'Layout evenly on a 2 span rebuild curve from the list.',
                       'cubicRebuild3Even':'Layout evenly on a 2 span rebuild curve from the list.',
                       'cubicRebuild2Spaced':'Layout spaced on a 2 span rebuild curve from the list.',
@@ -114,6 +116,8 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
     """   
     _str_func = 'alongLine'
     objList = VALID.mNodeStringList(objList)
+    objListBase = copy.copy(objList)
+    
     log.debug("|{0}| >> ObjList: {1} ".format(_str_func,objList))             
     _len = len(objList)
     if _len < 3:
@@ -132,6 +136,12 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
         curveBuffer = [crv1]
         if curve == 'cubicRebuild':
             curveBuffer.append(mc.rebuildCurve (crv1, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=spans, d=3, tol=0.001)[0])
+    elif curve == 'target':
+        _type = VALID.get_mayaType(objList[-1])
+        if _type != 'nurbsCurve':
+            raise ValueError,"Last selected must be curve. Found: '{}' | type: '{}'".format(objList[-1], _type)
+        curveBuffer = objList.pop(-1)
+        _len -=1
 
     elif curve == 'cubicArc':
         _mid = MATH.get_midIndex(_len)
@@ -154,24 +164,39 @@ def alongLine(objList = None, mode = 'even', curve = 'linear',spans = 2):
                 POS.set(o,_l_pos[i+1])        
         else:
             _l_pos = CURVES.getUSplitList(curveBuffer,points = _len,rebuild=1)
-            
-        for i,o in enumerate(objList[1:-1]):
-            POS.set(o,_l_pos[i+1])
+        
+        if curve == 'target':
+            for i,o in enumerate(objList):
+                POS.set(o,_l_pos[i])            
+        else:
+            for i,o in enumerate(objList[1:-1]):
+                POS.set(o,_l_pos[i+1])
             
     elif mode == 'spaced':
         _l_pos = []
-        for i,o in enumerate(objList[1:-1]):
-            #SNAP.go(o,curveBuffer,pivot= 'closestPoint')
-            p = DIST.get_by_dist(o,curveBuffer,resMode='pointOnSurface')
-            POS.set(o,p)
-            _l_pos.append(p)
+        
+        if curve == 'target':
+            for i,o in enumerate(objList):
+                p = DIST.get_by_dist(o,curveBuffer,resMode='pointOnSurface')
+                POS.set(o,p)
+                _l_pos.append(p)        
+        else:
+            for i,o in enumerate(objList[1:-1]):
+                #SNAP.go(o,curveBuffer,pivot= 'closestPoint')
+                p = DIST.get_by_dist(o,curveBuffer,resMode='pointOnSurface')
+                POS.set(o,p)
+                _l_pos.append(p)
+
+        
+        
     else:
         try:raise ValueError,"{0} >> mode not supported: {1}".format(sys._getframe().f_code.co_name, mode)
         except:raise ValueError,"mode not supported: {0}".format(mode)
         
         
-    if curveBuffer:
+    if curveBuffer and curve != 'target':
         mc.delete(curveBuffer)
+    mc.select(objListBase)
     return _l_pos
 
 

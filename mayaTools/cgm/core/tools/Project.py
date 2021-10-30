@@ -1,22 +1,8 @@
 """
-skinDat
+Project
 Josh Burton 
 www.cgmonks.com
 
-Core skinning data handler for cgm going forward.
-
-Storing joint positions and vert positions so at some point can implement a method
-to apply a skin without a reference object in scene if geo or joint counts don't match
-
-Currently only regular skin clusters are storing...
-
-Features...
-- Skin data gather
-- Read/write skin data to a readable config file
-- Apply skinning data to geo of different vert count
-- 
-
-Thanks to Alex Widener for some ideas on how to set things up.
 
 """
 __MAYALOCAL = 'CGMPROJECT'
@@ -347,19 +333,15 @@ def buildFrame_assetTypes(self,parent,changeCommand = ''):
     mUI.MelButton(_row,
                   label='Edit',ut='cgmUITemplate',
                   c = lambda *a: uiAsset_editName(self),
-                  #c = lambda *a: uiAsset_remove(self),
-                   #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                    ann='Edit the name of the current type')
     
     mUI.MelButton(_row,
                   label='Add',ut='cgmUITemplate',
                   c = lambda *a: uiAsset_add(self),
-                   #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                    ann='Force the scroll list to update')
     mUI.MelButton(_row,
                   label='Dup',ut='cgmUITemplate',
                   c = lambda *a: uiAsset_duplicate(self),
-                   #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                    ann='Duplicate the current asset')
 
     mUI.MelSpacer(_row,w=15)                          
@@ -367,7 +349,6 @@ def buildFrame_assetTypes(self,parent,changeCommand = ''):
     mUI.MelButton(_row,
                   label='Remove',ut='cgmUITemplate',
                   c = lambda *a: uiAsset_remove(self),
-                   #c=lambda *a: self.uiScrollList_dirContent.rebuild( self.d_tf['paths']['content'].getValue()),
                    ann='Force the scroll list to update')    
     
 
