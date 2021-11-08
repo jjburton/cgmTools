@@ -536,12 +536,21 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         _out = self.d_orientation['vectorOut']
         
         _l_posUse = [mObj.p_position for mObj in ml_ikUse]
-        _l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
-                                                                    DIST.get_distance_between_points(_l_posUse[-1],_l_posUse[-2])))
         
-        cgmMeta.cgmObject().getPositionByAxisDistance
+        
+        
+        try:
+            _l_posUse.append(self.ml_formHandles[ self.int_handleEndIdx ].p_position)
+        except:
+            _l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
+                                                                     DIST.get_distance_between_points(_l_posUse[-1],
+                                                                                                      _l_posUse[-2])))            
         _crv = CORERIG.create_at(create='curve',l_pos = _l_posUse)
         
+        #_l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
+        #                                                         DIST.get_distance_between_points(_l_posUse[-1],_l_posUse[-2])))
+        
+                
         """We're going to add another end joint so we can orient it"""
         mEnd = ml_ikUse.pop(-1)
         mEndHelp = mEnd.doDuplicate(po=True, ic=False)

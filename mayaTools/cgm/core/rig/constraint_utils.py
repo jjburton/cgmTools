@@ -48,7 +48,7 @@ import cgm.core.lib.list_utils as LISTS
 from cgm.core.lib import rigging_utils as CORERIG
 from cgm.core.lib import math_utils as MATHUTILS
 
-def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver = None, parentTo = None):
+def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver = None, parentTo = None, floating = False):
     """
     :parameters:
         obj - transform to attach
@@ -119,11 +119,25 @@ def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver 
             mPOCI = cgmMeta.cgmNode(nodeType = 'pointOnCurveInfo')
             mc.connectAttr("%s.worldSpace"%_shape,"%s.inputCurve"%mPOCI.mNode)
             mPOCI.parameter = d_closest['parameter']
+            
+            if floating:
+                _minU = ATTR.get(_shape,'minValue')
+                _maxU = ATTR.get(_shape,'maxValue')
+                _param = mPOCI.parameter
+                pct = MATHUTILS.get_normalized_parameter(_minU,_maxU,_param)
+                log.debug("|{0}| >>  min,max,param,pct | {1},{2},{3},{4} ".format(_str_func,
+                                                                                  _minU,
+                                                                                  _maxU,
+                                                                                  _param,
+                                                                                  pct))
+                mPOCI.turnOnPercentage = True
+                mPOCI.parameter = pct                
 
             mTrack = mObj.doCreateAt()
             mTrack.doStore('cgmName',mObj)
             mTrack.doStore('cgmType','surfaceTrack')
             mTrack.doName()
+            
             
             if parentTo:
                 mTrack.p_parent = parentTo

@@ -276,7 +276,7 @@ def ik_segMid(self,mHandle = None):
         log_start(_str_func)
         ml_shapes = self.atBuilderUtils('shapes_fromCast',
                                         targets = mHandle,
-                                        offset = self.v_offset,
+                                        offset = self.v_offset * 2.0,
                                         mode = 'simpleCast')#'segmentHan
         CORERIG.shapeParent_in_place(mHandle.mNode, ml_shapes[0].mNode,False)
     

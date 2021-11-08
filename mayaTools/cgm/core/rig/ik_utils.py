@@ -1236,20 +1236,21 @@ def ribbon(jointList = None,
                                  rn = 0,
                                  local = 0)
         
-
+        
         mCrv_reparam = cgmMeta.validateObjArg(_crv[0],setClass=True)
         mCrv_reparam.doStore("cgmName","{0}_reparam".format(str_baseName))
         mCrv_reparam.doName()        
         cgmMeta.cgmNode(_crv[1]).doName()
         
-        mc.rebuildCurve(mCrv_reparam.mNode, d=3, keepControlPoints=False,ch=1,n="reparamRebuild")
+        mc.rebuildCurve(mCrv_reparam.mNode,spans = int_lenJoints,ch=1,rt=0, n="reparamRebuild")
+        mCrv_reparam.p_parent = mGroup
+        
         #cubic keepC
         md_floatTrackGroups = {}
         md_floatTrackNodes = {}
         md_floatParameters = {}
         d_vParameters = {}
         
-        mCrv_reparam.p_parent = mGroup
         
         l_argBuild = []
         mPlug_vSize = cgmMeta.cgmAttr(mControlSurface.mNode,
@@ -1289,9 +1290,14 @@ def ribbon(jointList = None,
                                         attrType = 'float',
                                         hidden = False,
                                         lock=False)            
+            
+            
+            
+            
             mLoc = mObj.doLoc()
             
-            _res = RIGCONSTRAINTS.attach_toShape(mObj,mCrv_reparam.mNode,None)
+            reload(RIGCONSTRAINTS)
+            _res = RIGCONSTRAINTS.attach_toShape(mObj,mCrv_reparam.mNode,None,)#floating=True)
             md_floatTrackGroups[i]=_res[0]
             #res_closest = DIST.create_closest_point_node(mLoc.mNode, mCrv_reparam.mNode,True)
             log.debug("|{0}| >> Closest info {1} : {2}".format(_str_func,i,_res))

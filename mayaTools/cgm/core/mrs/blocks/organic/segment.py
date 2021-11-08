@@ -127,7 +127,8 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                            'loftShapeEnd','loftShapeStart'],
                    'prerig':[],
                    'skeleton':['numJoints'],
-                   'rig':['segmentType','special_swim']}
+                   'rig':['segmentType','special_swim',
+                          'ikBaseExtend','ikEndExtend','ikEndLever']}
 
 
 #>>>Profiles =====================================================================================================
@@ -613,6 +614,11 @@ d_attrsToMake = {'visMeasure':'bool',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  #'blockProfile':':'.join(d_block_profiles.keys()),
                  'ikEnd':'none:cube:bank:foot:hand:tipBase:tipMid:tipEnd:proxy',
+                 
+                 
+                 'ikEndLever':'bool',
+                 'ikBaseExtend':'bool',
+                 'ikEndExtend':'bool',                 
                  #'nameIter':'string',
                  #'numControls':'int',
                  #'numShapers':'int',
@@ -1777,7 +1783,9 @@ def rig_prechecks(self):
         if mBlock.numControls > mBlock.numJoints:
             self.l_precheckErrors.append('More controls ({0}) than joints ({1})'.format(mBlock.numControls, mBlock.numJoints))
         
-                
+        if mBlock.ikEndLever:
+            self.l_precheckErrors.append('End Lever not ready')
+            
         for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
             if not mObj.p_parent:
                 self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
@@ -2097,6 +2105,7 @@ def rig_skeleton(self):
                 for i,mJnt in enumerate(ml_segmentHandles):
                     mJnt.parent = ml_fkJoints[i]
                     """
+        _ikSetup = mBlock.getEnumValueString('ikSetup')
         
         if mBlock.ikSetup in [2,3,4]:#...ribbon/spline
             log.debug("|{0}| >> IK Drivers...".format(_str_func))            
@@ -2133,15 +2142,37 @@ def rig_skeleton(self):
                 mMidIK.p_parent = False
                 mMidIK.doName()
             
-                #mMidIK.p_position = POS.get_curveMidPointFromDagList([mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]])
-                #print ([mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]])
-                #DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,ml_rigJoints[-1].p_position])
-            
-                #SNAP.aim(mMidIK.mNode, ml_rigJoints[-1].mNode, 'z+','y+','vector',
-                         #self.mVec_up)
-                #reload(JOINT)
                 JOINT.freezeOrientation(mMidIK.mNode)
                 mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
+                
+            #Add base joint for now...
+            #if _ikSetup in ['spline','curve']:
+            if mBlock.ikBaseExtend:
+                log.debug("|{0}| >> Creating controlBaseExtendIK...".format(_str_func))  
+                mBaseExtendIK = ml_joints[1].doCreateAt('joint')#ml_rigJoints[0]
+                _nameSet = NAMETOOLS.combineDict( mBlock.getNameDict(ignore=['cgmType']))
+                
+                mBaseExtendIK.doStore('cgmName', '{0}_baseExtend'.format(_nameSet))
+                mBaseExtendIK.p_parent = False
+                mBaseExtendIK.doName()
+                JOINT.freezeOrientation(mBaseExtendIK.mNode)
+                
+                mRigNull.connectChildNode(mBaseExtendIK,'controlBaseExtendIK','rigNull')
+            
+            if mBlock.ikEndExtend:
+                #Add base joint for now...
+                log.debug("|{0}| >> Creating controlEndExtendIK...".format(_str_func))  
+                mEndExtendIK = ml_joints[-2].doCreateAt('joint')#ml_rigJoints[0]
+                _nameSet = NAMETOOLS.combineDict( mBlock.getNameDict(ignore=['cgmType']))
+                
+                mEndExtendIK.doStore('cgmName', '{0}_endExtend'.format(_nameSet))
+                mEndExtendIK.p_parent = False
+                mEndExtendIK.doName()
+                
+                JOINT.freezeOrientation(mEndExtendIK.mNode)
+                
+                mRigNull.connectChildNode(mEndExtendIK,'controlEndExtendIK','rigNull')            
+            
             
         
             
@@ -2262,6 +2293,17 @@ def rig_shapes(self):
         mControlSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
         if mControlSegMidIK:
             RIGSHAPES.ik_segMid(self,mControlSegMidIK)
+            
+        
+        mControlEndExtendIK = mRigNull.getMessageAsMeta('controlEndExtendIK')
+        if mControlEndExtendIK:
+            RIGSHAPES.ik_segMid(self,mControlEndExtendIK)
+            mControlEndExtendIK.p_parent = False
+            
+        mControlBaseExtendIK = mRigNull.getMessageAsMeta('controlBaseExtendIK')
+        if mControlBaseExtendIK:
+            RIGSHAPES.ik_segMid(self,mControlBaseExtendIK)                
+            mControlBaseExtendIK.p_parent = False
             
         #Root...=============================================================================
         mRoot = RIGSHAPES.rootOrCog(self)
@@ -2536,6 +2578,35 @@ def rig_controls(self):
             self.atUtils('get_switchTarget', mIKControlMid,ml_blend[self.int_handleMidIdx])
             
             log.debug(cgmGEN._str_subLine)
+            
+            
+        l_extends = ['controlEndExtendIK','controlBaseExtendIK']
+        for k in l_extends:
+            mControl = mRigNull.getMessageAsMeta(k)
+            if mControl:
+                log.debug("|{0}| >> Found : {1}".format(_str_func, k))
+        
+                _d = MODULECONTROL.register(mControl,
+                                            addDynParentGroup = False,
+                                            mirrorSide= self.d_module['mirrorDirection'],
+                                            mirrorAxis="translateX,rotateY,rotateZ",
+                                            makeAimable = True)
+                
+                mControl = _d['mObj']
+                if k == 'controlEndExtendIK':
+                    mControl.masterGroup.parent = mControlIK
+                else:
+                    mControl.masterGroup.parent = mControlBaseIK or mRoot
+                    
+                ml_controlsAll.append(mControl)
+                ml_controlsIKRO.append(mControl)
+                    
+                
+
+                
+            
+            
+            
             
         mControlSegMidIK = False
         #controlSegMidIK =============================================================================
@@ -3000,16 +3071,32 @@ def rig_frame(self):
                 
                 ml_skinDrivers = copy.copy(ml_ribbonIkHandles)
                 max_influences = 2
-
                 
-                mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
-                if mSegMidIK:
-                    RIGFRAME.segment_mid(self,mSegMidIK,ml_ribbonIkHandles,mIKGroup,
-                                         mIKBaseControl,mIKControl,ml_ikJoints)
-                    ml_skinDrivers.insert(1,mSegMidIK)
+                ml_segMidDrivers = copy.copy(ml_ribbonIkHandles)
+                    
+                #Extend Controls ==============================================================
+                mControlBaseExtendIK = mRigNull.getMessageAsMeta('controlBaseExtendIK')
+                if mControlBaseExtendIK:
+                    ml_skinDrivers.insert(1,mControlBaseExtendIK)
                     max_influences+=1
+                    ml_segMidDrivers[0] = mControlBaseExtendIK
 
+                mControlEndExtendIK = mRigNull.getMessageAsMeta('controlEndExtendIK')
+                if mControlEndExtendIK:
+                    ml_skinDrivers.insert(-1,mControlEndExtendIK)
+                    max_influences+=1
+                    ml_segMidDrivers[1] = mControlEndExtendIK
                 
+
+                mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
+                #[mControlBaseExtendIK,mControlEndExtendIK] ml_ribbonIkHandles
+                if mSegMidIK:
+                    RIGFRAME.segment_mid(self,mSegMidIK,ml_segMidDrivers,mIKGroup,
+                                         mIKBaseControl,mIKControl,ml_ikJoints)
+                    ml_skinDrivers.insert(MATH.get_midIndex(len(ml_skinDrivers)),mSegMidIK)
+                    max_influences+=1
+                
+
                 if mIKBaseControl:
                     ml_ribbonIkHandles[0].parent = mIKBaseControl
                 else:
@@ -3017,8 +3104,10 @@ def rig_frame(self):
                     ml_ribbonIkHandles[0].parent = mSpinGroup
                     
                 ml_ribbonIkHandles[-1].parent = mIKControl
+                
                 if _ikSetup == 'spline':
-                    RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,ml_skinDrivers,mPlug_masterScale)
+                    RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,
+                                    ml_skinDrivers,mPlug_masterScale, 'scale')
     
                     ATTR.set_default(mIKControl.mNode,'twistType',1)
                     ATTR.set(mIKControl.mNode,'twistType',1)
@@ -3067,13 +3156,29 @@ def rig_frame(self):
                 #mPlug_masterScale = res_segScale[0]
                 #mMasterCurve = res_segScale[1]
                 
-                mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
-                if mSegMidIK:
-                    RIGFRAME.segment_mid(self,mSegMidIK,ml_ribbonIkHandles,mIKGroup,
-                                         mIKBaseControl,mIKControl,ml_ikJoints)
-                    ml_skinDrivers.append(mSegMidIK)
-                    max_influences+=1
+                ml_segMidDrivers = copy.copy(ml_ribbonIkHandles)
                     
+                #Extend Controls ==============================================================
+                mControlBaseExtendIK = mRigNull.getMessageAsMeta('controlBaseExtendIK')
+                if mControlBaseExtendIK:
+                    ml_skinDrivers.insert(1,mControlBaseExtendIK)
+                    max_influences+=1
+                    ml_segMidDrivers[0] = mControlBaseExtendIK
+
+                mControlEndExtendIK = mRigNull.getMessageAsMeta('controlEndExtendIK')
+                if mControlEndExtendIK:
+                    ml_skinDrivers.insert(-1,mControlEndExtendIK)
+                    max_influences+=1
+                    ml_segMidDrivers[1] = mControlEndExtendIK
+                
+
+                mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
+                #[mControlBaseExtendIK,mControlEndExtendIK] ml_ribbonIkHandles
+                if mSegMidIK:
+                    RIGFRAME.segment_mid(self,mSegMidIK,ml_segMidDrivers,mIKGroup,
+                                         mIKBaseControl,mIKControl,ml_ikJoints)
+                    ml_skinDrivers.insert(MATH.get_midIndex(len(ml_skinDrivers)),mSegMidIK)
+                    max_influences+=1
 
                     
                     
