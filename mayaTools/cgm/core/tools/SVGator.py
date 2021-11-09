@@ -39,10 +39,22 @@ import cgm.core.cgmPy.os_Utils as cgmOS
 import cgm.core.lib.position_utils as POS
 import cgm.core.lib.geo_Utils as GEO
 import cgm.core.lib.string_utils as CORESTRINGS
+import cgm.core.lib.shared_data as CORESHARE
+import cgm.core.cgmPy.os_Utils as CGMOS
+
+log_msg = cgmGEN.logString_msg
+log_sub = cgmGEN.logString_sub
+log_start = cgmGEN.logString_start
 
 #>>> Root settings =============================================================
 __version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='SVGator'
+_colorGood = CORESHARE._d_colors_to_RGB['greenWhite']
+_colorBad = CORESHARE._d_colors_to_RGB['redWhite']
+
+d_importOptions = {'ExtrudeCull':{'ann':'Extrude and cull to get a clean flat front'},
+                   'Triangulate':{'s':'Triangulate','ann':'Triangulate the mesh'},
+                   'MoveToCenter':{'s':'Center','ann':'Move to world center'},}
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -70,7 +82,9 @@ class ui(cgmUI.cgmGUI):
         #self.l_allowedDockAreas = []
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
         self.DEFAULT_SIZE = self.__class__.DEFAULT_SIZE
-
+        
+        self.uiCB_d = {}
+        self.uiTF = {}
  
     def build_menus(self):
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_first))
@@ -108,7 +122,142 @@ class ui(cgmUI.cgmGUI):
                         ],
                   ac = [(_column,"bottom",2,_row_cgm),
                         ],
-                  attachNone = [(_row_cgm,"top")])          
+                  attachNone = [(_row_cgm,"top")])
+        
+    def uiFunc_importSVG(self):
+        str_func = 'data.uiFunc_importSVG'
+        log.debug(log_start(str_func))
+        
+        _startDir = self.uiTF['source'].getValue()
+        if not os.path.exists(_startDir):
+            log.warning("Invalid source path: {}".format(_startDir))            
+            _startDir = False
+        
+        _path = VALID.filepath(None, fileMode =1, fileFilter='SVG File (*.svg)',startDir=_startDir)
+        if not _path:
+            log.warning("No file specified")                        
+            return
+        
+        d_options = {}
+        d_options['pivotMode'] = self.uiOM_pivot.getValue()
+        d_options['triangulate'] = self.uiCB_d['Triangulate'].getValue()
+        d_options['extrudeAndCull'] = self.uiCB_d['ExtrudeCull'].getValue()
+        d_options['moveToCenter'] = self.uiCB_d['MoveToCenter'].getValue()
+        
+        #pprint.pprint(d_options)
+
+        _res = svg_import(_path,**d_options)
+        
+        pprint.pprint(_res)
+        
+    def uiFunc_importBatchSVG(self):
+        str_func = 'data.uiFunc_importBatchSVG'
+        log.debug(log_start(str_func))
+        
+        _startDir = self.uiTF['source'].getValue()
+        if not os.path.exists(_startDir):
+            log.warning("Invalid source path: {}".format(_startDir))            
+            _startDir = False
+            
+        l = CGMOS.find_files(_startDir,'*.svg')
+        pprint.pprint(l)
+        
+        d_options = {}
+        d_options['pivotMode'] = self.uiOM_pivot.getValue()
+        d_options['triangulate'] = self.uiCB_d['Triangulate'].getValue()
+        d_options['extrudeAndCull'] = self.uiCB_d['ExtrudeCull'].getValue()
+        d_options['moveToCenter'] = self.uiCB_d['MoveToCenter'].getValue()        
+        
+        for f in l:
+            try:
+                log.info(log_sub(str_func,"File: {}".format(f)))                        
+                _res = svg_import(os.path.join(_startDir,f),**d_options)
+                pprint.pprint(_res)                  
+            except Exception,err:
+                log.error(err)            
+            
+        return
+    
+    def uiFunc_importExportBatchSVG(self):
+        str_func = 'data.uiFunc_importExportBatchSVG'
+        log.debug(log_start(str_func))
+        
+        _startDir = self.uiTF['source'].getValue()
+        if not os.path.exists(_startDir):
+            log.warning("Invalid source path: {}".format(_startDir))            
+            _startDir = False
+            
+        l = CGMOS.find_files(_startDir,'*.svg')
+        pprint.pprint(l)
+        
+        d_options = {}
+        d_options['pivotMode'] = self.uiOM_pivot.getValue()
+        d_options['triangulate'] = self.uiCB_d['Triangulate'].getValue()
+        d_options['extrudeAndCull'] = self.uiCB_d['ExtrudeCull'].getValue()
+        d_options['moveToCenter'] = self.uiCB_d['MoveToCenter'].getValue()        
+        
+        ml_mesh = []
+        
+        for f in l:
+            try:
+                log.info(log_sub(str_func,"File: {}".format(f)))                        
+                _res = svg_import(os.path.join(_startDir,f),**d_options)
+                ml_mesh.append(_res[0])
+                pprint.pprint(_res)                  
+            except Exception,err:
+                log.error(err)
+        if ml_mesh:
+            self.uiFunc_exportSVG(ml_mesh)
+            
+            
+        return    
+        
+
+        
+
+        
+        #pprint.pprint(d_options)
+
+ 
+        
+    def uiFunc_exportSVG(self, ml = None):
+        str_func = 'data.uiFunc_exportSVG'
+        log.debug(log_start(str_func))
+        
+        _export = self.uiTF['export'].getValue()
+        if not os.path.exists(_export):
+            log.warning("Invalid export path: {}".format(_startDir))            
+            return False
+        
+        if ml == None:
+            ml = cgmMeta.asMeta(sl=1,noneValid=True) or False
+            
+        if not ml:
+            return log.error(log_msg(str_func,"Nothing selected"))
+
+        for mObj in ml:
+            log.info(log_sub(str_func,"Obj: {}".format(mObj.mNode)))            
+            try:
+                _nameBase = mObj.p_nameBase
+                _nameStrip = mObj.p_nameBase.split('_')[:-1]
+                _nameStrip = '_'.join(_nameStrip)
+                print _nameStrip
+                
+                mObj.rename("{}_ORIGINAL".format(_nameBase))
+                mExport = mObj.doDuplicate(po=False)
+                mExport.rename(_nameBase)
+                
+                mc.delete(mExport.mNode, ch=1)
+                
+                mExport.select()            
+                
+                _exportPath = os.path.normpath( os.path.join(_export, "{}.fbx".format(_nameStrip)) )
+                print _exportPath
+                
+                mel.eval('FBXExport -f \"{}\" -s'.format(_exportPath.replace('\\', '/')))
+                #mExport.delete()
+            except Exception,err:
+                log.error(err)
         
 
 def buildColumn_main(self,parent, asScroll = False):
@@ -122,7 +271,7 @@ def buildColumn_main(self,parent, asScroll = False):
         _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
     
     cgmUI.add_Header('Single')
-    
+    """
     #>>>Objects Load Row ---------------------------------------------------------------------------------------
     _row_objLoad = mUI.MelHSingleStretchLayout(_inside,ut='cgmUITemplate',padding = 5)        
 
@@ -139,39 +288,71 @@ def buildColumn_main(self,parent, asScroll = False):
                      "Load first selected object.")  
     _row_objLoad.setStretchWidget(uiTF_objLoad)
     mUI.MelSpacer(_row_objLoad,w=10)
-    """
-    _row_objLoad.layout()
 
-    #>>>Report ---------------------------------------------------------------------------------------
-    _row_report = mUI.MelHLayout(_inside ,ut='cgmUIInstructionsTemplate',h=20)
-    self.uiField_report = mUI.MelLabel(_row_report,
-                                       bgc = SHARED._d_gui_state_colors.get('help'),
-                                       label = '...',
-                                       h=20)
-    _row_report.layout() """
     _row_objLoad.layout()
     uiFunc_load_selected(self)
+    """
+    for key in ['source','export']:
+        _plug = 'var_path_{0}'.format(key)
+        try:self.__dict__[_plug]
+        except:self.create_guiOptionVar('path_{0}'.format(key),defaultValue = '')             
+        
+        mUI.MelSeparator(_inside,ut='cgmUISubTemplate',h=3)
+        
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+
+        mUI.MelSpacer(_row,w=5)                          
+        mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))
+        
+        self.uiTF[key] =  mUI.MelTextField(_row,
+                                           text = self.__dict__[_plug].getValue(),
+                                           ann='Local Path | {0}'.format(key),
+                                           #cc = cgmGEN.Callback(uiCC_checkPath,self,key,'local'),)
+                                           )
+        _row.setStretchWidget( self.uiTF[key] )
+        
+        mc.button(parent=_row,
+                  l = 'Set',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiButton_setPathToTextField,self,key,self.uiTF),
+                  )
+        mc.button(parent=_row,
+                  l = 'Explorer',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(uiButton_openPath,self,key,self.uiTF),
+                  )        
+        mUI.MelSpacer(_row,w=5)                                  
+        _row.layout()
+        
+           
+    
     
     #>>> Import options ---------------------------------------------------------------------------------------
     _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate')
-    d = ['Extrude & Cull','Trianglulate','Move to Center']
-    mUI.MelSpacer(_row,w=5)
+    mUI.MelSpacer(_row,w=1)
     
-    for o in d:
-        mUI.MelCheckBox(_row,
-                        l = o)
-                        #annotation = 'Create qss set: {0}'.format(k),
-                        #value = self.__dict__[_plug].value,
-                        #onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
-                        #offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))    
-        mUI.MelSpacer(_row,w=5)
+    for o,d in d_importOptions.iteritems():
+        _plug = 'var_{0}'.format(o)
+        try:self.__dict__[_plug]
+        except:self.create_guiOptionVar('{0}'.format(o),defaultValue = 1)
         
-    mUI.MelSpacer(_row,w=5)
+        cb = mUI.MelCheckBox(_row,
+                             l = d.get('s',o),
+                             annotation = d.get('ann'),
+                             value = self.__dict__[_plug].value,
+                             onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                             offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+        self.uiCB_d[o] = cb
+        #mUI.MelSpacer(_row,w=5)
+        
+    mUI.MelSpacer(_row,w=1)
     _row.layout()
     
     
     
     #>>> ---------------------------------------------------------------------------------------------------
+
+    
     _mRow = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 10)
     mUI.MelLabel(_mRow,l="  Pivot")
     #_mRow.setStretchWidget(mUI.MelSeparator(_mRow,))            
@@ -183,34 +364,62 @@ def buildColumn_main(self,parent, asScroll = False):
     
     self.uiOM_pivot = _optionMenu
     
+    _plug = 'var_pivot'
+    try:self.__dict__[_plug]
+    except:self.create_guiOptionVar('pivot'.format(o),defaultValue = 'frontBottom')
+    
     for o in ['none','frontCenter','frontBottom']:
         _optionMenu.append(o)
     
+    _optionMenu.selectByValue(self.__dict__[_plug].value)
     _mRow.layout()
     
     
     mc.setParent(_inside)
-    cgmUI.add_LineBreak()    
-    cgmUI.add_HeaderBreak()
+    mUI.MelSpacer(_inside,h=5)
+    #cgmUI.add_HeaderBreak()
+    #mUI.MelSpacer(_inside,h=5)
     
     #>>> Buttons --------------------------------------------------------------------------------------------
     _row_base = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
     mc.button(parent=_row_base,
               l = 'Import',
               ut = 'cgmUITemplate',
-              #c = lambda *a:SNAPCALLS.snap_action(None,'point'),
-              ann = "Point snap in a from:to selection")
+              c = lambda *a:self.uiFunc_importSVG(),
+              ann = "Import SVG")
 
     mc.button(parent=_row_base,
               l = 'Export',
-              ut = 'cgmUITemplate',                    
+              ut = 'cgmUITemplate',
+              c = lambda *a:self.uiFunc_exportSVG(),              
               #c = lambda *a:SNAPCALLS.snap_action(None,'closestPoint'),
-              ann = "Closest point on target")    
+              ann = "Export SVG")    
     _row_base.layout()     
     
     #Batch ===================================================================================================
     mc.setParent(_inside)    
     cgmUI.add_Header('Batch')
+    mUI.MelSpacer(_inside,h=5)
+    _row_base = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mc.button(parent=_row_base,
+              l = 'Import all SVG',
+              ut = 'cgmUITemplate',
+              c = lambda *a:self.uiFunc_importBatchSVG(),              
+              #c = lambda *a:SNAPCALLS.snap_action(None,'closestPoint'),
+              ann = "Batch import SVGs from path")    
+    _row_base.layout()      
+    
+    
+    mUI.MelSpacer(_inside,h=5)
+    
+    _row_base = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mc.button(parent=_row_base,
+              l = 'Import/Export All',
+              ut = 'cgmUITemplate',
+              c = lambda *a:self.uiFunc_importExportBatchSVG(),              
+              #c = lambda *a:SNAPCALLS.snap_action(None,'closestPoint'),
+              ann = "Batch import/export SVGs from path")    
+    _row_base.layout()          
     
     return _inside
     
@@ -279,8 +488,8 @@ def uiFunc_updateTargetDisplay(self):
 def svg_import(path=None, pivotMode = 'frontCenter',
                extrudeDepth = None,
                matName = 'UnlitVertexColor',
+               moveToCenter = True, 
                triangulate = True,extrudeAndCull=True):
-    reload(CORESTRINGS)
     _name = os.path.split(path)[-1]
     _name = _name.replace('.svg','')
     _name = CORESTRINGS.stripInvalidChars(_name)
@@ -323,8 +532,8 @@ def svg_import(path=None, pivotMode = 'frontCenter',
         TRANS.rotatePivot_set(mMesh.mNode, pNew)
         TRANS.scalePivot_set(mMesh.mNode, pNew)
         
-        
-    mMesh.p_position = 0,0,0
+    if moveToCenter:
+        mMesh.p_position = 0,0,0
     mc.makeIdentity(mMesh.mNode,apply=True,translate =True, rotate = True, scale=True)
     
     
@@ -351,20 +560,62 @@ def svg_import(path=None, pivotMode = 'frontCenter',
     shadeEng = mc.listConnections(mMesh.getShapes()[0] , type = 'shadingEngine')
     materials = mc.ls(mc.listConnections(shadeEng ), materials = True) 
     ml_mats = []
-    for i,m in enumerate(materials):
-        if matName:
-            _wanted = matName
-        else:
-            _wanted = ('{}_{}_MAT'.format(_name,i))
-        if mc.objExists(_wanted):
-            mc.delete(_wanted)
-            
-        mMat = cgmMeta.asMeta(m)
-        mMat.rename(_wanted)
+    
+    if matName and mc.objExists(matName):
+        mMat = cgmMeta.asMeta(matName)
+        
+        sets = mc.ls(mc.listConnections(mMat.mNode ), sets = True)        
+        mc.sets(mMesh.mNode, edit=True, forceElement = sets[0])
+        mc.sets(mMesh.mNode, remove = 'initialShadingGroup')
+        
         ml_mats.append(mMat)
+        
+        
+    else:
+        for i,m in enumerate(materials):
+            if matName:
+                _wanted = matName
+            else:
+                _wanted = ('{}_{}_MAT'.format(_name,i))
+                            
+            mMat = cgmMeta.asMeta(m)
+    
+            
+            if not mc.objExists(_wanted):
+                mMat.rename(_wanted)
+                
+            ml_mats.append(mMat)
+    
     
     _res = [mMesh,mSVG,ml_mats]
     pprint.pprint(_res)
     return _res
     
- 
+def uiButton_setPathToTextField(self,key,d_fields, mode='project'):
+    basicFilter = "*"
+    if key in ['image','scriptUI']:
+        x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=1)
+    else:
+        x = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fm=3)
+        
+    if x:
+        _plug = 'var_path_{0}'.format(key)
+        try:self.__dict__[_plug]
+        except:self.create_guiOptionVar('{0}'.format(key),defaultValue = '')        
+        
+        mField = d_fields[key]
+        if not os.path.exists(x[0]):
+            mField(edit=True,bgc = _colorBad)
+            raise ValueError,"Invalid path: {0}".format(x[0])
+        
+        mField.setValue( x[0] )
+        mField(edit=True,bgc = _colorGood) 
+        self.__dict__[_plug].value = mField.getValue()
+        
+def uiButton_openPath(self,key,d_fields):
+    mField = d_fields[key]
+    _path = mField.getValue()
+    if not os.path.exists(_path):
+        raise ValueError,"Invalid path: {0}".format(_path)
+    os.startfile(_path)
+    
