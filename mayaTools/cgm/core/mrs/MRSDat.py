@@ -62,6 +62,7 @@ import cgm.core.lib.mayaSettings_utils as MAYASET
 import cgm.core.mrs.lib.scene_utils as SCENEUTILS
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 
 mUI = cgmUI.mUI
 
@@ -74,6 +75,9 @@ __version__ = cgmGEN.__RELEASESTRING
 _colorGood = CORESHARE._d_colors_to_RGB['greenWhite']
 _colorBad = CORESHARE._d_colors_to_RGB['redWhite']
 _l_unknownMask = ['mClassGrp','cgmDirection','baseSizeX','baseSizeZ','mClass']
+
+
+_l_datLists = ['numSubShapers','rollCount','loftList','nameList']
 
 class BaseDat(CGMDAT.data):
     def startDir_get(self):
@@ -162,6 +166,108 @@ class BlockDat(BaseDat):
         
         if not mode:
             pass
+        
+    def create(self):
+        return blockDat_createBlock(self)
+        
+        
+def blockDat_createBlock(self):
+    '''
+    blockDat self
+    '''
+    _str_func = 'blockDat_createBlock'        
+    log.debug(log_start(_str_func))
+    
+    if not self.dat:
+        raise ValueError,"must have dat"
+    
+    mDat = self.dat
+    _blockType = mDat['blockType']
+    _side = mDat['side']
+    _nameOriginal = mDat['baseName']
+    
+    
+    _d = {'blockType':_blockType,
+          'autoForm':False,
+          'side':_side,
+          'baseSize':mDat['baseSize'],
+          'blockProfile':mDat['blockProfile'],
+          'buildProfile':mDat['buildProfile'],
+          'blockParent': mDat['blockParent']}    
+    
+    
+    
+    #...prompt ------------------------------------------------------------------------------------------------------------------------------------------------
+    _title = 'New name for block'.format(_blockType)
+    result = mc.promptDialog(title=_title,
+                             message='Current: {0} | type: {1} | build: {2} | block:{3} '.format(_nameOriginal,_blockType,_d.get('blockProfile'),_d.get('buildProfile')),
+                             button=['OK', 'Cancel'],
+                             text = _nameOriginal,
+                             defaultButton='OK',
+                             cancelButton='Cancel',
+                             dismissString='Cancel')
+    if result == 'OK':
+        _v =  mc.promptDialog(query=True, text=True)
+        _d['name'] =  _v
+        
+    else:
+        log.error("Creation cancelled")
+        return False    
+    
+    
+    pprint.pprint(_d)
+
+    #...Create ------------------------------------------------------------------------------------------------------------------------------------------------
+    log.debug("|{}| >> Creating  block. | file: {} ".format(_str_func, self.str_filepath))
+
+    mNew = cgmMeta.createMetaNode('cgmRigBlock',
+                                  **_d)
+    
+    mNew.doSnapTo(self)
+    
+    blockDat = copy.copy(self.dat)
+    
+    blockDat['baseName'] = _v
+    #blockDat['ud']['cgmName'] = _v
+    
+    """
+    if _d['blockType'] in ['finger','thumb']:
+        log.debug("|{0}| >> Clearing nameList".format(_str_func))
+        for a in blockDat['ud'].iteritems():
+            if 'nameList' in a:
+                blockDat['ud'].remove(a)
+        blockDat['ud']['nameList_0'] = _v            
+        """
+    ###mNew.blockDat = blockDat
+    
+    for k,l in blockDat['datLists'].iteritems():
+        dTmp = {'enum':False}
+        if k == 'loftList':
+            dTmp['enum']  = BLOCKSHARE._d_attrsTo_make['loftShape']
+            dTmp['mode'] = 'enum'
+            
+        ATTR.datList_connect(self.mNode, k, **dTmp)  
+    
+
+    l_nameList = mNew.datList_get('nameList')
+    for i,n in enumerate(l_nameList):
+        if _nameOriginal in n:
+            l_nameList[i] = n.replace(_nameOriginal,_d['name'])
+            
+    mNew.datList_connect('nameList',l_nameList)
+    pprint.pprint(l_nameList)                
+    
+    
+    blockDat_load(mNew,redefine=True)
+    #log.debug('here...')
+    #blockDat_load(mNew)#...investigate why we need two...
+    
+    #mNew.p_blockParent = self.p_blockParent
+    #self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
+
+    return mDup    
+        
+    
 
 def blockDat_get(self,report = True):
     _str_func = 'blockDat_get'        
@@ -183,15 +289,24 @@ def blockDat_get(self,report = True):
     _gen = {#"name":_short, 
           "blockType":self.blockType,
           "blockState":self.getEnumValueString('blockState'),
+          'blockProfile':self.blockProfile,
+          "buildProfile":self.getMayaAttr('buildProfile'),
+          "shapeProfile":self.getMayaAttr('shapeProfile'),                     
           "baseName":self.getMayaAttr('cgmName'), 
           'position':self.p_position,
           'baseSize':self.getState(False),
           'orient':self.p_orient,
           'scale':self.scale,
+          'side': self.getEnumValueString('side') if self.side else False,
           'blockScale':ATTR.get(_short,'blockScale'),
           'baseSize':self.atUtils('baseSize_get'),
           "version":self.version,
-          }   
+          }
+    
+    try:_gen['blockParent'] = self.getMessage('blockParent')[0]
+    except:_gen['blockParent'] = False
+        
+        
     
     for k in _gen.keys():
         try:_l_ud.remove(k)
@@ -199,9 +314,26 @@ def blockDat_get(self,report = True):
         
     if self.getMessage('orientHelper'):
         _gen['rootOrientHelper'] = self.orientHelper.rotate    
+        
+    _res = _gen
+        
+    #...let's get our datLists -------------------------------------------------------------------------------
+    d_dat = {}
+
+    for a in _l_datLists:
+        if ATTR.datList_exists(_short,a):
+            d_dat[a] = ATTR.datList_get(_short,a,enum=True)
+            
+            for s2 in ATTR.datList_getAttrs(_short,a):
+                try:_l_ud.remove(s2)
+                except:pass
+            try:_l_ud.remove(a)
+            except:pass
+    
+    _res['datLists'] = d_dat
+
     
     #_res['general'] = _gen
-    _res = _gen
     #Get attr sets...--------------------------------------------------------------------------
     _d = self.atUtils('uiQuery_getStateAttrDict',0,0)
     
@@ -210,6 +342,8 @@ def blockDat_get(self,report = True):
     _dSettings = {}
     
     def getBlockAttr(a,d):
+        if a not in _l_ud:
+            return
         if self.hasAttr(a):
             try:_l_ud.remove(a)
             except:pass            
