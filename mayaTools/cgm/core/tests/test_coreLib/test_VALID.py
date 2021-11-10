@@ -4,7 +4,7 @@ cgm_Meta: cgm.core.test
 Author: Ryan Porter (edited by Josh Burton)
 email: ryan.m.porter@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 Unit Tests for the validateArgs.objString function

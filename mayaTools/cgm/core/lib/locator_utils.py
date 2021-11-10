@@ -1,7 +1,7 @@
 """
 locator_utils
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 """
 # From Python =============================================================

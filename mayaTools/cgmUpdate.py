@@ -2,9 +2,9 @@
 ------------------------------------------
 toolbox: cgmUpdate
 Author: Josh Burton,Ryan Comingdeer
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 This is housed outside our core stuff to be able to access and update it.

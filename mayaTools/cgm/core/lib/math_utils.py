@@ -2,8 +2,8 @@
 ------------------------------------------
 math_utils: cgm.core.lib.math_utils
 Authors: Josh Burton & David Bokser
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 """

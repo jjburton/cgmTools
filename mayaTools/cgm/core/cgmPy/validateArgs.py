@@ -3,7 +3,7 @@
 cgm_Meta: cgm.core
 Authors: Josh Burton & Ryan Porter
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 This is the Core of the MetaNode implementation of the systems.
@@ -1213,7 +1213,7 @@ def filepath(filepath = None, fileMode = 0, fileFilter = 'Config file (*.cfg)', 
                                   startingDirectory=startDir,
                                   fileFilter= fileFilter)
         if filepath:filepath = filepath[0]
-
+        
     _result = False
     if filepath:
         if fileMode == 1:

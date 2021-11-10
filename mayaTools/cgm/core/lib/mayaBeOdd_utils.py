@@ -1,7 +1,7 @@
 """
 Maya be Odd
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 For use with meta instance data
 """

@@ -1,7 +1,7 @@
 """
 name_utils
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 """
 __MAYALOCAL = 'NODES'

@@ -12,8 +12,8 @@
 #   distance
 #
 # AUTHOR:
-# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.cgmonks.com
+# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - cgmonks.info@gmail.com
+#	http://www.cgmonastery.com
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
@@ -64,7 +64,7 @@ class puppetBoxClass(BaseMelWindow):
         self.description = 'This is a series of tools for working with cgm Sets'
         self.author = 'Josh Burton'
         self.owner = 'CG Monks'
-        self.website = 'www.cgmonks.com'
+        self.website = 'www.cgmonastery.com'
         self.dockCnt = 'cgmPuppetBoxDoc'			
         self.version =  __version__ 
         self.optionVars = []
@@ -462,7 +462,7 @@ class puppetBoxClass(BaseMelWindow):
         guiFactory.lineBreak()
         mc.text(label='Version: %s' % self.version)
         mc.text(label='')
-        guiFactory.doButton('Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://www.cgmonks.com/tools/maya-tools/puppetBox/")')
+        guiFactory.doButton('Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://www.cgmonastery.com/tools/maya-tools/puppetBox/")')
         guiFactory.doButton('Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
         mc.setParent( '..' )
         mc.showWindow( window )

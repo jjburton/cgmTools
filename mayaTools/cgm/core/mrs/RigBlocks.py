@@ -2,9 +2,9 @@
 ------------------------------------------
 RigBlocks: cgm.core.mrs
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================

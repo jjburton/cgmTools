@@ -1,7 +1,7 @@
 """
 skinDat
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 Core skinning data handler for cgm going forward.
 

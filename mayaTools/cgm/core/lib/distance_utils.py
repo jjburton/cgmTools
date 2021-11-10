@@ -2,8 +2,8 @@
 ------------------------------------------
 distance_utils: cgm.core.lib.distance_utils
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 """

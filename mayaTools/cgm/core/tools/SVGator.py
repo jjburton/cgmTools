@@ -1,12 +1,11 @@
 """
 ------------------------------------------
-baseTool: cgm.core.tools
+SVGator: cgm.core.tools
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
 ------------------------------------------
-Example ui to start from
+
 ================================================================
 """
 # From Python =============================================================
@@ -54,7 +53,8 @@ _colorBad = CORESHARE._d_colors_to_RGB['redWhite']
 
 d_importOptions = {'ExtrudeCull':{'ann':'Extrude and cull to get a clean flat front'},
                    'Triangulate':{'s':'Triangulate','ann':'Triangulate the mesh'},
-                   'MoveToCenter':{'s':'Center','ann':'Move to world center'},}
+                   'MoveToCenter':{'s':'Center','ann':'Move to world center'},
+                   'Viewport':{'ann':'Change viewport options'}}
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -65,7 +65,7 @@ class ui(cgmUI.cgmGUI):
     MIN_BUTTON = True
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 425,350
+    DEFAULT_SIZE = 425,275
     TOOLNAME = '{0}.ui'.format(__toolname__)
     
     def insert_init(self,*args,**kws):
@@ -92,6 +92,8 @@ class ui(cgmUI.cgmGUI):
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		                     
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="SVG Viewport",
+                         c = lambda *a:uiButton_setViewportShading())
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 
@@ -128,6 +130,8 @@ class ui(cgmUI.cgmGUI):
         str_func = 'data.uiFunc_importSVG'
         log.debug(log_start(str_func))
         
+        self.uiFunc_viewportLighting()
+        
         _startDir = self.uiTF['source'].getValue()
         if not os.path.exists(_startDir):
             log.warning("Invalid source path: {}".format(_startDir))            
@@ -154,6 +158,8 @@ class ui(cgmUI.cgmGUI):
         str_func = 'data.uiFunc_importBatchSVG'
         log.debug(log_start(str_func))
         
+        self.uiFunc_viewportLighting()
+        
         _startDir = self.uiTF['source'].getValue()
         if not os.path.exists(_startDir):
             log.warning("Invalid source path: {}".format(_startDir))            
@@ -178,9 +184,18 @@ class ui(cgmUI.cgmGUI):
             
         return
     
+    def uiFunc_viewportLighting(self):
+        str_func = 'data.uiFunc_importExportBatchSVG'
+        log.debug(log_start(str_func))
+        
+        if self.uiCB_d['Viewport'].getValue():
+            uiButton_setViewportShading()
+        
     def uiFunc_importExportBatchSVG(self):
         str_func = 'data.uiFunc_importExportBatchSVG'
         log.debug(log_start(str_func))
+        
+        self.uiFunc_viewportLighting()
         
         _startDir = self.uiTF['source'].getValue()
         if not os.path.exists(_startDir):
@@ -328,8 +343,11 @@ def buildColumn_main(self,parent, asScroll = False):
     
     
     #>>> Import options ---------------------------------------------------------------------------------------
-    _row = mUI.MelHLayout(_inside,ut='cgmUISubTemplate')
+    _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate')
     mUI.MelSpacer(_row,w=1)
+    
+    mUI.MelLabel(_row,l="  Options:")
+    _row.setStretchWidget(mUI.MelSeparator(_row,w=10))
     
     for o,d in d_importOptions.iteritems():
         _plug = 'var_{0}'.format(o)
@@ -354,7 +372,7 @@ def buildColumn_main(self,parent, asScroll = False):
 
     
     _mRow = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 10)
-    mUI.MelLabel(_mRow,l="  Pivot")
+    mUI.MelLabel(_mRow,l="  Pivot:")
     #_mRow.setStretchWidget(mUI.MelSeparator(_mRow,))            
 
     _optionMenu = mUI.MelOptionMenu(_mRow,ut = 'cgmUITemplate',h=25)
@@ -419,7 +437,18 @@ def buildColumn_main(self,parent, asScroll = False):
               c = lambda *a:self.uiFunc_importExportBatchSVG(),              
               #c = lambda *a:SNAPCALLS.snap_action(None,'closestPoint'),
               ann = "Batch import/export SVGs from path")    
-    _row_base.layout()          
+    _row_base.layout()
+    
+    mUI.MelSpacer(_inside,h=5)
+    """
+    _row_base = mUI.MelHLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+    mc.button(parent=_row_base,
+              l = 'ViewPort Shading',
+              ut = 'cgmUITemplate',
+              c = lambda *a:uiButton_setViewportShading(),              
+              #c = lambda *a:SNAPCALLS.snap_action(None,'closestPoint'),
+              ann = "Change viewport options")    
+    _row_base.layout()    """          
     
     return _inside
     
@@ -618,4 +647,25 @@ def uiButton_openPath(self,key,d_fields):
     if not os.path.exists(_path):
         raise ValueError,"Invalid path: {0}".format(_path)
     os.startfile(_path)
+    
+
+def uiButton_setViewportShading():
+    str_func = 'uiButton_setViewportShading'
+    log.debug(log_start(str_func))
+    
+    _panel = mc.getPanel( withFocus = True)
+    try:
+        #print _panel
+        mc.modelEditor( _panel, edit = True, dl = 'flat',displayAppearance = 'flatShaded', interactiveBackFaceCull = True, activeOnly = False)
+        mc.ogs(reset=True)
+        #mel.eval('dR_setModelEditorTypes;')
+        
+        #mc.modelEditor( _panel, edit = True, displayAppearance = 'flatShaded',activeOnly = False)
+        #print  mc.modelEditor( _panel, q = True, displayAppearance = True)
+        #mc.modelEditor( _panel, edit = True, interactiveBackFaceCull=True,activeOnly = False)
+        #print  mc.modelEditor( _panel, q = True, interactiveBackFaceCull = True)
+        #mc.modelEditor( _panel, edit = True, dl = 'flat',activeOnly = False)
+        #print  mc.modelEditor( _panel, q = True, dl = True)        
+    except Exception,err:
+        log.error(err)
     

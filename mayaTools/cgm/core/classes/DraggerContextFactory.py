@@ -9,7 +9,7 @@
 #
 # AUTHOR:
 # 	Josh Burton
-#	http://www.cgmonks.com
+#	http://www.cgmonastery.com
 # 	Copyright 2012 CG Monks - All Rights Reserved.
 #
 # ACKNOWLEDGEMENTS:

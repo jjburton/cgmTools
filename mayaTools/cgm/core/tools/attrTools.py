@@ -2,9 +2,9 @@
 ------------------------------------------
 attrTools: cgm.core
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 2.0 rewrite
 ================================================================
@@ -43,10 +43,10 @@ import Red9.core.Red9_CoreUtils as r9Core
 #>>> Root settings =============================================================
 __version__ = cgmGEN.__RELEASESTRING
 
-#__toolURL__ = 'www.cgmonks.com'
+#__toolURL__ = 'www.cgmonastery.com'
 #__author__ = 'Josh Burton'
 #__owner__ = 'CG Monks'
-#__website__ = 'www.cgmonks.com'
+#__website__ = 'www.cgmonastery.com'
 #__defaultSize__ = 375, 350
 
 

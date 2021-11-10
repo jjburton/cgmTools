@@ -2,9 +2,9 @@
 ------------------------------------------
 builder_utils: cgm.core.mrs.lib
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================

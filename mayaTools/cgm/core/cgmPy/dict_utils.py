@@ -1,6 +1,6 @@
 """
 dict_utils
-www.cgmonks.com
+www.cgmonastery.com
 
 
 """

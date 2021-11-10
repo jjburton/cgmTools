@@ -11,8 +11,8 @@
 #   Maya
 #
 # AUTHOR:
-# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.cgmonks.com
+# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - cgmonks.info@gmail.com
+#	http://www.cgmonastery.com
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
@@ -170,7 +170,7 @@ def showAbout(uiWin):
     mc.separator(ut='cgmUITemplate')
     mc.separator(ut='cgmUITemplate')
     mc.text(label='')
-    mc.button(label='Visit Website', ut = 'cgmUITemplate', command=('import webbrowser;webbrowser.open("http://www.cgmonks.com")') )
+    mc.button(label='Visit Website', ut = 'cgmUITemplate', command=('import webbrowser;webbrowser.open("http://www.cgmonastery.com")') )
     mc.button(label='Close', ut = 'cgmUITemplate', command=('mc.deleteUI(\"' + window + '\", window=True)') )
     mc.setParent( '..' )
     mc.showWindow( window )

@@ -1,7 +1,7 @@
 """
 cgmDat
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 """
 __MAYALOCAL = 'CGMDAT'

@@ -1,7 +1,7 @@
 """
 skinDat
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 Core skinning data handler for cgm going forward.
 
@@ -223,7 +223,7 @@ def blockDat_createBlock(self):
     mNew = cgmMeta.createMetaNode('cgmRigBlock',
                                   **_d)
     
-    mNew.doSnapTo(self)
+    #mNew.doSnapTo(self.mBlock)
     
     blockDat = copy.copy(self.dat)
     
@@ -246,7 +246,7 @@ def blockDat_createBlock(self):
             dTmp['enum']  = BLOCKSHARE._d_attrsTo_make['loftShape']
             dTmp['mode'] = 'enum'
             
-        ATTR.datList_connect(self.mNode, k, **dTmp)  
+        ATTR.datList_connect(mNew.mNode, k,l, **dTmp)  
     
 
     l_nameList = mNew.datList_get('nameList')
@@ -258,7 +258,7 @@ def blockDat_createBlock(self):
     pprint.pprint(l_nameList)                
     
     
-    blockDat_load(mNew,redefine=True)
+    blockDat_load(mNew,self.dat, redefine=True)
     #log.debug('here...')
     #blockDat_load(mNew)#...investigate why we need two...
     

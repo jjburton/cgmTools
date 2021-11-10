@@ -2,8 +2,8 @@
 ------------------------------------------
 segment_utils: cgm.core.rigger.lib
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 Part of a segment rewrite began November 2016 from rig_Utils

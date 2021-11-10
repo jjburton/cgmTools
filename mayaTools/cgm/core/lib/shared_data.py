@@ -2,8 +2,8 @@
 ------------------------------------------
 shared_data: cgm.core.lib.shared_data
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 """
 __MAYALOCAL = 'CORESHARE'

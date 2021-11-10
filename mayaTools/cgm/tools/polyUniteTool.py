@@ -11,8 +11,8 @@
 #   Maya
 #
 # AUTHOR:
-# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.cgmonks.com
+# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - cgmonks.info@gmail.com
+#	http://www.cgmonastery.com
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
@@ -99,7 +99,7 @@ class polyUniteClass(BaseMelWindow):
 		self.description = 'Standalone PolyUnite tool'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
-		self.website = 'www.cgmonks.com'
+		self.website = 'www.cgmonastery.com'
 		self.version = __version__
 
 

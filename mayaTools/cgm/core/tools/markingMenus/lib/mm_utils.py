@@ -2,8 +2,8 @@
 ------------------------------------------
 contextual_utils: cgm.core.tools.markingMenus.lib.contextual_utils
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 """

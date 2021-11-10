@@ -2,9 +2,9 @@
 ------------------------------------------
 cgm.core.examples
 Author: Josh Burton
-email: jjburton@gmail.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 Help for learning the basis of unittesting
@@ -29,7 +29,7 @@ CG Monks
 -Josh Burton
 01.25.2014
 
-www.cgmonks.com
+www.cgmonastery.com
 """
 
 #That's better. what else can we do with it, let's do a little meta

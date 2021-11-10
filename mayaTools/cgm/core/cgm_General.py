@@ -2,16 +2,15 @@
 ------------------------------------------
 cgm_General: cgm.core
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
-For help on cgmFuncCls - cgm.core.examples.help_cgmFuncCls
 ================================================================
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '21.11.09.1'
+__RELEASE = '21.11.10.1'
 
 __BRANCH = 'MRSDAILY'
 

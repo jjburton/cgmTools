@@ -2,9 +2,9 @@
 ------------------------------------------
 snap_calls: cgm.core.tools.lib
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 This is for more advanced snapping functionality.

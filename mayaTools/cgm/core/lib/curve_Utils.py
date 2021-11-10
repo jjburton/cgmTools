@@ -1,7 +1,7 @@
 """
 curve Utils
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 """
 __MAYALOCAL = 'CURVES'

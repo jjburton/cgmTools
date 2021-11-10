@@ -2,9 +2,9 @@
 ------------------------------------------
 dynParentTool: cgm.core.tools
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================
@@ -45,10 +45,10 @@ from cgm.lib import lists
 #>>> Root settings =============================================================
 __version__ = cgmGEN.__RELEASESTRING
 
-#__toolURL__ = 'www.cgmonks.com'
+#__toolURL__ = 'www.cgmonastery.com'
 #__author__ = 'Josh Burton'
 #__owner__ = 'CG Monks'
-#__website__ = 'www.cgmonks.com'
+#__website__ = 'www.cgmonastery.com'
 #__defaultSize__ = 375, 350
 _maxLen = 20
 

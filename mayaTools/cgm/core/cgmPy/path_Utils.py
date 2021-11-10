@@ -3,7 +3,7 @@
 path_Utils: cgm.core.cgmPy
 Authors: Hamish McKenzie & Josh Burton
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 This is a rewrite of zoo.py.path because:
 1) Maya 2017's version of python broke path and simple patching proved unsucessful

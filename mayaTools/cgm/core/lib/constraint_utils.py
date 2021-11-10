@@ -2,8 +2,8 @@
 ------------------------------------------
 constraint_utils: cgm.core.lib.constraint_utils
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 Unified location for transform calls. metanode instances may by passed

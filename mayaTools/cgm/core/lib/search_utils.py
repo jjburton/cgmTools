@@ -2,8 +2,8 @@
 ------------------------------------------
 search_utils: cgm.core.lib.search_utils
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 """

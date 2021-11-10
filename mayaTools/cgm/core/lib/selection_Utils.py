@@ -2,8 +2,8 @@
 ------------------------------------------
 selection_Utils: cgm.core.lib.selection_Utils
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ACKNOWLEDGEMENTS:
