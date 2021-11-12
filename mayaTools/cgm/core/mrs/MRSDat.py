@@ -63,6 +63,7 @@ import cgm.core.mrs.lib.scene_utils as SCENEUTILS
 import cgm.core.lib.attribute_utils as ATTR
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.lib.transform_utils as TRANS
 
 mUI = cgmUI.mUI
 
@@ -109,14 +110,16 @@ class BlockDat(BaseDat):
         
         super(BlockDat, self).__init__(filepath, **kws)
         self.mBlock = cgmMeta.asMeta(mBlock)
+        if self.mBlock:
+            self.get()
         self.structureMode = 'file'
         
-    def get(self, mBlock = None):
+    def get(self, mBlock = None, report = False):
         _str_func = 'data.get'
         log.debug(log_start(_str_func))
         
         mBlock = self.mBlock
-        self.dat = blockDat_get(mBlock)
+        self.dat = blockDat_get(mBlock,report)
         
         
     def set(self, mBlock = None, **kws):
@@ -181,7 +184,7 @@ def blockDat_createBlock(self):
     if not self.dat:
         raise ValueError,"must have dat"
     
-    mDat = self.dat
+    mDat = copy.deepcopy(self.dat)
     _blockType = mDat['blockType']
     _side = mDat['side']
     _nameOriginal = mDat['baseName']
@@ -209,25 +212,25 @@ def blockDat_createBlock(self):
     if result == 'OK':
         _v =  mc.promptDialog(query=True, text=True)
         _d['name'] =  _v
-        
+        mDat['settings']['name']['cgmName'] = _v
     else:
         log.error("Creation cancelled")
         return False    
     
     
     pprint.pprint(_d)
-
+    #pprint.pprint(mDat['settings']['name'])
+    
     #...Create ------------------------------------------------------------------------------------------------------------------------------------------------
     log.debug("|{}| >> Creating  block. | file: {} ".format(_str_func, self.str_filepath))
-
+    
     mNew = cgmMeta.createMetaNode('cgmRigBlock',
                                   **_d)
     
+    
     #mNew.doSnapTo(self.mBlock)
     
-    blockDat = copy.copy(self.dat)
     
-    blockDat['baseName'] = _v
     #blockDat['ud']['cgmName'] = _v
     
     """
@@ -240,7 +243,7 @@ def blockDat_createBlock(self):
         """
     ###mNew.blockDat = blockDat
     
-    for k,l in blockDat['datLists'].iteritems():
+    for k,l in mDat['datLists'].iteritems():
         dTmp = {'enum':False}
         if k == 'loftList':
             dTmp['enum']  = BLOCKSHARE._d_attrsTo_make['loftShape']
@@ -258,14 +261,14 @@ def blockDat_createBlock(self):
     pprint.pprint(l_nameList)                
     
     
-    blockDat_load(mNew,self.dat, redefine=True)
+    blockDat_load(mNew, mDat, redefine=True)
     #log.debug('here...')
     #blockDat_load(mNew)#...investigate why we need two...
     
     #mNew.p_blockParent = self.p_blockParent
     #self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
 
-    return mDup    
+    return mNew    
         
     
 
@@ -294,7 +297,6 @@ def blockDat_get(self,report = True):
           "shapeProfile":self.getMayaAttr('shapeProfile'),                     
           "baseName":self.getMayaAttr('cgmName'), 
           'position':self.p_position,
-          'baseSize':self.getState(False),
           'orient':self.p_orient,
           'scale':self.scale,
           'side': self.getEnumValueString('side') if self.side else False,
@@ -504,8 +506,8 @@ def blockDat_load(self, blockDat = None,
         log.debug(cgmGEN.logString_sub(_str_func,'define'))
         
         if redefine:
-            changeState(self,'define',forceNew=True)
-            changeState(self,'define',forceNew=True)            
+            self.UTILS.changeState(self,'define',forceNew=True)
+            self.UTILS.changeState(self,'define',forceNew=True)            
             _current_state_idx = 0
             _current_state = 'define'
         
@@ -515,7 +517,7 @@ def blockDat_load(self, blockDat = None,
             
         if mMirror == 'cat':
             log.debug("|{0}| >> mMirror define pull...".format(_str_func))            
-            controls_mirror(mMirror,self,define=True)
+            self.UTILS.controls_mirror(mMirror,self,define=True)
         else:
             blockDat_load_state(self,'define',blockDat,_d_warnings,overrideMode=overrideMode)
         
@@ -693,6 +695,14 @@ def blockDat_load_state(self,state = None,
                 _tmp_short = mObj.mNode
                 _d_loft = _loftCurves.get(str(i))
                 
+                for ii,v in enumerate(_scaleTempl[i]):
+                    _a = 's'+'xyz'[ii]
+                    if not mObj.isAttrConnected(_a):
+                        ATTR.set(_tmp_short,_a,v)
+                    else:
+                        log.debug("|{0}| >> connected scale: {1}".format(_str_func,_a))                
+                
+                """
                 if _noScale != True:
                     _cgmType = mObj.getMayaAttr('cgmType')
                     if _scaleMode == 'useLoft' and  _cgmType in ['blockHandle','formHandle']:
@@ -728,7 +738,7 @@ def blockDat_load_state(self,state = None,
                                 else:
                                     log.debug("|{0}| >> connected scale: {1}".format(_str_func,_a))
                         if _normalizeUp:
-                            mObj.sy = 1
+                            mObj.sy = 1"""
                             
                 #Secondary stuff
                 if _jointHelpers and _jointHelpers.get(i):
@@ -813,3 +823,124 @@ def blockDat_load_state(self,state = None,
                 except Exception,err:
                     log.error(cgmGEN.logString_msg(_str_func,"subShapers: {0} | {1}".format(i,err)))
                     pprint.pprint(d_sub)
+                    
+
+def blockDat_getControlDat(self,mode = 'define',report = True):
+    _short = self.p_nameShort        
+    _str_func = 'blockDat_getControlDat'
+    log.debug("|{0}| >>  ".format(_str_func)+ '='*80)
+    log.debug("|{0}| {1}".format(_str_func,self))
+    
+    _mode_int,_mode_str = BLOCKGEN.validate_stateArg(mode)
+    
+    _modeToState = {'define':0,
+                    'form':1,
+                    'prerig':2}
+    
+    if _mode_str not in _modeToState.keys():
+        raise ValueError,"Unknown mode: {0}".format(_mode_str)
+    
+    _blockState_int = self.blockState
+    
+    if not _blockState_int >= _modeToState[_mode_str]:
+        raise ValueError,'[{0}] not {1} yet. State: {2}'.format(_short,_mode_str,_blockState_int)
+        #_ml_formHandles = self.msgList_get('formHandles',asMeta = True)
+    
+    _d_controls = {'define':False,'form':False,'prerig':False}
+    _d_controls[_mode_str] = True
+    ml_handles = self.UTILS.controls_get(self, **_d_controls)
+    #pprint.pprint(vars())
+    
+    if _blockState_int == 2:
+       for plug in ['m'] 
+    
+    if not ml_handles:
+        log.debug('[{0}] No form or prerig handles found'.format(_short))
+        return False
+
+    _ml_controls = ml_handles
+
+    _l_orientHelpers = []
+    _l_jointHelpers = []
+    _d_orientHelpers = {}
+    _d_jointHelpers = {}
+    _d_loftCurves = {}
+    _d_subShapers = {}
+    
+    for i,mObj in enumerate(ml_handles):
+        _str_short = mObj.mNode
+        log.debug("|{0}| >>  {1} | {2}".format(_str_func,i,mObj.mNode))
+        if mObj.getMessage('orientHelper'):
+            _d_orientHelpers[i] = mObj.orientHelper.rotate
+
+        if mObj.getMessage('jointHelper'):
+            _d_jointHelpers[i] = mObj.jointHelper.translate
+            
+        mLoftCurve = mObj.getMessageAsMeta('loftCurve')
+        if mLoftCurve:
+            log.debug("|{0}| >>  loftcurve: {1}".format(_str_func,mLoftCurve)+'-'*20)
+            if mLoftCurve.v:
+                _d = {}
+                _rot = mLoftCurve.rotate
+                _orient = mLoftCurve.p_orient
+                _trans = mLoftCurve.translate
+                _scale = mLoftCurve.scale
+                _p = mLoftCurve.p_position
+                
+                _d['bb'] = TRANS.bbSize_get(mLoftCurve.mNode)
+                _d['ab'] = DIST.get_axisSize(mLoftCurve.mNode)
+                
+                if not MATH.is_float_equivalent(sum(_rot),0.0):
+                    _d['r'] = _rot
+                if not MATH.is_float_equivalent(MATH.multiply(_scale), 1.0):
+                    _d['s'] = _scale
+                if not MATH.is_float_equivalent(sum(_trans),0.0):
+                    _d['t'] = _trans
+                    
+                _d['p'] = _p
+                if _d:
+                    _d_loftCurves[i] = _d
+                    log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
+        
+        ml_subShapers = mObj.msgList_get('subShapers')
+        if ml_subShapers:
+            _d = {}
+            log.debug("|{0}| >>  subShapers...".format(_str_func))
+            _d = {'p':[mObj.p_position for mObj in ml_subShapers],
+                  'o':[mObj.p_orient for mObj in ml_subShapers],
+                  'r':[mObj.rotate for mObj in ml_subShapers],
+                  't':[mObj.translate for mObj in ml_subShapers],
+                  's':[mObj.scale for mObj in ml_subShapers],
+                  'ab':[DIST.get_axisSize(mObj.mNode) for mObj in ml_subShapers],                             
+                  'bb':[TRANS.bbSize_get(mObj.mNode) for mObj in ml_subShapers]}            
+            if _d:
+                _d_subShapers[i] = _d            
+        
+        log.debug(cgmGEN._str_subLine)    
+
+
+        #else:
+            #_l_jointHelpers.append(False)
+    _d = {'positions':[mObj.p_position for mObj in ml_handles],
+          'orients':[mObj.p_orient for mObj in ml_handles],
+          'scales':[mObj.scale for mObj in ml_handles],
+          'names':[mObj.p_nameBase for mObj in ml_handles],
+          'bb':[TRANS.bbSize_get(mObj.mNode) for mObj in ml_handles]}
+    
+    if _d_orientHelpers:
+        _d['orientHelpers'] =_d_jointHelpers
+        
+    if _d_jointHelpers:
+        _d['jointHelpers'] =_d_jointHelpers
+        
+    if _d_loftCurves:
+        _d['loftCurves'] =_d_loftCurves
+    
+    if _d_subShapers:
+        _d['subShapers'] =_d_subShapers
+        
+    #if self.getMessage('orientHelper'):
+    #    _d['rootOrientHelper'] = self.orientHelper.rotate
+
+    if report:cgmGEN.walk_dat(_d,'[{0}] form blockDat'.format(self.p_nameShort))
+    return _d
