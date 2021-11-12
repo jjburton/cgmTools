@@ -270,7 +270,9 @@ class ui(cgmUI.cgmGUI):
                 print _exportPath
                 
                 mel.eval('FBXExport -f \"{}\" -s'.format(_exportPath.replace('\\', '/')))
-                #mExport.delete()
+                mExport.delete()
+                
+                mObj.rename(_nameBase)
             except Exception,err:
                 log.error(err)
         
