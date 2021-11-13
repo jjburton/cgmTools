@@ -2,9 +2,9 @@
 ------------------------------------------
 cgm.core.mrs.blocks.organic.limb
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================
@@ -7429,20 +7429,21 @@ def rig_frame(self):
             mMidControlDriver.doName()
             mMidControlDriver.addAttr('cgmAlias', 'midDriver')
             
-                
-            if mIKControlBase:
-                l_midDrivers = [mIKControlBase.mNode]
-            else:
-                l_midDrivers = [mRoot.mNode]
-                
-            if str_ikEnd in ['tipCombo'] and mIKControlEnd:
-                log.debug("|{0}| >> mIKControlEnd + tipCombo...".format(_str_func))
-                l_midDrivers.append(mIKControl.mNode)
-            else:
-                l_midDrivers.append(mIKHandleDriver.mNode)
+            if not ml_ikFullChain:
 
-            
-            mc.pointConstraint(l_midDrivers, mMidControlDriver.mNode)
+                if mIKControlBase:
+                    l_midDrivers = [mIKControlBase.mNode]
+                else:
+                    l_midDrivers = [mRoot.mNode]
+                    
+                if str_ikEnd in ['tipCombo'] and mIKControlEnd:
+                    log.debug("|{0}| >> mIKControlEnd + tipCombo...".format(_str_func))
+                    l_midDrivers.append(mIKControl.mNode)
+                else:
+                    l_midDrivers.append(mIKHandleDriver.mNode)
+    
+                mc.pointConstraint(l_midDrivers, mMidControlDriver.mNode)
+                
             mMidControlDriver.parent = mSpinGroupAdd#mIKGroup
             mIKMid.masterGroup.parent = mMidControlDriver
             mMidControlDriver.dagLock(True)

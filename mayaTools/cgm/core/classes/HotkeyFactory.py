@@ -2,9 +2,9 @@
 ------------------------------------------
 HotkeyFactory: cgm.core
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 Issues:
 -runtime command only available in mel
@@ -35,10 +35,10 @@ mayaVersion = cgmGeneral.__mayaVersion__
 __version__ = '02.12.2016'
 __toolName__ = 'cgmHotkeyer'
 #__description__ = "This is the Morpheus Rig 2.0 asset generator"
-#__toolURL__ = 'www.cgmonks.com'
+#__toolURL__ = 'www.cgmonastery.com'
 #__author__ = 'Josh Burton'
 #__owner__ = 'CG Monks'
-#__website__ = 'www.cgmonks.com'
+#__website__ = 'www.cgmonastery.com'
 __defaultSize__ = 200, 100
 
 def hotkeys_resetAll():

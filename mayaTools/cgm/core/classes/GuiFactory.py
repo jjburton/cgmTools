@@ -2,9 +2,9 @@
 ------------------------------------------
 GuiFactory: cgm.core
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 Class based ui builder for cgmTools
@@ -66,11 +66,11 @@ log.setLevel(logging.INFO)
 
 __version__ = cgmGEN.__RELEASESTRING
 __toolName__ = 'cgmGUI'
-__toolURL__ = 'www.cgmonks.com'
+__toolURL__ = 'www.cgmonastery.com'
 __description__ = "This is a default cgm gui example"
 __author__ = 'Josh Burton'
 __owner__ = 'CG Monks'
-__website__ = 'www.cgmonks.com'
+__website__ = 'www.cgmonastery.com'
 __defaultSize__ = 200, 300
 
 

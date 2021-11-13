@@ -2,9 +2,9 @@
 ------------------------------------------
 block: cgm.core.mrs.lib
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 These are functions with self assumed to be a cgmRigBlock
@@ -589,16 +589,19 @@ def doName(self):
         if self.hasAttr(a):
             _d['cgmName'] = ATTR.get(_short,a)
             continue
-            
+    """
     if self.hasAttr('blockProfile'):
         _blockProfile = self.getMayaAttr('blockProfile') or ''
-        if _d.get('cgmName','') in _blockProfile:
+        if _d.get('cgmName','') not in _blockProfile:
+            #if _d.get('cgmName','') in _blockProfile:
             _blockProfile = _blockProfile.replace(_d['cgmName'],'')
-        _d['cgmNameModifier'] = STR.camelCase(_blockProfile)
-
+            if len(_blockProfile):
+                _d['cgmNameModifier'] = STR.camelCase(_blockProfile)
+                """
     _blockType = ATTR.get(_short,'blockType')
     _d['cgmType'] = _blockType + 'Block'
-
+    
+    pprint.pprint(_d)
     """
         if self.getMayaAttr('position'):
             _d['cgmPosition'] = self.getEnumValueString('position')
@@ -4730,17 +4733,10 @@ def blockDat_load_state(self,state = None,blockDat = None, d_warnings = None, ov
                     if _scaleMode == 'useLoft' and  _cgmType in ['blockHandle','formHandle']:
                         _bb = _d_loft.get('bb')
                         _size = MATH.average(_bb) * .75
-                        #_size = DIST.get_arcLen(mObj.getMessage('loftCurve')[0]) / 2.0
-                        #DIST.scale_to_axisSize(_tmp_short,[_bb[0],_bb[1],_size])
                         mc.scale(_size,_size,_size, _tmp_short, absolute = True)
-                        
                     elif mainHandleNormalizeScale and _cgmType in ['blockHandle','formHandle']:
                         _average = MATH.average(_bbTempl[i])
                         mc.scale(_average,_average,_average, _tmp_short, absolute = True)
-                        
-                        #TRANS.scale_to_boundingBox(_tmp_short,[_bbTempl[i][0],
-                        #                                       _average,
-                        #                                       _bbTempl[i][2]],freeze=False)
                     else:
                         _noBB = False
                         _normalizeUp = False

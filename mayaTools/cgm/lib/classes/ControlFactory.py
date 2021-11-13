@@ -11,8 +11,8 @@
 # 	Maya
 #
 # AUTHOR:
-# 	Josh Burton - jjburton@gmail.com
-#	http://www.cgmonks.com
+# 	Josh Burton - cgmonks.info@gmail.com
+#	http://www.cgmonastery.com
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:

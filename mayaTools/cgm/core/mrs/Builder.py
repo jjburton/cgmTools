@@ -2,9 +2,9 @@
 ------------------------------------------
 Builder: cgm.core.mrs
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================
@@ -1526,8 +1526,6 @@ class ui_blockPicker(cgmUI.cgmGUI):
                             
                     _mRow = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 10)
                     mUI.MelLabel(_mRow,l="  {0} > ".format(CORESTRINGS.capFirst(k2)))
-                    #_mRow.setStretchWidget(mUI.MelSeparator(_mRow,))            
-                    
                     
                     
                     _optionMenu = mUI.MelOptionMenu(_mRow,ut = 'cgmUITemplate',h=25,en=_en)
@@ -1542,9 +1540,6 @@ class ui_blockPicker(cgmUI.cgmGUI):
                         
                     try:_optionMenu.selectByValue(d2['current'])
                     except:pass
-                    
-                    #mUI.MelLabel(_mRow, bgc=cgmUI.guiBackgroundColorLight,w=50,al='center',en=_en,
-                    #             l="{0}".format(mBlock.getMayaAttr('{0}Profile'.format(k2))))                    
                     
                     
                     mUI.MelButton(_mRow,en=_en,

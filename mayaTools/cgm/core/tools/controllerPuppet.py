@@ -4,7 +4,7 @@ controllerPuppet: cgm.core.tools
 Author: David Bokser
 email: dbokser@cgmonks.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 UI for controller puppet
 ================================================================

@@ -3,7 +3,7 @@
 string_utils: cgm.core.lib.string_utils
 Authors: David Bokser
 email: dbokser@cgmonks.com
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 """
@@ -98,7 +98,7 @@ def short(arg = 'D:\repos\cgmtools\mayaTools\cgm\core\mrs\PoseManager.py',max = 
         
 #>>> Utilities
 #===================================================================
-d_functionStringSwaps = {'.':'_attr_', ' ':'_',',':'_',
+d_functionStringSwaps = {'.':'_', ' ':'_',',':'_',
                          '+':'_add_','-':'_minus_','><':'_avg_',#pma                                                 
                          '==':'_isEqualTo_','!=':'_isNotEqualTo_','>':'_isGreaterThan_','>=':'_isGreaterOrEqualTo_','<':'_isLessThan_','<=':'_isLessThanOrEqualTo_',#condition
                          '*':'_multBy_','/':'_divBy_','^':'_pow_',}#md

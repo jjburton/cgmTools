@@ -2,9 +2,9 @@
 ------------------------------------------
 cgm.core.tests.mayaBeOdd
 Author: Josh Burton
-email: jjburton@gmail.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================

@@ -2,9 +2,9 @@
 ------------------------------------------
 cgm.core.mrs.blocks.simple.master
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================
@@ -82,7 +82,7 @@ d_defaultSettings = {'version':__version__,
 
 d_wiring_prerig = {'msgLinks':['prerigNull','moduleTarget']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
-
+"""
 _d_attrStateMasks = {0:[],
                      1:[],
                      2:[],
@@ -99,10 +99,10 @@ _d_attrStateOff = {0:[],
                   2:['baseSize','scaleY'],
                   3:['addMotionJoint'],
                   4:[]}
-
+"""
 d_attrStateMask = {'define':[],
                    'form':[],
-                   'prerig':['addMotionJoint'],
+                   'prerig':['addMotionJoint','controlOffset'],
                    'skeleton':['hasJoint'],
                    'rig':[]}
 

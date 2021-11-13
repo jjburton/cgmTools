@@ -3,7 +3,7 @@
 arrange_utils: cgm.core.lib.mayaSettings_utils
 Author: Benn Garnish
 email: 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 NOTES:

@@ -2,9 +2,9 @@
 ------------------------------------------
 tool_chunks: cgm.core.tools.lib
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================
@@ -893,7 +893,10 @@ def uiSection_mrsTD(parent):
                 l='cgmDynParentTool',
                 ann = "Launch cgm's dynParent Tool - a tool for assisting space switching setups and more",
                 c=lambda *a: TOOLCALLS.dynParentTool())    
-    
+    mc.menuItem(parent = parent,
+                l='SVGator',
+                ann = "Tool for working with SVG",
+                c=lambda *a: TOOLCALLS.SVGator())        
     
     
 def uiSection_mrsManage(parent):

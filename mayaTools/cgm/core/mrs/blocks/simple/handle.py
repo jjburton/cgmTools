@@ -2,9 +2,9 @@
 ------------------------------------------
 cgm.core.mrs.blocks.simple.handle
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================
@@ -101,8 +101,7 @@ d_block_profiles = {
         'rotPivotPlace':'jointHelper',
         'shapeDirection':'y+',
         'baseSize':[10,10,10],
-        'addPivot':True,
-        'cgmName':'simple'},
+        'addPivot':True},
     'cone':{
     'basicShape':'pyramid',
     'proxyShape':'cone',
@@ -110,8 +109,7 @@ d_block_profiles = {
     'addPivot':True,    
     'baseSize':[10,10,20],
     
-    'rotPivotPlace':'jointHelper',            
-    'cgmName':'cone'},    
+    'rotPivotPlace':'jointHelper'},    
     'sphere':{
         'basicShape':'sphere',
         'proxyShape':'sphere',
@@ -123,7 +121,6 @@ d_block_profiles = {
         'baseSize':[10,10,10],        
         },
     'box':{'proxyShape':'shapers',
-           'cgmName':'box',
            'loftShape':'square',
            'numShapers':2,
            'shapersAim':'toEnd',
@@ -133,12 +130,11 @@ d_block_profiles = {
            'addPivot':True,            
            'baseSize':[10,10,10],
             },
-    'snapPoint':{'cgmName':'snapPoint',
+    'snapPoint':{
                  'rotPivotPlace':'jointHelper',
                  'meshBuild':False,
                  },
     'cylinder':{'proxyShape':'shapers',
-                'cgmName':'cylinder',
                 'loftShape':'circle',
                 'numShapers':2,
                 'shapersAim':'toEnd',
@@ -150,7 +146,6 @@ d_block_profiles = {
                  },        
     'shapers4':{
             'proxyShape':'shapers',
-            'cgmName':'shapers',
             'loftShape':'square',
             'numShapers':4,
             'shapersAim':'toEnd',
@@ -161,7 +156,6 @@ d_block_profiles = {
             'baseSize':[10,10,40],
             },
     'shaperList':{'proxyShape':'shapers',
-                'cgmName':'shaperList',
                 'loftShape':'square',
                 'numShapers':4,
                 'shapersAim':'toEnd',

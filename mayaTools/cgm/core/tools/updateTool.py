@@ -2,9 +2,9 @@
 ------------------------------------------
 updateTool: cgm.core.tools
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 Example ui to start from
 ================================================================

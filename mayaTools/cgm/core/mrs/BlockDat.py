@@ -1,7 +1,7 @@
 """
 skinDat
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 Core skinning data handler for cgm going forward.
 
@@ -49,13 +49,10 @@ import Red9.startup.setup as r9Setup
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core import cgm_General as cgmGEN
 from cgm.core.cgmPy import validateArgs as cgmValid
 import cgm.core.classes.GuiFactory as cgmUI
-#reload(cgmUI)
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
-#reload(COREPATHS)
 import cgm.core.lib.math_utils as COREMATH
 import cgm.core.lib.string_utils as CORESTRINGS
 import cgm.core.lib.shared_data as CORESHARE
@@ -63,9 +60,6 @@ import cgm.core.tools.lib.project_utils as PU
 import cgm.core.lib.mayaSettings_utils as MAYASET
 import cgm.core.mrs.lib.scene_utils as SCENEUTILS
 import cgm.core.lib.attribute_utils as ATTR
-#reload(SCENEUTILS)
-#reload(MAYASET)
-#reload(PU)
 import cgm.images as cgmImages
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
@@ -75,6 +69,7 @@ __version__ = cgmGEN.__RELEASESTRING
 _colorGood = CORESHARE._d_colors_to_RGB['greenWhite']
 _colorBad = CORESHARE._d_colors_to_RGB['redWhite']
 
+from cgm.core import cgm_General as cgmGEN
 log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
 log_start = cgmGEN.logString_start
@@ -329,8 +324,6 @@ class config(object):
         #print (_d)
         pprint.pprint(self.__dict__)
         
-        
-
     
 def decodeString(val):
     '''

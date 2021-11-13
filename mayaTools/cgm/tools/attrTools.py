@@ -11,8 +11,8 @@
 #   Maya
 #
 # AUTHOR:
-# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.cgmonks.com
+# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - cgmonks.info@gmail.com
+#	http://www.cgmonastery.com
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #
@@ -78,7 +78,7 @@ class attrToolsClass(BaseMelWindow):
 		self.description = 'Tools for working with attributes'
 		self.author = 'Josh Burton'
 		self.owner = 'CG Monks'
-		self.website = 'www.cgmonks.com'
+		self.website = 'www.cgmonastery.com'
 		self.version = __version__
 
 		# About Window
@@ -227,7 +227,7 @@ class attrToolsClass(BaseMelWindow):
 		guiFactory.lineBreak()
 		mc.text(label='Version: %s' % self.version)
 		mc.text(label='')
-		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.cgmonks.com/tools/maya-tools/attrtools/")')
+		guiFactory.doButton('Visit Website', 'import webbrowser;webbrowser.open("http://www.cgmonastery.com/tools/maya-tools/attrtools/")')
 		guiFactory.doButton('Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
 		mc.setParent( '..' )
 		mc.showWindow( window )

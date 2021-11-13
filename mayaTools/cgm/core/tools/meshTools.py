@@ -2,9 +2,9 @@
 ------------------------------------------
 HotkeyFactory: cgm.core
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 Issues:
 -runtime command only available in mel
@@ -47,10 +47,10 @@ mayaVersion = cgmGeneral.__mayaVersion__
 __version__ = cgmGeneral.__RELEASE
 __toolName__ = 'cgmMeshTools'
 __description__ = "These are tools for working with mesh"
-#__toolURL__ = 'www.cgmonks.com'
+#__toolURL__ = 'www.cgmonastery.com'
 #__author__ = 'Josh Burton'
 #__owner__ = 'CG Monks'
-#__website__ = 'www.cgmonks.com'
+#__website__ = 'www.cgmonastery.com'
 __defaultSize__ = 300, 600
 
 def run():

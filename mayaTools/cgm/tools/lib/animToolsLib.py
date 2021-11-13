@@ -12,8 +12,8 @@
 #
 #
 # AUTHOR:
-# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - jjburton@gmail.com
-#	http://www.cgmonks.com
+# 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - cgmonks.info@gmail.com
+#	http://www.cgmonastery.com
 # 	Unless another author's tool, Copyright 2011 CG Monks - All Rights Reserved.
 #
 #

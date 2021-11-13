@@ -1,7 +1,7 @@
 """
 attribute_utils
 Josh Burton 
-www.cgmonks.com
+www.cgmonastery.com
 
 Refactoring attribte calls to core.
 """

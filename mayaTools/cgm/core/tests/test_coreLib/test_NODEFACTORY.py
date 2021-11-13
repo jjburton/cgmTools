@@ -2,9 +2,9 @@
 ------------------------------------------
 cgm_Meta: cgm.core.test.test_coreLib.test_NODEFACTORY
 Author: Josh Burton
-email: jjburton@gmail.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================

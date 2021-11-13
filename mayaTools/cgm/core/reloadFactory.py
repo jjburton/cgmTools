@@ -2,8 +2,8 @@
 ------------------------------------------
 reloadFactory: cgm.core.reloadFactory
 Author: Josh Burton
-email: jjburton@cgmonks.com
-Website : http://www.cgmonks.com
+email: cgmonks.info@gmail.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 Module to handle some of the insanity of reloading our libraries.

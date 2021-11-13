@@ -2,9 +2,9 @@
 ------------------------------------------
 shared_dat: cgm.core.mrs.lib.shared_dat
 Author: Josh Burton
-email: jjburton@cgmonks.com
+email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonks.com
+Website : http://www.cgmonastery.com
 ------------------------------------------
 
 ================================================================

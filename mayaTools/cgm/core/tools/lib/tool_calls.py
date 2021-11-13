@@ -112,7 +112,11 @@ def ngskin():
         webbrowser.open("http://www.ngskintools.com/")
         raise ValueError,"Failed to load. Go get it. | {0}".format(err)
 
-
+def SVGator():
+    import cgm.core.tools.SVGator as SVGATOR
+    reload(SVGATOR)
+    SVGATOR.ui()
+    
 def mrsShots():
     try:
         import cgm.core.mrs.Shots as SHOTS
