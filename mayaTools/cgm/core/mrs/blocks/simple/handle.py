@@ -2039,7 +2039,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
 
         
         for mGeo in ml_proxy:
-            CORERIG.color_mesh(mGeo.mNode,'puppetmesh')
+            CORERIG.color_mesh(mGeo.mNode)
         
         if len(ml_proxy) > 1:
             _mesh = mc.polyUnite([mObj.mNode for mObj in ml_proxy], ch=False )[0]

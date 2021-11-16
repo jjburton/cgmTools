@@ -6669,7 +6669,7 @@ def rig_segments(self):
                 mc.delete(mRigJoint.getConstraintsTo())
                 mRigJoint.masterGroup.p_parent = ml_blendJoints[self.int_handleEndBaseIdx]
         
-        elif not self.mToe:
+        elif not self.mToe and not self.b_extraHandles:
             #...no roll setups end not following the segment handles
             for key,v in self.md_rollMulti.iteritems():
                 if not v:
