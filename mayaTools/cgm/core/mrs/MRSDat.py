@@ -308,6 +308,7 @@ def blockDat_get(self,report = True):
           'blockScale':ATTR.get(_short,'blockScale'),
           'baseSize':self.atUtils('baseSize_get'),
           "version":self.version,
+          'baseDat':self.baseDat,
           }
     
     try:_gen['blockParent'] = self.getMessage('blockParent')[0]
@@ -397,6 +398,7 @@ def blockDat_get(self,report = True):
 
 
 def blockDat_load(self, blockDat = None,
+                  baseDat = True,
                   useMirror = False,
                   settingsOnly = False,
                   autoPush = True,
@@ -424,6 +426,9 @@ def blockDat_load(self, blockDat = None,
             raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
     
         self.blockScale = blockDat['blockScale']
+        
+        if baseDat:
+            self.baseDat = blockDat['baseDat']
         
         #.>>>..Settings ====================================================================================
         log.debug("|{0}| >> Settings...".format(_str_func)+ '-'*80)
@@ -995,7 +1000,7 @@ class ui(CGMDAT.ui):
         mc.button(parent=_inside,
                   l = 'Create',
                   ut = 'cgmUITemplate',
-                  c = lambda *a:mc.evalDeferred(cgmGEN.Callback(blockDat_createBlock,self.uiDat)),
+                  c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create)),
                   ann = 'Build with MRS')
 
         #checkboxes frame...------------------------------------------------------------
