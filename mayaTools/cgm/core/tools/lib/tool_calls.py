@@ -117,6 +117,22 @@ def SVGator():
     reload(SVGATOR)
     SVGATOR.ui()
     
+    
+def CGMDATui():
+    import cgm.core.cgm_Dat as CGMDAT
+    reload(CGMDAT)
+    CGMDAT.ui()
+    
+def BLOCKDATui():
+    import cgm.core.mrs.MRSDat as MRSDAT
+    reload(MRSDAT)
+    MRSDAT.ui()
+    
+def SHAPEDATui():
+    import cgm.core.mrs.ShapeDat as SHAPEDAT
+    reload(SHAPEDAT)
+    SHAPEDAT.ui()
+    
 def mrsShots():
     try:
         import cgm.core.mrs.Shots as SHOTS

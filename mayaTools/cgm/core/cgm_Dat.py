@@ -17,7 +17,7 @@ import getpass
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -41,6 +41,7 @@ import cgm.core.classes.GuiFactory as CGMUI
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
 import cgm.core.lib.shared_data as CORESHARE
+import cgm.core.lib.string_utils as CORESTRINGS
 
 import cgm.core.cgmPy.os_Utils as CGMOS
 """
@@ -65,6 +66,10 @@ log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
 log_start = cgmGEN.logString_start
 
+
+_l_startDirModes = ['workspace','project','file','dev']
+
+
 def startDir_getBase(mode = 'workspace'):
     str_func = 'startDir_get'
     log.debug(log_start(str_func))
@@ -74,8 +79,12 @@ def startDir_getBase(mode = 'workspace'):
     elif mode == 'file':
         _file = mc.file(q=True, loc=True)
         if not os.path.exists(_file):
-            raise ValueError,"Invalid file path: {}".format(_file)
+            raise ValueError,"StarDir mode is 'file' and file not saved or invalid file path: {}".format(_file)
         return os.path.split(_file)[0]
+    elif mode == 'cgmProject':
+        pass
+    elif mode == 'dev':
+        pass
 
     else:
         raise ValueError,"Unknown mode: {}".format(mode)
@@ -128,8 +137,18 @@ class data(object):
         str_func = 'data.set'
         log.debug(log_start(str_func))
         
-    def startDir_get(self):
-        startDir = startDir_getBase(self.structureMode)
+    def checkState(self):
+        _str_func = 'checkState'
+        log.debug("|{0}| >>...".format(_str_func))
+        if self.dat:
+            return True
+        return False
+        
+    def startDir_get(self,startDirMode=None):
+        if startDirMode == None:
+            startDir = startDir_getBase(self.structureMode)
+        else:
+            startDir = startDir_getBase(startDirMode)
         
         if len(self._startDir)>1:
             _path = os.path.join(startDir, os.path.join(*self._startDir))                    
@@ -138,12 +157,13 @@ class data(object):
         
         return _path
     
-    def validateFilepath(self, filepath = None, fileMode = 0):
+    def validateFilepath(self, filepath = None, fileMode = 0, startDirMode = None):
         '''
         Validates a given filepath or generates one with dialog if necessary
         '''        
         if filepath is None:
-            startDir = self.startDir_get()
+            startDir = self.startDir_get(startDirMode=startDirMode)
+            log.debug(startDir)
             if not os.path.exists(startDir):
                 CGMOS.mkdir_recursive(startDir)
                     
@@ -167,18 +187,20 @@ class data(object):
         for k,d in dataHolder.iteritems():
             self.dat[k] = d
 
-    def write(self, filepath = None, update = False):
+            
+    def write(self, filepath = None, update = False, startDirMode = None):
         str_func = 'data.write'
         log.debug("|{0}| >>...".format(str_func))
         
         if update:
             filepath = self.str_filepath
             
-        filepath = self.validateFilepath(filepath)
+        filepath = self.validateFilepath(filepath, startDirMode=startDirMode)
         if not filepath:
             log.warning('Invalid path: {0}'.format(filepath))
             
             return False
+        
         log.warning('Write to: {0}'.format(filepath))
             
             
@@ -220,17 +242,17 @@ class data(object):
         log.warning('Completed: {} | {}'.format(self._dataformat_resolved,filepath))
         return True
         
-    def read(self, filepath = None, decode = True, report = False):
+    def read(self, filepath = None, decode = True, report = False, startDirMode= None):
         '''
         Read the Data ConfigObj from file and report the data if so desired.
         ''' 
         str_func = 'data.read'
         log.debug("|{0}| >>...".format(str_func))
         
-        mPath = self.validateFilepath(filepath, fileMode = 1)
+        mPath = self.validateFilepath(filepath, fileMode = 1, startDirMode=startDirMode)
         
         if not mPath or not mPath.exists():            
-            raise ValueError('Given filepath doesnt not exist : %s' % filepath)   
+            return log.error('Given filepath doesnt not exist : %s' % filepath)   
         
         # =========================
         # read JSON format
@@ -318,8 +340,8 @@ def decodeDat(self,dat = None):
     
     
 class ui(CGMUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
     _toolname = 'cgmDat'
-    USE_Template = 'CGMUITemplate'
     WINDOW_NAME = "{}UI".format(_toolname)
     WINDOW_TITLE = 'cgmDat | {0}'.format(__version__)
     DEFAULT_MENU = None
@@ -327,116 +349,205 @@ class ui(CGMUI.cgmGUI):
     MIN_BUTTON = False
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 200,300
+    DEFAULT_SIZE = 300,300
+    
     
     _datClass = data
     
     def insert_init(self,*args,**kws):
         self._loadedFile = ""
-        self.dat = self._datClass()
+        self.uiDat = self._datClass()
+        
+        self.create_guiOptionVar('startDirMode',defaultValue = 0) 
+        self._l_startDirModes = _l_startDirModes
         
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
         self.uiMenu_SetupMenu = mUI.MelMenu(l='Dev', pmc = cgmGEN.Callback(self.buildMenu_dev))
 
     def buildMenu_file(self):
-        self.uiMenu_FileMenu.clear()                      
+        self.uiMenu_FileMenu.clear()
+        mUI.MelMenuItemDiv(self.uiMenu_FileMenu, l="Options")
+        
+        _menu = self.uiMenu_FileMenu
+        #Context ...---------------------------------------------------------------------------------
+        _starDir = mUI.MelMenuItem(_menu, l="StartDir",tearOff=True,
+                                   subMenu = True)
+        
+        uiRC = mc.radioMenuItemCollection()
+        
+        #self._l_contextModes = ['self','below','root','scene']
+        _d_ann = {'self':'Context is only of the active/sel block',
+                  'below':'Context is active/sel block and below',
+                  'root':'Context is active/sel root and below',
+                  'scene':'Context is all blocks in the scene. Careful skippy!',}
+        
+        _on = self.var_startDirMode.value
+        for i,item in enumerate(self._l_startDirModes):
+            if i == _on:_rb = True
+            else:_rb = False
+            mUI.MelMenuItem(_starDir,label=item,
+                            collection = uiRC,
+                            ann = _d_ann.get(item),
+                            c = cgmGEN.Callback(self.uiFunc_setDirMode,i),                                  
+                            rb = _rb)        
+        
+        mUI.MelMenuItemDiv(self.uiMenu_FileMenu, l="Utils")
 
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save",)
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_save)))
+                         
                         # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_actions,self)))
 
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save As",)
-                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_as_actions,self)))
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save As",
+                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_saveAs)))
         
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",)
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",
+                          c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_load)))
                         # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
                         
+    def uiFunc_setDirMode(self,v):
+        _str_func = 'uiFunc_setDirMode[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        _path = startDir_getBase(self._l_startDirModes[v])
+        if _path:
+            self.var_startDirMode.setValue(v)
+            print(_path)
+        
     def buildMenu_dev(self):
         self.uiMenu_SetupMenu.clear()
         _menu = self.uiMenu_SetupMenu
-        mUI.MelMenuItem( _menu, l="Dat | self",
-                         c=lambda *a: self.dat.log_self())        
+        mUI.MelMenuItem( _menu, l="Ui | ...",
+                         c=lambda *a: self.log_self())               
+        mUI.MelMenuItem( _menu, l="Dat | class",
+                         c=lambda *a: self.uiDat.log_self())        
         mUI.MelMenuItem( _menu, l="Dat | stored",
-                         c=lambda *a: self.dat.log_dat())            
-    
-    def uiStatus_refresh(self):
+                         c=lambda *a: self.uiDat.log_dat())            
+    def log_self(self):
+        _str_func = 'log_self[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        pprint.pprint(self.__dict__)
+        
+    def uiStatus_refresh(self, string = None):
         _str_func = 'uiStatus_refresh[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
         
-        if not self.dat:
+        if not self.uiDat.checkState():
             self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('warning'),label = 'No Data')            
-            self.uiData_base(edit=True,vis=0)
-            self.uiData_base.clear()
+            #self.uiData_base(edit=True,vis=0)
+            #self.uiData_base.clear()
             
         else:
-            self.uiData_base.clear()
+            #self.uiData_base.clear()
+            if not string:
+                string = CORESTRINGS.short(self._loadedFile,max=40,start=10)
+            self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('ready'),label = string )            
+            self.uiUpdate_data()
             
-            """
-            _base = self.dat['base']
-            _str = "Source: {}".format(_base['source'])
-            self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('connected'),label = _str)
+    def uiFunc_dat_save(self):
+        _str_func = 'uiFunc_dat_save[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        self.uiDat.write(update=True,startDirMode = self._l_startDirModes[self.var_startDirMode.value])
+        return
+    
+    def uiFunc_dat_saveAs(self):
+        _str_func = 'uiFunc_dat_saveAs[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        self.uiDat.write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
+        return
+    
+    def uiFunc_dat_load(self,**kws):
+        _str_func = 'uiFunc_dat_load[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        if not kws.get('startDir'):
+            kws['startDirMode'] = _l_startDirModes[self.var_startDirMode.value]
+        
+        
+        if self.uiDat.read(**kws):
+            self._loadedFile = self.uiDat.str_filepath
+        self.uiStatus_refresh()
+        return
+    
+    def uiData_checkState(self):
+        return self.uiDat.checkState()                
+        
+    def uiUpdate_top(self):
+        _str_func = 'uiUpdate_top[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        self.uiSection_top.clear()
+        CGMUI.add_Header('Put stuff here')
+        
+    def uiUpdate_data(self):
+        _str_func = 'uiUpdate_data[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        self.uiFrame_data.clear()
+        if not self.uiDat:
+            return
+        
+        """
+        mUI.MelLabel(self.uiFrame_data, label = "Select", h = 13, 
+                     ut='cgmUIHeaderTemplate',align = 'center')
+        
+        for util in ['Select Source']:
+            mUI.MelButton(self.uiFrame_data,
+                          c = cgmGEN.Callback(self.uiFunc_dat,util),
+                          ann="...",
+                          label=util,
+                          ut='cgmUITemplate',
+                          h=20)"""
+ 
+        mUI.MelLabel(self.uiFrame_data, label = "PPRINT", h = 13, 
+                     ut='cgmUIHeaderTemplate',align = 'center')
+        
+        for a in self.uiDat.dat.keys():
+            mUI.MelButton(self.uiFrame_data,
+                          c = cgmGEN.Callback(self.uiFunc_printDat,a),
+                          ann="...",
+                          label=a,
+                          ut='cgmUITemplate',
+                          h=20)
             
-            self.uiData_base(edit=True,vis=True)
-            
-            mUI.MelLabel(self.uiData_base, label = "Base", h = 13, 
-                         ut='CGMUIHeaderTemplate',align = 'center')
-            
-            for a in ['type','blockType','shapers','subs']:
-                mUI.MelLabel(self.uiData_base, label = "{} : {}".format(a,self.dat['base'].get(a)),
-                             bgc = CORESHARE._d_gui_state_colors.get('help'))                
-                             """
-                
+        mUI.MelButton(self.uiFrame_data,
+                      c = cgmGEN.Callback(self.uiFunc_printDat,'all'),
+                      ann="...",
+                      label='all',
+                      ut='cgmUITemplate',
+                      h=20)
+    
     def uiFunc_dat_get(self):
         _str_func = 'uiFunc_dat_get[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
         _sel = mc.ls(sl=1)
+        
         return
-        mBlock = BLOCKGEN.block_getFromSelected()
-        if not mBlock:
-            return log.error("No blocks selected")
-        
-        sDat = dat_get(mBlock)
-        self.dat = sDat
-        
-        self.uiStatus_refresh()
-        if _sel:mc.select(_sel)
  
     def uiFunc_dat(self,mode='Select Source'):
         _str_func = 'uiFunc_dat[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))  
         
-        if not self.dat:
+        if not self.uiDat:
             return log.error("No dat loaded selected")
 
-    
     def uiFunc_printDat(self,mode='all'):
         _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))  
         
-        if not self.dat:
+        if not self.uiDat:
             return log.error("No dat loaded selected")    
         
-        sDat = self.dat
+        sDat = self.uiDat.dat
         
         print(log_sub(_str_func,mode))
         if mode == 'all':
-            pprint.pprint(self.dat)
+            pprint.pprint(sDat)
         elif mode == 'settings':
             pprint.pprint(sDat['settings'])
-        elif mode == 'base':
-            pprint.pprint(sDat['base'])
-        elif mode == 'settings':
-            pprint.pprint(sDat['settings'])
-        elif mode == 'formHandles':
-            pprint.pprint(sDat['handles']['form'])        
-        elif mode == 'loftHandles':
-            pprint.pprint(sDat['handles']['loft'])  
-        elif mode == 'sub':
-            pprint.pprint(sDat['handles']['sub'])
-        elif mode == 'subShapes':
-            pprint.pprint(sDat['handles']['subShapes'])
-        elif mode == 'subRelative':
-            pprint.pprint(sDat['handles']['subRelative'])            
+        else:
+            pprint.pprint(sDat[mode])
+  
             
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
@@ -451,23 +562,35 @@ class ui(CGMUI.cgmGUI):
                                          bgc = CORESHARE._d_gui_state_colors.get('warning'),
                                          label = 'No Data',
                                          h=20)
+        _inside = mUI.MelScrollLayout(_MainForm,ut='CGMUITemplate')
         
-        _inside = mUI.MelScrollLayout(_MainForm)
-
-        #SetHeader = CGMUI.add_Header('{0}'.format(_strBlock))
 
         
-        
-        
-        #mc.setParent(_MainForm)
-        """
-        self.uiStatus_bottom = mUI.MelButton(_MainForm,
-                                             bgc=CORESHARE._d_gui_state_colors.get('warning'),
-                                             #c=lambda *a:self.uiFunc_updateStatus(),
-                                             ann="...",
-                                             label='...',
-                                             h=20)"""
+        #Top Section -----------
+        self.uiSection_top = mUI.MelColumn(_inside ,useTemplate = 'cgmUISubTemplate',vis=True)         
+        self.uiUpdate_top()
   
+        #data frame...------------------------------------------------------
+        try:self.var_shapeDat_dataFrameCollapse
+        except:self.create_guiOptionVar('cgmDat_dataFrameCollapse',defaultValue = 0)
+        mVar_frame = self.var_cgmDat_dataFrameCollapse
+        
+        _frame = mUI.MelFrameLayout(_inside,label = 'Data',vis=True,
+                                    collapse=mVar_frame.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    #ann='Contextual MRS functionality',
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:mVar_frame.setValue(0),
+                                    collapseCommand = lambda:mVar_frame.setValue(1)
+                                    )	
+        self.uiFrame_data = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+
+        mUI.MelLabel(self.uiFrame_data, label = "Select", h = 13, 
+                     ut='cgmUIHeaderTemplate',align = 'center')
+        
+
+        #Progress bar... ----------------------------------------------------------------------------
         self.uiPB_test=None
         self.uiPB_test = mc.progressBar(vis=False)
 
@@ -486,8 +609,9 @@ class ui(CGMUI.cgmGUI):
     
                         ],
                   ac = [(_inside,"bottom",0,_row_cgm),
+                        (_inside,"top",0,self.uiStatus_top),
                         ],
                   attachNone = [(_row_cgm,"top")])    
     
 
-        self.uiFunc_dat_get()
+        #self.uiFunc_dat_get()
