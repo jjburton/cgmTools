@@ -19,7 +19,7 @@ import json
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -452,27 +452,28 @@ def dat_set(mBlock,data,
     _dataForward = 0
     _dataSkip = 0
     
-    if data['base'].get('addLeverBase') not in ['none']:
-        print("data has addLeverBase")
-        b_dataAddLever = True
-    else:
-        print("data has no addLeverBase")
-        
-    if mBlock.hasAttr('addLeverBase') and mBlock.addLeverBase:
-        print("mBlock has addLeverBase")
-        b_targetAddLever = True        
-    else:
-        print("mBlock has no addLeverBase")
-        
-    if not b_targetAddLever and b_dataAddLever:
-        print("Target doesn't, data does. dataSkip 1 [0]")
-        _dataSkip = 1
+    if mBlock.hasAttr('addLeverBase'):
+        if data['base'].get('addLeverBase') not in ['none']:
+            print("data has addLeverBase")
+            b_dataAddLever = True
+        else:
+            print("data has no addLeverBase")
             
-    if  b_targetAddLever and not b_dataAddLever:
-        print("Target does, data doesn't. Pull data forward")
-        _dataForward = -1
-        if 0 not in l_skips:
-            l_skips.append(0)        
+        if mBlock.hasAttr('addLeverBase') and mBlock.addLeverBase:
+            print("mBlock has addLeverBase")
+            b_targetAddLever = True        
+        else:
+            print("mBlock has no addLeverBase")
+            
+        if not b_targetAddLever and b_dataAddLever:
+            print("Target doesn't, data does. dataSkip 1 [0]")
+            _dataSkip = 1
+                
+        if  b_targetAddLever and not b_dataAddLever:
+            print("Target does, data doesn't. Pull data forward")
+            _dataForward = -1
+            if 0 not in l_skips:
+                l_skips.append(0)        
         
     
     #First part of block reset to get/load data------------------------------------------------------
@@ -539,22 +540,71 @@ def dat_set(mBlock,data,
                 if i in l_skips:
                     continue
                 
-                if _dataForward:
-                    i = i-1
-                if _dataSkip:
-                    i = i+1
+                try:dat_form[i]
+                except:
+                    log.debug(log_msg(_str_func, 'No data on: {}'.format(i)))
+                    continue
                     
-                print i
-                #mObj.translate = dat_form[i]['trans']
-                #mObj.rotate = dat_form[i]['rot']
-                mObj.p_position = dat_form[i]['pos']
-                mObj.p_orient = dat_form[i]['orient']
+                try:
+                    
+                    if _dataForward:
+                        i = i-1
+                    if _dataSkip:
+                        i = i+1
+                        
+                    #mObj.translate = dat_form[i]['trans']
+                    #mObj.rotate = dat_form[i]['rot']
+                    mObj.p_position = dat_form[i]['pos']
+                    mObj.p_orient = dat_form[i]['orient']
+                    
+                    mObj.scaleX = dat_form[i]['scale'][0]
+                    mObj.scaleY = dat_form[i]['scale'][1]
+                    try:mObj.scaleZ = dat_form[i]['scale'][2]
+                    except:pass
+                except:
+                    log.debug(log_msg(_str_func, 'No data on: {}'.format(i)))
+                    
                 
-                mObj.scaleX = dat_form[i]['scale'][0]
-                mObj.scaleY = dat_form[i]['scale'][1]
-                try:mObj.scaleZ = dat_form[i]['scale'][2]
-                except:pass
-
+    
+    if ml_handles[-1].getMessage('pivotHelper'):
+        log.info(log_msg(_str_func,'pivot Helper'))
+        
+        mPivotHelper = ml_handles[-1].pivotHelper
+        dat_pivot = data.get('pivotHelper')
+        if dat_pivot:
+            dat_pivot = dat_pivot[0]
+            log.info(log_msg(_str_func,'setting pivotHelper'))
+            pprint.pprint(dat_pivot)
+            mPivotHelper.p_position = dat_pivot['pos']
+            
+            mPivotHelper.p_orient = dat_pivot['orient']
+            
+            mPivotHelper.scaleX = dat_pivot['scale'][0]
+            mPivotHelper.scaleY = dat_pivot['scale'][1]
+            try:mPivotHelper.scaleZ = dat_pivot['scale'][2]
+            except:pass
+            
+            shapes_set(mPivotHelper, dat_pivot['shapes'],'ws')
+        
+            
+        
+        dat_pivotTop = data.get('pivotTopHelper')            
+        mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+        if mTopLoft and dat_pivotTop:
+            dat_pivotTop = dat_pivotTop[0]            
+            log.info(log_msg(_str_func,'setting pivotTopHelper'))
+            pprint.pprint(dat_pivotTop)
+            
+            mTopLoft.p_position = dat_pivotTop['pos']
+            mTopLoft.p_orient = dat_pivotTop['orient']
+            
+            mTopLoft.scaleX = dat_pivotTop['scale'][0]
+            mTopLoft.scaleY = dat_pivotTop['scale'][1]
+            try:mTopLoft.scaleZ = dat_pivotTop['scale'][2]
+            except:pass
+            
+            shapes_set(mTopLoft, dat_pivotTop['shapes'],'ws')                
+            
     
     #loft handles and shapes -----------------------------------------------------------
     if loftHandles or loftShapes:
@@ -757,12 +807,16 @@ def dat_get(mBlock=None):
             for i,ep in enumerate(_l_ep_source):
                 _pos = POS.get(ep,space='os')
             
-    def get(mObj):
+    def get(mObj,shapes=False):
         d = {'pos':mObj.p_position,
              'orient':mObj.p_orient,
              'rot':mObj.rotate,
              'trans':mObj.translate,
              'scale':mObj.scale}
+        
+        if shapes:
+            d['shapes'] = shapes_get(mObj,'ws')
+            
         return d
     
     for i, mObj in enumerate(ml_handles):
@@ -802,6 +856,17 @@ def dat_get(mBlock=None):
             _d['subShapes'].append(False)               
             _d['subRelative'].append(False)               
             _num_subs.append(0)
+    
+        if mObj.getMessage('pivotHelper'):
+            mPivotHelper = mObj.pivotHelper
+            _res['pivotHelper'] = [ get(mPivotHelper,shapes=True)]
+                
+            
+            mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+            if mTopLoft:
+                _res['pivotTopHelper'] = [ get(mTopLoft,shapes=True)]
+
+    
 
     #pprint.pprint(_res)
     

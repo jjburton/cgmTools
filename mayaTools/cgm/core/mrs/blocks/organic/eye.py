@@ -22,7 +22,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -69,6 +69,7 @@ import cgm.core.lib.string_utils as STR
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.rig.general_utils as RIGGEN
+import cgm.core.mrs.lib.post_utils as MRSPOST
 
 #for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
 #    reload(m)
@@ -5956,7 +5957,7 @@ def asdfasdfasdf(self, forceNew = True, skin = False):
         log.debug("|{0}| >> neckBuild...".format(_str_func))
 
 
-def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
+def build_proxyMesh(self, forceNew = True, skin = False, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
@@ -6155,7 +6156,10 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     mc.delete(l_delete)
     
     #mProxyEye.doSnapTo(mDirect)
-    mProxyEye.p_parent = mDirect
+    if skin:
+        MRSPOST.skin_mesh(mProxyEye,[mDirect])
+    else:
+        mProxyEye.p_parent = mDirect
     ml_proxy = [mProxyEye]
     ml_noFreeze = []
     

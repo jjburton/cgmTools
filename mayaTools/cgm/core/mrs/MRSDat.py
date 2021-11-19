@@ -400,6 +400,7 @@ def blockDat_get(self,report = True):
 def blockDat_load(self, blockDat = None,
                   baseDat = True,
                   useMirror = False,
+                  move = True, 
                   settingsOnly = False,
                   autoPush = True,
                   currentOnly=False,
@@ -503,6 +504,10 @@ def blockDat_load(self, blockDat = None,
         _scale = blockDat.get('scale')
         _orientHelper = blockDat.get('rootOrientHelper')
         
+        if not move:
+            _pos = self.p_position
+            _orient = self.p_orient
+            
         self.p_position = blockDat.get('position')
         self.p_orient = blockDat.get('orient')
         
@@ -579,6 +584,11 @@ def blockDat_load(self, blockDat = None,
             self.UTILS.controls_mirror(mMirror,self,form=False,prerig=True)
         else:
             blockDat_load_state(self,'prerig',blockDat,_d_warnings,overrideMode,overrideMode)
+            
+            
+        if not move:
+             self.p_position = _pos
+             self.p_orient = _orient      
             
         if _d_warnings:
             try:
@@ -961,7 +971,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
 #======================================================================================================================================================
 
 
-d_blockDatOptions = {'General':['useMirror','autoPush','currentOnly','redefine']}
+d_blockDatOptions = {'General':['move','useMirror','autoPush','currentOnly','redefine']}
 l_blockDatOptions = ['General']
 
 d_shapeDat_options = {"form":['formHandles'],
