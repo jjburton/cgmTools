@@ -44,7 +44,8 @@ from cgm.core.classes import GuiFactory as CGMUI
 mUI = CGMUI.mUI
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
-
+from cgm.core import cgm_Dat as CGMDAT
+from cgm.core.mrs import MRSDat as MRSDAT
 #reload(cgmUI)
 #import cgm.core.cgmPy.path_Utils as PATHS
 #import cgm.core.lib.path_utils as COREPATHS
@@ -72,340 +73,14 @@ __version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='ShapeDat'
 _padding = 5
 
-d_shapeDat_options = {"form":['formHandles'],
-                      "loft":['loftHandles','loftShapes'],
-                     }
-d_shapeDatShort = {'formHandles':'handles',
-                   "loftHandles":'handles',
-                   'loftShapes':'shapes'}
-d_shapeDatLabels = {'formHandles':{'ann':"Setup expected qss sets", 'label':'form'},
-                    'loftHandles':{'ann':"Wire for mirroring", 'label':'loft'},
-                    'loftShapes':{'ann':"Connect bind joints to rig joints", 'label':'shapes'},}
-         
-class ui(CGMUI.cgmGUI):
-    USE_Template = 'cgmUITemplate'
-    WINDOW_NAME = "{}UI".format(__toolname__)
-    WINDOW_TITLE = 'ShapeDat | {0}'.format(__version__)
-    DEFAULT_MENU = None
-    RETAIN = True
-    MIN_BUTTON = False
-    MAX_BUTTON = False
-    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 200,300
-    
-    def insert_init(self,*args,**kws):
-        self._loadedFile = ""
-        self.dat = None
-        
-    def build_menus(self):
-        self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
-        self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
-
-    def buildMenu_file(self):
-        self.uiMenu_FileMenu.clear()                      
-
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save",)
-                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_actions,self)))
-
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save As",)
-                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_as_actions,self)))
-        
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",)
-                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
-    def buildMenu_setup(self):pass
-    
-    
-    def uiStatus_refresh(self):
-        _str_func = 'uiStatus_refresh[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        if not self.dat:
-            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
-            #self.uiStatus_bottom(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
-            
-            self.uiData_base(edit=True,vis=0)
-            self.uiData_base.clear()
-            
-        else:
-            self.uiData_base.clear()
-            
-            _base = self.dat['base']
-            _str = "Source: {}".format(_base['source'])
-            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('connected'),label = _str)
-            
-            self.uiData_base(edit=True,vis=True)
-            
-            mUI.MelLabel(self.uiData_base, label = "Base", h = 13, 
-                         ut='cgmUIHeaderTemplate',align = 'center')
-            
-            for a in ['type','blockType','shapers','subs']:
-                mUI.MelLabel(self.uiData_base, label = "{} : {}".format(a,self.dat['base'].get(a)),
-                             bgc = SHARED._d_gui_state_colors.get('help'))                
-            
-            
-            #_str = "blockType: {}".format(_base.get('blockType','No blockType'))
-            #self.uiStatus_bottom(edit=True,bgc = SHARED._d_gui_state_colors.get('connected'),label = _str)            
-                
-    def uiFunc_dat_get(self):
-        _str_func = 'uiFunc_dat_get[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))
-        _sel = mc.ls(sl=1)
-        
-        mBlock = BLOCKGEN.block_getFromSelected()
-        if not mBlock:
-            return log.error("No blocks selected")
-        
-        sDat = dat_get(mBlock)
-        self.dat = sDat
-        
-        self.uiStatus_refresh()
-        if _sel:mc.select(_sel)
-        
-    def uiFunc_dat_set(self,mBlocks = None,**kws):
-        _str_func = 'uiFunc_dat_set[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))        
-        
-        if not mBlocks:
-            mBlocks = BLOCKGEN.block_getFromSelected(multi=True)
-            
-        if not mBlocks:
-            return log.error("No blocks selected")
-        
-        if not self.dat:
-            return log.error("No dat loaded")
-            
-        
-        if not kws:
-            kws = {}
-            for k,cb in self._dCB_reg.iteritems():
-                kws[k] = cb.getValue()
-            
-            pprint.pprint(kws)
-        
-        
-        
-        mc.undoInfo(openChunk=True)
-
-        
-        for mBlock in mBlocks:
-            log.info(log_sub(_str_func,mBlock.mNode))
-            try:dat_set(mBlock, self.dat, **kws)
-            except Exception,err:
-                log.error("{} | err: {}".format(mBlock.mNode, err))
-                    
-        mc.undoInfo(closeChunk=True)
-        
-        return
-        for d in ['form','loft']:
-            l = d_shapeDat_options[d]
-            mUI.MelLabel(_inside, label = '{0}'.format(d.upper()), h = 13, 
-                         ut='cgmUIHeaderTemplate',align = 'center')
-            for k in l:
-                d_dat = d_shapeDatLabels.get(k,{})
-                
-        for d,l in MRSBATCH.d_mrsPost_calls.iteritems():
-            for k in l:# _l_post_order:
-                log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
-                
-                #self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
-                l_join.insert(2,"'{0}' : {1} ,".format(k,int(self._dCB_reg[k].getValue())))        
-        
-    
-    def uiFunc_dat(self,mode='Select Source'):
-        _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))  
-        
-        if not self.dat:
-            return log.error("No dat loaded selected")
-        
-        if mode == 'Select Source':
-            mc.select(self.dat['base']['source'])
-    
-    def uiFunc_printDat(self,mode='all'):
-        _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))  
-        
-        if not self.dat:
-            return log.error("No dat loaded selected")    
-        
-        sDat = self.dat
-        
-        print(log_sub(_str_func,mode))
-        if mode == 'all':
-            pprint.pprint(self.dat)
-        elif mode == 'settings':
-            pprint.pprint(sDat['settings'])
-        elif mode == 'base':
-            pprint.pprint(sDat['base'])
-        elif mode == 'settings':
-            pprint.pprint(sDat['settings'])
-        elif mode == 'formHandles':
-            pprint.pprint(sDat['handles']['form'])        
-        elif mode == 'loftHandles':
-            pprint.pprint(sDat['handles']['loft'])  
-        elif mode == 'sub':
-            pprint.pprint(sDat['handles']['sub'])
-        elif mode == 'subShapes':
-            pprint.pprint(sDat['handles']['subShapes'])
-        elif mode == 'subRelative':
-            pprint.pprint(sDat['handles']['subRelative'])            
-            
-    def build_layoutWrapper(self,parent):
-        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        #Declare form frames...------------------------------------------------------
-        _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
-        _inside = mUI.MelScrollLayout(_MainForm)
-
-        #SetHeader = cgmUI.add_Header('{0}'.format(_strBlock))
-        self.uiStatus_top = mUI.MelButton(_inside,
-                                         vis=True,
-                                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
-                                         bgc = SHARED._d_gui_state_colors.get('warning'),
-                                         label = 'No Data',
-                                         h=20)                
-        
-        
-        
-        #mc.setParent(_MainForm)
-        """
-        self.uiStatus_bottom = mUI.MelButton(_MainForm,
-                                             bgc=SHARED._d_gui_state_colors.get('warning'),
-                                             #c=lambda *a:self.uiFunc_updateStatus(),
-                                             ann="...",
-                                             label='...',
-                                             h=20)"""
-  
-        self.uiPB_test=None
-        self.uiPB_test = mc.progressBar(vis=False)
-
-        
-    
-        
-        
-                
-        #checkboxes frame...------------------------------------------------------------
-        self._dCB_reg = {}
-        for d in ['form','loft']:
-            l = d_shapeDat_options[d]
-            mUI.MelLabel(_inside, label = '{0}'.format(d.upper()), h = 13, 
-                         ut='cgmUIHeaderTemplate',align = 'center')
-            #mc.setParent(_inside)
-            #cgmUI.add_Header(d)
-            for k in l:
-                d_dat = d_shapeDatLabels.get(k,{})
-                
-                _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
-                mUI.MelSpacer(_row,w=10)    
-                
-                mUI.MelLabel(_row, label = '{0}:'.format( d_dat.get('label',k) ))
-                _row.setStretchWidget(mUI.MelSeparator(_row))
-    
-                _plug = 'cgmVar_shapeDat_' + k#d_shapeDatShort.get(k,k)
-                try:self.__dict__[_plug]
-                except:
-                    log.debug("{0}:{1}".format(_plug,1))
-                    self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 1)
-        
-                l = k
-                _buffer = k#d_shapeDatShort.get(k)
-                if _buffer:l = _buffer
-                _cb = mUI.MelCheckBox(_row,
-                                      #annotation = d_dat.get('ann',k),
-                                      value = self.__dict__[_plug].value,
-                                      onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
-                                      offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
-                self._dCB_reg[k] = _cb
-                mUI.MelSpacer(_row,w=10)    
-                
-                _row.layout()
-
-        
-        
-        _button = mc.button(parent=_inside,
-                            l = 'Load',
-                            ut = 'cgmUITemplate',
-                            c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_set)),
-                            ann = 'Build with MRS')        
-        
-        #data frame...------------------------------------------------------
-        try:self.var_shapeDat_dataFrameCollapse
-        except:self.create_guiOptionVar('shapeDat_dataFrameCollapse',defaultValue = 0)
-        mVar_frame = self.var_shapeDat_dataFrameCollapse
-        
-        _frame = mUI.MelFrameLayout(_inside,label = 'Data',vis=True,
-                                    collapse=mVar_frame.value,
-                                    collapsable=True,
-                                    enable=True,
-                                    #ann='Contextual MRS functionality',
-                                    useTemplate = 'cgmUIHeaderTemplate',
-                                    expandCommand = lambda:mVar_frame.setValue(0),
-                                    collapseCommand = lambda:mVar_frame.setValue(1)
-                                    )	
-        self.uiFrame_data = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
-        
-        
-        self.uiData_base = mUI.MelColumn(self.uiFrame_data ,useTemplate = 'cgmUISubTemplate',vis=False) 
-
-        mUI.MelLabel(self.uiFrame_data, label = "Select", h = 13, 
-                     ut='cgmUIHeaderTemplate',align = 'center')
-        
-        for util in ['Select Source']:
-            mUI.MelButton(self.uiFrame_data,
-                          c = cgmGEN.Callback(self.uiFunc_dat,util),
-                          ann="...",
-                          label=util,
-                          ut='cgmUITemplate',
-                          h=20)                            
-        
-        
-        
-        
-        mUI.MelLabel(self.uiFrame_data, label = "PPRINT", h = 13, 
-                     ut='cgmUIHeaderTemplate',align = 'center')
-        
-        for a in ['settings','base','formHandles','loftHandles','sub','subShapes','subRelative','all']:
-            mUI.MelButton(self.uiFrame_data,
-                          c = cgmGEN.Callback(self.uiFunc_printDat,a),
-                          ann="...",
-                          label=a,
-                          ut='cgmUITemplate',
-                          h=20)                    
-        
-
-        _row_cgm = CGMUI.add_cgmFooter(_MainForm)            
-
-        #Form Layout--------------------------------------------------------------------
-        _MainForm(edit = True,
-                  af = [(_inside,"top",0),
-                        (_inside,"left",0),
-                        (_inside,"right",0),
-                        (_row_cgm,"left",0),
-                        (_row_cgm,"right",0),
-                        (_row_cgm,"bottom",0),
-    
-                        ],
-                  ac = [(_inside,"bottom",0,_row_cgm),
-                        #(_button,"bottom",0,_row_cgm),
-                        #(self.uiPB_test,"bottom",0,_row_cgm),
-                        ],
-                  attachNone = [(_row_cgm,"top")])    
-    
-
-        self.uiFunc_dat_get()
-        
-       
-   
 
 
-
-
-
-class data(object):
+class data(MRSDAT.BaseDat):
     '''
     Class to handle blockShape data.
     '''    
+    _ext = 'cgmShapeDat'
+    _startDir = ['cgmDat','mrs','shapeDat']
     
     def __init__(self, mBlock = None, filepath = None, **kws):
         """
@@ -413,9 +88,10 @@ class data(object):
         """
         _str_func = 'data.__buffer__'
         log.debug(log_start(_str_func))
+        super(data, self).__init__(filepath, **kws)
         
         self.str_filepath = None
-        self.data = {}
+        self.dat = {}
         self.mBlock = None
         
         
@@ -1061,3 +737,319 @@ def relativePointDat_get(point, pStart,pEnd):
     
     
     return _res
+
+
+
+d_shapeDat_options = {"form":['formHandles'],
+                      "loft":['loftHandles','loftShapes'],
+                     }
+d_shapeDatShort = {'formHandles':'handles',
+                   "loftHandles":'handles',
+                   'loftShapes':'shapes'}
+d_shapeDatLabels = {'formHandles':{'ann':"Setup expected qss sets", 'label':'form'},
+                    'loftHandles':{'ann':"Wire for mirroring", 'label':'loft'},
+                    'loftShapes':{'ann':"Connect bind joints to rig joints", 'label':'shapes'},}
+         
+class ui(CGMDAT.ui):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = "{}UI".format(__toolname__)
+    WINDOW_TITLE = 'ShapeDat | {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 200,300
+    
+    _datClass = data
+    
+    #def insert_init(self,*args,**kws):
+    #    self._loadedFile = ""
+    #    self.dat = None
+        
+    def build_menus(self):
+        self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
+        self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
+
+    def buildMenu_setup(self):pass
+    
+    
+    def uiStatus_refresh(self):
+        _str_func = 'uiStatus_refresh[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        if not self.dat:
+            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
+            #self.uiStatus_bottom(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
+            
+            self.uiData_base(edit=True,vis=0)
+            self.uiData_base.clear()
+            
+        else:
+            self.uiData_base.clear()
+            
+            _base = self.dat['base']
+            _str = "Source: {}".format(_base['source'])
+            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('connected'),label = _str)
+            
+            self.uiData_base(edit=True,vis=True)
+            
+            mUI.MelLabel(self.uiData_base, label = "Base", h = 13, 
+                         ut='cgmUIHeaderTemplate',align = 'center')
+            
+            for a in ['type','blockType','shapers','subs']:
+                mUI.MelLabel(self.uiData_base, label = "{} : {}".format(a,self.dat['base'].get(a)),
+                             bgc = SHARED._d_gui_state_colors.get('help'))                
+            
+            
+            #_str = "blockType: {}".format(_base.get('blockType','No blockType'))
+            #self.uiStatus_bottom(edit=True,bgc = SHARED._d_gui_state_colors.get('connected'),label = _str)            
+                
+    def uiFunc_dat_get(self):
+        _str_func = 'uiFunc_dat_get[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        _sel = mc.ls(sl=1)
+        
+        mBlock = BLOCKGEN.block_getFromSelected()
+        if not mBlock:
+            return log.error("No blocks selected")
+        
+        sDat = dat_get(mBlock)
+        self.dat = sDat
+        
+        self.uiStatus_refresh()
+        if _sel:mc.select(_sel)
+        
+    def uiFunc_dat_set(self,mBlocks = None,**kws):
+        _str_func = 'uiFunc_dat_set[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))        
+        
+        if not mBlocks:
+            mBlocks = BLOCKGEN.block_getFromSelected(multi=True)
+            
+        if not mBlocks:
+            return log.error("No blocks selected")
+        
+        if not self.dat:
+            return log.error("No dat loaded")
+            
+        
+        if not kws:
+            kws = {}
+            for k,cb in self._dCB_reg.iteritems():
+                kws[k] = cb.getValue()
+            
+            pprint.pprint(kws)
+        
+        
+        
+        mc.undoInfo(openChunk=True)
+
+        
+        for mBlock in mBlocks:
+            log.info(log_sub(_str_func,mBlock.mNode))
+            try:dat_set(mBlock, self.dat, **kws)
+            except Exception,err:
+                log.error("{} | err: {}".format(mBlock.mNode, err))
+                    
+        mc.undoInfo(closeChunk=True)
+        
+        return
+        for d in ['form','loft']:
+            l = d_shapeDat_options[d]
+            mUI.MelLabel(_inside, label = '{0}'.format(d.upper()), h = 13, 
+                         ut='cgmUIHeaderTemplate',align = 'center')
+            for k in l:
+                d_dat = d_shapeDatLabels.get(k,{})
+                
+        for d,l in MRSBATCH.d_mrsPost_calls.iteritems():
+            for k in l:# _l_post_order:
+                log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
+                
+                #self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
+                l_join.insert(2,"'{0}' : {1} ,".format(k,int(self._dCB_reg[k].getValue())))        
+        
+    
+    def uiFunc_dat(self,mode='Select Source'):
+        _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))  
+        
+        if not self.dat:
+            return log.error("No dat loaded selected")
+        
+        if mode == 'Select Source':
+            mc.select(self.dat['base']['source'])
+    
+    def uiFunc_printDat(self,mode='all'):
+        _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))  
+        
+        if not self.dat:
+            return log.error("No dat loaded selected")    
+        
+        sDat = self.dat
+        
+        print(log_sub(_str_func,mode))
+        if mode == 'all':
+            pprint.pprint(self.dat)
+        elif mode == 'settings':
+            pprint.pprint(sDat['settings'])
+        elif mode == 'base':
+            pprint.pprint(sDat['base'])
+        elif mode == 'settings':
+            pprint.pprint(sDat['settings'])
+        elif mode == 'formHandles':
+            pprint.pprint(sDat['handles']['form'])        
+        elif mode == 'loftHandles':
+            pprint.pprint(sDat['handles']['loft'])  
+        elif mode == 'sub':
+            pprint.pprint(sDat['handles']['sub'])
+        elif mode == 'subShapes':
+            pprint.pprint(sDat['handles']['subShapes'])
+        elif mode == 'subRelative':
+            pprint.pprint(sDat['handles']['subRelative'])            
+            
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        #Declare form frames...------------------------------------------------------
+        _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
+        _inside = mUI.MelScrollLayout(_MainForm)
+
+        #SetHeader = cgmUI.add_Header('{0}'.format(_strBlock))
+        self.uiStatus_top = mUI.MelButton(_inside,
+                                         vis=True,
+                                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
+                                         bgc = SHARED._d_gui_state_colors.get('warning'),
+                                         label = 'No Data',
+                                         h=20)                
+        
+        
+        
+        #mc.setParent(_MainForm)
+        """
+        self.uiStatus_bottom = mUI.MelButton(_MainForm,
+                                             bgc=SHARED._d_gui_state_colors.get('warning'),
+                                             #c=lambda *a:self.uiFunc_updateStatus(),
+                                             ann="...",
+                                             label='...',
+                                             h=20)"""
+  
+        self.uiPB_test=None
+        self.uiPB_test = mc.progressBar(vis=False)
+
+        
+    
+        
+        
+                
+        #checkboxes frame...------------------------------------------------------------
+        self._dCB_reg = {}
+        for d in ['form','loft']:
+            l = d_shapeDat_options[d]
+            mUI.MelLabel(_inside, label = '{0}'.format(d.upper()), h = 13, 
+                         ut='cgmUIHeaderTemplate',align = 'center')
+            #mc.setParent(_inside)
+            #cgmUI.add_Header(d)
+            for k in l:
+                d_dat = d_shapeDatLabels.get(k,{})
+                
+                _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+                mUI.MelSpacer(_row,w=10)    
+                
+                mUI.MelLabel(_row, label = '{0}:'.format( d_dat.get('label',k) ))
+                _row.setStretchWidget(mUI.MelSeparator(_row))
+    
+                _plug = 'cgmVar_shapeDat_' + k#d_shapeDatShort.get(k,k)
+                try:self.__dict__[_plug]
+                except:
+                    log.debug("{0}:{1}".format(_plug,1))
+                    self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 1)
+        
+                l = k
+                _buffer = k#d_shapeDatShort.get(k)
+                if _buffer:l = _buffer
+                _cb = mUI.MelCheckBox(_row,
+                                      #annotation = d_dat.get('ann',k),
+                                      value = self.__dict__[_plug].value,
+                                      onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                                      offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+                self._dCB_reg[k] = _cb
+                mUI.MelSpacer(_row,w=10)    
+                
+                _row.layout()
+
+        
+        
+        _button = mc.button(parent=_inside,
+                            l = 'Load',
+                            ut = 'cgmUITemplate',
+                            c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_set)),
+                            ann = 'Build with MRS')        
+        
+        #data frame...------------------------------------------------------
+        try:self.var_shapeDat_dataFrameCollapse
+        except:self.create_guiOptionVar('shapeDat_dataFrameCollapse',defaultValue = 0)
+        mVar_frame = self.var_shapeDat_dataFrameCollapse
+        
+        _frame = mUI.MelFrameLayout(_inside,label = 'Data',vis=True,
+                                    collapse=mVar_frame.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    #ann='Contextual MRS functionality',
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:mVar_frame.setValue(0),
+                                    collapseCommand = lambda:mVar_frame.setValue(1)
+                                    )	
+        self.uiFrame_data = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+        
+        
+        self.uiData_base = mUI.MelColumn(self.uiFrame_data ,useTemplate = 'cgmUISubTemplate',vis=False) 
+
+        mUI.MelLabel(self.uiFrame_data, label = "Select", h = 13, 
+                     ut='cgmUIHeaderTemplate',align = 'center')
+        
+        for util in ['Select Source']:
+            mUI.MelButton(self.uiFrame_data,
+                          c = cgmGEN.Callback(self.uiFunc_dat,util),
+                          ann="...",
+                          label=util,
+                          ut='cgmUITemplate',
+                          h=20)                            
+        
+        
+        
+        
+        mUI.MelLabel(self.uiFrame_data, label = "PPRINT", h = 13, 
+                     ut='cgmUIHeaderTemplate',align = 'center')
+        
+        for a in ['settings','base','formHandles','loftHandles','sub','subShapes','subRelative','all']:
+            mUI.MelButton(self.uiFrame_data,
+                          c = cgmGEN.Callback(self.uiFunc_printDat,a),
+                          ann="...",
+                          label=a,
+                          ut='cgmUITemplate',
+                          h=20)                    
+        
+
+        _row_cgm = CGMUI.add_cgmFooter(_MainForm)            
+
+        #Form Layout--------------------------------------------------------------------
+        _MainForm(edit = True,
+                  af = [(_inside,"top",0),
+                        (_inside,"left",0),
+                        (_inside,"right",0),
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),
+                        (_row_cgm,"bottom",0),
+    
+                        ],
+                  ac = [(_inside,"bottom",0,_row_cgm),
+                        #(_button,"bottom",0,_row_cgm),
+                        #(self.uiPB_test,"bottom",0,_row_cgm),
+                        ],
+                  attachNone = [(_row_cgm,"top")])    
+    
+
+        self.uiFunc_dat_get()
