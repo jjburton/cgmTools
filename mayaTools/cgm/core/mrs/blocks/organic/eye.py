@@ -22,7 +22,7 @@ import os
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -69,6 +69,7 @@ import cgm.core.lib.string_utils as STR
 import cgm.core.lib.surface_Utils as SURF
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.rig.general_utils as RIGGEN
+import cgm.core.mrs.lib.post_utils as MRSPOST
 
 #for m in DIST,POS,MATH,IK,CONSTRAINT,LOC,BLOCKUTILS,BUILDERUTILS,CORERIG,RAYS,JOINT,RIGCONSTRAINT:
 #    reload(m)
@@ -222,6 +223,7 @@ l_attrsStandard = ['side',
                    'conDirectOffset',
                    'proxyDirect',
                    'moduleTarget',
+                   'meshBuild',                                      
                    'visProximityMode',
                    'visFormHandles',                   
                    'scaleSetup']
@@ -5722,34 +5724,175 @@ def rig_cleanUp(self):
 
 def create_simpleMesh(self,  deleteHistory = True, cap=True, skin = True, **kws):
     _str_func = 'create_simpleMesh'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
-
-    log.warning("create_simpleMesh not done")    
-    return False
+    log.info("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.info("{0}".format(self))
     
-    #>> Head ===================================================================================
-    log.debug("|{0}| >> Head...".format(_str_func))
+    if not self.meshBuild:
+        return []    
     
-    mGroup = self.msgList_get('headMeshProxy')[0].getParent(asMeta=True)
-    l_headGeo = mGroup.getChildren(asMeta=False)
-    ml_headStuff = []
-    for i,o in enumerate(l_headGeo):
-        log.debug("|{0}| >> geo: {1}...".format(_str_func,o))                    
-        if ATTR.get(o,'v'):
-            log.debug("|{0}| >> visible head: {1}...".format(_str_func,o))            
-            mObj = cgmMeta.validateObjArg(mc.duplicate(o, po=False, ic = False)[0])
-            ml_headStuff.append(  mObj )
-            mObj.p_parent = False
+    mBlock = self
+    mModule = self.moduleTarget
+    mRigNull = mModule.rigNull
+    mDeformNull = mModule.deformNull
+    mSettings = mRigNull.settings
+    
+    mPuppet = self.atUtils('get_puppet')
+    mMaster = mPuppet.masterControl    
+    mPuppetSettings = mMaster.controlSettings
+    str_partName = mModule.get_partNameBase()
+    mPrerigNull = mBlock.prerigNull
+    directProxy = mBlock.proxyDirect
+    
+    _side = BLOCKUTILS.get_side(self)    
+    
+    #>> Eye ===================================================================================
+    log.debug("|{0}| >> Eye...".format(_str_func))
+    
+    #if directProxy:
+    #    log.debug("|{0}| >> directProxy... ".format(_str_func))
+    #    _settings = self.mRigNull.settings.mNode
         
+    mDirect = mRigNull.getMessageAsMeta('directEye')
+    """
+    mProxyEye = cgmMeta.validateObjArg(CORERIG.create_proxyGeo('sphere',
+                                                               v_baseSize,ch=False)[0],
+                                       'cgmObject',setClass=True)"""
+    
+    mOrb = mBlock.getMessageAsMeta('bbHelper')
+    str_meshShape = mOrb.getShapes()[0]
+    minU = ATTR.get(str_meshShape,'minValueU')
+    maxU = ATTR.get(str_meshShape,'maxValueU')
+    
+    l_use = [MATH.average(minU,maxU),
+             maxU * .6,
+             maxU * .7]
+    
+    l_crvs = []
+    l_delete = []
+    for v in l_use:
+        _crv = mc.duplicateCurve("{0}.u[{1}]".format(str_meshShape,v), ch = 0, rn = 0, local = 0)[0]
+        l_crvs.append(_crv)
+        l_delete.append(_crv)
+        
+    _r = 272
+    md_helpers = {}
+    ml_helpers = []
+    b_noPupil = False
+    
+    for k in ['iris','pupil']:
+        mHelper = mBlock.getMessageAsMeta('{0}Helper'.format(k))
+        if not mHelper:
+            continue
+        
+        mDup = mHelper.doDuplicate(po=False,ic=False)
+        mDup.dagLock(False)
+        mDup.p_parent = self#False
+        l_crvs.append(mDup.mNode)
+        l_delete.append(mDup.mNode)
+        md_helpers[k] =[mDup.mNode]
+        
+        mDup.rz = _r
+        
+        
+        if k == 'iris' and not mBlock.getMessage('pupilHelper'):
+            mDup2 = mHelper.doDuplicate(po=False,ic=False)
+            mDup2.dagLock(False)
+            #mDup2.rz = _r
+            mDup2.dagLock(False)
+            mDup2.p_parent = mDup
+            pos_bb = TRANS.bbCenter_get(mDup2.mNode)
+            mDup2.p_parent = False
+            
+            DIST.offsetShape_byVector(mDup2.mNode,origin= pos_bb,
+                                      factor = -.99, offsetMode = 'vectorScale')             
+            l_crvs.append(mDup2.mNode)
+            l_delete.append(mDup2.mNode)
+            
+            md_helpers[k].append(mDup2)
+            b_noPupil = True
 
-    if self.neckBuild:#...Neck =====================================================================
-        log.debug("|{0}| >> neckBuild...".format(_str_func))    
-        ml_neckMesh = self.UTILS.create_simpleLoftMesh(self,deleteHistory,cap)
-        ml_headStuff.extend(ml_neckMesh)
+        if k == 'pupil':
+            mDup2 = mHelper.doDuplicate(po=False,ic=False)
+            #mDup2.rz = _r
+            mDup2.dagLock(False)
+            mDup2.p_parent = mDup
+            d = DIST.get_bb_size(mDup.mNode,mode='max')
+            mDup2.tz = - d * .2
+            pos_bb = TRANS.bbCenter_get(mDup2.mNode)
+            
+            mDup2.p_parent = False
+            
+            DIST.offsetShape_byVector(mDup2.mNode,origin= pos_bb,
+                                      factor = -.8, offsetMode = 'vectorScale')            
+            
+            #for ep in mc.ls("{0}.ep[*]".format(mDup2.getShapes()[0]),flatten=True):
+                #POS.set(ep,pos_bb)
+                
+            l_crvs.append(mDup2.mNode)
+            l_delete.append(mDup2.mNode)
+            
+            md_helpers[k].append(mDup2)
+            
+            
+            
+        """
+        _surf = mc.planarSrf(mHelper.mNode,ch=1, d=3, ko=0, tol = .01, rn = 0, po = 0,
+                             name = "{0}_approx".format(k))
+        mc.reverseSurface(_surf[0])
+        mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
+        mSurf.p_parent = False
+        if k == 'iris':
+            CORERIG.colorControl(mSurf.mNode,_side,'sub',transparent = True)
+        else:
+            CORERIG.colorControl(mSurf.mNode,_side,'main',transparent=True)    """
+    
+    l_crvs.reverse()
+    if b_noPupil:
+        _mesh = BUILDERUTILS.create_loftMesh(l_crvs[1:], name="{0}_proxy".format(str_partName),
+                                             uniform=True,
+                                             degree=2,divisions=1,cap=False)        
+    else:
+        _mesh = BUILDERUTILS.create_loftMesh(l_crvs[2:], name="{0}_proxy".format(str_partName),
+                                             uniform=True,
+                                             degree=2,divisions=1,cap=False)
+    #l_crvs.reverse()
+    CORERIG.colorControl(_mesh,_side,'sub',transparent=False,proxy=True)
+    l_combine = [_mesh]
+    #Iris...------------------------------------------------------------------------
+    if md_helpers.get('iris'):
+        if b_noPupil:
+            _meshIris = BUILDERUTILS.create_loftMesh(l_crvs[:2], name="{0}_proxyIris".format(str_partName),
+                                                     uniform=0,
+                                                     degree=1,divisions=5,cap=False)            
+        else:
+            _meshIris = BUILDERUTILS.create_loftMesh(l_crvs[1:3], name="{0}_proxyIris".format(str_partName),
+                                                     uniform=0,
+                                                     degree=1,divisions=5,cap=False)
         
-    _mesh = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False)
-    _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
+        mc.polyNormal(_meshIris, normalMode = 0, userNormalMode=1,ch=0)
+        CORERIG.colorControl(_meshIris,_side,'main',transparent=False,proxy=True)
+        l_combine.append(_meshIris)
+        
+    #pupil ----------------------------------------------------------------------
+    if md_helpers.get('pupil'):
+        _meshPupil = BUILDERUTILS.create_loftMesh(l_crvs[:2], name="{0}_proxyPupil".format(str_partName),
+                                                 uniform=1,
+                                                 degree=1,divisions=5,cap=False)    
+        mc.polyNormal(_meshPupil, normalMode = 0, userNormalMode=1,ch=0)
+        CORERIG.colorControl(_meshPupil,'special','pupil',transparent=False,proxy=True)
+        l_combine.append(_meshPupil)
+    
+    
+    
+    _mesh = mc.polyUnite(l_combine, ch=False )[0]
+    mProxyEye = cgmMeta.validateObjArg(_mesh,'cgmObject',setClass=True)
+    
+    mc.delete(l_delete)
+    
+    mProxyEye.p_parent = False
+    return [mProxyEye]
+
+
     
     return cgmMeta.validateObjListArg(_mesh)
 
@@ -5814,7 +5957,7 @@ def asdfasdfasdf(self, forceNew = True, skin = False):
         log.debug("|{0}| >> neckBuild...".format(_str_func))
 
 
-def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
+def build_proxyMesh(self, forceNew = True, skin = False, puppetMeshMode = False):
     """
     Build our proxyMesh
     """
@@ -6013,7 +6156,10 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
     mc.delete(l_delete)
     
     #mProxyEye.doSnapTo(mDirect)
-    mProxyEye.p_parent = mDirect
+    if skin:
+        MRSPOST.skin_mesh(mProxyEye,[mDirect])
+    else:
+        mProxyEye.p_parent = mDirect
     ml_proxy = [mProxyEye]
     ml_noFreeze = []
     
@@ -6220,7 +6366,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
         
         
 
-    
+    mRigNull.msgList_connect('puppetProxyMesh', ml_proxy)    
     mRigNull.msgList_connect('proxyMesh', ml_proxy)
 
 

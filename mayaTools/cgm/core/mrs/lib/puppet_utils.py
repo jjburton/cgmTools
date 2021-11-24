@@ -2154,7 +2154,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
             subSkin=True
                 
         for mBlock in ml_ordered:
-            if mBlock.blockType in ['master', 'eye','eyeMain']:
+            if mBlock.blockType in ['master', 'eyeMain']:
                 log.debug("|{0}| >> unmeshable: {1}".format(_str_func,mBlock))
                 continue
             log.debug("|{0}| >> Meshing... {1}".format(_str_func,mBlock))

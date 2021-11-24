@@ -1128,8 +1128,18 @@ def uiSection_dev(parent):
                 l='animDraw',
                 ann = "Draw animation. If you can....",
                 c=lambda *a: TOOLCALLS.animDraw())    
-    
-    
+    mc.menuItem(parent = _wipTools,
+                l='cgmDat UI',
+                ann = "cgmDat",
+                c=lambda *a: TOOLCALLS.CGMDATui())    
+    mc.menuItem(parent = _wipTools,
+                l='BlockDat',
+                ann = "Blockdat",
+                c=lambda *a: TOOLCALLS.BLOCKDATui())        
+    mc.menuItem(parent = _wipTools,
+                l='ShapeDat',
+                ann = "ShapeDat",
+                c=lambda *a: TOOLCALLS.SHAPEDATui())       
     
     _unitTests = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
                              l='Unittesting')

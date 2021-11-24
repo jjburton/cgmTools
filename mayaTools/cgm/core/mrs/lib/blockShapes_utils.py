@@ -1584,8 +1584,12 @@ def addJointRadiusVisualizer(self,mParent = False):
         self.jointRadius = self.atUtils('get_shapeOffset')
         
     self.doConnectOut('jointRadius',"{0}.scale".format(mJointRadius.mNode),pushToChildren=1)    
-    mJointRadius.dagLock()
     mJointRadius.connectParentNode(self, 'rigBlock','jointRadiusVisualize')
+    
+    if mParent:
+        mc.parentConstraint(self.mNode, mJointRadius.mNode, maintainOffset = True)
+        
+    mJointRadius.dagLock()
     
     return mJointRadius
 

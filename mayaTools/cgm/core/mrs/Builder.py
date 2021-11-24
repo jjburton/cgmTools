@@ -469,7 +469,7 @@ class ui_blockPicker(cgmUI.cgmGUI):
                                                         **{}))                
                 
             if s == 'Set Position':
-                for i,position in enumerate(['none','upper','lower','front','back','top','bottom']):
+                for i,position in enumerate(BLOCKSHARE._l_positions):
                     mUI.MelMenuItem(_sub,
                                     label = position,
                                     ann = 'Specify the position for the current block to : {0}'.format(position),
@@ -2153,7 +2153,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
                                                         **{}))                
                 
             if s == 'Set Position':
-                for i,position in enumerate(['none','upper','lower','front','back','top','bottom']):
+                for i,position in enumerate(BLOCKSHARE._l_positions):
                     mUI.MelMenuItem(_sub,
                                     label = position,
                                     ann = 'Specify the position for the current block to : {0}'.format(position),
@@ -5271,7 +5271,7 @@ class ui(cgmUI.cgmGUI):
                                                         **{}))                
                 
             if s == 'Set Position':
-                for i,position in enumerate(['none','upper','lower','front','back','top','bottom']):
+                for i,position in enumerate(BLOCKSHARE._l_positions):
                     mUI.MelMenuItem(_sub,
                                     label = position,
                                     ann = 'Specify the position for the current block to : {0}'.format(position),
@@ -6430,7 +6430,7 @@ class ui(cgmUI.cgmGUI):
                 #none:upper:lower:front:back:top:bottom
                 sub_position = mUI.MelMenuItem(_popUp,subMenu=True,
                                                label = 'Set position')
-                for i,position in enumerate(['None','upper','lower','front','back','top','bottom']):
+                for i,position in enumerate(BLOCKSHARE._l_positions):
                     mUI.MelMenuItem(sub_position,
                                     label = position,
                                     ann = 'Specify the position for the current block to : {0}'.format(position),
@@ -6582,7 +6582,7 @@ class ui(cgmUI.cgmGUI):
             #none:upper:lower:front:back:top:bottom
             sub_position = mUI.MelMenuItem(_popUp,subMenu=True,
                                            label = 'Set position')
-            for i,position in enumerate(['None','upper','lower','front','back','top','bottom']):
+            for i,position in enumerate(BLOCKSHARE._l_positions):
                 mUI.MelMenuItem(sub_position,
                                 label = position,
                                 ann = 'Specify the position for the current block to : {0}'.format(position),

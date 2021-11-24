@@ -89,10 +89,10 @@ def byMode(arg,mode='none'):
         
 
 def short(arg = 'D:\repos\cgmtools\mayaTools\cgm\core\mrs\PoseManager.py',max = 10,start=None):
-    if len(arg) < max:
-        return arg
     if start is not None:
         return ("{} ... {}".format(arg[:start],arg[-max:]))
+    if len(arg) < max:
+        return arg    
     return ("... {}".format(arg[-max:]))
     
         

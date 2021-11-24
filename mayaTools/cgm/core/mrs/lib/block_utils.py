@@ -5783,24 +5783,25 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
             
             ml_controls.append(mObj)
             md_controls[datType].append(mObj)
-            
-            if mObj.getMessage('orientHelper'):
-                log.debug("|{0}| >> ... has orient helper".format(_str_func))
-                addMObj(mObj.orientHelper,datType)
-            if mObj.getMessage('jointHelper'):
-                log.debug("|{0}| >> has joint helper...".format(_str_func))
-                addMObj(mObj.jointHelper,datType)
-                
+
             if getExtra:
-                mLoftCurve = mObj.getMessageAsMeta('loftCurve')
-                if mLoftCurve:addMObj(mLoftCurve,datType)
-                
-                ml_subShapers = mObj.msgList_get('subShapers')
-                if ml_subShapers:
-                    for mSub in ml_subShapers:
-                        addMObj(mSub,datType)
-                
-        
+                if define:
+                    pass
+                    
+                if form:
+                    mLoftCurve = mObj.getMessageAsMeta('loftCurve')
+                    if mLoftCurve:addMObj(mLoftCurve,datType)
+                    
+                    ml_subShapers = mObj.msgList_get('subShapers')
+                    if ml_subShapers:
+                        for mSub in ml_subShapers:
+                            addMObj(mSub,datType)
+            if prerig:
+                for s in ['jointHelper','handle','shapeHelper']:
+                    if mObj.getMessage(s):
+                        log.debug("|{}| >> ... has {} helper".format(_str_func,s))
+                        addMObj(mObj.getMessageAsMeta(s),datType)
+                        
         def addPivotHelper(mPivotHelper,datType):
             addMObj(mPivotHelper)
             for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter','topLoft']:
@@ -5822,6 +5823,11 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
                 log.debug("|{0}| >> define dat found...".format(_str_func))            
                 for mObj in ml_handles:
                     addMObj(mObj,'define')
+                
+                for s in ['orientHelper']:
+                    if self.getMessage(s):
+                        log.info("|{}| >> ... has {} helper".format(_str_func,s))
+                        addMObj(self.getMessageAsMeta(s),'define')                                    
             
         if form:
             log.debug("|{0}| >> form pass...".format(_str_func))            
@@ -5842,10 +5848,10 @@ def controls_get(self,define = False, form = False, prerig= False, asDict =False
             for mObj in ml_handles:#.second loop to push this tothe back
                 if mObj.getMessage('pivotHelper'):addPivotHelper(mObj.pivotHelper,'prerig')
                 
-            for h in ['settingsHelper']:
-                mObj = self.getMessageAsMeta(h)
-                if mObj:
-                    addMObj(mObj,'prerig')
+            for h in ['settingsHelper','cogHelper','ikStartHandle','ikEndHandle']:
+                mFound = self.getMessageAsMeta(h)
+                if mFound:
+                    addMObj(mFound,'prerig')
         
         if asDict:
             return md_controls
@@ -9221,7 +9227,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 if _res:ml_mesh.extend(_res)
                 
             else:
-                if mBlock.blockType not in ['eye','brow','muzzle','eyeMain']:
+                if mBlock.blockType not in ['brow','muzzle','eyeMain']:
                     
                     _res = create_simpleMesh(mBlock,skin=subSkin,forceNew=subSkin,deleteHistory=True,)
                     if _res:ml_mesh.extend(_res)
