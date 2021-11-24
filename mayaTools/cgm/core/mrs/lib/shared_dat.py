@@ -41,7 +41,7 @@ d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockMirror':'messageSimple'}
 d_defaultAttrSettings = {'blockState':'define'}
 
-
+_l_positions = ('none','upper','lower','front','forward','back','rear','top','bottom')
 _l_requiredSkeletonDat = ('__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__')
 _l_requiredRigDat = []
 
@@ -168,7 +168,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'offsetMode':'default:proxyAverage',                   
                    'buildDirect':'bool',
                    'ikOrientToWorld':'bool',
-                   'ikSetup':'none:rp:spline:ribbon:curve',
+                   'ikSetup':'none:rp:spring:spline:ribbon:curve',
                    'ikBase':'none:cube:simple:hips',
                    'ikEnd':'none:bank:foot:paw:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
                    'buildProfile':'none:unityLow:unityMed:humanIK:feature',

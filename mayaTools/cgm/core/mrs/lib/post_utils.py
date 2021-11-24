@@ -1116,4 +1116,48 @@ def refs_remove():
         log.info("Removing | {0}".format(refFile))
         mc.file( refFile, removeReference=True )
 
-    
+def defJointFix(start='none'):
+    import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
+    mRoot = cgmMeta.validateObjArg(start)
+    ml = [mRoot]
+        
+    #Get our initial list...
+    ml_allChildren = mRoot.getAllChildren(asMeta=1,type='joint')
+    ml_allChildren.reverse()
+        
+    for mObj in ml_allChildren:
+        mChildren = mObj.getChildren(asMeta=1,type='joint')
+        if mChildren:
+            mDriver = mObj.getConstrainingObjects(asMeta=1)
+            if mDriver:
+                mDriver = mDriver[0]
+                print("Setup: {}".format(mObj.p_nameShort))
+                l_constraints = mObj.getConstraintsTo()
+                mc.delete(l_constraints)
+                
+                ml.append(mObj)
+                
+                #...get the non joint children as well
+                mAllChildren = mObj.getChildren(asMeta=1)
+                for mChild in mAllChildren:
+                    mChild.p_parent = mRoot
+                
+                #...dup our joint
+                mDup = mObj.doDuplicate()
+                mDup.rename('{}_DEFJOINT'.format(mObj.p_nameBase))
+                
+                #...reparent
+                for mChild in mAllChildren:
+                    mChild.p_parent = mDup
+                
+                mObj.p_parent = mDup  
+                
+                #...reconnect
+                RIGCONSTRAINTS.driven_connect(mDup.mNode, mDriver.mNode, 'noScale')
+                RIGCONSTRAINTS.driven_connect(mObj.mNode, mDriver.mNode)
+
+        if mObj not in ml:
+            print("No setup: {}".format(mObj.p_nameShort))
+            
+    pprint.pprint(ml)
+    print("Setup {} joints".format(len(ml)))
