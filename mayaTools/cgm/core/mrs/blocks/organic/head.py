@@ -4868,16 +4868,19 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                 #    CORERIG.shapeParent_in_place(ml_rigJoints[-1].mNode,mObj.mNode,True,False)
                 #    CORERIG.colorControl(ml_rigJoints[-1].mNode,_side,'main',directProxy=True)
                     
-                if mBlock.neckJoints > 1:
-                    CORERIG.shapeParent_in_place(ml_segProxy[-1].mNode, mObj.mNode,False,False)
+                #if mBlock.neckJoints > 1:
+                #    CORERIG.shapeParent_in_place(ml_segProxy[-1].mNode, mObj.mNode,False,False)
         
         pprint.pprint(ml_headStuff)
         #Unify our head stuff
+        
+        if mBlock.neckBuild and mBlock.neckJoints > 1:
+            CORERIG.shapeParent_in_place(ml_headStuff[-1].mNode, ml_segProxy[-1].mNode,False,False)
+            #l_headTargets.append(ml_segProxy.pop(-1).mNode)
+            ml_segProxy.pop(-1)
+        
         if len(ml_headStuff) > 1:
             l_headTargets = [mObj.mNode for mObj in ml_headStuff]
-            if mBlock.neckBuild and mBlock.neckJoints > 1:
-                l_headTargets.append(ml_segProxy.pop(-1).mNode)
-
             _res = mc.polyUnite(l_headTargets,ch=False,objectPivot=True)
             _mesh = mc.rename(_res[0],'{0}_head_geo'.format(self.p_nameBase))
             mMesh = cgmMeta.asMeta(_mesh)
@@ -5056,8 +5059,9 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
         mRigNull.msgList_connect('puppetProxyMesh', ml_segProxy)
         return ml_segProxy            
      
-    
+    pprint.pprint(ml_segProxy)
     for mProxy in ml_segProxy:
+        
         CORERIG.colorControl(mProxy.mNode,_side,'main',transparent=False,proxy=True)
         mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
 
