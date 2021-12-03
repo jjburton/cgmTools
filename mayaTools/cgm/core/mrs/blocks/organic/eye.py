@@ -5966,6 +5966,7 @@ def build_proxyMesh(self, forceNew = True, skin = False, puppetMeshMode = False)
     log.debug("{0}".format(self))
     
     mBlock = self
+    
     mModule = self.moduleTarget
     mRigNull = mModule.rigNull
     mDeformNull = mModule.deformNull
@@ -6344,7 +6345,7 @@ def build_proxyMesh(self, forceNew = True, skin = False, puppetMeshMode = False)
                                 normalizeWeights = 1)            
 
     for mProxy in ml_proxy:
-        if mProxy not in ml_noFreeze:
+        if mProxy not in ml_noFreeze and not skin:
             mc.makeIdentity(mProxy.mNode, apply = True, t=1, r=1,s=1,n=0,pn=1)
 
         #Vis connect -----------------------------------------------------------------------
