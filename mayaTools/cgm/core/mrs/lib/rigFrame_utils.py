@@ -514,7 +514,8 @@ def get_spinGroup(self):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
 def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
-           mIKBaseControl=None,ml_skinDrivers=None,mPlug_masterScale=None,stretchBy='scale'):
+           mIKBaseControl=None,ml_skinDrivers=None,mPlug_masterScale=None,stretchBy='scale',
+           ikEndTwistConnect = True):
     try:
         _str_func = 'spline'
         log_start(_str_func)
@@ -591,16 +592,19 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         mSplineCurve.doConnectIn('masterScale',mPlug_masterScale.p_combinedShortName)
     
         #Twist end...--------------------------------------------------------------------
-        mPlug_addEnd = cgmMeta.cgmAttr(mIKControl.mNode,'twistEndAdd',attrType='float',keyable=True, hidden=False)
+        if ikEndTwistConnect:
+            mPlug_addEnd = cgmMeta.cgmAttr(mIKControl.mNode,'twistEndAdd',attrType='float',keyable=True, hidden=False)
 
-        arg1 = "{}.twistEnd = {}.r{} + {}".format(mSplineCurve.mNode,
-                                                  mIKControl.mNode,
-                                                  _jointOrientation[0],
-                                                  mPlug_addEnd.p_combinedName)    
-        
-        NODEFAC.argsToNodes(arg1).doBuild()
-        #ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode, driven='source')
-        
+            arg1 = "{}.twistEnd = {}.r{} + {}".format(mSplineCurve.mNode,
+                                                      mIKControl.mNode,
+                                                      _jointOrientation[0],
+                                                      mPlug_addEnd.p_combinedName)    
+            
+            NODEFAC.argsToNodes(arg1).doBuild()
+            #ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode, driven='source')
+        else:
+            ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode, driven='source')
+            
         
         
         ATTR.copy_to(mSplineCurve.mNode,'twistStart',mIKBaseControl.mNode, driven='source')

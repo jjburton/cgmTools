@@ -5026,7 +5026,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                 
             #log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
             if skin:
-                if len(mGeo.getShapes()) > 1:
+                if len(mGeo.getShapes()) > 2:
                     _strBase  = mGeo.p_nameBase
                     _res = mc.polyUnite(mGeo.mNode,ch=False,objectPivot=True)
                     _mesh = mc.rename(_res[0],_strBase)

@@ -3085,7 +3085,7 @@ def skeleton_build(self, forceNew = True):
             _b_lever = True
             
     #Before building things, 
-    for i,mJnt in enumerate(ml_handleHelpers):
+    for i,mJnt in enumerate(ml_handleHelpers[:-1]):
         log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
         ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
         _expected = self.getMayaAttr('rollCount_{0}'.format(i))
@@ -9225,7 +9225,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
             if mPivotHelper and mBlock.blockProfile not in ['arm'] and _str_proxyEnd in ['foot']:
                 if mEnd:ml_rigJoints.append(mEnd)#...add this back
                 
-                log.debug("|{0}| >> foot ".format(_str_func))
+                log.info("|{0}| >> foot ".format(_str_func))
     
                 mMesh = ml_segProxy.pop(-1)
     

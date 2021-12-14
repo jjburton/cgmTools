@@ -1459,16 +1459,12 @@ def get_castMesh(self,extend=False,pivotEnd=False):
         
                     l_targets.append(mBaseCrv.mNode)
                     
-        mBaseCollapse = cgmMeta.asMeta(l_targets[-1]).doDuplicate(po=False)
-        mBaseCollapse.scale = [.0001 for i in range(3)]
-        l_targets.append(mBaseCollapse.mNode)
-        ml_delete.append(mBaseCollapse)
-        #l_targets.reverse()
-                
-        #_mesh = BUILDUTILS.create_loftMesh(l_targets, name="{0}".format('foot'),merge=False,
-        #                                   degree=1,divisions=3)
-        #print _mesh
-        #mCastMesh =  cgmMeta.validateObjArg(_mesh,'cgmObject')
+        for v in [.9,.5,.0001]:
+            mBaseCollapse = cgmMeta.asMeta(l_targets[-1]).doDuplicate(po=False)
+            mBaseCollapse.p_parent = False
+            mBaseCollapse.scale = [v* vScale for vScale in mBaseCollapse.scale]
+            l_targets.append(mBaseCollapse.mNode)
+            ml_delete.append(mBaseCollapse)
         
         if self.blockType == 'head':
             uAttr = 'neckControls'

@@ -442,8 +442,8 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
             mIKCrv = ml_handleTargets[self.int_handleEndIdx].doCreateAt()
             CORERIG.shapeParent_in_place(mIKCrv.mNode, mIKShape.mNode, False)
     
-        elif ikEnd in ['tipBase','tipEnd','tipMid']:
-            log.debug("|{0}| >> tip shape...".format(_str_func))
+        elif ikEnd in ['helper','tipBase','tipEnd','tipMid']:
+            log.debug("|{}| >> tip shape...{}".format(_str_func,ikEnd))
             ml_curves = []
     
             if ikEnd == 'tipBase':
@@ -451,11 +451,14 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
             elif ikEnd == 'tipMid':
                 mIKCrv =  mBlock.ikEndHandle.doCreateAt()
     
-                pos = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
-                                                 ml_rigJoints[-1].p_position])
+                mIKCrv.p_position = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
+                                                               ml_rigJoints[-1].p_position])
     
-                mIKCrv.p_position = pos
-    
+                
+            elif ikEnd == 'tipEnd':
+                mIKCrv = mBlock.ikEndHandle.doCreateAt()#ml_handleTargets[self.int_handleEndIdx]
+                mIKCrv.p_position = ml_rigJoints[-1].p_position
+                
             else:
                 mIKCrv =  mBlock.ikEndHandle.doCreateAt()
                 

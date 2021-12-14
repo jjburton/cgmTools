@@ -128,7 +128,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                    'prerig':[],
                    'skeleton':['numJoints'],
                    'rig':['segmentType','special_swim',
-                          'ikBaseExtend','ikEndExtend','ikEndLever']}
+                          'ikBaseExtend','ikEndExtend','ikEndLever','ikSplineTwistEndConnect']}
 
 
 #>>>Profiles =====================================================================================================
@@ -164,7 +164,8 @@ d_block_profiles = {
               'loftShape':'square',
               'ikSetup':'ribbon',
               'ikBase':'cube',
-              'ikEnd':'cube',
+              'ikEnd':'helper',
+              'ikEndShape':'cube',
               'cgmName':'simple',
               'nameIter':'seg',
               'numControls':4,
@@ -191,7 +192,8 @@ d_block_profiles = {
     'castVector': 'up',
     'cgmName': u'dangle',
     'ikBase': 'cube',
-    'ikEnd': 'cube',
+    'ikEnd':'helper',    
+    'ikEndShape': 'cube',
     'ikOrientToWorld': True,
     'ikSetup': 'ribbon',
     'loftList_0': 'circle',
@@ -237,7 +239,8 @@ d_block_profiles = {
      'castVector': 'up',
      'cgmName': u'tail_fin',
      'ikBase': 'cube',
-     'ikEnd': 'cube',
+     'ikEnd':'helper',     
+     'ikEndShape': 'cube',
      'ikOrientToWorld': True,
      'ikSetup': 'spline',
      'loftList_0': 'circle',
@@ -376,7 +379,7 @@ d_block_profiles = {
      'squashFactorMin': 1.0,
      'squashMeasure': 'arcLength'},    
     
-    'earUp':{'attachPoint':'end',
+    'earUp':{'attachPoint':'closest',
              'numShapers':2,
              'numSubShapers':3,
              'addCog':False,
@@ -404,7 +407,7 @@ d_block_profiles = {
              'baseSize':[10,10,20],
              },
 
-    'tail':{'attachPoint':'base',
+    'tail':{'attachPoint':'closest',
             'numShapers':5,
             'addCog':False,
             'cgmName':'tail',
@@ -432,7 +435,7 @@ d_block_profiles = {
             'baseSize':[14,9,76],
             },
     
-    'tentacle':{'attachPoint':'base',
+    'tentacle':{'attachPoint':'closest',
                 'numShapers':4,
                 'addCog':False,
                 'cgmName':'tentacle',
@@ -613,8 +616,10 @@ d_attrsToMake = {'visMeasure':'bool',
                  'settingsPlace':'start:end:cog',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  #'blockProfile':':'.join(d_block_profiles.keys()),
-                 'ikEnd':'none:cube:bank:foot:hand:tipBase:tipMid:tipEnd:proxy',
-                 
+                 #'ikEnd':'none:cube:bank:foot:hand:tipBase:tipMid:tipEnd:proxy',
+                 'ikEnd':'helper:tipBase:tipMid:tipEnd',
+                 'ikSplineTwistEndConnect':'bool',
+                 'ikEndShape':'cast:locator:cube',
                  
                  'ikEndLever':'bool',
                  'ikBaseExtend':'bool',
@@ -638,6 +643,7 @@ d_defaultSettings = {'version':__version__,
                      'squash':'simple',
                      'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
+                     'ikSplineTwistEndConnect':True,
                      'loftList':['square','circle','square'],
                      'visLabels':True,
                      'segmentMidIKControl':'prntConstraint',
@@ -653,7 +659,7 @@ d_defaultSettings = {'version':__version__,
                      'proxyGeoRoot':1,
                      'meshBuild':True,
                      'ikBase':'cube',
-                     'ikEnd':'cube',
+                     'ikEnd':'helper',                     
                      'ikOrientToWorld':True,
                      'ikSetup':'ribbon',
                      'numJoints':5,
@@ -666,7 +672,7 @@ d_defaultSettings = {'version':__version__,
                      'shapeDirection':'y+',
                      'special_swim':'none',
                      #'blockProfile':'spine',
-                     'attachPoint':'base',}
+                     'attachPoint':'closest',}
 
 
 
@@ -1826,7 +1832,7 @@ def rig_dataBuffer(self):
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
             mBlock.segmentMidIKControl = 0
             
-        for k in ['segmentType','settingsPlace']:
+        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
                 
         #Vector ====================================================================================
@@ -1837,8 +1843,10 @@ def rig_dataBuffer(self):
         #Initial option checks ============================================================================    
         #if mBlock.scaleSetup:
             #raise NotImplementedError,"Haven't setup scale yet."
+        """    
         if mBlock.ikEnd in [2,3,4]:
-            raise NotImplementedError,"Haven't setup ik end: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikEnd'))
+            raise NotImplementedError,"Haven't setup ik end: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikEnd'))"""
+        
         #if mBlock.ikSetup > 1:
             #raise NotImplementedError,"Haven't setup ik mode: {0}".format(ATTR.get_enumValueString(mBlock.mNode,'ikSetup'))
         
@@ -2254,8 +2262,9 @@ def rig_shapes(self):
         
         _side = mBlock.atUtils('get_side')
         _short_module = self.mModule.mNode
-        str_ikBase = ATTR.get_enumValueString(mBlock.mNode,'ikBase')
-        str_ikEnd = ATTR.get_enumValueString(mBlock.mNode,'ikEnd')
+        str_ikBase = self.str_ikBase
+        str_ikEnd = self.str_ikEnd
+        str_ikEndShape = self.str_ikEndShape
         str_ikSetup = ATTR.get_enumValueString(mBlock.mNode,'ikSetup')        
         
         mHandleFactory = mBlock.asHandleFactory()
@@ -2341,12 +2350,14 @@ def rig_shapes(self):
             #IK End ---------------------------------------------------------------------------------
             d_ikEnd = {}
             if mBlock.ikSetup:
-                if str_ikSetup == 'spline':
-                    #use_ikEnd = 'shapeArg'
+                if str_ikEndShape == 'locator':
                     d_ikEnd = {'shapeArg':'locatorForm'}
-                else:
+                elif str_ikEndShape == 'cast':
                     use_ikEnd = str_ikEnd
+                else:
+                    d_ikEnd = {'shapeArg':str_ikEndShape}
                     
+                print str_ikEnd
                 RIGSHAPES.ik_end(self,str_ikEnd,ml_handleTargets,ml_rigJoints,ml_fkShapes,ml_ikJoints,ml_fkJoints,**d_ikEnd)
         
         
@@ -3106,8 +3117,10 @@ def rig_frame(self):
                 ml_ribbonIkHandles[-1].parent = mIKControl
                 
                 if _ikSetup == 'spline':
+                    reload(RIGFRAME)
+                    _ikTwistEndConnect = False
                     RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,
-                                    ml_skinDrivers,mPlug_masterScale, 'scale')
+                                    ml_skinDrivers,mPlug_masterScale, 'scale', mBlock.ikSplineTwistEndConnect)
     
                     ATTR.set_default(mIKControl.mNode,'twistType',1)
                     ATTR.set(mIKControl.mNode,'twistType',1)
@@ -3269,7 +3282,10 @@ def rig_frame(self):
             
             
             ml_blendJoints[0].parent = mRoot
-            ml_ikJoints[0].parent = mIKBaseControl
+            if _ikSetup == 'spline':
+                ml_ikJoints[0].parent = mIKBaseControl.masterGroup.p_parent
+            else:
+                ml_ikJoints[0].parent = mIKBaseControl
             
             ml_fkAttachJoints = []
             for mObj in ml_fkJoints:
