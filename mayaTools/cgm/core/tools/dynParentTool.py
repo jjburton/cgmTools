@@ -1336,7 +1336,7 @@ def func_process(md_spaceSwitchDat={},attr=None,option=None,d_timeContext = {},*
     _frame = SEARCH.get_time()    
     d_keys = {}
     ml_objs = []
-    
+    _match = None
     for mObj,dat in md_spaceSwitchDat.iteritems():
         if _contextTime == 'current':
             if not d_keys.get(_frame):d_keys[_frame]=[]
@@ -1360,6 +1360,8 @@ def func_process(md_spaceSwitchDat={},attr=None,option=None,d_timeContext = {},*
                 _match = MATH.find_valueInList(_frame,d_keys.keys(),'next')
             else:
                 _match = MATH.find_valueInList(_frame,d_keys.keys(),'previous')
+        if not _match:
+            return log.error("No keys found in context")
         d_keys = {_match:d_keys[_match]}
     
     _range = SEARCH.get_time('slider')
