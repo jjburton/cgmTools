@@ -3213,7 +3213,7 @@ def skeleton_build(self, forceNew = True):
         
         
         if ml_rollHelpers:
-            log.debug("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))
+            log.info("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))
            
             mJnt.select()
             ml_rolls = []

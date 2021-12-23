@@ -59,7 +59,7 @@ mImagesPath = PATHS.Path(cgmImages.__path__[0])
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 #=========================================================================
 
 #>>> Root settings =============================================================

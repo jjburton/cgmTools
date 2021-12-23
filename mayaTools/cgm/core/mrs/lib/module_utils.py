@@ -890,6 +890,17 @@ def controls_getDat(self, keys = None,
                     if mObj not in ml_controls:
                         ml_controls.append(mObj)                    
                     addMObj(mObj,_ml)
+            for _t in 'fk','ik':
+                _tag = mObj.getMayaAttr('cgmTypeModifier')
+                if _t in _tag:
+                    if not md_controls.get(_t):
+                        md_controls[_t] = []
+                    _ml = md_controls[_t] 
+                    if mObj not in ml_controls:
+                        ml_controls.append(mObj)
+                        addMObj(mObj,_ml)
+                    addMObj(mObj,_ml)                
+            
     
     if not keys and 'spacePivots' not in ignore:
         md_controls['spacePivots'] = []
