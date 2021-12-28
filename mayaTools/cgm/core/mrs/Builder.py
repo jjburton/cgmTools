@@ -172,12 +172,14 @@ def blockEditor_get(mBlock=None):
             log.error(err)
     return ui_blockEditor(mBlock)
 
-def ui_get():
+def ui_get(create=True):
     global UI
     if UI:
         log.info('cached...')
         UI.show()
         return UI
+    if not create:
+        return
     return ui()
 
 def blockPicker_get(mBlock=None):
@@ -5818,7 +5820,13 @@ class ui(cgmUI.cgmGUI):
             log.debug("No load...")
             return
         
-        self.uiMenu_add.clear()   
+        self.uiMenu_add.clear()
+        
+        mUI.MelMenuItem(self.uiMenu_add, label = 'Create UI', 
+                        c = lambda *a:ui_createBlock())
+        
+        
+        mUI.MelMenuItemDiv(self.uiMenu_add, label = 'Old')
         
         if force:
             self._d_modules = RIGBLOCKS.get_modules_dat(True)#...refresh data
@@ -5859,32 +5867,7 @@ class ui(cgmUI.cgmGUI):
                         mUI.MelMenuItem(self.uiMenu_add, l=b,
                                         c=cgmGEN.Callback(self.uiFunc_block_create,b,'default'),
                                         ann="{0} : {1}".format(b, self.uiFunc_block_create))
-                        """
-                        d_sections[c].append( ["{0} ({1})".format(o,b),
-                                               cgmGEN.Callback(self.uiFunc_block_create,b,o)] )       """ 
-        
-        """
-        d_sections = {}
-        for c in _d[1].keys():
-            d_sections[c] = []
-            if c == 'blocks':continue
-            for b in _d[1][c]:
-                if _d[0][b].__dict__.get('__menuVisible__'):
-                    d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_create,b)] )
-                    l_options = RIGBLOCKS.get_blockProfile_options(b)                
-                    if l_options:
-                        for o in l_options:
-                            d_sections[c].append( ["{0} ({1})".format(o,b),cgmGEN.Callback(self.uiFunc_block_create,b,o)] )
 
-        for s in d_sections.keys():
-            if d_sections[s]:
-                _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,
-                                        l=s)                
-                for option in d_sections[s]:
-                    mUI.MelMenuItem(_sub, l=option[0],
-                                    c=option[1],
-                                    ann="{0} : {1}".format(option[0], option[1])
-                                    )"""
 
         mUI.MelMenuItemDiv(self.uiMenu_add)
         uiOptionMenu_blockSizeMode(self, self.uiMenu_add)        
@@ -5922,8 +5905,8 @@ class ui(cgmUI.cgmGUI):
                                          buildProfile = self.var_buildProfile.value,
                                          blockProfile = blockProfile)
         
-        log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))        
-        
+        log.info("|{0}| >> [{1}] | Created: {2}.".format(_str_func,blockType,_mBlock.mNode))       
+         
         #self.uiUpdate_scrollList_full()
         #self.uiFunc_block_setActive(self._ml_blocks.index(_mBlock))
         
@@ -7935,7 +7918,7 @@ def uiOptionMenu_blockSizeMode(self, parent, callback = cgmGEN.Callback):
         #self.uiOptions_menuMode = []		
         _v = self.var_rigBlockCreateSizeMode.value
 
-        for i,item in enumerate(['selection','default']):
+        for i,item in enumerate(['input','selection','default']):
             if item == _v: _rb = True
             else:_rb = False
             mc.menuItem(parent=uiMenu,collection = uiRC,
@@ -9384,3 +9367,437 @@ def uiFunc_blockCall(self,*args,**kws):
     #    cgmGEN.cgmExceptCB(Exception,err)
     finally:
         mc.refresh(su=0)
+        
+        
+class ui_createBlock(CGMUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = "BlockCreate"
+    WINDOW_TITLE = 'BlockCreate | {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = False  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 500,250
+    
+    def insert_init(self,*args,**kws):
+        self.create_guiOptionVar('blockType',defaultValue = '')
+        self.create_guiOptionVar('buildProfile',defaultValue = '')
+        
+        self._d_modules = RIGBLOCKS.get_modules_dat(True)#...refresh data
+        
+        
+    def build_menus(self):
+        self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
+        self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
+
+    def buildMenu_file(self):
+        self.uiMenu_FileMenu.clear()                      
+
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save",)
+                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_actions,self)))
+
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save As",)
+                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_as_actions,self)))
+        
+        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",)
+                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
+    def buildMenu_setup(self):pass
+    
+    def uiFunc_printDat(self,mode='all'):
+        _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))  
+        
+        if not self.dat:
+            return log.error("No dat loaded selected")    
+        
+        sDat = self.dat
+        
+        print(log_sub(_str_func,mode))
+        if mode == 'all':
+            pprint.pprint(self.dat)
+        elif mode == 'settings':
+            pprint.pprint(sDat['settings'])
+        elif mode == 'base':
+            pprint.pprint(sDat['base'])
+        elif mode == 'settings':
+            pprint.pprint(sDat['settings'])
+        elif mode == 'formHandles':
+            pprint.pprint(sDat['handles']['form'])        
+        elif mode == 'loftHandles':
+            pprint.pprint(sDat['handles']['loft'])  
+        elif mode == 'sub':
+            pprint.pprint(sDat['handles']['sub'])
+        elif mode == 'subShapes':
+            pprint.pprint(sDat['handles']['subShapes'])
+        elif mode == 'subRelative':
+            pprint.pprint(sDat['handles']['subRelative'])
+            
+    def uiFunc_create(self, test=False):
+        _str_func = 'uiFunc_create[{0}]'.format(self.__class__.TOOLNAME)            
+        log.info("|{0}| >>...".format(_str_func))
+        
+        #...intitial dict...
+        d_create = {'blockType':self.var_blockType.value,
+                    'size' : [self.uifloat_baseSizeX.getValue(),
+                              self.uifloat_baseSizeY.getValue(),
+                              self.uifloat_baseSizeZ.getValue()],
+                    'blockProfile':self.uiOM_profile.getValue(),
+                    #'buildProfile' : self.var_buildProfile.value,
+                    }        
+        
+        #...builder data...
+        mBuilder = ui_get(False)
+        
+        if mBuilder:
+            if mBuilder._blockCurrent:
+                mActiveBlock = mBuilder._blockCurrent.mNode
+                d_create['blockParent'] = mActiveBlockchr
+                #side = self._blockCurrent.UTILS.get_side(self._blockCurrent)            
+        
+        _sel = mc.ls(sl=1) or []
+        
+
+        #Get Field data
+        for a,ui in self.d_uiAttrs.iteritems():
+            _v = ui.getValue()
+            if _v:
+                if a is 'nameList' and ',' in _v:
+                    _v = ['{}'.format(v) for v in _v.split(',')]
+                d_create[a] = _v
+        
+        
+        log.info(mBuilder)
+        pprint.pprint(d_create)
+        
+        if test:return
+        
+        _mBlock = cgmMeta.createMetaNode('cgmRigBlock',**d_create)
+        
+        if _sel:
+            mc.select(_sel)
+        else:
+            _mBlock.select()
+            
+        
+        if mBuilder:
+            mBuilder.uiScrollList_blocks.rebuild()
+            mBuilder.uiScrollList_blocks.selectByObj(_mBlock)
+            
+            
+        log.info("|{}| >> [{}] | Created: {}.".format(_str_func,d_create['blockType'],_mBlock.mNode))
+        
+
+        
+        
+    def uiFunc_getSize(self, mode = 'selection'):
+        _str_func = 'uiFunc_getSize[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        _size = None
+        if mode == 'selection':
+            _sel = mc.ls(sl=1)
+            if not _sel:
+                return log.error("Nothing selected")
+            _size =  POS.get_bb_size(_sel, False)
+        else:
+            _size = RIGBLOCKS.get_callSize(blockType = self.var_blockType.getValue(),
+                                           blockProfile= self.uiOM_profile.getValue() or None)
+        
+        if _size:
+            self.uifloat_baseSizeX.setValue(_size[0])
+            self.uifloat_baseSizeY.setValue(_size[1])
+            self.uifloat_baseSizeZ.setValue(_size[2])
+            
+    def uiFunc_sizeAverage(self, mode = 'selection'):
+        _str_func = 'uiFunc_sizeAverage[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        _v = MATH.average(self.uifloat_baseSizeX.getValue(),self.uifloat_baseSizeY.getValue(),
+                          self.uifloat_baseSizeZ.getValue())
+        
+        self.uifloat_baseSizeX.setValue(_v)
+        self.uifloat_baseSizeY.setValue(_v)
+        self.uifloat_baseSizeZ.setValue(_v)        
+        
+    def uiFunc_setBlockType(self, arg):
+        _str_func = 'uiFunc_setBlockType[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        
+        if arg not in self._d_modules[0]:
+            return log.error('Invalid blockType: {}'.format(arg))
+
+        self.uiLabel_blockType(edit=True, label = 'BlockType: {}'.format(arg))
+        
+        self.var_blockType.setValue(arg)
+        self.blockType = arg
+        self.uiOM_profile.clear()
+        
+        l_options = RIGBLOCKS.get_blockProfile_options(arg)
+        if l_options:
+            for o in l_options:
+                self.uiOM_profile.append(o)
+                
+                
+        #Build ui options ------------------------------------------------------------------------
+        self.uiBlock_options.clear()
+        self.d_uiAttrs = {}
+        self.d_uiAttrRow = {}
+        
+        #_d,d_defaultSettings = 
+        
+        for a in ['cgmName','nameIter','nameList']:
+            _mRow = mUI.MelHSingleStretchLayout(self.uiBlock_options,ut='cgmUISubTemplate')
+            mUI.MelSpacer(_mRow,w=_sidePadding)
+            
+            mUI.MelLabel(_mRow,l=a)
+            
+            if a == 'nameList':
+                self.d_uiAttrs[a] = mUI.MelTextField(_mRow)
+                _mRow.setStretchWidget(self.d_uiAttrs[a])                
+            else:
+                _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
+                self.d_uiAttrs[a] = mUI.MelTextField(_mRow)
+
+            mUI.MelSpacer(_mRow,w=_sidePadding)
+            _mRow.layout()
+            self.d_uiAttrRow[a] = _mRow
+        self.uiFunc_setBlockProfile()
+        
+    def uiFunc_setBlockProfile(self):
+        _str_func = 'uiFunc_setBlockProfile[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        _profile = self.uiOM_profile.getValue()
+        log.info(_profile)
+        
+        mBlockModule = self._d_modules[0][self.blockType]
+        
+        try:_d = mBlockModule.d_block_profiles[_profile]
+        except:
+            _d = {'cgmName':self.blockType}
+        #pprint.pprint(_d)
+        
+        for a in self.d_uiAttrs.keys():
+            _v = _d.get(a)
+            if a == 'cgmName':
+                if _v == None:
+                    _v = _profile
+                    
+            if issubclass(type(_v),list):
+                _v = ','.join(_v)
+            
+            if _v is None:
+                self.d_uiAttrRow[a](edit=True,vis=False)
+                continue
+            
+            self.d_uiAttrRow[a](edit=True,vis=True)
+            self.d_uiAttrs[a].setValue( _v )
+        
+                
+        
+        
+        
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        #Declare form frames...------------------------------------------------------
+        _MainForm = mUI.MelFormLayout(parent,ut='CGMUITemplate')#mUI.MelColumnLayout(ui_tabs)
+        _inside = mUI.MelScrollLayout(_MainForm, ut='cgmUISubTemplateTemplate')
+
+        #SetHeader = CGMUI.add_Header('{0}'.format(_strBlock))
+        
+        CGMUI.add_Header('Size')
+        """
+        self.uiStatus_top = mUI.MelButton(_inside,
+                                         vis=True,
+                                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
+                                         bgc = SHARED._d_gui_state_colors.get('warning'),
+                                         label = 'No Data',
+                                         h=20)          """      
+        
+        
+        #Base size data --------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+        mUI.MelSpacer(_row ,w=5)                                              
+        mUI.MelLabel(_row ,l='BaseSize')        
+        _row.setStretchWidget(mUI.MelSeparator(_row )) 
+
+        for a in list('xyz'):
+            mUI.MelLabel(_row ,l=a)
+            _field = mUI.MelFloatField(_row , ut='cgmUISubTemplate', w= 60 )
+            self.__dict__['uifloat_baseSize{0}'.format(a.capitalize())] = _field
+        mUI.MelSpacer(_row ,w=5)
+        
+        mUI.MelButton(_row, label='//', ann='Average values',
+                      c=cgmGEN.Callback(self.uiFunc_sizeAverage),
+                      )
+        mUI.MelSpacer(_row ,w=5)
+        
+        _row.layout()
+        
+        
+        #Size Buttons  -------------------------------------------------------------------------------  
+        #mc.setParent(_inside)
+        #CGMUI.add_LineSubBreak()
+        #cgmUI.add_HeaderBreak()
+        _row_sizeModes = mUI.MelHLayout(_inside,ut='cgmUIHeaderTemplate',padding = 2)
+        
+        mc.button(l='Default',
+                  height = 20,
+                  align='center',
+                  c=cgmGEN.Callback(self.uiFunc_getSize,'default'),
+                  ann='[Default] - Get the size data from the profile(default)')
+        mc.button(l='From Selected',
+                  height = 20,
+                  align='center',
+                  c=cgmGEN.Callback(self.uiFunc_getSize,'selection'),
+                  ann='[From Selected] - Use selection to size')
+        mc.button(l='Raycast',
+                  height = 20,
+                  align='center',
+                  en=False,
+                  #c=cgmGEN.Callback(self.uiFunc_blockCall,'changeState','define',**{'forceNew':True}),
+                  ann='[Raycast] - draw/pick size')
+        _row_sizeModes.layout()
+        
+        
+        #BlockType Buttons --------------------------------------------------------------------------
+        self._d_modules = RIGBLOCKS.get_modules_dat(True)#...refresh data
+        
+        mc.setParent(_inside)
+        CGMUI.add_LineSubBreak()
+        cgmUI.add_HeaderBreak()        
+        self.uiLabel_blockType = mUI.MelLabel(_inside, label = 'Pick Type',  ut = 'cgmUIHeaderTemplate', align = 'center')
+        
+        
+        _row_blockTypes = mUI.MelHLayout(_inside,ut='cgmUIHeaderTemplate',padding = 2)
+        
+        _d = copy.copy(self._d_modules)
+        for b in _d[0]:
+            if _d[0][b].__dict__.get('__menuVisible__'):
+                
+                #mUI.MelIconButton(_row_blockTypes,w=50,
+                #                  style = 'iconAndTextVertical', l=b,ann=b)
+                mUI.MelButton(_row_blockTypes,l=b,ann=b, bgc=d_state_colors['form'],
+                              c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
+                """
+                mUI.MelMenuItem(self.uiMenu_add, l=b,
+                                c=cgmGEN.Callback(self.uiFunc_block_create,b),
+                                ann="{0} : {1}".format(b, self.uiFunc_block_create))
+                
+                l_options = RIGBLOCKS.get_blockProfile_options(b)                
+                if l_options:
+                    for o in l_options:
+                        mUI.MelMenuItem(self.uiMenu_add, l=o,
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,o),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))    """    
+        
+        _row_blockTypes.layout()
+        """
+        if force:
+            self._d_modules = RIGBLOCKS.get_modules_dat(True)#...refresh data
+        
+        _d = copy.copy(self._d_modules)
+        for b in _d[1]['blocks']:
+            if _d[0][b].__dict__.get('__menuVisible__'):
+                mUI.MelMenuItem(self.uiMenu_add, l=b,
+                                c=cgmGEN.Callback(self.uiFunc_block_create,b),
+                                ann="{0} : {1}".format(b, self.uiFunc_block_create))
+                
+                l_options = RIGBLOCKS.get_blockProfile_options(b)                
+                if l_options:
+                    for o in l_options:
+                        mUI.MelMenuItem(self.uiMenu_add, l=o,
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,o),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))
+
+        
+        for c in _d[1].keys():
+            #d_sections[c] = []
+            if c == 'blocks':continue
+            for b in _d[1][c]:
+                if _d[0][b].__dict__.get('__menuVisible__'):
+                    #d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_create,b)] )
+                    l_options = RIGBLOCKS.get_blockProfile_options(b)
+                    if l_options:
+                        _sub = mUI.MelMenuItem( self.uiMenu_add, subMenu=True,l=b,tearOff=True)
+                        l_options.sort()
+                        for o in l_options:
+                            _l = "{0}".format(o)
+                            _c = cgmGEN.Callback(self.uiFunc_block_create,b,o)
+                            mUI.MelMenuItem(_sub, l=_l,
+                                            c=_c,
+                                            ann="{0} : {1}".format(_l, _c)
+                                            )
+                    else:
+                        mUI.MelMenuItem(self.uiMenu_add, l=b,
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,'default'),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))
+
+        """
+        #Option Menus
+        mc.setParent(_inside)
+        CGMUI.add_LineSubBreak()        
+        for key in ['profile','build']:
+            _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+            
+            mUI.MelSpacer(_row,w=5)
+            mUI.MelLabel(_row,l='{0}: '.format(CORESTRINGS.capFirst(key)))            
+            
+            _key = 'uiOM_{0}'.format(key)
+            self.__dict__[_key] = mUI.MelOptionMenu(_row,ut = 'cgmUITemplate')
+            _row.setStretchWidget(self.__dict__[_key])
+            mUI.MelSpacer(_row,w=5)
+            _row.layout()
+        
+        for o in BLOCKSHARE._l_buildProfiles:
+            self.uiOM_build.append(o)
+            
+        self.uiOM_profile(edit=True, cc=lambda *a: self.uiFunc_setBlockProfile())
+        
+        
+        #Block settings section ------------------------------------------------------------------
+        self.uiBlock_options = mUI.MelColumn(_inside,
+                                             bgc=cgmUI.guiBackgroundColorLight,
+                                             useTemplate = 'cgmUITemplate')
+        
+        #....
+        mc.setParent(_MainForm)
+        self.uiPB_test=None
+        self.uiPB_test = mc.progressBar(vis=False)
+
+        
+        self.uiButton_create = mUI.MelButton(_MainForm,
+                                             vis=True,
+                                             c=cgmGEN.Callback(self.uiFunc_create),
+                                             bgc = d_state_colors['rig'],
+                                             label = 'Create',
+                                             h=20)
+        _row_cgm = CGMUI.add_cgmFooter(_MainForm)            
+
+        #Form Layout--------------------------------------------------------------------
+        _MainForm(edit = True,
+                  af = [(_inside,"top",0),
+                        (_inside,"left",0),
+                        (_inside,"right",0),
+                        (self.uiButton_create,"left",0),
+                        (self.uiButton_create,"right",0),
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),
+                        (_row_cgm,"bottom",0),
+    
+                        ],
+                  ac = [(_inside,"bottom",0,self.uiPB_test),
+                        (self.uiButton_create,"bottom",0,self.uiPB_test),
+                        (self.uiPB_test,"bottom",0,_row_cgm),
+                        ],
+                  attachNone = [(_row_cgm,"top")])    
+        
+        if self.var_blockType.getValue():
+            self.uiFunc_setBlockType(self.var_blockType.getValue())
+            self.uiFunc_getSize('default')
+            
+            self.uiFunc_setBlockProfile()

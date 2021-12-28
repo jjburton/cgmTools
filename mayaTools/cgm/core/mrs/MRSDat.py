@@ -176,11 +176,11 @@ class BlockDat(BaseDat):
         if not mode:
             pass
         
-    def create(self):
-        return blockDat_createBlock(self)
+    def create(self, autoPush= True):
+        return blockDat_createBlock(self, autoPush=autoPush)
         
         
-def blockDat_createBlock(self):
+def blockDat_createBlock(self, autoPush = True):
     '''
     blockDat self
     '''
@@ -196,10 +196,13 @@ def blockDat_createBlock(self):
     _nameOriginal = mDat['baseName']
     
     
+    _size = mDat['baseDat']['baseSize']
+    
+    
     _d = {'blockType':_blockType,
           'autoForm':False,
           'side':_side,
-          'baseSize':mDat['baseSize'],
+          'baseSize':_size,#mDat['baseSize'],
           'blockProfile':mDat.get('blockProfile'),
           'buildProfile':mDat.get('buildProfile'),
           'blockParent': mDat.get('blockParent')}    
@@ -266,7 +269,7 @@ def blockDat_createBlock(self):
     pprint.pprint(l_nameList)                
     
     
-    blockDat_load(mNew, mDat, redefine=True)
+    blockDat_load(mNew, mDat, redefine=False, autoPush=autoPush)
     #log.debug('here...')
     #blockDat_load(mNew)#...investigate why we need two...
     
@@ -1010,7 +1013,7 @@ class ui(CGMDAT.ui):
         mc.button(parent=_inside,
                   l = 'Create',
                   ut = 'cgmUITemplate',
-                  c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create)),
+                  c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create,False)),
                   ann = 'Build with MRS')
 
         #checkboxes frame...------------------------------------------------------------
@@ -1114,7 +1117,7 @@ class ui(CGMDAT.ui):
         return    
 
 class ui2(CGMUI.cgmGUI):
-    USE_Template = 'CGMUITemplate'
+    USE_Template = 'cgmUITemplate'
     WINDOW_NAME = "BlockDatUI"
     WINDOW_TITLE = 'BlockDat | {0}'.format(__version__)
     DEFAULT_MENU = None

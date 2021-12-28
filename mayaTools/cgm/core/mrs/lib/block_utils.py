@@ -8652,7 +8652,6 @@ def blockProfile_getOptions(self):
         _str_func = 'blockProfile_getOptions'
         log.debug(cgmGEN.logString_start(_str_func))
 
-        
         mBlockModule = self.p_blockModule
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
         #reload(mBlockModule)
@@ -8663,6 +8662,19 @@ def blockProfile_getOptions(self):
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
         
+def blockProfile_getAttrs(self,arg):
+    _str_func = 'blockProfile_getOptions'
+    log.debug(cgmGEN.logString_start(_str_func))
+
+    mBlockModule = self.p_blockModule
+    log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
+    #reload(mBlockModule)
+    
+    try:_d = mBlockModule.d_block_profiles[arg]
+    except Exception,err:
+        return log.warning("|{0}| >>  Failed to query profile: {1} | {2} | {3}".format(_str_func,err, _short, Exception))
+    
+    return _d
         
 def blockProfile_load(self, arg):
     _str_func = 'blockProfile_load'
@@ -10415,17 +10427,14 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     if self.hasAttr('baseDat'):
         d_baseDat = self.baseDat
         log.debug("|{0}| >>  Base dat found | {1}".format(_str_func,d_baseDat))        
-
+        if baseSize is None:
+            baseSize = d_baseDat.get('baseSize')
+            log.debug("|{0}| >>  baseSize found in d_baseDat: {1}".format(_str_func,baseSize))
     
     if baseSize is None:
-        try:
-            baseSize = self.baseSize
-            log.debug("|{0}| >>  baseSize found in on asset: {1}".format(_str_func,baseSize))
-        except:
-            try:
-                baseSize = d_baseDat['baseSize']
-                log.debug("|{0}| >>  baseSize found in d_baseDat: {1}".format(_str_func,baseSize))
-            except:raise ValueError,"No baseSize offered or found"
+        baseSize = self.baseSize
+        log.debug("|{0}| >>  baseSize found in on asset: {1}".format(_str_func,baseSize))
+
 
 
     if not baseSize:
@@ -10479,7 +10488,7 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     mDefineEndObj.sy = _height
     mDefineEndObj.sz = MATH.average(_width,_height)
     
-    if mDefineStartObj and not ATTR.is_locked(mDefineEndObj.mNode,'scaleX'):
+    if mDefineStartObj:
         mDefineStartObj.sx = _width
         mDefineStartObj.sy = _height
         mDefineStartObj.sz = MATH.average(_width,_height)        

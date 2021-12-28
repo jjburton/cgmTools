@@ -217,11 +217,14 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _postState = None#...for sizeMode call
         _doVerify = kws.get('doVerify',False)
         _justCreated = False
-        kw_name = kws.get('name',None)
+        kw_name = kws.get('name',None) or kws.get('cgmName',None)
         
         if node is None:
-            _sel = mc.ls(sl=1)            
-            _callSize = get_callSize(_size,blockProfile=kws.get('blockProfile'),blockType=blockType)
+            _sel = mc.ls(sl=1)
+            if _baseSize:
+                _callSize = get_callSize(_baseSize)
+            else:
+                _callSize = get_callSize(_size,blockProfile=kws.get('blockProfile'),blockType=blockType)
             _doVerify = True
             _justCreated = True
             if  _sel:
@@ -292,19 +295,6 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 return
             elif not self.verify(blockType,side= _side):
                 raise RuntimeError,"|{0}| >> Failed to verify: {1}".format(_str_func,self.mNode)
-
-            #Name -----------------------------------------------
-
-            #On call attrs -------------------------------------------------------------------------
-            for a,v in kws.iteritems():
-                if self.hasAttr(a):
-                    try:
-                        if a == 'side' and v == None:
-                            v = 0
-                        log.debug("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
-                        ATTR.set(self.mNode,a,v)
-                    except Exception,err:
-                        log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
             
             #Profiles --------------------------------------------------------------------------
             
@@ -314,7 +304,27 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 
             _kw_blockProfile = kws.get('blockProfile')
             if _kw_blockProfile:
-                self.UTILS.blockProfile_load(self, kws.get('blockProfile',_kw_blockProfile))                
+                self.UTILS.blockProfile_load(self, kws.get('blockProfile',_kw_blockProfile))
+                
+            #On call attrs -------------------------------------------------------------------------
+            #These need to be set after profiles so as to keep
+            for a,v in kws.iteritems():
+                if issubclass(type(v),list):
+                    mc.select(cl=True)
+                    if VALID.stringArg(v[0]):
+                        ATTR.datList_connect(self.mNode, a, v, mode='string')
+                    else:
+                        ATTR.datList_connect(self.mNode, a, v, mode='int')
+                    
+                elif self.hasAttr(a):
+                    try:
+                        if a == 'side' and v == None:
+                            v = 0
+                        log.debug("|{0}| On call set attr  >> '{1}' | value: {2}".format(_str_func,a,v))
+                        ATTR.set(self.mNode,a,v)
+                    except Exception,err:
+                        log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
+                
             
             #>>>Auto flags...
             if not _blockModule:

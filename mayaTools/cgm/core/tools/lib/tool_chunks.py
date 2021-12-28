@@ -1139,7 +1139,11 @@ def uiSection_dev(parent):
     mc.menuItem(parent = _wipTools,
                 l='ShapeDat',
                 ann = "ShapeDat",
-                c=lambda *a: TOOLCALLS.SHAPEDATui())       
+                c=lambda *a: TOOLCALLS.SHAPEDATui())
+    mc.menuItem(parent = _wipTools,
+                l='MRS Block Create',
+                ann = "MRS Block Create",
+                c=lambda *a: TOOLCALLS.mrsBlockCreate())          
     
     _unitTests = mc.menuItem(parent = parent,subMenu = True,tearOff = True,
                              l='Unittesting')
