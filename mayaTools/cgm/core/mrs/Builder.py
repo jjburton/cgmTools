@@ -69,6 +69,7 @@ from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
 import cgm.core.lib.string_utils as CORESTRINGS
 
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
+from cgm.core.mrs import Helpers as HELPERS
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.toolbox as TOOLBOX
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
@@ -9489,7 +9490,6 @@ class ui_createBlock(CGMUI.cgmGUI):
         
 
         
-        
     def uiFunc_getSize(self, mode = 'selection'):
         _str_func = 'uiFunc_getSize[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
@@ -9518,7 +9518,8 @@ class ui_createBlock(CGMUI.cgmGUI):
         
         self.uifloat_baseSizeX.setValue(_v)
         self.uifloat_baseSizeY.setValue(_v)
-        self.uifloat_baseSizeZ.setValue(_v)        
+        self.uifloat_baseSizeZ.setValue(_v)
+        
         
     def uiFunc_setBlockType(self, arg):
         _str_func = 'uiFunc_setBlockType[{0}]'.format(self.__class__.TOOLNAME)            
@@ -9664,6 +9665,11 @@ class ui_createBlock(CGMUI.cgmGUI):
         _row_sizeModes.layout()
         
         
+        #Helpers Frame -------------------------------------------------------------------------------
+        reload(HELPERS)
+        HELPERS.buildFrame_helpers(self,_inside)
+        
+        
         #BlockType Buttons --------------------------------------------------------------------------
         self._d_modules = RIGBLOCKS.get_modules_dat(True)#...refresh data
         
@@ -9801,3 +9807,22 @@ class ui_createBlock(CGMUI.cgmGUI):
             self.uiFunc_getSize('default')
             
             self.uiFunc_setBlockProfile()
+            
+def buildFrame_helpers(self,parent,changeCommand = ''):
+    try:self.var_helpersFrameCollapse
+    except:self.create_guiOptionVar('helpersFrameCollapse',defaultValue = 0)
+    mVar_frame = self.var_helpersFrameCollapse
+    
+    _frame = mUI.MelFrameLayout(parent,label = 'Helpers',vis=True,
+                                collapse=mVar_frame.value,
+                                collapsable=True,
+                                enable=True,
+                                useTemplate = 'cgmUIHeaderTemplate',
+                                expandCommand = lambda:mVar_frame.setValue(0),
+                                collapseCommand = lambda:mVar_frame.setValue(1)
+                                )	
+    
+    _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+    
+    CGMUI.add_Header('Helpers')
+    
