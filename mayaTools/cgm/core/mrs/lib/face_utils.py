@@ -124,6 +124,43 @@ _d_faceBufferAttributes = {
             "brow":{'attrs':['innrUp','innrDn','outrUp','outrDn','squeeze'],
                     'sideAttrs':['innrUp','innrDn','outrUp','outrDn']},
             },
+    'och':{
+        "lid":{'attrs':['upr','lwr'],
+               "sideAttrs":'*'},
+        "brow":{'attrs':['furrow','up','down'],
+                "sideAttrs":'*'},
+        "browMid":{'attrs':['up','down','squeeze']},        
+        
+        "lip":{'attrs':['uprSneer','lwrSneer','sealCenter',
+                        'uprUp','uprDown','lwrUp','lwrDown',
+                        'seal','smile','frown','wide','narrow'],
+               "sideAttrs":['uprSneer','lwrSneer',
+                            'uprUp','uprDown','lwrUp','lwrDown',                            
+                            'seal','smile','frown','wide','narrow']},
+        "ear":{'attrs':['thickBase','cup'],
+                "sideAttrs":'*'},
+        
+        "lipOut":{'attrs':['upr','lwr']},        
+        
+        "pupil":{'attrs':['horizontal','vertical','angle'],
+                 "sideAttrs":'*'},        
+        "cheek":{'attrs':['puff','outer'],
+                 "sideAttrs":'*'},
+        "uprMuzzle":{'attrs':['tweak'],
+                 "sideAttrs":'*'},
+        "nose":{'attrs':['sniff']},        
+        
+        "jaw":{'attrs':['open','close','left','right','forward','back'],},
+        "mouth":{'attrs':['up','down','left','right'],},
+        
+        "tongue":{'attrs':['down','left','right','out','hide']},
+        
+        "teeth":{'attrs':['wide','hideUpr','hideLwr','fangUp', 'close','nice','uprGum','back'],
+                 "sideAttrs":['wide','fangUp']},
+        
+        "hide":{'attrs':['line'],
+                 },
+    },    
     
     'g1':{
         "eye":{'attrs':['up','dn','left','right']},

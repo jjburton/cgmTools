@@ -1167,7 +1167,282 @@ _d_faceWiring = {
                                     'lips_smile_right':{'driverAttr':'ty'},
                                     'lips_frown_right':{'driverAttr':'-ty'},                                                    
                                     'lips_narrow_right':{'driverAttr':'-tx'},
-                                    'lips_wide_right':{'driverAttr':'tx'}}},}}
+                                    'lips_wide_right':{'driverAttr':'tx'}}},},
+'och':{
+    #Pupil... --------------------------------------------
+    'L_ear':{'control':'L_earShapeCon_anim',
+                    'wiringDict':{'ear_thickBase_left':{'driverAttr':'-tx'},
+                                  'ear_cup_left':{'driverAttr':'ty'}
+                     }},
+    'R_ear':{'control':'R_earShapeCon_anim',
+                    'wiringDict':{'ear_thickBase_right':{'driverAttr':'-tx'},
+                                  'ear_cup_right':{'driverAttr':'ty'}
+                     }},    
+    
+    #Brow... --------------------------------------------
+    'l_eyebrow':{'control':'L_browCon_anim',
+           'wiringDict':{'brow_furrow_left':{'driverAttr':'-tx'},
+                         'brow_up_left':{'driverAttr':'ty'},
+                         'brow_down_left':{'driverAttr':'-ty'},
+                         }},
+    'r_eyebrow':{'control':'R_browCon_anim',
+           'wiringDict':{'brow_furrow_right':{'driverAttr':'-tx'},
+                         'brow_up_right':{'driverAttr':'ty'},
+                         'brow_down_right':{'driverAttr':'-ty'},
+                         }},    
+    
+    'browMid':{'control':'browMidCon_anim',
+           'wiringDict':{'browMid_squeeze':{'driverAttr':'-tx'},
+                         'browMid_up':{'driverAttr':'ty'},
+                         'browMid_down':{'driverAttr':'-ty'},
+                         }},    
+    
+    #Lid... --------------------------------------------
+    'L_blinkUpr':{'control':'L_blinkUprCon_anim',
+           'wiringDict':{'lid_upr_left':{'driverAttr':'-ty'},
+                         }},
+    'L_blinkLwr':{'control':'L_blinkLwrCon_anim',
+           'wiringDict':{'lid_lwr_left':{'driverAttr':'ty'},
+                         }},
+
+    'R_blinkUpr':{'control':'R_blinkUprCon_anim',
+           'wiringDict':{'lid_upr_right':{'driverAttr':'-ty'},
+                         }},
+    'R_blinkLwr':{'control':'R_blinkLwrCon_anim',
+           'wiringDict':{'lid_lwr_right':{'driverAttr':'ty'},
+                         }},
+    
+    #Pupil... --------------------------------------------
+    'L_pupilShape':{'control':'L_pupilShapeCon_anim',
+                    'wiringDict':{'pupil_horizontal_left':{'driverAttr':'-tx'},
+                                  'pupil_vertical_left':{'driverAttr':'ty'}
+                     }},
+    'L_pupilAngle':{'control':'L_pupilAngleCon_anim',
+           'wiringDict':{'pupil_angle_left':{'driverAttr':'ty'},
+                         }},    
+    
+    
+    'R_pupilShape':{'control':'R_pupilShapeCon_anim',
+                    'wiringDict':{'pupil_horizontal_right':{'driverAttr':'-tx'},
+                                  'pupil_vertical_right':{'driverAttr':'ty'}
+                     }},
+    'R_pupilAngle':{'control':'R_pupilAngleCon_anim',
+           'wiringDict':{'pupil_angle_right':{'driverAttr':'ty'},
+                         }},        
+    
+    
+    #Mouth... --------------------------------------------
+    'lipOut':{'control':'lipOutCon_anim',
+                'wiringDict':{'lipOut_upr':{'driverAttr':'ty','driverAttr2':'-tx','mode':'cornerBlend'},
+                              'lipOut_lwr':{'driverAttr':'-ty','driverAttr2':'-tx','mode':'cornerBlend'},
+                              }},
+    'lipClose':{'control':'lipSealCon_anim',
+           'wiringDict':{'lip_seal_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'lip_seal_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},
+    
+    'lipSealCenter':{'control':'centerSealCon_anim',
+           'wiringDict':{'lip_sealCenter':{'driverAttr':'ty'}}},
+    
+    'cheekPuff':{'control':'cheekPuffCon_anim',
+           'wiringDict':{'cheek_puff_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'cheek_puff_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},
+    
+    'cheekPuffOuter':{'control':'cheekOutrPuffCon_anim',
+           'wiringDict':{'cheek_outer_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'cheek_outer_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},    
+    
+    'overMuzzle':{'control':'overMuzzleCon_anim',
+           'wiringDict':{'uprMuzzle_tweak_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'uprMuzzle_tweak_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},
+    
+    
+    'lineHide':{'control':'lineHideCon_anim',
+           'wiringDict':{'hide_line':{'driverAttr':'ty'},
+                         }},
+    
+    
+    'lipCorner_left':{'control':'L_lipCornerCon_anim',
+                      'wiringDict':{'lip_smile_left':{'driverAttr':'ty'},
+                                    'lip_frown_left':{'driverAttr':'-ty'},                                                    
+                                    'lip_narrow_left':{'driverAttr':'-tx'},
+                                    'lip_wide_left':{'driverAttr':'tx'}}},
+    
+    'lipCorner_right':{'control':'R_lipCornerCon_anim',
+                      'wiringDict':{'lip_smile_right':{'driverAttr':'ty'},
+                                    'lip_frown_right':{'driverAttr':'-ty'},                                                    
+                                    'lip_narrow_right':{'driverAttr':'-tx'},
+                                    'lip_wide_right':{'driverAttr':'tx'}}},
+    
+    'lipUpr':{'control':'uprLipCon_anim',
+              'wiringDict':{'lip_uprUp_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                            'lip_uprUp_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                            'lip_uprDown_right':{'driverAttr':'-tx','driverAttr2':'-ty','mode':'cornerBlend'},
+                            'lip_uprDown_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'},                                    
+                            }},
+    'lipLwr':{'control':'lwrLipCon_anim',
+              'wiringDict':{'lip_lwrUp_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                            'lip_lwrUp_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                            'lip_lwrDown_right':{'driverAttr':'-tx','driverAttr2':'-ty','mode':'cornerBlend'},
+                            'lip_lwrDown_left':{'driverAttr':'tx','driverAttr2':'-ty','mode':'cornerBlend'},                                    
+                            }},    
+    
+    
+    'sneerUpr':{'control':'sneerUprCon_anim',
+           'wiringDict':{'lip_uprSneer_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'lip_uprSneer_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},
+    'sneerLwr':{'control':'sneerLwrCon_anim',
+           'wiringDict':{'lip_lwrSneer_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'lip_lwrSneer_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},    
+    
+    
+    'noseSniff':{'control':'noseSniffCon_anim',
+           'wiringDict':{'nose_sniff':{'driverAttr':'ty'},
+                         }},    
+    #Mouth... --------------------------------------------
+    'jaw':{'control':'jawCon_anim',
+           'wiringDict':{'jaw_close':{'driverAttr':'ty'},
+                         'jaw_open':{'driverAttr':'-ty'},
+                         'jaw_left':{'driverAttr':'tx'},
+                         'jaw_right':{'driverAttr':'-tx'},
+                         }},
+    
+    'jawFwdBack':{'control':'jawFwdBackCon_anim',
+           'wiringDict':{'jaw_forward':{'driverAttr':'ty'},
+                         'jaw_back':{'driverAttr':'-ty'},
+                         }},        
+    
+    'mouth':{'control':'mouthMoveCon_anim',
+           'wiringDict':{'mouth_up':{'driverAttr':'ty'},
+                         'mouth_down':{'driverAttr':'-ty'},
+                         'mouth_left':{'driverAttr':'tx'},
+                         'mouth_right':{'driverAttr':'-tx'},
+                         }},
+    
+    #Tongue... --------------------------------------------
+    'tongue_down':{'control':'tongueDnCon_anim',
+           'wiringDict':{'tongue_down':{'driverAttr':'-ty'}}},
+    
+    'tongue':{'control':'tongueCon_anim',
+           'wiringDict':{'tongue_out':{'driverAttr':'ty'},
+                         'tongue_left':{'driverAttr':'tx'},
+                         'tongue_right':{'driverAttr':'-tx'},
+                         }},    
+    'tongue_hide':{'control':'tongueHideCon_anim',
+           'wiringDict':{'tongue_hide':{'driverAttr':'-ty'}}},
+    
+    #Teeth stuff .... ------------------------------------------------------------------
+    'teethHide':{'control':'teethHideCon_anim',
+                 'wiringDict':{'teeth_hideUpr':{'driverAttr':'ty','driverAttr2':'-tx','mode':'cornerBlend'},
+                               'teeth_hideLwr':{'driverAttr':'-ty','driverAttr2':'-tx','mode':'cornerBlend'},
+                               }},    
+    'teethWide':{'control':'teethWideCon_anim',
+           'wiringDict':{'teeth_wide_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'teeth_wide_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},
+    'teethFangUp':{'control':'fangUpCon_anim',
+           'wiringDict':{'teeth_fangUp_left':{'driverAttr':'tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         'teeth_fangUp_right':{'driverAttr':'-tx','driverAttr2':'ty','mode':'cornerBlend'},
+                         }},
+    
+    'teethNice':{'control':'teethNiceCon_anim',
+           'wiringDict':{'teeth_nice':{'driverAttr':'ty'}}},
+    
+    'teethBack':{'control':'teethBackCon_anim',
+           'wiringDict':{'teeth_back':{'driverAttr':'ty'}}},
+    
+    'teethClose':{'control':'teethCloseCon_anim',
+           'wiringDict':{'teeth_close':{'driverAttr':'ty'},
+                         }},    
+    'uprGum':{'control':'uprGumCon_anim',
+           'wiringDict':{'teeth_uprGum':{'driverAttr':'ty'},
+                         }},    
+    
+    },
+    'test':{
+                      
+    'inner_brow_left':{'control':'l_inner_brow_anim',
+                       'wiringDict':{'brow_inr_up_left':{'driverAttr':'ty'},
+                                     'brow_inr_dn_left':{'driverAttr':'-ty'},
+                                     'brow_squeeze_left':{'driverAttr':'-tx'}}},                             
+    'mid_brow_left':{'control':'l_mid_brow_anim',
+                     'wiringDict':{'brow_mid_up_left':{'driverAttr':'ty'},
+                                   'brow_mid_dn_left':{'driverAttr':'-ty'}}}, 
+    'outer_brow_left':{'control':'l_outer_brow_anim',
+                       'wiringDict':{'brow_outr_up_left':{'driverAttr':'ty'},
+                                     'brow_outr_dn_left':{'driverAttr':'-ty'}}},
+    'inner_brow_right':{'control':'r_inner_brow_anim',
+                       'wiringDict':{'brow_inr_up_right':{'driverAttr':'ty'},
+                                     'brow_inr_dn_right':{'driverAttr':'-ty'},
+                                     'brow_squeeze_right':{'driverAttr':'-tx'}}},                             
+    'mid_brow_right':{'control':'r_mid_brow_anim',
+                     'wiringDict':{'brow_mid_up_right':{'driverAttr':'ty'},
+                                   'brow_mid_dn_right':{'driverAttr':'-ty'}}}, 
+    'outer_brow_right':{'control':'r_outer_brow_anim',
+                       'wiringDict':{'brow_outr_up_right':{'driverAttr':'ty'},
+                                     'brow_outr_dn_right':{'driverAttr':'-ty'}}}, 
+    
+    'eyeSqueeze_left':{'control':'l_eyeSqueeze_anim',
+                       'wiringDict':{'eyeSqueeze_up_left':{'driverAttr':'ty'},
+                                     'eyeSqueeze_dn_left':{'driverAttr':'-ty'}}}, 
+    'eyeSqueeze_right':{'control':'r_eyeSqueeze_anim',
+                       'wiringDict':{'eyeSqueeze_up_right':{'driverAttr':'ty'},
+                                     'eyeSqueeze_dn_right':{'driverAttr':'-ty'}}}, 
+    
+    
+    'cheek_left':{'control':'l_cheek_anim',
+                  'wiringDict':{'cheek_up_left':{'driverAttr':'ty'},
+                                'cheek_dn_left':{'driverAttr':'-ty'},
+                                'cheek_blow_left':{'driverAttr':'tx'},
+                                'cheek_suck_left':{'driverAttr':'-tx'}}},
+    'cheek_right':{'control':'r_cheek_anim',
+                  'wiringDict':{'cheek_up_right':{'driverAttr':'ty'},
+                                'cheek_dn_right':{'driverAttr':'-ty'},
+                                'cheek_blow_right':{'driverAttr':'tx'},
+                                'cheek_suck_right':{'driverAttr':'-tx'}}},   
+    
+    'nose_left':{'control':'l_nose_anim',
+                 'wiringDict':{'nose_in_left':{'driverAttr':'-tx'},
+                               'nose_out_left':{'driverAttr':'tx'},
+                               'nose_sneer_up_left':{'driverAttr':'ty'},
+                               'nose_sneer_dn_left':{'driverAttr':'-ty'}},
+                 'simpleArgs':['{0}.nose_seal_up_cntr_left = {0}.nose_sneer_up_left * {0}.seal_center',
+                               '{0}.nose_seal_up_outr_left = {0}.nose_sneer_up_left * {0}.seal_left'
+                               ]},
+    'nose_right':{'control':'r_nose_anim',
+                 'wiringDict':{'nose_in_right':{'driverAttr':'-tx'},
+                               'nose_out_right':{'driverAttr':'tx'},
+                               'nose_sneer_up_right':{'driverAttr':'ty'},
+                               'nose_sneer_dn_right':{'driverAttr':'-ty'}},
+                 'simpleArgs':['{0}.nose_seal_up_cntr_right = {0}.nose_sneer_up_right * {0}.seal_center',
+                               '{0}.nose_seal_up_outr_right = {0}.nose_sneer_up_right * {0}.seal_right',
+                               ]},
+    
+    'lipCorner_left':{'control':'l_lipCorner_anim',
+                      'wiringDict':{'lips_purse_left':{'driverAttr':'purse'},
+                                    'lips_out_left':{'driverAttr':'out'},
+                                    'lips_twistUp_left':{'driverAttr':'twist'},
+                                    'lips_twistDn_left':{'driverAttr':'-twist'},
+                                    'lips_smile_left':{'driverAttr':'ty'},
+                                    'lips_frown_left':{'driverAttr':'-ty'},                                                    
+                                    'lips_narrow_left':{'driverAttr':'-tx'},
+                                    'lips_wide_left':{'driverAttr':'tx'}}},
+    'lipCorner_right':{'control':'r_lipCorner_anim',
+                      'wiringDict':{'lips_purse_right':{'driverAttr':'purse'},
+                                    'lips_out_right':{'driverAttr':'out'},
+                                    'lips_twistUp_right':{'driverAttr':'twist'},
+                                    'lips_twistDn_right':{'driverAttr':'-twist'},
+                                    'lips_smile_right':{'driverAttr':'ty'},
+                                    'lips_frown_right':{'driverAttr':'-ty'},                                                    
+                                    'lips_narrow_right':{'driverAttr':'-tx'},
+                                    'lips_wide_right':{'driverAttr':'tx'}}},}
+
+}
                  
 
 def stacheSetup():
@@ -1328,4 +1603,53 @@ d_pip = {'tail_settings_anim':{'FKIK':0,'visRoot':1},
          'headRidge_1_settings_anim':{'FKIK':0},
          'headRidge_2_settings_anim':{'FKIK':0},
          'headRidge_3_settings_anim':{'FKIK':0},            
+              }
+
+
+d_och = {'tail_settings_anim':{'tail_rigRibbon_segScale':0,'visRoot':False},
+         'head_root_anim':{'orientTo':'cog',
+                           'scaleSpace':'cog'},
+         'head_settings_anim':{'visRoot':True},
+             
+         'L_eyeOrb_rig_anim':{'visDirect':1},
+         
+         'L_ear_root_anim':{'scaleSpace':'head_root'},
+         'L_ear_settings_anim':{'visRoot':False, 'FKIK':0},         
+         'L_arm_root_anim':{'scaleSpace':'cog'},
+         'L_leg_root_anim':{'scaleSpace':'cog'},
+         'tail_root_anim':{'scaleSpace':'cog'},
+         'scarfKnot_anim':{'scaleSpace':'cog'},
+         'FRNT_scarf_root_anim':{'scaleSpace':'cog'},
+         'FRNT_scarf_settings_anim':{'FKIK':0},
+         
+         'L_arm_settings_anim':{'shoulder_seg_0_factor_0':.6,
+                                'shoulder_seg_0_factor_1':.6,
+                                'elbow_seg_1_factor_0':0,
+                                'elbow_seg_1_factor_1':0,
+                                'visRoot':False},
+         'L_leg_settings_anim':{'hip_seg_0_factor_0':.6,
+                                'hip_seg_0_factor_1':.6,
+                                'knee_seg_1_factor_0':0,
+                                'knee_seg_1_factor_1':0,
+                                'visRoot':False},
+         
+
+         'R_eyeOrb_rig_anim':{'visDirect':1},
+         
+         'R_ear_root_anim':{'scaleSpace':'head_root'},
+         'R_ear_settings_anim':{'visRoot':False, 'FKIK':0},                  
+         'R_arm_root_anim':{'scaleSpace':'cog'},
+         'R_leg_root_anim':{'scaleSpace':'cog'},
+         
+         'R_arm_settings_anim':{'shoulder_seg_0_factor_0':.6,
+                                'shoulder_seg_0_factor_1':.6,
+                                'elbow_seg_1_factor_0':0,
+                                'elbow_seg_1_factor_1':0,
+                                'visRoot':False},
+         'R_leg_settings_anim':{'hip_seg_0_factor_0':.6,
+                                'hip_seg_0_factor_1':.6,
+                                'knee_seg_1_factor_0':0,
+                                'knee_seg_1_factor_1':0,
+                                'visRoot':False},              
+
               }

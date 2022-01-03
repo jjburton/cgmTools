@@ -130,7 +130,7 @@ def importDat(sourceMesh=[],dirpath=None):
         log.info(cgmGEN.logString_msg(_str_func, mObj))
         
         #See if the data file exists
-        _pathTest = os.path.join(dirpath,"{0}.sknDat".format(mObj.p_nameBase) )
+        _pathTest = os.path.normpath(os.path.join(dirpath,"{0}.sknDat".format(mObj.p_nameBase) ))
         if PATHS.Path(_pathTest).exists():
             log.error (cgmGEN.logString_msg(_str_func, "Found path: {0}".format(_pathTest)))
             _pathUse = _pathTest

@@ -4950,14 +4950,14 @@ def ExportScene(mode = -1,
     
     
     
-    if updateRigs:
+    if updateRigs and updateRigs != '0':
         log.info(log_sub(_str_func,'Rig update'))
         
         masterNode = None
         for item in mc.ls("*:master", r=True):
             if len(item.split(":")) == 2:
                 masterNode = item
-
+            log.info(item)
             rig = ASSET.Asset(item)
             if rig.UpdateToLatest():
                 log.info(log_sub(_str_func,'Rig update: {}'.format(item)))                
@@ -4966,7 +4966,9 @@ def ExportScene(mode = -1,
                 log.info(log_sub(_str_func,'Rig up to date: {}'.format(item)))                
     
     if not exportObjs:
+        log.info("No exportObjs passed....")
         exportObjs = mc.ls(sl=True)
+        log.info(exportObjs)
 
     cameras = []
     exportCams = []
