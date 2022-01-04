@@ -553,7 +553,7 @@ def set_standardFlags(node, attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz
             for arg in e.args:
                 log.warning(arg)
 
-def set(node, attr = None, value = None, lock = False,**kws):
+def set(node, attr = None, value = None, lock = False,force=False, **kws):
     """   
     Replacement for setAttr which get's message objects as well as parses double3 type 
     attributes to a list  
@@ -632,14 +632,17 @@ def set(node, attr = None, value = None, lock = False,**kws):
             return
             
         
-    if is_locked(_combined):
-        _wasLocked = True
-        mc.setAttr(_combined,lock=False)    
+ 
 
     #CONNECTED!!!
-    if not is_keyed(_d):
-        if break_connection(_d):
-            log.debug("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
+    if force:
+        if is_locked(_combined):
+            _wasLocked = True
+            mc.setAttr(_combined,lock=False)   
+            
+        if not is_keyed(_d):
+            if break_connection(_d):
+                log.debug("|{0}| >> broken connection: {1}".format(_str_func,_combined))    
             
     _current = get(_combined)
     if _current == value:
@@ -682,9 +685,11 @@ def set(node, attr = None, value = None, lock = False,**kws):
         
     else:
         mc.setAttr(_combined,value, **kws)
-
-    if _wasLocked or lock:
-        mc.setAttr(_combined,lock=True)    
+        
+    if force:
+        
+        if _wasLocked or lock:
+            mc.setAttr(_combined,lock=True)    
 
     return
     #except Exception,err:

@@ -308,9 +308,13 @@ def uiFunc_buildActionsColumn(self):
         mUI.MelMenuItem(pum, label="Move to Top", command=cgmGEN.Callback(uiFunc_move_action,self,i,'top') )
         mUI.MelMenuItem(pum, label="Move to Bottom", command=cgmGEN.Callback(uiFunc_move_action,self,i,'bottom') )
         mUI.MelMenuItem(pum, divider=True )
+        mUI.MelMenuItem( pum, l="Log Self",
+                         command=cgmGEN.Callback(uiFunc_logself_action,self,i))        
         mUI.MelMenuItem(pum, label="Delete", command=cgmGEN.Callback(uiFunc_remove_action,self,i) )
         mUI.MelMenuItem(pum, divider=True )
         mUI.MelMenuItem(pum, label="Run", command=cgmGEN.Callback(uiFunc_run_action,self,i) )
+        
+
 
         _dataColumn = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUIHeaderTemplate') 
         
@@ -356,6 +360,17 @@ def uiFunc_run(self):
         uiFunc_run_action(self, i)
         
     mc.currentTime(_current)
+
+def uiFunc_logself_action(self, idx):
+    _str_func = 'uiFunc_run_action[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    action = self._actionList[idx]
+    
+    cgmUI.log_selfReport(action)
+    #action.update_dict()
+    #pprint.pprint(self._optionDict)
+
 
 def uiFunc_run_action(self, idx):
     _str_func = 'uiFunc_run_action[{0}]'.format(self.__class__.TOOLNAME)            
@@ -606,7 +621,7 @@ class ui_post_filter(object):
 
     def update_dict(self):
         pass
-
+    
     def uiFunc_set_translate(self):
         self._optionDict['translate'] = self.uiFF_translate.getValue()
         self.uiCL_translate(e=True, vis=self._optionDict['translate'])
@@ -680,6 +695,88 @@ class ui_post_filter(object):
 
         _row.layout()
         
+    def add_limitRow(self,parentColumn, mode='translate'):
+
+
+        #self.uiTF_objects = mUI.MelLabel(_row, ut='cgmUIInstructionsTemplate', l= '')
+        
+        #if self._optionDict.get('objs'):
+        #    self.uiFunc_updateObjectsString()
+        #else:
+        #    self.uiFunc_setObjects()
+        
+        mc.setParent(parentColumn)
+        cgmUI.add_Header('Limits')
+        
+        for attr in 'XYZ':
+            _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
+    
+            mUI.MelSpacer(_row,w=_padding)
+            mUI.MelLabel(_row,l='Limit {}:'.format(attr))
+            
+            _row.setStretchWidget( mUI.MelSeparator(_row) )            
+            
+            self.__dict__['uiCB_{}{}MinLimitUse'.format(mode,attr)] = None
+            self.__dict__['uiFF_{}{}MinLimit'.format(mode,attr)] = None
+            
+            plug_cb_min = 'uiCB_{}{}MinLimitUse'.format(mode,attr)
+            plug_ff_min = 'uiFF_{}{}MinLimit'.format(mode,attr)     
+            
+            
+            self.__dict__['uiCB_{}{}MinLimitUse'.format(mode,attr)] = mUI.MelCheckBox(_row,label='min',
+                                                                                      v = self._optionDict.get('{}Min{}LimitUse'.format(mode,attr), False),
+                                                                                      )
+            self.__dict__['uiFF_{}{}MinLimit'.format(mode,attr)]  = mUI.MelFloatField(_row,w=75,
+                                            en=True,
+                                            ut='cgmUISubTemplate',                                               
+                                            v=self._optionDict.get('{}Min{}Limit'.format(mode,attr), 0))
+            
+            
+            
+            """
+            
+            self.__dict__[plug_cb_min](edit = True, cc = lambda *a:self.__dict__[plug_ff_min](edit = 1,
+                                                                                              bgc = [1,1,1],
+                                                                                              en = self.__dict__[plug_cb_min].getValue()))
+            
+            
+            self.__dict__[plug_ff_min](edit=1, enable = self.__dict__[plug_cb_min].getValue()) """       
+                                                   
+            
+    
+            
+            #max -------------------------------------------------------------------
+            self.__dict__['uiCB_{}{}MaxLimitUse'.format(mode,attr)] = None
+            self.__dict__['uiFF_{}{}MaxLimit'.format(mode,attr)] = None
+            
+            plug_cb_max = 'uiCB_{}{}MaxLimitUse'.format(mode,attr)
+            plug_ff_max = 'uiFF_{}{}MaxLimit'.format(mode,attr)     
+            
+            
+            self.__dict__['uiCB_{}{}MaxLimitUse'.format(mode,attr)] = mUI.MelCheckBox(_row,label='max',
+                                                                                      v = self._optionDict.get('{}Max{}LimitUse'.format(mode,attr), False),
+                                                                                      )
+            self.__dict__['uiFF_{}{}MaxLimit'.format(mode,attr)]  = mUI.MelFloatField(_row,w=75,
+                                            en=True,
+                                            ut='cgmUISubTemplate',                                               
+                                            v = self._optionDict.get('{}Max{}Limit'.format(mode,attr), False),
+                                            )
+            
+            
+            """
+            
+            self.__dict__[plug_cb_max](edit = True, cc = lambda *a:self.__dict__[plug_ff_max](edit = 1,
+                                                                                              bgc = [1,1,1],
+                                                                                              en = self.__dict__[plug_cb_max].getValue()))
+            
+            
+            self.__dict__[plug_ff_max](edit=1, enable = self.__dict__[plug_cb_max].getValue()) """                   
+            
+
+            mUI.MelSpacer(_row,w=_padding)
+    
+            _row.layout()
+        
     def add_cycleRow(self,parentColumn):
         _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
@@ -719,7 +816,7 @@ def add_timeRows(self,parent):
     mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row,l='Start Frame:')
     self.uiCB_startFrame = mUI.MelCheckBox(_row,en=True,
-                                           v = self._optionDict.get('starFrameUse', False),
+                                           v = self._optionDict.get('startFrameUse', False),
                                            label = '',
                                            ann='Use a start frame')
     
@@ -745,7 +842,7 @@ def add_timeRows(self,parent):
     mUI.MelSpacer(_row,w=_padding)
     mUI.MelLabel(_row,l='End Frame:')
     self.uiCB_endFrame = mUI.MelCheckBox(_row,en=True,
-                                           v = self._optionDict.get('starFrameUse', False),
+                                           v = self._optionDict.get('startFrameUse', False),
                                            label = '',
                                            ann='Use a end frame')
     
@@ -825,7 +922,7 @@ class ui_post_dragger_column(ui_post_filter):
 
         self.uiCL_translate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
         
-        # Post Damp
+        # Post Damp ===============================================================================================================================
         #
         _row = mUI.MelHSingleStretchLayout(self.uiCL_translate,ut='cgmUISubTemplate',padding = 5)
 
@@ -841,14 +938,18 @@ class ui_post_dragger_column(ui_post_filter):
         _row.layout()
         
         #
-        # End Damp
+        # End Damp -------------------------------------------------------------------------------------------------------------------------
+        mc.setParent(self.uiCL_translate)
+        cgmUI.add_LineSubBreak()          
+        self.add_limitRow(self.uiCL_translate,'translate')
+        mUI.MelSeparator(self.uiCL_translate, style = 'shelf')
 
         self.uiCL_translate(e=True, vis=self._optionDict['translate'])
 
         mc.setParent(parentColumn)
         cgmUI.add_LineSubBreak()  
 
-        # Rotate
+        # Rotate ===============================================================================================================================
         #
         _row = mUI.MelHSingleStretchLayout(parentColumn,ut='cgmUISubTemplate',padding = 5)
 
@@ -864,11 +965,11 @@ class ui_post_dragger_column(ui_post_filter):
         _row.layout()
         
         #
-        # End Rotate
+        # End Rotate -------------------------------------------------------------------------------------------------------------------------
 
         self.uiCL_rotate = mUI.MelColumnLayout(parentColumn,useTemplate = 'cgmUISubTemplate') 
 
-        # Aim
+        # Aim ===============================================================================================================================
         #
         _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
         self._post_row_aimDirection = _row
@@ -902,9 +1003,9 @@ class ui_post_dragger_column(ui_post_filter):
 
         _row.layout()
         #
-        # End Aim
+        # End Aim -------------------------------------------------------------------------------------------------------------------------
 
-        # Post Angular Damp
+        # Post Angular Damp ===============================================================================================================================
         #
         _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
 
@@ -919,9 +1020,9 @@ class ui_post_dragger_column(ui_post_filter):
 
         _row.layout()
         #
-        # End Angular Damp
+        # End Angular Damp -------------------------------------------------------------------------------------------------------------------------
 
-        # Post Angular Up Damp
+        # Post Angular Up Damp ===============================================================================================================================
         #
         _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
         mUI.MelSpacer(_row,w=_padding)
@@ -931,12 +1032,12 @@ class ui_post_dragger_column(ui_post_filter):
         mUI.MelSpacer(_row,w=_padding)
         _row.layout()
         #
-        # End Angular Damp
+        # End Angular Damp -------------------------------------------------------------------------------------------------------------------------
 
         mc.setParent(self.uiCL_rotate)
         cgmUI.add_LineSubBreak()  
 
-        # Post Object Scale
+        # Post Object Scale ===============================================================================================================================
         #
         _row = mUI.MelHSingleStretchLayout(self.uiCL_rotate,ut='cgmUISubTemplate',padding = 5)
 
@@ -957,8 +1058,11 @@ class ui_post_dragger_column(ui_post_filter):
 
         _row.layout()
         #
-        # End Object Scale
-        
+        # End Object Scale -------------------------------------------------------------------------------------------------------------------------
+        mc.setParent(self.uiCL_rotate)
+        cgmUI.add_LineSubBreak()          
+        self.add_limitRow(self.uiCL_rotate,'rotate')
+        mUI.MelSeparator(self.uiCL_rotate, style = 'shelf')        
         #Extra rows -------------------------------------------------------------
         add_timeRows(self,parentColumn)#...add our time rows
         self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
@@ -1044,19 +1148,69 @@ class ui_post_dragger_column(ui_post_filter):
         self._optionDict['cycleState'] = self.uiCB_cycleState.getValue() if hasattr(self,'uiCB_cycleState') else False
         self._optionDict['cycleBlend'] = self.uiIF_cycleBlend.getValue() if hasattr(self,'uiIF_cycleBlend') else 5
         self._optionDict['cycleMode'] = self.uiOM_cycleMode.getValue() if hasattr(self,'uiOM_cycleMode') else 'singleCut'
+        
+        
+        for a in 'XYZ':
+            self._optionDict['translateMin{}LimitUse'.format(a)] = self.__dict__['uiCB_translate{}MinLimitUse'.format(a)].getValue() if hasattr(self,'uiCB_translate{}MinLimitUse'.format(a)) else False
+            self._optionDict['translateMin{}Limit'.format(a)] = self.__dict__['uiFF_translate{}MinLimit'.format(a)].getValue() if hasattr(self,'uiFF_translate{}MinLimit'.format(a)) else False
+            self._optionDict['translateMax{}LimitUse'.format(a)] = self.__dict__['uiCB_translate{}MaxLimitUse'.format(a)].getValue() if hasattr(self,'uiCB_translate{}MaxLimitUse'.format(a)) else False
+            self._optionDict['translateMax{}Limit'.format(a)] = self.__dict__['uiFF_translate{}MaxLimit'.format(a)].getValue() if hasattr(self,'uiFF_translate{}MaxLimit'.format(a)) else False
+            
+            
+            self._optionDict['rotateMin{}LimitUse'.format(a)] = self.__dict__['uiCB_rotate{}MinLimitUse'.format(a)].getValue() if hasattr(self,'uiCB_rotate{}MinLimitUse'.format(a)) else False
+            self._optionDict['rotateMin{}Limit'.format(a)] = self.__dict__['uiFF_rotate{}MinLimit'.format(a)].getValue() if hasattr(self,'uiFF_rotate{}MinLimit'.format(a)) else False
+            self._optionDict['rotateMax{}LimitUse'.format(a)] = self.__dict__['uiCB_rotate{}MaxLimitUse'.format(a)].getValue() if hasattr(self,'uiCB_rotate{}MaxLimitUse'.format(a)) else False
+            self._optionDict['rotateMax{}Limit'.format(a)] = self.__dict__['uiFF_rotate{}MaxLimit'.format(a)].getValue() if hasattr(self,'uiFF_rotate{}MaxLimit'.format(a)) else False            
+            
+
+        '''
+        plug_cb_min = self.__dict__['uiCB_{}MinLimitUse'.format(mode)]
+        plug_ff_min = self.__dict__['uiFF_{}MinLimit'.format(mode)]   
+        '''
 
 
     def run(self):
         self.update_dict()
         
         pprint.pprint(self._optionDict)
+        reload(DRAGGER)
 
         for obj in self._optionDict['objs']:
             mc.select(obj)
             postInstance = DRAGGER.Dragger(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], angularDamp = self._optionDict['angularDamp'], angularUpDamp = self._optionDict['angularUpDamp'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'], objectScale=self._optionDict['objectScale'], debug=self._optionDict['debug'], showBake=self._optionDict['showBake'],
             cycleState = self._optionDict['cycleState'],
             cycleBlend =  self._optionDict['cycleBlend'],
-            cycleMode =  self._optionDict['cycleMode'])
+            cycleMode =  self._optionDict['cycleMode'],
+            translateMinXLimitUse = self._optionDict['translateMinXLimitUse'],
+            translateMinXLimit = self._optionDict['translateMinXLimit'],
+            translateMaxXLimitUse = self._optionDict['translateMaxXLimitUse'],
+            translateMaxXLimit = self._optionDict['translateMaxXLimit'],
+            
+            translateMinYLimitUse = self._optionDict['translateMinYLimitUse'],
+            translateMinYLimit = self._optionDict['translateMinYLimit'],
+            translateMaxYLimitUse = self._optionDict['translateMaxYLimitUse'],
+            translateMaxYLimit = self._optionDict['translateMaxYLimit'],
+            
+            translateMinZLimitUse = self._optionDict['translateMinZLimitUse'],
+            translateMinZLimit = self._optionDict['translateMinZLimit'],
+            translateMaxZLimitUse = self._optionDict['translateMaxZLimitUse'],
+            translateMaxZLimit = self._optionDict['translateMaxZLimit'],
+            
+            rotateMinXLimitUse = self._optionDict['rotateMinXLimitUse'],
+            rotateMinXLimit = self._optionDict['rotateMinXLimit'],
+            rotateMaxXLimitUse = self._optionDict['rotateMaxXLimitUse'],
+            rotateMaxXLimit = self._optionDict['rotateMaxXLimit'],
+            
+            rotateMinYLimitUse = self._optionDict['rotateMinYLimitUse'],
+            rotateMinYLimit = self._optionDict['rotateMinYLimit'],
+            rotateMaxYLimitUse = self._optionDict['rotateMaxYLimitUse'],
+            rotateMaxYLimit = self._optionDict['rotateMaxYLimit'],
+            
+            rotateMinZLimitUse = self._optionDict['rotateMinZLimitUse'],
+            rotateMinZLimit = self._optionDict['rotateMinZLimit'],
+            rotateMaxZLimitUse = self._optionDict['rotateMaxZLimitUse'],
+            rotateMaxZLimit = self._optionDict['rotateMaxZLimit'],             
+            )
             
             postInstance.bake(startTime=self.uiIF_startFrame.getValue() if self.uiCB_startFrame.getValue() else None,
                               endTime= self.uiIF_endFrame.getValue() if self.uiCB_endFrame.getValue() else None,
@@ -1158,6 +1312,10 @@ class ui_post_spring_column(ui_post_filter):
         _row.layout()
         #
         # End Damp
+        mc.setParent(self.uiCL_translate)
+        cgmUI.add_LineSubBreak()          
+        self.add_limitRow(self.uiCL_translate,'translate')
+        mUI.MelSeparator(self.uiCL_translate, style = 'shelf')        
 
         mc.setParent(parentColumn)
         cgmUI.add_LineSubBreak()  
@@ -1291,6 +1449,10 @@ class ui_post_spring_column(ui_post_filter):
         _row.layout()
         #
         # End Post Angular Up Damp
+        mc.setParent(self.uiCL_rotate)
+        cgmUI.add_LineSubBreak()          
+        self.add_limitRow(self.uiCL_rotate,'rotate')
+        mUI.MelSeparator(self.uiCL_rotate, style = 'shelf')        
 
         mc.setParent(self.uiCL_rotate)
         cgmUI.add_LineSubBreak()  
@@ -1409,17 +1571,59 @@ class ui_post_spring_column(ui_post_filter):
         self._optionDict['cycleBlend'] = self.uiIF_cycleBlend.getValue() if hasattr(self,'uiIF_cycleBlend') else 5
         self._optionDict['cycleMode'] = self.uiOM_cycleMode.getValue() if hasattr(self,'uiOM_cycleMode') else 'singleCut'
 
-        
+        for a in 'XYZ':
+            self._optionDict['translateMin{}LimitUse'.format(a)] = self.__dict__['uiCB_translate{}MinLimitUse'.format(a)].getValue() if hasattr(self,'uiCB_translate{}MinLimitUse'.format(a)) else False
+            self._optionDict['translateMin{}Limit'.format(a)] = self.__dict__['uiFF_translate{}MinLimit'.format(a)].getValue() if hasattr(self,'uiFF_translate{}MinLimit'.format(a)) else False
+            self._optionDict['translateMax{}LimitUse'.format(a)] = self.__dict__['uiCB_translate{}MaxLimitUse'.format(a)].getValue() if hasattr(self,'uiCB_translate{}MaxLimitUse'.format(a)) else False
+            self._optionDict['translateMax{}Limit'.format(a)] = self.__dict__['uiFF_translate{}MaxLimit'.format(a)].getValue() if hasattr(self,'uiFF_translate{}MaxLimit'.format(a)) else False
+            
+            
+            self._optionDict['rotateMin{}LimitUse'.format(a)] = self.__dict__['uiCB_rotate{}MinLimitUse'.format(a)].getValue() if hasattr(self,'uiCB_rotate{}MinLimitUse'.format(a)) else False
+            self._optionDict['rotateMin{}Limit'.format(a)] = self.__dict__['uiFF_rotate{}MinLimit'.format(a)].getValue() if hasattr(self,'uiFF_rotate{}MinLimit'.format(a)) else False
+            self._optionDict['rotateMax{}LimitUse'.format(a)] = self.__dict__['uiCB_rotate{}MaxLimitUse'.format(a)].getValue() if hasattr(self,'uiCB_rotate{}MaxLimitUse'.format(a)) else False
+            self._optionDict['rotateMax{}Limit'.format(a)] = self.__dict__['uiFF_rotate{}MaxLimit'.format(a)].getValue() if hasattr(self,'uiFF_rotate{}MaxLimit'.format(a)) else False            
+                
 
 
     def run(self):
         self.update_dict()
+        reload(SPRING)
         for obj in self._optionDict['objs']:
             mc.select(obj)
             postInstance = SPRING.Spring(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], springForce=self._optionDict['springForce'], angularDamp = self._optionDict['angularDamp'], angularSpringForce = self._optionDict['angularSpringForce'], angularUpDamp = self._optionDict['angularUpDamp'], angularUpSpringForce = self._optionDict['angularUpSpringForce'],objectScale=self._optionDict['objectScale'], translate=self._optionDict['translate'], rotate=self._optionDict['rotate'],debug=self._optionDict['debug'], showBake=self._optionDict['showBake'],
                                         cycleState = self._optionDict['cycleState'],
                                         cycleBlend =  self._optionDict['cycleBlend'],
-                                        cycleMode =  self._optionDict['cycleMode'])                                         
+                                        cycleMode =  self._optionDict['cycleMode'],
+                                        translateMinXLimitUse = self._optionDict['translateMinXLimitUse'],
+                                        translateMinXLimit = self._optionDict['translateMinXLimit'],
+                                        translateMaxXLimitUse = self._optionDict['translateMaxXLimitUse'],
+                                        translateMaxXLimit = self._optionDict['translateMaxXLimit'],
+                                        
+                                        translateMinYLimitUse = self._optionDict['translateMinYLimitUse'],
+                                        translateMinYLimit = self._optionDict['translateMinYLimit'],
+                                        translateMaxYLimitUse = self._optionDict['translateMaxYLimitUse'],
+                                        translateMaxYLimit = self._optionDict['translateMaxYLimit'],
+                                        
+                                        translateMinZLimitUse = self._optionDict['translateMinZLimitUse'],
+                                        translateMinZLimit = self._optionDict['translateMinZLimit'],
+                                        translateMaxZLimitUse = self._optionDict['translateMaxZLimitUse'],
+                                        translateMaxZLimit = self._optionDict['translateMaxZLimit'],
+                                        
+                                        rotateMinXLimitUse = self._optionDict['rotateMinXLimitUse'],
+                                        rotateMinXLimit = self._optionDict['rotateMinXLimit'],
+                                        rotateMaxXLimitUse = self._optionDict['rotateMaxXLimitUse'],
+                                        rotateMaxXLimit = self._optionDict['rotateMaxXLimit'],
+                                        
+                                        rotateMinYLimitUse = self._optionDict['rotateMinYLimitUse'],
+                                        rotateMinYLimit = self._optionDict['rotateMinYLimit'],
+                                        rotateMaxYLimitUse = self._optionDict['rotateMaxYLimitUse'],
+                                        rotateMaxYLimit = self._optionDict['rotateMaxYLimit'],
+                                        
+                                        rotateMinZLimitUse = self._optionDict['rotateMinZLimitUse'],
+                                        rotateMinZLimit = self._optionDict['rotateMinZLimit'],
+                                        rotateMaxZLimitUse = self._optionDict['rotateMaxZLimitUse'],
+                                        rotateMaxZLimit = self._optionDict['rotateMaxZLimit'],
+                                        )                                         
             
             
             

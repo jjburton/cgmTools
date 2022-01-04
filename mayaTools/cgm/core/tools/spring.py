@@ -28,7 +28,39 @@ log.setLevel(logging.INFO)
 class Spring(PostBake.PostBake):
     def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = .1, angularDamp = .1, angularUpDamp = .1, spring = 1.0, maxDistance = 100.0, objectScale = 100, pushForce = 8.0, springForce = 5.0, angularSpringForce = 5.0, angularUpSpringForce = 5.0, collider = None, rotate=True, translate=True,
                  cycleState = False, cycleBlend = 5, cycleMode = 'reverseBlend',
-
+                 minLimitUse = False,
+                 minLimit = None,
+                 maxLimitUse = False,
+                 maxLimit = None,
+                 translateMinXLimitUse = False,
+                 translateMinXLimit = None,
+                 translateMaxXLimitUse = False,
+                 translateMaxXLimit = None,
+                 
+                 translateMinYLimitUse = False,
+                 translateMinYLimit = None,
+                 translateMaxYLimitUse = False,
+                 translateMaxYLimit = None,
+                 
+                 translateMinZLimitUse = False,
+                 translateMinZLimit = None,
+                 translateMaxZLimitUse = False,
+                 translateMaxZLimit = None,
+                 
+                 rotateMinXLimitUse = False,
+                 rotateMinXLimit = None,
+                 rotateMaxXLimitUse = False,
+                 rotateMaxXLimit = None,
+                 
+                 rotateMinYLimitUse = False,
+                 rotateMinYLimit = None,
+                 rotateMaxYLimitUse = False,
+                 rotateMaxYLimit = None,
+                 
+                 rotateMinZLimitUse = False,
+                 rotateMinZLimit = None,
+                 rotateMaxZLimitUse = False,
+                 rotateMaxZLimit = None,
                  debug=False, showBake=False):
         PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
 
@@ -76,6 +108,41 @@ class Spring(PostBake.PostBake):
         self.cycleState = cycleState
         self.cycleMode = cycleMode
         
+        self.minLimitUse = minLimitUse
+        self.minLimit = minLimit
+        self.maxLimitUse = maxLimitUse
+        self.maxLimit = maxLimit
+        
+        self.translateMinXLimitUse = translateMinXLimitUse
+        self.translateMinXLimit = translateMinXLimit 
+        self.translateMaxXLimitUse = translateMaxXLimitUse 
+        self.translateMaxXLimit = translateMaxXLimit
+        
+        self.translateMinYLimitUse = translateMinYLimitUse
+        self.translateMinYLimit = translateMinYLimit 
+        self.translateMaxYLimitUse = translateMaxYLimitUse 
+        self.translateMaxYLimit = translateMaxYLimit 
+        
+        self.translateMinZLimitUse = translateMinZLimitUse
+        self.translateMinZLimit = translateMinZLimit 
+        self.translateMaxZLimitUse = translateMaxZLimitUse
+        self.translateMaxZLimit = translateMaxZLimit 
+        
+        self.rotateMinXLimitUse = rotateMinXLimitUse 
+        self.rotateMinXLimit = rotateMinXLimit 
+        self.rotateMaxXLimitUse = rotateMaxXLimitUse 
+        self.rotateMaxXLimit = rotateMaxXLimit 
+        
+        self.rotateMinYLimitUse = rotateMinYLimitUse 
+        self.rotateMinYLimit = rotateMinYLimit 
+        self.rotateMaxYLimitUse = rotateMaxYLimitUse 
+        self.rotateMaxYLimit = rotateMaxYLimit 
+        
+        self.rotateMinZLimitUse = rotateMinZLimitUse 
+        self.rotateMinZLimit = rotateMinZLimit 
+        self.rotateMaxZLimitUse = rotateMaxZLimitUse 
+        self.rotateMaxZLimit = rotateMaxZLimit             
+        
         #self.lastFwd = MATH.Vector3.forward()
         #self.lastUp = MATH.Vector3.up()
 
@@ -87,6 +154,23 @@ class Spring(PostBake.PostBake):
             self.positionForce = self.positionForce * (1.0 - self.damp)
             
             self.obj.p_position = self.previousPosition + (self.positionForce * deltaTime)
+            
+            
+            for a in 'XYZ':
+                for a2 in ['Min','Max']:
+                    _plugUse = 'translate{}{}LimitUse'.format(a2,a)
+                    _plugValue = 'translate{}{}Limit'.format(a2,a)
+                    _attr = 'translate{}'.format(a)
+                    
+                    if hasattr(self,_plugUse) and self.__dict__[_plugUse] and hasattr(self,_plugValue):
+                        _value = self.__dict__.get(_plugValue)
+                        if _value is not None:
+                            if a2 == 'Min':
+                                if self.obj.getMayaAttr(_attr) < _value:
+                                    self.obj.setMayaAttr(_attr, _value)
+                            else:
+                                if self.obj.getMayaAttr(_attr) > _value:
+                                    self.obj.setMayaAttr(_attr, _value)                  
             
         if self.rotate:
             self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale
@@ -104,6 +188,23 @@ class Spring(PostBake.PostBake):
             self.upTargetPos = self.upTargetPos + (self.angularUpForce * deltaTime)
                     
             SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.upTargetPos.normalized() )
+            
+            
+            for a in 'XYZ':
+                for a2 in ['Min','Max']:
+                    _plugUse = 'rotate{}{}LimitUse'.format(a2,a)
+                    _plugValue = 'rotate{}{}Limit'.format(a2,a)
+                    _attr = 'rotate{}'.format(a)
+                    
+                    if hasattr(self,_plugUse) and self.__dict__[_plugUse] and hasattr(self,_plugValue):
+                        _value = self.__dict__.get(_plugValue)
+                        if _value is not None:
+                            if a2 == 'Min':
+                                if self.obj.getMayaAttr(_attr) < _value:
+                                    self.obj.setMayaAttr(_attr, _value)
+                            else:
+                                if self.obj.getMayaAttr(_attr) > _value:
+                                    self.obj.setMayaAttr(_attr, _value)                  
 
         if self.debug:
             if not self._debugLoc:

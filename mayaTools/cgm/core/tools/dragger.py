@@ -19,7 +19,38 @@ import maya.cmds as mc
 import maya.mel as mel
 
 class Dragger(PostBake.PostBake):
-    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = 7.0, angularDamp=7.0, angularUpDamp=7.0,objectScale=100, rotate=True, translate=True,  cycleState = False, cycleBlend = 5, cycleMode = 'reverseBlend', debug=False, showBake=False):
+    def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = 7.0, angularDamp=7.0, angularUpDamp=7.0,objectScale=100, rotate=True, translate=True,  cycleState = False, cycleBlend = 5, cycleMode = 'reverseBlend', 
+                 translateMinXLimitUse = False,
+                 translateMinXLimit = None,
+                 translateMaxXLimitUse = False,
+                 translateMaxXLimit = None,
+                 
+                 translateMinYLimitUse = False,
+                 translateMinYLimit = None,
+                 translateMaxYLimitUse = False,
+                 translateMaxYLimit = None,
+                 
+                 translateMinZLimitUse = False,
+                 translateMinZLimit = None,
+                 translateMaxZLimitUse = False,
+                 translateMaxZLimit = None,
+                 
+                 rotateMinXLimitUse = False,
+                 rotateMinXLimit = None,
+                 rotateMaxXLimitUse = False,
+                 rotateMaxXLimit = None,
+                 
+                 rotateMinYLimitUse = False,
+                 rotateMinYLimit = None,
+                 rotateMaxYLimitUse = False,
+                 rotateMaxYLimit = None,
+                 
+                 rotateMinZLimitUse = False,
+                 rotateMinZLimit = None,
+                 rotateMaxZLimitUse = False,
+                 rotateMaxZLimit = None,                            
+
+                 debug=False, showBake=False):
         PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
 
         self.aimFwd = VALID.simpleAxis(aimFwd)
@@ -48,6 +79,37 @@ class Dragger(PostBake.PostBake):
         self.cycleBlend = cycleBlend
         self.cycleState = cycleState
         self.cycleMode = cycleMode
+        
+        self.translateMinXLimitUse = translateMinXLimitUse
+        self.translateMinXLimit = translateMinXLimit 
+        self.translateMaxXLimitUse = translateMaxXLimitUse 
+        self.translateMaxXLimit = translateMaxXLimit
+        
+        self.translateMinYLimitUse = translateMinYLimitUse
+        self.translateMinYLimit = translateMinYLimit 
+        self.translateMaxYLimitUse = translateMaxYLimitUse 
+        self.translateMaxYLimit = translateMaxYLimit 
+        
+        self.translateMinZLimitUse = translateMinZLimitUse
+        self.translateMinZLimit = translateMinZLimit 
+        self.translateMaxZLimitUse = translateMaxZLimitUse
+        self.translateMaxZLimit = translateMaxZLimit 
+        
+        self.rotateMinXLimitUse = rotateMinXLimitUse 
+        self.rotateMinXLimit = rotateMinXLimit 
+        self.rotateMaxXLimitUse = rotateMaxXLimitUse 
+        self.rotateMaxXLimit = rotateMaxXLimit 
+        
+        self.rotateMinYLimitUse = rotateMinYLimitUse 
+        self.rotateMinYLimit = rotateMinYLimit 
+        self.rotateMaxYLimitUse = rotateMaxYLimitUse 
+        self.rotateMaxYLimit = rotateMaxYLimit 
+        
+        self.rotateMinZLimitUse = rotateMinZLimitUse 
+        self.rotateMinZLimit = rotateMinZLimit 
+        self.rotateMaxZLimitUse = rotateMaxZLimitUse 
+        self.rotateMaxZLimit = rotateMaxZLimit      
+        
 
     def update(self, deltaTime=.04):
         #dir = self.obj.getTransformDirection(self.aimFwd.p_vector)
@@ -57,6 +119,23 @@ class Dragger(PostBake.PostBake):
         if self.translate:
             self.obj.p_position = MATH.Vector3.Lerp(VALID.euclidVector3Arg(self.previousPosition), VALID.euclidVector3Arg(self._bakedLoc.p_position), deltaTime*self.damp)
             
+            for a in 'XYZ':
+                for a2 in ['Min','Max']:
+                    _plugUse = 'translate{}{}LimitUse'.format(a2,a)
+                    _plugValue = 'translate{}{}Limit'.format(a2,a)
+                    _attr = 'translate{}'.format(a)
+                    
+                    if hasattr(self,_plugUse) and self.__dict__[_plugUse] and hasattr(self,_plugValue):
+                        _value = self.__dict__.get(_plugValue)
+                        if _value is not None:
+                            if a2 == 'Min':
+                                if self.obj.getMayaAttr(_attr) < _value:
+                                    self.obj.setMayaAttr(_attr, _value)
+                            else:
+                                if self.obj.getMayaAttr(_attr) > _value:
+                                    self.obj.setMayaAttr(_attr, _value)                                 
+                        
+                       
         if self.rotate:
             wantedTargetPos = ((VALID.euclidVector3Arg(self.obj.p_position) + self.dir) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
             
@@ -67,6 +146,23 @@ class Dragger(PostBake.PostBake):
             self.lastFwd = MATH.Vector3.Lerp( self.lastFwd, self._bakedLoc.getTransformDirection(self.aimFwd.p_vector), min(deltaTime * self.angularDamp, 1.0) ).normalized()
             
             SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
+            
+            
+            for a in 'XYZ':
+                for a2 in ['Min','Max']:
+                    _plugUse = 'rotate{}{}LimitUse'.format(a2,a)
+                    _plugValue = 'rotate{}{}Limit'.format(a2,a)
+                    _attr = 'rotate{}'.format(a)
+                    
+                    if hasattr(self,_plugUse) and self.__dict__[_plugUse] and hasattr(self,_plugValue):
+                        _value = self.__dict__.get(_plugValue)
+                        if _value is not None:
+                            if a2 == 'Min':
+                                if self.obj.getMayaAttr(_attr) < _value:
+                                    self.obj.setMayaAttr(_attr, _value)
+                            else:
+                                if self.obj.getMayaAttr(_attr) > _value:
+                                    self.obj.setMayaAttr(_attr, _value)         
 
         if self.debug:
             if not self._debugLoc:
