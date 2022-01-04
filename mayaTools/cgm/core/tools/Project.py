@@ -13,6 +13,7 @@ import copy
 import os
 import pprint
 import getpass
+import sys
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -1489,6 +1490,8 @@ def uiProject_clear(self,path=None,revert=False):
     try:self.reload_headerImage()
     except:
         pass
+    
+
                 
 def uiProject_lock(self):
     _str_func = 'uiProject_lock'
@@ -1676,12 +1679,25 @@ def uiProject_load(self,path=None,revert=False):
     
     if path == None and revert is True:
         path = self.path_projectConfig or self.mDat.str_filepath
-    
+        
+        
+    #Clear paths
+    try:_pathScripts = self.d_userPaths.get('scripts')
+    except:_pathScripts = None
+    if _pathScripts:
+        _pathScripts = os.path.normpath(_pathScripts)
+        if _pathScripts in sys.path:
+            sys.path.remove(_pathScripts)        
+            log.warning(cgmGEN.logString_sub(_str_func,"Removing project script path: {}".format(_pathScripts)))        
+
     #if self.mDat.str_filepath != path:
     self.mDat.read(path)
     
     uiProject_clear(self)
     uiProject_fill(self,fillDir = 1)
+    
+    d_userPaths = self.mDat.userPaths_get()
+    self.d_userPaths = d_userPaths    
     
     #Set maya project path
     log.debug(cgmGEN.logString_sub(_str_func,"Push Paths..."))
@@ -1698,6 +1714,14 @@ def uiProject_load(self,path=None,revert=False):
     
     uiAsset_rebuildOptionMenu(self)
     uiAsset_rebuildSub(self)
+    
+    try:_pathScripts = self.d_userPaths.get('scripts')
+    except:_pathScripts = None
+    if _pathScripts:
+        _pathScripts = os.path.normpath(_pathScripts)
+        if _pathScripts not in sys.path:
+            sys.path.append(_pathScripts)
+            log.warning(cgmGEN.logString_msg(_str_func,"project script path append: {}".format(_pathScripts)))      
 
     
 def uiAssetTypes_refill(self):
