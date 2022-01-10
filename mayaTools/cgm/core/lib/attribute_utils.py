@@ -553,7 +553,7 @@ def set_standardFlags(node, attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz
             for arg in e.args:
                 log.warning(arg)
 
-def set(node, attr = None, value = None, lock = False,force=False, **kws):
+def set(node, attr = None, value = None, lock = False,force=True, **kws):
     """   
     Replacement for setAttr which get's message objects as well as parses double3 type 
     attributes to a list  
