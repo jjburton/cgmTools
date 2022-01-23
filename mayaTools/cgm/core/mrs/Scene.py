@@ -1032,7 +1032,8 @@ example:
                                          ann='Select the sub type', en=True )
 
         self.subTypeMenu = mUI.MelPopupMenu(self.subTypeBtn, button=1 )
-        self.subTypeSearchList = self.build_searchable_list(_setsForm, sc=self.uiFunc_subTypeList_select)
+        self.subTypeSearchList = self.build_searchable_list(_setsForm, sc=self.uiFunc_subTypeList_select,
+                                                            refreshCommand=lambda *a:self.LoadSubTypeList())
         
         #JOSH HERE
         pum = mUI.MelPopupMenu(self.subTypeSearchList['scrollList'],
@@ -1135,7 +1136,9 @@ example:
                                               label='Variation',ut='cgmUITemplate',
                                               ann='Select the asset variation', en=False)
 
-        self.variationList = self.build_searchable_list(_variationForm, sc=self.uiFunc_variationList_select)
+        self.variationList = self.build_searchable_list(_variationForm, sc=self.uiFunc_variationList_select,
+                                                        refreshCommand=lambda *a:self.LoadVariationList())
+                                                        
         
    
         pum = mUI.MelPopupMenu(self.variationList['scrollList'],
@@ -1210,7 +1213,9 @@ example:
                                             label='Version',ut='cgmUITemplate',
                                             ann='Select the asset version', en=False)
 
-        self.versionList = self.build_searchable_list(_versionForm, sc=self.uiFunc_versionList_select)
+        self.versionList = self.build_searchable_list(_versionForm, sc=self.uiFunc_versionList_select,
+                                                      refreshCommand=lambda *a:self.LoadVersionList())
+                                                      
 
         pum = mUI.MelPopupMenu(self.versionList['scrollList'],
                                pmc= lambda *a: self.UpdateVersionTSLPopup(self.uiPop_sendToProject_version))
@@ -2791,7 +2796,7 @@ example:
     #####
     ## Searchable Lists
     #####
-    def build_searchable_list(self, parent = None, sc=None):
+    def build_searchable_list(self, parent = None, sc=None, refreshCommand = None):
         _margin = 0
 
         if not parent:
@@ -2799,9 +2804,10 @@ example:
 
         form = mUI.MelFormLayout(parent,ut='cgmUITemplate')
 
-        rcl = mc.rowColumnLayout(numberOfColumns=2, adjustableColumn=1)
+        rcl = mUI.MelHSingleStretchLayout(form)
 
         tx = mUI.MelTextField(rcl)
+        rcl.setStretchWidget(tx)
         b = mUI.MelButton(rcl, label='clear', ut='cgmUISubTemplate')
 
         tsl = cgmUI.cgmScrollList(form)
@@ -2811,7 +2817,14 @@ example:
             #tsl.set_selCallBack(sc)
             tsl.cmd_select = sc
             #tsl(edit = True, sc=sc)
-
+            
+        if refreshCommand:
+            mUI.MelButton(rcl, label='Refresh', ut='cgmUISubTemplate',
+                          ann='Recheck the target directory for new data',
+                          c=refreshCommand)
+            
+        rcl.layout()
+        
         form( edit=True, attachForm=[(rcl, 'top', _margin), (rcl, 'left', _margin), (rcl, 'right', _margin), (tsl, 'bottom', _margin), (tsl, 'right', _margin), (tsl, 'left', _margin)], attachControl=[(tsl, 'top', _margin, rcl)] )
 
         searchableList = {'formLayout':form, 'scrollList':tsl, 'searchField':tx, 'searchButton':b, 'items':[], 'selectCommand':sc}

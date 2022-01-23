@@ -4798,6 +4798,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                 else:
                     mPrerigProxyDup = mPrerigProxy.doDuplicate(po=False)
                     
+                #_res = mc.polyUnite([mProxy.mNode, mPrerigProxyDup.mNode],ch=False,objectPivot=True)
+                #...shape paretning mucks up skinning
                 CORERIG.shapeParent_in_place(mProxy.mNode, mPrerigProxyDup.mNode,False,True)
                 ATTR.copy_to(ml_moduleJoints[0].mNode,'cgmName',mProxy.mNode,driven = 'target')
                 mProxy.addAttr('cgmType','proxyPuppetGeo')
@@ -5026,7 +5028,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                 
             #log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
             if skin:
-                if len(mGeo.getShapes()) > 2:
+                if len(mGeo.getShapes()) > 1:
                     _strBase  = mGeo.p_nameBase
                     _res = mc.polyUnite(mGeo.mNode,ch=False,objectPivot=True)
                     _mesh = mc.rename(_res[0],_strBase)

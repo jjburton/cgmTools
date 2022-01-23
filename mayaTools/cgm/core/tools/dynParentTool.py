@@ -1171,7 +1171,7 @@ def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}, Call
             d_buffer = {'mDynParent':mDynParentGroup,'attrs':[],'attrOptions':{}}#Build our data gatherer					    
             if mDynParentGroup:
                 try:
-                    for a in cgmRigMeta.d_DynParentGroupModeAttrs[mDynParentGroup.dynMode]:
+                    for a in cgmRigMeta.d_DynParentGroupModeAttrs[mDynParentGroup.dynMode] + ['scaleSpace']:
                         if mObj.hasAttr(a):
                             d_buffer['attrs'].append(a)
                             lBuffer_attrOptions = []
@@ -1195,24 +1195,22 @@ def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}, Call
     for mObj in self.md_spaceSwitchDat.keys():
         if self.md_spaceSwitchDat[mObj].get('mDynParent'):
             attrs = self.md_spaceSwitchDat[mObj].get('attrs') or []
+            
             attrOptions = self.md_spaceSwitchDat[mObj].get('attrOptions') or {}
+            
             if self.md_spaceSwitchDat[mObj].get('mDynParent'):
-                
                 for a,options in attrOptions.iteritems():
                     for o in options:
                         if o not in d_sharedOptionsDat.keys():
                             d_sharedOptionsDat[o] = [[mObj,a]]
                         else:
                             d_sharedOptionsDat[o].append([mObj,a])
+                            
                 if not l_commonAttrs:# and not bool_firstFound:
                     l_commonAttrs = attrs
                     state_firstFound = True
                     d_sharedAttrsDat = attrOptions
                     
-                    #for a,options in attrOptions.iteritems():
-                        #for o in options:
-                            #if o not in d_sharedOptionsDat.keys():
-                                #d_sharedOptionsDat[o] = [[mObj,a]]
                             
                 elif attrs:
                     log.debug(attrs)
@@ -1222,7 +1220,7 @@ def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}, Call
                                 if option not in attrOptions[a]:
                                     d_sharedAttrsDat[a].remove(option)
                                 
-                                    
+    #pprint.pprint(self.md_spaceSwitchDat)
     d_cull = {}
     for o,l in d_sharedOptionsDat.iteritems():
         if len(l)>=2:
@@ -1266,7 +1264,7 @@ def uiMenu_changeSpace(self, parent, showNoSel = False, d_timeContext = {}, Call
                 
     # Individual ----------------------------------------------------------------------------
     #log.debug("%s"%[k.getShortName() for k in self.md_spaceSwitchDat.keys()])
-    
+    pprint.pprint(self.md_spaceSwitchDat)
     for mObj,d_buffer in self.md_spaceSwitchDat.iteritems():
         _short = mObj.p_nameShort
         _base = mObj.p_nameBase
@@ -1322,6 +1320,7 @@ def func_process(md_spaceSwitchDat={},attr=None,option=None,d_timeContext = {},*
     
     _contextTime = d_timeContext.get('contextTime',cgmMeta.cgmOptionVar('cgmVar_mrsContext_time',
                                                           defaultValue = 'current').value)
+    
     _contextKeys = d_timeContext.get('contextKeys',cgmMeta.cgmOptionVar('cgmVar_mrsContext_keys',
                                                           defaultValue = 'each').value)
     log.info(cgmGEN.logString_msg(_str_func, "Time: {0} | Keys: {1}".format(_contextTime,_contextKeys)))
