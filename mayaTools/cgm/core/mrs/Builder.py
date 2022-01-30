@@ -9453,7 +9453,7 @@ class ui_createBlock(CGMUI.cgmGUI):
         if mBuilder:
             if mBuilder._blockCurrent:
                 mActiveBlock = mBuilder._blockCurrent.mNode
-                d_create['blockParent'] = mActiveBlockchr
+                d_create['blockParent'] = mActiveBlock
                 #side = self._blockCurrent.UTILS.get_side(self._blockCurrent)            
         
         _sel = mc.ls(sl=1) or []
