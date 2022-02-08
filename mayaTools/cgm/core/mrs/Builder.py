@@ -9389,7 +9389,7 @@ class ui_createBlock(CGMUI.cgmGUI):
         self.create_guiOptionVar('buildProfile',defaultValue = '')
         
         self._d_modules = RIGBLOCKS.get_modules_dat(True)#...refresh data
-        
+        self.blockType = None
         
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
@@ -9577,7 +9577,10 @@ class ui_createBlock(CGMUI.cgmGUI):
         _profile = self.uiOM_profile.getValue()
         log.info(_profile)
         
-        mBlockModule = self._d_modules[0][self.blockType]
+        try:mBlockModule = self._d_modules[0][self.blockType]
+        except:
+            log.warning("|{0}| >> No block type stored".format(_str_func))
+            return
         
         try:_d = mBlockModule.d_block_profiles[_profile]
         except:
