@@ -28,6 +28,8 @@ import cgm.core.tools.Project as PROJECT
 
 import Red9.core.Red9_General as r9General
 
+
+
 import cgm.core.classes.GuiFactory as cgmUI
 #reload(cgmUI)
 mUI = cgmUI.mUI
@@ -36,6 +38,10 @@ import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.cgmPy.os_Utils as CGMOS
 
 import cgm.images as cgmImages
+
+import cgm.images.icons as cgmIcons
+_path_imageFolder = PATHS.Path(cgmIcons.__file__).up().asFriendly()
+
 
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
@@ -2819,9 +2825,15 @@ example:
             #tsl(edit = True, sc=sc)
             
         if refreshCommand:
+            mUI.MelIconButton(rcl,
+                              ann='Recheck the target directory for new data',
+                              image=os.path.join(_path_imageFolder,'refresh.png') ,
+                              w=25,h=25,
+                              c=refreshCommand)
+            '''
             mUI.MelButton(rcl, label='Refresh', ut='cgmUISubTemplate',
                           ann='Recheck the target directory for new data',
-                          c=refreshCommand)
+                          c=refreshCommand)'''
             
         rcl.layout()
         

@@ -80,6 +80,9 @@ from cgm.core.lib import nameTools as NAMETOOLS
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.post_utils as MRSPOST
 
+import cgm.images.icons as cgmIcons
+_path_imageFolder = PATHS.Path(cgmIcons.__file__).up().asFriendly()
+
 #for m in BLOCKGEN,BLOCKSHARE,BUILDERUTILS,SHARED,CONTEXT,CGMUI:
     #reload(m)
 _d_blockTypes = {}
@@ -9680,7 +9683,7 @@ class ui_createBlock(CGMUI.cgmGUI):
         self.uiLabel_blockType = mUI.MelLabel(_inside, label = 'Pick Type',  ut = 'cgmUIHeaderTemplate', align = 'center')
         
         
-        _row_blockTypes = mUI.MelHLayout(_inside,ut='cgmUIHeaderTemplate',padding = 2)
+        _row_blockTypes = mUI.MelHRowLayout(_inside,ut='cgmUIHeaderTemplate')
         
         _d = copy.copy(self._d_modules)
         for b in _d[0]:
@@ -9688,8 +9691,21 @@ class ui_createBlock(CGMUI.cgmGUI):
                 
                 #mUI.MelIconButton(_row_blockTypes,w=50,
                 #                  style = 'iconAndTextVertical', l=b,ann=b)
-                mUI.MelButton(_row_blockTypes,l=b,ann=b, bgc=d_state_colors['form'],
-                              c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
+                _icon = None
+                try:
+                    _icon = os.path.join(_path_imageFolder,'mrs','{}.png'.format(b))
+                except:
+                    pass
+                
+                if _icon:
+                    mUI.MelIconButton(_row_blockTypes,
+                                      ann=b, bgc=d_state_colors['form'],
+                                      image=_icon ,
+                                      w=50,h=50,
+                                      c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
+                else:
+                    mUI.MelButton(_row_blockTypes,l=b,ann=b, bgc=d_state_colors['prerig'],
+                                  c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
                 """
                 mUI.MelMenuItem(self.uiMenu_add, l=b,
                                 c=cgmGEN.Callback(self.uiFunc_block_create,b),
@@ -9701,7 +9717,7 @@ class ui_createBlock(CGMUI.cgmGUI):
                         mUI.MelMenuItem(self.uiMenu_add, l=o,
                                         c=cgmGEN.Callback(self.uiFunc_block_create,b,o),
                                         ann="{0} : {1}".format(b, self.uiFunc_block_create))    """    
-        
+    
         _row_blockTypes.layout()
         """
         if force:

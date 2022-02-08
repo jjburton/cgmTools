@@ -10,9 +10,9 @@ Website : http://www.cgmonastery.com
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '22.01.30.1'
+__RELEASE = '22.02.08.1'
 
-__BRANCH = 'MRSDAILY'
+__BRANCH = 'MRSDEV'
 
 import maya.cmds as mc
 import maya.mel as mel
