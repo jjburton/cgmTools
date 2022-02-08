@@ -38,6 +38,7 @@ import maya.cmds as mc
 # From cgm ==============================================================
 from cgm.core import cgm_General as cgmGEN
 import cgm.core.cgmPy.path_Utils as PATHS
+import cgm.core.lib.transform_utils as TRANS
 
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
@@ -64,9 +65,11 @@ from cgm.core.mrs.lib import blockShapes_utils as BLOCKSHAPES
 from cgm.core.mrs.lib import ModuleControlFactory as MODULECONTROLFACTORY
 from cgm.core.mrs.lib import ModuleShapeCaster as MODULESHAPECASTER
 from cgm.core.rig import ik_utils as IK
-
+import cgm.core.tools.lib.snap_calls as SNAPCALLS
+import cgm.core.classes.DraggerContextFactory as dragFactory
 from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
 import cgm.core.lib.string_utils as CORESTRINGS
+import cgm.core.classes.DraggerContextFactory as DRAGGER
 
 from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
@@ -114,7 +117,7 @@ _sidePadding = 25
 
 
 def buildFrame_helpers(self,parent,changeCommand = ''):
-    
+    """
     try:self.var_rayCastMode
     except:self.create_guiOptionVar('rayCastMode',defaultValue = 0)
     
@@ -122,11 +125,20 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     except:self.create_guiOptionVar('rayCastOffsetMode',defaultValue = 0)
     
     try:self.var_rayCastOffsetDist
-    except:self.create_guiOptionVar('rayCastOffsetDist',defaultValue = 1.0)
+    except:self.create_guiOptionVar('rayCastOffsetDist',defaultValue = 1.0)"""
         
-
+    self.var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_rayCastMode', defaultValue=0)
+    self.var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetMode', defaultValue=0)
+    self.var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetDist', defaultValue=1.0) 
+    #self.var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0)    
+    
     try:self.var_helpersFrameCollapse
     except:self.create_guiOptionVar('helpersFrameCollapse',defaultValue = 0)
+    
+
+    
+    
+    
     mVar_frame = self.var_helpersFrameCollapse
     
     _frame = mUI.MelFrameLayout(parent,label = 'Helpers',vis=True,
@@ -235,3 +247,212 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     _row_offset.layout()
 
     
+def createBlockHelper(self = None, count= 1, mode = 'simple', baseSize = [1,1,1]):
+    _str_func = 'uiFunc_createHelper'
+    log.info("|{}| >>... {} | {} | {}".format(_str_func, count, mode,baseSize))
+    
+    
+    if mode == 'simple':
+        for i in range(count):
+            mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='block_{}_helper'.format(i), ch=False)[0])
+            mSphere.scale = baseSize
+
+    elif mode == 'raycast':
+        #reload(SNAPCALLS)
+        #mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='ref_helper', ch=False)[0])
+        #mSphere.select()
+        mCaster = helpers_raycast(self, None,'duplicate',False, toCreate = ['block_{}_helper'.format(i) for i in range(count)])
+        #mSphere.delete()
+        #pprint.pprint(mCaster.l_created)
+        #self._l_toDuplicate
+        
+        """
+        return helperRayCaster(mode = 'midPoint',
+                               mesh = geo,
+                               create = 'locator',
+                               toCreate = ['block_{}_helper'.format(i) for i in range(count)])"""          
+        
+        
+        return
+
+    
+def helpers_raycast(self = None, targets = [], create = None, drag = False, snap=True, aim=False, toCreate=[], kwsOnly = False):
+    '''
+    self = data storage
+    '''
+    
+    class helperRayCaster(dragFactory.clickMesh):
+        """Sublass to get the functs we need in there"""
+        def __init__(self,mStorage = None,**kws):
+            if kws:log.info("kws: %s"%str(kws))
+
+            super(helperRayCaster, self).__init__(**kws)
+            self.mStorage = mStorage
+            log.info("Please place '%s'"%self.l_toCreate[0])
+        
+        def press_pre_insert(self):
+            mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='ref_helper', ch=False)[0])
+            mSphere.p_position = 10000,10000,10000
+            self._l_toDuplicate = [mSphere.mNode]
+            
+        def press_post_insert(self):
+            log.info('here')
+            try:_obj = self._createModeBuffer[-1]
+            except:
+                pass
+            _x = RAYS.get_dist_from_cast_axis(_obj,'x')
+            _z = RAYS.get_dist_from_cast_axis(_obj,'z')
+            _y = MATH.average(_x,_z)
+            _box = [_x,_y,_z]
+            TRANS.scale_to_boundingBox( _obj, _box)            
+            
+        
+        def release(self):
+            if len(self.l_return)< len(self.l_toCreate)-1:#If we have a prompt left
+                log.info("Please place '%s'"%self.l_toCreate[len(self.l_return)+1])            
+            dragFactory.clickMesh.release(self)
+            mc.delete(self._l_toDuplicate)
+
+
+        def finalize(self):
+            log.info("returnList: %s"% self.l_return)
+            log.info("createdList: %s"% self.l_created)   
+            buffer = [] #self.mStorage.templateNull.templateStarterData
+            log.info("starting data: %s"% buffer)
+
+            #Make sure we have enough points
+            #==============  
+            '''
+            handles = self.mStorage.templateNull.handles
+            if len(self.l_return) < handles:
+                log.warning("Creating curve to get enough points")                
+                curve = CURVES.curveFromPosList(self.l_return)
+                mc.rebuildCurve (curve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0,s=(handles-1), d=1, tol=0.001)
+                self.l_return = curves.returnCVsPosList(curve)#Get the pos of the cv's
+                mc.delete(curve)'''
+
+            #Store info
+            #==============
+            '''
+            for i,p in enumerate(self.l_return):
+                buffer.append(p)#need to ensure it's storing properly
+                #log.info('[%s,%s]'%(buffer[i],p))'''
+
+            #Store locs
+            #==============  
+            '''
+            log.info("finish data: %s"% buffer)
+            self.mStorage.templateNull.__setattr__('templateStarterData',buffer,lock=True)
+            #self.mStorage.templateNull.templateStarterData = buffer#store it
+            log.info("'%s' sized!"%self._str_moduleName)'''
+            dragFactory.clickMesh.finalize(self)
+            
+
+    _str_func = 'helpers_raycast'
+    _toSnap = False
+    _toAim = False
+    if not targets:
+        targets = mc.ls(sl=True)
+        
+    if snap:
+        if not create or create == 'duplicate':
+            #targets = mc.ls(sl=True)#...to use g to do again?...    
+            _toSnap = targets
+
+            log.debug("|{0}| | targets: {1}".format(_str_func,_toSnap))
+            if not _toSnap:
+                #if create == 'duplicate':
+                #    log.error("|{0}| >> Must have targets to duplicate!".format(_str_func))
+                #return
+                pass
+    
+    if aim:
+        _toAim = targets
+
+    var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_rayCastMode', defaultValue=0)
+    var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetMode', defaultValue=0)
+    var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetDist', defaultValue=1.0)
+    var_rayCastTargetsBuffer = cgmMeta.cgmOptionVar('cgmVar_rayCastTargetsBuffer',defaultValue = [''])
+    var_rayCastOrientMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOrientMode', defaultValue = 0) 
+    var_objDefaultAimAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultAimAxis', defaultValue = 2)
+    var_objDefaultUpAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultUpAxis', defaultValue = 1)      
+    var_objDefaultOutAxis = cgmMeta.cgmOptionVar('cgmVar_objDefaultOutAxis', defaultValue = 0)      
+    var_rayCastDragInterval = cgmMeta.cgmOptionVar('cgmVar_rayCastDragInterval', defaultValue = .2)
+    var_aimMode = cgmMeta.cgmOptionVar('cgmVar_aimMode',defaultValue='world')
+    
+    _rayCastMode = var_rayCastMode.value
+    _rayCastOffsetMode = var_rayCastOffsetMode.value
+    _rayCastTargetsBuffer = var_rayCastTargetsBuffer.value
+    _rayCastOrientMode = var_rayCastOrientMode.value
+    _objDefaultAimAxis = var_objDefaultAimAxis.value
+    _objDefaultUpAxis = var_objDefaultUpAxis.value
+    _objDefaultOutAxis = var_objDefaultOutAxis.value
+    _rayCastDragInterval = var_rayCastDragInterval.value
+    
+    log.debug("|{0}| >> Mode: {1}".format(_str_func,_rayCastMode))
+    log.debug("|{0}| >> offsetMode: {1}".format(_str_func,_rayCastOffsetMode))
+    
+    kws = {'mode':'surface', 'mesh':None,'closestOnly':True, 'create':'locator','dragStore':False,'orientMode':None,
+           'objAimAxis':SHARED._l_axis_by_string[_objDefaultAimAxis], 'objUpAxis':SHARED._l_axis_by_string[_objDefaultUpAxis],'objOutAxis':SHARED._l_axis_by_string[_objDefaultOutAxis],
+           'aimMode':var_aimMode.value,
+           'timeDelay':.1, 'offsetMode':None, 'dragInterval':_rayCastDragInterval, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
+    
+    if _rayCastTargetsBuffer:
+        log.debug("|{0}| >> Casting at buffer {1}".format(_str_func,_rayCastMode))
+        kws['mesh'] = _rayCastTargetsBuffer
+        
+    if _toSnap:
+        kws['toSnap'] = _toSnap
+    elif create:
+        kws['create'] = create
+
+    if _toAim:
+        kws['toAim'] = _toAim
+        
+    if _rayCastOrientMode == 1:
+        kws['orientMode'] = 'normal'
+    
+    if toCreate:
+        kws['toCreate'] = toCreate
+        
+    if create == 'duplicate':
+        kws['toDuplicate'] = _toSnap        
+        if _toSnap:
+            kws['toSnap'] = False
+        #else:
+        #    log.error("|{0}| >> Must have target with duplicate mode!".format(_str_func))
+        #    cgmGEN.log_info_dict(kws,"RayCast args")        
+        #    return
+        
+    if drag:
+        kws['dragStore'] = drag
+    
+    if _rayCastMode == 1:
+        kws['mode'] = 'midPoint'
+    elif _rayCastMode == 2:
+        kws['mode'] = 'far'
+    elif _rayCastMode == 3:
+        kws['mode'] = 'surface'
+        kws['closestOnly'] = False
+    elif _rayCastMode == 4:
+        kws['mode'] = 'planeX'
+    elif _rayCastMode == 5:
+        kws['mode'] = 'planeY'   
+    elif _rayCastMode == 6:
+        kws['mode'] = 'planeZ'        
+    elif _rayCastMode != 0:
+        log.warning("|{0}| >> Unknown rayCast mode: {1}!".format(_str_func,_rayCastMode))
+        
+    if _rayCastOffsetMode == 1:
+        kws['offsetMode'] = 'distance'
+    elif _rayCastOffsetMode == 2:
+        kws['offsetMode'] = 'snapCast'
+    elif _rayCastOffsetMode != 0:
+        log.warning("|{0}| >> Unknown rayCast offset mode: {1}!".format(_str_func,_rayCastOffsetMode))
+    cgmGEN.log_info_dict(kws,"RayCast args")
+    
+    #pprint.pprint(kws)
+    if kwsOnly:
+        return kws
+    return helperRayCaster(**kws)
+    #return DRAGGER.clickMesh(**kws)

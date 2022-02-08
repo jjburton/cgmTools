@@ -531,13 +531,16 @@ def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True,freeze=True):
         mc.makeIdentity(node, apply =True, scale = True)    
     _bb_current = DIST.get_bb_size(node,shapes)
     _l_scale = []
+    
+    if not issubclass(type(box),list):
+        box = [box for i in range(3)]
     for i,v in enumerate(_bb_current):
         v_b = box[i]
         if v_b is None:
             _l_scale.append( v )            
         else:
-            try:_l_scale.append( box[i]/v )
-            except:_l_scale.append( v ) 
+            _l_scale.append( box[i]/v )
+            #_l_scale.append( v ) 
     #mc.scale(_l_scale[0],_l_scale[1],_l_scale[2], node, absolute = True)
     mc.xform(node, scale = _l_scale, worldSpace = True, absolute = True)
     

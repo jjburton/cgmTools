@@ -3062,7 +3062,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         log.debug(cgmGEN.logString_start('b_selCommandOn | {0}'.format(self.b_selCommandOn)))            
         
         if self.cmd_select:
-            if len(l_indices)<=1:
+            if len(l_indices) ==1:
                 return self.cmd_select(*self.selArgs,**self.selkws)
         return False
     

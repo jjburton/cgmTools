@@ -249,8 +249,23 @@ def cast(mesh = None, obj = None, axis = 'z+',
             elif SEARCH.is_shape(m):
                 if VALID.get_mayaType(m) in ['mesh','nurbsSurface']:
                     log.debug("|{0}| >> good shape: {1}...".format(_str_func,m))                    
-                    _mesh.append(m)            
-    
+                    _mesh.append(m)
+                    
+        #If obj, we need to remove these from our mesh list...
+        if obj:
+            log.debug("|{0}| >> checking obj arg: {1}...".format(_str_func,m))                            
+            if SEARCH.is_transform(obj):
+                #_mesh.extend(mc.listRelatives(m,shapes = True))
+                for s in TRANS.shapes_get(obj,True):
+                    if VALID.get_mayaType(s) in ['mesh','nurbsSurface']:
+                        log.info("|{0}| >> removing obj shape: {1}...".format(_str_func,s))                    
+                        try:_mesh.remove(obj)
+                        except:pass
+            elif SEARCH.is_shape(obj):
+                if VALID.get_mayaType(obj) in ['mesh','nurbsSurface']:
+                    log.info("|{0}| >> removing obj shape: {1}...".format(_str_func,m))                    
+                    try:_mesh.remove(obj)
+                    except:pass    
         if not startPoint:
             startPoint = POS.get(obj,pivot='rp',space='ws')
     

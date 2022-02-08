@@ -157,11 +157,10 @@ from cgm.core.classes import DraggerContextFactory as cgmDrag
 def aimSnap_start(targets=[]):
     raySnap_start(targets, None, False, snap=False, aim=True)
     
-def rayCast_create(targets = [],create = None, drag=False):
-    raySnap_start(targets,create = create, drag = drag)
+def rayCast_create(targets = [],create = None, drag=False, toCreate = [], kwsOnly = False):
+    return raySnap_start(targets,create = create, drag = drag, toCreate = toCreate, kwsOnly = kwsOnly)
     
-def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=False):
-    
+def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=False, toCreate=[], kwsOnly = False):
     _str_func = 'raySnap_start'
     _toSnap = False
     _toAim = False
@@ -224,6 +223,9 @@ def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=Fals
         
     if _rayCastOrientMode == 1:
         kws['orientMode'] = 'normal'
+    
+    if toCreate:
+        kws['toCreate'] = toCreate
         
     if create == 'duplicate':
         kws['toDuplicate'] = _toSnap        
@@ -261,8 +263,10 @@ def raySnap_start(targets = [], create = None, drag = False, snap=True, aim=Fals
         log.warning("|{0}| >> Unknown rayCast offset mode: {1}!".format(_str_func,_rayCastOffsetMode))
     cgmGEN.log_info_dict(kws,"RayCast args")
     
-    cgmDrag.clickMesh(**kws)
-    return
+    if kwsOnly:
+        return kws
+    return cgmDrag.clickMesh(**kws)
+
 
 
 def specialSnap(obj = None, targets = None,

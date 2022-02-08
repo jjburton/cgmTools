@@ -130,10 +130,10 @@ class Dragger(PostBake.PostBake):
                         if _value is not None:
                             if a2 == 'Min':
                                 if self.obj.getMayaAttr(_attr) < _value:
-                                    self.obj.setMayaAttr(_attr, _value)
+                                    self.obj.setMayaAttr(_attr, _value, force=False)
                             else:
                                 if self.obj.getMayaAttr(_attr) > _value:
-                                    self.obj.setMayaAttr(_attr, _value)                                 
+                                    self.obj.setMayaAttr(_attr, _value,force=False)                                 
                         
                        
         if self.rotate:
@@ -159,10 +159,10 @@ class Dragger(PostBake.PostBake):
                         if _value is not None:
                             if a2 == 'Min':
                                 if self.obj.getMayaAttr(_attr) < _value:
-                                    self.obj.setMayaAttr(_attr, _value)
+                                    self.obj.setMayaAttr(_attr, _value,force=False)                                 
                             else:
                                 if self.obj.getMayaAttr(_attr) > _value:
-                                    self.obj.setMayaAttr(_attr, _value)         
+                                    self.obj.setMayaAttr(_attr, _value,force=False)                                 
 
         if self.debug:
             if not self._debugLoc:

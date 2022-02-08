@@ -43,12 +43,11 @@ from cgm.lib import lists
 from cgm.core.classes import PostBake as PostBake
 from cgm.core.tools import dragger as DRAGGER
 from cgm.core.tools import spring as SPRING
-#reload(PostBake)
-#reload(DRAGGER)
-#reload(SPRING)
+reload(PostBake)
+reload(DRAGGER)
+reload(SPRING)
 from cgm.core.tools import trajectoryAim as TRAJECTORYAIM
 from cgm.core.tools import keyframeToMotionCurve as K2MC
-from cgm.core.tools import spring as SPRING
 
 #>>> Root settings =============================================================
 __version__ = cgmGEN.__RELEASESTRING

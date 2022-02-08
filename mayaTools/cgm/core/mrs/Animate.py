@@ -159,7 +159,7 @@ class ui(cgmUI.cgmGUI):
     def build_menus(self):
         log.debug("build menus... "+'-'*50)
         self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmc = lambda *a:self.buildMenu_first())
-        self.uiMenu_switch = mUI.MelMenu( l='Switch', pmc=lambda *a:self.buildMenu_switch())                 
+        self.uiMenu_switch = mUI.MelMenu( l='Change Space', pmc=lambda *a:self.buildMenu_switch())                 
         self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap)
         self.uiMenu_vis = mUI.MelMenu(l = 'Vis', pmc = lambda *a:self.buildMenu_vis()) 
         

@@ -9434,6 +9434,7 @@ class ui_createBlock(CGMUI.cgmGUI):
         elif mode == 'subRelative':
             pprint.pprint(sDat['handles']['subRelative'])
             
+    
     def uiFunc_create(self, test=False):
         _str_func = 'uiFunc_create[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func))
