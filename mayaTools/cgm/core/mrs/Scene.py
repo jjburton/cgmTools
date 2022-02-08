@@ -4863,55 +4863,60 @@ def BatchExport(dataList = []):
     
     t1 = time.time()
 
-
-    for fileDat in dataList:
+    _resFail = []
+    for i,fileDat in enumerate(dataList):
         _d = {}
-
-        _d['categoryExportPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('categoryExportPath'))
-        _d['exportAnimPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAnimPath'))
-        _d['exportAssetPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAssetPath'))
-        _d['subType'] = fileDat.get('subType')
-        _d['exportName'] = fileDat.get('exportName')
-        mFile = PATHS.Path(fileDat.get('file'))
-        _d['mode'] = int(fileDat.get('mode'))
-        _d['exportMode'] = fileDat.get('exportMode')
-        _d['exportObjs'] = fileDat.get('objs')
-        _removeNamespace =  fileDat.get('removeNamespace', "False")
-        _d['removeNamespace'] = False if _removeNamespace == "False" else True
-        _zeroRoot =  fileDat.get('zeroRoot', "False")
-        _d['zeroRoot'] = False if _zeroRoot == "False" else True
-        _d['deleteSetName'] = fileDat.get('deleteSetName')
-        _d['exportSetName'] = fileDat.get('exportSetName')
-        _d['bakeSetName'] = fileDat.get('bakeSetName')
-        _d['animationName'] = fileDat.get('animationName')
-        _d['workspace'] = fileDat.get('workspace')
-        _d['updateAndIncrement'] = fileDat.get('updateAndIncrement')
-        _d['updateRigs'] = fileDat.get('updateRigs')
         
-        _euler =  fileDat.get('euler', "0")        
-        _d['euler'] = False if _euler == '0' else True
-        _d['tangent'] = fileDat.get('tangent')
+        try:    
+            _d['categoryExportPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('categoryExportPath'))
+            _d['exportAnimPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAnimPath'))
+            _d['exportAssetPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAssetPath'))
+            _d['subType'] = fileDat.get('subType')
+            _d['exportName'] = fileDat.get('exportName')
+            mFile = PATHS.Path(fileDat.get('file'))
+            _d['mode'] = int(fileDat.get('mode'))
+            _d['exportMode'] = fileDat.get('exportMode')
+            _d['exportObjs'] = fileDat.get('objs')
+            _removeNamespace =  fileDat.get('removeNamespace', "False")
+            _d['removeNamespace'] = False if _removeNamespace == "False" else True
+            _zeroRoot =  fileDat.get('zeroRoot', "False")
+            _d['zeroRoot'] = False if _zeroRoot == "False" else True
+            _d['deleteSetName'] = fileDat.get('deleteSetName')
+            _d['exportSetName'] = fileDat.get('exportSetName')
+            _d['bakeSetName'] = fileDat.get('bakeSetName')
+            _d['animationName'] = fileDat.get('animationName')
+            _d['workspace'] = fileDat.get('workspace')
+            _d['updateAndIncrement'] = fileDat.get('updateAndIncrement')
+            _d['updateRigs'] = fileDat.get('updateRigs')
+            
+            _euler =  fileDat.get('euler', "0")        
+            _d['euler'] = False if _euler == '0' else True
+            _d['tangent'] = fileDat.get('tangent')
+    
+            log.info(mFile)
+            #pprint.pprint(_d)
+    
+    
+            _path = mFile.asString()
+            if not mFile.exists():
+                log.error("Invalid file: {0}".format(_path))
+                continue
+    
+            mc.file(_path, open = 1, f = 1, iv = 1)
+            
+            ExportScene(**_d)        
+        except Exception,err:
+            _resFail.append(["File: {}".format(i),_d, err])
+            
 
-        log.info(mFile)
-        #pprint.pprint(_d)
-
-
-        _path = mFile.asString()
-        if not mFile.exists():
-            log.error("Invalid file: {0}".format(_path))
-            continue
-
-        mc.file(_path, open = 1, f = 1, iv = 1)
         
-
-                    
-        
-
-        ExportScene(**_d)        
-
     t2 = time.time()
-    log.info("|{0}| >> Total Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 )))         
-
+    log.info("|{0}| >> Total Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 )))
+    
+    if _resFail:
+        log.warning(cgmGEN._str_hardBreak)
+        pprint.pprint(_resFail)
+        log.warning(cgmGEN._str_hardBreak)
     return
 
 
