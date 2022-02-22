@@ -4616,7 +4616,11 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                 mMesh.p_parent = parent
             
         elif deleteHistory != False:
-            _mesh = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False)
+            if len(ml_headStuff)>1:
+                _mesh = mc.polyUnite([mObj.mNode for mObj in ml_headStuff],ch=False)
+            else:
+                _mesh = ml_headStuff[0].mNode
+                ml_headStuff = []
             _mesh = mc.rename(_mesh,'{0}_0_geo'.format(self.p_nameBase))
             CORERIG.color_mesh(_mesh)        
         else:
