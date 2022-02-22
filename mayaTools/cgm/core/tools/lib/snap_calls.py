@@ -565,7 +565,7 @@ def get_axisBox_size(targets = None, maxDistance = 10000000, mark=False):
         for k,v in d_res.iteritems():
             d_res[k] = COREMATH.average(v)
             
-        return d_res['x'],d_res['y'],d_res['z']
+        return [d_res['x'],d_res['y'],d_res['z']]
         
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     

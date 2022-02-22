@@ -4467,8 +4467,8 @@ class ui(cgmUI.cgmGUI):
             self.create_guiOptionVar('blockUtilsFrameCollapse',defaultValue = 0) 
             
             self.create_guiOptionVar('contextMode',defaultValue = 1) 
-            self.create_guiOptionVar('contextStartMode',defaultValue = 0) 
-            self.create_guiOptionVar('contextForceMode',defaultValue = 0) 
+            self.create_guiOptionVar('contextStartMode',defaultValue = 1) 
+            self.create_guiOptionVar('contextForceMode',defaultValue = 1) 
             
             
             self.var_mrsDevMode = cgmMeta.cgmOptionVar('cgmVar_mrsDevMode', defaultValue = 0)
