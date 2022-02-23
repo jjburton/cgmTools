@@ -3230,7 +3230,7 @@ def uiCC_checkPath(self, key, mode='local'):
     if not PATHS.Path(_value).exists():
         mField(edit=True,bgc = _colorBad)
         
-        return log.error("uiCC_checkPath | Invalid path: {0}".format(_value))
+        return log.debug("uiCC_checkPath | Invalid path: {0}".format(_value))
     else:
         mField(edit=True,bgc = _colorGood)
         

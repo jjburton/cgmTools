@@ -5335,16 +5335,57 @@ class ui(cgmUI.cgmGUI):
         
     def buildMenu_multiset(self,*args,**kws):
         _str_func = 'buildMenu_multiset'
-        
         self.uiMenu_multiset.clear()   
         _menu = self.uiMenu_multiset
         
         self._d_attrFields = {}
+        self.d_multiSet_d = {}
+        self.d_multiSet_types = {}
         
-        
-        _d = BUILDERUTILS.uiQuery_getAttrDict() or False
+        _d, _dTypes = BUILDERUTILS.uiQuery_getAttrDict() or False
         if not _d:
             return
+        
+        self.d_multiSet_d = _d
+        self.d_multiSet_types = _dTypes        
+
+        _states = _d.keys()
+        _states.sort()
+        
+        for state in _states:
+            if state in ['profile', 'advanced', 'data', 'wiring', 'vis']:
+                continue
+            
+            keys = _d[state]
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
+                        label = state, en=True,)
+            for k in keys:
+                if k in ['baseSizeX','baseSizeY','baseSizeZ','loftList','rollCount']:
+                    continue
+                
+                _type = _dTypes.get(k)
+                if issubclass(list,type(_type)):
+                    _sub2 = mUI.MelMenuItem(_sub, label = k, en=True,subMenu=True)                    
+                    for o in _type:
+                        mUI.MelMenuItem(_sub2, label = o, en=True,
+                                        command = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                                  'multiset',
+                                                                  **{'aType':_type,'attr':k, 'value':o}))    
+                elif _type == 'bool':
+                    _sub2 = mUI.MelMenuItem(_sub, label = k, en=True,subMenu=True)                    
+                    for o in [False,True]:
+                        mUI.MelMenuItem(_sub2, label = o, en=True,
+                                        command = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                        'multiset',
+                                                        **{'aType':_type,'attr':k, 'value':o}))                    
+                else:
+                    mUI.MelMenuItem(_sub, label = k, en=True,
+                                    command = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                    'multiset',
+                                                    **{'aType':_type,'attr':k}))
+                    
+                  
+                    
         return
         _keys = _d.keys()
         _keys.sort()
@@ -6175,6 +6216,9 @@ class ui(cgmUI.cgmGUI):
                 for mBlock in ml_blocks:
                     log.info("|{0}| >> Focus call | {1}".format(_str_func,mBlock))                    
                     mBlock.UTILS.focus(mBlock,args[1],args[2],ml_focus=ml_blocks)
+                return
+            elif args[0] == 'multiset':
+                BUILDERUTILS.multiset( ml_context, **kws)
                 return
             
             ml_context = LISTS.get_noDuplicates(ml_context)
@@ -9552,7 +9596,7 @@ class ui_createBlock(CGMUI.cgmGUI):
         
         #_d,d_defaultSettings = 
         
-        for a in ['cgmName','nameIter','nameList']:
+        for a in ['cgmName','nameIter','nameList','shapeDirection']:
             _mRow = mUI.MelHSingleStretchLayout(self.uiBlock_options,ut='cgmUISubTemplate')
             mUI.MelSpacer(_mRow,w=_sidePadding)
             
@@ -9560,7 +9604,12 @@ class ui_createBlock(CGMUI.cgmGUI):
             
             if a == 'nameList':
                 self.d_uiAttrs[a] = mUI.MelTextField(_mRow)
-                _mRow.setStretchWidget(self.d_uiAttrs[a])                
+                _mRow.setStretchWidget(self.d_uiAttrs[a])
+            elif a == 'shapeDirection':
+                _mRow.setStretchWidget(mUI.MelSeparator(_mRow))                
+                self.d_uiAttrs[a] = mUI.MelOptionMenu(_mRow,ut = 'cgmUITemplate')
+                for a2 in BLOCKSHARE._d_attrsTo_make[a].split(':'):
+                    self.d_uiAttrs[a].append(a2)
             else:
                 _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
                 self.d_uiAttrs[a] = mUI.MelTextField(_mRow)

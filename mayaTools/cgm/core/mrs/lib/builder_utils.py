@@ -2681,6 +2681,59 @@ check_nameMatches = RIGGEN.check_nameMatches
 #...just linking for now because I want to only check against asset names in future and not scene wide
 
 
+def multiset(ml_blocks = [], **kws):
+    _str_func = ' multiset'
+    log.info(cgmGEN.logString_start(_str_func))
+    
+    if not ml_blocks:
+        return log.warning(_str_func + "|| No blocks in context")
+    
+    pprint.pprint(ml_blocks)
+    pprint.pprint(kws)
+    _attr = kws['attr']
+    _value = kws.get('value',None)
+    _aType = kws['aType']
+    
+    if _value is None:
+        log.warning("|{0}| >> Need to get value...".format(_str_func))
+        _title = 'Set {0} | {1}'.format(_attr,_aType)
+        result = mc.promptDialog(title=_title,
+                                 message='Need a value for attribute: {} | {}'.format(_attr,_aType),
+                                 button=['OK', 'Cancel'],
+                                 text = '',
+                                 defaultButton='OK',
+                                 cancelButton='Cancel',
+                                 dismissString='Cancel')
+        if result == 'OK':
+            _valueRaw =  mc.promptDialog(query=True, text=True)
+            log.info("|{0}| >> from prompt: {1}".format(_str_func,_valueRaw))
+            if _aType == 'float':
+                _value = float(_valueRaw)
+            elif _aType == 'int':
+                _value = int(_valueRaw)
+            elif _aType == 'stringDatList':
+                if ',' not in _valueRaw:
+                    return log.error("|{0}| >> Must be a comma list".format(_str_func))
+                _value = ','.split(_valueRaw)
+        else:
+            log.error("|{0}| >> Change cancelled".format(_str_func)+ '-'*80)
+            return False        
+        
+    pprint.pprint([_attr,_value])
+    for mBlock in ml_blocks:
+        if _aType in ['stringDatList']:
+            mBlock.datList_connect(_attr,_value)
+            
+        else:
+            try:
+                _bool = mBlock.hasAttr(_attr)
+            except:
+                _bool = False
+                
+            if _bool:
+                mBlock.setMayaAttr(kws['attr'],_value)
+        
+    return
 
 def uiQuery_getAttrDict(report = True, unknown = True):
     _str_func = ' uiQuery_getStateAttrDict'
@@ -2691,16 +2744,22 @@ def uiQuery_getAttrDict(report = True, unknown = True):
     
     _dicts = [BLOCKSHARE._d_attrsTo_make]
     _d = copy.deepcopy(BLOCKSHARE.d_uiAttrDict)
-    
+    _d_byBlock = {}
     
     for b,mBlockModule in BLOCKGEN.get_modules_dict().iteritems():
-        log.info(cgmGEN.logString_sub(_str_func, b))
+        log.debug(cgmGEN.logString_sub(_str_func, b))
+        if mBlockModule.__dict__.get('__menuVisible__') == False:
+            continue
         try:
-            _d = CGMDICT.blendDat(_d,mBlockModule.d_attrStateMask)
+            try:
+                _dModule = mBlockModule.d_attrStateMask
+            except:
+                _dModule = {}
+            #_d = CGMDICT.blendDat(_d,_dModule)
             _dicts.append(mBlockModule.d_attrsToMake)
         except Exception,err:
             log.error(err)
-    
+            
     for t,l in _d.iteritems():
         l.sort()
         _d[t] = l
@@ -2718,38 +2777,3 @@ def uiQuery_getAttrDict(report = True, unknown = True):
                 
     #pprint.pprint(_d)
     return _d,_res
-    
-        
-    for k,l in d_use.iteritems():
-        log.debug(cgmGEN.logString_sub(_str_func, k))
-        if report:pprint.pprint(l)
-        _tmp = []
-        for s in l:
-            if s.endswith('List') or s in ['numSubShapers','rollCount']:
-                if ATTR.datList_exists(_short,s):
-                    for s2 in ATTR.datList_getAttrs(_short,s):
-                        _tmp.append(s2)
-                        _done.append(s2)
-                
-            if self.hasAttr(s):
-                if s in _done:
-                    log.debug("Already done: {0}".format(s))
-                else:
-                    _tmp.append(s)
-                    _done.append(s)
-        _tmp.sort()
-        _res[k] = _tmp
-        
-    if report:
-        pprint.pprint(_res)
-        
-    if unknown:
-        _tmp = []
-        for a in self.getAttrs(ud=True):
-            if a not in _done:
-                _tmp.append(str(a))
-        _tmp.sort()
-        log.info(cgmGEN.logString_sub(_str_func,'Unknown...'))
-        pprint.pprint(_tmp) 
-        
-    return _res
