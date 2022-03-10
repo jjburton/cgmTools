@@ -2732,6 +2732,8 @@ def multiset(ml_blocks = [], **kws):
                 
             if _bool:
                 mBlock.setMayaAttr(kws['attr'],_value)
+            else:
+                log.warning("'{}' | doesn't have attribute '{}' to set".format(mBlock.p_nameShort, _attr))
         
     return
 

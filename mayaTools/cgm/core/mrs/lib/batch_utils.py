@@ -21,6 +21,7 @@ import subprocess, os
 import datetime
 from time import gmtime
 from time import strftime
+
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
@@ -654,6 +655,7 @@ def process_blocks_rig(f = None, blocks = None, postProcesses = 1,**kws):
                     print(cgmGEN.logString_sub("Batch",'Times'))
                     for i,pair_time in enumerate(l_timeReports):
                         print(" {0} | ['{1}'] | {2} ".format(i,pair_time[0],pair_time[1]))
+                    print ('Completed: {}'.format(datetime.datetime.now()))                        
 
     except Exception,err:
         log.error(err)

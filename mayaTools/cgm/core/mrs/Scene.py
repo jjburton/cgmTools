@@ -6,6 +6,7 @@ import os
 import time
 from datetime import datetime
 import json
+import datetime
 
 from shutil import copyfile
 #import fnmatch
@@ -25,7 +26,6 @@ import cgm.core.mrs.Builder as BUILDER
 import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.tools.Project as PROJECT
-
 import Red9.core.Red9_General as r9General
 
 
@@ -2580,7 +2580,7 @@ example:
         data['dateAccess'] = time.ctime(os.path.getctime(self.versionFile))
         data['file'] = self.versionFile
 
-        data['saved'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+        data['saved'] = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
         data['notes'] = ""
 
         data['references'] = [os.path.normpath(x).replace(os.path.normpath(self.directory), "") for x in mc.file(q=True, r=True)]
@@ -4924,6 +4924,7 @@ def BatchExport(dataList = []):
         
     t2 = time.time()
     log.info("|{0}| >> Total Time >> = {1} seconds".format(_str_func, "%0.4f"%( t2-t1 )))
+    print ('Completed: {}'.format(datetime.datetime.now()))                        
     
     if _resFail:
         log.warning(cgmGEN._str_hardBreak)

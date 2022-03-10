@@ -7379,7 +7379,7 @@ def asdfasdfasdf(self, forceNew = True, skin = False):
     if mBlock.neckBuild:#...Neck =====================================================================
         log.debug("|{0}| >> neckBuild...".format(_str_func))
 
-def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
+def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, **kws):
     """
     Build our proxyMesh
     """

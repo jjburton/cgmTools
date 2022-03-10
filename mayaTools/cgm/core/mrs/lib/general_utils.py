@@ -285,7 +285,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 
                 
                 if _len:
-                    s_start = ' '*_len +' '
+                    s_start = '  '*_len +' '
                 else:
                     s_start = ''
                     
@@ -293,8 +293,8 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     s_start = s_start + " "            
                 else:
                     #s_start = s_start + '-[{0}] '.format(counter-1)
-                    #s_start = s_start + '  ^-' + '--'*(counter-1) + ' '
-                    s_start = s_start + ' ' + ' '*(counter-1) + ' '
+                    #s_start = s_start + ' ^-' + '--'*(counter-1) + ' '
+                    s_start = s_start + ' ' + '  '*(counter-1) + ' '
                 
                 if presOnly:
                     _str = copy.copy(s_start)

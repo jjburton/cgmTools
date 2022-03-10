@@ -42,6 +42,8 @@ d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
 d_defaultAttrSettings = {'blockState':'define'}
 
 _l_positions = ('none','upper','lower','front','forward','back','rear','top','bottom','outer','inner')
+_l_sides = ('none','left','right','center')
+
 _l_requiredSkeletonDat = ('__d_controlShapes__','__l_jointAttrs__','__l_buildOrder__')
 _l_requiredRigDat = []
 

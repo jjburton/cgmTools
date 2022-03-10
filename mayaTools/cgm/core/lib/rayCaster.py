@@ -62,20 +62,20 @@ def get_eligibleMesh():
     return _res
 
 def get_dist_from_cast_axis(obj = None, axis = 'z', mode = 'near', shapes = None, mark = False,
-                            startPoint = None, maxDistance = 1000, asEuclid = False):
+                            startPoint = None, maxDistance = 1000,selfCast = False, asEuclid = False):
     _str_func = 'get_dist_from_cast_axis'
     log.debug(cgmGEN.logString_start(_str_func))
     
     l_pos = []
     for d in ['+','-']:
-        pos = get_cast_pos(obj,axis+d,mode,shapes,mark,startPoint,maxDistance,asEuclid)
+        pos = get_cast_pos(obj,axis+d,mode,shapes,mark,startPoint,maxDistance,selfCast,asEuclid)
         l_pos.append(pos)
         
     return DIST.get_distance_between_points(l_pos[0],l_pos[1])
     
     
 
-def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = False, startPoint = None, maxDistance = 1000, asEuclid = False):
+def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = False, startPoint = None, maxDistance = 1000, selfCast = False, asEuclid = False):
     """
     Get the 
 
@@ -102,9 +102,10 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
 
         if shapes is None:
             shapes = get_eligibleMesh()
-            for s in TRANS.shapes_get(obj,True):
-                if s in shapes:
-                    shapes.remove(s)
+            if not selfCast:
+                for s in TRANS.shapes_get(obj,True):
+                    if s in shapes:
+                        shapes.remove(s)
         else:
             _shapesArg = VALID.listArg(shapes)
             shapes = []
@@ -127,8 +128,8 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
             l_hits = []
             for s in shapes:
                 log.debug("|{0}| >> Casting at shape: {1}".format(_str_func,s))
-                _d_resForward = cast(s,obj,mAxis.p_string, startPoint=startPoint,maxDistance=maxDistance,firstHit=False)
-                _d_resBack = cast(s,obj,mAxis.inverse.p_string, startPoint=startPoint,maxDistance=maxDistance,firstHit=False)
+                _d_resForward = cast(s,obj,mAxis.p_string, startPoint=startPoint,maxDistance=maxDistance,firstHit=False, selfCast=selfCast)
+                _d_resBack = cast(s,obj,mAxis.inverse.p_string, startPoint=startPoint,maxDistance=maxDistance,firstHit=False, selfCast=selfCast)
                 if not _d_resForward:
                     log.warning("|{0}| >> Failed to hit: {1}".format(_str_func,s))
                     return False
@@ -146,7 +147,7 @@ def get_cast_pos(obj = None, axis = 'z+', mode = 'near', shapes = None, mark = F
             for s in shapes:
                 log.debug("|{0}| >> Casting at shape: {1}".format(_str_func,s))
                 _d_res = cast(s,obj,mAxis.p_string, startPoint=startPoint,
-                              maxDistance=maxDistance,firstHit=False)
+                              maxDistance=maxDistance,firstHit=False, selfCast=selfCast)
                 p = _d_res.get(mode,None)
                 if p:
                     l_hits.append(p)
@@ -198,6 +199,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
          startPoint = None, vector = None,
          maxDistance = 1000, firstHit = True,
          offsetMode = None, offsetDistance = 1.0,
+         selfCast = False, 
          locDat = False):
     """
     Find mesh intersections. Note -- startPoint will be converted from mayaspace to api space
@@ -252,7 +254,7 @@ def cast(mesh = None, obj = None, axis = 'z+',
                     _mesh.append(m)
                     
         #If obj, we need to remove these from our mesh list...
-        if obj:
+        if obj and not selfCast:
             log.debug("|{0}| >> checking obj arg: {1}...".format(_str_func,m))                            
             if SEARCH.is_transform(obj):
                 #_mesh.extend(mc.listRelatives(m,shapes = True))

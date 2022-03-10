@@ -115,7 +115,105 @@ for k,color in d_state_colors.iteritems():
 __version__ =  cgmGEN.__RELEASESTRING
 _sidePadding = 25
 
+        
+def uiFunc_helper_initialize(self):
+    _str_func = 'uiFunc_helper_initialize[{0}]'.format(self.__class__.TOOLNAME)
+    log.info("|{0}| >>...".format(_str_func))
+    
+    
+    if self.ml_helpers:
+        #print.pprint(self.ml_helpers)
+        self.mButton_helpersBuild(edit=True, en=False)
+        for mObj in self.ml_helpers:
+            try:mObj.delete()
+            except:
+                try:mc.delete(mObj)
+                except:
+                    pass
+                
+    d_make = {'count':self.uiIF_helperCount.getValue(),
+              'mode':self.var_helperCreateMode.getValue(),
+              'baseSize' : [self.uifloat_baseSizeX.getValue() or 1,
+                        self.uifloat_baseSizeY.getValue() or 1,
+                        self.uifloat_baseSizeZ.getValue() or 1],              
+              }
+    #d_make = {}
+    pprint.pprint(d_make)
+    log.info( createBlockHelper(self, **d_make) )
+    
 
+def uiFunc_helper_build(self):
+    _str_func = 'uiFunc_helper_build[{0}]'.format(self.__class__.TOOLNAME)
+    log.info("|{0}| >>...".format(_str_func))
+    
+    def returnFail():
+        return log.error("No helpers found. Reinitialize.")
+    
+    if not self.ml_helpers:
+        return returnFail()
+    
+    ml_helpers = []
+    for mObj in self.ml_helpers:
+        try:
+            mObj.mNode
+            ml_helpers.append(mObj)
+        except:
+            return returnFail()
+
+    self.uiFunc_create(count = len(ml_helpers))
+    
+    if len(self.ml_blocksMade) != len(ml_helpers):
+        return log.error("Didn't make enough blocks")
+    
+    pprint.pprint(ml_helpers)
+    
+    for i,mObj in enumerate(ml_helpers):
+        mBlock = self.ml_blocksMade[i]
+        reload(SNAPCALLS)
+        
+        
+        _shapeDirection = self.d_blockCreate.get('shapeDirection','y+')
+        #print (_shapeDirection)
+        
+        if _shapeDirection.count('+'):
+            _shapeDirection= _shapeDirection.replace('+','-')
+        else:
+            _shapeDirection= _shapeDirection.replace('-','+')
+                
+        #print (_shapeDirection)
+        
+        SNAPCALLS.snap(mBlock.mNode, mObj.mNode, objPivot='rp', targetPivot='castNear',targetMode= _shapeDirection)
+        
+        
+    
+    
+        
+class HelperDag(object):
+    def __init__(self,mUI = None):
+        if not mc.objExists('mrsHelpers'):
+            mDag = cgmMeta.cgmObject(name='mrsHelpers')
+        else:
+            mDag = cgmMeta.cgmObject('mrsHelpers')
+        mDag.dagLock()
+        
+        
+        self.mUI = mUI
+        self.mDag = mDag
+        
+        mDag.addAttr('helpers',[], attrType='message')
+        
+    def dat_get(self):
+        _str_func = 'dat_get[{0}]'.format(self.__class__)                    
+        if not self.mUI:
+            return ( log.error("No UI on HelperDag"))
+        
+        log.info("|{0}| >>...".format(_str_func))
+        
+            
+    
+
+    
+    
 def buildFrame_helpers(self,parent,changeCommand = ''):
     """
     try:self.var_rayCastMode
@@ -126,7 +224,8 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     
     try:self.var_rayCastOffsetDist
     except:self.create_guiOptionVar('rayCastOffsetDist',defaultValue = 1.0)"""
-        
+    self.ml_helpers = []
+    
     self.var_rayCastMode = cgmMeta.cgmOptionVar('cgmVar_rayCastMode', defaultValue=0)
     self.var_rayCastOffsetMode = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetMode', defaultValue=0)
     self.var_rayCastOffsetDist = cgmMeta.cgmOptionVar('cgmVar_rayCastOffsetDist', defaultValue=1.0) 
@@ -134,10 +233,6 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     
     try:self.var_helpersFrameCollapse
     except:self.create_guiOptionVar('helpersFrameCollapse',defaultValue = 0)
-    
-
-    
-    
     
     mVar_frame = self.var_helpersFrameCollapse
     
@@ -155,7 +250,7 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     #Create Mode =========================================================================
     
     try:self.var_helperCreateMode
-    except:self.create_guiOptionVar('helperCreateMode',defaultValue = 0)
+    except:self.create_guiOptionVar('helperCreateMode',defaultValue = 'simple')
     
     uiRC = mUI.MelRadioCollection()
     _on = self.var_helperCreateMode.value
@@ -171,24 +266,28 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     _on = self.var_helperCreateMode.value
 
     for i,item in enumerate(['simple','raycast']):
-        if i == _on:
+        if item == _on:
             _rb = True
         else:_rb = False
 
         uiRC.createButton(_row1,label=item,sl=_rb,
-                          onCommand = cgmGEN.Callback(self.var_helperCreateMode.setValue,i))
+                          onCommand = cgmGEN.Callback(self.var_helperCreateMode.setValue,item))
 
         mUI.MelSpacer(_row1,w=2)
         
-    
+    mUI.MelLabel(_row1, label = 'Count')
     self.uiIF_helperCount = mUI.MelIntField(_row1, min = 1)
+
+    mUI.MelLabel(_row1, label = ' || ')
     
-    mUI.MelButton(_row1, label='Create', ut='cgmUITemplate')
+    self.mButton_helpersInitialize = mUI.MelButton(_row1, label='Initialize', ut='cgmUITemplate',
+                                                   c = lambda *a:uiFunc_helper_initialize(self))
+    self.mButton_helpersBuild = mUI.MelButton(_row1, label='Build', ut='cgmUITemplate', en=False,
+                                              c = lambda *a:uiFunc_helper_build(self))
     
     mUI.MelSpacer(_row1,w=2)    
 
     _row1.layout()     
-    
     
     #Raycast =============================================================================
     mc.setParent(_inside)
@@ -247,21 +346,26 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     _row_offset.layout()
 
     
-def createBlockHelper(self = None, count= 1, mode = 'simple', baseSize = [1,1,1]):
+def createBlockHelper(self = None, count= 1, mode = 'simple', baseSize = [1,1,1], name = 'block'):
     _str_func = 'uiFunc_createHelper'
     log.info("|{}| >>... {} | {} | {}".format(_str_func, count, mode,baseSize))
     
+    self.ml_helpers = []
     
     if mode == 'simple':
         for i in range(count):
-            mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='block_{}_helper'.format(i), ch=False)[0])
+            #mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='block_{}_helper'.format(i), ch=False)[0])
+            mSphere = cgmMeta.asMeta(mc.polyCube(depth=baseSize[0], height=baseSize[1], width=baseSize[2], name='block_{}_helper'.format(i), ch=False)[0])
+            
             mSphere.scale = baseSize
+            
+            self.ml_helpers.append(mSphere)
 
     elif mode == 'raycast':
         #reload(SNAPCALLS)
         #mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='ref_helper', ch=False)[0])
         #mSphere.select()
-        mCaster = helpers_raycast(self, None,'duplicate',False, toCreate = ['block_{}_helper'.format(i) for i in range(count)])
+        mCaster = helpers_raycast(self, None,'duplicate',False,toCreate = ['{}_{}_helper'.format(name, i) for i in range(count)])
         #mSphere.delete()
         #pprint.pprint(mCaster.l_created)
         #self._l_toDuplicate
@@ -273,14 +377,18 @@ def createBlockHelper(self = None, count= 1, mode = 'simple', baseSize = [1,1,1]
                                toCreate = ['block_{}_helper'.format(i) for i in range(count)])"""          
         
         
-        return
+        
+    if self.ml_helpers:
+        self.mButton_helpersBuild(edit=True, en=True)
+        
+        self.mDag.helpers = self.ml_helpers
 
     
 def helpers_raycast(self = None, targets = [], create = None, drag = False, snap=True, aim=False, toCreate=[], kwsOnly = False):
     '''
     self = data storage
     '''
-    
+    reload(dragFactory)
     class helperRayCaster(dragFactory.clickMesh):
         """Sublass to get the functs we need in there"""
         def __init__(self,mStorage = None,**kws):
@@ -294,17 +402,24 @@ def helpers_raycast(self = None, targets = [], create = None, drag = False, snap
             mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='ref_helper', ch=False)[0])
             mSphere.p_position = 10000,10000,10000
             self._l_toDuplicate = [mSphere.mNode]
+            pprint.pprint(self.l_mesh)
             
         def press_post_insert(self):
             log.info('here')
+            if self.mode != 'midPoint':
+                return
             try:_obj = self._createModeBuffer[-1]
             except:
+                return
+            
+            try:
+                _x = RAYS.get_dist_from_cast_axis(_obj,'x')
+                _z = RAYS.get_dist_from_cast_axis(_obj,'z')
+                _y = MATH.average(_x,_z)
+                _box = [_x,_y,_z]
+                TRANS.scale_to_boundingBox( _obj, _box)
+            except:
                 pass
-            _x = RAYS.get_dist_from_cast_axis(_obj,'x')
-            _z = RAYS.get_dist_from_cast_axis(_obj,'z')
-            _y = MATH.average(_x,_z)
-            _box = [_x,_y,_z]
-            TRANS.scale_to_boundingBox( _obj, _box)            
             
         
         def release(self):
@@ -316,7 +431,9 @@ def helpers_raycast(self = None, targets = [], create = None, drag = False, snap
 
         def finalize(self):
             log.info("returnList: %s"% self.l_return)
-            log.info("createdList: %s"% self.l_created)   
+            log.info("createdList: %s"% self.l_created)  
+            self.mStorage.ml_helpers = cgmMeta.asMeta( self.l_created )
+            
             buffer = [] #self.mStorage.templateNull.templateStarterData
             log.info("starting data: %s"% buffer)
 
@@ -346,6 +463,7 @@ def helpers_raycast(self = None, targets = [], create = None, drag = False, snap
             #self.mStorage.templateNull.templateStarterData = buffer#store it
             log.info("'%s' sized!"%self._str_moduleName)'''
             dragFactory.clickMesh.finalize(self)
+                        
             
 
     _str_func = 'helpers_raycast'
@@ -394,11 +512,11 @@ def helpers_raycast(self = None, targets = [], create = None, drag = False, snap
     
     kws = {'mode':'surface', 'mesh':None,'closestOnly':True, 'create':'locator','dragStore':False,'orientMode':None,
            'objAimAxis':SHARED._l_axis_by_string[_objDefaultAimAxis], 'objUpAxis':SHARED._l_axis_by_string[_objDefaultUpAxis],'objOutAxis':SHARED._l_axis_by_string[_objDefaultOutAxis],
-           'aimMode':var_aimMode.value,
+           'aimMode':var_aimMode.value,'mStorage':self,
            'timeDelay':.1, 'offsetMode':None, 'dragInterval':_rayCastDragInterval, 'offsetDistance':var_rayCastOffsetDist.value}#var_rayCastOffsetDist.value
     
     if _rayCastTargetsBuffer:
-        log.debug("|{0}| >> Casting at buffer {1}".format(_str_func,_rayCastMode))
+        log.warning("|{0}| >> Casting at buffer {1}".format(_str_func,_rayCastMode))
         kws['mesh'] = _rayCastTargetsBuffer
         
     if _toSnap:

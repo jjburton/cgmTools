@@ -342,7 +342,7 @@ def snap(obj = None, targets = None,
          rotatePivot = False, scalePivot = False,
          objPivot = 'rp', objMode = None, objLoc = False,
          targetPivot = 'rp', targetMode = None, targetLoc = False,
-         queryMode = False, space = 'w',mark = False,**kws):
+         queryMode = False, space = 'w',mark = False, objCast = True, **kws):
     """
     Core snap functionality.
 
@@ -362,6 +362,7 @@ def snap(obj = None, targets = None,
         scalePivot
         space
         mark
+        objCast -- include obj in casting
 
 
     :returns
@@ -438,10 +439,12 @@ def snap(obj = None, targets = None,
                 log.debug("|{0}| >> special query... ".format(_str_func))
                 _targetsSpecial = copy.copy(_targets)
                 if _pivotTar not in ['axisBox','groundPos','castCenter','boundingBox']:
-                    _targetsSpecial.insert(0,_obj)
+                    if not objCast:
+                        _targetsSpecial.insert(0,_obj)
                 pos_target = get_special_pos(_targetsSpecial, _pivotTar, targetMode)
 
             if not pos_target:
+                pprint.pprint(vars())
                 return log.error("No position detected")
             if targetLoc:
                 _loc = mc.spaceLocator()[0]
@@ -680,7 +683,7 @@ def get_special_pos(targets = None,
             raise ValueError,"|{0}| >> Unknown mode: {1}".format(_str_func,_arg)
 
         #cgmGEN.func_snapShot(vars())
-
+        
         if len(l_res)>1:
             _res = DIST.get_average_position(l_res)
         else:

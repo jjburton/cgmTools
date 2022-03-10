@@ -191,6 +191,7 @@ def Prep(removeNamespace = False,
         for space in namespaces[:-1]:
             mc.namespace( removeNamespace = space, mergeNamespaceWithRoot = True)
 
+
         ns = '%s:' % namespaces[-1].replace('|', '')
     else:
         ns = None
@@ -280,10 +281,16 @@ def Prep(removeNamespace = False,
             mc.parent(obj.mNode, w=True)
         except:
             print "%s already a child of 'world'" % obj
+            
+            
+    if removeNamespace:#...attempt to clean name space stuff
+        for mObj in cgmMeta.asMeta(mc.ls("{}:*".format(ns))):
+            mObj.rename(mObj.p_nameBase.replace("{}:".format(ns),''))            
 
     mc.select( [x.mNode for x in exportObjs] )
 
     mc.refresh()
+            
 
     return prepped
 

@@ -10440,6 +10440,8 @@ def define_set_baseSize(self,baseSize = None, baseAim = None, baseAimDefault = [
     if not baseSize:
         return log.error("|{0}| >>  No baseSize value. Returning.".format(_str_func))
     
+    if self.hasAttr('baseDat') and baseSize:
+        self.baseSize = baseSize
     log.debug("|{0}| >>  baseSize: {1}".format(_str_func,baseSize))
     
     if self.blockType in ['eye']:
