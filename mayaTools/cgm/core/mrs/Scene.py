@@ -1334,6 +1334,8 @@ example:
         _row = mUI.MelHSingleStretchLayout(_bottomColumn,useTemplate = 'cgmUISubTemplate') 
         #mUI.MelSpacer(_row,w=5)
 
+        mUI.MelButton(_row, ut = 'cgmUITemplate', label="Create New Scene", c= partial(SCENEUTILS.uiFunc_newProjectScene,self), h=self.__itemHeight, w= 200,
+                      ann="Create a new scene with project settings")
         mUI.MelButton(_row, ut = 'cgmUITemplate', label="Select Open File", c= partial(self.uiFunc_selectOpenFile), h=self.__itemHeight, w= 200)
         self.loadBtn = mUI.MelButton(_row, ut = 'cgmUITemplate', label="Load File", c=self.LoadFile, h=self.__itemHeight)
         _row.setStretchWidget(self.loadBtn)
@@ -3728,6 +3730,8 @@ example:
         elif createPrompt == 'Make New File':
             mc.file(new=True, f=True)
             self.SaveVersion()
+            SCENEUTILS.fncMayaSett_do(self,True,True)
+            
 
     def CreateVariation(self, *args):
         result = mc.promptDialog(

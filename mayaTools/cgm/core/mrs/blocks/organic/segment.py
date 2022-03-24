@@ -127,7 +127,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                            'loftShapeEnd','loftShapeStart'],
                    'prerig':[],
                    'skeleton':['numJoints'],
-                   'rig':['segmentType','special_swim',
+                   'rig':['segmentType','special_swim','ikEndShape',
                           'ikBaseExtend','ikEndExtend','ikEndLever','ikSplineTwistEndConnect']}
 
 
@@ -3513,8 +3513,8 @@ def rig_cleanUp(self):
             mRoot.addAttr('cgmAlias','{0}_root'.format(self.d_module['partName']))
         
         
-        if mBlock.root_dynParentScaleMode == 2:
-            ml_targetDynParents.extend(self.ml_dynParentsAbove)        
+        #if mBlock.root_dynParentScaleMode == 2:
+        ml_targetDynParents.extend(self.ml_dynParentsAbove)        
         
         ml_targetDynParents.extend(self.ml_dynEndParents)
         mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mRoot.mNode,dynMode=0)

@@ -1129,6 +1129,7 @@ class ui_blockPicker(cgmUI.cgmGUI):
                        'name':'define',
                        'proxySurface':'form',
                        'squashStretch':'rig',
+                       'space':'rig',
                        'post':'rig'}
         
         for i,k in enumerate(_keys):
@@ -2880,7 +2881,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
         l_order =['define','profile','basic','name',
                   'form','proxySurface','prerig',
                   'skeleton',
-                  'rig','squashStretch']
+                  'rig','space','squashStretch']
         l_order.reverse()
         
         for k in l_order:
@@ -2900,6 +2901,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
                        'name':'define',
                        'proxySurface':'form',
                        'squashStretch':'rig',
+                       'space':'rig',
                        'post':'rig'}
         
         for k in _keys:
@@ -6188,6 +6190,12 @@ class ui(cgmUI.cgmGUI):
             if args[0] == 'VISUALIZEHEIRARCHY':
                 BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks[0],_contextMode,False,True)
                 return True
+            
+            try:
+                if args[1] == 'skeleton' and _contextMode in ['self']:
+                    log.warning(cgmGEN.logString_msg(_str_func,"Changing context to below. Self | Skeleton"))
+                    _contextMode = 'below'
+            except:pass
                 
             ml_context = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,_contextMode,True,False)
             
@@ -8872,7 +8880,7 @@ def uiFunc_updateBlock(self):
     l_order =['define','profile','basic','name',
               'form','proxySurface','prerig',
               'skeleton',
-              'rig','squashStretch']
+              'rig','space','squashStretch']
     l_order.reverse()
     
     for k in l_order:
@@ -8892,6 +8900,7 @@ def uiFunc_updateBlock(self):
                    'name':'define',
                    'proxySurface':'form',
                    'squashStretch':'rig',
+                   'space':'rig',
                    'post':'rig'}
     
     for k in _keys:

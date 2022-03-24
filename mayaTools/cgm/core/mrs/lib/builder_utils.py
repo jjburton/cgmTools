@@ -1387,6 +1387,12 @@ def get_dynParentTargetsDat(self,allParents=True):
         log.debug("|{0}| >> mParents: {1}".format(_str_func,len(ml_moduleParents)))        
         for mModuleParent in ml_moduleParents:
             mi_parentRigNull = mModuleParent.rigNull
+            if mModuleParent == ml_moduleParents[0]:
+                #Check first for cog
+                if mi_parentRigNull.getMessage('rigRoot'):
+                    mParentCog = mi_parentRigNull.rigRoot
+                    self.ml_dynParentsAbove.append(mParentCog)
+                    
             if not self.md_dynTargetsParent.get('root'):
                 if mi_parentRigNull.getMessage('rigRoot'):
                     mParentRoot = mi_parentRigNull.rigRoot
@@ -1413,6 +1419,7 @@ def get_dynParentTargetsDat(self,allParents=True):
     mMasterAnim = self.d_module['mMasterControl']
     if mMasterAnim in self.ml_dynParentsAbove:
         self.ml_dynParentsAbove.remove(mMasterAnim)
+        
     
     log.debug(cgmGEN._str_subLine)
     log.debug("dynTargets | self.md_dynTargetsParent ...".format(_str_func))            

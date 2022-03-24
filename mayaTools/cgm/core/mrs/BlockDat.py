@@ -19,7 +19,7 @@ Features...
 Thanks to Alex Widener for some ideas on how to set things up.
 
 """
-__MAYALOCAL = 'CGMPROJECT'
+__MAYALOCAL = 'BLOCKDAT'
 
 
 # From Python =============================================================
@@ -60,6 +60,8 @@ import cgm.core.tools.lib.project_utils as PU
 import cgm.core.lib.mayaSettings_utils as MAYASET
 import cgm.core.mrs.lib.scene_utils as SCENEUTILS
 import cgm.core.lib.attribute_utils as ATTR
+from cgm.core import cgm_General as cgmGEN
+
 import cgm.images as cgmImages
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
 
@@ -69,7 +71,6 @@ __version__ = cgmGEN.__RELEASESTRING
 _colorGood = CORESHARE._d_colors_to_RGB['greenWhite']
 _colorBad = CORESHARE._d_colors_to_RGB['redWhite']
 
-from cgm.core import cgm_General as cgmGEN
 log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
 log_start = cgmGEN.logString_start

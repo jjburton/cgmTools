@@ -280,13 +280,23 @@ def verify_ObjectSets():
     log.debug(cgmGEN._str_subLine)
     
     
-def uiFunc_newProjectScene(self):
+def uiFunc_newProjectScene(self,*args):
     str_func = 'uiFunc_newProjectScene'
     log.debug(log_start(str_func))
     
-    mc.file(f=True, new=True)
-    fncMayaSett_do(self, True, True)
-    
+    createPrompt = mc.confirmDialog(
+                title='Create?',
+                    message='Create New File',
+                    button=['Yes', 'No'],
+                    defaultButton='No',
+                            cancelButton='No',
+                            dismissString='No')
+
+    if createPrompt == 'Yes':
+        mc.file(new=True, f=True)
+        fncMayaSett_do(self, True, True)    else:
+        log.warning("No new file created")   
+        
     log.debug(cgmGEN._str_hardBreak)
     
     
