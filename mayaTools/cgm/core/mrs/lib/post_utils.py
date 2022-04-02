@@ -1116,7 +1116,10 @@ def refs_remove():
         log.info("Removing | {0}".format(refFile))
         mc.file( refFile, removeReference=True )
 
-def defJointFix(start='none'):
+def defJointFix(start='none', addDynJoint = False):
+    '''
+    
+    '''
     import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
     mRoot = cgmMeta.validateObjArg(start)
     ml = [mRoot]
@@ -1144,13 +1147,27 @@ def defJointFix(start='none'):
                 
                 #...dup our joint
                 mDup = mObj.doDuplicate()
-                mDup.rename('{}_DEFJOINT'.format(mObj.p_nameBase))
+                if '_sknJnt' in mObj.p_nameBase:
+                    _baseName = mObj.p_nameBase.replace('_sknJnt','')
+                else:
+                    _baseName = mObj.p_nameBase
+                    
+                mDup.rename('{}_DEFJOINT'.format(_baseName))
+                _parentTo = mDup
+                
+                #DynJoint
+                if addDynJoint:
+                    mDyn = mObj.doDuplicate()
+                    mDyn.rename('{}_DynJoint'.format(_baseName))
+                    
+                    mDyn.p_parent = mDup
+                    _parentTo = mDyn
                 
                 #...reparent
                 for mChild in mAllChildren:
-                    mChild.p_parent = mDup
+                    mChild.p_parent = _parentTo
                 
-                mObj.p_parent = mDup  
+                mObj.p_parent = _parentTo  
                 
                 #...reconnect
                 RIGCONSTRAINTS.driven_connect(mDup.mNode, mDriver.mNode, 'noScale')
@@ -1158,6 +1175,47 @@ def defJointFix(start='none'):
 
         if mObj not in ml:
             print("No setup: {}".format(mObj.p_nameShort))
+            
+    pprint.pprint(ml)
+    print("Setup {} joints".format(len(ml)))
+    
+    
+def dynJoints(start='none'):
+    '''
+    
+    '''
+    import cgm.core.rig.constraint_utils as RIGCONSTRAINTS
+    mRoot = cgmMeta.validateObjArg(start)
+    ml = [mRoot]
+        
+    #Get our initial list...
+    ml_allChildren = mRoot.getAllChildren(asMeta=1,type='joint')
+    ml_allChildren.reverse()
+    for mObj in ml_allChildren:
+        if mObj.p_nameShort.endswith('DEFJOINT'):
+            mChildren = mObj.getChildren(asMeta=1,type='joint')
+            if mChildren:
+                #...get the non joint children as well
+                mAllChildren = mObj.getChildren(asMeta=1)
+                for mChild in mAllChildren:
+                    mChild.p_parent = False                
+                
+                
+                mDup = mObj.doDuplicate()
+                mDup.rename('{}_DYN'.format(mObj.p_nameBase))
+                mDup.p_parent = mObj
+                
+                mc.delete(mDup.getConstraintsTo())
+                for a in ['tx','ty','tz','rx','ry','rz']:
+                    ATTR.break_connection(mDup.mNode,a)
+                
+                #...reparent
+                for mChild in mAllChildren:
+                    mChild.p_parent = mDup
+                
+    
+            if mObj not in ml:
+                print("No setup: {}".format(mObj.p_nameShort))
             
     pprint.pprint(ml)
     print("Setup {} joints".format(len(ml)))

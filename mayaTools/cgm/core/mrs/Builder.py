@@ -9449,6 +9449,7 @@ class ui_createBlock(CGMUI.cgmGUI):
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
         self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
+        self.uiMenu_HelpMenu = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
 
     def buildMenu_file(self):
         self.uiMenu_FileMenu.clear()                      
@@ -9663,7 +9664,7 @@ class ui_createBlock(CGMUI.cgmGUI):
         
         #_d,d_defaultSettings = 
         
-        for a in ['cgmName','nameIter','nameList','shapeDirection','numShapers']:
+        for a in ['cgmName','nameIter','nameList','shapeDirection','numShapers','numRoll']:
             _mRow = mUI.MelHSingleStretchLayout(self.uiBlock_options,ut='cgmUISubTemplate')
             mUI.MelSpacer(_mRow,w=_sidePadding)
             
@@ -9677,7 +9678,7 @@ class ui_createBlock(CGMUI.cgmGUI):
                 self.d_uiAttrs[a] = mUI.MelOptionMenu(_mRow,ut = 'cgmUITemplate')
                 for a2 in BLOCKSHARE._d_attrsTo_make[a].split(':'):
                     self.d_uiAttrs[a].append(a2)
-            elif a == 'numShapers':
+            elif a in ['numShapers','numRoll']:
                 _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
                 self.d_uiAttrs[a] = mUI.MelIntField(_mRow,min=1)            
             else:
@@ -9707,13 +9708,18 @@ class ui_createBlock(CGMUI.cgmGUI):
         #pprint.pprint(_d)
         
         for a in self.d_uiAttrs.keys():
-            _v = _d.get(a)
+            _v = _d.get(a,None)
+            
+            if _v is None:
+                self.d_uiAttrRow[a](edit=True,vis=False)
+                continue
+            
             if a == 'cgmName':
                 if _v == None:
                     _v = _profile
                     
             _lock = False
-            if a == 'numShapers':
+            if a in ['numShapers','numRoll']:
                 if _v == None:
                     _v = 1
                     _lock = True
@@ -9721,14 +9727,12 @@ class ui_createBlock(CGMUI.cgmGUI):
             if issubclass(type(_v),list):
                 _v = ','.join(_v)
             
-            if _v is None:
-                self.d_uiAttrRow[a](edit=True,vis=False)
-                continue
+
             
             self.d_uiAttrRow[a](edit=True,vis=True)
             self.d_uiAttrs[a].setValue( _v)
             
-            if a == 'numShapers':
+            if a in ['numShapers']:
                 if _lock:
                     self.d_uiAttrs[a](edit=True, en= not _lock)
             
@@ -9928,7 +9932,10 @@ class ui_createBlock(CGMUI.cgmGUI):
             
             self.uiFunc_setBlockProfile()
             
-        self.mDag = HELPERS.HelperDag(self)
+        reload(HELPERS)
+        self.mHelper = HELPERS.HelperDag(self)
+        self.mDag = self.mHelper.mDag
+        self.ml_helpers = VALID.listArg(self.mDag.getMessageAsMeta('helpers'))
             
             
 def buildFrame_helpers(self,parent,changeCommand = ''):

@@ -7487,9 +7487,9 @@ def jointRadius_guess(self,sizeTarget = None):
     _done = False
     if sizeTarget:
         _size = TRANS.bbSize_get(sizeTarget,True)
-        print _size
-        print MATH.average(_size[0],_size[1])
-        _v = (MATH.average(_size[0],_size[1]) * .25)
+        #print _size
+        #print MATH.average(_size[0],_size[1])
+        _v = (MATH.average(_size[0],_size[1]) * .1)
         if self.jointRadius < _v:
             log.info("|{0}| >> changing from sizeTarget | {1} | {2}".format(_str_func,_v,sizeTarget))
             self.jointRadius = _v

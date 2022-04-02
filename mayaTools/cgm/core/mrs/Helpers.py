@@ -123,7 +123,7 @@ def uiFunc_helper_initialize(self):
     
     if self.ml_helpers:
         #print.pprint(self.ml_helpers)
-        self.mButton_helpersBuild(edit=True, en=False)
+        self.mButton_helpersBuild(edit=True, en=True)
         for mObj in self.ml_helpers:
             try:mObj.delete()
             except:
@@ -196,11 +196,11 @@ class HelperDag(object):
             mDag = cgmMeta.cgmObject('mrsHelpers')
         mDag.dagLock()
         
-        
         self.mUI = mUI
         self.mDag = mDag
         
-        mDag.addAttr('helpers',[], attrType='message')
+        mDag.addAttr('helpers', initialValue=[], attrType='message')
+        self.ml_helpers = mDag.getMessageAsMeta('helpers')
         
     def dat_get(self):
         _str_func = 'dat_get[{0}]'.format(self.__class__)                    
@@ -282,7 +282,7 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     
     self.mButton_helpersInitialize = mUI.MelButton(_row1, label='Initialize', ut='cgmUITemplate',
                                                    c = lambda *a:uiFunc_helper_initialize(self))
-    self.mButton_helpersBuild = mUI.MelButton(_row1, label='Build', ut='cgmUITemplate', en=False,
+    self.mButton_helpersBuild = mUI.MelButton(_row1, label='Build', ut='cgmUITemplate', en=True,
                                               c = lambda *a:uiFunc_helper_build(self))
     
     mUI.MelSpacer(_row1,w=2)    
@@ -355,18 +355,18 @@ def createBlockHelper(self = None, count= 1, mode = 'simple', baseSize = [1,1,1]
     if mode == 'simple':
         for i in range(count):
             #mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='block_{}_helper'.format(i), ch=False)[0])
-            mSphere = cgmMeta.asMeta(mc.polyCube(depth=baseSize[0], height=baseSize[1], width=baseSize[2], name='block_{}_helper'.format(i), ch=False)[0])
+            mHelper = cgmMeta.asMeta(mc.polyCube(depth=baseSize[0], height=baseSize[1], width=baseSize[2], name='block_{}_helper'.format(i), ch=False)[0])
             
-            mSphere.scale = baseSize
+            mHelper.scale = baseSize
             
-            self.ml_helpers.append(mSphere)
+            self.ml_helpers.append(mHelper)
 
     elif mode == 'raycast':
         #reload(SNAPCALLS)
-        #mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='ref_helper', ch=False)[0])
-        #mSphere.select()
+        #mHelper = cgmMeta.asMeta(mc.polySphere(radius=1, name='ref_helper', ch=False)[0])
+        #mHelper.select()
         mCaster = helpers_raycast(self, None,'duplicate',False,toCreate = ['{}_{}_helper'.format(name, i) for i in range(count)])
-        #mSphere.delete()
+        #mHelper.delete()
         #pprint.pprint(mCaster.l_created)
         #self._l_toDuplicate
         
@@ -377,11 +377,12 @@ def createBlockHelper(self = None, count= 1, mode = 'simple', baseSize = [1,1,1]
                                toCreate = ['block_{}_helper'.format(i) for i in range(count)])"""          
         
         
-        
+    print (self.ml_helpers)
+    print self.mDag
     if self.ml_helpers:
         self.mButton_helpersBuild(edit=True, en=True)
-        
         self.mDag.helpers = self.ml_helpers
+        
 
     
 def helpers_raycast(self = None, targets = [], create = None, drag = False, snap=True, aim=False, toCreate=[], kwsOnly = False):
