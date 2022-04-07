@@ -4468,7 +4468,7 @@ class ui(cgmUI.cgmGUI):
             self.create_guiOptionVar('blockMasterFrameCollapse',defaultValue = 0) 
             self.create_guiOptionVar('blockUtilsFrameCollapse',defaultValue = 0) 
             
-            self.create_guiOptionVar('contextMode',defaultValue = 1) 
+            self.create_guiOptionVar('contextMode',defaultValue = 0) 
             self.create_guiOptionVar('contextStartMode',defaultValue = 1) 
             self.create_guiOptionVar('contextForceMode',defaultValue = 1) 
             
@@ -9527,6 +9527,10 @@ class ui_createBlock(CGMUI.cgmGUI):
             if mBuilder._blockCurrent:
                 mActiveBlock = mBuilder._blockCurrent.mNode
                 d_create['blockParent'] = mActiveBlock
+                
+                
+                
+                
                 #side = self._blockCurrent.UTILS.get_side(self._blockCurrent)            
         
         _sel = mc.ls(sl=1) or []
@@ -9569,7 +9573,7 @@ class ui_createBlock(CGMUI.cgmGUI):
                 _cast = max(_size) * 1.5
                 #d_create['size'] = _size
                 _helper = mHelper.mNode
-                _shapeDirection = d_create.get('shapeDirection','y+')
+                _shapeDirection = d_create.get('shapeDirection','z+')
                 
                 _d_shapeToCast = {'y':'xzy',
                                   'x':'yzx',
@@ -9594,13 +9598,17 @@ class ui_createBlock(CGMUI.cgmGUI):
             if mBuilder:
                 mBuilder.uiScrollList_blocks.rebuild()
                 mBuilder.uiScrollList_blocks.selectByObj(_mBlock)
+                
+                
             
             ml_blocks.append(_mBlock)
             
             
         for mBlock in ml_blocks:
             log.info("|{}| >> [{}] | Created: {}.".format(_str_func,d_create['blockType'],mBlock.mNode))
-        
+            if mBlock == ml_blocks[-1]:
+                if mBuilder:
+                    mBuilder.uiFunc_block_setActive(mBlock=mBlock)
         
         self.ml_blocksMade = ml_blocks
         
@@ -9702,7 +9710,9 @@ class ui_createBlock(CGMUI.cgmGUI):
             log.warning("|{0}| >> No block type stored".format(_str_func))
             return
         
-        try:_d = mBlockModule.d_block_profiles[_profile]
+        try:
+            #_d = mBlockModule.d_block_profiles[_profile]
+            _d = RIGBLOCKS.get_blockTypeProfile(self.blockType,_profile)[1]
         except:
             _d = {'cgmName':self.blockType}
         #pprint.pprint(_d)

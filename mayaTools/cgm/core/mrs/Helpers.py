@@ -355,7 +355,8 @@ def createBlockHelper(self = None, count= 1, mode = 'simple', baseSize = [1,1,1]
     if mode == 'simple':
         for i in range(count):
             #mSphere = cgmMeta.asMeta(mc.polySphere(radius=1, name='block_{}_helper'.format(i), ch=False)[0])
-            mHelper = cgmMeta.asMeta(mc.polyCube(depth=baseSize[0], height=baseSize[1], width=baseSize[2], name='block_{}_helper'.format(i), ch=False)[0])
+            #mHelper = cgmMeta.asMeta(mc.polyCube(depth=baseSize[0], height=baseSize[1], width=baseSize[2], name='block_{}_helper'.format(i), ch=False)[0])
+            mHelper = cgmMeta.asMeta(mc.polyCube(depth=1, height=1, width=1, name='block_{}_helper'.format(i), ch=False)[0])
             
             mHelper.scale = baseSize
             

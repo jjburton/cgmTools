@@ -2613,6 +2613,64 @@ def get_modules_dat(update = False):
     CGM_RIGBLOCK_DAT = _d_modules, _d_categories, _l_unbuildable
     return _d_modules, _d_categories, _l_unbuildable
 
+def get_blockTypeProfile(blockType = None, blockProfile = 'default',extraAttrs = None):
+    """
+    Verify the attributes of a given block type
+    
+    force - overrides the excpetion on a failure
+    """
+    _str_func = 'get_blockTypeProfile'
+    log.debug(cgmGEN.logString_start(_str_func))
+
+    
+    mBlockModule = get_blockModule(blockType)
+    reload(mBlockModule)
+    
+    
+    try:d_attrsFromModule = mBlockModule.d_attrsToMake
+    except:d_attrsFromModule = {}
+    
+    d_defaultSettings = copy.copy(BLOCKSHARE.d_defaultAttrSettings)
+
+    try:d_defaultSettings.update(mBlockModule.d_defaultSettings)
+    except:pass
+    
+    try:d_defaultSettings.update(mBlockModule.d_block_profiles[blockProfile])
+    except Exception,err:
+        log.debug(cgmGEN.logString_msg(_str_func,'Failed to query blockProfile defaults | {0}'.format(err)))
+        pass        
+
+    try:_l_msgLinks = mBlockModule._l_controlLinks
+    except:_l_msgLinks = []
+
+    _d = copy.copy(BLOCKSHARE.d_defaultAttrs)
+    
+    _l_standard = mBlockModule.__dict__.get('l_attrsStandard',[])
+    log.debug("|{0}| >> standard: {1} ".format(_str_func,_l_standard))                        
+    for k in _l_standard:
+        if k in BLOCKSHARE._d_attrsTo_make.keys():
+            _d[k] = BLOCKSHARE._d_attrsTo_make[k]
+        else:
+            log.warning("|{0}| >> standard attr missing def: {1} ".format(_str_func,k))                        
+            
+    if extraAttrs is not None:
+        _d.update(extraAttrs)
+
+    for k,v in d_attrsFromModule.iteritems():
+        if k in _d.keys():
+            log.warning("|{0}| >> key: {1} already in to create list of attributes from default. | blockType: {2}".format(_str_func,k,blockType))                
+        else:
+            _d[k] = v
+
+    if _l_msgLinks:
+        for l in _l_msgLinks:
+            _d[l] = 'messageSimple'
+
+    #cgmGEN.walk_dat(_d,_str_func + " '{0}' attributes to verify".format(blockType))
+    #cgmGEN.walk_dat(d_defaultSettings,_str_func + " '{0}' defaults".format(blockType))
+    
+    return _d,d_defaultSettings
+
 
 def get_blockModule(blockType,update=False):
     """

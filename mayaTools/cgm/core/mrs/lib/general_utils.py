@@ -55,6 +55,7 @@ from cgm.core.lib import search_utils as SEARCH
 #from cgm.core.cgmPy import os_Utils as cgmOS
 from cgm.core.cgmPy import path_Utils as PATH
 
+
 def verify_sceneBlocks():
     """
     Gather all rig blocks data in scene
