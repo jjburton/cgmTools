@@ -944,6 +944,7 @@ d_defaultSettings = {'version':__version__,
                      'squashFactorMax':1.0,
                      'squashFactorMin':0.0,
                      'segmentMidIKControl':True,
+                     'segmentType':'curve',
                      'jointRadius':.1,
                      'visRotatePlane':False,
                      'baseDat':{'lever':[0,0,-1],'rp':[0,1,0],'up':[0,1,0]},                               
@@ -3046,6 +3047,8 @@ def skeleton_build(self, forceNew = True):
     ml_handleHelpers = [mHandle.jointHelper for mHandle in ml_prerigHandles]
     if len(ml_handleHelpers) != len(ml_prerigHandles):
         raise ValueError,"Must have matching handleHelper length to prerig."
+    
+    ml_handleHelpersRaw = copy.copy(ml_handleHelpers)
         
     ml_jointHelpers = self.msgList_get('jointHelpers',asMeta = True)
     if not ml_jointHelpers:
@@ -3078,7 +3081,6 @@ def skeleton_build(self, forceNew = True):
     if self.addLeverBase:
         if self.addLeverBase == 1:
             log.debug(cgmGEN.logString_msg(_str_func,'lever Base helper cull'))                
-            #_l_names = _l_names[1:]
             ml_handleHelpers = ml_handleHelpers[1:]
         else:
             log.debug(cgmGEN.logString_msg(_str_func,'lever'))                
@@ -3205,12 +3207,12 @@ def skeleton_build(self, forceNew = True):
         mJnt.doName()
         
     for i,mJnt in enumerate(ml_handleJoints):
-        log.info(cgmGEN.logString_sub(_str_func,"idx: {0}".format(i)))                        
+        log.info(cgmGEN.logString_sub(_str_func,"idx: {} | {}".format(i,ml_handleHelpers[i])))                        
         nameJoint(mJnt, ml_handleHelpers[i])
         
         ml_joints.append(mJnt)
-        ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(i))
-        
+        _idx = ml_handleHelpersRaw.index(ml_handleHelpers[i])
+        ml_rollHelpers = mPrerigNull.msgList_get('rollHelpers_{0}'.format(_idx))
         
         if ml_rollHelpers:
             log.info("|{0}| >> {1} Rolljoints: {2}".format(_str_func,mJnt.mNode,len(ml_rollHelpers)))
@@ -3233,7 +3235,6 @@ def skeleton_build(self, forceNew = True):
             JOINT.orientChain(ml_rolls,
                              worldUpAxis=mVecUp,
                              relativeOrient=True)
-            
             
             SNAP.aim_atPoint(ml_rolls[-1].mNode,
                              ml_handleJoints[i+1].p_position,
@@ -6610,7 +6611,7 @@ def rig_segments(self):
                 pprint.pprint(_d)
                 _d['parentDeformTo'] = ml_blendJoints[i]
                 _d['setupAim'] = 1
-                _d['skipAim'] = False
+                _d['skipAim'] = True
                 
                 if i == l_rollKeys[-1] and not self.b_extraHandles:
                     log.debug("|{0}| >> Last segment, buildEnd dag attachEndToInfluence = on".format(_str_func))                    
@@ -6668,7 +6669,9 @@ def rig_segments(self):
             #...no roll setups end not following the segment handles
             for key,v in self.md_rollMulti.iteritems():
                 if not v:
-                    try:self.md_roll[key][-1].rigJoint.masterGroup.p_parent = self.md_segHandles[key][-1].p_parent
+                    #try:self.md_roll[key][-1].rigJoint.masterGroup.p_parent = self.md_segHandles[key][-1].p_parent
+                    try:
+                        pass
                     except:
                         pass
         

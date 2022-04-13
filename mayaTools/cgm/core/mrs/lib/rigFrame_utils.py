@@ -551,8 +551,9 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         #_l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
         #                                                         DIST.get_distance_between_points(_l_posUse[-1],_l_posUse[-2])))
         
-                
-        """We're going to add another end joint so we can orient it"""
+        """
+        
+        //We're going to add another end joint so we can orient it
         mEnd = ml_ikUse.pop(-1)
         mEndHelp = mEnd.doDuplicate(po=True, ic=False)
         mEndHelp.rename("{}_endHelp".format(mEnd.p_nameBase))
@@ -574,7 +575,7 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
                          worldUpVector = self.d_orientation['vectorOut'],
                          worldUpObject = mEndHelp.mNode,
                          worldUpType = 'objectRotation' ) 
-        
+        """
         
         l = []
         

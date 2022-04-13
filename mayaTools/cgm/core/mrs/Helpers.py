@@ -182,7 +182,10 @@ def uiFunc_helper_build(self):
                 
         #print (_shapeDirection)
         
-        SNAPCALLS.snap(mBlock.mNode, mObj.mNode, objPivot='rp', targetPivot='castNear',targetMode= _shapeDirection)
+        if mBlock.blockType == 'head':
+            mBlock.p_position = mObj.p_position
+        else:
+            SNAPCALLS.snap(mBlock.mNode, mObj.mNode, objPivot='rp', targetPivot='castNear',targetMode= _shapeDirection)
         
         
     

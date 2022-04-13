@@ -4973,7 +4973,10 @@ def get_blockProfile_options(arg):
         log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))
         #if mBlockModule:reload(mBlockModule)
         
-        try:return mBlockModule.d_block_profiles.keys()
+        try:
+            _keys =  mBlockModule.d_block_profiles.keys()
+            _keys.sort()
+            return _keys
         except Exception,err:
             log.debug("|{0}| >>  [{2}] Failed to query. | {1} ".format(_str_func,err,arg))
         return []
