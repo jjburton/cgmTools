@@ -515,7 +515,7 @@ def get_spinGroup(self):
 
 def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
            mIKBaseControl=None,ml_skinDrivers=None,mPlug_masterScale=None,stretchBy='scale',
-           ikEndTwistConnect = True):
+           ikEndTwistConnect = True,extendEnd=False):
     try:
         _str_func = 'spline'
         log_start(_str_func)
@@ -539,21 +539,45 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         _l_posUse = [mObj.p_position for mObj in ml_ikUse]
         
         
-        
-        try:
-            _l_posUse.append(self.ml_formHandles[ self.int_handleEndIdx ].p_position)
-        except:
+        if extendEnd:
+            #try:
+            #    _l_posUse.append(self.ml_formHandles[ self.int_handleEndIdx ].p_position)
+            #except:
             _l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
                                                                      DIST.get_distance_between_points(_l_posUse[-1],
-                                                                                                      _l_posUse[-2])))            
+                                                                                                      _l_posUse[-2])))
+            
         _crv = CORERIG.create_at(create='curve',l_pos = _l_posUse)
+        
+        
+        #...-------------------------------------------------------------------------------
+        
+        #ATTR.set_default(mIKControl.mNode,'twistType',1)
+        #ATTR.set(mIKControl.mNode,'twistType',1)        
+        
+        mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_skinDrivers],
+                                                              _crv,
+                                                              tsb=True,
+                                                              maximumInfluences = 2,
+                                                              normalizeWeights = 1,dropoffRate=5),
+                                              'cgmNode',
+                                              setClass=True)
+    
+        mSkinCluster.doStore('cgmName', _crv)
+        mSkinCluster.doName()
+        
+        _node = mc.rebuildCurve(_crv, d=3, keepControlPoints=False,
+                                ch=1,s=len(ml_skinDrivers),
+                                n="{0}_reparamRebuild".format(_crv))
+        mc.rename(_node[1],"{0}_reparamRebuild".format(_crv))
+        
         
         #_l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
         #                                                         DIST.get_distance_between_points(_l_posUse[-1],_l_posUse[-2])))
         
-        """
         
-        //We're going to add another end joint so we can orient it
+        """
+        #We're going to add another end joint so we can orient it
         mEnd = ml_ikUse.pop(-1)
         mEndHelp = mEnd.doDuplicate(po=True, ic=False)
         mEndHelp.rename("{}_endHelp".format(mEnd.p_nameBase))
@@ -574,8 +598,16 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
                          upVector = self.d_orientation['vectorUp'],
                          worldUpVector = self.d_orientation['vectorOut'],
                          worldUpObject = mEndHelp.mNode,
-                         worldUpType = 'objectRotation' ) 
-        """
+                         worldUpType = 'objectRotation' ) """
+        
+        if extendEnd:
+            #We're going to add another end joint so we can stablize the end
+            mEndHelp = ml_ikUse[-1].doDuplicate(po=True, ic=False)
+            mEndHelp.rename("{}_endHelp".format( ml_ikUse[-1].p_nameBase))
+            mEndHelp.p_parent = ml_ikUse[-1]
+            ml_ikUse.append(mEndHelp)
+            mEndHelp.p_position = _l_posUse[-1]
+        
         
         l = []
         
@@ -606,25 +638,12 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         else:
             ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode, driven='source')
             
+        ATTR.copy_to(mSplineCurve.mNode,'stretch',mIKControl.mNode, driven='source')
         
         
         ATTR.copy_to(mSplineCurve.mNode,'twistStart',mIKBaseControl.mNode, driven='source')
         ATTR.copy_to(mSplineCurve.mNode,'twistType',mIKControl.mNode, driven='source')
-        #...-------------------------------------------------------------------------------
-        
-        #ATTR.set_default(mIKControl.mNode,'twistType',1)
-        #ATTR.set(mIKControl.mNode,'twistType',1)        
-        
-        mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mHandle.mNode for mHandle in ml_skinDrivers],
-                                                              mSplineCurve.mNode,
-                                                              tsb=True,
-                                                              maximumInfluences = 2,
-                                                              normalizeWeights = 1,dropoffRate=2.5),
-                                              'cgmNode',
-                                              setClass=True)
-    
-        mSkinCluster.doStore('cgmName', mSplineCurve)
-        mSkinCluster.doName()
+
         
         #mc.orientConstraint(mIKControl.mNode, ml_ikJoints[-1].mNode, maintainOffset=True)
         

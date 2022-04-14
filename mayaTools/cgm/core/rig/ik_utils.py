@@ -244,13 +244,31 @@ def spline(jointList = None,
             #> Name
             mi_closestPointNode.doStore('cgmName',mJnt)
             mi_closestPointNode.doName()
-            #>Set follicle value
-            mi_closestPointNode.parameter = param
+            
+            
+            #>Set follicle value            
+            if 'cat' == 'cat':#floating:
+                _minU = ATTR.get(str_shape,'minValue')
+                _maxU = ATTR.get(str_shape,'maxValue')
+                pct = MATH.get_normalized_parameter(_minU,_maxU,param)
+                log.debug("|{0}| >>  min,max,param,pct | {1},{2},{3},{4} ".format(_str_func,
+                                                                                  _minU,
+                                                                                  _maxU,
+                                                                                  param,
+                                                                                  pct))
+                mi_closestPointNode.turnOnPercentage = True
+                mi_closestPointNode.parameter = pct
+            else:
+                mi_closestPointNode.parameter = param
+                
+            
             ml_pointOnCurveInfos.append(mi_closestPointNode)
             
         ml_distanceObjects = []
         ml_distanceShapes = []  
         mSegmentCurve.addAttr('masterScale',value = 1.0, minValue = 0.0001, attrType='float')
+        mPlug_stretchOn = cgmMeta.cgmAttr(mSegmentCurve.mNode,
+                                        "stretch",attrType = 'float',keyable=True,hidden=False,initialValue=1.0,minValue = 0)
         
         for i,mJnt in enumerate(ml_joints[:-1]):
             #>> Distance nodes
@@ -314,10 +332,22 @@ def spline(jointList = None,
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NODEFAC.argsToNodes(arg).doBuild()
                     
+                    
+                #Setup our blendTwoAttr
+                mBlend = cgmMeta.cgmNode(nodeType='blendTwoAttr')
+                mBlend.rename("{}_blendTwo".format(mJnt.p_nameBase))
+                mPlug_stretchOn.doConnectOut("{}.attributesBlender".format(mBlend.mNode))
+                
+                mPlug_attrNormalBaseDist.doConnectOut('{}.input[0]'.format(mBlend.mNode))
+                mPlug_attrNormalDist.doConnectOut('{}.input[1]'.format(mBlend.mNode))
+
+                    
                 #Still not liking the way this works with translate scale. looks fine till you add squash and stretch
                 try:
                     mPlug_attrDist.doConnectIn('%s.%s'%(ml_distanceShapes[i].mNode,'distance'))		        
-                    mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_joints[i+1].mNode,str_orientation[0]))
+                    #mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_joints[i+1].mNode,str_orientation[0]))
+                    ATTR.connect("{}.output".format(mBlend.mNode),'{}.t{}'.format(ml_joints[i+1].mNode,str_orientation[0]))
+                    
                     #mPlug_attrNormalDist.doConnectOut('%s.t%s'%(ml_driverJoints[i+1].mNode,str_orientation[0]))    	    
                 except Exception,error:
                     raise Exception,"[Failed to connect joint attrs by scale: {0} | error: {1}]".format(mJnt.mNode,error)		
@@ -3778,7 +3808,7 @@ def curve(jointList = None,
         #ribbon_createCurve(l_ribbonJoints,loftAxis,sectionSpans,extendEnds)
         
         _trackCurve,l_clusters = CORERIG.create_at(l_influences,
-                                                   'linearTrack',
+                                                   'cubicTrack',
                                                    baseName = str_baseName)
         
         mControlCurve = cgmMeta.validateObjArg( _trackCurve,'cgmObject',setClass = True )
