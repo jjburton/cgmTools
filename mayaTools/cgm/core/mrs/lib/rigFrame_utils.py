@@ -515,7 +515,7 @@ def get_spinGroup(self):
 
 def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
            mIKBaseControl=None,ml_skinDrivers=None,mPlug_masterScale=None,stretchBy='scale',
-           ikEndTwistConnect = True,extendEnd=False):
+           ikEndTwistConnect = True,extendEnd=False, mSettings = None):
     try:
         _str_func = 'spline'
         log_start(_str_func)
@@ -527,9 +527,9 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         
         ml_ikUse = [mObj for mObj in ml_ikJoints]
         
-        ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
-        if not ml_ribbonIkHandles:
-            raise ValueError,"No ribbon IKDriversFound"
+        #ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
+        #if not ml_ribbonIkHandles:
+        #    raise ValueError,"No ribbon IKDriversFound"
             
         _aim = self.d_orientation['vectorAim']
         _aimNeg = self.d_orientation['vectorAimNeg']
@@ -636,13 +636,13 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
             NODEFAC.argsToNodes(arg1).doBuild()
             #ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode, driven='source')
         else:
-            ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode, driven='source')
+            ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mSettings.mNode, driven='source')
             
-        ATTR.copy_to(mSplineCurve.mNode,'stretch',mIKControl.mNode, driven='source')
+        ATTR.copy_to(mSplineCurve.mNode,'stretch',mSettings.mNode, driven='source')
         
         
-        ATTR.copy_to(mSplineCurve.mNode,'twistStart',mIKBaseControl.mNode, driven='source')
-        ATTR.copy_to(mSplineCurve.mNode,'twistType',mIKControl.mNode, driven='source')
+        ATTR.copy_to(mSplineCurve.mNode,'twistStart',mSettings.mNode, driven='source')
+        ATTR.copy_to(mSplineCurve.mNode,'twistType',mSettings.mNode, driven='source')
 
         
         #mc.orientConstraint(mIKControl.mNode, ml_ikJoints[-1].mNode, maintainOffset=True)

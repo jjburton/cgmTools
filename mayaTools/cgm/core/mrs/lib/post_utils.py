@@ -1116,7 +1116,7 @@ def refs_remove():
         log.info("Removing | {0}".format(refFile))
         mc.file( refFile, removeReference=True )
 
-def defJointFix(start='none', addDynJoint = False):
+def defJointFix(start='none', addDynJoint = False, skip = ['DEFJOINT']):
     '''
     
     '''
@@ -1129,6 +1129,15 @@ def defJointFix(start='none', addDynJoint = False):
     ml_allChildren.reverse()
         
     for mObj in ml_allChildren:
+        _noGo = False
+        if skip:
+            for a in skip:
+                if mObj.p_nameBase.count(a):
+                    _noGo = True
+                    continue
+        
+        if _noGo:
+            continue
         mChildren = mObj.getChildren(asMeta=1,type='joint')
         if mChildren:
             mDriver = mObj.getConstrainingObjects(asMeta=1)

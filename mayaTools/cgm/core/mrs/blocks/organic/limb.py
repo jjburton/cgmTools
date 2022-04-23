@@ -3432,7 +3432,10 @@ def rig_prechecks(self):
         for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
             if not mObj.p_parent:
                 self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
-                
+        
+        _rollCount = mBlock.datList_get('rollCount')
+        if not sum(_rollCount) and mBlock.getEnumValueString('segmentType') == 'ribbon':
+            self.l_precheckErrors.append("No roll and segmentType ribbon. | you're going to want curve segmentType or add some roll. ")
         #str_ikEnd = mBlock.getEnumValueString('ikEnd')
         #ml_formHandles = mBlock.msgList_get('formHandles')
         #if not mBlock.ikEnd and ml_formHandles[-1].getMessage('pivotHelper')

@@ -663,7 +663,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
                  'segmentMidIKControl':'none:ribbon:prntConstraint',
-                 'segmentType':'ribbon:curve:linear:parent',
+                 'segmentType':'ribbon:spline:curve:linear:parent',
                  'ikBase':'none:cube:simple:hips:head',
                  'settingsPlace':'start:end:cog',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
@@ -2883,6 +2883,23 @@ def rig_segments(self):
         if self.str_segmentType == 'ribbon':
             res_ribbon = IK.ribbon(**_d)
             ml_surfaces = res_ribbon['mlSurfaces']
+            
+        elif self.str_segmentType == 'spline':
+            _l_segJoints = _d['jointList']
+            _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+            for i,mJnt in enumerate(ml_segJoints[1:]):
+                mJnt.p_parent = ml_segJoints[i]
+                
+            mIKBaseControl = mRigNull.getMessageAsMeta('controlIKBase')
+            mIKControl = mRigNull.getMessageAsMeta('controlIK')
+            mSettings = mRigNull.getMessageAsMeta('settings')
+            
+            RIGFRAME.spline(self,_ml_segTmp, None, mIKControl, mIKBaseControl,
+                            ml_handleJoints, mPlug_masterScale, 'translate',
+                            mBlock.ikSplineTwistEndConnect, False, mSettings)
+
+            ATTR.set_default(mSettings.mNode,'twistType',1)
+            ATTR.set(mSettings.mNode,'twistType',1)
         else:
             _l_segJoints = _d['jointList']
             _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
@@ -2891,11 +2908,7 @@ def rig_segments(self):
             pprint.pprint(_d)
             IK.curve(**_d)
 
-            """
-            mc.scaleConstraint(_ml_segTmp[-1].mNode,
-                               _ml_segTmp[-1].rigJoint.masterGroup.mNode,
-                               #skip='z',
-                               maintainOffset = 1)    """             
+
         
         mMasterCurve.p_parent = mRoot
 
@@ -2908,8 +2921,8 @@ def rig_segments(self):
             if mJnt == ml_segJoints[0]:
                 continue
             print mJnt
-            
-            mJnt.p_parent =ml_segJoints[0].p_parent
+            if self.str_segmentType not in ['spline']:
+                mJnt.p_parent =ml_segJoints[0].p_parent
         log.debug('ribbon done')
     log.debug("done")
 
@@ -3170,12 +3183,12 @@ def rig_frame(self):
                 
                 if _ikSetup == 'spline':
                     reload(RIGFRAME)
-                    _ikTwistEndConnect = False
                     RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,
-                                    ml_skinDrivers,mPlug_masterScale, 'translate', mBlock.ikSplineTwistEndConnect)
+                                    ml_skinDrivers,mPlug_masterScale, 'translate', mBlock.ikSplineTwistEndConnect, False, 
+                                    mSettings)
     
-                    ATTR.set_default(mIKControl.mNode,'twistType',1)
-                    ATTR.set(mIKControl.mNode,'twistType',1)
+                    ATTR.set_default(mSettings.mNode,'twistType',1)
+                    ATTR.set(mSettings.mNode,'twistType',1)
                     
                     #pprint.pprint(ml_ikJoints)
                     
