@@ -2023,8 +2023,8 @@ class build_conditionNetworkFromGroup(object):
         if not mc.objExists(group):
             log.error("Group doesn't exist: '%s'"%group)
             return
-        elif not search.returnObjectType(group) == 'group':
-            log.error("Object is not a group: '%s'"%search.returnObjectType(group))
+        elif not cgmValid.is_transform(group):
+            log.error("Object is not a transform: '%s'"%search.returnObjectType(group))
             return
         self.i_group = cgmMeta.cgmObject(group)
         if not self.i_group.getChildren():
