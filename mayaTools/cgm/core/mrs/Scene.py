@@ -396,6 +396,29 @@ example:
 
     @property
     def versionFile(self):
+        
+        _set =  self.path_set
+        log.info(_set)
+        if _set and os.path.isfile(_set):
+            return _set        
+        """
+        _version = self.selectedVersion
+        log.info(_version)
+        if _version and os.path.isfile(_version):
+            return _version
+        
+        _variation = self.selectedVariation
+        log.info(_variation)
+        if _variation and os.path.isfile(_variation):
+            return _variation
+        """
+
+        
+        #return None
+        
+        #log.info("Set: {0}".format(self.selectedSet))
+        #log.info("Variation: {0}".format(self.selectedVariation))        
+        #log.info("Version: {0}".format(self.selectedVersion))           
         try:
             if self.hasSub:
                 if self.hasVariant:
@@ -3199,6 +3222,8 @@ example:
         #    self.SaveCurrentSelection()
 
     def LoadFile(self, *args):
+        """
+        print self.versionFile
         if not self.assetList['scrollList'].getSelectedItem():
             log.warning( "No asset selected" )
             return
@@ -3208,7 +3233,7 @@ example:
         if not self.versionList['scrollList'].getSelectedItem() and self.hasSub:
             print "No version selected"
             return
-        
+        """
         VALID.fileOpen(self.versionFile,True,True)
         
     def uiFunc_getOpenFileDict(self,*args):

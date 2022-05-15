@@ -50,7 +50,7 @@ def delete():
     _str_func = 'delete'   
 
 
-def clear(obj):
+def clear(obj, msgList = 'spacePivots'):
     """   
     Clear existing spacePivots
 
@@ -63,7 +63,7 @@ def clear(obj):
     _str_func = 'clear'    
     mObj = cgmMeta.validateObjArg(obj,'cgmObject',noneValid=False)    
     _res = False
-    ml_spacePivots = mObj.msgList_get('spacePivots')
+    ml_spacePivots = mObj.msgList_get(msgList)
     if ml_spacePivots:
         log.debug("|{0}| >> SpacePivots found...".format(_str_func))    
         mc.delete([mPivot.mNode for mPivot in ml_spacePivots])
@@ -77,7 +77,7 @@ def clear(obj):
             
     return True
  
-def create(obj,parentTo = False):
+def create(obj,parentTo = False, size = False, prefix = 'pivot', shape = 'jack', msgList = 'spacePivots', nameType = 'spacePivot'):
     """   
     Create a spacePivot from a given object
 
@@ -92,12 +92,15 @@ def create(obj,parentTo = False):
     #....inital...
     i_obj = cgmMeta.validateObjArg(obj,cgmMeta.cgmObject,noneValid=False)    
     i_parent = cgmMeta.validateObjArg(parentTo,cgmMeta.cgmObject,noneValid=True)    
-    bbSize = DIST.get_bb_size(i_obj.mNode)
-    size = max(bbSize)
-
+    if not size:
+        bbSize = DIST.get_bb_size(i_obj.mNode)
+        size = max(bbSize)
+        _sizeMode = 'guess'
+    else:
+        _sizeMode = 'fixed'
     #>>>Create #====================================================
     #CURVES.create_controlCurve(i_obj.mNode,'jack')
-    i_control = cgmMeta.asMeta(CURVES.create_controlCurve(i_obj.mNode,'jack',sizeMode='guess')[0],'cgmObject',setClass=True)
+    i_control = cgmMeta.asMeta(CURVES.create_controlCurve(i_obj.mNode,shape,size = size, sizeMode = _sizeMode)[0],'cgmObject',setClass=True)
     log.debug(i_control)
     try:l_color = curves.returnColorsFromCurve(i_obj.mNode)
     except Exception,error:raise Exception,"color | %s"%(error)          
@@ -123,8 +126,8 @@ def create(obj,parentTo = False):
     #>>>Register
     #====================================================    
     #Attr
-    i = ATTR.get_nextAvailableSequentialAttrIndex(i_obj.mNode,"pivot")
-    str_pivotAttr = str("pivot_%s"%i)
+    i = ATTR.get_nextAvailableSequentialAttrIndex(i_obj.mNode,prefix)
+    str_pivotAttr = str("{}_{}".format(prefix,i))
     str_objName = str(i_obj.getShortName())
     str_pivotName = str(i_control.getShortName())
     
@@ -148,21 +151,21 @@ def create(obj,parentTo = False):
     i_control.doStore('cgmName',i_obj)
     i_control.addAttr('cgmType','controlAnim',lock=True)    
     i_control.addAttr('cgmIterator',"%s"%i,lock=True)        
-    i_control.addAttr('cgmTypeModifier','spacePivot',lock=True)
+    i_control.addAttr('cgmTypeModifier',nameType,lock=True)
 
     i_control.doName(nameShapes=True)
 
-    i_control.addAttr('cgmAlias',(i_obj.getNameAlias()+'_pivot_%s'%i),lock=False)
+    i_control.addAttr('cgmAlias',(i_obj.getNameAlias()+'_{}_{}'.format(prefix,i)),lock=False)
     
     #Store on object
     #====================================================    
-    i_obj.addAttr("spacePivots", attrType = 'message',lock=True)
-    _l_spacePivots = i_obj.getMessage('spacePivots',True) or []
+    i_obj.addAttr(msgList, attrType = 'message',lock=True)
+    _l_spacePivots = i_obj.getMessage(msgList,True) or []
     if i_control.getLongName() not in _l_spacePivots:
         #_l_spacePivots = i_obj.getMessage('spacePivots',True)
         #_l_spacePivots.append(i_control.mNode)
-        i_obj.msgList_append('spacePivots',i_control,'controlTarget')
-    log.debug("spacePivots: %s"%i_obj.msgList_get('spacePivots',asMeta = True))
+        i_obj.msgList_append(msgList,i_control,'controlTarget')
+    log.debug("spacePivots: %s"%i_obj.msgList_get(msgList,asMeta = True))
 
     #parent
     if i_parent:
@@ -179,7 +182,7 @@ def create(obj,parentTo = False):
 
     return i_control
 
-def add(obj, parentTo = False, count = 1, clean = False):
+def add(obj, parentTo = False, count = 1, clean = False,msgList = 'spacePivots'):
     """   
     Add multiple space pivots to an object
 
@@ -198,12 +201,12 @@ def add(obj, parentTo = False, count = 1, clean = False):
     _res = []
     
     if clean:
-        clean(obj)
+        clean(obj,msgList)
     
     for i in range(count):
         _int = i+1
         log.debug("|{0}| >> adding {1}".format(_str_func,_int))   
-        _res.append( create(mObj,mParent) )
+        _res.append( create(mObj,mParent,msgList=msgList) )
         
     return _res
         

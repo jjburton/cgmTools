@@ -127,8 +127,8 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                            'loftShapeEnd','loftShapeStart'],
                    'prerig':[],
                    'skeleton':['numJoints'],
-                   'rig':['segmentType','special_swim','ikEndShape',
-                          'ikBaseExtend','ikEndExtend','ikEndLever','ikSplineTwistEndConnect']}
+                   'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
+                          'ikBaseExtend','ikEndExtend','ikEndLever',]}
 
 
 #>>>Profiles =====================================================================================================
@@ -217,7 +217,7 @@ d_block_profiles = {
     'ribbonConnectBy': 'constraint',
     'ribbonParam': 'blend',
     'scaleSetup': True,
-    'segmentMidIKControl': 'prntConstraint',
+    'ikMidSetup': 'prntConstraint',
     'segmentType': 'parent',
     'settingsDirection': 'up',
     'settingsPlace': 'end',
@@ -264,7 +264,7 @@ d_block_profiles = {
      'ribbonConnectBy': 'constraint',
      'ribbonParam': 'blend',
      'scaleSetup': True,
-     'segmentMidIKControl': 'prntConstraint',
+     'ikMidSetup': 'prntConstraint',
      'segmentType': 'parent',
      'settingsDirection': 'up',
      'settingsPlace': 'end',
@@ -313,7 +313,7 @@ d_block_profiles = {
      'ribbonConnectBy': 'constraint',
      'ribbonParam': 'blend',
      'scaleSetup': True,
-     'segmentMidIKControl': 'prntConstraint',
+     'ikMidSetup': 'prntConstraint',
      'segmentType': 'parent',
      'settingsDirection': 'up',
      'settingsPlace': 'end',
@@ -364,7 +364,7 @@ d_block_profiles = {
      'ribbonConnectBy': 'constraint',
      'ribbonParam': 'blend',
      'scaleSetup': True,
-     'segmentMidIKControl': 'prntConstraint',
+     'ikMidSetup': 'prntConstraint',
      'segmentType': 'ribbon',
      'settingsDirection': 'up',
      'settingsPlace': 'end',
@@ -374,6 +374,7 @@ d_block_profiles = {
      'spaceSwitch_fk': False,
      'special_swim': 'none',
      'squash': 'simple',
+     'nameList':['tailStart','tailEnd'],     
      'squashExtraControl': True,
      'squashFactorMax': 1.0,
      'squashFactorMin': 1.0,
@@ -419,7 +420,7 @@ d_block_profiles = {
              'ikEndExtend':True,
              'nameIter':'head',
              'nameList':['headStart','headEnd'],
-             'segmentMidIKControl':'none',
+             'ikMidSetup':'none',
              'squash':'both',
              'squashExtraControl':True,
              'squashMeasure':'arcLength',
@@ -662,7 +663,8 @@ d_attrsToMake = {'visMeasure':'bool',
                  'special_swim':'none:wave:sine',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
-                 'segmentMidIKControl':'none:ribbon:prntConstraint',
+                 'ikMidControlNum':'int',
+                 'ikMidSetup':'none:ribbon:prntConstraint:linearTrack:cubicTrack',
                  'segmentType':'ribbon:spline:curve:linear:parent',
                  'ikBase':'none:cube:simple:hips:head',
                  'settingsPlace':'start:end:cog',
@@ -671,8 +673,9 @@ d_attrsToMake = {'visMeasure':'bool',
                  #'ikEnd':'none:cube:bank:foot:hand:tipBase:tipMid:tipEnd:proxy',
                  'ikEnd':'helper:tipBase:tipMid:tipEnd',
                  'ikSplineTwistEndConnect':'bool',
+                 'ikSplineExtendEnd':'bool',                 
+                 'ikSplineAimEnd':'bool',
                  'ikEndShape':'cast:locator:cube',
-                 
                  'ikEndLever':'bool',
                  'ikBaseExtend':'bool',
                  'ikEndExtend':'bool',                 
@@ -698,7 +701,7 @@ d_defaultSettings = {'version':__version__,
                      'ikSplineTwistEndConnect':True,
                      'loftList':['square','circle','square'],
                      'visLabels':True,
-                     'segmentMidIKControl':'prntConstraint',
+                     'ikMidSetup':'prntConstraint',
                      'squash':'both',
                      'squashExtraControl':True,
                      'ribbonAim':'stableBlend',
@@ -1342,6 +1345,7 @@ def prerig(self):
     #IK handles....------------------------------------------------------------------------------
     d_ikHandles = {'start':{'idx':0},
                    'end':{'idx':-1}}
+    l_ikHandlesKeys = ['start','end']
     
     str_start = self.getEnumValueString('ikBase')
     if str_start in ['hips','head']:
@@ -1351,24 +1355,46 @@ def prerig(self):
     if str_end == 'tipBase':
         d_ikHandles['end']['idx'] = -2
         
-    if self.segmentMidIKControl:
-        d_ikHandles['mid'] = {'pos': CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .5)}
-    
+    #num of mid handles...
+    _ikMidControlNum = self.ikMidControlNum
+    if self.ikMidControlNum:
+        if _ikMidControlNum == 1:
+            _values = [.5]
+        elif _ikMidControlNum == 2:
+            _values = [.33,.66]
+        else:
+            _values = MATH.get_splitValueList(0,1,_ikMidControlNum + 2,True, .2, .8)  
+        
+        for i,v in enumerate(_values):
+            _key = 'mid_{}'.format(i)
+            l_ikHandlesKeys.insert(-1,_key)
+            d_ikHandles[_key] = {'pos': CURVES.getPercentPointOnCurve(mTrackCurve.mNode, v) }
+            
+    #cgmGEN.func_snapShot(vars())
     ml_ikHandles = []
-    for key,dat in d_ikHandles.iteritems():
-        _str = 'ik{0}Handle'.format(CORESTRING.capFirst(key))
-        crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
+    ml_midIKHandles = []
+    for key in l_ikHandlesKeys:
+        dat = d_ikHandles[key]
+        
+        if key.startswith('mid'):
+            _str = 'ik{0}_Handle'.format(CORESTRING.capFirst(key))                        
+            crv = CURVES.create_fromName('locatorForm', size = _sizeUse * 3.0)
+            BLOCKSHAPES.color(self,crv,controlType='sub')
+        else:
+            _str = 'ik{0}Handle'.format(CORESTRING.capFirst(key))            
+            crv = CURVES.create_fromName('axis3d', size = _sizeUse * 2.0)
+            
         mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
         mHandle.addAttr('cgmColorLock',True,lock=True,hidden=True)
         self.connectChildNode(mHandle.mNode,_str)
         
         mHandle.rename("{0}_{1}".format(self.cgmName,_str))
         
-        if key == 'mid':
+        if key.startswith('mid'):
             mHandle.doSnapTo(ml_handles[d_ikHandles['start']['idx']])
             mHandle.p_position = dat['pos']
             mHandle.p_parent = mPrerigNull
-                        
+            ml_midIKHandles.append(mHandle)
     
             #res_attach = RIGCONSTRAINT.attach_toShape(mTrackGroup.mNode,mTrackCurve.mNode,'conPoint')
             #TRANS.parent_set(res_attach[0],mNoTransformNull.mNode)            
@@ -1389,6 +1415,11 @@ def prerig(self):
         else:
             ml_ikHandles.insert(1,mHandle)
         
+        
+    if ml_midIKHandles:
+        mPrerigNull.msgList_connect('ikMidHelpers', ml_midIKHandles)
+        
+    mPrerigNull.msgList_connect('ikHelpers', ml_ikHandles)
     self.UTILS.controller_walkChain(self,ml_ikHandles,'prerig')
         
     
@@ -1628,19 +1659,13 @@ def create_jointHelpers(self,cnt=None, force = False):
     """
     mCrv.p_parent = mGroupNoTrans
      
+    ml_ikHelpers = mPrerigNull.msgList_get('ikHelpers')
     
-    for k in ['start','end','mid']:
-        
-        _str = 'ik{0}Handle'.format(CORESTRING.capFirst(k))    
-        mHandle = self.getMessageAsMeta(_str)
-        if mHandle:
-            log.info("MidHandle: {0}".format(_str))
-                  
-
-            #res_attach = RIGCONSTRAINT.attach_toShape(mHandle.trackGroup.mNode,mCrv.mNode,'conPoint',
-                                                      #driver=)
-            #TRANS.parent_set(res_attach[0],mNoTrans.mNode)
-            attachToCurve(mHandle,mCrv,mShape,mGroupNoTrans)
+    #for k in ['start','end','mid']:
+    for mHandle in ml_ikHelpers:
+        #_str = 'ik{0}Handle'.format(CORESTRING.capFirst(k))    
+        #mHandle = self.getMessageAsMeta(_str)
+        attachToCurve(mHandle,mCrv,mShape,mGroupNoTrans)
         
     #Cog
     mHandle = self.getMessageAsMeta('cogHelper')
@@ -1875,6 +1900,9 @@ def rig_dataBuffer(self):
         self.ml_prerigHandles = ml_prerigHandles
         self.mHandleFactory = self.mBlock.asHandleFactory()
         
+        self.ml_ikMidHelpers = mPrerigNull.msgList_get('ikMidHelpers')
+
+        
         ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
         mMasterNull = self.d_module['mMasterNull']
         
@@ -1882,9 +1910,9 @@ def rig_dataBuffer(self):
         
         if mBlock.numJoints == 4 and mBlock.numControls == 3:
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
-            mBlock.segmentMidIKControl = 0
+            mBlock.ikMidSetup = 0
             
-        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase']:
+        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
                 
         #Vector ====================================================================================
@@ -1938,7 +1966,7 @@ def rig_dataBuffer(self):
         #pprint.pprint(self.d_squashStretch)
         
         #Check for mid control and even handle count to see if w need an extra curve
-        if mBlock.segmentMidIKControl:
+        if mBlock.ikMidSetup:
             #if MATH.is_even(mBlock.numControls):
             self.d_squashStretchIK['sectionSpans'] = 2
                 
@@ -2191,20 +2219,25 @@ def rig_skeleton(self):
             
             ml_jointsToConnect.extend(ml_ribbonIKDrivers)
             
-            
-            if mBlock.segmentMidIKControl:
-                log.debug("|{0}| >> Creating ik mid control...".format(_str_func))  
-                #Lever...
-                mMidIK = mBlock.ikMidHandle.doCreateAt('joint')#ml_rigJoints[0]
-                _nameSet = NAMETOOLS.combineDict( mBlock.getNameDict(ignore=['cgmType']))                    
+            self.ml_ikMidControls = []            
+            if self.ml_ikMidHelpers:
+                for i,mHelper in enumerate(self.ml_ikMidHelpers):
+                    log.debug("|{0}| >> Creating ik mid control...".format(_str_func))  
+                    #Lever...
+                    mMidIK = mHelper.doCreateAt('joint')#ml_rigJoints[0]
+                    _nameSet = NAMETOOLS.combineDict( mBlock.getNameDict(ignore=['cgmType']))                    
+                    
+                    mMidIK.doStore('cgmName', '{}_midIK_{}'.format(_nameSet,i))
+                    mMidIK.p_parent = False
+                    mMidIK.doName()
                 
-                mMidIK.doStore('cgmName', '{0}_segMid'.format(_nameSet))
-                mMidIK.p_parent = False
-                mMidIK.doName()
+                    JOINT.freezeOrientation(mMidIK.mNode)
+                    
+                    mRigNull.connectChildNode(mMidIK,'controlSegMid_{}_IK'.format(i),'rigNull')
+                    
+                    self.ml_ikMidControls.append(mMidIK)
             
-                JOINT.freezeOrientation(mMidIK.mNode)
-                mRigNull.connectChildNode(mMidIK,'controlSegMidIK','rigNull')
-                
+            """
             #Add base joint for now...
             #if _ikSetup in ['spline','curve']:
             if mBlock.ikBaseExtend:
@@ -2232,7 +2265,7 @@ def rig_skeleton(self):
                 JOINT.freezeOrientation(mEndExtendIK.mNode)
                 
                 mRigNull.connectChildNode(mEndExtendIK,'controlEndExtendIK','rigNull')            
-            
+            """
             
         
             
@@ -2351,6 +2384,12 @@ def rig_shapes(self):
 
 
         #controlSegMidIK... =============================================================================
+        for i,mHelper in enumerate(self.ml_ikMidControls):
+            RIGSHAPES.ik_segMid(self,mHelper)
+            CORERIG.shapeParent_in_place(mHelper.mNode, self.ml_ikMidHelpers[i].mNode, False)
+            
+            
+        """    
         mControlSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
         if mControlSegMidIK:
             RIGSHAPES.ik_segMid(self,mControlSegMidIK)
@@ -2365,7 +2404,7 @@ def rig_shapes(self):
         if mControlBaseExtendIK:
             RIGSHAPES.ik_segMid(self,mControlBaseExtendIK)                
             mControlBaseExtendIK.p_parent = False
-            
+            """
         #Root...=============================================================================
         mRoot = RIGSHAPES.rootOrCog(self)
         
@@ -2409,7 +2448,7 @@ def rig_shapes(self):
                 else:
                     d_ikEnd = {'shapeArg':str_ikEndShape}
                     
-                print str_ikEnd
+                #print str_ikEnd
                 RIGSHAPES.ik_end(self,str_ikEnd,ml_handleTargets,ml_rigJoints,ml_fkShapes,ml_ikJoints,ml_fkJoints,**d_ikEnd)
         
         
@@ -2576,7 +2615,8 @@ def rig_controls(self):
         #ControlIK ========================================================================================
         mControlIK = False
         ml_blend = mRigNull.msgList_get('blendJoints')
-
+        ml_controlsIK = []
+        
         if mRigNull.getMessage('controlIK'):
             
             mControlIK = mRigNull.controlIK
@@ -2596,6 +2636,7 @@ def rig_controls(self):
             #Register our snapToTarget -------------------------------------------------------------
             self.atUtils('get_switchTarget', mControlIK,ml_blend[self.int_handleEndIdx])
             
+            ml_controlsIK.append(mControlIK)
             
             
         mControlBaseIK = False
@@ -2614,6 +2655,7 @@ def rig_controls(self):
             mControlBaseIK = _d['mObj']
             mControlBaseIK.masterGroup.parent = mRootParent
             ml_controlsAll.append(mControlBaseIK)
+            ml_controlsIK.insert(0,mControlBaseIK)
             
             #Register our snapToTarget -------------------------------------------------------------
             self.atUtils('get_switchTarget', mControlBaseIK,ml_blend[0])
@@ -2622,6 +2664,29 @@ def rig_controls(self):
                 log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
                 TRANS.scalePivot_set(mControlBaseIK.mNode, p_pelvis)                
             
+
+            
+        #Mid controls ====================
+        if self.ml_ikMidControls:
+            log.debug("|{0}| >> Found midIKControls".format(_str_func))            
+            d_mid = copy.copy(d_controlSpaces)
+            if d_mid.get('addSpacePivots'):d_mid.pop('addSpacePivots')
+            for mHandle in self.ml_ikMidControls:
+                _d = MODULECONTROL.register(mHandle,
+                                            addDynParentGroup = True, 
+                                            mirrorSide= self.d_module['mirrorDirection'],
+                                            mirrorAxis="translateX,rotateY,rotateZ",
+                                            makeAimable = True,
+                                            **d_mid)
+                
+                
+                mNew = _d['mObj']
+                mNew.masterGroup.parent = mRootParent
+                ml_controlsAll.append(mNew)            
+                ml_controlsIK.insert(-1,mNew)
+            
+            
+        """
         mIKControlMid = mRigNull.getMessageAsMeta('controlIKMid')
         if mIKControlMid:
             log.debug("|{0}| >> Found controlIKMid : {1}".format(_str_func, mIKControlMid))
@@ -2641,8 +2706,10 @@ def rig_controls(self):
             self.atUtils('get_switchTarget', mIKControlMid,ml_blend[self.int_handleMidIdx])
             
             log.debug(cgmGEN._str_subLine)
-            
-            
+        
+        
+        
+        
         l_extends = ['controlEndExtendIK','controlBaseExtendIK']
         for k in l_extends:
             mControl = mRigNull.getMessageAsMeta(k)
@@ -2663,14 +2730,7 @@ def rig_controls(self):
                     
                 ml_controlsAll.append(mControl)
                 ml_controlsIKRO.append(mControl)
-                    
-                
 
-                
-            
-            
-            
-            
         mControlSegMidIK = False
         #controlSegMidIK =============================================================================
         if mRigNull.getMessage('controlSegMidIK'):
@@ -2690,7 +2750,7 @@ def rig_controls(self):
             ml_controlsAll.append(mControlSegMidIK)
         
             #Register our snapToTarget -------------------------------------------------------------
-            self.atUtils('get_switchTarget', mControlSegMidIK,ml_blend[ MATH.get_midIndex(len(ml_blend))])        
+            self.atUtils('get_switchTarget', mControlSegMidIK, ml_blend[ MATH.get_midIndex(len(ml_blend))])"""
     
     
         if mSettings and self.str_settingsPlace != 'cog':#>> settings ==========================================
@@ -2793,6 +2853,7 @@ def rig_controls(self):
         #ml_controlsAll = self.atBuilderUtils('register_mirrorIndices', ml_controlsAll)
         mRigNull.msgList_connect('controlsAll',ml_controlsAll)
         mRigNull.moduleSet.extend(ml_controlsAll)
+        mRigNull.msgList_connect('controlsIK',ml_controlsIK)
         
         return 
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -2896,7 +2957,7 @@ def rig_segments(self):
             
             RIGFRAME.spline(self,_ml_segTmp, None, mIKControl, mIKBaseControl,
                             ml_handleJoints, mPlug_masterScale, 'translate',
-                            mBlock.ikSplineTwistEndConnect, False, mSettings)
+                            mBlock.ikSplineTwistEndConnect, mBlock.ikSplineExtendEnd, mBlock.ikSplineAimEnd, mSettings)
 
             ATTR.set_default(mSettings.mNode,'twistType',1)
             ATTR.set(mSettings.mNode,'twistType',1)
@@ -3150,6 +3211,7 @@ def rig_frame(self):
                 
                 ml_segMidDrivers = copy.copy(ml_ribbonIkHandles)
                     
+                """
                 #Extend Controls ==============================================================
                 mControlBaseExtendIK = mRigNull.getMessageAsMeta('controlBaseExtendIK')
                 if mControlBaseExtendIK:
@@ -3162,15 +3224,24 @@ def rig_frame(self):
                     ml_skinDrivers.insert(-1,mControlEndExtendIK)
                     max_influences+=1
                     ml_segMidDrivers[1] = mControlEndExtendIK
-                
+                """
 
+                #Mid controls ====================
+                if self.ml_ikMidControls:
+                    RIGFRAME.segment_mid(self,self.ml_ikMidControls,
+                                         ml_segMidDrivers,mIKGroup,
+                                         mIKBaseControl,mIKControl,ml_ikJoints)
+                    ml_skinDrivers = [ml_skinDrivers[0]] + self.ml_ikMidControls + [ml_skinDrivers[-1]]
+                    max_influences+=len(self.ml_ikMidControls)                    
+                    
+                """
                 mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
                 #[mControlBaseExtendIK,mControlEndExtendIK] ml_ribbonIkHandles
                 if mSegMidIK:
                     RIGFRAME.segment_mid(self,mSegMidIK,ml_segMidDrivers,mIKGroup,
                                          mIKBaseControl,mIKControl,ml_ikJoints)
                     ml_skinDrivers.insert(MATH.get_midIndex(len(ml_skinDrivers)),mSegMidIK)
-                    max_influences+=1
+                    max_influences+=1"""
                 
 
                 if mIKBaseControl:
@@ -3184,7 +3255,8 @@ def rig_frame(self):
                 if _ikSetup == 'spline':
                     reload(RIGFRAME)
                     RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,
-                                    ml_skinDrivers,mPlug_masterScale, 'translate', mBlock.ikSplineTwistEndConnect, False, 
+                                    ml_skinDrivers,mPlug_masterScale, 'translate',
+                                    mBlock.ikSplineTwistEndConnect, mBlock.ikSplineExtendEnd, mBlock.ikSplineAimEnd,
                                     mSettings)
     
                     ATTR.set_default(mSettings.mNode,'twistType',1)
@@ -3236,7 +3308,17 @@ def rig_frame(self):
                 
                 ml_segMidDrivers = copy.copy(ml_ribbonIkHandles)
                     
+                #Mid controls ====================
+                if self.ml_ikMidControls:
+                    RIGFRAME.segment_mid(self,self.ml_ikMidControls,
+                                         ml_segMidDrivers,mIKGroup,
+                                         mIKBaseControl,mIKControl,ml_ikJoints)
+                    ml_skinDrivers = [ml_skinDrivers[0]] + self.ml_ikMidControls + [ml_skinDrivers[-1]]
+                    max_influences+=len(self.ml_ikMidControls)                              
+                
+                """
                 #Extend Controls ==============================================================
+
                 mControlBaseExtendIK = mRigNull.getMessageAsMeta('controlBaseExtendIK')
                 if mControlBaseExtendIK:
                     ml_skinDrivers.insert(1,mControlBaseExtendIK)
@@ -3256,7 +3338,7 @@ def rig_frame(self):
                     RIGFRAME.segment_mid(self,mSegMidIK,ml_segMidDrivers,mIKGroup,
                                          mIKBaseControl,mIKControl,ml_ikJoints)
                     ml_skinDrivers.insert(MATH.get_midIndex(len(ml_skinDrivers)),mSegMidIK)
-                    max_influences+=1
+                    max_influences+=1"""
 
                     
                     
@@ -3406,6 +3488,7 @@ def rig_frame(self):
                     _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
                     
                     #Scale setup for mid set IK
+                    """
                     if mSegMidIK:
                         mMasterGroup = mSegMidIK.masterGroup
                         _vList = DIST.get_normalizedWeightsByDistance(mMasterGroup.mNode,_targets)
@@ -3413,7 +3496,7 @@ def rig_frame(self):
                         CONSTRAINT.set_weightsByDistance(_scale[0],_vList)                
                         ml_ikScaleTargets.append(mSegMidIK)
                         _targets = [mHandle.mNode for mHandle in ml_ikScaleTargets]
-    
+                        """
                     for mJnt in ml_ikJoints[1:-1]:
                         _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,_targets)
                         _scale = mc.scaleConstraint(_targets,mJnt.mNode,maintainOffset = True)#Point contraint loc to the object
@@ -3659,7 +3742,48 @@ def rig_cleanUp(self):
         #pprint.pprint(ml_targetDynParents)        
         log.debug(cgmGEN._str_subLine)
                   
-
+                  
+        #Mid controls ====================
+        if self.ml_ikMidControls:
+            log.debug("|{0}| >> Found midIKControls".format(_str_func))       
+            for mHandle in self.ml_ikMidControls:
+                #if b_ikOrientToWorld:BUILDUTILS.control_convertToWorldIK(mHandle)
+            
+                mParent = mHandle.masterGroup.getParent(asMeta=True)
+                ml_targetDynParents = []
+                mMainDriver = mHandle.getMessageAsMeta('mainDriver')
+                if mMainDriver:
+                    ml_targetDynParents.append(mMainDriver)
+                    mMainDriver.doStore('cgmAlias','midIKBase')
+                else:
+                    if not mParent.hasAttr('cgmAlias'):
+                        mParent.doStore('cgmAlias','midIKBase')
+                
+                mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
+                if mPivotResultDriver:
+                    mPivotResultDriver = mPivotResultDriver[0]
+                ml_targetDynParents.extend([mPivotResultDriver,mControlIK,mParent])
+                
+                ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
+                #ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
+                
+                mMainDriver = mHandle.getMessageAsMeta('mainDriver')
+                if mMainDriver:
+                    ml_targetDynParents.insert(0,mMainDriver)
+                
+                mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
+                #mDynGroup.dynMode = 2
+            
+                for mTar in ml_targetDynParents:
+                    mDynGroup.addDynParent(mTar)
+                mDynGroup.rebuild()
+                #mDynGroup.dynFollow.p_parent = self.mConstrainNull
+                
+                log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
+                #pprint.pprint(ml_targetDynParents)                
+                log.debug(cgmGEN._str_subLine)    
+                
+        """
         if mRigNull.getMessage('controlSegMidIK'):
             log.debug("|{0}| >>  IK Mid Handle ... ".format(_str_func))                
             mHandle = mRigNull.controlSegMidIK
@@ -3697,7 +3821,7 @@ def rig_cleanUp(self):
             
             log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
             #pprint.pprint(ml_targetDynParents)                
-            log.debug(cgmGEN._str_subLine)    
+            log.debug(cgmGEN._str_subLine)    """
 
         #...rigjoints ============================================================================================
         if mBlock.spaceSwitch_direct:

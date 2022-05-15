@@ -157,6 +157,9 @@ d_build_profiles = {
     'unityToon':{'default':{'squashMeasure':'arcLen',
                             'squash':'simple',
                             'scaleSetup':True,
+                            'root_dynParentScaleMode':True,
+                            'root_dynParentMode':True,
+                            'numRoll':0,
                             },
                  'finger':{'numRoll':0},
                  'toe':{'numRoll':0},
@@ -8133,7 +8136,7 @@ def rig_blendFrame(self):
         else:
             RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikScaleDrivers,ml_blendJoints,
                                         driver = mPlug_FKIK.p_combinedName,
-                                        l_constraints=['point','orient'])
+                                        l_constraints=['parent'])
         
         RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikScaleDrivers,ml_blendScaleTargets,
                                     driver = mPlug_FKIK.p_combinedName,

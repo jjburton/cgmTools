@@ -4977,7 +4977,12 @@ class ui(cgmUI.cgmGUI):
                'Form':{'Snap to RP':{'ann':'Snap handles to rp plane',
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                  'atUtils', 'handles_snapToRotatePlane','form',True,
-                                 **{'updateUI':0})},},
+                                 **{'updateUI':0})},
+                       'Rebuild Block Shape':{'ann':'Rebuild the block shape',
+                                              'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                              'atUtils', 'rootShape_update',
+                                              **{'updateUI':0})},                       
+                       },
                
                'Names':{ 
                    'divTags':['nameList | edit'],

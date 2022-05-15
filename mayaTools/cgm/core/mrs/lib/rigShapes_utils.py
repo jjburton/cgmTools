@@ -278,8 +278,15 @@ def ik_segMid(self,mHandle = None):
                                         targets = mHandle,
                                         offset = self.v_offset * 2.0,
                                         mode = 'simpleCast')#'segmentHan
+        
+        #size = TRANS.bbSize_get(ml_shapes[0])
+        
+        
+        
         CORERIG.shapeParent_in_place(mHandle.mNode, ml_shapes[0].mNode,False)
-    
+        
+        #ml_shapes[0].delete()
+        
         mHandle.doStore('cgmTypeModifier','ik')
         mHandle.doStore('cgmType','handle')
         mHandle.doName()            

@@ -95,7 +95,7 @@ def get_spinGroup(self,mStart,mRoot,mControl):
     return mSpinGroup
 
 
-def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None,
+def segment_mid(self, ml_handles = None,ml_ribbonHandles= None, mGroup = None,
                 mIKBase = None, mIKEnd = None, ml_ikJoints = None,
                 upMode = 'matrix'):
     try:
@@ -109,31 +109,53 @@ def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None,
         _offset = self.v_offset
         _jointOrientation = self.d_orientation['str']
         
-        _str_mode = mBlock.getEnumValueString('segmentMidIKControl')
+        _str_mode = mBlock.getEnumValueString('ikMidSetup')
         
-        if not mHandle:
-            mHandle = mRigNull.getMessageAsMeta('controlSegMidIK')
-            if not mHandle:
-                raise ValueError,"{0} | ml_handles required".format(_str_func)
+        if not ml_handles:
+            
+            raise ValueError,"{0} | ml_handles required".format(_str_func)
         if not ml_ribbonHandles:
             raise ValueError,"{0} | ml_ribbonHandles required".format(_str_func)
-            
-            
-        mHandle.masterGroup.parent = mGroup
         
-        mDriver = mHandle.doCreateAt(setClass='cgmObject')
-        mDriver.rename('{0}_mainDriver'.format(mHandle.p_nameBase))
-        mDriver.p_parent = mHandle.masterGroup
-        mHandle.doStore('mainDriver',mDriver.mNode,'msg')
+
+                
+        ml_midTrackJoints = copy.copy(ml_ribbonHandles)
         
+        #Handles... ==============================================================
+        
+        ml_drivers = []
+        for mHandle in ml_handles:
+            mHandle.masterGroup.parent = mGroup
+            
+            mDriver = mHandle.doCreateAt('joint',setClass='cgmObject')
+            mDriver.rename('{0}_mainDriver'.format(mHandle.p_nameBase))
+            mDriver.p_parent = mHandle.masterGroup
+            mHandle.doStore('mainDriver',mDriver.mNode,'msg')
+            ml_drivers.append(mDriver)
+            
+            #if _str_mode == 'ribbon':
+                #ml_midTrackJoints.insert(-1, mDriver)
+                #Setup our aim setup ---------------------------------------------------------
+                #mFollicle = mHandle.masterGroup.getMessageAsMeta('ribbonDriver')
+                
+                #mTar = ml_ikJoints[1].doCreateAt(setClass='cgmObject')
+                #mTar.rename('{0}_mid_baseTarget'.format(self.d_module['partName']))
+                #mTar.p_parent = mIKBase
+                
+                
+                
+                #mc.pointConstraint([mFollicle.mNode],mDriver.mNode,maintainOffset=True)
+                #mc.aimConstraint([mTar.mNode], mDriver.mNode, maintainOffset = True, #skip = 'z',
+                                 #aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = mHandle.masterGroup.mNode,
+                                 #worldUpType = 'objectrotation', worldUpVector = [1,0,0])
+                
+            
+        #Setup.. ================================================================
+        _len = len(ml_handles) 
         if _str_mode == 'ribbon':
-            ml_midTrackJoints = copy.copy(ml_ribbonHandles)
-            
             #Make our Driver -----------------------------------------------------
-            
-            
             ml_midTrackJoints.insert(1,mHandle)
-    
+            ml_midTrackJoints = [ml_ribbonHandles[0]] + ml_handles + [ml_ribbonHandles[-1]]
             d_mid = {'jointList':[mJnt.mNode for mJnt in ml_midTrackJoints],
                      #'ribbonJoints':[mObj.mNode for mObj in ml_rigJoints[self.int_segBaseIdx:]],
                      'baseName' :self.d_module['partName'] + '_midRibbon',
@@ -146,29 +168,69 @@ def segment_mid(self,mHandle = None,ml_ribbonHandles= None, mGroup = None,
                      'influences':ml_ribbonHandles,
                      'moduleInstance' : mModule}
             #reload(IK)
-            l_midSurfReturn = IK.ribbon(**d_mid)
-        
-        
-            #Setup our aim setup ---------------------------------------------------------
-            mFollicle = mHandle.masterGroup.getMessageAsMeta('ribbonDriver')
-            
-            mTar = ml_ikJoints[1].doCreateAt(setClass='cgmObject')
-            mTar.rename('{0}_mid_baseTarget'.format(self.d_module['partName']))
-            mTar.p_parent = mIKBase
-            
-            
-            
-            mc.pointConstraint([mFollicle.mNode],mDriver.mNode,maintainOffset=True)
-            mc.aimConstraint([mTar.mNode], mDriver.mNode, maintainOffset = True, #skip = 'z',
-                             aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = mHandle.masterGroup.mNode,
-                             worldUpType = 'objectrotation', worldUpVector = [1,0,0])
-            
+            IK.ribbon(**d_mid)
             
         elif _str_mode == 'prntConstraint':
             mc.parentConstraint([mObj.mNode for mObj in ml_ribbonHandles], mDriver.mNode, maintainOffset = 1)
+        
+        elif _str_mode in ['linearTrack','cubicTrack']:
+            ml_track = ml_ribbonHandles
+            
+            if _str_mode == 'cubicTrack':
+                if _len >= 3:
+                    for i,mHandle in enumerate([ml_handles[0],ml_handles[1]]):
+                        mCurveDriver = mHandle.doCreateAt(setClass='cgmObject')
+                        mCurveDriver.rename("{}_curveDriver".format(mHandle.p_nameBase))
+                        
+                        if not i:
+                            if mIKBase:
+                                mCurveDriver.p_parent = mIKBase
+                            else:
+                                mCurveDriver.p_parent = mGroup
+                        else:
+                            mCurveDriver.p_parent = mIKEnd
+                        
+                        ml_track.insert(-1, mCurveDriver)
+                
+            
+            #IKMid Handle ---------------------------------------------------------------------
+            _trackCurve,_l_clusters = CORERIG.create_at([mObj.mNode for mObj in ml_track],_str_mode,baseName = self.d_module['partName'] + '_mid{}'.format(_str_mode))
+            mCrv = cgmMeta.asMeta(_trackCurve)
+            mShape = cgmMeta.asMeta(mCrv.getShapes()[0])
+            
+            ml_clusters = cgmMeta.asMeta([s[1] for s in _l_clusters])
+            
+            for mObj in [mCrv] + ml_clusters:
+                mObj.overrideEnabled = 1		
+                cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsVis',lock=False).doConnectOut("%s.%s"%(_trackCurve,'overrideVisibility'))
+                cgmMeta.cgmAttr(mModule.rigNull.mNode,'gutsLock',lock=False).doConnectOut("%s.%s"%(_trackCurve,'overrideDisplayType'))    
+            
+            mCrv.p_parent = mModule.rigNull.mNode
+                
+            for mDriver in ml_drivers:
+                RIGCONSTRAINT.attach_toShape(mDriver, mShape.mNode, 'conPoint',parentTo=mModule.rigNull.mNode, floating=False)
+                
+            
+            if len(ml_drivers) > 1:
+                for i,mDriver in enumerate(ml_drivers):
+                    if mDriver == ml_drivers[-1]:
+                        mc.aimConstraint([ml_drivers[-2].mNode],
+                                         mDriver.mNode,
+                                         maintainOffset = True, #skip = 'z',
+                                         aimVector = [0,0,-1], upVector = [0,1,0],
+                                         worldUpObject = mIKEnd.mNode,
+                                         worldUpType = 'objectrotation', worldUpVector = [1,0,0])      
+                    else:
+                        mc.aimConstraint([ml_drivers[i+1].mNode],
+                                         mDriver.mNode,
+                                         maintainOffset = True, #skip = 'z',
+                                         aimVector = [0,0,1], upVector = [0,1,0],
+                                         worldUpObject = mIKEnd.mNode,
+                                         worldUpType = 'objectrotation', worldUpVector = [1,0,0])                
+            
         else:
             raise Exception, "unknown mode : {}".format(_str_mode)
-        
+            
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     
     
@@ -515,7 +577,7 @@ def get_spinGroup(self):
 
 def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
            mIKBaseControl=None,ml_skinDrivers=None,mPlug_masterScale=None,stretchBy='scale',
-           ikEndTwistConnect = True,extendEnd=False, mSettings = None):
+           ikEndTwistConnect = True,extendEnd=False, aimEnd=False, mSettings = None):
     try:
         _str_func = 'spline'
         log_start(_str_func)
@@ -539,7 +601,7 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
         _l_posUse = [mObj.p_position for mObj in ml_ikUse]
         
         
-        if extendEnd:
+        if extendEnd or aimEnd:
             #try:
             #    _l_posUse.append(self.ml_formHandles[ self.int_handleEndIdx ].p_position)
             #except:
@@ -571,35 +633,24 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
                                 n="{0}_reparamRebuild".format(_crv))
         mc.rename(_node[1],"{0}_reparamRebuild".format(_crv))
         
-        
-        #_l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
-        #                                                         DIST.get_distance_between_points(_l_posUse[-1],_l_posUse[-2])))
-        
-        
-        """
         #We're going to add another end joint so we can orient it
-        mEnd = ml_ikUse.pop(-1)
-        mEndHelp = mEnd.doDuplicate(po=True, ic=False)
-        mEndHelp.rename("{}_endHelp".format(mEnd.p_nameBase))
-        mEnd.p_parent = mEndHelp
-        ml_ikUse.append(mEndHelp)
+        """
+        if extendEnd or aimEnd:
         
-        
-        #Then we want to setup our aim
-        mEndAim = mEnd.doCreateAt()
-        mEndAim.rename("{}_endHelpAim".format(mEnd.p_nameBase))
-        mEndAim.p_position = _l_posUse[-1]
-        mEndAim.p_parent = mIKControl or mEndHelp
-        
-        mc.aimConstraint(mEndAim.mNode,
-                         mEnd.mNode,
-                         maintainOffset = True, weight = 1,
-                         aimVector = self.d_orientation['vectorAim'],
-                         upVector = self.d_orientation['vectorUp'],
-                         worldUpVector = self.d_orientation['vectorOut'],
-                         worldUpObject = mEndHelp.mNode,
-                         worldUpType = 'objectRotation' ) """
-        
+            #_l_posUse.append(ml_ikUse[-1].getPositionByAxisDistance( "{}+".format(_jointOrientation[0]),
+             #                                                        DIST.get_distance_between_points(_l_posUse[-1],_l_posUse[-2])))
+            
+            
+            
+            mEnd = ml_ikUse.pop(-1)
+            mEndHelp = mEnd.doDuplicate(po=True, ic=False)
+            mEndHelp.rename("{}_endHelp".format(mEnd.p_nameBase))
+            mEnd.p_parent = mEndHelp
+            ml_ikUse.append(mEndHelp)"""
+            
+            
+
+        mEnd = ml_ikUse[-1]
         if extendEnd:
             #We're going to add another end joint so we can stablize the end
             mEndHelp = ml_ikUse[-1].doDuplicate(po=True, ic=False)
@@ -608,6 +659,24 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
             ml_ikUse.append(mEndHelp)
             mEndHelp.p_position = _l_posUse[-1]
         
+        
+        if aimEnd:
+            #Then we want to setup our aim
+            mEndAim = mEnd.doCreateAt()
+            mEndAim.rename("{}_endHelpAim".format(mEnd.p_nameBase))
+            mEndAim.p_position = _l_posUse[-1]
+            mEndAim.p_parent = mIKControl or mEndHelp
+            
+            mc.orientConstraint(mEndAim.mNode, mEnd.mNode, maintainOffset = True)
+            """
+            mc.aimConstraint(mEndAim.mNode,
+                             mEnd.mNode,
+                             maintainOffset = True, weight = 1,
+                             aimVector = self.d_orientation['vectorAim'],
+                             upVector = self.d_orientation['vectorUp'],
+                             worldUpVector = self.d_orientation['vectorOut'],
+                             worldUpObject = mEndHelp.mNode,
+                             worldUpType = 'objectRotation' ) """        
         
         l = []
         
@@ -634,14 +703,24 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
                                                       mPlug_addEnd.p_combinedName)    
             
             NODEFAC.argsToNodes(arg1).doBuild()
-            #ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mIKControl.mNode, driven='source')
+            
+            #start...
+            mPlug_addEnd = cgmMeta.cgmAttr(mIKBaseControl.mNode,'twistBaseAdd',attrType='float',keyable=True, hidden=False)            
+            arg1 = "{}.twistStart = {}.r{} + {}".format(mSplineCurve.mNode,
+                                                        mIKBaseControl.mNode,
+                                                        _jointOrientation[0],
+                                                        mPlug_addEnd.p_combinedName)    
+            
+            NODEFAC.argsToNodes(arg1).doBuild()            
         else:
             ATTR.copy_to(mSplineCurve.mNode,'twistEnd',mSettings.mNode, driven='source')
+            
+            ATTR.copy_to(mSplineCurve.mNode,'twistStart',mSettings.mNode, driven='source')
+            
             
         ATTR.copy_to(mSplineCurve.mNode,'stretch',mSettings.mNode, driven='source')
         
         
-        ATTR.copy_to(mSplineCurve.mNode,'twistStart',mSettings.mNode, driven='source')
         ATTR.copy_to(mSplineCurve.mNode,'twistType',mSettings.mNode, driven='source')
 
         

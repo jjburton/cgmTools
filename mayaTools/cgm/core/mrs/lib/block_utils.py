@@ -11604,8 +11604,8 @@ def rootShape_update(self):
     
         #_sizeSub = _size / 2.0
         log.debug("|{0}| >>  Size: {1}".format(_str_func,_size))        
-        _crv = CURVES.create_fromName(name='locatorForm',
-                                      direction = 'z+', size = _size * 1.25)
+        _crv = CURVES.create_fromName(name='cubeX',
+                                      direction = 'z+', size = _size)
     
         SNAP.go(_crv,self.mNode,)
         CORERIG.override_color(_crv, 'white')

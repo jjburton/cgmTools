@@ -10,7 +10,7 @@ Website : http://www.cgmonastery.com
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '22.04.27.1'
+__RELEASE = '22.05.14.1'
 
 __BRANCH = 'MRSDAILY'
 
@@ -1631,7 +1631,7 @@ def cgmException(etype = None, value = None, tb = None,msg=None,**kws):
     if 'args' in _d.keys():
         _args = _d.pop('args')
         if _args:
-            print("  Args..." + '-*80')
+            print("  Args... " + '-'*80)
             for a in _args:
                 print("      {0}".format(a))
     if 'kws' in _d.keys():

@@ -42,6 +42,7 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.math_utils as MATH
 import cgm.core.rig.joint_utils as JOINT
+import cgm.core.rigger.lib.spacePivot_utils as SPACEPIVOTS
 
 
 # From cgm ==============================================================
@@ -71,6 +72,7 @@ l_attrsStandard = ['addMotionJoint',
                    'numSpacePivots']
 
 d_attrsToMake = {'rootJoint':'messageSimple',
+                 'numPuppetSpaces':'int',
                  }
 
 d_defaultSettings = {'version':__version__,
@@ -78,6 +80,7 @@ d_defaultSettings = {'version':__version__,
                      'addMotionJoint':True,
                      'controlOffset':.9999,
                      'numSpacePivots':1,
+                     'numPuppetSpaces':3,
                      'attachPoint':'end'}
 
 d_wiring_prerig = {'msgLinks':['prerigNull','moduleTarget']}
@@ -461,6 +464,9 @@ def rig_cleanUp(self):
     mMasterNull = self.d_module['mMasterNull']
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     _spacePivots = mBlock.numSpacePivots
+    mHandleFactory = mBlock.asHandleFactory()
+    
+    _puppetSpaces = mBlock.numPuppetSpaces
     
     ml_controlsAll = []
      
@@ -500,11 +506,20 @@ def rig_cleanUp(self):
         mDynGroup.rebuild()
     #mMasterGroup = mMasterControl.masterGroup
     #ml_dynParents.append(mMasterGroup)
-
+    
+    ml_controlsAll.append(mMasterControl)
+    
     #Add our parents
     mPuppet = mBlock.moduleTarget
  
-    
+    #PuppetSpaces ==========================================================================
+    if _puppetSpaces:
+        _size = mBlock.controlOffset * 10
+        for i in range(_puppetSpaces):
+            ml_controlsAll.append( SPACEPIVOTS.create(mMasterControl,mMasterControl.masterGroup,
+                                                      prefix='puppetSpace', shape='locatorForm',
+                                                      size = _size, msgList='puppetSpaces',
+                                                      nameType='puppetSpace') )
     
     #Motion Joint ==========================================================================
     if mBlock.addMotionJoint:
