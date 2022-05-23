@@ -1910,7 +1910,7 @@ def controller_verify(self,progressBar = None,progressEnd=True):
                 _l_tag = md_controls.get(tag,[])
                 ml = []
                 md_tmp[tag] = ml
-                
+                pprint.pprint(_l_tag)
                 for ii,mObj in enumerate(_l_tag):
                     try:
                         log.info( cgmGEN.logString_sub(_str_func, mObj))

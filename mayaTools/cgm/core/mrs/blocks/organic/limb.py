@@ -6442,7 +6442,7 @@ def rig_segments(self):
                     
                     
                     
-                    if not self.b_extraHandles or self.b_pivotSetup == True:
+                    if not self.b_extraHandles and self.b_pivotSetup == True:
                         log.debug("|{0}| >> Turning on followRoot for proper parenting with no end joint".format(_str_func))
                         ATTR.set_default(mParent.mNode,'followRoot_{0}'.format(i),1.0)
                         ATTR.set(mParent.mNode,'followRoot_{0}'.format(i),1.0)

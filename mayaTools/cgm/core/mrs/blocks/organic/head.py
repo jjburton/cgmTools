@@ -2006,6 +2006,7 @@ def rig_dataBuffer(self):
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
         
         self.ml_ikMidHelpers = mPrerigNull.msgList_get('ikMidHelpers')
+        self.ml_ikMidControls = []
             
         #Vector ====================================================================================
         self.mVec_up = mBlock.atUtils('prerig_get_upVector')

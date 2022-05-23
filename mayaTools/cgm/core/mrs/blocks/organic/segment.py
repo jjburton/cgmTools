@@ -1901,7 +1901,7 @@ def rig_dataBuffer(self):
         self.mHandleFactory = self.mBlock.asHandleFactory()
         
         self.ml_ikMidHelpers = mPrerigNull.msgList_get('ikMidHelpers')
-
+        self.ml_ikMidControls = []
         
         ml_handleJoints = mPrerigNull.msgList_get('handleJoints')
         mMasterNull = self.d_module['mMasterNull']
@@ -3211,21 +3211,6 @@ def rig_frame(self):
                 
                 ml_segMidDrivers = copy.copy(ml_ribbonIkHandles)
                     
-                """
-                #Extend Controls ==============================================================
-                mControlBaseExtendIK = mRigNull.getMessageAsMeta('controlBaseExtendIK')
-                if mControlBaseExtendIK:
-                    ml_skinDrivers.insert(1,mControlBaseExtendIK)
-                    max_influences+=1
-                    ml_segMidDrivers[0] = mControlBaseExtendIK
-
-                mControlEndExtendIK = mRigNull.getMessageAsMeta('controlEndExtendIK')
-                if mControlEndExtendIK:
-                    ml_skinDrivers.insert(-1,mControlEndExtendIK)
-                    max_influences+=1
-                    ml_segMidDrivers[1] = mControlEndExtendIK
-                """
-
                 #Mid controls ====================
                 if self.ml_ikMidControls:
                     RIGFRAME.segment_mid(self,self.ml_ikMidControls,
@@ -3234,14 +3219,6 @@ def rig_frame(self):
                     ml_skinDrivers = [ml_skinDrivers[0]] + self.ml_ikMidControls + [ml_skinDrivers[-1]]
                     max_influences+=len(self.ml_ikMidControls)                    
                     
-                """
-                mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
-                #[mControlBaseExtendIK,mControlEndExtendIK] ml_ribbonIkHandles
-                if mSegMidIK:
-                    RIGFRAME.segment_mid(self,mSegMidIK,ml_segMidDrivers,mIKGroup,
-                                         mIKBaseControl,mIKControl,ml_ikJoints)
-                    ml_skinDrivers.insert(MATH.get_midIndex(len(ml_skinDrivers)),mSegMidIK)
-                    max_influences+=1"""
                 
 
                 if mIKBaseControl:
@@ -3253,6 +3230,7 @@ def rig_frame(self):
                 ml_ribbonIkHandles[-1].parent = mIKControl
                 
                 if _ikSetup == 'spline':
+                    '''
                     reload(RIGFRAME)
                     RIGFRAME.spline(self,ml_ikJoints,ml_ribbonIkHandles,mIKControl,mIKBaseControl,
                                     ml_skinDrivers,mPlug_masterScale, 'translate',
@@ -3260,9 +3238,38 @@ def rig_frame(self):
                                     mSettings)
     
                     ATTR.set_default(mSettings.mNode,'twistType',1)
-                    ATTR.set(mSettings.mNode,'twistType',1)
+                    ATTR.set(mSettings.mNode,'twistType',1)'''
+                    for i,mJnt in enumerate(ml_ikJoints[1:]):
+                        mJnt.p_parent = ml_ikJoints[i]
+                        
+                    mIKSplineEnd = ml_ikJoints[-1].doDuplicate()
+                    mIKSplineEnd.rename("{}_splineEnd".format(ml_ikJoints[-1].p_nameBase))
                     
-                    #pprint.pprint(ml_ikJoints)
+                    ml_ikUse = copy.copy(ml_ikJoints)
+                    ml_ikUse[-1] = mIKSplineEnd
+                    
+                    mIKSplineEnd.p_parent = ml_ikJoints[-1].p_parent
+                    ml_ikJoints[-1].p_parent = mIKControl#...to get free orient
+                    
+                    pprint.pprint(ml_ikJoints)
+                    RIGFRAME.spline(self,ml_ikUse,
+                                    ml_ribbonIkHandles,
+                                    mIKControl,mIKBaseControl,
+                                    ml_skinDrivers,
+                                    mPlug_masterScale,
+                                    'translate',
+                                    mBlock.ikSplineTwistEndConnect, mBlock.ikSplineExtendEnd, mBlock.ikSplineAimEnd,
+                                    mSettings = mSettings)
+                    
+                    if mSettings.hasAttr('twistType'):
+                        ATTR.set_default(mSettings.mNode,'twistType',1)
+                        ATTR.set(mSettings.mNode,'twistType',1)
+                        
+                        
+                    mc.pointConstraint([mIKSplineEnd.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)                    
+                    mc.orientConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)                    
+                    
+                    
                     
                 else:
                     _d_ribbonShare = {'connectBy':'constraint',
@@ -4187,7 +4194,7 @@ def controller_getDat(self):
     md['noHide'] = md['root'] + md['settings']
     
     #IK...
-    md['ik'] = checkList(['leverFK',
+    md['ik'] = checkList(['leverFK','controlsIK',
                           'controlIKBase',
                           'controlIKMid','controlSegMidIK',
                           'controlBallRotation','leverIK',

@@ -768,7 +768,7 @@ l_controlOrder = BLOCKSHARE._l_controlOrder
 d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
                   'fk':['leverFK','fkJoints','controlsFK','controlFK'],
                   'ikEnd':['controlIK'],
-                  'ik':['controlIK','controlIKEnd','controlBallRotation',
+                  'ik':['controlsIK','controlIK','controlIKEnd','controlBallRotation',
                         'controlIKBase','controlsFK','controlFollowParentBank',
                         'controlIKBall','controlIKBallHinge','controlIKToe',
                         'controlIKMid','leverIK','eyeLookAt','lookAt'],
@@ -891,7 +891,7 @@ def controls_getDat(self, keys = None,
                         ml_controls.append(mObj)                    
                     addMObj(mObj,_ml)
             for _t in 'fk','ik':
-                _tag = mObj.getMayaAttr('cgmTypeModifier')
+                _tag = mObj.getMayaAttr('cgmTypeModifier') or []
                 if _t in _tag:
                     if not md_controls.get(_t):
                         md_controls[_t] = []
@@ -1312,6 +1312,7 @@ def get_controllerDat(self,rewire = True,report = False):
     mModule = self.getBlockModule()
     reload(mModule)
     if mModule.__dict__.get('controller_getDat'):
+        log.debug("get_controllerDat | getting from module: {}".format(self))
         _d = mModule.controller_getDat(self)
     
     else:

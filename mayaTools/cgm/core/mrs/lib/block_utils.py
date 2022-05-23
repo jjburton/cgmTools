@@ -3534,7 +3534,7 @@ def prerig_getHandleTargets(self):
 #=============================================================================================================
 #>> blockParent
 #=============================================================================================================
-def blockParent_set(self, parent = False, attachPoint = None):
+def blockParent_set(self, parent = False, attachPoint = None, setBuildProfile = False):
     try:
         _str_func = 'blockParent_set'
         log.debug(cgmGEN.logString_start(_str_func))
@@ -3594,7 +3594,7 @@ def blockParent_set(self, parent = False, attachPoint = None):
                         self.atRigModule('set_parentModule',mParentModuleTarget)
                         
             #blockProfile ----------------------------------------------------
-            if mParent.hasAttr('buildProfile'):
+            if setBuildProfile and mParent.hasAttr('buildProfile'):
                 log.debug("|{0}| >>  buildProfile_load...".format(_str_func))
                 self.atUtils('buildProfile_load', mParent.getMayaAttr('buildProfile'))
     except Exception,err:

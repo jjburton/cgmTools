@@ -191,6 +191,15 @@ def segment_mid(self, ml_handles = None,ml_ribbonHandles= None, mGroup = None,
                             mCurveDriver.p_parent = mIKEnd
                         
                         ml_track.insert(-1, mCurveDriver)
+                else:
+                    for i,mHandle in enumerate(ml_handles):
+                        mCurveDriver = mHandle.doCreateAt(setClass='cgmObject')
+                        mCurveDriver.rename("{}_curveDriver".format(mHandle.p_nameBase))
+                        
+
+                        mCurveDriver.p_parent = mIKEnd
+                        
+                        ml_track.insert(-1, mCurveDriver)                    
                 
             
             #IKMid Handle ---------------------------------------------------------------------
@@ -220,13 +229,27 @@ def segment_mid(self, ml_handles = None,ml_ribbonHandles= None, mGroup = None,
                                          aimVector = [0,0,-1], upVector = [0,1,0],
                                          worldUpObject = mIKEnd.mNode,
                                          worldUpType = 'objectrotation', worldUpVector = [1,0,0])      
+                    elif mDriver == ml_drivers[0]:
+                        mc.aimConstraint([ml_drivers[i+1].mNode],
+                                         mDriver.mNode,
+                                         maintainOffset = True, #skip = 'z',
+                                         aimVector = [0,0,-1], upVector = [0,1,0],
+                                         worldUpObject = mIKBase.mNode,
+                                         worldUpType = 'objectrotation', worldUpVector = [1,0,0])                              
                     else:
                         mc.aimConstraint([ml_drivers[i+1].mNode],
                                          mDriver.mNode,
                                          maintainOffset = True, #skip = 'z',
                                          aimVector = [0,0,1], upVector = [0,1,0],
-                                         worldUpObject = mIKEnd.mNode,
-                                         worldUpType = 'objectrotation', worldUpVector = [1,0,0])                
+                                         worldUpObject = ml_drivers[i-1].mNode,
+                                         worldUpType = 'objectrotation', worldUpVector = [1,0,0])
+            else:
+                mc.aimConstraint([mIKBase.mNode],
+                                 mDriver.mNode,
+                                 maintainOffset = True, #skip = 'z',
+                                 aimVector = [0,0,-1], upVector = [0,1,0],
+                                 worldUpObject = mIKEnd.mNode,
+                                 worldUpType = 'objectrotation', worldUpVector = [1,0,0])                
             
         else:
             raise Exception, "unknown mode : {}".format(_str_mode)
