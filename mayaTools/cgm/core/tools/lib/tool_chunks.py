@@ -1135,7 +1135,11 @@ def uiSection_dev(parent):
     mc.menuItem(parent = _wipTools,
                 l='BlockDat',
                 ann = "Blockdat",
-                c=lambda *a: TOOLCALLS.BLOCKDATui())        
+                c=lambda *a: TOOLCALLS.BLOCKDATui())
+    mc.menuItem(parent = _wipTools,
+                l='MrsDat',
+                ann = "MRS Dat ui",
+                c=lambda *a: TOOLCALLS.MRSDATui())            
     mc.menuItem(parent = _wipTools,
                 l='ShapeDat',
                 ann = "ShapeDat",

@@ -1769,7 +1769,7 @@ def pivotHelper(self,mHandle=None,
                 pivot = CURVES.create_controlCurve(mHandle.mNode, shape='circle',
                                                    direction = upAxis,
                                                    sizeMode = 'fixed',
-                                                   bakeScale = 1,
+                                                   bakeScale = 0,
                                                    size = _sizeSub)
                 mPivot = cgmMeta.validateObjArg(pivot,'cgmObject',setClass=True)
                 mPivot.addAttr('cgmName',_strName)

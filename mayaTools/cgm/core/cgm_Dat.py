@@ -70,7 +70,7 @@ log_start = cgmGEN.logString_start
 _l_startDirModes = ['workspace','project','file','dev']
 
 
-def startDir_getBase(mode = 'workspace'):
+def startDir_getBase(mode = 'workspace', devList = []):
     str_func = 'startDir_get'
     log.debug(log_start(str_func))
     
@@ -79,12 +79,19 @@ def startDir_getBase(mode = 'workspace'):
     elif mode == 'file':
         _file = mc.file(q=True, loc=True)
         if not os.path.exists(_file):
-            raise ValueError,"StarDir mode is 'file' and file not saved or invalid file path: {}".format(_file)
+            log.warning("StartDir mode is 'file' and file not saved or invalid file path: {}".format(_file))
+            return
         return os.path.split(_file)[0]
-    elif mode == 'cgmProject':
-        pass
+    elif mode == 'project':
+        log.warning("Haven't implemented cgmProject")
     elif mode == 'dev':
-        pass
+        import cgm
+        _cgmPath = os.path.split(cgm.__file__)[0]
+        if devList:
+            for p in devList:
+                _cgmPath = os.path.join(_cgmPath,p)
+        return _cgmPath
+        
 
     else:
         raise ValueError,"Unknown mode: {}".format(mode)
@@ -499,6 +506,13 @@ class ui(CGMUI.cgmGUI):
                           ut='cgmUITemplate',
                           h=20)"""
  
+        row = mUI.MelHLayout( self.uiFrame_data )
+        mUI.MelButton( row, l='apples' )
+        mUI.MelButton( row, l='bananas' )
+        mUI.MelButton( row, l='oranges' )
+        row.layout()
+        
+        
         mUI.MelLabel(self.uiFrame_data, label = "PPRINT", h = 13, 
                      ut='cgmUIHeaderTemplate',align = 'center')
         
@@ -556,6 +570,8 @@ class ui(CGMUI.cgmGUI):
         #Declare form frames...------------------------------------------------------
         _MainForm = mUI.MelFormLayout(parent,ut='CGMUITemplate')#mUI.MelColumnLayout(ui_tabs)
         
+        
+        #self.uiStatus_topRow = mUI.MelHLayout(_MainForm,)
         self.uiStatus_top = mUI.MelButton(_MainForm,
                                          vis=True,
                                          c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),

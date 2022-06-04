@@ -111,6 +111,8 @@ def blockDat_get(self,report = True):
     _str_func = 'blockDat_get'        
     log.debug(log_start(_str_func))
     
+    raise DeprecationWarning,"Shouldn't be here"
+    
     _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
     #_ml_controls = self.getControls(True,True)
     _ml_controls = []

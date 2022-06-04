@@ -19,7 +19,7 @@ import json
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -98,14 +98,61 @@ class data(MRSDAT.BaseDat):
     def get(self, mBlock = None):
         _str_func = 'data.get'
         log.debug(log_start(_str_func))
+        
+        mBlock = self.mBlock
+        self.dat = dat_get(mBlock)    
     
-    
-    def set(self, mBlock = None):
+    def set(self, mBlock = None, data = None, settings=True, formHandles=True, loftHandles=True, loftShapes=True, loftHandleMode='world', shapeMode='ws', loops=2):
         _str_func = 'data.set'
         log.debug(log_start(_str_func))
         
+        mBlock = self.mBlock
+        if not data:
+            data = self.dat
+            
+        dat_set(mBlock, data, settings, formHandles,loftHandles,loftShapes,loftHandleMode,shapeMode,loops)
         
-
+    def load(self):
+        _str_func = 'data.load'        
+        log.debug(log_start(_str_func))
+        
+        if not self.mBlock:
+            raise ValueError,"Must have mBlock to save"
+        
+        startDir = self.startDir_get()
+        _path = "{}.{}".format( os.path.normpath(os.path.join(startDir,self.mBlock.p_nameBase)), data._ext)
+        
+        if not os.path.exists(_path):
+            raise ValueError,"Invalid path: {}".format(_path)
+        pprint.pprint(_path)
+        
+        self.read(_path)
+        
+        self.set()
+        
+        return        
+        
+    def save(self,mode=None):
+        _str_func = 'data.save'        
+        log.debug(log_start(_str_func))
+        
+        if not self.mBlock:
+            raise ValueError,"Must have mBlock to save"
+        
+        startDir = self.startDir_get()
+        _path = "{}.{}".format( os.path.normpath(os.path.join(startDir,self.mBlock.p_nameBase)), data._ext)
+        
+        pprint.pprint(_path)
+        
+        self.write(_path)
+        
+        return
+        if not os.path.exists(startDir):
+            CGMDAT.CGMOS.mkdir_recursive(startDir)
+        
+        if not mode:
+            pass
+        
 
 def dat_set(mBlock,data,
             settings = True,
@@ -407,7 +454,7 @@ def dat_get(mBlock=None):
     _type = mBlock.blockType
     _supported = ['limb','segment','handle']
     if _type not in _supported:
-        raise TypeError,"{} type not supported. | Supported: {}".format(_type,_supported)
+        return log.error("{} type not supported. | Supported: {}".format(_type,_supported))
     
     #First part of block reset to get/load data------------------------------------------------------
     pos = mBlock.p_position
@@ -766,6 +813,11 @@ class ui(CGMDAT.ui):
     #def insert_init(self,*args,**kws):
     #    self._loadedFile = ""
     #    self.dat = None
+    
+    #def __init__(self):
+    #    super(ui, self).__init__()
+    #    self.dat = None
+        
         
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
@@ -774,11 +826,11 @@ class ui(CGMDAT.ui):
     def buildMenu_setup(self):pass
     
     
-    def uiStatus_refresh(self):
+    def uiStatus_refresh(self,string = None):
         _str_func = 'uiStatus_refresh[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
         
-        if not self.dat:
+        if not self.uiDat.dat:
             self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
             #self.uiStatus_bottom(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
             
@@ -788,9 +840,10 @@ class ui(CGMDAT.ui):
         else:
             self.uiData_base.clear()
             
-            _base = self.dat['base']
-            _str = "Source: {}".format(_base['source'])
-            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('connected'),label = _str)
+            _base = self.uiDat.dat['base']
+            if not string:
+                string = "Source: {}".format(_base['source'])
+            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('connected'),label = string)
             
             self.uiData_base(edit=True,vis=True)
             
@@ -798,7 +851,7 @@ class ui(CGMDAT.ui):
                          ut='cgmUIHeaderTemplate',align = 'center')
             
             for a in ['type','blockType','shapers','subs']:
-                mUI.MelLabel(self.uiData_base, label = "{} : {}".format(a,self.dat['base'].get(a)),
+                mUI.MelLabel(self.uiData_base, label = "{} : {}".format(a,self.uiDat.dat['base'].get(a)),
                              bgc = SHARED._d_gui_state_colors.get('help'))                
             
             
@@ -814,10 +867,13 @@ class ui(CGMDAT.ui):
         if not mBlock:
             return log.error("No blocks selected")
         
-        sDat = dat_get(mBlock)
-        self.dat = sDat
+        #sDat = dat_get(mBlock)
+        #self.uiDat.dat = sDat
         
-        self.uiStatus_refresh()
+        self.uiDat.mBlock = mBlock
+        self.uiDat.get()        
+        
+        self.uiStatus_refresh(string = "Scene: '{}'".format(mBlock.p_nameBase))
         if _sel:mc.select(_sel)
         
     def uiFunc_dat_set(self,mBlocks = None,**kws):
@@ -830,7 +886,7 @@ class ui(CGMDAT.ui):
         if not mBlocks:
             return log.error("No blocks selected")
         
-        if not self.dat:
+        if not self.uiDat.dat:
             return log.error("No dat loaded")
             
         
@@ -848,7 +904,7 @@ class ui(CGMDAT.ui):
         
         for mBlock in mBlocks:
             log.info(log_sub(_str_func,mBlock.mNode))
-            try:dat_set(mBlock, self.dat, **kws)
+            try:dat_set(mBlock, self.uiDat.dat, **kws)
             except Exception,err:
                 log.error("{} | err: {}".format(mBlock.mNode, err))
                     
@@ -874,24 +930,24 @@ class ui(CGMDAT.ui):
         _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))  
         
-        if not self.dat:
+        if not self.uiDat.dat:
             return log.error("No dat loaded selected")
         
         if mode == 'Select Source':
-            mc.select(self.dat['base']['source'])
+            mc.select(self.uiDat.dat['base']['source'])
     
     def uiFunc_printDat(self,mode='all'):
         _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))  
         
-        if not self.dat:
+        if not self.uiDat.dat:
             return log.error("No dat loaded selected")    
         
-        sDat = self.dat
+        sDat = self.uiDat.dat
         
         print(log_sub(_str_func,mode))
         if mode == 'all':
-            pprint.pprint(self.dat)
+            pprint.pprint(self.uiDat.dat)
         elif mode == 'settings':
             pprint.pprint(sDat['settings'])
         elif mode == 'base':

@@ -6897,7 +6897,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             _shape = 'loft' + _l_loftShapes[-1][0].capitalize() + ''.join(_l_loftShapes[-1][1:])
             
         mLoftCurve = mHandleFactory.rebuildAsLoftTarget(_shape, _size_loft, shapeDirection = 'z+',rebuildHandle = False)
-        mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
+        #mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
     
         mHandleFactory.color(mHandle.mNode)            
         mHandle.p_position = _l_basePos[i]
@@ -7005,7 +7005,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
             mLoftCurve = mHandleFactory.rebuildAsLoftTarget('loft' + _l_loftShapes[i+1][0].capitalize() + ''.join(_l_loftShapes[i+1][1:]),#_loftShape,
                                                             _size_loft,
                                                             shapeDirection = 'z+',rebuildHandle = False)
-            mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
+            #mc.makeIdentity(mHandle.mNode,a=True, s = True)#...must freeze scale once we're back parented and positioned
             ml_midLoftHandles.append(mLoftCurve)
 
             mTransformedGroup = mHandle.getMessageAsMeta('transformedGroup')
@@ -9933,7 +9933,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                             _useSize = [_useSize,_useSize,_useSize*.5]
                     
                 _crv = CURVES.create_fromName(name=_shape,#'arrowsAxis', 
-                                              bakeScale = 1,                                              
+                                              bakeScale = 0,                                              
                                               direction = 'z+', size = _useSize)
                 #CORERIG.shapeParent_in_place(_crv,_circle,False)
             
@@ -9998,7 +9998,7 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                         
             if k == 'lever':#Arrow ---------------------------------------------
                 _arrow = CURVES.create_fromName(name='arrowForm',#'arrowsAxis', 
-                                                bakeScale = 1,                                                
+                                                bakeScale = 0,                                                
                                                 direction = 'y+', size = _size)
                 CORERIG.override_color(_arrow, _dtmp['color'])
             

@@ -51,9 +51,10 @@ example:
     def versions(self):
       versions = []
       for f in os.listdir( os.path.dirname(self.referenceFile) ):
-          result = re.search('%s_.*[0-9]+\.m[b|a]' % '_'.join(os.path.basename(self.referenceFile).split('_')[:2]), f)
-          if result:
-              versions.append(f)
+          if f.split('.')[-1] in ['ma','mb']:
+              result = re.search('%s_.*[0-9]+\.m[b|a]' % '_'.join(os.path.basename(self.referenceFile).split('_')[:2]), f)
+              if result:
+                  versions.append(f)
 
       versions.sort()
 

@@ -306,7 +306,7 @@ class cgmNode(r9Meta.MetaClass):
                 return ("Dead mNode : Last good dag path was: %s" % object.__getattribute__(self, "_lastDagPath"))
             except:
                 return "THIS NODE BE DEAD BY THINE OWN HAND"
-    """
+    
     def hasAttr(self, attr):
         '''
         simple wrapper check for attrs on the mNode itself.
@@ -318,7 +318,7 @@ class cgmNode(r9Meta.MetaClass):
                 if not _result:#..this pass gets the alias
                     #Must rewrap the mobj, if you don't it kills the existing mNode and corrupts its cache entry
                     #2011 bails because it lacks the api call anyway, 2012 and up work with this
-                    mobj=OM.MObject()
+                    mobj= OM.MObject()
                     selList=OM.MSelectionList()
                     selList.add(self._MObject)
                     selList.getDependNode(0,mobj)		    
@@ -328,7 +328,7 @@ class cgmNode(r9Meta.MetaClass):
                 #log.error('hasAttr failure...{0}'.format(err))#...this was just to see if I had an error
                 for arg in e.args:
                     log.error(arg)                  
-                return mc.objExists("{0}.{1}".format(self.mNode, attr)) """
+                return mc.objExists("{0}.{1}".format(self.mNode, attr)) 
             
     #========================================================================================================    
     #>>> Overloads - Departures from red9's core...

@@ -179,7 +179,6 @@ class BlockDat(BaseDat):
     def create(self, autoPush= True):
         return blockDat_createBlock(self, autoPush=autoPush)
         
-        
 def blockDat_createBlock(self, autoPush = True):
     '''
     blockDat self
@@ -196,7 +195,9 @@ def blockDat_createBlock(self, autoPush = True):
     _nameOriginal = mDat['baseName']
     
     
-    _size = mDat['baseDat']['baseSize']
+    _size = mDat['baseDat'].get('baseSize') or mDat.get('baseSize') or "Fail"
+    if _size == 'Fail':
+        raise ValueError,"No baseSize"
     
     
     _d = {'blockType':_blockType,
@@ -220,7 +221,9 @@ def blockDat_createBlock(self, autoPush = True):
     if result == 'OK':
         _v =  mc.promptDialog(query=True, text=True)
         _d['name'] =  _v
+        _d['cgmName'] = _v
         mDat['settings']['name']['cgmName'] = _v
+        
     else:
         log.error("Creation cancelled")
         return False    
@@ -279,126 +282,138 @@ def blockDat_createBlock(self, autoPush = True):
     return mNew    
         
     
-
 def blockDat_get(self,report = True):
     _str_func = 'blockDat_get'        
     log.debug(log_start(_str_func))
     
-    
-    _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
-    #_ml_controls = self.getControls(True,True)
-    _ml_controls = []
-    _short = self.p_nameShort
-    _blockState_int = self.blockState
-    
-    #self.baseSize = baseSize_get(self)
-    #Trying to keep un assertable data out that won't match between two otherwise matching RigBlocks
-    _res = {}
-    
-    _l_ud = self.getAttrs(ud=True)
-    
-    _gen = {#"name":_short, 
-          "blockType":self.blockType,
-          "blockState":self.getEnumValueString('blockState'),
-          'blockProfile':self.blockProfile,
-          "buildProfile":self.getMayaAttr('buildProfile'),
-          "shapeProfile":self.getMayaAttr('shapeProfile'),                     
-          "baseName":self.getMayaAttr('cgmName'), 
-          'position':self.p_position,
-          'orient':self.p_orient,
-          'scale':self.scale,
-          'side': self.getEnumValueString('side') if self.side else False,
-          'blockScale':ATTR.get(_short,'blockScale'),
-          'baseSize':self.atUtils('baseSize_get'),
-          "version":self.version,
-          'baseDat':self.baseDat,
-          }
-    
-    try:_gen['blockParent'] = self.getMessage('blockParent')[0]
-    except:_gen['blockParent'] = False
-        
-        
-    
-    for k in _gen.keys():
-        try:_l_ud.remove(k)
-        except:pass
-        
-    if self.getMessage('orientHelper'):
-        _gen['rootOrientHelper'] = self.orientHelper.rotate    
-        
-    _res = _gen
-        
-    #...let's get our datLists -------------------------------------------------------------------------------
-    d_dat = {}
+    #First part of block reset to get/load data------------------------------------------------------
+    pos = self.p_position
+    orient = self.p_orient
+    scale = self.blockScale
 
-    for a in _l_datLists:
-        if ATTR.datList_exists(_short,a):
-            d_dat[a] = ATTR.datList_get(_short,a,enum=True)
+    try:
+        _l_udMask = ['blockDat','attributeAliasList','blockState','mClass','mClassGrp','mNodeID','version']
+        _ml_controls = []
+        _short = self.p_nameShort
+        _blockState_int = self.blockState
+        
+        _res = {}
+        
+        _l_ud = self.getAttrs(ud=True)
+        
+        _gen = {#"name":_short, 
+              "blockType":self.blockType,
+              "blockState":self.getEnumValueString('blockState'),
+              'blockProfile':self.blockProfile,
+              "buildProfile":self.getMayaAttr('buildProfile'),
+              "shapeProfile":self.getMayaAttr('shapeProfile'),                     
+              "baseName":self.getMayaAttr('cgmName'), 
+              'position':self.p_position,
+              'orient':self.p_orient,
+              'scale':self.scale,
+              'side': self.getEnumValueString('side') if self.hasAttr('side') else False,
+              'blockScale':ATTR.get(_short,'blockScale'),
+              'baseSize':self.atUtils('baseSize_get'),
+              "version":self.version,
+              'baseDat':self.baseDat,
+              }
+        
+        #set prep.... ------------------------------------------------------------------------------    
+        self.p_position = 0,0,0
+        self.p_orient = 0,0,0
+        self.blockScale = 1.0
+        #...        
+        
+        try:_gen['blockParent'] = self.getMessage('blockParent')[0]
+        except:_gen['blockParent'] = False
             
-            for s2 in ATTR.datList_getAttrs(_short,a):
-                try:_l_ud.remove(s2)
-                except:pass
-            try:_l_ud.remove(a)
+        
+        for k in _gen.keys():
+            try:_l_ud.remove(k)
             except:pass
-    
-    _res['datLists'] = d_dat
-
-    
-    #_res['general'] = _gen
-    #Get attr sets...--------------------------------------------------------------------------
-    _d = self.atUtils('uiQuery_getStateAttrDict',0,0)
-    
-    _short = self.mNode
-    
-    _dSettings = {}
-    
-    def getBlockAttr(a,d):
-        if a not in _l_ud:
-            return
-        if self.hasAttr(a):
-            try:_l_ud.remove(a)
-            except:pass            
-            _type = ATTR.get_type(_short,a)
-            if _type in ['message']:
+            
+        if self.getMessage('orientHelper'):
+            _gen['rootOrientHelper'] = self.orientHelper.rotate    
+            
+        _res = _gen
+            
+        #...let's get our datLists -------------------------------------------------------------------------------
+        d_dat = {}
+        
+        for a in _l_datLists:
+            if ATTR.datList_exists(_short,a):
+                d_dat[a] = ATTR.datList_get(_short,a,enum=True)
+                
+                for s2 in ATTR.datList_getAttrs(_short,a):
+                    try:_l_ud.remove(s2)
+                    except:pass
+                try:_l_ud.remove(a)
+                except:pass
+        
+        _res['datLists'] = d_dat
+        
+        
+        #_res['general'] = _gen
+        #Get attr sets...--------------------------------------------------------------------------
+        _d = self.atUtils('uiQuery_getStateAttrDict',0,0)
+        
+        _short = self.mNode
+        
+        _dSettings = {}
+        
+        def getBlockAttr(a,d):
+            if a not in _l_ud:
                 return
-            elif _type == 'enum':
-                d[a] = ATTR.get_enumValueString(_short,a)                    
-            else:
-                d[a] = ATTR.get(_short,a)            
-    
-    for k,l in _d.iteritems():
-        _dTmp = {}
-        for a in l:
-            getBlockAttr(a,_dTmp)             
-
-        if _dTmp:
-            _dSettings[k] = _dTmp
+            if self.hasAttr(a):
+                try:_l_ud.remove(a)
+                except:pass            
+                _type = ATTR.get_type(_short,a)
+                if _type in ['message']:
+                    return
+                elif _type == 'enum':
+                    d[a] = ATTR.get_enumValueString(_short,a)                    
+                else:
+                    d[a] = ATTR.get(_short,a)            
         
-    d_unkown = {}
-    for a in _l_ud:
-        if a in _l_unknownMask:
-            continue
-        getBlockAttr(a,d_unkown)             
+        for k,l in _d.iteritems():
+            _dTmp = {}
+            for a in l:
+                getBlockAttr(a,_dTmp)             
         
-    if d_unkown:
-        _dSettings['unknown'] = d_unkown
-    _res['settings'] = _dSettings
-    
-    
-    #...control data
-    _res['define'] = blockDat_getControlDat(self,'define',report)#self.getBlockDat_formControls()
-    
-    if _blockState_int >= 1:
-        _res['form'] = blockDat_getControlDat(self,'form',report)#self.getBlockDat_formControls()
+            if _dTmp:
+                _dSettings[k] = _dTmp
+            
+        d_unkown = {}
+        for a in _l_ud:
+            if a in _l_unknownMask:
+                continue
+            getBlockAttr(a,d_unkown)             
+            
+        if d_unkown:
+            _dSettings['unknown'] = d_unkown
+        _res['settings'] = _dSettings
+        
+        
+        #...control data
+        _res['define'] = blockDat_getControlDat(self,'define',report)#self.getBlockDat_formControls()
+        
+        if _blockState_int >= 1:
+            _res['form'] = blockDat_getControlDat(self,'form',report)#self.getBlockDat_formControls()
+        
+        if _blockState_int >= 2:
+            _res['prerig'] = blockDat_getControlDat(self,'prerig',report)#self.getBlockDat_prerigControls()     
+        
 
-    if _blockState_int >= 2:
-        _res['prerig'] = blockDat_getControlDat(self,'prerig',report)#self.getBlockDat_prerigControls()     
-    
-    
-    if report:
-        pprint.pprint(_res)
-    return _res
-
+        if report:
+            pprint.pprint(_res)
+        
+        return _res
+    finally:
+        #Restore our block...-----------------------------------------------------------------
+        self.p_position = pos
+        self.p_orient = orient         
+        self.blockScale = scale             
+        
 
 def blockDat_load(self, blockDat = None,
                   baseDat = True,
@@ -412,197 +427,235 @@ def blockDat_load(self, blockDat = None,
     """
     redefine - When duplicating, sometimes we need to redfine after data load
     """
-    try:
-        _short = self.p_nameShort        
-        _str_func = 'blockDat_load'
-        log.debug(cgmGEN.logString_start(_str_func))
-        _d_warnings = {}
-    
-        if blockDat is None:
-            log.debug("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
-            blockDat = self.blockDat
-    
-        if not issubclass(type(blockDat),dict):
-            raise ValueError,"|{0}| >> blockDat must be dict. type: {1} | blockDat: {2}".format(_str_func,type(blockDat),blockDat) 
-    
-        _blockType = blockDat.get('blockType')
-        if _blockType != self.blockType:
-            raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
-    
-        self.blockScale = blockDat['blockScale']
-        
-        if baseDat:
-            self.baseDat = blockDat['baseDat']
-        
-        #.>>>..Settings ====================================================================================
-        log.debug("|{0}| >> Settings...".format(_str_func)+ '-'*80)
-        _settings = blockDat.get('settings')
-        _udFail = {}
-        
-        if not _settings:
-            raise ValueError,"|{0}| >> No settings data found".format(_str_func)
-        
-        for k,d in _settings.iteritems():
-            log.info(log_sub(_str_func,k))
-            for a,v in d.iteritems():
-                _current = ATTR.get(_short,a)
-                if _current != v:
-                    try:
-                        if ATTR.get_type(_short,a) in ['message']:
-                            log.debug("|{0}| >> settings '{1}' skipped. Not loading message data".format(_str_func,a))                     
-                        else:
-                            log.debug("|{0}| >> settings '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
-                            ATTR.set(_short,a,v)
-                    except Exception,err:
-                        _udFail[a] = v
-                        log.error("|{0}| >> settings '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
-                        #r9Meta.printMetaCacheRegistry()                
-                        for arg in err.args:
-                            log.error(arg)                      
-    
-        if _udFail:
-            log.warning(cgmGEN.logString_sub(_str_func,'Settings Fails'))
-            pprint.pprint(_udFail)
+    #First part of block reset to get/load data------------------------------------------------------
+    #pos = self.p_position
+    #orient = self.p_orient
+    #scale = self.blockScale
+    def reposition(self,blockDat,posBase,orientBase,scaleBase):
+        if move:
+            self.p_position = blockDat.get('position')
+            self.p_orient = blockDat.get('orient')
             
-        if settingsOnly:
-            log.warning(cgmGEN.logString_msg(_str_func,'settings only'))
-            return
         
-        #>>State ====================================================================================
-        log.debug("|{0}| >> State".format(_str_func) + '-'*80)
-        _stateArgs = BLOCKGEN.validate_stateArg(blockDat.get('blockState'))
-        _target_state_idx = _stateArgs[0]
-        _target_state = _stateArgs[1]
-        
-        _current_state = self.getState()
-        _onlyState = False
-        _current_state_idx = self.getState(False)
-        
-        if currentOnly:
-            log.debug("|{0}| >> Current only mode: {1}".format(_str_func,_current_state))
-            return blockDat_load_state(self,_current_state,blockDat)
-
+        else:
+            self.p_position = posBase
+            self.p_orient = orientBase            
+            #self.blockScale = scaleBase
             
-        elif _target_state != _current_state:
-            log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current_state,_target_state)) 
-            #self.p_blockState = _state
-            
-        mMirror = False
-        if useMirror:
-            if self.getMessage('blockMirror'):
-                mMirror = self.blockMirror
-            log.debug("|{0}| >> UseMirror. BlockMirror Found: {1}".format(_str_func,mMirror))
-            
-    
-        #>>Controls ====================================================================================
-        def setAttr(node,attr,value):
-            try:ATTR.set(node,attr,value)
-            except Exception,err:
-                log.warning("|{0}| >> Failed to set: {1} | attr:{2} | value:{3} | err: {4}".format(_str_func,
-                                                                                                   node,
-                                                                                                   attr,value))
-        log.debug("|{0}| >> Block main controls".format(_str_func)+ '-'*80)
-        _pos = blockDat.get('position')
-        _orients = blockDat.get('orient')
-        _scale = blockDat.get('scale')
-        _orientHelper = blockDat.get('rootOrientHelper')
-        
-        if not move:
-            _pos = self.p_position
-            _orient = self.p_orient
-            
-        self.p_position = blockDat.get('position')
-        self.p_orient = blockDat.get('orient')
-        
-        #else:
-            #for ii,v in enumerate(_scale):
-                #_a = 's'+'xyz'[ii]
-                #if not self.isAttrConnected(_a) and not(ATTR.is_locked(_short,a)):
-                #setAttr(_short,_a,v)
-            
-        #>>Define Controls ====================================================================================
-        log.debug(cgmGEN.logString_sub(_str_func,'define'))
-        
-        if redefine:
-            self.UTILS.changeState(self,'define',forceNew=True)
-            self.UTILS.changeState(self,'define',forceNew=True)            
-            _current_state_idx = 0
-            _current_state = 'define'
-        
+        try:
+            self.sy = blockDat['blockScale']
+        except:
+            self.sy = scaleBase
+        """
         if blockDat.get('blockScale'):
             self.blockScale = blockDat['blockScale']
-            
-            
-        if mMirror == 'cat':
-            log.debug("|{0}| >> mMirror define pull...".format(_str_func))            
-            self.UTILS.controls_mirror(mMirror,self,define=True)
         else:
-            blockDat_load_state(self,'define',blockDat,_d_warnings,overrideMode=overrideMode)
+            self.blockScale = scaleBase"""
         
-        #>>Form Controls ====================================================================================
-        log.debug(cgmGEN.logString_sub(_str_func,'form'))
+        pprint.pprint([self.blockScale, blockDat.get('blockScale'), posBase, orientBase, scaleBase])
         
-        if _target_state_idx >= 1:
-            log.debug("|{0}| >> form dat....".format(_str_func))
-            if autoPush:
-                if _current_state_idx < 1:
-                    log.debug("|{0}| >> Pushing to form....".format(_str_func))
-                    self.p_blockState = 1
-            else:
-                return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {0}".format(_target_state)))
-            
-            log.debug(cgmGEN.logString_msg(_str_func,'form push'))
-            
-        if mMirror:
-            log.debug("|{0}| >> mMirror form pull...".format(_str_func))            
-            self.UTILS.controls_mirror(mMirror,self,form=True,prerig=False)
-        
-        else:
-            if _orientHelper:
-                mOrientHelper = self.getMessageAsMeta('orientHelper')
-                if mOrientHelper:
-                    _ctrl = mOrientHelper.mNode
-                    for ii,v in enumerate(_orientHelper):
-                        _a = 'r'+'xyz'[ii]
-                        setAttr(_ctrl,_a,v)
-                else:
-                    _d_warnings['form']=["Missing orient Helper. Data found."]
-                
-            blockDat_load_state(self,'form',blockDat,_d_warnings,overrideMode=overrideMode)
-           
-        #Prerig ==============================================================================================
-        log.debug(cgmGEN.logString_sub(_str_func,'prerig'))
-        
-        if _target_state_idx >= 2:
-            log.debug("|{0}| >> prerig dat....".format(_str_func))
-            if _current_state_idx < 2:
-                if not autoPush:
-                    return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {1}".format(_target_state)))
-                else:
-                    log.debug("|{0}| >> Pushing to prerig....".format(_str_func))
-                    self.p_blockState = 2
+    _short = self.p_nameShort        
+    _str_func = 'blockDat_load'
+    log.debug(cgmGEN.logString_start(_str_func))
+    _d_warnings = {}
 
-        if mMirror:
-            log.debug("|{0}| >> mMirror prerig pull...".format(_str_func))            
-            self.UTILS.controls_mirror(mMirror,self,form=False,prerig=True)
-        else:
-            blockDat_load_state(self,'prerig',blockDat,_d_warnings,overrideMode,overrideMode)
-            
-            
-        if not move:
-             self.p_position = _pos
-             self.p_orient = _orient      
-            
-        if _d_warnings:
-            try:
-                for k,d in _d_warnings.iteritems():
-                    for i,w in enumerate(d):
-                        if i == 0:log.warning(cgmGEN.logString_sub(_str_func,"{0} | Warnings".format(k)))
-                        log.warning(w)
-            except:pass
+    if blockDat is None:
+        log.warn("|{0}| >> No blockDat passed. Checking self...".format(_str_func))    
+        blockDat = self.blockDat
+
+    if not issubclass(type(blockDat),dict):
+        raise ValueError,"|{0}| >> blockDat must be dict. type: {1} | blockDat: {2}".format(_str_func,type(blockDat),blockDat) 
+
+    _blockType = blockDat.get('blockType')
+    if _blockType != self.blockType:
+        raise ValueError,"|{0}| >> blockTypes don't match. self: {1} | blockDat: {2}".format(_str_func,self.blockType,_blockType) 
+
+    self.sy = blockDat['blockScale']
+    
+    if baseDat:
+        self.baseDat = blockDat['baseDat']
+    
+    #.>>>..Settings ====================================================================================
+    log.debug("|{0}| >> Settings...".format(_str_func)+ '-'*80)
+    _settings = blockDat.get('settings')
+    _udFail = {}
+    
+    if not _settings:
+        raise ValueError,"|{0}| >> No settings data found".format(_str_func)
+    
+    for k,d in _settings.iteritems():
+        log.info(log_sub(_str_func,k))
+        for a,v in d.iteritems():
+            _current = ATTR.get(_short,a)
+            if _current != v:
+                try:
+                    if ATTR.get_type(_short,a) in ['message']:
+                        log.debug("|{0}| >> settings '{1}' skipped. Not loading message data".format(_str_func,a))                     
+                    else:
+                        log.debug("|{0}| >> settings '{1}' mismatch. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                        ATTR.set(_short,a,v)
+                except Exception,err:
+                    _udFail[a] = v
+                    log.error("|{0}| >> settings '{1}' failed to change. self: {2} | blockDat: {3}".format(_str_func,a,_current,v)) 
+                    #r9Meta.printMetaCacheRegistry()                
+                    for arg in err.args:
+                        log.error(arg)                      
+
+    if _udFail:
+        log.warning(cgmGEN.logString_sub(_str_func,'Settings Fails'))
+        pprint.pprint(_udFail)
+        
+    if settingsOnly:
+        log.warning(cgmGEN.logString_msg(_str_func,'settings only'))
         return
+    
+    #>>State ====================================================================================
+    log.debug("|{0}| >> State".format(_str_func) + '-'*80)
+    _stateArgs = BLOCKGEN.validate_stateArg(blockDat.get('blockState'))
+    _target_state_idx = _stateArgs[0]
+    _target_state = _stateArgs[1]
+    
+    _current_state = self.getState()
+    _onlyState = False
+    _current_state_idx = self.getState(False)
+    
+    
+    log.debug("|{0}| >> Block main controls".format(_str_func)+ '-'*80)
+    _pos = blockDat.get('position')
+    _orient = blockDat.get('orient')
+    _scale = blockDat.get('scale')
+    _orientHelper = blockDat.get('rootOrientHelper')
+    
+    _posBase = self.p_position
+    _orientBase= self.p_orient
+    _scaleBase = self.blockScale
+    
+    self.p_position = 0,0,0
+    self.p_orient = 0,0,0            
+    self.blockScale = 1.0    
+    
+    if currentOnly:
+        log.debug("|{0}| >> Current only mode: {1}".format(_str_func,_current_state))
+        _res =  blockDat_load_state(self,_current_state,blockDat)
+        reposition(self,blockDat,_posBase,_orientBase,_scaleBase)
+        return _res 
+        
+    elif _target_state != _current_state:
+        log.debug("|{0}| >> States don't match. self: {1} | blockDat: {2}".format(_str_func,_current_state,_target_state)) 
+        #self.p_blockState = _state
+        
+    mMirror = False
+    if useMirror:
+        if self.getMessage('blockMirror'):
+            mMirror = self.blockMirror
+        log.debug("|{0}| >> UseMirror. BlockMirror Found: {1}".format(_str_func,mMirror))
+        
 
-    except Exception,err:cgmGEN.cgmException(Exception,err)
+    #>>Controls ====================================================================================
+    def setAttr(node,attr,value):
+        try:ATTR.set(node,attr,value)
+        except Exception,err:
+            log.warning("|{0}| >> Failed to set: {1} | attr:{2} | value:{3} | err: {4}".format(_str_func,
+                                                                                               node,
+                                                                                               attr,value))
+
+        
+    #moving this to later
+    #self.p_position = blockDat.get('position')
+    #self.p_orient = blockDat.get('orient')
+    
+    #else:
+        #for ii,v in enumerate(_scale):
+            #_a = 's'+'xyz'[ii]
+            #if not self.isAttrConnected(_a) and not(ATTR.is_locked(_short,a)):
+            #setAttr(_short,_a,v)
+        
+    #>>Define Controls ====================================================================================
+    log.debug(cgmGEN.logString_sub(_str_func,'define'))
+    
+    if redefine:
+        self.UTILS.changeState(self,'define',forceNew=True)
+        self.UTILS.changeState(self,'define',forceNew=True)            
+        _current_state_idx = 0
+        _current_state = 'define'
+    
+
+    if mMirror == 'cat':
+        log.debug("|{0}| >> mMirror define pull...".format(_str_func))            
+        self.UTILS.controls_mirror(mMirror,self,define=True)
+    else:
+        blockDat_load_state(self,'define',blockDat,_d_warnings,overrideMode=overrideMode)
+        
+    if _target_state == 'define':
+        reposition(self, blockDat, _posBase, _orientBase, _scaleBase)
+        return log.info( cgmGEN.logString_sub(_str_func,'{} completed at define.'.format(self)) )
+    
+    #>>Form Controls ====================================================================================
+    log.debug(cgmGEN.logString_sub(_str_func,'form'))
+    
+    if _target_state_idx >= 1:
+        log.debug("|{0}| >> form dat....".format(_str_func))
+        if autoPush:
+            if _current_state_idx < 1:
+                log.debug("|{0}| >> Pushing to form....".format(_str_func))
+                self.p_blockState = 1
+        else:
+            return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {0}".format(_target_state)))
+        
+        log.debug(cgmGEN.logString_msg(_str_func,'form push'))
+        
+    if mMirror:
+        log.debug("|{0}| >> mMirror form pull...".format(_str_func))            
+        self.UTILS.controls_mirror(mMirror,self,form=True,prerig=False)
+    
+    else:
+        if _orientHelper:
+            mOrientHelper = self.getMessageAsMeta('orientHelper')
+            if mOrientHelper:
+                _ctrl = mOrientHelper.mNode
+                for ii,v in enumerate(_orientHelper):
+                    _a = 'r'+'xyz'[ii]
+                    setAttr(_ctrl,_a,v)
+            else:
+                _d_warnings['form']=["Missing orient Helper. Data found."]
+            
+        blockDat_load_state(self,'form',blockDat,_d_warnings,overrideMode=overrideMode)
+        
+    if _target_state == 'form':
+        reposition(self, blockDat, _posBase, _orientBase, _scaleBase)
+        return log.info( cgmGEN.logString_sub(_str_func,'{} completed at form.'.format(self)) )
+        
+    #Prerig ==============================================================================================
+    log.debug(cgmGEN.logString_sub(_str_func,'prerig'))
+    
+    if _target_state_idx >= 2:
+        log.debug("|{0}| >> prerig dat....".format(_str_func))
+        if _current_state_idx < 2:
+            if not autoPush:
+                return log.warning(cgmGEN.logString_msg(_str_func,"Autopush off. Can't go to: {1}".format(_target_state)))
+            else:
+                log.debug("|{0}| >> Pushing to prerig....".format(_str_func))
+                self.p_blockState = 2
+
+    if mMirror:
+        log.debug("|{0}| >> mMirror prerig pull...".format(_str_func))            
+        self.UTILS.controls_mirror(mMirror,self,form=False,prerig=True)
+    else:
+        blockDat_load_state(self,'prerig',blockDat,_d_warnings,overrideMode,overrideMode)
+        
+    
+    #Move setup. Either back to where we were to using blockDat 
+    reposition(self,blockDat,_posBase,_orientBase,_scaleBase)
+        
+             
+    if _d_warnings:
+        try:
+            for k,d in _d_warnings.iteritems():
+                for i,w in enumerate(d):
+                    if i == 0:log.warning(cgmGEN.logString_sub(_str_func,"{0} | Warnings".format(k)))
+                    log.warning(w)
+        except:pass
+    return
     
 def blockDat_load_state(self,state = None,
                         blockDat = None,
@@ -725,43 +778,6 @@ def blockDat_load_state(self,state = None,
                     else:
                         log.debug("|{0}| >> connected scale: {1}".format(_str_func,_a))                
                 
-                """
-                if _noScale != True:
-                    _cgmType = mObj.getMayaAttr('cgmType')
-                    if _scaleMode == 'useLoft' and  _cgmType in ['blockHandle','formHandle']:
-                        _bb = _d_loft.get('bb')
-                        _size = COREMATH.average(_bb) * .75
-                        #_size = DIST.get_arcLen(mObj.getMessage('loftCurve')[0]) / 2.0
-                        #DIST.scale_to_axisSize(_tmp_short,[_bb[0],_bb[1],_size])
-                        mc.scale(_size,_size,_size, _tmp_short, absolute = True)
-                        
-                    elif mainHandleNormalizeScale and _cgmType in ['blockHandle','formHandle']:
-                        _average = COREMATH.average(_bbTempl[i])
-                        mc.scale(_average,_average,_average, _tmp_short, absolute = True)
-                        
-                        #TRANS.scale_to_boundingBox(_tmp_short,[_bbTempl[i][0],
-                        #                                       _average,
-                        #                                       _bbTempl[i][2]],freeze=False)
-                    else:
-                        _noBB = False
-                        _normalizeUp = False
-                        if _cgmType in ['pivotHelper']:
-                            if  mObj.getMayaAttr('cgmName') not in ['base','top']:
-                                _noBB = True
-                            else:
-                                _normalizeUp = True
-                                
-                        if _scaleMode == 'bb' and _noBB != True:
-                            TRANS.scale_to_boundingBox_relative(_tmp_short,_bbTempl[i],freeze=False)
-                        else:
-                            for ii,v in enumerate(_scaleTempl[i]):
-                                _a = 's'+'xyz'[ii]
-                                if not mObj.isAttrConnected(_a):
-                                    ATTR.set(_tmp_short,_a,v)
-                                else:
-                                    log.debug("|{0}| >> connected scale: {1}".format(_str_func,_a))
-                        if _normalizeUp:
-                            mObj.sy = 1"""
                             
                 #Secondary stuff
                 if _jointHelpers and _jointHelpers.get(i):
@@ -989,7 +1005,7 @@ d_shapeDatLabels = {'formHandles':{'ann':"Setup expected qss sets", 'label':'for
 __toolname__ ='BlockDat'
 _padding = 5
 
-class ui(CGMDAT.ui):
+class uiBlockDat(CGMDAT.ui):
     USE_Template = 'cgmUITemplate'
     WINDOW_NAME = "{}UI".format(__toolname__)
     WINDOW_TITLE = 'BlockDat | {0}'.format(__version__)
@@ -1013,7 +1029,7 @@ class ui(CGMDAT.ui):
         mc.button(parent=_inside,
                   l = 'Create',
                   ut = 'cgmUITemplate',
-                  c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create,False)),
+                  c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create, self._dCB_reg['autoPush'].getValue())),
                   ann = 'Build with MRS')
 
         #checkboxes frame...------------------------------------------------------------
@@ -1099,10 +1115,8 @@ class ui(CGMDAT.ui):
             kws = {}
             for k,cb in self._dCB_reg.iteritems():
                 kws[k] = cb.getValue()
-            
             pprint.pprint(kws)
-        
-        
+
         
         mc.undoInfo(openChunk=True)
 

@@ -128,10 +128,15 @@ def CGMDATui():
     reload(CGMDAT)
     CGMDAT.ui()
     
+def MRSDATui():
+    import cgm.core.mrs.MRSDat as MRSDAT
+    reload(MRSDAT)
+    MRSDAT.ui2()
+    
 def BLOCKDATui():
     import cgm.core.mrs.MRSDat as MRSDAT
     reload(MRSDAT)
-    MRSDAT.ui()
+    MRSDAT.uiBlockDat()
     
 def SHAPEDATui():
     import cgm.core.mrs.ShapeDat as SHAPEDAT
