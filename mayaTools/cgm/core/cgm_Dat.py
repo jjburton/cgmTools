@@ -67,7 +67,7 @@ log_sub = cgmGEN.logString_sub
 log_start = cgmGEN.logString_start
 
 
-_l_startDirModes = ['workspace','project','file','dev']
+_l_startDirModes = ('workspace','file','dev')
 
 
 def startDir_getBase(mode = 'workspace', devList = []):
@@ -92,10 +92,101 @@ def startDir_getBase(mode = 'workspace', devList = []):
                 _cgmPath = os.path.join(_cgmPath,p)
         return _cgmPath
         
-
     else:
         raise ValueError,"Unknown mode: {}".format(mode)
+
+class batch(object):
+    def __init__(self, mNodes, dataClass = None, mode = None):
+        if not mNodes:
+            raise ValueError,"Must have mNodes passed"        
+        if not dataClass:
+            raise ValueError,"Must have dataClass"
+        
+        self.dataclass = dataClass 
+        self.mNodes = cgmValid.listArg(mNodes)
+        self.mode = mode
+        self.ml_mData = []
+        self.dir_export = ''
+        
+    def get(self):
+        _str_func = 'batch.get'
+        log.debug("|{0}| >>...".format(_str_func))        
+        self.ml_mData = []
+        
+        for mObj in self.mNodes:
+            log.info(log_msg(_str_func,mObj))
+            mDat = self.dataclass(mObj)
+            mDat.get()
+            self.ml_mData.append(mDat)
+        
+    def get_exportPath(self,startDir = None, force = False, startDirMode = None):
+        _str_func = 'batch.get_exportPath'
+        
+        if not force and self.dir_export and os.path.exists(self.dir_export):
+            log.info(log_msg(_str_func,"No force, passing stored"))                                    
+            return self.dir_export
+
+        if not startDir:
+            
+            startDir = self.dataclass().startDir_get(startDirMode = startDirMode)
+            print self.dataclass
+            print startDir
+            if not os.path.exists(startDir):
+                CGMOS.mkdir_recursive(startDir)            
+            """
+            if self.ml_mData:
+                log.info(log_msg(_str_func,"Checking ml_mData[0]"))                        
+                startDir = self.ml_mData[0].startDir_get()
+            else:
+                log.info(log_msg(_str_func,"Standard check"))                                        
+                startDir = startDir_getBase()"""
+                
+        dirPath = mc.fileDialog2(fileMode=3,
+                                 caption = "Export Path for: {}".format(self.dataclass.__name__),
+                                dir=startDir)
+        if not dirPath:
+            return log.error (cgmGEN.logString_msg(_str_func, "No path selected"))
+        dirPath =  dirPath[0]
+                    
+        pprint.pprint(dirPath)
+        self.dir_export = dirPath
     
+    def write(self,*args,**kws):
+        _str_func = 'batch.write'
+        
+        pprint.pprint(kws)
+        
+        if not self.dir_export:
+            self.get_exportPath(startDirMode=kws.get('startDirMode'))
+            if not self.dir_export:
+                return log.error(log_msg(_str_func,"Must have export directory."))
+        
+        kws.pop('startDirMode')
+        
+        if not self.ml_mData:
+            log.warning(log_msg(_str_func,"Getting data"))
+            self.get()
+                
+        
+        for i,mObj in enumerate(self.mNodes):
+            mDat = self.ml_mData[i]            
+            log.info("{} | {}".format(i, mDat))
+            mDat.dir_export = self.dir_export
+            
+            mDat.write(*args,**kws)
+        
+    
+    def read(self):
+        pass
+    
+    def report(self):
+        log.info(cgmGEN._str_hardBreak)
+        log.info("Export path: {}".format(self.dir_export))
+        for i,mObj in enumerate(self.mNodes):
+            log.info("{} | {}".format(i, self.ml_mData[i]))
+            #self.ml_mData[i].log_self()
+        log.info(cgmGEN._str_hardBreak)
+        
     
 class data(object):
     '''
@@ -119,15 +210,19 @@ class data(object):
         str_func = 'data.__init__'
         log.debug(log_start(str_func))
         self.dataformat = kws.get('dataFormat',self._dataFormat)
-        
         self.str_filepath = None
         self._dataformat_resolved = None
         self.dat = {}
         self.structureMode = 'workspace'#...workspace
+        self.dir_export = None
         
         if filepath:
             self.read(filepath)
-            
+   
+    def __repr__(self):
+        return "({0} | {1} | {2})".format(self.__class__, self._ext, self._dataFormat)
+      
+       
     def get(self):
         str_func = 'data.get'
         log.debug(log_start(str_func))
@@ -157,10 +252,12 @@ class data(object):
         else:
             startDir = startDir_getBase(startDirMode)
         
+        startDir = os.path.normpath(startDir)
+        
         if len(self._startDir)>1:
-            _path = os.path.join(startDir, os.path.join(*self._startDir))                    
+            _path = os.path.normpath(os.path.join(startDir, os.path.normpath(os.path.join(*self._startDir))))                    
         else:
-            _path = os.path.join(startDir, self._startDir[0])        
+            _path = os.path.normpath(os.path.join(startDir, self._startDir[0]))        
         
         return _path
     
@@ -346,6 +443,50 @@ def decodeDat(self,dat = None):
     #pprint.pprint(dat)
     
     
+    
+# ============================================================================================================================================================================================================
+# >> UI
+# =============================================================================================================================================================================================================
+_d_ann = {}
+def uiDataSetup(self):
+    if not self.__dict__.get('_l_startDirModes'):
+        self._l_startDirModes = _l_startDirModes
+    
+    try:
+        self.var_startDirMode
+    except:
+        self.create_guiOptionVar('startDirMode',defaultValue = 0)     
+        
+def uiMenu_addDirMode(self,parent):
+    _starDir = mUI.MelMenuItem(parent, l="StartDir",tearOff=True,
+                               subMenu = True)
+    
+    if not self.__dict__.get('_l_startDirModes'):
+        self._l_startDirModes = _l_startDirModes
+        
+    _on = self.var_startDirMode.value
+    uiRC = mc.radioMenuItemCollection()
+    
+    for i,item in enumerate(self._l_startDirModes):
+        if i == _on:_rb = True
+        else:_rb = False
+        mUI.MelMenuItem(_starDir,label=item,
+                        collection = uiRC,
+                        ann = _d_ann.get(item),
+                        c = cgmGEN.Callback(uiFunc_setDirMode,self,i),                                  
+                        rb = _rb)
+        
+def uiFunc_setDirMode(self,v):
+    _str_func = 'uiFunc_setDirMode[{0}]'.format(self.__class__.TOOLNAME)            
+    log.debug("|{0}| >>...".format(_str_func))
+    
+    
+    _path = startDir_getBase(self._l_startDirModes[v])
+    if _path:
+        self.var_startDirMode.setValue(v)
+        print(_path)
+        
+        
 class ui(CGMUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     _toolname = 'cgmDat'

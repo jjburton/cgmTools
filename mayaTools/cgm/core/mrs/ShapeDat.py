@@ -92,14 +92,13 @@ class data(MRSDAT.BaseDat):
         
         self.str_filepath = None
         self.dat = {}
-        self.mBlock = None
-        
+        self.mBlock = mBlock
         
     def get(self, mBlock = None):
         _str_func = 'data.get'
         log.debug(log_start(_str_func))
-        
-        mBlock = self.mBlock
+        if not mBlock:
+            mBlock = self.mBlock
         self.dat = dat_get(mBlock)    
     
     def set(self, mBlock = None, data = None, settings=True, formHandles=True, loftHandles=True, loftShapes=True, loftHandleMode='world', shapeMode='ws', loops=2):
@@ -127,25 +126,28 @@ class data(MRSDAT.BaseDat):
         pprint.pprint(_path)
         
         self.read(_path)
-        
         self.set()
         
         return        
         
-    def save(self,mode=None):
+    def write(self,*arg,**kws):
         _str_func = 'data.save'        
         log.debug(log_start(_str_func))
         
         if not self.mBlock:
             raise ValueError,"Must have mBlock to save"
         
-        startDir = self.startDir_get()
-        _path = "{}.{}".format( os.path.normpath(os.path.join(startDir,self.mBlock.p_nameBase)), data._ext)
+        if self.dir_export:
+            startDir = self.dir_export
+        else:
+            startDir = self.startDir_get()
         
+        _path = "{}.{}".format( os.path.normpath(os.path.join(startDir,
+                                                              self.mBlock.atUtils('get_partName'))),
+                                data._ext)
         pprint.pprint(_path)
         
-        self.write(_path)
-        
+        MRSDAT.BaseDat.write(self,_path, *arg,**kws)
         return
         if not os.path.exists(startDir):
             CGMDAT.CGMOS.mkdir_recursive(startDir)

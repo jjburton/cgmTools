@@ -5833,7 +5833,7 @@ def rig_controls(self):
         d_buffer = MODULECONTROL.register(mLeverFK,
                                           typeModifier='FK',
                                           mirrorSide = self.d_module['mirrorDirection'],
-                                          mirrorAxis ="translateX,translateY,translateZ",
+                                          mirrorAxis ="translateX,translateY,translateZ,rotateY,rotateZ",
                                           makeAimable = False)        
         ml_controlsAll.append(mLeverFK)
         log.debug(cgmGEN._str_subLine)

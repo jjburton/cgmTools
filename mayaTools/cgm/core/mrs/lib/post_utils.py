@@ -1240,3 +1240,114 @@ def dynJoints(start='none'):
             
     pprint.pprint(ml)
     print("Setup {} joints".format(len(ml)))
+    
+    
+def setup_shapes(d_shapes = {}):
+    _str_func = 'setup_shapes'
+    log.info(log_start(_str_func))
+    pprint.pprint(d_shapes)
+    
+    l_missing = []
+    
+    for o,d in d_shapes.iteritems():
+        log.info("{} | {}".format(o,d))
+        if d.get('noMirror'):
+            o_string = o
+            
+            mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
+            if not mObj:
+                l_missing.append("Obj: {}".format(o_string))
+                continue
+            
+            mExisting = mObj.getShapes(asMeta=1)[0]
+            
+            mTarget = cgmMeta.asMeta( CURVES.create_fromName(d.get('shape'),d.get('size')))
+            mTarget.doSnapTo(mObj)
+            
+            _moveOffsetAim = d.get('moveOffsetAim')
+            if _moveOffsetAim:
+                mTarget.p_parent = mObj
+                mTarget.tz = _moveOffsetAim
+                mTarget.p_parent = False
+                
+            CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
+            CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
+            
+            continue
+            
+        for side in ['L','R']:
+            o_string = "{}_{}".format(side,o)
+            mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
+            if not mObj:
+                l_missing.append("Obj: {}".format(o_string))
+                continue
+            
+            mExisting = mObj.getShapes(asMeta=1)[0]
+            
+            mTarget = cgmMeta.asMeta( CURVES.create_fromName(d.get('shape'),d.get('size')))
+            mTarget.doSnapTo(mObj)
+            
+            _moveOffsetAim = d.get('moveOffsetAim')
+            if _moveOffsetAim:
+                mTarget.p_parent = mObj
+                mTarget.tz = _moveOffsetAim
+                mTarget.p_parent = False
+                
+            CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
+            CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
+
+    if l_missing:
+        print(cgmGEN._str_hardBreak)
+        print("Missing the following controls: ")
+        for o in l_missing:
+            print(o)
+            
+    print(log_msg(_str_func,cgmGEN._str_hardBreak))
+    
+def setup_defaults(d_defaults = {}):
+    _str_func = 'setup_defaults'
+    log.info(log_start(_str_func))
+    pprint.pprint(d_defaults)
+    l_missing = []
+    for o,d in d_defaults.iteritems():
+        mObj = cgmMeta.validateObjArg(o,noneValid=True)
+        if not mObj:
+            l_missing.append("Control: {}".format(o))
+            continue
+        
+        for a,v in d.iteritems():
+            if not mObj.hasAttr(a):
+                l_missing.append("Attribute: {}".format(a))
+                continue
+            ATTR.set_default(o,a,v)
+            ATTR.set(o,a,v)
+    
+    if l_missing:
+        print(cgmGEN._str_hardBreak)
+        print("Missing the following controls: ")
+        for o in l_missing:
+            print(o)
+    print(log_msg(_str_func,cgmGEN._str_hardBreak))
+    
+def setup_limits(d_limits = {}):
+    _str_func = 'setup_limits'
+    log.info(log_start(_str_func))    
+    pprint.pprint(d_limits)
+    
+    l_missing = []
+    for o,d in d_limits.iteritems():
+        for side in ['L','R']:
+            o_string = "{}_{}".format(side,o)
+            mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
+            if not mObj:
+                l_missing.append("Obj: {}".format(o_string))
+                continue
+            mc.transformLimits(o_string, **d)
+    
+    if l_missing:
+        print(cgmGEN._str_hardBreak)
+        print("Missing the following controls: ")
+        for o in l_missing:
+            print(o)
+    print(log_msg(_str_func,cgmGEN._str_hardBreak))
+    

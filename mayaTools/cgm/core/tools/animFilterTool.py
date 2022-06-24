@@ -1781,7 +1781,7 @@ class ui_post_trajectory_aim_column(ui_post_filter):
 
         for obj in self._optionDict['objs']:
             mc.select(obj)
-            postInstance = TRAJECTORYAIM.TrajectoryAim(aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], showBake=self._optionDict['showBake'])
+            postInstance = TRAJECTORYAIM.TrajectoryAim(obj, aimFwd = self._optionDict['aimFwd'], aimUp = self._optionDict['aimUp'], damp = self._optionDict['damp'], showBake=self._optionDict['showBake'])
             postInstance.bake()
 
 class ui_post_keyframe_to_motion_curve_column(ui_post_filter):

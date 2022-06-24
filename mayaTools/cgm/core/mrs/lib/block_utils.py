@@ -53,6 +53,7 @@ from cgm.core.mrs.lib import general_utils as BLOCKGEN
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.classes.NodeFactory as NODEFACTORY
 import cgm.core.lib.string_utils as CORESTRING
+import cgm.core.cgmPy.str_Utils as STRINGS
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import rayCaster as RAYS
 from cgm.core.cgmPy import validateArgs as VALID
@@ -9023,6 +9024,23 @@ def get_loftCurves(self):
 def get_baseNameDict(self):
     return self.getNameDict(ignore=['cgmType','cgmIterator'])
 
+def get_partName(self):
+    _str_func = ' get_partName'
+    log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)
+    
+    #try:#Quick select sets ================================================================
+    _d = NAMETOOLS.get_objNameDict(self.mNode,['cgmType'])
+    if not _d.get('cgmName'):
+        _d['cgmName'] = self.getMayaAttr('blockType')
+    else:
+        _d['cgmType'] = self.blockType
+    log.debug("|{0}| >>  d: {1}".format(_str_func,_d))
+    
+    _str= NAMETOOLS.returnCombinedNameFromDict(_d)
+    log.debug("|{0}| >>  str: {1}".format(_str_func,_str))
+    return STRINGS.stripInvalidChars(_str)
+
+
 
 def get_module(self):
     _str_func = 'get_module'
@@ -10749,10 +10767,18 @@ def prerig_snapHandlesToRotatePlane(self,cleanUp=0):
     except:
         idx_start,idx_end = 0,len(ml_prerig)-1
         
-    log.debug(cgmGEN.logString_msg(_str_func,'Indicies || start: {0} | end: {1}'.format(idx_start,idx_end)))   
     
     mStart = ml_prerig[idx_start]
-    mEnd = ml_prerig[idx_end]
+    
+    mIKOrientHandle = self.getMessageAsMeta('ikOrientHandle')
+    if mIKOrientHandle:
+        mEnd = mIKOrientHandle
+        idx_end = ml_prerig.index(mEnd)
+    else:
+        mEnd = ml_prerig[idx_end]
+    
+    log.debug(cgmGEN.logString_msg(_str_func,'Indicies || start: {0} | end: {1}'.format(idx_start,idx_end)))   
+    
     ml_toSnap = ml_prerig[idx_start:idx_end]
     
     if not ml_toSnap:

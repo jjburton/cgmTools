@@ -42,6 +42,10 @@ import cgm.core.cgmPy.path_Utils as PATHS
 from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
+import cgm.core.cgm_Dat as CGMDAT
+import cgm.core.mrs.ShapeDat as SHAPEDAT
+import cgm.core.mrs.MRSDat as MRSDAT
+
 from cgm.core.classes import GuiFactory as CGMUI
 from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
@@ -4479,6 +4483,8 @@ class ui(cgmUI.cgmGUI):
             
             self.var_rigBlockCreateSizeMode = cgmMeta.cgmOptionVar('cgmVar_rigBlockCreateSizeMode', defaultValue = 'selection')
             
+            CGMDAT.uiDataSetup(self)
+            
             global UI
             UI = self
             
@@ -4667,6 +4673,10 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_options.clear()
         #>>> Reset Options
         _menu = self.uiMenu_options
+        
+        
+        
+        CGMDAT.uiMenu_addDirMode(self,_menu)
         
         mUI.MelMenuItemDiv(_menu, l='Context')
         
@@ -5134,6 +5144,12 @@ class ui(cgmUI.cgmGUI):
                                       'atUtils','blockDat_copy',
                                       **{'mode':'blockDatCopyActive'})},                   
                                   },
+               'ShapeDat':{
+                   'Save':{'ann':self._d_ui_annotations.get('save blockDat'),
+                           'call':cgmGEN.CB(self.uiFunc_contextBlockCall,
+                                            'saveShapeDat',
+                                            **{'updateUI':0})},                   
+               },
                'General':{
                 'order':['Select','Verify','Bake Scale','Duplicate','Delete',
                          ],
@@ -6195,6 +6211,7 @@ class ui(cgmUI.cgmGUI):
             if args[0] == 'VISUALIZEHEIRARCHY':
                 BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks[0],_contextMode,False,True)
                 return True
+                
             
             try:
                 if args[1] == 'skeleton' and _contextMode in ['self']:
@@ -6223,6 +6240,9 @@ class ui(cgmUI.cgmGUI):
             elif args[0] == 'select':
                 #log.info('select...')
                 return mc.select([mBlock.mNode for mBlock in ml_context])
+            elif args[0] == 'saveShapeDat':
+                CGMDAT.batch(ml_context, SHAPEDAT.data ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
+                return
             elif args[0]== 'focus':
                 log.debug("|{0}| >> Focus call | {1}".format(_str_func,_contextMode))
                 #ml_root = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,'root',True,False)

@@ -426,7 +426,12 @@ example:
                 else:
                     return os.path.normpath(os.path.join( self.path_set, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None
             else:
-                return os.path.normpath(os.path.join( self.path_set, self.subTypeSearchList['scrollList'].getSelectedItem() )) if self.subTypeSearchList['scrollList'].getSelectedItem() else None
+                if self.hasSubTypes:
+                    return os.path.normpath(os.path.join( self.path_subType, self.subTypeSearchList['scrollList'].getSelectedItem() )) if self.subTypeSearchList['scrollList'].getSelectedItem() else None                                        
+                else:
+                    return os.path.normpath(os.path.join( self.path_asset, self.versionList['scrollList'].getSelectedItem() )) if self.versionList['scrollList'].getSelectedItem() else None                    
+                #else:
+                #return os.path.normpath(os.path.join( self.path_set, self.subTypeSearchList['scrollList'].getSelectedItem() )) if self.subTypeSearchList['scrollList'].getSelectedItem() else None
         except Exception,err:log.error("Version file query fail: {}".format(err))
                                        
     @property

@@ -19,7 +19,8 @@ import maya.cmds as mc
 
 class TrajectoryAim(PostBake.PostBake):
     def __init__(self, obj = None, aimFwd = 'z+', aimUp = 'y+', damp = 10, showBake=False):
-        PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
+        #PostBake.PostBake.__init__(self, obj=obj, showBake=showBake)
+        super(TrajectoryAim, self).__init__(obj=obj, showBake=showBake)
 
         self.aimFwd = VALID.simpleAxis(aimFwd)
         self.aimUp = VALID.simpleAxis(aimUp)

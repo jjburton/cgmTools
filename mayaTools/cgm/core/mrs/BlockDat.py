@@ -97,10 +97,6 @@ class data(object):
         _str_func = 'data.get'
         log.debug(log_start(_str_func))
         
-        
-        
-        
-    
     
     def set(self, mBlock = None):
         _str_func = 'data.set'

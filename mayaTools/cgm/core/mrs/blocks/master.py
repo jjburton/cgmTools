@@ -181,7 +181,7 @@ def resize_masterShape(self,sizeBy=None,resize=False):
         _crv = CURVES.create_fromName(name='circle',direction = 'y+', size = 1)
         mCrv = cgmMeta.asMeta(_crv)
         SNAP.go(mCrv.mNode,self.mNode,rotation=False)
-        TRANS.scale_to_boundingBox(mCrv.mNode, [_bb[0],None,_bb[2]])
+        TRANS.scale_to_boundingBox(mCrv.mNode, [(_bb[0] * 1.5),None,(_bb[2] * 1.5)])
         
         
         #mDup = mCrv.doDuplicate(po=False)

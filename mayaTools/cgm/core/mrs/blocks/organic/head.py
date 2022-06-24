@@ -4134,6 +4134,7 @@ def rig_frame(self):
                             continue
                         mJnt.p_parent = ml_blendJoints[0].p_parent
                         
+                    mc.scaleConstraint(mHeadIK.mNode,ml_ikJoints[-1].mNode,maintainOffset = True)#need to contrain 
                 else:
                     RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_ikJoints,ml_blendJoints,
                                                 driver = mPlug_FKIK.p_combinedName,
@@ -4234,6 +4235,7 @@ def rig_cleanUp(self):
                 mRoot.scaleSpace = 'puppet'
                 ATTR.set_default(mRoot.mNode, 'scaleSpace', 'puppet')
             
+            ml_endDynParents.insert(0,mRoot)
             #mDynGroup.dynFollow.p_parent = self.mDeformNull   
             
         """

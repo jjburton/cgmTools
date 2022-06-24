@@ -117,8 +117,10 @@ def mayaScanner_path(path = None):
                 counter += 1
                 abspath = os.path.join(root, mayafile)
                 log.info("scanning {}".format(abspath))
-                mc.file(abspath, open=True, f=True, iv=True)
+                if file_list:
+                    log.info("filenodes found in {} files".format(len(file_list)))
                 try:
+                    mc.file(abspath, open=True, f=True, iv=True)
                     mc.MayaScan(scanType=0)
                 except Exception,err:
                     d_exeptions[abspath] = '{}'.format(err)
