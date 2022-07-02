@@ -1310,18 +1310,21 @@ def setup_defaults(d_defaults = {}):
     pprint.pprint(d_defaults)
     l_missing = []
     for o,d in d_defaults.iteritems():
-        mObj = cgmMeta.validateObjArg(o,noneValid=True)
-        if not mObj:
-            l_missing.append("Control: {}".format(o))
-            continue
-        
-        for a,v in d.iteritems():
-            if not mObj.hasAttr(a):
-                l_missing.append("Attribute: {}".format(a))
+        try:
+            mObj = cgmMeta.validateObjArg(o,noneValid=True)
+            if not mObj:
+                l_missing.append("Control: {}".format(o))
                 continue
-            ATTR.set_default(o,a,v)
-            ATTR.set(o,a,v)
-    
+            
+            for a,v in d.iteritems():
+                if not mObj.hasAttr(a):
+                    l_missing.append("Attribute: {}".format(a))
+                    continue
+                ATTR.set_default(o,a,v)
+                ATTR.set(o,a,v)
+        except Exception,err:
+            pprint.pprint(vars())
+            raise Exception,err
     if l_missing:
         print(cgmGEN._str_hardBreak)
         print("Missing the following controls: ")

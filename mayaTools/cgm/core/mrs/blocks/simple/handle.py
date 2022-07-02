@@ -83,7 +83,10 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},
                     'unityHigh':{'default':{}},
-                    'feature':{'default':{}}}
+                    'feature':{'default':{}},
+                    
+                    'gameToon':{'default':{'dynParentScaleMode':True,
+                                           'scaleMode':True}}}
 
 
 d_attrStateMask = {'define':[],
@@ -2012,7 +2015,8 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         ml_geo = self.msgList_get('proxyMeshGeo')
         ml_proxy = []
         str_setup = self.getEnumValueString('proxyShape')
-        if str_setup == 'shapers':
+        
+        if str_setup == 'shapers' and not ml_geo:
             d_kws = {}
             mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
             ml_proxy = [mMesh]
@@ -2140,7 +2144,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
     if _buildMesh:
         log.warning("|{0}| >> building mesh...".format(_str_func))            
         
-        if str_setup == 'shapers':
+        if str_setup == 'shapers' and not ml_geo:
             d_kws = {}
             mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
             ml_proxy = [mMesh]

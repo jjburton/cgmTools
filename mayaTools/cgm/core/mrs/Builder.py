@@ -9740,12 +9740,16 @@ class ui_createBlock(CGMUI.cgmGUI):
             _d = RIGBLOCKS.get_blockTypeProfile(self.blockType,_profile)[1]
         except:
             _d = {'cgmName':self.blockType}
+            
+        
+        if not _d.get('cgmName'):
+            _d['cgmName'] = self.blockType
         #pprint.pprint(_d)
         
         for a in self.d_uiAttrs.keys():
             _v = _d.get(a,None)
             
-            if _v is None:
+            if _v is None and a not in ['cgmName']:
                 self.d_uiAttrRow[a](edit=True,vis=False)
                 continue
             

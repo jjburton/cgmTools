@@ -74,7 +74,7 @@ __version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]
-_l_directoryMask = ['meta','.mayaSwatches']
+_l_directoryMask = ['meta','.mayaSwatches','incrementalSave']
 
 class ui(cgmUI.cgmGUI):
     '''
@@ -3027,10 +3027,9 @@ example:
                     
                     #if d[0] == '_' or d[0] == '.':
                     #    continue
-
                     animDir = os.path.normpath(os.path.join(charDir, d))
                     if self.showAllFiles:
-                        if d in ['meta']:
+                        if d in _l_directoryMask:
                             continue
                         for chk in ['MRSbatch']:
                             _break = False
@@ -3101,6 +3100,8 @@ example:
                     #for ext in fileExtensions:
                     #	if os.path.splitext(f)[-1].lower() == ".%s" % ext :
                     if d[0] == '_' or d[0] == '.':
+                        continue
+                    if d in _l_directoryMask:
                         continue
 
                         

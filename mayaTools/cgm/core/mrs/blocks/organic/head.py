@@ -331,6 +331,7 @@ d_defaultSettings = {'version':__version__,
                      'meshBuild':True,
                      'ikSplineTwistEndConnect':True,
                      'loftList':['wideUp','circle'],
+                     'root_dynParentMode':'follow',
                      'nameList':['neck','head'],#...our datList values
                      'proxyType':'geo'}
 
@@ -3162,6 +3163,7 @@ def rig_segments(self):
               'influences':ml_influences,
               'settingsControl':_settingsControl,
               'attachEndsToInfluences':False,
+              'parentDeformTo':self.mDeformNull,
               'moduleInstance':mModule}
         
         if self.ml_ikMidControls:
@@ -4224,11 +4226,12 @@ def rig_cleanUp(self):
         
             mDynGroup = mRoot.dynParentGroup
             
-            mDynGroup.dynMode = mBlock.root_dynParentMode
+            mDynGroup.dynMode = mBlock.getEnumValueString('root_dynParentMode')
             mDynGroup.scaleMode = mBlock.root_dynParentScaleMode            
         
             for mTar in ml_targetDynParents:
                 mDynGroup.addDynParent(mTar)
+                
             mDynGroup.rebuild()
             
             if mBlock.root_dynParentScaleMode == 2:
@@ -4236,7 +4239,8 @@ def rig_cleanUp(self):
                 ATTR.set_default(mRoot.mNode, 'scaleSpace', 'puppet')
             
             ml_endDynParents.insert(0,mRoot)
-            #mDynGroup.dynFollow.p_parent = self.mDeformNull   
+            if mDynGroup.getMessage('dynFollow'):
+                mDynGroup.dynFollow.p_parent = self.mDeformNull   
             
         """
         #...fk head ==================================================================================
