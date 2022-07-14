@@ -1510,8 +1510,9 @@ def form(self):
             #_scale = mc.scaleConstraint([ml_handles[0].mNode,ml_handles[-1].mNode],
             #                            mTransformedGroup.mNode,maintainOffset = False)
     
-            _res_attach = RIGCONSTRAINT.attach_toShape(mTransformedGroup.mNode, mMidTrackCurve.mNode, 'conPoint')
-            TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
+            BLOCKSHAPES.attachToCurve(mHandle, mMidTrackCurve, parentTo = mNoTransformNull, trackLink='transformedGroup')
+            #_res_attach = RIGCONSTRAINT.attach_toShape(mTransformedGroup.mNode, mMidTrackCurve.mNode, 'conPoint')
+            #TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
             
             mTransformedGroup.resetAttrs('rotate')
             
@@ -1719,12 +1720,6 @@ def form(self):
             #ATTR.set_standardFlags( mHandle.mNode, ['rotate'])
         elif mHandle in [md_handles['start'],md_handles['end']]:
             _lock = []#['sz']
-            #if mHandle == md_handles['start']:
-            #    _lock.append('rotate')
-                
-            #ATTR.set_alias(mHandle.mNode,'sy','handleScale')    
-            #ATTR.set_standardFlags( mHandle.mNode, _lock)
-            #mHandle.doConnectOut('sy',['sx','sz'])
             
             if _lock:
                 ATTR.set_standardFlags( mHandle.mNode, _lock)
@@ -1732,8 +1727,6 @@ def form(self):
             
         else:
             pass
-            #ATTR.set_standardFlags( mHandle.mNode, ['sz'])
-            #ATTR.connect('{0}.sy'.format(mHandle.mNode), '{0}.sz'.format(mHandle.mNode))
             
     
     #ml_shapers = copy.copy(ml_handles_chain)
@@ -1887,7 +1880,6 @@ def form(self):
         
                 _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mPair[0].mNode,mPair[1].mNode])
         
-                _scale = mc.scaleConstraint([mPair[0].mNode,mPair[1].mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
                 
                 if _leverLoftAimMode and not ii:
                     upObj = md_handles['lever'].mNode
@@ -1898,12 +1890,17 @@ def form(self):
                                  aimVector = [0,0,1], upVector = [0,1,0],
                                  worldUpObject = upObj,
                                  worldUpType = 'objectrotation', worldUpVector = [0,1,0])                    
-        
+                
+                
+                BLOCKSHAPES.attachToCurve(mHandle, mLinearCurve, parentTo = mNoTransformNull, trackLink='masterGroup')
+                """
                 _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, 
                                                            mLinearCurve.mNode,
                                                            'conPoint')
                 TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
-        
+                """
+                _scale = mc.scaleConstraint([mPair[0].mNode,mPair[1].mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
+                
                 for c in [_scale]:
                     CONSTRAINT.set_weightsByDistance(c[0],_vList)
         
@@ -5833,7 +5830,7 @@ def rig_controls(self):
         d_buffer = MODULECONTROL.register(mLeverFK,
                                           typeModifier='FK',
                                           mirrorSide = self.d_module['mirrorDirection'],
-                                          mirrorAxis ="translateX,translateY,translateZ,rotateY,rotateZ",
+                                          mirrorAxis ="translateX,translateY,translateZ",
                                           makeAimable = False)        
         ml_controlsAll.append(mLeverFK)
         log.debug(cgmGEN._str_subLine)
@@ -5997,7 +5994,7 @@ def rig_controls(self):
         _d = MODULECONTROL.register(mIKBallRotationControl,
                                     addDynParentGroup = False,
                                     mirrorSide= self.d_module['mirrorDirection'],
-                                    mirrorAxis="translateX,rotateY,rotateZ",
+                                    mirrorAxis="translateX,translateY,translateZ",
                                     makeAimable = True)
         mIKBallRotationControl = _d['mObj']
         ml_controlsAll.append(mIKBallRotationControl)

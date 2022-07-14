@@ -688,9 +688,9 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
             mEndAim = mEnd.doCreateAt()
             mEndAim.rename("{}_endHelpAim".format(mEnd.p_nameBase))
             mEndAim.p_position = _l_posUse[-1]
-            mEndAim.p_parent = mIKControl or mEndHelp
+            #mEndAim.p_parent = mIKControl or mEndHelp
             
-            mc.orientConstraint(mEndAim.mNode, mEnd.mNode, maintainOffset = True)
+            #mc.orientConstraint(mEndAim.mNode, mEnd.mNode, maintainOffset = True)
             """
             mc.aimConstraint(mEndAim.mNode,
                              mEnd.mNode,

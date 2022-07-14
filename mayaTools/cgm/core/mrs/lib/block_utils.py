@@ -75,6 +75,8 @@ import cgm.core.mrs.lib.post_utils as MRSPOST
 from cgm.core.classes import GuiFactory as CGMUI
 from cgm.core.cgmPy import dict_utils as CGMDICT
 import cgm.core.classes.GuiFactory as cgmUI
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
+
 mUI = cgmUI.mUI
 #=============================================================================================================
 #>> Queries
@@ -3734,6 +3736,25 @@ def form_getSubShapers(self):
         if ml_sub:
             ml.extend(ml_sub)
     return ml
+
+def form_snapHandlesToParam(self):
+    for mHandle in self.msgList_get('formHandle') + form_getSubShapers(self):
+        log.info(mHandle)
+        mTrack = mHandle.getMessageAsMeta('trackCurve')
+        print mTrack
+        if mHandle.hasAttr('param') and mTrack:
+            log.info('...')
+            param = CURVES.getUParamOnCurve(mHandle.mNode, mTrack.mNode)
+            mShape = mTrack.getShapes(asMeta=1)[0]
+            _minU = mShape.minValue
+            _maxU = mShape.maxValue
+            pct = MATH.get_normalized_parameter(_minU,_maxU,param)
+            
+            pos = mHandle.p_position
+            
+            mHandle.param = pct
+            mHandle.p_position = pos
+            
     
     
 #=============================================================================================================
@@ -6954,14 +6975,14 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     mc.select(cl=True)
 
     ml_handles_chain = copy.copy(ml_handles)
-    
+    reload(CORERIG)
     if _int_shapers > 2:
         log.debug("|{0}| >> more handles necessary...".format(_str_func)) 
         #Mid Track curve ============================================================================
         log.debug("|{0}| >> TrackCrv...".format(_str_func)) 
         _midTrackResult = CORERIG.create_at([mObj.mNode for mObj in ml_handles],'cubicTrack',#'linearTrack',
                                             baseName='midTrack')
-
+        
         _midTrackCurve = _midTrackResult[0]
         mMidTrackCurve = cgmMeta.validateObjArg(_midTrackCurve,'cgmObject')
         mMidTrackCurve.rename(_baseName + 'midHandlesTrack_crv')
@@ -7021,9 +7042,11 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
             #_scale = mc.scaleConstraint([ml_handles[0].mNode,ml_handles[-1].mNode],
             #                            mTransformedGroup.mNode,maintainOffset = False)
-
-            _res_attach = RIGCONSTRAINT.attach_toShape(mTransformedGroup.mNode, mMidTrackCurve.mNode, 'conPoint')
-            TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
+            
+            BLOCKSHAPES.attachToCurve(mHandle, mMidTrackCurve, parentTo = mNoTransformNull, trackLink='transformedGroup')
+            
+            #_res_attach = RIGCONSTRAINT.attach_toShape(mTransformedGroup.mNode, mMidTrackCurve.mNode, 'conPoint')
+            #TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
 
             mTransformedGroup.resetAttrs('rotate')
 
@@ -7342,10 +7365,6 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
             l_scales_seg = []
 
-            #for mHandle in mPair:
-                #l_scales_seg.append(mHandle.scale)
-                #mHandle.scale = 1,1,1
-
             #Sub handles... --------------------------------------------------------------------------
             for ii,p in enumerate(_l_pos_seg[1:-1]):
                 #mHandle = mHandleFactory.buildBaseShape('circle', _size, shapeDirection = 'y+')
@@ -7387,25 +7406,31 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
                 _vList = DIST.get_normalizedWeightsByDistance(mGroup.mNode,[mPair[0].mNode,mPair[1].mNode])
 
-                _scale = mc.scaleConstraint([mPair[0].mNode,mPair[1].mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
 
                 if _leverLoftAimMode:
                     upObj = md_handles['lever'].mNode
                 else:
                     upObj = mBaseOrientCurve.mNode
 
-                mc.aimConstraint([_end], mGroup.mNode, maintainOffset = False, #skip = 'z',
-                                 aimVector = [0,0,1], upVector = [0,1,0],
-                                 worldUpObject = upObj,
-                                 worldUpType = 'objectrotation', worldUpVector = [0,1,0])                    
 
+
+                
+                BLOCKSHAPES.attachToCurve(mHandle, mLinearCurve, parentTo = mNoTransformNull, trackLink='masterGroup')
+                """
                 _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, 
                                                            mLinearCurve.mNode,
                                                            'conPoint')
-                TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)
+                TRANS.parent_set(_res_attach[0], mNoTransformNull.mNode)"""
+                # Has to be after the bind
+                _scale = mc.scaleConstraint([mPair[0].mNode,mPair[1].mNode],mGroup.mNode,maintainOffset = False)#Point contraint loc to the object
 
                 for c in [_scale]:
                     CONSTRAINT.set_weightsByDistance(c[0],_vList)
+                    
+                mc.aimConstraint([_end], mGroup.mNode, maintainOffset = False, #skip = 'z',
+                                 aimVector = [0,0,1], upVector = [0,1,0],
+                                 worldUpObject = upObj,
+                                 worldUpType = 'objectrotation', worldUpVector = [0,1,0])                                        
 
                 #Convert to loft curve setup ----------------------------------------------------
                 mHandleFactory = self.asHandleFactory(mHandle.mNode)

@@ -29,43 +29,43 @@ import maya.cmds as mc
 import maya.mel as mel    
 
 # From Red9 =============================================================
-from Red9.core import Red9_Meta as r9Meta
+#from Red9.core import Red9_Meta as r9Meta
 import cgm.core.cgm_General as cgmGEN
-from cgm.core.rigger import ModuleShapeCaster as mShapeCast
-import cgm.core.cgmPy.os_Utils as cgmOS
-import cgm.core.cgmPy.path_Utils as cgmPATH
-import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-import cgm.core.rig.general_utils as CORERIGGEN
+#from cgm.core.rigger import ModuleShapeCaster as mShapeCast
+#import cgm.core.cgmPy.os_Utils as cgmOS
+#import cgm.core.cgmPy.path_Utils as cgmPATH
+#import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
+#import cgm.core.rig.general_utils as CORERIGGEN
 import cgm.core.lib.math_utils as MATH
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
-import cgm.core.classes.NodeFactory as NODEFACTORY
-from cgm.core import cgm_RigMeta as cgmRigMeta
-import cgm.core.lib.list_utils as LISTS
-import cgm.core.lib.nameTools as NAMETOOLS
-import cgm.core.lib.locator_utils as LOC
-import cgm.core.rig.create_utils as RIGCREATE
+#import cgm.core.classes.NodeFactory as NODEFACTORY
+#from cgm.core import cgm_RigMeta as cgmRigMeta
+#import cgm.core.lib.list_utils as LISTS
+#import cgm.core.lib.nameTools as NAMETOOLS
+#import cgm.core.lib.locator_utils as LOC
+#import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.rayCaster as RAYS
 import cgm.core.lib.rigging_utils as CORERIG
 import cgm.core.lib.curve_Utils as CURVES
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
-import cgm.core.lib.constraint_utils as CONSTRAINT
+#import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.position_utils as POS
-import cgm.core.rig.joint_utils as JOINT
-import cgm.core.rig.ik_utils as IK
-import cgm.core.mrs.lib.block_utils as BLOCKUTILS
-import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
-import cgm.core.mrs.lib.builder_utils as BUILDUTILS
-import cgm.core.lib.shapeCaster as SHAPECASTER
+#import cgm.core.rig.joint_utils as JOINT
+#import cgm.core.rig.ik_utils as IK
+#import cgm.core.mrs.lib.block_utils as BLOCKUTILS
+#import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+#import cgm.core.mrs.lib.builder_utils as BUILDUTILS
+#import cgm.core.lib.shapeCaster as SHAPECASTER
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.lib.string_utils as STR
 
 #reload(SHAPECASTER)
 from cgm.core.cgmPy import validateArgs as VALID
-import cgm.core.cgm_RigMeta as cgmRIGMETA
+#import cgm.core.cgm_RigMeta as cgmRIGMETA
 
 
 # From cgm ==============================================================
@@ -2690,3 +2690,46 @@ def eyeOrb(self, mTarget, mStateNull, side='left', attr= 'eyeSize'):
     self.doConnectOut(attr, "{0}.scale".format(mBlockVolume.mNode))
     
     return _res
+
+
+def attachToCurve(mHandle,mCrv,mShape = None,parentTo=None,pct = None, blend = True, trackLink = 'trackGroup'):
+    if not mHandle.getMessage(trackLink):
+        mHandle.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+        
+    mTrackGroup = mHandle.getMessageAsMeta(trackLink)
+    for mConst in mTrackGroup.getConstraintsTo(asMeta=1):
+        mConst.delete()
+    
+    if not pct:
+        
+        param = CURVES.getUParamOnCurve(mHandle.mNode, mCrv.mNode)
+        
+        if not mShape:
+            mShape = mCrv.getShapes(asMeta=1)[0]
+        _minU = mShape.minValue
+        _maxU = mShape.maxValue
+        pct = MATH.get_normalized_parameter(_minU,_maxU,param)        
+
+    mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,turnOnPercentage=1))
+    
+    
+    if blend:
+        mPlug = cgmMeta.cgmAttr(mHandle.mNode, 'param', attrType = 'float',
+                                minValue = 0.0, maxValue = 1.0,#len(ml_jointHelpers)-1, 
+                                #defaultValue = .5, initialValue = .5,
+                                keyable = True, hidden = False)
+        mPlug.value = pct
+        mPlug.p_defaultValue = pct
+                
+        mPointOnCurve.doConnectIn('parameter',mPlug.p_combinedName)
+    else:
+        mPointOnCurve.parameter = pct
+        
+    mTrackLoc = mHandle.doLoc()
+    mPointOnCurve.doConnectOut('position',"{0}.translate".format(mTrackLoc.mNode))
+    
+    mHandle.doStore('trackCurve', mCrv)
+
+    mTrackLoc.p_parent = parentTo
+    mTrackLoc.v=False
+    mc.pointConstraint(mTrackLoc.mNode,mTrackGroup .mNode,maintainOffset = False)     

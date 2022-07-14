@@ -75,6 +75,7 @@ import cgm.core.mrs.lib.rigFrame_utils as RIGFRAME
 import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 from cgm.core.lib import locator_utils as LOC
 import cgm.core.mrs.lib.post_utils as MRSPOST
+import cgm.core.mrs.lib.blockShapes_utils as BLOCKSHAPES
 
 #for m in RIGSHAPES,CURVES,BUILDUTILS,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
 #    reload(m)
@@ -2524,6 +2525,12 @@ def rig_controls(self):
         mPlug_visSub = self.atBuilderUtils('build_visModuleMD','visSub')
         mPlug_visDirect = self.atBuilderUtils('build_visModuleMD','visDirect')
         self.atBuilderUtils('build_visModuleProxy')#...proxyVis wiring
+        
+        mScaleRoot = mRigNull.getMessageAsMeta('scaleRoot')
+        if mScaleRoot:
+            mPlug_visScaleRoot = self.atBuilderUtils('build_visModuleMD','visScaleRoot',defaultValue=False)
+            mPlug_visScaleRoot.p_defaultValue = False
+            #mPlug_visScaleRoot.p_value = False
 
         # Connect to visModule ...
         ATTR.connect(self.mPlug_visModule.p_combinedShortName, 
@@ -2570,8 +2577,7 @@ def rig_controls(self):
                 
                 
         #Scale Root --------------------------------------------------------------------------------------
-        mScaleRoot = mRigNull.getMessageAsMeta('scaleRoot')
-        if mScaleRoot:
+        if mScaleRoot:            
             log.debug("|{0}| >> Scale Root...".format(_str_func))
             _d = MODULECONTROL.register(mScaleRoot,
                                         addDynParentGroup = False,
@@ -2580,8 +2586,10 @@ def rig_controls(self):
                                         makeAimable = True)
             mScaleRoot = _d['mObj']
             mRootParent = mScaleRoot#Change parent going forward...
-            ml_controlsAll.append(mScaleRoot)            
+            ml_controlsAll.append(mScaleRoot)
             
+            for mShape in mScaleRoot.getShapes(asMeta=True):
+                ATTR.connect(mPlug_visScaleRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))            
             
                 
         #FK controls =============================================================================================
@@ -3249,6 +3257,7 @@ def rig_frame(self):
                     ml_ikUse[-1] = mIKSplineEnd
                     
                     mIKSplineEnd.p_parent = ml_ikJoints[-1].p_parent
+                    
                     ml_ikJoints[-1].p_parent = mIKControl#...to get free orient
                     
                     pprint.pprint(ml_ikJoints)
@@ -3258,7 +3267,9 @@ def rig_frame(self):
                                     ml_skinDrivers,
                                     mPlug_masterScale,
                                     'translate',
-                                    mBlock.ikSplineTwistEndConnect, mBlock.ikSplineExtendEnd, mBlock.ikSplineAimEnd,
+                                    mBlock.ikSplineTwistEndConnect,
+                                    mBlock.ikSplineExtendEnd,
+                                    mBlock.ikSplineAimEnd,
                                     mSettings = mSettings)
                     
                     if mSettings.hasAttr('twistType'):
@@ -3266,9 +3277,24 @@ def rig_frame(self):
                         ATTR.set(mSettings.mNode,'twistType',1)
                         
                         
-                    mc.pointConstraint([mIKSplineEnd.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)                    
-                    mc.orientConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)                    
+                    mc.pointConstraint([mIKSplineEnd.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
+                    mIKSplineIKDriver = ml_ikJoints[-1].doDuplicate()
+                    mIKSplineIKDriver.rename("{}_splineControl".format(ml_ikJoints[-1].p_nameBase))
+                    mIKSplineIKDriver.p_parent = mIKControl
+                    mIKSplineEnd.dagLock()
+                    #...this orient here isn't what we want?
+                    #mc.orientConstraint([mIKSplineEnd.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)                    
                     
+                    #mc.orientConstraint([mIKControl.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)
+                    
+                    #Add follow setup here 07.10.22
+                    mPlug_followIK = cgmMeta.cgmAttr(mIKControl.mNode,'followIK',attrType='float',lock=False,keyable=True,defaultValue=1.0)
+                    mPlug_followIK.p_value = 1.0
+                    
+                    #Setup blend ----------------------------------------------------------------------------------
+                    RIGCONSTRAINT.blendChainsBy(mIKSplineEnd,mIKSplineIKDriver,ml_ikJoints[-1],
+                                                driver = mPlug_followIK.p_combinedName,
+                                                l_constraints=['orient'])                    
                     
                     
                 else:
