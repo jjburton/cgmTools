@@ -1886,13 +1886,16 @@ def form(self):
                 else:
                     upObj = _mStart.mNode#mBaseOrientCurve.mNode
                 
-                mc.aimConstraint([_end], mGroup.mNode, maintainOffset = False, #skip = 'z',
-                                 aimVector = [0,0,1], upVector = [0,1,0],
-                                 worldUpObject = upObj,
-                                 worldUpType = 'objectrotation', worldUpVector = [0,1,0])                    
+
                 
                 
                 BLOCKSHAPES.attachToCurve(mHandle, mLinearCurve, parentTo = mNoTransformNull, trackLink='masterGroup')
+                
+                mc.aimConstraint([_end], mGroup.mNode, maintainOffset = False, #skip = 'z',
+                                 aimVector = [0,0,1], upVector = [0,1,0],
+                                 worldUpObject = upObj,
+                                 worldUpType = 'objectrotation', worldUpVector = [0,1,0])
+                
                 """
                 _res_attach = RIGCONSTRAINT.attach_toShape(mGroup.mNode, 
                                                            mLinearCurve.mNode,
@@ -7066,12 +7069,7 @@ def rig_frame(self):
         ml_ikJoints = mRigNull.msgList_get('ikJoints')
         mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',lock=False,keyable=True)
         _jointOrientation = self.d_orientation['str']
-        
-        mStart = ml_ikJoints[0]
-        mEnd = ml_ikJoints[self.int_handleEndIdx]
-        _start = ml_ikJoints[0].mNode
-        _end = ml_ikJoints[self.int_handleEndIdx].mNode
-        
+
         
         #>>> Setup a vis blend result
         mPlug_FKon = cgmMeta.cgmAttr(mSettings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
@@ -7100,6 +7098,13 @@ def rig_frame(self):
             mIKControlBase.masterGroup.p_parent = mIKGroup
             
         
+        ml_ikJoints[0].parent = mIKGroup            
+        
+        mStart = ml_ikJoints[0]
+        mEnd = ml_ikJoints[self.int_handleEndIdx]
+        _start = ml_ikJoints[0].mNode
+        _end = ml_ikJoints[self.int_handleEndIdx].mNode
+
         """
         mIKControlBase = False
         if mRigNull.getMessage('controlIKBase'):
@@ -7170,10 +7175,14 @@ def rig_frame(self):
             else:
                 _d_ik['solverType'] = 'ikSpringSolver'
                 
+                
             d_ikReturn = IK.handle(_start,_end,**_d_ik)
             mIKHandle = d_ikReturn['mHandle']
             ml_distHandlesNF = d_ikReturn['ml_distHandles']
             mRPHandleNF = d_ikReturn['mRPHandle']
+            
+            if _d_ik['solverType'] == 'ikSpringSolver':
+                ml_ikJoints[0].p_parent = RIGFRAME.get_moduleScaleNoTransformGroup(self,mRoot)
             
             
             #>>>Parent IK handles -----------------------------------------------------------------
@@ -7436,7 +7445,6 @@ def rig_frame(self):
             mMidControlDriver.addAttr('cgmAlias', 'midDriver')
             
             if not ml_ikFullChain:
-
                 if mIKControlBase:
                     l_midDrivers = [mIKControlBase.mNode]
                 else:
@@ -7519,8 +7527,16 @@ def rig_frame(self):
                 #>>> Fix our ik_handle twist at the end of all of the parenting
                 IK.handle_fixTwist(mIKHandle,_jointOrientation[0])#Fix the twist
                 
-                #mIKControl.masterGroup.p_parent = ml_ikFullChain[-2]
-                
+                if _d_ik['solverType'] == 'ikSpringSolver':
+                    ml_ikFullChain[0].p_parent = RIGFRAME.get_moduleScaleNoTransformGroup(self,mRoot)
+                else:
+                    ml_ikFullChain[0].p_parent = mRoot
+                    
+                if mIKControlBase:
+                    mc.pointConstraint(mIKControlBase.mNode,ml_ikFullChain[0].mNode,maintainOffset=False)
+                        
+
+                    
                 
         elif _ikSetup == 'spline':
             log.debug("|{0}| >> spline setup...".format(_str_func))
@@ -7650,12 +7666,9 @@ def rig_frame(self):
         #else:
         mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))            
         ml_blendJoints[0].parent = mRoot
-        if ml_ikFullChain:
-            ml_ikFullChain[0].p_parent = mRoot
-            if mIKControlBase:
-                mc.pointConstraint(mIKControlBase.mNode,ml_ikFullChain[0].mNode,maintainOffset=False)
+
         
-        ml_ikJoints[0].parent = mIKGroup            
+        #ml_ikJoints[0].parent = mIKGroup            
         if mIKControlBase:
             #ml_ikJoints[0].p_parent = mIKControlBase
             mc.pointConstraint(mIKControlBase.mNode,ml_ikJoints[0].mNode,maintainOffset=False)

@@ -9743,7 +9743,7 @@ class ui_createBlock(CGMUI.cgmGUI):
             
         
         if not _d.get('cgmName'):
-            _d['cgmName'] = self.blockType
+            _d['cgmName'] = _profile #self.blockType
         #pprint.pprint(_d)
         
         for a in self.d_uiAttrs.keys():

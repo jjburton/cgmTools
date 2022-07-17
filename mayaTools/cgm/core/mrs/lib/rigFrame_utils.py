@@ -75,6 +75,28 @@ __version__ = 'alpha.1.09122018'
 
 log_start = cgmGEN.log_start
 
+
+def get_moduleScaleNoTransformGroup(self, mScaler = False):
+    mGrp = self.mModule.getMessageAsMeta('noTransformScaleGroup')
+    if mGrp:
+        return mGrp
+    
+    if not self.mModule.getMessage('noTransformScaleGroup'):
+        mGrp = self.mConstrainNull.doCreateAt()
+        mGrp.addAttr('cgmName',self.d_module['partName'],lock=True)
+        mGrp.addAttr('cgmTypeModifier','noTransformScale',lock=True)
+        mGrp.doName()
+        mGrp.parent = self.d_module['mMasterNull']
+        self.mModule.connectChildNode(mGrp,'noTransformScaleGroup','module')
+        if mScaler:
+            mc.scaleConstraint(mScaler.mNode, mGrp.mNode, maintainOffset = True)
+        mGrp.dagLock()
+        
+        
+    self.mScaleNoTransformGroup = mGrp
+    return mGrp
+
+
 def get_spinGroup(self,mStart,mRoot,mControl):
     #=========================================================================================
     log.debug("|{0}| >> spin setup...".format(_str_func))
