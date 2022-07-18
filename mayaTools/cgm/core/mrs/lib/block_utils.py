@@ -237,7 +237,6 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
     """
     try:
         _str_func = 'verify_blockAttrs'
-        _short = self.mNode
         log.debug(cgmGEN.logString_start(_str_func))
 
         if queryMode:
@@ -294,6 +293,7 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         if queryMode:
             return _d,d_defaultSettings
         
+        _short = self.mNode
         
         #This is the verify part...
         _keys = _d.keys()
@@ -8691,6 +8691,7 @@ def blockProfile_getOptions(self):
 def blockProfile_getAttrs(self,arg):
     _str_func = 'blockProfile_getOptions'
     log.debug(cgmGEN.logString_start(_str_func))
+    _short = self.mNode
 
     mBlockModule = self.p_blockModule
     log.debug("|{0}| >>  BlockModule: {1}".format(_str_func,mBlockModule))

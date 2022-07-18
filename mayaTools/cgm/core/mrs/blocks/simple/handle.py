@@ -97,7 +97,71 @@ d_attrStateMask = {'define':[],
                    'rig':['rotPivotPlace','scaleSetup','dynParentMode','dynParentScaleMode'],
                    'vis':[]}
 
+l_createUI_attrs = ['addCog','addPivot','addScalePivot','addAim',
+                    'basicShape','proxyShape','rotPivotPlace','loftSetup']
+
 d_block_profiles = {
+
+    'basicShape':{
+        'proxyShape':'cube',
+        'basicShape':'cube',          
+        'loftShape':'square',
+        'numShapers':2,
+        'shapersAim':'toEnd',
+        'rotPivotPlace':'jointHelper',
+        'shapeDirection':'y+',            
+        #'loftSetup':'default',
+        'addPivot':False,            
+        'baseSize':[10,10,10],
+         },
+    'snapPoint':{
+                 'rotPivotPlace':'jointHelper',
+                 'meshBuild':False,
+                 'addCog':None,#Putting None, hides this from our create UI
+                 'addAim':None,
+                 'numShapers':None,
+                 'rotPivotPlace':None,
+                 },
+    'formShape':{'proxyShape':'shapers',
+                'loftShape':'square',
+                'numShapers':4,
+                'shapersAim':'toEnd',
+                'loftSetup':'loftList',
+                'rotPivotPlace':'jointHelper',
+                'shapeDirection':'y+',
+                'baseSize':[10,10,20],
+                'addPivot':False,
+                'loftList':['circle','square','wideDown','wideUp']
+                },
+    'box':{'proxyShape':'shapers',
+           'loftShape':'square',
+           'numShapers':2,
+           'shapersAim':'toEnd',
+           'rotPivotPlace':'jointHelper',
+           'shapeDirection':'y+',            
+           'loftSetup':'default',
+           'addPivot':True,            
+           'baseSize':[10,10,10],
+           'basicShape':None,
+           'proxyShape':None,
+            },
+    'sphere':{
+        'basicShape':'sphere',
+        'proxyShape':'sphere',
+        'rotPivotPlace':'jointHelper',
+        'shapeDirection':'y+',        
+        'cgmName':'sphere',
+        'loftSides':10,
+        'loftSplit':10,
+        'baseSize':[10,10,10],
+        'numShapers':None,
+        'loftSetup':None,        
+        },    
+}
+
+d_block_profilesBAK = {
+    
+    
     'simple':{
         'basicShape':'cube',
         'proxyShape':'cube',
@@ -227,6 +291,7 @@ d_defaultSettings = {'version':__version__,
                      'hasJoint':True,
                      'basicShape':5,
                      'addAim':False,
+                     'addCog':False,
                      'shapeDirection':2,
                      'axisAim':2,
                      'axisUp':4,
