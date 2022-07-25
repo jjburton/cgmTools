@@ -138,6 +138,11 @@ d_attrStateMask = {'define':[],
                            'mainRotAxis',  'followParentBank',],
                    'vis':['visRotatePlane']}
 
+
+l_createUI_attrs = ['attachPoint','attachIndex',
+                    'addCog','addPivot','addScalePivot','addAim',
+                    'buildEnd']
+
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'numRoll':0,},

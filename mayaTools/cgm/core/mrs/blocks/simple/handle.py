@@ -97,7 +97,8 @@ d_attrStateMask = {'define':[],
                    'rig':['rotPivotPlace','scaleSetup','dynParentMode','dynParentScaleMode'],
                    'vis':[]}
 
-l_createUI_attrs = ['addCog','addPivot','addScalePivot','addAim',
+l_createUI_attrs = ['attachPoint','attachIndex',
+                    'addCog','addPivot','addScalePivot','addAim',
                     'basicShape','proxyShape','rotPivotPlace','loftSetup']
 
 d_block_profiles = {
@@ -124,7 +125,8 @@ d_block_profiles = {
                  },
     'formShape':{'proxyShape':'shapers',
                 'loftShape':'square',
-                'numShapers':4,
+                'numShapers':3,
+                'numSubShapers':1,
                 'shapersAim':'toEnd',
                 'loftSetup':'loftList',
                 'rotPivotPlace':'jointHelper',

@@ -9253,7 +9253,7 @@ def uiFunc_updateBlock(self):
                                           )
                 elif _type == 'long':
                     self._d_attrFields[a] = mUI.MelIntField(_hlayout,w = 50,
-                                                             maxValue=20,
+                                                             #maxValue=20,
                                                               )
                     self._d_attrFields[a](e=True,value = ATTR.get(_short,a))
                     
@@ -9459,8 +9459,8 @@ class ui_createBlock(CGMUI.cgmGUI):
     RETAIN = True
     MIN_BUTTON = False
     MAX_BUTTON = False
-    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 500,500
+    #FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 700,500
     
     def insert_init(self,*args,**kws):
         self.create_guiOptionVar('blockType',defaultValue = '')
@@ -9706,12 +9706,13 @@ class ui_createBlock(CGMUI.cgmGUI):
         #_d,d_defaultSettings = 
         
         
-        l_attrs =  ['cgmName','nameIter','nameList','shapeDirection','numShapers','numRoll']
+        l_attrs =  ['cgmName','nameIter','nameList','shapeDirection','numShapers','numSubShapers','numRoll']
         
         if hasattr(mBlockModule,'l_createUI_attrs'):
             l_attrs.extend(getattr(mBlockModule,'l_createUI_attrs'))
         
         for a in l_attrs:
+            print a
             _mRow = mUI.MelHSingleStretchLayout(self.uiBlock_options,ut='cgmUISubTemplate')
             mUI.MelSpacer(_mRow,w=_sidePadding)
             
@@ -9777,7 +9778,7 @@ class ui_createBlock(CGMUI.cgmGUI):
                     _v = _profile
                     
             _lock = False
-            if a in ['numShapers','numRoll']:
+            if a in ['numShapers','numRoll','numSubShapers']:
                 if _v == None:
                     _v = 1
                     _lock = True

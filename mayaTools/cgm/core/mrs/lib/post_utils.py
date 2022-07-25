@@ -424,10 +424,16 @@ def SDK_wip(ml = [], matchType = False, settings = None,
         
         _d = {}
         
-        ml_fk = mSib.atUtils('controls_get','fk')
+        
+        if mSib.moduleType == 'handle':
+            ml_fk = [mSib.rigNull.getMessageAsMeta('handle')]
+        else:
+            ml_fk = mSib.atUtils('controls_get','fk')
+            
         if not ml_fk:
             log.warning('missing fk. Skippping...')
             continue
+        
         
         if skipLever or skipFKBase:
             if i in skipFKBase:

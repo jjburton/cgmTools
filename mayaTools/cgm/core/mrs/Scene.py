@@ -3628,7 +3628,8 @@ example:
         if self.hasVariant:
             wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
         
-        wantedName = "%s_%s.%s" % (wantedName, self.subType, self.d_tf['general']['mayaFilePref'].getValue())
+        
+        wantedName = "{}Ref.{}".format(wantedName, self.d_tf['general']['mayaFilePref'].getValue())
             
         log.debug(log_msg(_str_func,"Wanted: {0}".format(wantedName)))
     
@@ -3684,7 +3685,7 @@ example:
         
         log.info(log_msg(_str_func,"Save to: {0}".format(saveLocation)))
 
-        saveFile = os.path.normpath(os.path.join(saveLocation, wantedName) ) 
+        saveFile = os.path.normpath(os.path.join(saveLocation,wantedName) ) 
         log.info( "Saving file: %s" % saveFile )
         mc.file( rename=saveFile )
         mc.file( save=True )

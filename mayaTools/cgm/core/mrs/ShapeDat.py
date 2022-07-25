@@ -461,145 +461,153 @@ def dat_get(mBlock=None):
     #First part of block reset to get/load data------------------------------------------------------
     pos = mBlock.p_position
     orient = mBlock.p_orient
+    scale = mBlock.blockScale
     
+    #prep.... ------------------------------------------------------------------------------    
     mBlock.p_position = 0,0,0
     mBlock.p_orient = 0,0,0
+    mBlock.blockScale = 1.0
 
-    
-    def get_attr(obj,a,d = {}):
-        try:
-            if a in l_enumLists:
-                if ATTR.datList_exists(_str_block,a):
-                    _d[a] = ATTR.datList_get(_str_block,a,enum=1)
-            elif a in l_datLists:
-                if ATTR.datList_exists(_str_block,a):
-                    _d[a] = ATTR.datList_get(_str_block,a)                
-            elif ATTR.get_type(obj, a) == 'enum':
-                d[a] = ATTR.get_enumValueString(_str_block, a)
-            else:
-                d[a] = ATTR.get(_str_block, a)
-        except:pass        
-    
-    #Form count
-    _res = {}
-    
-    #Settings ... ---------------------------------------------------------------------------
-    _d = {}
-    _res['settings'] = _d
-    
-    for a in ['loftSetup','loftShape','numShapers','numSubShapers','shapersAim','shapeDirection','loftList']:
-        get_attr(_str_block,a,_d)
-    
-            
-    #Dat ... ---------------------------------------------------------------------------
-    _d = {}
-    _res['base'] = _d
-    
-    for a in l_dataAttrs:
-        get_attr(_str_block,a,_d)
-    
-    _d['source']= mBlock.p_nameBase
-    _d['type'] = _d.pop('cgmName','none')
-            
-    #FormHandles ... ---------------------------------------------------------------------------
-    _d = {}
-    _d['form'] = []
-    _d['loft'] = []
-    _d['loftShapes'] = []
-    
-    _d['sub'] = []
-    _d['subShapes'] = []    
-    _d['subRelative'] = []    
-    
-    _res['handles'] = _d
-    
-    ml_handles = mBlock.msgList_get('formHandles')
-    #pprint.pprint(ml_handles)
-    
-    _res['base']['shapers'] = len(ml_handles)
-    _res['base']['subs'] = []
-    _num_subs = _res['base']['subs']
-    
-    
-    def getCVS(mObj):
-        _obj = mObj.mNode
+    try:
+        
+        def get_attr(obj,a,d = {}):
+            try:
+                if a in l_enumLists:
+                    if ATTR.datList_exists(_str_block,a):
+                        _d[a] = ATTR.datList_get(_str_block,a,enum=1)
+                elif a in l_datLists:
+                    if ATTR.datList_exists(_str_block,a):
+                        _d[a] = ATTR.datList_get(_str_block,a)                
+                elif ATTR.get_type(obj, a) == 'enum':
+                    d[a] = ATTR.get_enumValueString(_str_block, a)
+                else:
+                    d[a] = ATTR.get(_str_block, a)
+            except:pass        
+        
+        #Form count
         _res = {}
         
-        _l_shapes_source = mc.listRelatives(_obj,shapes=True,fullPath=True)
-
-        for i,s in enumerate(_l_shapes_source):
-            _l_ep_source = mc.ls("{0}.cv[*]".format(s),flatten = True)
-            for i,ep in enumerate(_l_ep_source):
-                _pos = POS.get(ep,space='os')
-            
-    def get(mObj,shapes=False):
-        d = {'pos':mObj.p_position,
-             'orient':mObj.p_orient,
-             'rot':mObj.rotate,
-             'trans':mObj.translate,
-             'scale':mObj.scale}
+        #Settings ... ---------------------------------------------------------------------------
+        _d = {}
+        _res['settings'] = _d
         
-        if shapes:
-            d['shapes'] = shapes_get(mObj,'ws')
-            
-        return d
-    
-    for i, mObj in enumerate(ml_handles):
-        _d['form'].append( get(mObj))
-        _l_shapes = []
-        _l_loft = []
+        for a in ['loftSetup','loftShape','numShapers','numSubShapers','shapersAim','shapeDirection','loftList']:
+            get_attr(_str_block,a,_d)
         
-        mLoftCurve = mObj.getMessageAsMeta('loftCurve')
-        
-        ml_loft = []
-        
-        #LoftCurve.....--------------------------------------------------------
-        if mLoftCurve:
-            _d['loft'].append(get(mLoftCurve))
-            _d['loftShapes'].append(shapes_get(mLoftCurve,'all'))
-        else:
-            _d['loft'].append(False)
-            _d['loftShapes'].append(False)            
-        
-        #sub..--------------------------------------------------------
-        ml_subShapers = mObj.msgList_get('subShapers')
-        #If subShapes, process them
-        if ml_subShapers:
-            l_subShapes = []
-            l_sub = []
-            for ii,mObj in enumerate(ml_subShapers):
-                l_subShapes.append( shapes_get(mObj,'all'))
-                l_sub.append( get(mObj))
-            
-            _d['subRelative'].append( relativePointDat_getFromObjs([mObj.mNode for mObj in ml_subShapers],
-                                                           ml_handles[i].mNode,ml_handles[i+1].mNode) )
-            _d['subShapes'].append( l_subShapes )
-            _d['sub'].append( l_sub )
-            _num_subs.append(len(ml_subShapers))
-        else:
-            _d['sub'].append(False)
-            _d['subShapes'].append(False)               
-            _d['subRelative'].append(False)               
-            _num_subs.append(0)
-    
-        if mObj.getMessage('pivotHelper'):
-            mPivotHelper = mObj.pivotHelper
-            _res['pivotHelper'] = [ get(mPivotHelper,shapes=True)]
                 
+        #Dat ... ---------------------------------------------------------------------------
+        _d = {}
+        _res['base'] = _d
+        
+        for a in l_dataAttrs:
+            get_attr(_str_block,a,_d)
+        
+        _d['source']= mBlock.p_nameBase
+        _d['type'] = _d.pop('cgmName','none')
+                
+        #FormHandles ... ---------------------------------------------------------------------------
+        _d = {}
+        _d['form'] = []
+        _d['loft'] = []
+        _d['loftShapes'] = []
+        
+        _d['sub'] = []
+        _d['subShapes'] = []    
+        _d['subRelative'] = []    
+        
+        _res['handles'] = _d
+        
+        ml_handles = mBlock.msgList_get('formHandles')
+        #pprint.pprint(ml_handles)
+        
+        _res['base']['shapers'] = len(ml_handles)
+        _res['base']['subs'] = []
+        _num_subs = _res['base']['subs']
+        
+        
+        def getCVS(mObj):
+            _obj = mObj.mNode
+            _res = {}
             
-            mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
-            if mTopLoft:
-                _res['pivotTopHelper'] = [ get(mTopLoft,shapes=True)]
-
+            _l_shapes_source = mc.listRelatives(_obj,shapes=True,fullPath=True)
     
-
-    #pprint.pprint(_res)
+            for i,s in enumerate(_l_shapes_source):
+                _l_ep_source = mc.ls("{0}.cv[*]".format(s),flatten = True)
+                for i,ep in enumerate(_l_ep_source):
+                    _pos = POS.get(ep,space='os')
+                
+        def get(mObj,shapes=False):
+            d = {'pos':mObj.p_position,
+                 'orient':mObj.p_orient,
+                 'rot':mObj.rotate,
+                 'trans':mObj.translate,
+                 'scale':mObj.scale}
+            
+            if shapes:
+                d['shapes'] = shapes_get(mObj,'ws')
+                
+            return d
+        
+        for i, mObj in enumerate(ml_handles):
+            _d['form'].append( get(mObj))
+            _l_shapes = []
+            _l_loft = []
+            
+            mLoftCurve = mObj.getMessageAsMeta('loftCurve')
+            
+            ml_loft = []
+            
+            #LoftCurve.....--------------------------------------------------------
+            if mLoftCurve:
+                _d['loft'].append(get(mLoftCurve))
+                _d['loftShapes'].append(shapes_get(mLoftCurve,'all'))
+            else:
+                _d['loft'].append(False)
+                _d['loftShapes'].append(False)            
+            
+            #sub..--------------------------------------------------------
+            ml_subShapers = mObj.msgList_get('subShapers')
+            #If subShapes, process them
+            if ml_subShapers:
+                l_subShapes = []
+                l_sub = []
+                for ii,mObj in enumerate(ml_subShapers):
+                    l_subShapes.append( shapes_get(mObj,'all'))
+                    l_sub.append( get(mObj))
+                
+                _d['subRelative'].append( relativePointDat_getFromObjs([mObj.mNode for mObj in ml_subShapers],
+                                                               ml_handles[i].mNode,ml_handles[i+1].mNode) )
+                _d['subShapes'].append( l_subShapes )
+                _d['sub'].append( l_sub )
+                _num_subs.append(len(ml_subShapers))
+            else:
+                _d['sub'].append(False)
+                _d['subShapes'].append(False)               
+                _d['subRelative'].append(False)               
+                _num_subs.append(0)
+        
+            if mObj.getMessage('pivotHelper'):
+                mPivotHelper = mObj.pivotHelper
+                _res['pivotHelper'] = [ get(mPivotHelper,shapes=True)]
+                    
+                
+                mTopLoft = mPivotHelper.getMessageAsMeta('topLoft')
+                if mTopLoft:
+                    _res['pivotTopHelper'] = [ get(mTopLoft,shapes=True)]
     
-    #Restore our block...-----------------------------------------------------------------
-    mBlock.p_position = pos
-    mBlock.p_orient = orient      
-    return _res
+        
     
+        #pprint.pprint(_res)
+        
+        #Restore our block...-----------------------------------------------------------------
+        #mBlock.p_position = pos
+        #mBlock.p_orient = orient      
+        return _res
+    finally:
+        #Restore our block...-----------------------------------------------------------------
+        mBlock.p_position = pos
+        mBlock.p_orient = orient         
+        mBlock.blockScale = scale             
     
 def shapes_get(mObj, mode = 'os'):
     _str_func = 'shapes_get'
