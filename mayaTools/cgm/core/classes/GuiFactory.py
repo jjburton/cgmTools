@@ -2322,7 +2322,9 @@ class cgmScrollList(mUI.BaseMelWidget):
         return mUI.BaseMelWidget.__new__( cls, parent, *a, **kw )
     
     def __init__( self, parent, *a, **kw ):
-        mUI.BaseMelWidget.__init__( self, parent, *a, **kw )
+        super(cgmScrollList, self).__init__(parent,*a,**kw)
+        
+        #mUI.BaseMelWidget.__init__( self, parent, *a, **kw )
         self._appendCB = None
         self._items = []
         # self._ml_scene = []

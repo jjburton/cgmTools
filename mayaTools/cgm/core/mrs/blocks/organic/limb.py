@@ -48,7 +48,6 @@ import cgm.core.mrs.assets as MRSASSETS
 #path_assets = cgmPATH.Path(MRSASSETS.__file__).up().asFriendly()
 
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
-#reload(MODULECONTROL)
 
 import cgm.core.rig.general_utils as CORERIGGEN
 import cgm.core.lib.math_utils as MATH
@@ -57,14 +56,12 @@ import cgm.core.lib.distance_utils as DIST
 import cgm.core.lib.attribute_utils as ATTR
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
 import cgm.core.classes.NodeFactory as NODEFACTORY
-#reload(NODEFACTORY)
 from cgm.core import cgm_RigMeta as cgmRigMeta
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.lib.string_utils as CORESTRING
-#reload(NAMETOOLS)
 #Prerig handle making. refactor to blockUtils
 import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.rayCaster as RAYS
@@ -88,10 +85,6 @@ import cgm.core.mrs.lib.post_utils as MRSPOST
 #for m in RIGSHAPES,CURVES,BUILDUTILS,BLOCKSHAPES,CORERIG,RIGCONSTRAINT,MODULECONTROL,RIGFRAME:
 #    reload(m)
 import cgm.core.cgm_RigMeta as cgmRIGMETA
-#reload(CURVES)
-#reload(BUILDUTILS)
-#reload(DIST)
-#reload(RIGCONSTRAINT)
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
@@ -2989,7 +2982,7 @@ def create_jointHelpers(self, force = True):
     self.atUtils('create_jointLoft',
                  l_targets,
                  mPrerigNull,
-                 'numJoints',
+                 'numControls',
                  degree = 1,
                  #simpleMode=1,
                  baseName = self.cgmName )

@@ -51,20 +51,7 @@ import cgm.core.tools.lib.tool_calls as TOOLCALLS
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
 import cgm.core.tools.lib.annotations as TOOLANNO
 import cgm.core.rig.joint_utils as JOINTS
-"""
-reload(UICHUNKS)
-reload(MMPuppet)
-reload(LOCINATOR)
-reload(ATTRS)
-reload(LOC)
-reload(SNAP)
-reload(SHAPES)
-reload(SHARED)
-reload(RIGGING)
-reload(ATTRTOOLS)
-reload(meshTools)
-reload(MMCONTEXT)
-reload(RBUILDER)"""
+
 
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_resetChannels,

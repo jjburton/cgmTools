@@ -42,12 +42,10 @@ from cgm.core.classes import NodeFactory as NodeF
 
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 from cgm.core.rigger import ModuleControlFactory as mControlFactory
-#reload(mControlFactory)
 from cgm.core.lib import nameTools
 
 from cgm.core.rigger.lib import rig_Utils as rUtils
 from cgm.core.rigger.lib import joint_Utils as jntUtils
-#reload(rUtils)
 
 from cgm.lib import (attributes,
                      joints,

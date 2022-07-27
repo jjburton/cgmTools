@@ -2792,7 +2792,6 @@ class cgmProjectDirList(mUI.BaseMelWidget):
             log.info( cgmGEN.logString_msg(_str_func,"Creating path : {0}".format(_createPath)))            
             os.makedirs(os.path.dirname(_createPath))
             
-        reload(CGMOS)
         CGMOS.dup_structure(path, newPath, copyFiles = copyfiles)
             
         """
