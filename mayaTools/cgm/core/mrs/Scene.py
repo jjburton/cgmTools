@@ -4617,7 +4617,7 @@ example:
                                            "asset":self.assetList['scrollList'].getSelectedItem(),
                                            "set":None,#self.subTypeSearchList['scrollList'].getSelectedItem(),
                                            "variation":None, # self.variationList['scrollList'].getSelectedItem(),
-                                           "version":self.subTypeSearchList['scrollList'].getItems()[-1]} )
+                                           "version":self.subTypeSearchList['scrollList'].getSelectedItem()} )
         pprint.pprint(self.batchExportItems[-1])
         self.RefreshQueueList()
 
