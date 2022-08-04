@@ -1326,7 +1326,8 @@ def setup_defaults(d_defaults = {}):
                 if not mObj.hasAttr(a):
                     l_missing.append("Attribute: {}".format(a))
                     continue
-                ATTR.set_default(o,a,v)
+                try:ATTR.set_default(o,a,v)
+                except Exception,err:log.error(err)
                 ATTR.set(o,a,v)
         except Exception,err:
             pprint.pprint(vars())

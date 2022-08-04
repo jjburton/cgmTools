@@ -236,8 +236,12 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
             result_matrix = rot_matrix * scale_matrix
         
             transform_matrix = result_matrix[0:12] + [pos.x, pos.y, pos.z, 1.0]
-        
+            
+            _roo = mc.xform (_obj, q=True, roo=True)               
             mc.xform(_obj, matrix = transform_matrix , roo="xyz", ws=True)
+            if _roo != 'xyz':
+                mc.xform(_obj, p= True, roo=_roo, ws=True)
+            
             """elif mode == 'world':
             _loc = mc.spaceLocator()[0]
             mc.move (position[0],position[1],position[2], _loc, ws=True)  

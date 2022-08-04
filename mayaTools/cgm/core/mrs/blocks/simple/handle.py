@@ -133,7 +133,7 @@ d_block_profiles = {
                 'shapeDirection':'y+',
                 'baseSize':[10,10,20],
                 'addPivot':False,
-                'loftList':['circle','square','wideDown','wideUp']
+                'loftList':['circle','circle','circle','circle']
                 },
     'box':{'proxyShape':'shapers',
            'loftShape':'square',

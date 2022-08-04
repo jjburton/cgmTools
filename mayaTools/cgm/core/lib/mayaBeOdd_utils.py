@@ -12,6 +12,7 @@ import copy
 import re
 import subprocess, os
 import sys
+import pprint
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
 logging.basicConfig()
@@ -43,17 +44,19 @@ def killRoguePanel(method = ''):
     """
     #['DCF_updateViewportList', 'CgAbBlastPanelOptChangeCallback']
     EVIL_METHOD_NAMES = cgmValid.listArg(method)
-    
+    pprint.pprint(EVIL_METHOD_NAMES)
     capitalEvilMethodNames = [name.upper() for name in EVIL_METHOD_NAMES]
     modelPanelLabel = mel.eval('localizedPanelLabel("ModelPanel")')
     processedPanelNames = []
     panelName = mc.sceneUIReplacement(getNextPanel=('modelPanel', modelPanelLabel))
     while panelName and panelName not in processedPanelNames:
+        log.info(cgmGEN.logString_sub("Checking: ",panelName))
         editorChangedValue = mc.modelEditor(panelName, query=True, editorChanged=True)
         parts = editorChangedValue.split(';')
         newParts = []
         changed = False
         for part in parts:
+            log.info("Part: {}".format(part))
             for evilMethodName in capitalEvilMethodNames:
                 if evilMethodName in part.upper():
                     changed = True
@@ -64,7 +67,7 @@ def killRoguePanel(method = ''):
             mc.modelEditor(panelName, edit=True, editorChanged=';'.join(newParts))
         processedPanelNames.append(panelName)
         panelName = mc.sceneUIReplacement(getNextPanel=('modelPanel', modelPanelLabel))
-        log.info("Processed: {0}".format(panelName))
+        log.info("Processed: {} | Found: {}".format(panelName,changed))
         
 
 
@@ -95,9 +98,8 @@ def kill_outlinerSelectCommands():
         if not _sel_cmd:
             continue
         print _editor, _sel_cmd
-        mc.outlinerEditor(_editor, edit=True, selectCommand='pass')    
-
-
+        mc.outlinerEditor(_editor, edit=True, selectCommand='print "";')
+        
 def mayaScanner_path(path = None):
     #Credit - Theodox - https://discourse.techart.online/t/another-maya-malware-in-the-wild/12970/6
     # usage :
