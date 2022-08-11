@@ -1325,7 +1325,7 @@ def form(self):
         
         self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
         mHandle.doStore('cgmType','blockHandle')
-        mHandle.doStore('cgmNameModifier',n)
+        mHandle.doStore('cgmNameModifier','form_{}'.format(n))
         
         mHandle.doName()
         
@@ -1405,7 +1405,7 @@ def form(self):
         md_handles['lever'] = mHandle
         self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
         mHandle.doStore('cgmType','blockHandle')
-        mHandle.doStore('cgmNameModifier',"lever".format(i+1))
+        mHandle.doStore('cgmNameModifier',"form_lever".format(i+1))
         mHandle.doName()                
         
         _short = mHandle.mNode
@@ -1478,7 +1478,7 @@ def form(self):
             
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
             mHandle.doStore('cgmType','blockHandle')
-            mHandle.doStore('cgmNameModifier',"mid_{0}".format(i+1))
+            mHandle.doStore('cgmNameModifier',"form_{0}".format(i+1))
             mHandle.doName()                
             
             _short = mHandle.mNode
@@ -1840,7 +1840,7 @@ def form(self):
             #Sub handles... --------------------------------------------------------------------------
             for ii,p in enumerate(_l_pos_seg[1:-1]):
                 #mHandle = mHandleFactory.buildBaseShape('circle', _size, shapeDirection = 'y+')
-                mHandle = cgmMeta.cgmObject(name = 'subHandle_{0}_{1}'.format(i,ii))
+                mHandle = cgmMeta.cgmObject(name = 'form_{0}_sub_{1}'.format(i,ii))
                 _short = mHandle.mNode
                 ml_handles.append(mHandle)
                 mHandle.p_position = p
@@ -1867,7 +1867,7 @@ def form(self):
         
                 #self.copyAttrTo(_baseNameAttrs[1],mHandle.mNode,'cgmName',driven='target')
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
-                mHandle.doStore('cgmNameModifier','{0}_{1}'.format(i,ii))
+                mHandle.doStore('cgmNameModifier','form_{0}_sub_{1}'.format(i,ii))
                 mHandle.doStore('cgmType','shapeHandle')
                 mHandle.doName()
         

@@ -6695,6 +6695,84 @@ def uiQuery_getStateAttrs(self,mode = None,report=True):
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
 
 
+def uiQuery_filterListToAttrDict(l=[],d={}):
+    '''
+    Call to process a attr state dict against a given list of attributes
+    '''
+    if not l and d:
+        raise ValueError,"Must have list and dict"
+    
+    l_cull = copy.copy(l)
+    _keys = d.keys()
+    _keys.sort()
+    l_order =['define','profile','basic','name',
+              'form','proxySurface','prerig',
+              'skeleton',
+              'rig','space','squashStretch']
+    l_order.reverse()
+    
+    for k in l_order:
+        if k in _keys:
+            _keys.remove(k)
+            _keys.insert(0,k)
+            
+    l_end = ['data','wiring','advanced']
+    for k in l_end:
+        if k in _keys:
+            _keys.remove(k)
+            _keys.append(k)
+            
+    #Process... ---------------------------------------------------------------------
+    _res = {}
+    _l_resOrder = []
+    for k in _keys:
+        _dTest = d.get(k)
+        for a in l_cull:
+            if a in _dTest:
+                if k not in _l_resOrder:_l_resOrder.append(k)
+                if not _res.get(k):_res[k] = []
+                _res[k].append(a)
+                l_cull.remove(a)
+        
+        
+    return _l_resOrder, _res
+        
+    
+def uiQuery_getStateAttrDictFromModule(mBlockModule = None, report = False, unknown = True):
+    _str_func = ' uiQuery_getStateAttrDict'
+    log.debug(cgmGEN.logString_start(_str_func))
+        
+    _res = {}
+    _done = []
+        
+    _d = {}
+    try:
+        _d = mBlockModule.d_attrStateMask
+    except Exception,err:
+        log.error(err)
+    
+    d_use = CGMDICT.blendDat(BLOCKSHARE.d_uiAttrDict,_d)
+        
+    for k,l in d_use.iteritems():
+        log.debug(cgmGEN.logString_sub(_str_func, k))
+        if report:pprint.pprint(l)
+        _tmp = []
+        for s in l:
+            #if s.endswith('List') or s in ['numSubShapers','rollCount']:
+            #if self.hasAttr(s):
+            #    if s in _done:
+            #        log.debug("Already done: {0}".format(s))
+            #    else:
+            _tmp.append(s)
+            _done.append(s)
+        _tmp.sort()
+        _res[k] = _tmp
+        
+    if report:
+        pprint.pprint(_res)
+        
+        
+    return _res
 
 def uiQuery_getStateAttrDict(self,report = False, unknown = True):
     _str_func = ' uiQuery_getStateAttrDict'
@@ -6710,7 +6788,6 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
         _d = mBlockModule.d_attrStateMask
     except Exception,err:
         log.error(err)
-        
     
     d_use = CGMDICT.blendDat(BLOCKSHARE.d_uiAttrDict,_d)
         
@@ -6724,7 +6801,6 @@ def uiQuery_getStateAttrDict(self,report = False, unknown = True):
                     for s2 in ATTR.datList_getAttrs(_short,s):
                         _tmp.append(s2)
                         _done.append(s2)
-                
             if self.hasAttr(s):
                 if s in _done:
                     log.debug("Already done: {0}".format(s))
@@ -6975,7 +7051,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     mc.select(cl=True)
 
     ml_handles_chain = copy.copy(ml_handles)
-    reload(CORERIG)
+    #reload(CORERIG)
     if _int_shapers > 2:
         log.debug("|{0}| >> more handles necessary...".format(_str_func)) 
         #Mid Track curve ============================================================================
@@ -7013,7 +7089,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
             mHandle.doStore('cgmType','formHandle')
-            mHandle.doStore('cgmNameModifier',"mid_{0}".format(i+1))
+            mHandle.doStore('cgmNameModifier',"form_{0}".format(i+1))
             mHandle.doName()                
 
             _short = mHandle.mNode
@@ -7395,7 +7471,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
 
                 #self.copyAttrTo(_baseNameAttrs[1],mHandle.mNode,'cgmName',driven='target')
                 self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
-                mHandle.doStore('cgmNameModifier','{0}_{1}'.format(i,ii))
+                mHandle.doStore('cgmNameModifier','form_{0}_sub_{1}'.format(i,ii))
                 mHandle.doStore('cgmType','shapeHandle')
                 mHandle.doName()
 
@@ -8784,18 +8860,12 @@ def buildProfile_load(self, arg):
     except Exception,err:
         return log.error("|{0}| >>  Failed to query. | {1} | {2}".format(_str_func,err, Exception))
     
-    
-    _blockProfile = 'default'
-    if self.hasAttr('blockProfile'):
-        _blockProfile = self.blockProfile
-        if _d_block.get(_blockProfile):
-            _d_block = _d_block.get(_blockProfile,{})
-        else:
-            _d_block = _d_block.get('default',{})
+    _d_block = _d_block.get('shared',{}) or _d_block.get('default',{})
     
     #cgmGEN.func_snapShot(vars())
     
     if _d_block:
+        pprint.pprint(_d_block)
         _d.update(_d_block)
 
     """

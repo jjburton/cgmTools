@@ -104,6 +104,14 @@ d_state_colors = {'define':[1,.3,.3],
                   'default':[.3,.2,.5],
                   }
 
+d_keyColors = {'profile':'define',
+               'basic':'define',
+               'name':'define',
+               'proxySurface':'form',
+               'squashStretch':'rig',
+               'space':'rig',
+               'post':'rig'}        
+
 d_uiStateSubColors = {}
 for k,color in d_state_colors.iteritems():
     d_uiStateSubColors[k] = [v *.95 for v in color ]
@@ -2806,73 +2814,7 @@ class ui_blockEditor(cgmUI.cgmGUI):
         self.mSiblings = mSiblings
         self.mMirror = mMirror
         
-        
-        """
-        #Load ------------------------------------------------------------------------
-        _mRow_load = mUI.MelHLayout(self.uiBlock_content,ut='cgmUISubTemplate',padding = 10)
-        #mUI.MelSpacer(_mRow_load,w=_sidePadding)
-        
-        #mUI.MelLabel(_mRow_load,l='Load:')
-        #_mRow_load.setStretchWidget(mUI.MelSeparator(_mRow_load,))
-        
-
-        
-        if mParent:
-            _key = NAMETOOLS.get_combinedNameDict(mParent.mNode,'cgmType')            
-            mUI.MelButton(_mRow_load,
-                          label="^ {0}".format(_key),ut='cgmUITemplate',
-                          c = lambda *a: self.uiFunc_loadBlock(mParent),
-                          en=  1 if mParent else 0,
-                          ann='Load Parent block')
-        else:
-            mUI.MelButton(_mRow_load,
-                          label='Parent',ut='cgmUITemplate',
-                          en= 0,
-                          ann='Load Parent block')            
-        
-        if mChildren:
-            #mButton = mUI.MelLabel(_mRow_load,label = "Chld")
-            
-            _optionMenu = mUI.MelOptionMenu(_mRow_load,ut = 'cgmUITemplate',h=25)
-            self.uiOM_child = _optionMenu
-            _optionMenu.append('Children | {0}'.format(len(mChildren)))
-            
-            for mObj in mChildren:
-                _key = NAMETOOLS.get_combinedNameDict(mObj.mNode,'cgmType')
-                _optionMenu.append(_key)
-                self.mBlockDict[_key] = mObj
                 
-            _optionMenu(e=True,
-                        cc = lambda *a:mc.evalDeferred(self.uiCallback_loadChild))
- 
-
-        if mSiblings:
-            #mUI.MelLabel(_mRow_load,label = "Sib")
-            
-            _optionMenu = mUI.MelOptionMenu(_mRow_load,ut = 'cgmUITemplate',h=25)
-            self.uiOM_sibling = _optionMenu
-            _optionMenu.append('Siblings | {0}'.format(len(mSiblings)))
-            
-            for mObj in mSiblings:
-                _key = NAMETOOLS.get_combinedNameDict(mObj.mNode,'cgmType')
-                _optionMenu.append(_key)
-                self.mBlockDict[_key] = mObj
-                
-            _optionMenu(e=True,
-                        cc = lambda *a:mc.evalDeferred(self.uiCallback_loadSibling))
-                    
-        if mMirror:
-            #_key = NAMETOOLS.get_combinedNameDict(mMirror.mNode,'cgmType')            
-            mUI.MelButton(_mRow_load,
-                          label='Mirror',ut='cgmUITemplate',
-                          c = lambda *a: self.uiFunc_loadBlock(mMirror),
-                          ann='Load mMirror block')
-                _mRow_load.layout()
-
-
-        """
-        #mUI.MelSpacer(_mRow_load,w=_sidePadding)
-        
         
         _d = self.mBlock.atUtils('uiQuery_getStateAttrDict',0,0)
         
@@ -3467,7 +3409,7 @@ class ui_stepBuild(cgmUI.cgmGUI):
         self.str_lastStep = 'None'
         self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
                                                     defaultValue = 'unityMed')
-                
+
     def build_menus(self):pass
     
     @cgmGEN.Timer
@@ -7584,16 +7526,15 @@ class ui(cgmUI.cgmGUI):
         SNAPTOOLS.buildSection_advancedSnap(self,parent)
         cgmUI.add_HeaderBreak()           
         
-        #buildSection_rigging(self,parent)
-        #cgmUI.add_SectionBreak()  
+        TOOLBOX.buildSection_rigging(self,parent)
+        cgmUI.add_SectionBreak()  
         
         TOOLBOX.buildSection_joint(self,parent)
         cgmUI.add_SectionBreak()          
         
         #buildSection_transform(self,parent)
         #cgmUI.add_SectionBreak()  
-        
-        
+                
         TOOLBOX.buildSection_shape(self,parent)
         cgmUI.add_SectionBreak()            
         
@@ -9469,7 +9410,8 @@ class ui_createBlock(CGMUI.cgmGUI):
         self._d_modules = RIGBLOCKS.get_modules_dat(True)#...refresh data
         self.blockType = None
         self.mDag = False
-                
+        self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
+                                                    defaultValue = 'unityMed')
         
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
@@ -9573,7 +9515,7 @@ class ui_createBlock(CGMUI.cgmGUI):
                 d_create[a] = _v
         
         
-        log.info(mBuilder)
+        #log.info(mBuilder)
 
         self.d_blockCreate = d_create
         
@@ -9694,6 +9636,8 @@ class ui_createBlock(CGMUI.cgmGUI):
             for o in l_options:
                 self.uiOM_profile.append(o)
                 
+                
+        
         #Get our blockType data to query
         _dAttrDat, _dAttrDefaults = BLOCKUTILS.verify_blockAttrs(None,blockType = arg, mBlockModule = mBlockModule, queryMode=True)
         
@@ -9710,37 +9654,117 @@ class ui_createBlock(CGMUI.cgmGUI):
         
         if hasattr(mBlockModule,'l_createUI_attrs'):
             l_attrs.extend(getattr(mBlockModule,'l_createUI_attrs'))
+            
+            
+            
+        d_states = BLOCKUTILS.uiQuery_getStateAttrDictFromModule(mBlockModule)
         
-        for a in l_attrs:
-            print a
-            _mRow = mUI.MelHSingleStretchLayout(self.uiBlock_options,ut='cgmUISubTemplate')
-            mUI.MelSpacer(_mRow,w=_sidePadding)
-            
-            mUI.MelLabel(_mRow,l=a)
-            
-            a_setup = _dAttrDat.get(a,[])
-            
-            if a == 'nameList':
-                self.d_uiAttrs[a] = mUI.MelTextField(_mRow)
-                _mRow.setStretchWidget(self.d_uiAttrs[a])
-            elif ':' in a_setup:
-                _mRow.setStretchWidget(mUI.MelSeparator(_mRow))                
-                self.d_uiAttrs[a] = mUI.MelOptionMenu(_mRow,ut = 'cgmUITemplate')
-                for a2 in a_setup.split(':'):
-                    self.d_uiAttrs[a].append(a2)
-            elif a_setup == 'int':
-                _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
-                self.d_uiAttrs[a] = mUI.MelIntField(_mRow,min=1)
-            elif a_setup == 'bool':
-                _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
-                self.d_uiAttrs[a] = mUI.MelCheckBox(_mRow)                
-            else:
-                _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
-                self.d_uiAttrs[a] = mUI.MelTextField(_mRow)
+        l_order,d_sort = BLOCKUTILS.uiQuery_filterListToAttrDict(l_attrs, d_states)
+        
 
-            mUI.MelSpacer(_mRow,w=_sidePadding)
-            _mRow.layout()
-            self.d_uiAttrRow[a] = _mRow
+        
+        """
+
+        
+        for k in _keys:
+            log.debug(cgmGEN.logString_sub(_str_func,k))                
+            
+            l = _d.get(k)
+            if not l:
+                log.debug("|{0}| >> No attrs in : {1}".format(_str_func,k))                
+                continue
+            
+            try:self.__dict__['var_{0}FrameCollapse'.format(k)]
+            except:self.create_guiOptionVar('{0}FrameCollapse'.format(k),defaultValue = 0)
+            
+            mVar_frame = self.__dict__['var_{0}FrameCollapse'.format(k)]
+            
+            _frame = mUI.MelFrameLayout(self.uiBlock_edit,label = CORESTRINGS.capFirst(k),vis=True,
+                                        collapse=mVar_frame.value,
+                                        collapsable=True,
+                                        enable=True,
+                                        marginWidth = 5,
+                                        useTemplate = 'cgmUIHeaderTemplate',
+                                        expandCommand = cgmGEN.Callback(mVar_frame.setValue,0),
+                                        collapseCommand =  cgmGEN.Callback(mVar_frame.setValue,1),
+                                        statusBarMessage = k,
+                                        )	
+            _inside = mUI.MelColumnLayout(_frame,
+                                          #rowSpacing = 5,
+                                          useTemplate = 'cgmUISubTemplate')
+            
+            
+            _sub_bgc = d_keyColors.get(k)
+            if _sub_bgc: 
+                _d_uiColors = d_uiStateUIColors.get(_sub_bgc)
+            else:
+                _d_uiColors = d_uiStateUIColors.get(k) or d_uiStateUIColors.get('default')
+                
+            _clr_header = _d_uiColors['base']
+            _clr_bg = _d_uiColors['bgc']
+            _clr_light =  _d_uiColors['light']
+            _clr_button = _d_uiColors['button']
+            
+            if _sub_bgc:
+                _clr_header = [v*.6 for v in _clr_header]            
+        """
+            
+       
+            
+        #log.info(cgmGEN.logString_sub(_str_func, "Profile attrs"))
+        #pprint.pprint(l_attrs)
+        
+        for section in l_order:
+            
+            _sub_bgc = d_keyColors.get(section)
+            if _sub_bgc: 
+                _d_uiColors = d_uiStateUIColors.get(_sub_bgc)
+            else:
+                _d_uiColors = d_uiStateUIColors.get(section) or d_uiStateUIColors.get('default')
+                
+            _clr_header = _d_uiColors['base']
+            _clr_bg = _d_uiColors['bgc']
+            _clr_light =  _d_uiColors['light']
+            _clr_button = _d_uiColors['button']
+            
+            if _sub_bgc:
+                _clr_header = [v*.6 for v in _clr_header]    
+                 
+            
+            #mc.setParent(self.uiBlock_options)
+            #mUI.MelLabel(self.uiBlock_options, bgc= _clr_header, label = section)
+            
+            l_use = d_sort[section]
+            
+            for a in l_use:
+                _mRow = mUI.MelHSingleStretchLayout(self.uiBlock_options,ut='cgmUISubTemplate', bgc = _clr_bg)
+                mUI.MelSpacer(_mRow,w=_sidePadding)
+                
+                mUI.MelLabel(_mRow,l=a)
+                
+                a_setup = _dAttrDat.get(a,[])
+                
+                if a == 'nameList':
+                    self.d_uiAttrs[a] = mUI.MelTextField(_mRow)
+                    _mRow.setStretchWidget(self.d_uiAttrs[a])
+                elif ':' in a_setup:
+                    _mRow.setStretchWidget(mUI.MelSeparator(_mRow))                
+                    self.d_uiAttrs[a] = mUI.MelOptionMenu(_mRow,ut = 'cgmUITemplate', bgc=_clr_button)
+                    for a2 in a_setup.split(':'):
+                        self.d_uiAttrs[a].append(a2)
+                elif a_setup == 'int':
+                    _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
+                    self.d_uiAttrs[a] = mUI.MelIntField(_mRow,min=0)
+                elif a_setup == 'bool':
+                    _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
+                    self.d_uiAttrs[a] = mUI.MelCheckBox(_mRow)                
+                else:
+                    _mRow.setStretchWidget(mUI.MelSeparator(_mRow))
+                    self.d_uiAttrs[a] = mUI.MelTextField(_mRow)
+    
+                mUI.MelSpacer(_mRow,w=_sidePadding)
+                _mRow.layout()
+                self.d_uiAttrRow[a] = _mRow
         self.uiFunc_setBlockProfile()
         
     def uiFunc_setBlockProfile(self):
@@ -9748,31 +9772,34 @@ class ui_createBlock(CGMUI.cgmGUI):
         log.debug("|{0}| >>...".format(_str_func))
         
         _profile = self.uiOM_profile.getValue()
+        _build = self.uiOM_build.getValue()
         log.info(_profile)
+        
+        self.var_buildProfile.setValue(_build)                
         
         try:mBlockModule = self._d_modules[0][self.blockType]
         except:
             log.warning("|{0}| >> No block type stored".format(_str_func))
             return
         
-        try:
+        #try:
             #_d = mBlockModule.d_block_profiles[_profile]
-            _d = RIGBLOCKS.get_blockTypeProfile(self.blockType,_profile)[1]
-        except:
-            _d = {'cgmName':self.blockType}
+        _d = RIGBLOCKS.get_blockTypeProfile(self.blockType,_profile,buildProfile=_build )[1]
+        #except:
+            #_d = {'cgmName':self.blockType}
             
-        pprint.pprint(_d)
         if not _d.get('cgmName'):
             _d['cgmName'] = _profile #self.blockType
-        #pprint.pprint(_d)
+        pprint.pprint(_d)
         
         for a in self.d_uiAttrs.keys():
             _v = _d.get(a,None)
+            log.debug("Checking: {} | {} | {}".format(a,_v,self.d_uiAttrRow[a]))
             
             if _v is None and a not in ['cgmName']:
                 self.d_uiAttrRow[a](edit=True,vis=False)
                 continue
-            
+                        
             if a == 'cgmName':
                 if _v == None:
                     _v = _profile
@@ -9787,7 +9814,6 @@ class ui_createBlock(CGMUI.cgmGUI):
                 _v = ','.join(_v)
             
             
-            mUI.MelOptionMenu
             self.d_uiAttrRow[a](edit=True,vis=True)
             try:
                 try:self.d_uiAttrs[a].setValue( _v)
@@ -9806,9 +9832,9 @@ class ui_createBlock(CGMUI.cgmGUI):
         
         #Declare form frames...------------------------------------------------------
         _MainForm = mUI.MelFormLayout(parent,)#ut='CGMUITemplate')#mUI.MelColumnLayout(ui_tabs)
-        _inside = mUI.MelColumnLayout(_MainForm, adj=True)#mUI.MelScrollLayout(_MainForm, )#ut='cgmUISubTemplateTemplate')
-        #_inside = mUI.MelScrollLayout(_MainForm,)#mUI.MelScrollLayout(_MainForm, )#ut='cgmUISubTemplateTemplate')
-        #_inside = mUI.MelColumn(_MainForm)
+        #_inside = mUI.MelColumnLayout(_MainForm, adj=True)#mUI.MelScrollLayout(_MainForm, )#ut='cgmUISubTemplateTemplate')
+        #_inside = mUI.MelScrollLayout(_MainForm,childResizable=True)#mUI.MelScrollLayout(_MainForm, )#ut='cgmUISubTemplateTemplate')
+        _inside = mUI.MelColumn(_MainForm)
         #SetHeader = CGMUI.add_Header('{0}'.format(_strBlock))
         
         CGMUI.add_Header('Size')
@@ -9948,12 +9974,16 @@ class ui_createBlock(CGMUI.cgmGUI):
         for o in BLOCKSHARE._l_positions:
             self.uiOM_position.append(o)                
             
+        self.uiOM_build.selectByValue(self.var_buildProfile.getValue())
+                        
         self.uiOM_profile(edit=True, cc=lambda *a: self.uiFunc_setBlockProfile())
+        self.uiOM_build(edit=True, cc=lambda *a: self.uiFunc_setBlockProfile())
         
         
         #Block settings section ------------------------------------------------------------------
-        self.uiBlock_options = mUI.MelScroll(_inside,
+        self.uiBlock_options = mUI.MelScrollLayout(_MainForm,
                                              bgc=cgmUI.guiBackgroundColorLight,
+                                             #adj = True,
                                              useTemplate = 'cgmUITemplate')
         
         #....
@@ -9993,6 +10023,10 @@ class ui_createBlock(CGMUI.cgmGUI):
                         #(self.uiBlock_options,"right",0),                        
                         (_rowCreate,"left",0),
                         (_rowCreate,"right",0),
+                        (self.uiPB_test,"left",0),
+                        (self.uiPB_test,"right",0),                            
+                        (self.uiBlock_options,"left",0),
+                        (self.uiBlock_options,"right",0),                        
                         (_row_cgm,"left",0),
                         (_row_cgm,"right",0),
                         (_row_cgm,"bottom",0),
@@ -10000,7 +10034,9 @@ class ui_createBlock(CGMUI.cgmGUI):
                         ],
                   ac = [
                       #(self.uiBlock_options,"top",0,_inside),                      
-                      (_inside,"bottom",0,self.uiPB_test),
+                      #(_inside,"bottom",0,self.uiBlock_options),
+                      (self.uiBlock_options,"top",0,_inside),                      
+                      (self.uiBlock_options,"bottom",0,self.uiPB_test),
                       #(self.uiBlock_options,"bottom",0,self.uiPB_test),
                       (self.uiPB_test,"bottom",0,_rowCreate),
                       (_rowCreate,"bottom",0,_row_cgm),

@@ -85,8 +85,8 @@ d_build_profiles = {'unityLow':{'default':{}},
                     'unityHigh':{'default':{}},
                     'feature':{'default':{}},
                     
-                    'gameToon':{'default':{'dynParentScaleMode':True,
-                                           'scaleMode':True}}}
+                    'unityToon':{'shared':{'dynParentScaleMode':'space',
+                                           'scaleSetup':True}}}
 
 
 d_attrStateMask = {'define':[],
@@ -99,7 +99,8 @@ d_attrStateMask = {'define':[],
 
 l_createUI_attrs = ['attachPoint','attachIndex',
                     'addCog','addPivot','addScalePivot','addAim',
-                    'basicShape','proxyShape','rotPivotPlace','loftSetup']
+                    'basicShape','proxyShape','rotPivotPlace','loftSetup','scaleSetup',
+                    'dynParentMode','dynParentScaleMode']
 
 d_block_profiles = {
 
@@ -309,6 +310,9 @@ d_defaultSettings = {'version':__version__,
                      'numShapers':2,
                      'jointRadius':.1,
                      'meshBuild':True,
+                     'scaleSetup':False,
+                     'dynParentMode':'space',
+                     'dynParentScaleMode':'off',
                      'loftList':['square','circle','square'],
                      'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},
                      'proxyType':1}

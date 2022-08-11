@@ -2613,7 +2613,7 @@ def get_modules_dat(update = False):
     CGM_RIGBLOCK_DAT = _d_modules, _d_categories, _l_unbuildable
     return _d_modules, _d_categories, _l_unbuildable
 
-def get_blockTypeProfile(blockType = None, blockProfile = 'default',extraAttrs = None):
+def get_blockTypeProfile(blockType = None, blockProfile = 'default', buildProfile = None, extraAttrs = None):
     """
     Verify the attributes of a given block type
     
@@ -2638,7 +2638,18 @@ def get_blockTypeProfile(blockType = None, blockProfile = 'default',extraAttrs =
     try:d_defaultSettings.update(mBlockModule.d_block_profiles[blockProfile])
     except Exception,err:
         log.debug(cgmGEN.logString_msg(_str_func,'Failed to query blockProfile defaults | {0}'.format(err)))
-        pass        
+        pass
+    
+    if buildProfile:
+        try:
+            _d_shared = mBlockModule.d_build_profiles.get(buildProfile,{}).get('shared')
+            _d_specific = mBlockModule.d_build_profiles.get(buildProfile,{}).get(blockProfile)
+
+            if _d_shared:d_defaultSettings.update(_d_shared)
+            if _d_specific:d_defaultSettings.update(_d_specific)
+            
+        except Exception,err:
+            log.warning("|{}| >>  Failed to query profile: {} | {} ".format(_str_func,err, Exception))    
 
     try:_l_msgLinks = mBlockModule._l_controlLinks
     except:_l_msgLinks = []
