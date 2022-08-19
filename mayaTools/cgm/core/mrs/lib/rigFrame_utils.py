@@ -724,7 +724,8 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
                              worldUpType = 'objectRotation' ) """        
         
         l = []
-        
+        log.info(cgmGEN.logString_sub(_str_func,'mlIKUse'))
+        pprint.pprint(ml_ikUse)
         res_spline = IK.spline([mObj.mNode for mObj in ml_ikUse],
                                useCurve= _crv,
                                orientation = _jointOrientation,
@@ -764,8 +765,6 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
             
             
         ATTR.copy_to(mSplineCurve.mNode,'stretch',mSettings.mNode, driven='source')
-        
-        
         ATTR.copy_to(mSplineCurve.mNode,'twistType',mSettings.mNode, driven='source')
 
         

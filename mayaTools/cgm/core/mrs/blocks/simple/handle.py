@@ -83,10 +83,13 @@ __l_rigBuildOrder__ = ['rig_dataBuffer',
 d_build_profiles = {'unityLow':{'default':{}},
                     'unityMed':{'default':{}},
                     'unityHigh':{'default':{}},
-                    'feature':{'default':{}},
+                    'feature':{'shared':{'dynParentScaleMode':'space',
+                                           'scaleSetup':True}},
                     
                     'unityToon':{'shared':{'dynParentScaleMode':'space',
-                                           'scaleSetup':True}}}
+                                           'scaleSetup':True}},
+                    'unityToonMobile':{'shared':{'dynParentScaleMode':'space',
+                                                 'scaleSetup':True}}}
 
 
 d_attrStateMask = {'define':[],
@@ -94,11 +97,11 @@ d_attrStateMask = {'define':[],
                    'prerig':[],
                    'skeleton':['hasJoint'],
                    'proxySurface':['proxy'],
-                   'rig':['rotPivotPlace','scaleSetup','dynParentMode','dynParentScaleMode'],
+                   'rig':['rotPivotPlace','dynParentMode','dynParentScaleMode'],
                    'vis':[]}
 
 l_createUI_attrs = ['attachPoint','attachIndex',
-                    'addCog','addPivot','addScalePivot','addAim',
+                    'addCog','addPivot','addScalePivot','addAim','numSubShapers',
                     'basicShape','proxyShape','rotPivotPlace','loftSetup','scaleSetup',
                     'dynParentMode','dynParentScaleMode']
 
@@ -109,6 +112,7 @@ d_block_profiles = {
         'basicShape':'cube',          
         'loftShape':'square',
         'numShapers':2,
+        'numSubShapers':1,        
         'shapersAim':'toEnd',
         'rotPivotPlace':'jointHelper',
         'shapeDirection':'y+',            
@@ -122,6 +126,7 @@ d_block_profiles = {
                  'addCog':None,#Putting None, hides this from our create UI
                  'addAim':None,
                  'numShapers':None,
+                 'numSubShapers':None,                 
                  'rotPivotPlace':None,
                  },
     'formShape':{'proxyShape':'shapers',
@@ -139,6 +144,7 @@ d_block_profiles = {
     'box':{'proxyShape':'shapers',
            'loftShape':'square',
            'numShapers':2,
+           'numSubShapers':None,                            
            'shapersAim':'toEnd',
            'rotPivotPlace':'jointHelper',
            'shapeDirection':'y+',            
@@ -158,85 +164,10 @@ d_block_profiles = {
         'loftSplit':10,
         'baseSize':[10,10,10],
         'numShapers':None,
+        'numSubShapers':None,                         
         'loftSetup':None,        
         },    
 }
-
-d_block_profilesBAK = {
-    
-    
-    'simple':{
-        'basicShape':'cube',
-        'proxyShape':'cube',
-        'rotPivotPlace':'jointHelper',
-        'shapeDirection':'y+',
-        'baseSize':[10,10,10],
-        'addPivot':True},
-    'cone':{
-    'basicShape':'pyramid',
-    'proxyShape':'cone',
-    'shapeDirection':'y+',
-    'addPivot':True,    
-    'baseSize':[10,10,20],
-    
-    'rotPivotPlace':'jointHelper'},    
-    'sphere':{
-        'basicShape':'sphere',
-        'proxyShape':'sphere',
-        'rotPivotPlace':'jointHelper',
-        'shapeDirection':'y+',        
-        'cgmName':'sphere',
-        'loftSides':10,
-        'loftSplit':10,
-        'baseSize':[10,10,10],        
-        },
-    'box':{'proxyShape':'shapers',
-           'loftShape':'square',
-           'numShapers':2,
-           'shapersAim':'toEnd',
-           'rotPivotPlace':'jointHelper',
-           'shapeDirection':'y+',            
-           'loftSetup':'default',
-           'addPivot':True,            
-           'baseSize':[10,10,10],
-            },
-    'snapPoint':{
-                 'rotPivotPlace':'jointHelper',
-                 'meshBuild':False,
-                 },
-    'cylinder':{'proxyShape':'shapers',
-                'loftShape':'circle',
-                'numShapers':2,
-                'shapersAim':'toEnd',
-                'rotPivotPlace':'jointHelper',
-                'shapeDirection':'y+',            
-                'loftSetup':'default',
-                'addPivot':True,            
-                'baseSize':[5,5,10],
-                 },        
-    'shapers4':{
-            'proxyShape':'shapers',
-            'loftShape':'square',
-            'numShapers':4,
-            'shapersAim':'toEnd',
-            'rotPivotPlace':'jointHelper',
-            'shapeDirection':'y+',            
-            'loftSetup':'default',
-            'addPivot':True,            
-            'baseSize':[10,10,40],
-            },
-    'shaperList':{'proxyShape':'shapers',
-                'loftShape':'square',
-                'numShapers':4,
-                'shapersAim':'toEnd',
-                'loftSetup':'loftList',
-                'rotPivotPlace':'jointHelper',
-                'shapeDirection':'y+',
-                'baseSize':[10,10,20],
-                'addPivot':True,
-                
-                'loftList':['circle','square','wideDown','wideUp']
-                },}
 
 #=============================================================================================================
 #>> Attrs 
@@ -308,6 +239,7 @@ d_defaultSettings = {'version':__version__,
                      'visJointHandle':1,
                      'proxy':1,
                      'numShapers':2,
+                     'numSubShapers':1,
                      'jointRadius':.1,
                      'meshBuild':True,
                      'scaleSetup':False,

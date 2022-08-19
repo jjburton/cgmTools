@@ -6703,6 +6703,7 @@ def uiQuery_filterListToAttrDict(l=[],d={}):
         raise ValueError,"Must have list and dict"
     
     l_cull = copy.copy(l)
+    l_cull = LISTS.get_noDuplicates(l_cull)
     _keys = d.keys()
     _keys.sort()
     l_order =['define','profile','basic','name',
@@ -6725,15 +6726,30 @@ def uiQuery_filterListToAttrDict(l=[],d={}):
     #Process... ---------------------------------------------------------------------
     _res = {}
     _l_resOrder = []
+    _l_done = []
     for k in _keys:
-        _dTest = d.get(k)
-        for a in l_cull:
-            if a in _dTest:
+        _dTest = d.get(k,[])
+        
+        for a in _dTest:
+            log.debug("Checking: {} | {}".format(k,a))            
+            if a in _l_done:
+                continue
+            if a in l_cull:
                 if k not in _l_resOrder:_l_resOrder.append(k)
                 if not _res.get(k):_res[k] = []
+                log.debug("Found.".format(a,k))
                 _res[k].append(a)
                 l_cull.remove(a)
+                _l_done.append(a)
+    if l_cull:
+        log.warning("Extra attributes..." + cgmGEN._str_hardBreak)
+        pprint.pprint(l_cull)
+        log.info(cgmGEN._str_hardBreak)
         
+        #if not _res.get('extra'):_res['extra'] = []
+        
+        _res['extra'] = l_cull
+        _l_resOrder.append('extra')
         
     return _l_resOrder, _res
         

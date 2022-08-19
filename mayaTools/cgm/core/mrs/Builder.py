@@ -9401,7 +9401,7 @@ class ui_createBlock(CGMUI.cgmGUI):
     MIN_BUTTON = False
     MAX_BUTTON = False
     #FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 700,500
+    DEFAULT_SIZE = 700,700
     
     def insert_init(self,*args,**kws):
         self.create_guiOptionVar('blockType',defaultValue = '')
@@ -9546,11 +9546,13 @@ class ui_createBlock(CGMUI.cgmGUI):
                                   'x':'yzx',
                                   'z':'xyz'}
                 _d_shapeToCast[_shapeDirection[0]][0]
-                _castSize = [RAYS.get_dist_from_cast_axis(_helper,_d_shapeToCast[_shapeDirection[0]][0],shapes = _helper, selfCast=True, maxDistance=1000),
-                             RAYS.get_dist_from_cast_axis(_helper,_d_shapeToCast[_shapeDirection[0]][1],shapes = _helper, selfCast=True, maxDistance=1000),
-                             RAYS.get_dist_from_cast_axis(_helper,_d_shapeToCast[_shapeDirection[0]][2],shapes = _helper, selfCast=True, maxDistance=1000),
+                _castSize = [RAYS.get_dist_from_cast_axis(_helper,_d_shapeToCast[_shapeDirection[0]][0],shapes = _helper, selfCast=True, maxDistance=10000),
+                             RAYS.get_dist_from_cast_axis(_helper,_d_shapeToCast[_shapeDirection[0]][1],shapes = _helper, selfCast=True, maxDistance=10000),
+                             RAYS.get_dist_from_cast_axis(_helper,_d_shapeToCast[_shapeDirection[0]][2],shapes = _helper, selfCast=True, maxDistance=10000),
                              ]
                 d_create['size'] = _castSize
+                
+                d_create['jointRadius'] = (MATH.average(_castSize[0],_castSize[1])) * .2
                 
             pprint.pprint(d_create)
             _mBlock = cgmMeta.createMetaNode('cgmRigBlock',**d_create)
@@ -9650,18 +9652,19 @@ class ui_createBlock(CGMUI.cgmGUI):
         #_d,d_defaultSettings = 
         
         
-        l_attrs =  ['cgmName','nameIter','nameList','shapeDirection','numShapers','numSubShapers','numRoll']
+        l_attrs =  ['cgmName','nameIter','nameList','shapeDirection','numShapers','numSubShapers','numRoll','scaleSetup']
         
         if hasattr(mBlockModule,'l_createUI_attrs'):
             l_attrs.extend(getattr(mBlockModule,'l_createUI_attrs'))
             
-            
+        l_attrs = LISTS.get_noDuplicates(l_attrs)
             
         d_states = BLOCKUTILS.uiQuery_getStateAttrDictFromModule(mBlockModule)
-        
+        #pprint.pprint(d_states)
         l_order,d_sort = BLOCKUTILS.uiQuery_filterListToAttrDict(l_attrs, d_states)
+        pprint.pprint(l_order)        
+        pprint.pprint(d_sort)
         
-
         
         """
 
@@ -9735,12 +9738,12 @@ class ui_createBlock(CGMUI.cgmGUI):
             #mUI.MelLabel(self.uiBlock_options, bgc= _clr_header, label = section)
             
             l_use = d_sort[section]
-            
+            l_use.sort()
             for a in l_use:
                 _mRow = mUI.MelHSingleStretchLayout(self.uiBlock_options,ut='cgmUISubTemplate', bgc = _clr_bg)
                 mUI.MelSpacer(_mRow,w=_sidePadding)
                 
-                mUI.MelLabel(_mRow,l=a)
+                mUI.MelLabel(_mRow,l="{}".format(a))
                 
                 a_setup = _dAttrDat.get(a,[])
                 
@@ -9812,7 +9815,6 @@ class ui_createBlock(CGMUI.cgmGUI):
                     
             if issubclass(type(_v),list):
                 _v = ','.join(_v)
-            
             
             self.d_uiAttrRow[a](edit=True,vis=True)
             try:

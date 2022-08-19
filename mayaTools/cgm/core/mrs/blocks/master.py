@@ -83,6 +83,9 @@ d_defaultSettings = {'version':__version__,
                      'numPuppetSpaces':3,
                      'attachPoint':'end'}
 
+l_createUI_attrs = ['addMotionJoint','numSpacePivots','numPuppetSpaces']
+
+
 d_wiring_prerig = {'msgLinks':['prerigNull','moduleTarget']}
 d_wiring_form = {'msgLinks':['formNull','noTransFormNull']}
 """
@@ -107,7 +110,7 @@ d_attrStateMask = {'define':[],
                    'form':[],
                    'prerig':['addMotionJoint','controlOffset'],
                    'skeleton':['hasJoint'],
-                   'rig':[]}
+                   'rig':['numPuppetSpaces']}
 
 
 #MRP - Morpheus Rig Platform

@@ -55,7 +55,7 @@ _l_requiredModuleDat = ('__version__',
 
 _l_controlOrder = ('root','settings','fk','ik','pivots','segmentHandles','direct','face','spacePivots')
 
-_l_buildProfiles = ('unityLow','unityMed','unityHigh','unityToon','feature')
+_l_buildProfiles = ('unityLow','unityMed','unityHigh','unityToon','unityToonMobile','feature')
 
 d_build_profiles = {
     'unityLow':{'numRoll':0,
@@ -77,7 +77,12 @@ d_build_profiles = {
                  'scaleSetup':True,
                  'squashMeasure':'arcLength',
                  'squash':'simple',
-               },        
+               },
+    'unityToonMobile':{'numRoll':3,
+                       'scaleSetup':True,
+                       'squashMeasure':'simple',
+                       'squash':'simple',
+                     },            
     'feature':{'numRoll':3,
                'scaleSetup':True,
                'squashMeasure':'arcLength',
@@ -86,7 +91,7 @@ d_build_profiles = {
 }
 
 
-d_uiAttrDict = {'name':['nameList','cgmName'],
+d_uiAttrDict = {'name':['nameList','cgmName','nameIter'],
                 'profile':['blockProfile','buildProfile'],
                 'basic':['attachPoint','attachIndex'],
                 'define':['basicShape','shapeDirection','jointRadius'],
@@ -107,10 +112,12 @@ d_uiAttrDict = {'name':['nameList','cgmName'],
                        'ikBase','ikEnd',
                        'parentVisAttr','segmentType',
                        'ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
-                       'offsetMode','proxyDirect','parentToDriver','rigSetup','scaleSetup'],
-                'space':['numSpacePivots','spaceSwitch_fk','spaceSwitch_direct','root_dynParentMode','root_dynParentScaleMode',],
+                       'offsetMode','proxyDirect','parentToDriver','rigSetup'],
+                'space':['numSpacePivots','spaceSwitch_fk','spaceSwitch_direct',
+                         'dynParentMode','dynParentScaleMode',
+                         'root_dynParentMode','root_dynParentScaleMode',],
                 'advanced':['baseDat'],
-                'squashStretch':['squash','squashExtraControl','squashFactorMin','squashFactorMax',
+                'squashStretch':['scaleSetup','squash','squashExtraControl','squashFactorMin','squashFactorMax',
                                  'squashMeasure'],
                 'vis':[ 'visLabels','visMeasure','visProximityMode','visJointHandle','visRotatePlane'],
                 'data':['version','blockType','blockProfile'],

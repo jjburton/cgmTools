@@ -134,11 +134,17 @@ d_attrStateMask = {'define':[],
 
 l_createUI_attrs = ['attachPoint','attachIndex',
                     'addCog','addPivot','addScalePivot','addAim',
+                    'numControls',
+                    'numSubShapers',
+                    'root_dynParentMode',
+                    'root_dynParentScaleMode',
+                    'segmentType',
                     'buildEnd']
 
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
-    'unityLow':{'default':{'numRoll':0,},
+    'unityLow':{'shared':{'numRoll':0,
+                          'scaleSetup':False},
                 'leg':{'addToe':'none',
                        'addBall':'none'},
                 'finger':{'numRoll':0},
@@ -146,38 +152,56 @@ d_build_profiles = {
                 'nub':{'numRoll':0},
                 'toe':{'numRoll':0},
                 },
-    'unityMed':{'default':{'numRoll':1},
+    'unityMed':{'shared':{'numRoll':1,
+                          'scaleSetup':False},
                'finger':{'numRoll':0},
                'thumb':{'numRoll':0},
                'nub':{'numRoll':0},               
                'toe':{'numRoll':0},
                },
-    'unityToon':{'default':{'squashMeasure':'arcLen',
+    'unityToon':{'shared':{'squashMeasure':'arcLen',
                             'squash':'simple',
                             'scaleSetup':True,
-                            'root_dynParentScaleMode':True,
-                            'root_dynParentMode':True,
-                            'numRoll':0,
+                            'root_dynParentScaleMode':'space',
+                            'root_dynParentMode':'space',
+                            'numRoll':3,
                             },
                  'finger':{'numRoll':0},
                  'toe':{'numRoll':0},
                  'nub':{'numRoll':0},                 
                  'thumb':{'numRoll':0},
-                 },    
-    'unityHigh':{'default':{'numRoll':3},
+                 },
+    'unityToonMobile':{'shared':{'squashMeasure':'arcLen',
+                                 'squash':'simple',
+                                 'scaleSetup':True,
+                                 'root_dynParentScaleMode':'space',
+                                 'root_dynParentMode':'space',
+                                 'numRoll':0,
+                                 },
+                 'finger':{'numRoll':0},
+                 'toe':{'numRoll':0},
+                 'nub':{'numRoll':0},                 
+                 'thumb':{'numRoll':0},
+                 },        
+    'unityHigh':{'shared':{'numRoll':3,
+                           'scaleSetup':False},
                 'finger':{'numRoll':0},
                 'thumb':{'numRoll':0},
                 'nub':{'numRoll':0},                
                 'toe':{'numRoll':0},
                            },
-    'feature':{'default':{'numRoll':3,},
+    'feature':{'shared':{'numRoll':3,
+                         'squashMeasure':'pointDist',
+                         'squash':'both',                         
+                         'scaleSetup':True},
                'finger':{'numRoll':0},
                'thumb':{'numRoll':0},
                'toe':{'numRoll':0},
                }}
 
 d_block_profiles = {
-'default':{},
+'default':{'nameList':['start','mid','end'],
+               },
 'leg digitgrade front':{
     'addCog':False,
     'attachPoint':'end',
@@ -411,7 +435,7 @@ d_block_profiles = {
     'proxyLoft':3,
     'shapeDirection':'y-',
     
-    'baseAim':[-1,-1,0],
+    'baseAim':[0,-1,0],
     'baseUp':[0,0,1],
     'baseSize':[11.6,13,70],
     'baseDat':{'rp':[1,1,0],'up':[-1,0,0],'lever':[1,0,0]},
@@ -2993,6 +3017,7 @@ def create_jointHelpers(self, force = True):
     if _targetCurve:
         mc.delete(_targetCurve)
         
+    
     
 
     return ml_jointHelpers
