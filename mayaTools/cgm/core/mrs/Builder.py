@@ -68,6 +68,7 @@ from cgm.core.mrs.lib import blockShapes_utils as BLOCKSHAPES
 from cgm.core.mrs.lib import ModuleControlFactory as MODULECONTROLFACTORY
 from cgm.core.mrs.lib import ModuleShapeCaster as MODULESHAPECASTER
 from cgm.core.rig import ik_utils as IK
+import cgm.core.tools.lib.tool_calls as TOOLCALLS
 
 from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
 import cgm.core.lib.string_utils as CORESTRINGS
@@ -4616,9 +4617,19 @@ class ui(cgmUI.cgmGUI):
         #>>> Reset Options
         _menu = self.uiMenu_options
         
-        
-        
         CGMDAT.uiMenu_addDirMode(self,_menu)
+        
+        mUI.MelMenuItemDiv(_menu, l='UIs')
+        
+        mc.menuItem(parent = _menu,
+                    l='BlockDat',
+                    ann = "Blockdat",
+                    c=lambda *a: TOOLCALLS.BLOCKDATui())
+        mc.menuItem(parent = _menu,
+                    l='ShapeDat',
+                    ann = "ShapeDat",
+                    c=lambda *a: TOOLCALLS.SHAPEDATui())
+                
         
         mUI.MelMenuItemDiv(_menu, l='Context')
         
@@ -5061,7 +5072,7 @@ class ui(cgmUI.cgmGUI):
                
                
                'Blockdat':{
-                   'order':['Save','Load','Load State','Query','Copy','Load Specific',
+                   'order':['Save','Load','Load State','Query','Copy','Export','Load Specific',
                             ],
                    'divTags':[],
                    'headerTags':['Load Specific'],
@@ -5084,7 +5095,11 @@ class ui(cgmUI.cgmGUI):
                    'Copy':{'ann':"Copy the active blocks data",
                                  'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                       'atUtils','blockDat_copy',
-                                      **{'mode':'blockDatCopyActive'})},                   
+                                      **{'mode':'blockDatCopyActive'})},
+                   'Export':{'ann':"Export blockDat (TESTING)",
+                             'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                             'exportBlockDat',
+                             **{'updateUI':0})}                   
                                   },
                'ShapeDat':{
                    'Save':{'ann':self._d_ui_annotations.get('save blockDat'),
@@ -6185,6 +6200,9 @@ class ui(cgmUI.cgmGUI):
             elif args[0] == 'saveShapeDat':
                 CGMDAT.batch(ml_context, SHAPEDAT.data ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
                 return
+            elif args[0] == 'exportBlockDat':
+                CGMDAT.batch(ml_context, MRSDAT.BlockDat ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
+                return            
             elif args[0]== 'focus':
                 log.debug("|{0}| >> Focus call | {1}".format(_str_func,_contextMode))
                 #ml_root = BLOCKGEN.get_rigBlock_heirarchy_context(ml_blocks,'root',True,False)

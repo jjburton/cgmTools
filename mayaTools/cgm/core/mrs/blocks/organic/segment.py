@@ -129,9 +129,21 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                    'prerig':[],
                    'skeleton':['numJoints'],
                    'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
+                          'ribbonExtendEnds','ribbonAttachEndsToInfluence',
+                          
                           'ikBaseExtend','ikEndExtend','ikEndLever',]}
 
-
+l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoints',
+                    'addCog','addPivot','numSubShapers','segmentType',
+                    'loftSetup','scaleSetup',
+                    'numControls',
+                    'numSubShapers',
+                    'ikSetup',
+                    'ribbonExtendEnds','ribbonAttachEndsToInfluence',
+                    'root_dynParentMode',
+                    'root_dynParentScaleMode','squashSkipAim',
+                    'dynParentMode','dynParentScaleMode',
+                    ]
 #>>>Profiles =====================================================================================================
 d_build_profiles = {
     'unityLow':{'default':{'numJoints':3,
@@ -481,10 +493,11 @@ d_block_profiles = {
             'squashFactorMin':.25,
             'ribbonAim':'stable',
             'shapersAim':'chain',
-            'settingsPlace':'end',            
+            'settingsPlace':'end',
+            'segmentType':'spline',
             'baseAim':[0,0,-1],
             'baseUp':[0,1,0],
-            'shapeDirection':'z-',            
+            'shapeDirection':'z-',
             'baseDat':{'rp':[0,1,0],'up':[0,1,0],'lever':[0,0,1]},
             'baseSize':[14,9,76],
             },
@@ -660,13 +673,16 @@ d_attrsToMake = {'visMeasure':'bool',
                  'squashFactorMax':'float',
                  'squashFactorMin':'float',
                  'shapersAim':'toEnd:chain:orientToHandle',
+                 'squashSkipAim':'bool',
                  'loftSetup':'default:loftList',
                  'special_swim':'none:wave:sine',
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
+                 'ribbonExtendEnds':'bool',
+                 'ribbonAttachEndsToInfluence':'none:start:end:both',
                  'ikMidControlNum':'int',
                  'ikMidSetup':'none:ribbon:prntConstraint:linearTrack:cubicTrack',
-                 'segmentType':'ribbon:spline:curve:linear:parent',
+                 'segmentType':'ribbon:ribbonLive:spline:curve:linear:parent',
                  'ikBase':'none:cube:simple:hips:head',
                  'settingsPlace':'start:end:cog',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
@@ -726,8 +742,13 @@ d_defaultSettings = {'version':__version__,
                      'jointRadius':.1,
                      'visJointHandle':1,
                      'shapeDirection':'y+',
+                     'ribbonExtendEnds':True,
+                     'ribbonAttachEndsToInfluence':'both',
                      'special_swim':'none',
+                     'segmentType':'ribbon',
                      #'blockProfile':'spine',
+                     'scaleSetup':False,
+                     'squashSkipAim':True,
                      'attachPoint':'closest',}
 
 
@@ -1913,7 +1934,7 @@ def rig_dataBuffer(self):
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
             mBlock.ikMidSetup = 0
             
-        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup']:
+        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
                 
         #Vector ====================================================================================
@@ -2196,7 +2217,7 @@ def rig_skeleton(self):
                     """
         _ikSetup = mBlock.getEnumValueString('ikSetup')
         
-        if mBlock.ikSetup in [2,3,4]:#...ribbon/spline
+        if mBlock.ikSetup > 1:#...ribbon/spline
             log.debug("|{0}| >> IK Drivers...".format(_str_func))            
             ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
             
@@ -2925,35 +2946,50 @@ def rig_segments(self):
         _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
               'baseName':'{0}_rigRibbon'.format(self.d_module['partName']),
               'connectBy':'constraint',
-              'extendEnds':True,
+              'extendEnds':mBlock.ribbonExtendEnds,#False,#True,
               #'sectionSpans':1,
               'paramaterization':mBlock.getEnumValueString('ribbonParam'),          
               'masterScalePlug':mPlug_masterScale,
               'influences':ml_handleJoints,
               'settingsControl':_settingsControl,
               'attachStartToInfluence':False,
-              'attachEndToInfluence':True,#for autoswim
+              'attachEndToInfluence':False,#True,#for autoswim
               'parentDeformTo':mRoot,
+              'driverSetup':mBlock.getEnumValueString('ribbonAim'),
+              'skipAim':mBlock.squashSkipAim,
               'moduleInstance':mModule}
         
+        
+        if self.str_ribbonAttachEndsToInfluence == 'both':
+            _d['attachEndsToInfluences'] = True
+        elif self.str_ribbonAttachEndsToInfluence == 'start':
+            _d['attachStartToInfluences'] = True
+        elif self.str_ribbonAttachEndsToInfluence == 'end':
+            _d['attachEndToInfluences'] = True
+            
         if mBlock.getEnumValueString('ikBase') in ['hips','head']:
             _d['attachStartToInfluence'] = True
         if mBlock.special_swim:
-            _d['attachStartToInfluence'] = False                
+            _d['attachStartToInfluence'] = False
             _d['attachEndToInfluence'] = False
             
             
+            
         #reload(IK)
-        #pprint.pprint(_d)
+
         
         _d.update(self.d_squashStretch)
         
         
-        if self.str_segmentType == 'ribbon':
+        if self.str_segmentType in ['ribbon','ribbonLive']:
+            _d['liveSurface'] = False if self.str_segmentType == 'ribbon' else True
+            log.info(cgmGEN.logString_sub,_str_func,"segment dict...")
+            pprint.pprint(_d)
             res_ribbon = IK.ribbon(**_d)
             ml_surfaces = res_ribbon['mlSurfaces']
             
         elif self.str_segmentType == 'spline':
+            """
             _l_segJoints = _d['jointList']
             _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
             for i,mJnt in enumerate(ml_segJoints[1:]):
@@ -2966,6 +3002,57 @@ def rig_segments(self):
             RIGFRAME.spline(self,_ml_segTmp, None, mIKControl, mIKBaseControl,
                             ml_handleJoints, mPlug_masterScale, 'translate',
                             mBlock.ikSplineTwistEndConnect, mBlock.ikSplineExtendEnd, mBlock.ikSplineAimEnd, mSettings)
+            """
+            
+            
+            _l_segJoints = _d['jointList']
+            _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+            for i,mJnt in enumerate(ml_segJoints[1:]):
+                mJnt.p_parent = ml_segJoints[i]
+                
+            #mIKBaseControl = mRigNull.getMessageAsMeta('controlIKBase')
+            #mIKControl = mRigNull.getMessageAsMeta('controlIK')
+            mSettings = mRigNull.getMessageAsMeta('settings')
+            
+
+                
+            mIKSplineEnd = ml_segJoints[-1].doDuplicate()
+            mIKSplineEnd.rename("{}_splineEnd".format(ml_segJoints[-1].p_nameBase))
+            
+            ml_ikUse = copy.copy(ml_segJoints)
+            ml_ikUse[-1] = mIKSplineEnd
+            
+            mIKSplineEnd.p_parent = ml_segJoints[-1].p_parent
+            
+            ml_segJoints[-1].p_parent =  ml_handleJoints[-1]#...to get free orient
+            
+            pprint.pprint(ml_segJoints)
+            RIGFRAME.spline(self,ml_ikUse, None, ml_handleJoints[-1], ml_handleJoints[0],
+                            ml_handleJoints, mPlug_masterScale, 'translate',
+                            mBlock.ikSplineTwistEndConnect, mBlock.ikSplineExtendEnd, mBlock.ikSplineAimEnd, mSettings)
+            
+            if mSettings.hasAttr('twistType'):
+                ATTR.set_default(mSettings.mNode,'twistType',1)
+                ATTR.set(mSettings.mNode,'twistType',1)
+                
+                
+            mc.pointConstraint([mIKSplineEnd.mNode], ml_segJoints[-1].mNode, maintainOffset = True)
+            mIKSplineIKDriver = ml_segJoints[-1].doDuplicate()
+            mIKSplineIKDriver.rename("{}_splineControl".format(ml_segJoints[-1].p_nameBase))
+            mIKSplineIKDriver.p_parent =  ml_handleJoints[-1]
+            mIKSplineEnd.dagLock()
+
+            
+            #Add follow setup here 07.10.22
+            mPlug_followIK = cgmMeta.cgmAttr(ml_handleJoints[-1].mNode,'followEnd',attrType='float',lock=False,keyable=True,defaultValue=1.0)
+            mPlug_followIK.p_value = 1.0
+            
+            #Setup blend ----------------------------------------------------------------------------------
+            RIGCONSTRAINT.blendChainsBy(mIKSplineEnd,mIKSplineIKDriver,ml_segJoints[-1],
+                                        driver = mPlug_followIK.p_combinedName,
+                                        l_constraints=['orient'])                                
+            
+
 
             ATTR.set_default(mSettings.mNode,'twistType',1)
             ATTR.set(mSettings.mNode,'twistType',1)
@@ -3325,7 +3412,7 @@ def rig_frame(self):
 
                 
                 
-            elif _ikSetup == 'ribbon':#===============================================================================
+            elif _ikSetup in ['ribbon','ribbonLive']:#===============================================================================
                 log.debug("|{0}| >> ribbon setup...".format(_str_func))
                 ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
                 if not ml_ribbonIkHandles:
@@ -3349,33 +3436,9 @@ def rig_frame(self):
                     ml_skinDrivers = [ml_skinDrivers[0]] + self.ml_ikMidControls + [ml_skinDrivers[-1]]
                     max_influences+=len(self.ml_ikMidControls)                              
                 
-                """
-                #Extend Controls ==============================================================
-
-                mControlBaseExtendIK = mRigNull.getMessageAsMeta('controlBaseExtendIK')
-                if mControlBaseExtendIK:
-                    ml_skinDrivers.insert(1,mControlBaseExtendIK)
-                    max_influences+=1
-                    ml_segMidDrivers[0] = mControlBaseExtendIK
-
-                mControlEndExtendIK = mRigNull.getMessageAsMeta('controlEndExtendIK')
-                if mControlEndExtendIK:
-                    ml_skinDrivers.insert(-1,mControlEndExtendIK)
-                    max_influences+=1
-                    ml_segMidDrivers[1] = mControlEndExtendIK
-                
-
-                mSegMidIK = mRigNull.getMessageAsMeta('controlSegMidIK')
-                #[mControlBaseExtendIK,mControlEndExtendIK] ml_ribbonIkHandles
-                if mSegMidIK:
-                    RIGFRAME.segment_mid(self,mSegMidIK,ml_segMidDrivers,mIKGroup,
-                                         mIKBaseControl,mIKControl,ml_ikJoints)
-                    ml_skinDrivers.insert(MATH.get_midIndex(len(ml_skinDrivers)),mSegMidIK)
-                    max_influences+=1"""
-
                     
                     
-                
+                reload(IK)
                 log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
                 
                 if mIKBaseControl:
@@ -3400,19 +3463,29 @@ def rig_frame(self):
 
                 d_ik = {'jointList':[mObj.mNode for mObj in ml_ikJoints],
                         'baseName' : self.d_module['partName'] + '_ikRibbon',
-                        'driverSetup':'stable',
+                        'driverSetup':mBlock.getEnumValueString('ribbonAim'),
                         'squashStretch':None,
                         'connectBy':'constraint',
                         'squashStretchMain':'arcLength',
+                        'extendEnds':mBlock.ribbonExtendEnds,
                         'paramaterization':mBlock.getEnumValueString('ribbonParam'),
                         #masterScalePlug:mPlug_masterScale,
                         'settingsControl': mSettings.mNode,
                         'extraSquashControl':True,
+                        'liveSurface':False if _ikSetup == 'ribbon' else True,
                         'influences':ml_skinDrivers,
                         'moduleInstance' : self.mModule}
                 
-                if str_ikBase in ['hips','head']:
+                if self.str_ribbonAttachEndsToInfluence == 'both':
                     d_ik['attachEndsToInfluences'] = True
+                elif self.str_ribbonAttachEndsToInfluence == 'start':
+                    d_ik['attachStartToInfluences'] = True
+                elif self.str_ribbonAttachEndsToInfluence == 'end':
+                    d_ik['attachEndToInfluences'] = True
+                    
+                
+                #if str_ikBase in ['hips','head']:
+                #    d_ik['attachEndsToInfluences'] = True
                     
                 #if mBlock.numControls == mBlock.numJoints:
                     #d_ik['paramaterization'] = 'fixed'
@@ -3814,7 +3887,10 @@ def rig_cleanUp(self):
                 
                 log.debug("|{0}| >>  IK Mid targets...".format(_str_func,mRoot))
                 #pprint.pprint(ml_targetDynParents)                
-                log.debug(cgmGEN._str_subLine)    
+                log.debug(cgmGEN._str_subLine)   
+                
+                self.fnc_connect_toRigGutsVis( [mMainDriver] )        
+                
                 
         """
         if mRigNull.getMessage('controlSegMidIK'):

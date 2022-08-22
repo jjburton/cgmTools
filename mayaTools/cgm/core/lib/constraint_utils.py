@@ -328,10 +328,12 @@ def set_weightsByDistance(constraint=None,vList = None):
     log.debug("|{0}| >> attrs: {1} ".format(_str_func,_attrs))             
     
     if len(_attrs) != len(vList):
-        raise ValueError,"Len of attrs and valueList do not match: {0} | {1}".format(len(_attrs),len(vList))
+        log.error( "Len of attrs and valueList do not match: {0} | {1}".format(len(_attrs),len(vList)) )
 
     for i,v in enumerate(vList):
-        ATTR.set(constraint,_attrs[i],v)
+        try:ATTR.set(constraint,_attrs[i],v)
+        except Exception,err:
+            log.error(cgmGEN.logString_msg(_str_func, err))
 
     return vList
 

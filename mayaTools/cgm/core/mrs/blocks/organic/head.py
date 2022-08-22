@@ -277,7 +277,8 @@ d_attrsToMake = {'visMeasure':'bool',
                  'neckIKEndLever':'bool',
                  'neckIKBaseExtend':'bool',
                  'neckIKEndExtend':'bool',
-             
+                 'ribbonExtendEnds':'bool',
+                 'ribbonAttachEndsToInfluence':'none:start:end:both',             
                  'ribbonAim': 'none:stable:stableBlend',
                  'ribbonConnectBy': 'constraint:matrix',
                  'ikMidControlNum':'int',                 
@@ -293,7 +294,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikSplineAimEnd':'bool',                 
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  #'blockProfile':':'.join(d_block_profiles.keys()),
-                 'segmentType':'ribbon:curve:linear:parent',                 
+                 'segmentType':'ribbon:ribbonLive:curve:linear:parent',                 
                  'neckIK':BLOCKSHARE._d_attrsTo_make.get('ikSetup')#we wanna match this one
                  }
 
@@ -2003,7 +2004,7 @@ def rig_dataBuffer(self):
         self.mHandleFactory = mBlock.asHandleFactory()
         self.mRootFormHandle = ml_formHandles[0]
         
-        for k in ['segmentType','settingsPlace','fkHeadOrientTo','ikMidSetup']:
+        for k in ['segmentType','settingsPlace','fkHeadOrientTo','ikMidSetup','ribbonAttachEndsToInfluence']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
         
         self.ml_ikMidHelpers = mPrerigNull.msgList_get('ikMidHelpers')
@@ -3171,12 +3172,23 @@ def rig_segments(self):
             
         _d.update(self.d_squashStretch)
         
-        if self.str_segmentType == 'ribbon':
+        if self.str_segmentType in ['ribbon','ribbonLive']:
+            _d['liveSurface'] = False if self.str_segmentType == 'ribbon' else True
+            
+            if self.str_ribbonAttachEndsToInfluence == 'both':
+                _d['attachEndsToInfluences'] = True
+            elif self.str_ribbonAttachEndsToInfluence == 'start':
+                _d['attachStartToInfluences'] = True
+            elif self.str_ribbonAttachEndsToInfluence == 'end':
+                _d['attachEndToInfluences'] = True            
+            
+            _d['extendEnds'] = mBlock.ribbonExtendEnds
+            
             res_ribbon = IK.ribbon(**_d)
-            ml_surfaces = res_ribbon['mlSurfaces']
+            #ml_surfaces = res_ribbon['mlSurfaces']
         else:
             _l_segJoints = _d['jointList']
-            _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+            #_ml_segTmp = cgmMeta.asMeta(_l_segJoints)
             _d['setupAim'] = 1                
             #_d['attachEndToInfluence'] = False                
             pprint.pprint(_d)
@@ -3887,7 +3899,7 @@ def rig_frame(self):
                         if mIKBaseControl:
                             mc.pointConstraint(mIKBaseControl.mNode, ml_ikJoints[0].mNode,maintainOffset=True)
             
-                    elif _ikNeck in ['curve','ribbon','spline']:# ==============================================================
+                    elif _ikNeck in ['curve','ribbon','ribbonLive','spline']:# ==============================================================
                         log.debug("|{0}| >> {1} setup...".format(_str_func,_ikNeck))
                         
                         ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
@@ -3981,7 +3993,7 @@ def rig_frame(self):
                             
                             
                             #pprint.pprint(ml_ikJoints)
-                        elif _ikNeck == 'ribbon':
+                        elif _ikNeck in ['ribbon','ribbonLive']:
                             log.debug("|{0}| >> ribbon ik handles...".format(_str_func))
                 
                             if mIKBaseControl:
@@ -4013,6 +4025,8 @@ def rig_frame(self):
                                     'squashStretch':None,
                                     'connectBy':'constraint',
                                     'squashStretchMain':'arcLength',
+                                    'extendEnds':mBlock.ribbonExtendEnds,                                    
+                                    'liveSurface':False if _ikNeck == 'ribbon' else True,                                    
                                     'paramaterization':mBlock.getEnumValueString('ribbonParam'),
                                     #masterScalePlug:mPlug_masterScale,
                                     'settingsControl': mSettings.mNode,
@@ -4020,12 +4034,12 @@ def rig_frame(self):
                                     'influences':ml_skinDrivers,
                                     'moduleInstance' : self.mModule}
                 
-                            #if str_ikBase == 'hips':
-                                #d_ik['attachEndsToInfluences'] = True
-                
-                            #if mBlock.neckControls == mBlock.numJoints:
-                                #d_ik['paramaterization'] = 'fixed'
-                
+                            if self.str_ribbonAttachEndsToInfluence == 'both':
+                                d_ik['attachEndsToInfluences'] = True
+                            elif self.str_ribbonAttachEndsToInfluence == 'start':
+                                d_ik['attachStartToInfluences'] = True
+                            elif self.str_ribbonAttachEndsToInfluence == 'end':
+                                d_ik['attachEndToInfluences'] = True                
                 
                             d_ik.update(self.d_squashStretchIK)
                             res_ribbon = IK.ribbon(**d_ik)
@@ -4062,7 +4076,7 @@ def rig_frame(self):
                         
                         
                         
-                        if _ikNeck == 'ribbon':
+                        if _ikNeck in ['ribbon','ribbonLive']:
                             
                             const = ml_ikJoints[-1].getConstraintsTo(asMeta=True)
                             for mConst in const:
@@ -4683,10 +4697,16 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
                                     maximumInfluences = 3,
                                     normalizeWeights = 1, dropoffRate=2)"""
         if skin:
-            _res = mc.polyUniteSkinned([mObj.mNode for mObj in ml_headStuff],ch=False,objectPivot=True)
-            _mesh = mc.rename(_res[0],'{0}_0_geo'.format(self.p_nameBase))
-            mc.rename(_res[1],'{0}_skinCluster'.format(_mesh))
-            mMesh = cgmMeta.asMeta(_mesh)
+            if len(ml_headStuff)>1:
+                _res = mc.polyUniteSkinned([mObj.mNode for mObj in ml_headStuff],ch=False,objectPivot=True)
+                _mesh = mc.rename(_res[0],'{0}_0_geo'.format(self.p_nameBase))
+                mc.rename(_res[1],'{0}_skinCluster'.format(_mesh))       
+                
+            else:
+                _mesh = ml_headStuff[0]
+                ml_headStuff = []
+                
+            mMesh = cgmMeta.asMeta(_mesh)                
             if parent:
                 mMesh.dagLock(False)
                 mMesh.p_parent = parent
@@ -5108,11 +5128,14 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                 
             #log.debug("{0} : {1}".format(mGeo, ml_moduleJoints[i]))
             if skin:
-                if len(mGeo.getShapes()) > 1:
-                    _strBase  = mGeo.p_nameBase
-                    _res = mc.polyUnite(mGeo.mNode,ch=False,objectPivot=True)
-                    _mesh = mc.rename(_res[0],_strBase)
-                    mGeo = cgmMeta.asMeta(_mesh)
+                if len(mGeo.getShapes())  > 1:
+                    try:
+                        _strBase  = mGeo.p_nameBase
+                        _res = mc.polyUnite(mGeo.mNode,ch=False,objectPivot=True)
+                        _mesh = mc.rename(_res[0],_strBase)
+                        mGeo = cgmMeta.asMeta(_mesh)
+                    except:
+                        pass
                     
                 MRSPOST.skin_mesh(mGeo,[mJnt])                
             else:

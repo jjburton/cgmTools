@@ -136,6 +136,7 @@ l_createUI_attrs = ['attachPoint','attachIndex',
                     'addCog','addPivot','addScalePivot','addAim',
                     'numControls',
                     'numSubShapers',
+                    'ikSetup',                    
                     'root_dynParentMode',
                     'root_dynParentScaleMode',
                     'segmentType',
@@ -905,7 +906,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'loftSetup':'default:loftList',
                  'loftShapeStart':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  'loftShapeEnd':BLOCKSHARE._d_attrsTo_make['loftShape'],
-                 'segmentType':'ribbon:curve:linear',
+                 'segmentType':'ribbon:ribbonLive:curve:linear',
                  'ikOrientEndTo':'end:previous',
                  'ikLeverEndLock':'none:outNeg',
                  
@@ -3438,6 +3439,9 @@ def rig_prechecks(self):
         #    if mBlock.rigSetup:
         #        self.l_precheckErrors.append('rigSetup should be default when dynParentScaleMode is on')
             
+        str_ikSetup = mBlock.getEnumValueString('ikSetup')
+        if str_ikSetup in ['ribbonLive','ribbon']:
+            self.l_precheckErrors.append("{0} not supported yet".format(str_ikSetup))
         
         str_ikEnd = mBlock.getEnumValueString('ikEnd')
         if str_ikEnd in ['tipCombo']:

@@ -822,7 +822,7 @@ def buildFKIK(fkJoints = None,
     return True
 
 
-def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendEnds=False):
+def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendEnds=False, liveSurface = False, mModule = False):
     """ 
     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     ACKNOWLEDMENT:
@@ -856,7 +856,11 @@ def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendE
                                          DIST.get_pos_by_axis_dist(j, crvDn, f_distance)],
                                    os=True)
             log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+            if liveSurface:
+                crv = TRANS.parent_set(crv,j)
+
             l_crvs.append(crv)
+                
             
         if extendEnds:
             log.debug("|{0}| >> Extended ends.".format(_str_func))
@@ -871,6 +875,8 @@ def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendE
                                          DIST.get_pos_by_axis_dist(mLoc.mNode, crvDn, f_distance)],
                                    os=True)
             log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+            if liveSurface:
+                crv = TRANS.parent_set(crv,jointList[0])
             l_crvs.insert(0,crv)
             mLoc.delete()
             
@@ -885,10 +891,12 @@ def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendE
                                          DIST.get_pos_by_axis_dist(mLoc.mNode, crvDn, f_distance)],
                                    os=True)
             log.debug("|{0}| >> Created: {1}".format(_str_func,crv))
+            if liveSurface:
+                crv = TRANS.parent_set(crv,jointList[-1])            
             l_crvs.append(crv)
             mLoc.delete()
             
-        _res_body = mc.loft(l_crvs, reverseSurfaceNormals = True, ch = False, uniform = True, degree = 3, sectionSpans=sectionSpans)
+        _res_body = mc.loft(l_crvs, reverseSurfaceNormals = True, ch = liveSurface, uniform = True, degree = 3, sectionSpans=sectionSpans, autoReverse = False)
 
         #_res_body = mc.loft(l_crvs, o = True, d = 1, po = 1 )
         #_inputs = mc.listHistory(_res_body[0],pruneDagObjects=True)
@@ -900,7 +908,16 @@ def ribbon_createSurface(jointList=[], createAxis = 'x', sectionSpans=1, extendE
               
         #for a,v in _d.iteritems():
         #    ATTR.set(_tessellate,a,v)
-        mc.delete(l_crvs)
+        if not liveSurface:
+            mc.delete(l_crvs)
+        else:
+            if mModule:#if we have a module, connect vis
+                mRigNull = mModule.rigNull
+                _str_rigNull = mRigNull.mNode
+                for mObj in cgmMeta.asMeta(l_crvs):
+                    mObj.overrideEnabled = 1
+                    cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+                    cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))                
         return _res_body
     except Exception,err:cgmGEN.cgmExceptCB(Exception,err)
     
@@ -932,6 +949,7 @@ def ribbon(jointList = None,
            #extendTwistToEnd = False,
            #reorient = False,
            skipAim = True,
+           liveSurface = False,
            influences = None,
            tightenWeights=True,
            extraKeyable = False,
@@ -1157,7 +1175,10 @@ def ribbon(jointList = None,
         raise NotImplementedError,'Not done with passed surface'
     else:
         log.debug("|{0}| >> Creating surface...".format(_str_func))
-        l_surfaceReturn = ribbon_createSurface(l_ribbonJoints,loftAxis,sectionSpans,extendEnds)
+        if liveSurface:
+            l_surfaceReturn = ribbon_createSurface(l_influences,loftAxis,sectionSpans,extendEnds, liveSurface, mModule)            
+        else:
+            l_surfaceReturn = ribbon_createSurface(l_ribbonJoints,loftAxis,sectionSpans,extendEnds, liveSurface, mModule)
     
         mControlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
         mControlSurface.addAttr('cgmName',str(baseName),attrType='string',lock=True)    
@@ -1168,7 +1189,10 @@ def ribbon(jointList = None,
         
         if loftAxis2:
             log.debug("|{0}| >> Creating surface...".format(_str_func))
-            l_surfaceReturn2 = ribbon_createSurface(l_ribbonJoints,loftAxis2,sectionSpans,extendEnds)
+            if liveSurface:
+                l_surfaceReturn2 = ribbon_createSurface(l_influences,loftAxis2,sectionSpans,extendEnds,liveSurface, mModule)                
+            else:
+                l_surfaceReturn2 = ribbon_createSurface(l_ribbonJoints,loftAxis2,sectionSpans,extendEnds,liveSurface, mModule)
         
             mControlSurface2 = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
             mControlSurface2.addAttr('cgmName',str(baseName),attrType='string',lock=True)
@@ -1675,10 +1699,12 @@ def ribbon(jointList = None,
                                              aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
                                              worldUpType = 'object', worldUpVector = v_up)                            
                         else:
+                            pass
+                        '''
                             mc.aimConstraint(mStableFollicle.mNode, mDriver.mNode,
                                              maintainOffset = True, #skip = 'z',
                                              aimVector = v_aim, upVector = v_up, worldUpObject = ml_upTargets[i].mNode,
-                                             worldUpType = 'object', worldUpVector = v_up)
+                                             worldUpType = 'object', worldUpVector = v_up)'''
                         
                     else:
                         #was aimint at follicles... ml_follicles
@@ -2384,8 +2410,11 @@ def ribbon(jointList = None,
                     
             
             if len(l_targets) > 1:
+                pprint.pprint(l_targets)
                 _vList = DIST.get_normalizedWeightsByDistance(mJnt.mNode,
-                                                              l_targets)                          
+                                                              l_targets)
+                pprint.pprint(_vList)
+                reload(CONSTRAINT)
                 CONSTRAINT.set_weightsByDistance(_scale[0],_vList)
                 
             mAdditiveScale = cgmMeta.cgmNode(nodeType='multiplyDivide')
@@ -2411,7 +2440,7 @@ def ribbon(jointList = None,
         for mObj in ml_rigObjectsToParent:
             mObj.parent = mModule.rigNull.mNode
 
-    if ml_influences:
+    if ml_influences and not liveSurface:
         log.debug("|{0}| >> Influences found. Attempting to skin...".format(_str_func)+cgmGEN._str_subLine)            
         
         max_influences = 2

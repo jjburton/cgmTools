@@ -74,13 +74,13 @@ __version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='MRSScene'
 
 _subLineBGC = [.75,.75,.75]
-_l_directoryMask = ['meta','.mayaSwatches','incrementalSave']
+_l_directoryMask = ['meta','.mayaSwatches','incrementalSave','cgmDat','mayaSwatches']
 
 class ui(cgmUI.cgmGUI):
     '''
-Animation Importer UI class.
+Scene UI class.
 
-Loads the Animation Importer UI.
+Loads the SceneUI.
 
 | outputs AnimationImporter
 
@@ -2198,7 +2198,7 @@ example:
         self.assetMetaData = self.getMetaDataFromFile()
         self.buildDetailsColumn()
         self.SaveCurrentSelection()
-        log.debug( self.versionFile )
+        log.info( self.versionFile )
         
         
         
@@ -3182,6 +3182,9 @@ example:
             for f in CGMOS.get_lsFromPath(searchDir):
                 if f[0] == '_' or f[0] == '.':
                     continue
+                
+                if os.path.isdir(os.path.join(searchDir,f)):
+                    continue                
 
                 if self.showAllFiles:
                     if f in ['meta']:
@@ -3191,6 +3194,7 @@ example:
                         if chk in f:
                             _break = True
                             continue
+                    
                     if _break:
                         continue
                     anims.append(f)

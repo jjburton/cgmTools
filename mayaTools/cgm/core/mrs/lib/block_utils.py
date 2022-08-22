@@ -9503,7 +9503,12 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNo
                 loftMode = 'evenLinear'
             
             
-        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory,loftMode=loftMode)
+        kws = {}
+        if self.blockType in ['limb']:
+            if self.addLeverBase and self.getEnumValueString('addLeverBase') != 'joint' and skin:
+                kws['skip'] = [0]
+            
+        ml_mesh = create_simpleLoftMesh(self,form=2,degree=None,divisions=2,deleteHistory=deleteHistory,loftMode=loftMode,**kws)
     
         
         #Get if skin data -------------------------------------------------------------------------------
@@ -9559,7 +9564,7 @@ def create_simpleMesh(self, forceNew = True, skin = False,connect=True,reverseNo
     return ml_mesh
             
 
-def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,uniform = False,
+def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None,cap=True,uniform = False,skip=[],
                           reverseNormal = None,deleteHistory = True,divisions=None, loftMode = None,flipUV = False):
     """
     form
@@ -9594,7 +9599,9 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         
         
     log.debug(cgmGEN.logString_sub(_str_func,"Gather loft curves"))
-    for mHandle in ml_formHandles:
+    for i,mHandle in enumerate(ml_formHandles):
+        if skip and i in skip:
+            continue
         if mHandle.getMessage('loftCurve'):
             ml_loftCurves.append(mHandle.getMessage('loftCurve',asMeta=1)[0])
         ml_subShapers = mHandle.msgList_get('subShapers')

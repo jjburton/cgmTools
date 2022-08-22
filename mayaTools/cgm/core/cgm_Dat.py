@@ -72,7 +72,7 @@ _l_startDirModes = ('workspace','file','dev')
 
 def startDir_getBase(mode = 'workspace', devList = []):
     str_func = 'startDir_get'
-    log.debug(log_start(str_func))
+    log.debug(log_msg(str_func, mode))
     
     if mode == 'workspace':
         return mc.workspace(q=True, rootDirectory=True)
@@ -292,17 +292,22 @@ class data(object):
             self.dat[k] = d
 
             
-    def write(self, filepath = None, update = False, startDirMode = None):
+    def write(self, filepath = None, update = False, startDirMode = None, forcePrompt = False):
         str_func = 'data.write'
-        log.debug("|{0}| >>...".format(str_func))
+        log.debug("|{}| >>... filepath:{} | update:{} | startDirMode:{} | forcePrompt:{}".format(str_func,filepath, update, startDirMode, forcePrompt))
         
-        if update:
+        if update and self.str_filepath:
             filepath = self.str_filepath
             
-        filepath = self.validateFilepath(filepath, startDirMode=startDirMode)
+        if forcePrompt:
+            log.debug("forcePrompt filepath")
+            filepath = self.validateFilepath(None, startDirMode=startDirMode)            
+        elif not filepath:
+            log.debug("Getting filepath")
+            filepath = self.validateFilepath(filepath, startDirMode=startDirMode)
+            
         if not filepath:
             log.warning('Invalid path: {0}'.format(filepath))
-            
             return False
         
         log.warning('Write to: {0}'.format(filepath))
@@ -602,7 +607,7 @@ class ui(CGMUI.cgmGUI):
     def uiFunc_dat_saveAs(self):
         _str_func = 'uiFunc_dat_saveAs[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
-        self.uiDat.write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
+        self.uiDat.write(startDirMode = self._l_startDirModes[self.var_startDirMode.value], forcePrompt=True)
         return
     
     def uiFunc_dat_load(self,**kws):

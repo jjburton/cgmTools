@@ -85,6 +85,8 @@ _l_datLists = ['numSubShapers','rollCount','loftList','nameList']
 
 class BaseDat(CGMDAT.data):
     def startDir_get(self,startDirMode=None):
+        _str_func = 'BaseDat.startDir_get'
+        log.debug(log_msg(_str_func,startDirMode))        
         if startDirMode == None:
             startDir = CGMDAT.startDir_getBase(self.structureMode)
         else:
@@ -155,19 +157,29 @@ class BlockDat(BaseDat):
         
         return        
         
-    def save(self,mode=None):
-        _str_func = 'BlockDat.save'        
+    def write(self,*arg,**kws):
+        _str_func = 'BlockDat.write'        
         log.debug(log_start(_str_func))
         
-        if not self.mBlock:
-            raise ValueError,"Must have mBlock to save"
+        if not self.mBlock and not self.dat:
+            raise ValueError,"Must have mBlock to save or dat"
         
-        startDir = self.startDir_get()
-        _path = "{}.{}".format( os.path.normpath(os.path.join(startDir,self.mBlock.p_nameBase)), BlockDat._ext)
+        if self.mBlock:
+            _name = self.mBlock.p_nameBase
+        else:
+            _name = self.dat['baseName']
+        
+        if self.dir_export:
+            startDir = self.dir_export
+        else:
+            startDir = self.startDir_get(kws.get('startDirMode'))
+            
+        _path = "{}.{}".format( os.path.normpath(os.path.join(startDir,_name)), BlockDat._ext)
         
         pprint.pprint(_path)
-        
-        self.write(_path)
+        pprint.pprint(kws)
+        BaseDat.write(self, filepath = _path, *arg,**kws)
+        #self.write(_path)
         
         return
         if not os.path.exists(startDir):
@@ -1203,7 +1215,7 @@ class ui2(CGMUI.cgmGUI):
         if not mBlock:
             return log.error("No blocks selected")
         
-        sDat = dat_get(mBlock)
+        sDat = blockDat_get(mBlock)
         self.dat = sDat
         
         self.uiStatus_refresh()
