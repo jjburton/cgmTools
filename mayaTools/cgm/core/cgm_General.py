@@ -12,7 +12,7 @@ __MAYALOCAL = 'cgmGEN'
 
 __RELEASE = '22.08.30.1'
 
-__BRANCH = 'MRSDAILY'
+__BRANCH = 'MRSDEV'
 
 import maya.cmds as mc
 import maya.mel as mel
