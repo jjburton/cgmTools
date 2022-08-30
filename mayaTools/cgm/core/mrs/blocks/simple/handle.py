@@ -100,7 +100,7 @@ d_attrStateMask = {'define':[],
                    'rig':['rotPivotPlace','dynParentMode','dynParentScaleMode'],
                    'vis':[]}
 
-l_createUI_attrs = ['attachPoint','attachIndex',
+l_createUI_attrs = ['attachPoint','attachIndex','buildSDK',
                     'addCog','addPivot','addScalePivot','addAim','numSubShapers',
                     'basicShape','proxyShape','rotPivotPlace','loftSetup','scaleSetup',
                     'dynParentMode','dynParentScaleMode']

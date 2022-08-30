@@ -3116,7 +3116,7 @@ example:
         self.variationList['scrollList'].setItems(variationList)
         
         if variationList:
-            self.variationList['scrollList'].select_last()        
+            self.variationList['scrollList'].select_last(selCommand=False)        
 
         #self.variationList['scrollList'].selectByValue(selectedVariation) # if selectedVariation else variationList[0]
         
@@ -3210,21 +3210,20 @@ example:
                     else:
                         if '{0}_{1}_'.format(self.selectedAsset, self.subType) in f:
                             anims.append(f)
-
+                            cgmUI
         searchList['items'] = anims
         searchList['scrollList'].clear()
         searchList['scrollList'].setItems(anims)
-        
-        if anims and selectValue:
+        if anims:
             if selectValue:
-                searchList['scrollList'].selectByValue(selectValue)
+                searchList['scrollList'].selectByValue(selectValue, selCommand=False)
             else:
                 _lastVersion = self.var_lastVersion.getValue()
                 if _lastVersion and _lastVersion in searchList['scrollList']._items:
-                    searchList['scrollList'].selectByValue(_lastVersion)
+                    searchList['scrollList'].selectByValue(_lastVersion,selCommand=False)
                 else:
-                    searchList['scrollList'].select_last()
-        
+                    searchList['scrollList'].select_last(selCommand=False)
+            
         #if anims:
             #searchList['scrollList'].selectByValue(anims[-1])
         #    self.uiFunc_versionList_select(anims[-1])
