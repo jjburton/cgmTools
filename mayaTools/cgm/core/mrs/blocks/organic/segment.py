@@ -2232,12 +2232,13 @@ def rig_skeleton(self):
                     
                 mJnt.doCopyNameTagsFromObject(mTar.mNode,ignore=['cgmType'])
                 mJnt.doName()
-                
+            
+            """
             for i,mObj in enumerate(ml_ribbonIKDrivers):
                 if not i:
                     mObj.doSnapTo(mBlock.ikStartHandle)
                 else:
-                    mObj.doSnapTo(mBlock.ikEndHandle)
+                    mObj.doSnapTo(mBlock.ikEndHandle)"""
             
             ml_jointsToConnect.extend(ml_ribbonIKDrivers)
             
