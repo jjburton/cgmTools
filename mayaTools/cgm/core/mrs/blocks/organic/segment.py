@@ -2964,9 +2964,9 @@ def rig_segments(self):
         if self.str_ribbonAttachEndsToInfluence == 'both':
             _d['attachEndsToInfluences'] = True
         elif self.str_ribbonAttachEndsToInfluence == 'start':
-            _d['attachStartToInfluences'] = True
+            _d['attachStartToInfluence'] = True
         elif self.str_ribbonAttachEndsToInfluence == 'end':
-            _d['attachEndToInfluences'] = True
+            _d['attachEndToInfluence'] = True
             
         if mBlock.getEnumValueString('ikBase') in ['hips','head']:
             _d['attachStartToInfluence'] = True
