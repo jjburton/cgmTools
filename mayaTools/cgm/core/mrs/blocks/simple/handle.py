@@ -21,7 +21,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -214,7 +214,7 @@ d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
                  'parentToDriver':'bool',
                  'addAim':'none:default:handle',
                  'parentVisAttr':'bool',
-                 'proxyShape':'cube:sphere:cylinder:cone:torus:shapers',
+                 'proxyShape':'cube:sphere:cylinder:cone:torus:shapers:geoOnly',
                  'targetJoint':'messageSimple',
                  'shapersAim':'toEnd:chain:orientToHandle',
                  'dynParentMode':'space:orient:follow:point',
@@ -2018,9 +2018,10 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         ml_geo = self.msgList_get('proxyMeshGeo')
         ml_proxy = []
         str_setup = self.getEnumValueString('proxyShape')
+        if str_setup == 'geoOnly' and not ml_geo:
+            raise ValueError,"No geo found and proxyShape is 'geoOnly'."
         
-        if str_setup == 'shapers' and not ml_geo:
-            d_kws = {}
+        if str_setup == 'shapers':# and not ml_geo:
             mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
             ml_proxy = [mMesh]
             
@@ -2147,7 +2148,10 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
     if _buildMesh:
         log.warning("|{0}| >> building mesh...".format(_str_func))            
         
-        if str_setup == 'shapers' and not ml_geo:
+        if str_setup == 'geoOnly' and not ml_geo:
+            raise ValueError,"No geo found and proxyShape is 'geoOnly'."
+        
+        if str_setup == 'shapers':# and not ml_geo:
             d_kws = {}
             mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
             ml_proxy = [mMesh]
