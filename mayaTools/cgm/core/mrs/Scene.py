@@ -3244,6 +3244,7 @@ example:
             return
         """
         VALID.fileOpen(self.versionFile,True,True)
+        self.refreshMetaData()
         
     def uiFunc_getOpenFileDict(self,*args):
         
@@ -3897,7 +3898,7 @@ example:
         self.SaveCurrentSelection()
 
         #self.uiFunc_selectOpenFile()
-        #self.refreshMetaData()
+        self.refreshMetaData()
         
 
     def OpenDirectory(self, path):
