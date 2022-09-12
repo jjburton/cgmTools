@@ -75,6 +75,7 @@ _l_core_order = ['cgm_General',
                  'lib.shapeCaster']
 
 _l_ignoreTags = ['cgm.core.examples',
+                 'cgm.core.lib.wing.wingdbstub',
                  'cgm.lib.gigs',
                  'cgm.lib.zoo',
                  'cgm.projects',

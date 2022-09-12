@@ -4159,7 +4159,7 @@ def curve(jointList = None,
             for axis in ['scaleX','scaleY']:
                 mPlug_aimResult.doConnectOut('{0}.{1}'.format(str_joint,axis))
                     
-            if not skipAim:
+            if not skipAim or mJnt == ml_curveJoints[-1]:
                 mPlug_aimResult.doConnectOut('{0}.{1}'.format(str_joint,'scaleZ'))                    
     
             if md_scaleReaders.get(mJnt):

@@ -6383,6 +6383,8 @@ def rig_segments(self):
                                          worldUpObject = mSegHandle.mNode,
                                          worldUpType = 'objectrotation', 
                                          worldUpVector = [0,1,0])
+                        
+                   
                     
                     
                 elif mParent == ml_handleJoints[-1]:
@@ -9047,8 +9049,12 @@ def rig_cleanUp(self):
         
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         if ml_handleJoints:
-            ATTR.set_default(ml_handleJoints[0].mNode, 'stable_0', 1.0)
-            ml_handleJoints[0].stable_0 = 1.0
+            if not self.md_rollMulti.get(i):
+                ATTR.set_default(ml_handleJoints[0].mNode, 'stable_0', 0.0)
+                ml_handleJoints[0].stable_0 = 0.0
+            else:
+                ATTR.set_default(ml_handleJoints[0].mNode, 'stable_0', 1.0)
+                ml_handleJoints[0].stable_0 = 1.0
             
         if 'leg' in str_blockProfile or str_ikEnd in ['pad','foot']:
             log.debug("|{0}| >> 'leg' setup...".format(_str_func))
