@@ -1976,7 +1976,7 @@ def rig_prechecks(self):
                 
         for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
             if not mObj.p_parent:
-                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+                self.l_precheckErrors.append("Joint not parented: {0} | Reskeletonize.".format(mObj.mNode))
             
         #Checking our data points
         ml_pre = mBlock.msgList_get('prerigHandles')

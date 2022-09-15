@@ -906,7 +906,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'loftSetup':'default:loftList',
                  'loftShapeStart':BLOCKSHARE._d_attrsTo_make['loftShape'],
                  'loftShapeEnd':BLOCKSHARE._d_attrsTo_make['loftShape'],
-                 'segmentType':'ribbon:ribbonLive:curve:linear',
+                 'segmentType':'ribbon:ribbonLive:curve:linear:parent',
                  'ikOrientEndTo':'end:previous',
                  'ikLeverEndLock':'none:outNeg',
                  
@@ -3461,11 +3461,17 @@ def rig_prechecks(self):
             
         for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
             if not mObj.p_parent:
-                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+                self.l_precheckErrors.append("Joint not parented: {0} | Reskeletonize.".format(mObj.mNode))
         
         _rollCount = mBlock.datList_get('rollCount')
-        if not sum(_rollCount) and mBlock.getEnumValueString('segmentType') == 'ribbon':
+        str_segmentType = mBlock.getEnumValueString('segmentType')
+        
+        if not sum(_rollCount) and str_segmentType == 'ribbon':
             self.l_precheckErrors.append("No roll and segmentType ribbon. | you're going to want curve segmentType or add some roll. ")
+            
+        if sum(_rollCount) and str_segmentType == 'parent':
+            self.l_precheckErrors.append("Roll and segmentType parent. | parent segmentType is for when you don't have roll joints ")
+            
         #str_ikEnd = mBlock.getEnumValueString('ikEnd')
         #ml_formHandles = mBlock.msgList_get('formHandles')
         #if not mBlock.ikEnd and ml_formHandles[-1].getMessage('pivotHelper')
@@ -4151,59 +4157,12 @@ def rig_skeleton(self):
                 else:
                     ATTR.set(mJnt.mNode,"preferredAngle{0}".format(self.str_mainRotAxis.capitalize()),10)
         
-        
-        """
-        ml_blendJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                                 ml_fkJointsToUse, None, 
-                                                                 mRigNull,
-                                                                 'blendJoints',
-                                                                 connectToSource = 'blendJoint',
-                                                                 cgmType = 'handle')
-        ml_ikJoints = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                              ml_fkJointsToUse, None, 
-                                                              mRigNull,
-                                                              'ikJoints',
-                                                              connectToSource = 'ikJoint',
-                                                              cgmType = 'handle')"""
      
         ml_jointsToConnect.extend(ml_ikJoints)
         ml_jointsToHide.extend(ml_blendJoints)
         ml_parentJoints = ml_blendJoints
-        
 
-        
-
-        
     #cgmGEN.func_snapShot(vars())        
-    """
-    if mBlock.numControls > 1:
-        log.debug("|{0}| >> Handles...".format(_str_func))            
-        ml_segmentHandles = BLOCKUTILS.skeleton_buildHandleChain(self.mBlock,'handle','handleJoints',clearType=True)
-        if mBlock.ikSetup:
-            for i,mJnt in enumerate(ml_segmentHandles):
-                mJnt.parent = ml_blendJoints[i]
-        else:
-            for i,mJnt in enumerate(ml_segmentHandles):
-                mJnt.parent = ml_fkJoints[i]
-                """
-    """
-    if mBlock.ikSetup in [2,3]:#...ribbon/spline
-        log.debug("|{0}| >> IK Drivers...".format(_str_func))            
-        ml_ribbonIKDrivers = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,ml_ikJoints, None, mRigNull,'ribbonIKDrivers', cgmType = 'ribbonIKDriver', indices=[0,-1])
-        for i,mJnt in enumerate(ml_ribbonIKDrivers):
-            mJnt.parent = False
-            
-            mTar = ml_blendJoints[0]
-            if i == 0:
-                mTar = ml_blendJoints[0]
-            else:
-                mTar = ml_blendJoints[-1]
-                
-            mJnt.doCopyNameTagsFromObject(mTar.mNode,ignore=['cgmType'])
-            mJnt.doName()
-        
-        ml_jointsToConnect.extend(ml_ribbonIKDrivers)"""
-        
     
     #Segment/Parenting -----------------------------------------------------------------------------
     ml_processed = []
@@ -4215,7 +4174,7 @@ def rig_skeleton(self):
     ml_handles = []
     md_midHandles = {}
     
-    if self.md_roll:#Segment stuff ===================================================================
+    if self.md_roll and self.str_segmentType != 'parent':#Segment stuff ===================================================================
         log.debug("|{0}| >> Segment...".format(_str_func))
         
         log.debug("|{0}| >> Handle Joints...".format(_str_func))
@@ -4268,9 +4227,6 @@ def rig_skeleton(self):
                 mJnt.doStore('cgmTypeModifier',"seg_{0}".format(i))
                 mJnt.doName()
                 
-            #reorient last
-            #ml_segmentHandles[-1].p_orient = ml_segmentHandles[0].p_orient
-            #JOINT.freezeOrientation(ml_segmentHandles[-1].mNode)                
                 
             if mBlock.ikSetup:
                 for ii,mJnt in enumerate(ml_segmentHandles):
@@ -4293,9 +4249,6 @@ def rig_skeleton(self):
                     mJnt.doName()
                     mJnt.p_parent = ml_segmentHandles[0].p_parent#...used to be i
                     
-                #reorient last
-                #ml_segmentMidHandles[-1].p_orient = ml_segmentMidHandles[0].p_orient
-                #JOINT.freezeOrientation(ml_segmentMidHandles[-1].mNode)                          
                 
             #Seg chain -------------------------------------------------------------------------------------
             log.debug("|{0}| >> SegChain {1} ...".format(_str_func, i))
@@ -4309,12 +4262,6 @@ def rig_skeleton(self):
                 mJnt.doStore('cgmTypeModifier',"seg_{0}".format(i))
                 mJnt.doName()
                 
-            #ml_segmentChain[-1].p_orient = ml_segmentChain[0].p_orient
-            #JOINT.freezeOrientation(ml_segmentChain[-1].mNode)
-            
-            
-                
-            #ml_jointsToConnect.extend(ml_segmentChain)
             
             log.debug("|{0}| >> map drivers {1} ...".format(_str_func, i))            
             for ii,mJnt in enumerate(ml_set):
@@ -6660,10 +6607,11 @@ def rig_segments(self):
 
                 
                 if i == l_rollKeys[-1]:
-                    mc.scaleConstraint(_ml_segTmp[-1].mNode,
-                                       _ml_segTmp[-1].rigJoint.masterGroup.mNode,
-                                       #skip='z',
-                                       maintainOffset = 1)
+                    if not _ml_segTmp[-1].rigJoint.masterGroup.getConstraintsTo(typeFilter='scale'):
+                        mc.scaleConstraint(_ml_segTmp[-1].mNode,
+                                           _ml_segTmp[-1].rigJoint.masterGroup.mNode,
+                                           #skip='z',
+                                           maintainOffset = 1)
                     
 
             else:
@@ -6712,13 +6660,14 @@ def rig_segments(self):
         
         if self.b_squashSetup:
             log.debug("|{0}| >> Final squash stretch stuff...".format(_str_func))
+            '''Need to probably skip this in some cases'''
             
             for mJnt in ml_rigJoints[:self.int_handleEndIdx]:
                 ml_drivers = mJnt.msgList_get('driverJoints')
                 if ml_drivers:
                     log.debug("|{0}| >> Found drivers".format(_str_func))
                     #mJnt.masterGroup.p_parent = mRigNull
-                    mc.scaleConstraint([mObj.mNode for mObj in ml_drivers],
+                    mc.scaleConstraint([mObj.mNode for mObj in ml_drivers],#ml_drivers[-1].mNode,#[mObj.mNode for mObj in ml_drivers],
                                        mJnt.masterGroup.mNode,
                                        #skip='z',
                                        maintainOffset=True)
@@ -8041,12 +7990,6 @@ def rig_blendFrame(self):
     
     #Setup blend ----------------------------------------------------------------------------------
     if self.b_scaleSetup:
-        """
-            mc.scaleConstraint(self.md_dynTargetsParent['attachDriver'].mNode,
-                               self.mDeformNull.mNode,
-                               maintainOffset=True,
-                               scaleCompensate=False)"""        
-
         log.debug("|{0}| >> scale blend chain setup...".format(_str_func))
         
         log.debug("|{0}| >> fk setup...".format(_str_func))
@@ -8184,6 +8127,13 @@ def rig_blendFrame(self):
 
         for mJnt in ml_scaleJoints:
             mJnt.dagLock(True)
+            
+        if self.str_segmentType == 'parent':
+            for i,mJnt in enumerate(ml_blendJoints):
+                mRigJoint = mJnt.getMessageAsMeta('rigJoint')
+                mScaleJoint = mJnt.getMessageAsMeta('scaleJoint')
+                if mScaleJoint and mRigJoint:
+                    mRigJoint.masterGroup.p_parent = mScaleJoint
     else:
         log.debug("|{0}| >> Normal setup...".format(_str_func))
         
@@ -8200,7 +8150,7 @@ def rig_blendFrame(self):
         else:
             RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                         driver = mPlug_FKIK,
-                                        l_constraints=['point','orient'])
+                                        l_constraints=['parent'])
             
             
             

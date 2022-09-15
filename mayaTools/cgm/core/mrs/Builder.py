@@ -5313,8 +5313,12 @@ class ui(cgmUI.cgmGUI):
 
         log.info("Context menu rebuilt")        
         
-    def buildMenu_multiset(self,*args,**kws):
+    def buildMenu_multiset(self,force=True, *args,**kws):
         _str_func = 'buildMenu_multiset'
+        if self.uiMenu_multiset and force is not True:
+            log.debug("No load...")
+            return
+        
         self.uiMenu_multiset.clear()   
         _menu = self.uiMenu_multiset
         
