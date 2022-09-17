@@ -126,6 +126,7 @@ d_attrStateMask = {'define':[],
                              'addLeverEnd',
                              'addToe',
                              'buildEnd'],
+                   'squashStretch':['segmentStretchBy'],
                    'skeleton':[],
                    'rig':[ 'ikExtendSetup','ikLeverEndLock','ikRollSetup', 'ikRPAim','ikOrientEndTo','segmentType',
                            'mainRotAxis',  'followParentBank',],
@@ -136,7 +137,7 @@ l_createUI_attrs = ['attachPoint','attachIndex',
                     'addCog','addPivot','addScalePivot','addAim',
                     'numControls',
                     'numSubShapers',
-                    'ikSetup',                    
+                    'ikSetup','segmentStretchBy',
                     'root_dynParentMode',
                     'root_dynParentScaleMode',
                     'segmentType',
@@ -909,7 +910,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'segmentType':'ribbon:ribbonLive:curve:linear:parent',
                  'ikOrientEndTo':'end:previous',
                  'ikLeverEndLock':'none:outNeg',
-                 
+                 'segmentStretchBy':'translate:scale',
                  #'buildSpacePivots':'bool',
                  #'nameIter':'string',
                  #'numControls':'int',
@@ -941,6 +942,7 @@ d_defaultSettings = {'version':__version__,
                      'meshBuild':True,
                      'addLeverEnd':'none',                     
                      'visLabels':True,
+                     'segmentStretchBy':'scale',
                      'settingsDirection':'up',
                      'numSpacePivots':2,
                      'settingsPlace':1,
@@ -3523,7 +3525,7 @@ def rig_dataBuffer(self):
             
         
         for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','ikOrientEndTo','addLeverBase','addLeverEnd','addToe','segmentType','buildEnd','ikLeverEndLock',
-                  'root_dynParentMode','root_dynParentScaleMode']:
+                  'root_dynParentMode','root_dynParentScaleMode','segmentStretchBy']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
             
         #self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
@@ -6568,7 +6570,8 @@ def rig_segments(self):
             self.fnc_connect_toRigGutsVis( mMasterCurve )
 
             #mMasterCurve.p_parent = ml_blendJoints[i]#mRoot#ml_blendJoints[i]
-            mMasterCurve.p_parent = mRoot
+            '''Add this when working on setupAimScale'''
+            mMasterCurve.p_parent = ml_blendJoints[i].getMessageAsMeta('scaleJoint') or ml_blendJoints[i] #mRoot
             
             _d = {'jointList':[mObj.mNode for mObj in ml_segJoints],
                   'baseName' : "{0}_seg_{1}".format(ml_blendJoints[i].cgmName,i),
@@ -6590,18 +6593,21 @@ def rig_segments(self):
             
             if _type in ['linear','curve']:
                 #reload(IK)
-                pprint.pprint(_d)
-                _d['parentDeformTo'] = ml_blendJoints[i]
+                _d['parentDeformTo'] = ml_blendJoints[i].getMessageAsMeta('scaleJoint') or ml_blendJoints[i]
                 _d['setupAim'] = 1
                 _d['skipAim'] = True
-                
+                if self.str_segmentStretchBy == 'scale':
+                    _d['setupAimScale'] = True   
+                    
                 if i == l_rollKeys[-1] and not self.b_extraHandles:
                     log.debug("|{0}| >> Last segment, buildEnd dag attachEndToInfluence = on".format(_str_func))                    
                     _d['attachEndToInfluence'] = True
                     
                 reload(IK)
                 _l_segJoints = _d['jointList']
-                _ml_segTmp = cgmMeta.asMeta(_l_segJoints)                                    
+                _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+                pprint.pprint(_d)
+                
                 IK.curve(**_d)
                 
 
@@ -6615,7 +6621,9 @@ def rig_segments(self):
                     
 
             else:
-                _d['parentDeformTo'] = ml_blendJoints[i]                
+                _d['parentDeformTo'] = ml_blendJoints[i]
+                if self.str_segmentStretchBy == 'scale':
+                    _d['setupAimScale'] = True                   
                 IK.ribbon(**_d)
             
                 ml_segJoints[0].parent = ml_blendJoints[i]
@@ -6661,16 +6669,16 @@ def rig_segments(self):
         if self.b_squashSetup:
             log.debug("|{0}| >> Final squash stretch stuff...".format(_str_func))
             '''Need to probably skip this in some cases'''
-            
-            for mJnt in ml_rigJoints[:self.int_handleEndIdx]:
-                ml_drivers = mJnt.msgList_get('driverJoints')
-                if ml_drivers:
-                    log.debug("|{0}| >> Found drivers".format(_str_func))
-                    #mJnt.masterGroup.p_parent = mRigNull
-                    mc.scaleConstraint([mObj.mNode for mObj in ml_drivers],#ml_drivers[-1].mNode,#[mObj.mNode for mObj in ml_drivers],
-                                       mJnt.masterGroup.mNode,
-                                       #skip='z',
-                                       maintainOffset=True)
+            if not self.str_segmentStretchBy == 'scale':
+                for mJnt in ml_rigJoints[:self.int_handleEndIdx]:
+                    ml_drivers = mJnt.msgList_get('driverJoints')
+                    if ml_drivers:
+                        log.debug("|{0}| >> Found drivers".format(_str_func))
+                        #mJnt.masterGroup.p_parent = mRigNull
+                        mc.scaleConstraint([mObj.mNode for mObj in ml_drivers],#ml_drivers[-1].mNode,#[mObj.mNode for mObj in ml_drivers],
+                                           mJnt.masterGroup.mNode,
+                                           #skip='z',
+                                           maintainOffset=True)
                     
                     
         for mHandle in ml_handleJoints:

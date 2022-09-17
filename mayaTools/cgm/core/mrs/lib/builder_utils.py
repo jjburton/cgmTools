@@ -1242,6 +1242,9 @@ def get_blockScale(self,plug='blockScale',ml_joints = None):
                                                '{0}.arcLength'.format(mInfoNode.mNode),
                                                "{0}.baseDist".format(mInfoNode.mNode)))
     
+
+    
+    
     
     for arg in l_argBuild:
         log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))

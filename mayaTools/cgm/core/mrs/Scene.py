@@ -27,6 +27,7 @@ import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.tools.Project as PROJECT
 import Red9.core.Red9_General as r9General
+import cgm.core.mrs.SceneDat as SCENEDAT
 
 
 
@@ -215,6 +216,8 @@ example:
         self.d_buttons = {}
         self.d_labels = {}        
         self.d_userPaths = {}
+        self.mExportDat = None
+        
         global UI
         UI = self
 
@@ -1384,7 +1387,14 @@ example:
         self.queueTSL.allowMultiSelect(True)
 
         _col = mUI.MelColumnLayout(_rcl,width=200,adjustableColumn=True,useTemplate = 'cgmUISubTemplate')#mc.columnLayout(width=200,adjustableColumn=True)
-
+        
+        _row = mUI.MelHLayout(_col,padding=5)
+        mUI.MelButton(_row, label="Save", ut = 'cgmUITemplate', command=partial(self.ExportQueue_write))
+        mUI.MelButton(_row, label="Load", ut = 'cgmUITemplate', command=partial(self.ExportQueue_load))
+        _row.layout()
+        
+        
+        mc.setParent(_col)
         cgmUI.add_LineSubBreak()
         #mUI.MelButton(_col, label="Add", ut = 'cgmUITemplate', command=partial(self.AddToExportQueue))
         #cgmUI.add_LineSubBreak()
@@ -4602,7 +4612,25 @@ example:
                                            "version":self.versionList['scrollList'].getItems()[-1]} )
 
         self.RefreshQueueList()
+    
+    def ExportQueue_write(self,*args):
+        if not self.batchExportItems:
+            return log.error("Nothing in queue")
+        
+        mDat = SCENEDAT.SceneExport({'data':self.batchExportItems})
+        mDat.write()
+        
 
+        
+    def ExportQueue_load(self,*args):
+        mDat = SCENEDAT.SceneExport(self.batchExportItems)
+        mDat.read()
+        
+        if mDat.dat:
+            self.batchExportItems = mDat.dat.get('data',[])
+            
+        self.RefreshQueueList()
+    
     def AddToExportQueue(self, exportMode = 'export', *args):
         if self.versionList['scrollList'].getSelectedItem() != None:
             self.batchExportItems.append( {"category":self.category,
@@ -4697,9 +4725,11 @@ example:
                 
                 if animDict.get('exportMode') == 'rig':
                     _exportFileName = [animDict["asset"], 'rig']
-                else:
+                elif animDict.get('asset') and animDict.get('set'):
                     _exportFileName = [animDict["asset"], animDict["set"]]
-                
+                else:
+                    _exportFileName = [animDict.get('version').split('.')[0]]
+                    
                 if animDict.get("variation"):
                     _exportFileName.append(animDict["variation"])
                 

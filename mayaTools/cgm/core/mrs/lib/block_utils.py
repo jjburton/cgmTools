@@ -12130,12 +12130,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 TRANS.position_set(end,pSet3)
 
                 #now loft new mesh...
-                _loftTargets = [end,mid2,mid1,root]
-                #_loftTargets.reverse()
-                #if cgmGEN.__mayaVersion__ in [2018]:
-                    #_loftTargets.reverse()
-
-                #mc.delete(_mesh)#...we're going to replace our mesh
+                _loftTargets = [end,mid2,mid1]#root
 
                 _mesh = BUILDUTILS.create_loftMesh(_loftTargets+_loftCurves, name="{0}_{1}".format('test',i), degree=1,divisions=1)
 

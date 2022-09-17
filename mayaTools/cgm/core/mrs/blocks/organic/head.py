@@ -127,10 +127,21 @@ d_attrStateMask = {'define':['neckDirection'],
                            'neckSubShapers','neckShapers'],
                    'prerig':['neckControls'],
                    'skeleton':['neckJoints'],
+                   'squashStretch':['segmentStretchBy'],
                    'rig':['neckIK','headAim',
                           'neckIKEndLever','neckIKBaseExtend','neckIKEndExtend']}
 
-
+l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoints',
+                    'addCog','addPivot','numSubShapers','segmentType',
+                    'loftSetup','scaleSetup',
+                    'numControls',
+                    'numSubShapers',
+                    'ikSetup','segmentStretchBy',
+                    'ribbonExtendEnds','ribbonAttachEndsToInfluence',
+                    'root_dynParentMode',
+                    'root_dynParentScaleMode','squashSkipAim',
+                    'dynParentMode','dynParentScaleMode',
+                    ]
 
 #=============================================================================================================
 #>> AttrMask 
@@ -294,7 +305,10 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikSplineAimEnd':'bool',                 
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  #'blockProfile':':'.join(d_block_profiles.keys()),
-                 'segmentType':'ribbon:ribbonLive:curve:linear:parent',                 
+                 'segmentType':'ribbon:ribbonLive:curve:linear:parent',
+                 'segmentStretchBy':'translate:scale',
+                 'squashSkipAim':'bool',
+                 
                  'neckIK':BLOCKSHARE._d_attrsTo_make.get('ikSetup')#we wanna match this one
                  }
 
@@ -330,6 +344,8 @@ d_defaultSettings = {'version':__version__,
                      'proxyShape':'cube',
                      'proxyGeoRoot':1,
                      'meshBuild':True,
+                     'squashSkipAim':False,
+                     'segmentStretchBy':'scale',
                      'ikSplineTwistEndConnect':True,
                      'loftList':['wideUp','circle'],
                      'root_dynParentMode':'follow',
@@ -2004,7 +2020,7 @@ def rig_dataBuffer(self):
         self.mHandleFactory = mBlock.asHandleFactory()
         self.mRootFormHandle = ml_formHandles[0]
         
-        for k in ['segmentType','settingsPlace','fkHeadOrientTo','ikMidSetup','ribbonAttachEndsToInfluence']:
+        for k in ['segmentType','settingsPlace','fkHeadOrientTo','ikMidSetup','ribbonAttachEndsToInfluence','segmentStretchBy']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
         
         self.ml_ikMidHelpers = mPrerigNull.msgList_get('ikMidHelpers')
@@ -3165,6 +3181,8 @@ def rig_segments(self):
               'settingsControl':_settingsControl,
               'attachEndsToInfluences':False,
               'parentDeformTo':self.mDeformNull,
+              'skipAim':mBlock.squashSkipAim,
+                            
               'moduleInstance':mModule}
         
         if self.ml_ikMidControls:
@@ -3175,12 +3193,15 @@ def rig_segments(self):
         if self.str_segmentType in ['ribbon','ribbonLive']:
             _d['liveSurface'] = False if self.str_segmentType == 'ribbon' else True
             
+            if self.str_segmentStretchBy == 'scale':
+                _d['setupAimScale'] = True
+                
             if self.str_ribbonAttachEndsToInfluence == 'both':
                 _d['attachEndsToInfluences'] = True
             elif self.str_ribbonAttachEndsToInfluence == 'start':
-                _d['attachStartToInfluences'] = True
+                _d['attachStartToInfluence'] = True
             elif self.str_ribbonAttachEndsToInfluence == 'end':
-                _d['attachEndToInfluences'] = True            
+                _d['attachEndToInfluence'] = True            
             
             _d['extendEnds'] = mBlock.ribbonExtendEnds
             
@@ -3189,6 +3210,8 @@ def rig_segments(self):
         else:
             _l_segJoints = _d['jointList']
             #_ml_segTmp = cgmMeta.asMeta(_l_segJoints)
+            if self.str_segmentStretchBy == 'scale':
+                _d['setupAimScale'] = True            
             _d['setupAim'] = 1                
             #_d['attachEndToInfluence'] = False                
             pprint.pprint(_d)

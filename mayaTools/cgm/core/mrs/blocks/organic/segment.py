@@ -128,6 +128,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                            'loftShapeEnd','loftShapeStart'],
                    'prerig':[],
                    'skeleton':['numJoints'],
+                   'squashStretch':['squashSkipAim','segmentStretchBy'],
                    'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
                           'ribbonExtendEnds','ribbonAttachEndsToInfluence',
                           
@@ -138,7 +139,7 @@ l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoi
                     'loftSetup','scaleSetup',
                     'numControls',
                     'numSubShapers',
-                    'ikSetup',
+                    'ikSetup','segmentStretchBy',
                     'ribbonExtendEnds','ribbonAttachEndsToInfluence',
                     'root_dynParentMode',
                     'root_dynParentScaleMode','squashSkipAim',
@@ -683,6 +684,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikMidControlNum':'int',
                  'ikMidSetup':'none:ribbon:prntConstraint:linearTrack:cubicTrack',
                  'segmentType':'ribbon:ribbonLive:spline:curve:linear:parent',
+                 'segmentStretchBy':'translate:scale',
                  'ikBase':'none:cube:simple:hips:head',
                  'settingsPlace':'start:end:cog',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
@@ -749,6 +751,7 @@ d_defaultSettings = {'version':__version__,
                      #'blockProfile':'spine',
                      'scaleSetup':False,
                      'squashSkipAim':True,
+                     'segmentStretchBy':'scale',
                      'attachPoint':'closest',}
 
 
@@ -1934,7 +1937,7 @@ def rig_dataBuffer(self):
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
             mBlock.ikMidSetup = 0
             
-        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence']:
+        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence','segmentStretchBy']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
                 
         #Vector ====================================================================================
@@ -1979,7 +1982,7 @@ def rig_dataBuffer(self):
             _driverSetup =  mBlock.getEnumValueString('ribbonAim')
         self.d_squashStretch['driverSetup'] = _driverSetup
     
-        self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
+        #self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
         self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
         self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
         self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
@@ -2970,21 +2973,27 @@ def rig_segments(self):
             
         if mBlock.getEnumValueString('ikBase') in ['hips','head']:
             _d['attachStartToInfluence'] = True
+            
         if mBlock.special_swim:
             _d['attachStartToInfluence'] = False
             _d['attachEndToInfluence'] = False
             
             
             
-        #reload(IK)
+        reload(IK)
 
         
         _d.update(self.d_squashStretch)
         
+
         
         if self.str_segmentType in ['ribbon','ribbonLive']:
+            if self.str_segmentStretchBy == 'scale':
+                _d['setupAimScale'] = True
+                
             _d['liveSurface'] = False if self.str_segmentType == 'ribbon' else True
-            log.info(cgmGEN.logString_sub,_str_func,"segment dict...")
+            #log.info(cgmGEN.logString_sub,_str_func,"segment dict...")
+
             pprint.pprint(_d)
             res_ribbon = IK.ribbon(**_d)
             ml_surfaces = res_ribbon['mlSurfaces']
@@ -3029,7 +3038,7 @@ def rig_segments(self):
             
             pprint.pprint(ml_segJoints)
             RIGFRAME.spline(self,ml_ikUse, None, ml_handleJoints[-1], ml_handleJoints[0],
-                            ml_handleJoints, mPlug_masterScale, 'translate',
+                            ml_handleJoints, mPlug_masterScale, self.str_segmentStretchBy,
                             mBlock.ikSplineTwistEndConnect, mBlock.ikSplineExtendEnd, mBlock.ikSplineAimEnd, mSettings)
             
             if mSettings.hasAttr('twistType'):
@@ -3061,6 +3070,8 @@ def rig_segments(self):
             _l_segJoints = _d['jointList']
             _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
             _d['setupAim'] = 1                
+            if self.str_segmentStretchBy == 'scale':
+                _d['setupAimScale'] = True
             #_d['attachEndToInfluence'] = False                
             pprint.pprint(_d)
             IK.curve(**_d)

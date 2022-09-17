@@ -182,11 +182,7 @@ class BlockDat(BaseDat):
         #self.write(_path)
         
         return
-        if not os.path.exists(startDir):
-            CGMDAT.CGMOS.mkdir_recursive(startDir)
-        
-        if not mode:
-            pass
+
         
     def create(self, autoPush= True):
         return blockDat_createBlock(self, autoPush=autoPush)

@@ -10,7 +10,7 @@ Website : http://www.cgmonastery.com
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '22.09.15.1'
+__RELEASE = '22.09.16.1'
 
 __BRANCH = 'MRSDAILY'
 
