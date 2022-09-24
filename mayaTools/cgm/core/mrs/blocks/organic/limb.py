@@ -167,6 +167,8 @@ d_build_profiles = {
                             'root_dynParentScaleMode':'space',
                             'root_dynParentMode':'space',
                             'numRoll':3,
+                            'segmentType':'curve',
+                            'segmentStretchBy':'scale',
                             },
                  'finger':{'numRoll':0},
                  'toe':{'numRoll':0},
@@ -179,6 +181,9 @@ d_build_profiles = {
                                  'root_dynParentScaleMode':'space',
                                  'root_dynParentMode':'space',
                                  'numRoll':0,
+                                 'segmentType':'curve',
+                                 'segmentStretchBy':'scale',
+                                 
                                  },
                  'finger':{'numRoll':0},
                  'toe':{'numRoll':0},

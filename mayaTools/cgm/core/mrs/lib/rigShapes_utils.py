@@ -340,8 +340,12 @@ def rootOrCog(self,mHandle = None):
     log_start(_str_func)
     
     mBlock = self.mBlock
-    ml_prerigHandles = self.ml_prerigHandles
     ml_formHandles = self.ml_formHandles
+    
+    try:ml_prerigHandles = self.ml_prerigHandles
+    except:
+        ml_prerigHandles = ml_formHandles #use these as a backup
+        
     _offset = self.v_offset
     if mBlock.getMessage('cogHelper') and mBlock.getMayaAttr('addCog'):
         log.debug("|{0}| >> Cog...".format(_str_func))
@@ -352,12 +356,15 @@ def rootOrCog(self,mHandle = None):
     
         #Cast a simple curve
         #Cv's 4,2 | 
-    
-        ml_shapes = self.atBuilderUtils('shapes_fromCast',
-                                        targets = mCogHelper.shapeHelper,
-                                        offset = _offset * 2.0,
-                                        mode = 'singleCast')#'segmentHan            
-        CORERIG.shapeParent_in_place(mCog.mNode, ml_shapes[0].mNode,False)
+        
+        try:
+            ml_shapes = self.atBuilderUtils('shapes_fromCast',
+                                            targets = mCogHelper.shapeHelper,
+                                            offset = _offset * 2.0,
+                                            mode = 'singleCast')#'segmentHan            
+            CORERIG.shapeParent_in_place(mCog.mNode, ml_shapes[0].mNode,False)
+        except:
+            pass
     
         CORERIG.override_color(mCog.mNode,'white')
     
@@ -368,7 +375,7 @@ def rootOrCog(self,mHandle = None):
         self.mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect
         self.mRigNull.connectChildNode(mCog,'settings','rigNull')#Connect
         
-        if mBlock.getMayaAttr('scaleSetup'):
+        if mBlock.getMayaAttr('scaleSetup') and mBlock.blockType not in ['handle']:
             _bb_cog = POS.get_bb_size(mCog.mNode,True,'max')
             mScaleRootShape = cgmMeta.validateObjArg(CURVES.create_fromName('fatCross', _bb_cog * .7),'cgmObject',setClass=True)
             mScaleRootShape.doSnapTo(mCog)
@@ -387,6 +394,7 @@ def rootOrCog(self,mHandle = None):
             self.mHandleFactory.color(mScaleRoot.mNode, controlType = 'sub')
             self.mRigNull.connectChildNode(mScaleRoot,'scaleRoot','rigNull')#Connect                    
             mScaleRoot.p_parent = mCog
+        return mCog
     
     else:#Root =============================================================================
         log.debug("|{0}| >> Root...".format(_str_func))
@@ -415,8 +423,8 @@ def rootOrCog(self,mHandle = None):
         self.mHandleFactory.color(mRoot.mNode, controlType = 'sub')
 
         self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect        
+        return mRoot
        
-
 
 def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkShapes = None,
           ml_ikJoints = None, ml_fkJoints = None,shapeArg = None):

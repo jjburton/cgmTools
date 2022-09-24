@@ -1429,10 +1429,10 @@ def rig_shapes(self):
         
     if mBlock.addCog and mBlock.getMessage('cogHelper'):
         log.info("|{0}| >> Cog helper setup... ".format(_str_func))
-        mCog = mBlock.cogHelper.doCreateAt()
+        mCog = RIGSHAPES.rootOrCog(self)#mBlock.cogHelper.doCreateAt()
         mCog.p_parent = False
         #ATTR.break_connection(mCog.mNode,'visibility')
-        
+        """
         CORERIG.shapeParent_in_place(mCog.mNode,mBlock.cogHelper.shapeHelper.mNode,True)
 
         mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect    
@@ -1440,7 +1440,7 @@ def rig_shapes(self):
         mCog.doStore('cgmName','cog')
         mCog.doStore('cgmAlias','cog')
         
-        mCog.doName()
+        mCog.doName()"""
         
     
         

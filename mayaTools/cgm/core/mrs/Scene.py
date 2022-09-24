@@ -3253,8 +3253,8 @@ example:
             print "No version selected"
             return
         """
-        VALID.fileOpen(self.versionFile,True,True)
-        self.refreshMetaData()
+        if VALID.fileOpen(self.versionFile,True,True):
+            self.refreshMetaData()
         
     def uiFunc_getOpenFileDict(self,*args):
         
