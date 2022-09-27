@@ -1484,7 +1484,7 @@ def get_castMesh(self,extend=False,pivotEnd=False):
             justMesh = True,
             baseName = self.cgmName)
     else:
-        mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0]
+        mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0].doDuplicate(po=False)
         
     mRebuildNode = mMesh.getMessage('rebuildNode',asMeta=True)[0]
         

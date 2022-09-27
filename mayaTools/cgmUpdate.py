@@ -582,7 +582,7 @@ def get_branch_names():
     finally:
         print '...'
 
-def here(branch = _defaultBranch, idx = 0, cleanFirst = True, run = True):
+def here(branch = _defaultBranch, idx = 0, cleanFirst = True, run = True, reloadCGM = True):
     """
     """
     _str_func = 'here'
@@ -615,7 +615,7 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True, run = True):
         try:
             mel.eval('rehash')
             import cgm
-            cgm.core._reload()
+            if reloadCGM:cgm.core._reload()
             mel.eval('cgmToolbox')
         except Exception,err:
             return log.error("Failed to load cgm | {0}".format(err))

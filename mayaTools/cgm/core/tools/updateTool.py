@@ -39,7 +39,7 @@ import cgmUpdate
 __version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='cgmUpdate'
 _commit_limit = 12
-_l_branches = ['stable','master','MRS','MRSDEV','MRSWORKSHOP','MRSWORKSHOPDEV']
+_l_branches = ['MRSDAILY','MRSDEV','stable','master','MRS','MRSWORKSHOP','MRSWORKSHOPDEV']
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -261,8 +261,7 @@ class ui(cgmUI.cgmGUI):
             log.debug("|{0}| >> go!".format(_str_func))
             
             try:
-                cgmUpdate.here(_branch,_idx)
-                
+                cgmUpdate.here(_branch,_idx,reloadCGM=False)
                 self.var_lastUpdate.setValue([_branch,
                                               _hash,
                                               _msg,datetime.datetime.now().__str__()[:-7]])
@@ -272,7 +271,8 @@ class ui(cgmUI.cgmGUI):
                 self.uiUpdate_topReport()
             except Exception,err:
                 pprint.pprint(vars())
-            finally:pass
+            finally:
+                cgm.core._reload()
         else:
             return log.error("|{0}| update cancelled".format(_str_func))
         

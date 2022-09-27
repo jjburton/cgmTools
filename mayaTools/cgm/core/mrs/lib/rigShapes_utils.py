@@ -364,6 +364,7 @@ def rootOrCog(self,mHandle = None):
                                             mode = 'singleCast')#'segmentHan            
             CORERIG.shapeParent_in_place(mCog.mNode, ml_shapes[0].mNode,False)
         except:
+            ml_shapes = []
             pass
     
         CORERIG.override_color(mCog.mNode,'white')

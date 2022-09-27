@@ -109,7 +109,7 @@ def uiSection_help(parent):
     
 
     
-    """
+    
     mc.menuItem(parent = parent,
                     l='Check for updates',
                     ann = "Check your local cgm branch for updates...",
@@ -117,7 +117,7 @@ def uiSection_help(parent):
     mc.menuItem(parent = parent,
                 l='cgmUpdateTool',
                 ann = "Get Tool Updates",
-                c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))"""
+                c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))
     mc.menuItem(parent = parent,
                 l='About CGM',
                 ann = "About CGM",
