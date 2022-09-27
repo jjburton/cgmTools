@@ -107,8 +107,12 @@ def uiSection_git(parent):
 def uiSection_help(parent):
     _str_func = 'uiSection_help'  
     
-
+    mc.menuItem(parent = parent,
+                l='About CGM',
+                ann = "About CGM",
+                c=lambda *a: cgmUI.uiWindow_thanks(False))  
     
+    mUI.MelMenuItemDiv(parent,label = 'Updates')
     
     mc.menuItem(parent = parent,
                     l='Check for updates',
@@ -118,11 +122,8 @@ def uiSection_help(parent):
                 l='cgmUpdateTool',
                 ann = "Get Tool Updates",
                 c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))
-    mc.menuItem(parent = parent,
-                l='About CGM',
-                ann = "About CGM",
-                c=lambda *a: cgmUI.uiWindow_thanks(False))  
-    
+
+    mUI.MelMenuItemDiv(parent,label = 'Other')    
     mc.menuItem(parent = parent,
                 l='Support our Work',
                 ann = "Support our work",
