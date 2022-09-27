@@ -27,6 +27,7 @@ import maya.cmds as mc
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
+import cgm
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
@@ -443,6 +444,9 @@ def checkBranch():
     var_lastUpdate.report()
     if _lastUpdate == 'None':
         return log.error("No last update found. Can't check for updates")
+    
+    if not issubclass(type(_lastUpdate),list):
+        return log.error("Not returning list. Problem with data")
     
     _lastBranch = _lastUpdate[0]
     
