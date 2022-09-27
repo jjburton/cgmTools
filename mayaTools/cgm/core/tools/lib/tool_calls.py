@@ -84,6 +84,14 @@ def cgmUpdateTool():
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
         
+def cgmUpdateTool_lastBranch():
+    try:
+        import cgm.core.tools.updateTool as CGMUPDATE
+        reload(CGMUPDATE)
+        CGMUPDATE.checkBranch()
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+        
 def locinator():
     from cgm.core.tools import locinator as LOCINATOR
     reload(LOCINATOR)

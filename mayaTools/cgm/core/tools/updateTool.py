@@ -230,6 +230,8 @@ class ui(cgmUI.cgmGUI):
         _msg = _d['msg']
         _lastBranch = None
         _lastHash = None
+        _lastDate = None
+        _lastMsg = None
         
         _lastUpdate = self.var_lastUpdate.getValue() or None
         

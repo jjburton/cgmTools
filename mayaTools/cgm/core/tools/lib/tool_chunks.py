@@ -113,7 +113,7 @@ def uiSection_help(parent):
     mc.menuItem(parent = parent,
                     l='Check for updates',
                     ann = "Check your local cgm branch for updates...",
-                    c=lambda *a: mc.evalDeferred(CGMUPDATE.checkBranch,lp=True))
+                    c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool_lastBranch,lp=True))
     mc.menuItem(parent = parent,
                 l='cgmUpdateTool',
                 ann = "Get Tool Updates",
