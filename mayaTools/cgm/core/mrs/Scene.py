@@ -124,7 +124,7 @@ example:
         self.var_showAllFiles           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 1)
         #self.var_removeNamespace        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
         #self.var_zeroRoot               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
-        self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
+        self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 1)
         self.var_categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
         self.var_subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
         self.var_alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_alwaysSendReferences", varType= 'int', defaultValue = 0)
@@ -242,7 +242,7 @@ example:
     
     def rebuild_scriptUI(self):
         _str_func = 'rebuild_scriptUI'
-        log.info(log_start(_str_func))
+        log.debug(log_start(_str_func))
         self.uiMenu_projectUtils(edit=True, vis=False)
         
         _path = self.d_userPaths.get('scriptUI')
@@ -252,7 +252,7 @@ example:
         if not os.path.exists(_path):
             return log.warning(cgmGEN.logString_msg(_str_func, "path doesn't exist: {}".format(_path)))
         
-        log.info(cgmGEN.logString_msg(_str_func, _path))
+        log.debug(cgmGEN.logString_msg(_str_func, _path))
         module = None
         if float(cgmGEN.__mayaVersion__) < 2022:
             import imp
@@ -401,7 +401,7 @@ example:
     def versionFile(self):
         
         _set =  self.path_set
-        log.info(_set)
+        log.debug(_set)
         if _set and os.path.isfile(_set):
             return _set        
         """
@@ -478,15 +478,12 @@ example:
         log.debug(log_msg(_str_func, _path))
         
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        try:
-            _dirs = CGMOS.get_lsFromPath(_path,'dir')
-            for d in _l_directoryMask:
-                try:_dirs.remove(d)
-                except:pass
-        except Exception,err:
-            log.error(log_msg(_str_func, err))
-            return False
+        _dirs = CGMOS.get_lsFromPath(_path,'dir')        
         
+        for d in _l_directoryMask:
+            if d in _dirs:
+                _dirs.remove(d)
+            
         if _dirs:
             _res = True
             
@@ -517,14 +514,13 @@ example:
         log.debug(log_msg(_str_func, self.subType))
         
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        try:
-            _dirs = CGMOS.get_lsFromPath(_path,'dir')
-            for d in _l_directoryMask:
-                try:_dirs = _dirs.remove(d)
-                except:pass
-        except Exception,err:
-            log.error(log_msg(_str_func, err))
-            return False
+        _dirs = CGMOS.get_lsFromPath(_path,'dir')
+        
+        for d in _l_directoryMask:
+            if d in _dirs:
+                _dirs.remove(d)
+
+            #return False
             
         if _dirs:
             _res = True
@@ -545,14 +541,11 @@ example:
         log.debug(log_msg(_str_func, self.subType))
         
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        try:
-            _dirs = CGMOS.get_lsFromPath(_path,'dir')
-            for d in _l_directoryMask:
-                try:_dirs = _dirs.remove(d)
-                except:pass
-        except Exception,err:
-            log.error(log_msg(_str_func, err))
-            return False
+        _dirs = CGMOS.get_lsFromPath(_path,'dir')
+        
+        for d in _l_directoryMask:
+            if d in _dirs:
+                _dirs.remove(d)
             
         if _dirs:
             _res = True
@@ -564,27 +557,27 @@ example:
     def hasVariant(self):
         _str_func = 'hasVariant'
         _res = False
-        
+        _dirs = []
         try:
             _path_set= self.path_set
             log.debug(log_msg(_str_func, _path_set))
-        except:
+        except Exception, err:
+            log.error(log_msg(_str_func, err))            
             return _res
         
         log.debug(log_start(_str_func))
-        log.debug(log_msg(_str_func, _path_set))        
-        try:
-            if _path_set and os.path.isdir(_path_set):
-                _dirs = CGMOS.get_lsFromPath(_path_set,'dir')
-                for d in _l_directoryMask:
-                    try:_dirs = _dirs.remove(d)
-                    except:pass
-                        
-                if _dirs:
-                    _res = True
-        except Exception,err:
-            log.error(log_msg(_str_func, err))
-            return False
+        log.debug(log_msg(_str_func, "path_set | {}".format(_path_set)))        
+        if _path_set and os.path.isdir(_path_set):
+            _dirs = CGMOS.get_lsFromPath(_path_set,'dir')        
+
+
+        for d in _l_directoryMask:
+            if d in _dirs:
+                _dirs.remove(d)
+                
+        if _dirs:
+            _res = True
+ 
 
         log.debug(log_msg(_str_func,_res))
 
@@ -1485,23 +1478,29 @@ example:
     #=========================================================================
     def buildAssetForm(self):
         _str_func = 'buildAssetForm'
+        log.debug("|{0}| >>...".format(_str_func))
+        
         #pprint.pprint(self.subTypes)
         if not self.subTypes:
-            log.debug(log_msg(_str_func,"subtypes..."))
+            log.debug(log_msg(_str_func,"no subtypes..."))
             
             mc.formLayout( self._subForms[1], e=True, vis=False )            
             mc.formLayout( self._subForms[3], e=True, vis=True )
             
         else:
-            log.debug(log_msg(_str_func,"no subtypes..."))            
+            log.debug(log_msg(_str_func,"subtypes..."))            
             mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
             mc.formLayout( self._subForms[1], e=True, vis=True )            
             
             _hasSub = self.hasSub
+            log.debug(log_msg(_str_func,"hasSub: {}".format(_hasSub)))
+            
             if not self.subTypeSearchList['scrollList'].getSelectedItem():
+                log.debug(log_msg(_str_func,"no subTypeSearchList selected"))
                 mc.formLayout( self._subForms[3], e=True, vis=False)
                 
             else:
+                log.debug(log_msg(_str_func,"subTypeSearchList selected"))                
                 if self.b_subFile:
                     log.debug(log_msg(_str_func,"subfile..."))                
                     mc.formLayout( self._subForms[3], e=True, vis=False)
@@ -1510,14 +1509,12 @@ example:
                     mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
                     
                     if not self.hasSubTypes:
+                        log.debug(log_msg(_str_func,"no subtypes 2..."))                                
+                        
                         mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
                     
                     else:
-                            
-                        #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
-                        #else:
-                        #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
-                            
+                        log.debug(log_msg(_str_func,"subtypes 2..."))                                
                         mc.formLayout( self._subForms[1], e=True, vis=True )
             
         
@@ -2125,6 +2122,7 @@ example:
             
             return
         else:
+            log.debug(log_msg(_str_func,"dir passed"))            
             self.b_subFile = False            
             for mUI in self.ml_fileOptions_set:
                 mUI(edit=True,en=False)
@@ -2134,17 +2132,22 @@ example:
         
         
         if self.hasVariant:
+            log.debug(log_msg(_str_func,"hasVariant"))                        
             self.LoadVariationList()
         else:
+            log.debug(log_msg(_str_func,"hasVariant == false"))                                    
             self.variationList['items'] = []
             self.variationList['scrollList'].clear()            
 
         #if not self.subTypes:#...if we have 
+        
         self.LoadVersionList()
+        
         #else:
         #self.LoadSubTypeList()
+        
         self.buildAssetForm()
-            
+        
         self.uiUpdate_setsButtons()
         self.SaveCurrentSelection()
             
@@ -3053,7 +3056,7 @@ example:
                         subList.append(d)
                     else:
                         subList.append(d)
-                        
+                    
 
         self.subTypeSearchList['items'] = subList
         self.subTypeSearchList['scrollList'].clear()
@@ -3118,6 +3121,7 @@ example:
                     #animDir = os.path.normpath(os.path.join(animationDir, d))
                     #if os.path.isdir(animDir):
                     variationList.append(d)
+                    
             else:
                 log.error(log_msg(_str_func, "path doesn't exist? {}".format(animationDir)))                                    
         

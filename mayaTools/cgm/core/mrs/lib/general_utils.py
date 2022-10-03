@@ -688,7 +688,25 @@ def get_rigBlock_heirarchy_context(mBlock, context = 'below', asList = False, re
         
     if asList:
         log.debug("|{0}| >> asList...".format(_str_func))
-        return cgmGEN.walk_heirarchy_dict_to_list(_res)
+        return sort_blockList_by_parentLen(cgmGEN.walk_heirarchy_dict_to_list(_res))
+    return _res
+
+def sort_blockList_by_parentLen(ml = []):
+    d = {}
+    _res = []
+    for mObj in ml:
+        mParents = mObj.getBlockParents()
+        _len = len(mParents)
+        if not d.get(_len):
+            d[_len] = []
+            
+        d[_len].append(mObj)
+    
+    _keys = d.keys()
+    _keys.sort()
+    _res = []
+    for k in _keys:
+        _res.extend(d[k])    
     return _res
 
 def get_puppet_heirarchy_context(mModule, context = 'below', asList = False, report = True):
