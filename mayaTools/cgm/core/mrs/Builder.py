@@ -4621,6 +4621,12 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelMenuItemDiv(_menu, l='UIs')
         
+        
+        mc.menuItem(parent = _menu,
+                    l='BlockConfig',
+                    ann = "BlockConfig",
+                    c=lambda *a: TOOLCALLS.CONFIGDATui())        
+        
         mc.menuItem(parent = _menu,
                     l='BlockDat',
                     ann = "Blockdat",

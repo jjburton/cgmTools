@@ -60,7 +60,7 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
-
+import cgm.core.lib.shared_data as CORESHARE
 
 # From cgm ==============================================================
 import cgm.core.cgm_Meta as cgmMeta
@@ -1326,6 +1326,20 @@ def setup_defaults(d_defaults = {}):
                 if not mObj.hasAttr(a):
                     l_missing.append("Attribute: {}".format(a))
                     continue
+                if a == 'rotateOrder':
+                    if VALID.valueArg(v):
+                        _v = CORESHARE._d_rotateOrder_from_index(v)
+                    else:_v = v
+                    mc.xform(o,rotateOrder=_v,p=True)
+                    
+                    if mObj.hasAttr('defaultValues'):
+                        _d = mObj.defaultValues
+                        _dNew = {}
+                        for a2 in 'XYZ':
+                            _dNew['rotate{}'.format(a2)] = mObj.getMayaAttr('rotate{}'.format(a2))
+                        _d.update(_dNew)
+                        mObj.defaultValues = _d
+                    
                 try:ATTR.set_default(o,a,v)
                 except Exception,err:log.error(err)
                 ATTR.set(o,a,v)

@@ -95,7 +95,7 @@ def get_orphanedRigModules(select = True, delete=False):
     return ml or log.warning("No orphaned rigModules  found.")
 
 
-def block_getFromSelected(multi=False):
+def block_getFromSelected(multi=False,sort=True):
     _str_func = 'block_getFromSelected'
     _res = []
     
@@ -118,6 +118,8 @@ def block_getFromSelected(multi=False):
                     _res.append(mObj)
                     
     if multi and _res:
+        if sort:
+            return sort_blockList_by_parentLen(_res)
         return _res
     
     return False
@@ -224,7 +226,7 @@ _d_scrollList_shorts = {'left':'L',
                         'prerig':'pre',
                         'skeleton':'skl'}
 
-def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, stringList=None, showSide = True, presOnly = False):
+def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, stringList=None, showSide = True, presOnly = False, showState=True,showProfile =False):
     '''
     Log a dictionary.
 
@@ -286,7 +288,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                 
                 
                 if _len:
-                    s_start = '  '*_len +' '
+                    s_start = ' '*_len +' '
                 else:
                     s_start = ''
                     
@@ -322,12 +324,13 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     
                         
                     #_l_report.append(ATTR.get(_short,'blockState'))
-                    if mBlock.getMayaAttr('isBlockFrame'):
-                        _l_report.append("[FRAME]")
-                    else:
-                        _state = mBlock.getEnumValueString('blockState')
-                        _blockState = _d_scrollList_shorts.get(_state,_state)
-                        _l_report.append("[{0}]".format(_blockState.upper()))
+                    if showState:
+                        if mBlock.getMayaAttr('isBlockFrame'):
+                            _l_report.append("[FRAME]")
+                        else:
+                            _state = mBlock.getEnumValueString('blockState')
+                            _blockState = _d_scrollList_shorts.get(_state,_state)
+                            _l_report.append("[{0}]".format(_blockState.upper()))
                     
                     """
                     if mObj.hasAttr('baseName'):
@@ -346,13 +349,15 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
                     _blockProfile = mBlock.getMayaAttr('blockProfile')
                     l_block.append(ATTR.get(_short,'blockType').capitalize())
                     
-                    if _blockProfile:
+                    if _blockProfile and showProfile:
                         if _cgmName in _blockProfile:
                             _blockProfile = _blockProfile.replace(_cgmName,'')
                         _blockProfile= STR.camelCase(_blockProfile)                    
                         l_block.append(_blockProfile)
                         
-                    _str = _str + (' - [{0}]'.format("-".join(l_block)))
+                        _str = _str + (' - [{0}]'.format("-".join(l_block)))
+                    else:
+                        _str = _str + "| [{}]".format(l_block[0])
                     
                         
         
@@ -363,7 +368,7 @@ def get_uiScollList_dat(arg = None, tag = None, counter = 0, blockList=None, str
          
                 buffer = arg[k]
                 if buffer:
-                    get_uiScollList_dat(buffer,k,counter,blockList,stringList,showSide,presOnly)   
+                    get_uiScollList_dat(buffer,k,counter,blockList,stringList,showSide,presOnly,showState,showProfile)   
                     
         
                     """if counter == 0:

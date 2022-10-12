@@ -145,3 +145,8 @@ def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?>
         return str_Clean		
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+
+def stripWhiteSpaceStart(arg = None):
+    while arg.startswith( ' ' ):
+        arg = arg[ 1: ]    
+    return arg

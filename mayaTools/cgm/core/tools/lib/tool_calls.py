@@ -146,6 +146,11 @@ def BLOCKDATui():
     reload(MRSDAT)
     MRSDAT.uiBlockDat()
     
+def CONFIGDATui():
+    import cgm.core.mrs.MRSDat as MRSDAT
+    reload(MRSDAT)
+    MRSDAT.uiBlockConfigDat()
+    
 def SHAPEDATui():
     import cgm.core.mrs.ShapeDat as SHAPEDAT
     reload(SHAPEDAT)

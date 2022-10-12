@@ -17,7 +17,7 @@ import getpass
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -229,7 +229,9 @@ class data(object):
         
     def log_self(self):
         log.info(cgmGEN._str_hardBreak)
-        pprint.pprint(self.__dict__)
+        _d = copy.copy(self.__dict__)
+        _d.pop('dat')
+        pprint.pprint(_d)
         
     def log_dat(self):
         log.info(cgmGEN._str_hardBreak)
@@ -588,9 +590,6 @@ class ui(CGMUI.cgmGUI):
         
         if not self.uiDat.checkState():
             self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('warning'),label = 'No Data')            
-            #self.uiData_base(edit=True,vis=0)
-            #self.uiData_base.clear()
-            
         else:
             #self.uiData_base.clear()
             if not string:

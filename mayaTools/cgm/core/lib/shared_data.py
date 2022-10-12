@@ -327,7 +327,7 @@ _d_side_colors_index = {'left':{'main':'blueBright',
 #>>> Gui
 #===================================================================
 _d_gui_state_colors = {'normal':(1,1,1),
-                       'ready':( 0.166262 ,0.388495 , 0.022797),
+                       'ready':( 0.166262 ,0.5 , 0.022797),
                        'keyed':(0.870588, 0.447059, 0.478431),
                        'locked':(0.360784, 0.407843, 0.454902),
                        'connected':(0.945098, 0.945098, 0.647059),
@@ -342,7 +342,9 @@ _d_gui_direction_colors = {'center':(0.971679, 1, 0),
                            'centerSub':(0.972, 1, 0.726),
                            'left':(0.305882 ,0.814528, 1),
                            'right':(0.976471 ,0.355012, 0.310173)}
-
+_d_gui_direction_colors_sub  = {}
+for k,l in _d_gui_direction_colors.iteritems():
+    _d_gui_direction_colors_sub[k] = [v * .8 for v in l]
     
 #>>>Object Sets
 #==================================================================

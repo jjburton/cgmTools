@@ -32,7 +32,7 @@ import getpass
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -65,10 +65,13 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.lib.transform_utils as TRANS
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import distance_utils as DIST
-
+from cgm.core.mrs import ShapeDat as SHAPEDAT
 import cgm.core.mrs.RigBlocks as RIGBLOCKS
 from cgm.core.classes import GuiFactory as CGMUI
 mUI = CGMUI.mUI
+
+import cgm.images.icons as cgmIcons
+_path_imageFolder = PATHS.Path(cgmIcons.__file__).up().asFriendly()
 
 from cgm.core import cgm_General as cgmGEN
 log_msg = cgmGEN.logString_msg
@@ -98,6 +101,7 @@ class BaseDat(CGMDAT.data):
             _path = os.path.join(startDir, self._startDir[0])        
         
         return _path
+    
 
 class BlockDat(BaseDat):
     _ext = 'cgmBlockDat'
@@ -107,7 +111,7 @@ class BlockDat(BaseDat):
     Class to handle blockDat data. Replacing existing block dat which storing on the node is not ideal
     '''    
     
-    def __init__(self, mBlock = None, filepath = None, **kws):
+    def __init__(self, mBlock = None, filepath = None, dat = None, **kws):
         """
 
         """
@@ -116,6 +120,9 @@ class BlockDat(BaseDat):
         super(BlockDat, self).__init__(filepath, **kws)
         self.mBlock = False
         
+        if dat:
+            self.dat = dat
+            
         if mBlock:
             self.mBlock = cgmMeta.asMeta(mBlock)
         if self.mBlock:
@@ -183,10 +190,43 @@ class BlockDat(BaseDat):
         
         return
 
-        
     def create(self, autoPush= True):
         return blockDat_createBlock(self, autoPush=autoPush)
-        
+    
+    def __repr__(self):
+        if self.dat:
+            return "({} | {} | {} | {})".format(self.get_string(), self.__class__, self._ext, self._dataFormat)    
+        if self.mBlock:
+            return "({} | {} | {} | {})".format(self.mBlock.p_nameBase, self.__class__, self._ext, self._dataFormat)    
+        return "({} | {} | {})".format(self.__class__, self._ext, self._dataFormat)
+    
+    
+    def get_string(self):
+        if not self.dat:
+            return False
+        return blockDat_getString(self)
+
+def blockDat_getString(self):
+    mDat = copy.deepcopy(self.dat)
+    _blockType = mDat['blockType']
+    _side = mDat.get('side')
+    _nameOriginal = mDat['baseName']
+    _res = [_nameOriginal,_blockType]
+    """
+    _d = {'blockType':_blockType,
+          'autoForm':False,
+          'side':_side,
+          'baseSize':_size,#mDat['baseSize'],
+          'blockProfile':mDat.get('blockProfile'),
+          'buildProfile':mDat.get('buildProfile'),
+          'blockParent': mDat.get('blockParent')}"""
+    if _side not in [False,None,'none']:
+        _res.insert(0,_side)
+    
+    return " | ".join(_res)
+
+    
+    
 def blockDat_createBlock(self, autoPush = True):
     '''
     blockDat self
@@ -289,7 +329,7 @@ def blockDat_createBlock(self, autoPush = True):
 
     return mNew    
         
-    
+
 def blockDat_get(self,report = True):
     _str_func = 'blockDat_get'        
     log.debug(log_start(_str_func))
@@ -310,21 +350,21 @@ def blockDat_get(self,report = True):
         _l_ud = self.getAttrs(ud=True)
         
         _gen = {#"name":_short, 
-              "blockType":self.blockType,
-              "blockState":self.getEnumValueString('blockState'),
-              'blockProfile':self.blockProfile,
-              "buildProfile":self.getMayaAttr('buildProfile'),
-              "shapeProfile":self.getMayaAttr('shapeProfile'),                     
-              "baseName":self.getMayaAttr('cgmName'), 
-              'position':self.p_position,
-              'orient':self.p_orient,
-              'scale':self.scale,
-              'side': self.getEnumValueString('side') if self.hasAttr('side') else False,
-              'blockScale':ATTR.get(_short,'blockScale'),
-              'baseSize':self.atUtils('baseSize_get'),
-              "version":self.version,
-              'baseDat':self.baseDat,
-              }
+                "blockType":self.blockType,
+                "blockState":self.getEnumValueString('blockState'),
+                'blockProfile':self.blockProfile,
+                "buildProfile":self.getMayaAttr('buildProfile'),
+                "shapeProfile":self.getMayaAttr('shapeProfile'),                     
+                "baseName":self.getMayaAttr('cgmName'), 
+                'position':self.p_position,
+                'orient':self.p_orient,
+                'scale':self.scale,
+                'side': self.getEnumValueString('side') if self.hasAttr('side') else False,
+                'blockScale':ATTR.get(_short,'blockScale'),
+                'baseSize':self.atUtils('baseSize_get'),
+                "version":self.version,
+                'baseDat':self.baseDat,
+                }
         
         #set prep.... ------------------------------------------------------------------------------    
         self.p_position = 0,0,0
@@ -334,6 +374,9 @@ def blockDat_get(self,report = True):
         
         try:_gen['blockParent'] = self.getMessage('blockParent')[0]
         except:_gen['blockParent'] = False
+        
+        try:_gen['lenParents'] = len(self.getBlockParents())
+        except:_gen['lenParents'] = 0        
             
         
         for k in _gen.keys():
@@ -407,6 +450,7 @@ def blockDat_get(self,report = True):
         
         if _blockState_int >= 1:
             _res['form'] = blockDat_getControlDat(self,'form',report)#self.getBlockDat_formControls()
+            _res['shape'] = SHAPEDAT.dat_get(self)
         
         if _blockState_int >= 2:
             _res['prerig'] = blockDat_getControlDat(self,'prerig',report)#self.getBlockDat_prerigControls()     
@@ -431,6 +475,7 @@ def blockDat_load(self, blockDat = None,
                   autoPush = True,
                   currentOnly=False,
                   overrideMode = None,
+                  shapeDat = True,
                   redefine=False):
     """
     redefine - When duplicating, sometimes we need to redfine after data load
@@ -628,7 +673,10 @@ def blockDat_load(self, blockDat = None,
                 _d_warnings['form']=["Missing orient Helper. Data found."]
             
         blockDat_load_state(self,'form',blockDat,_d_warnings,overrideMode=overrideMode)
-        
+    
+    if shapeDat and blockDat.get('shape'):
+        SHAPEDAT.dat_set(self,blockDat['shape'])
+    
     if _target_state == 'form':
         reposition(self, blockDat, _posBase, _orientBase, _scaleBase)
         return log.info( cgmGEN.logString_sub(_str_func,'{} completed at form.'.format(self)) )
@@ -993,13 +1041,142 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
     return _d
 
 
+
+
+class BlockConfig(BaseDat):
+    '''
+    Class to handle blockDat data. Replacing existing block dat which storing on the node is not ideal
+    '''    
+    _ext = 'cgmBlockConfig'
+    _startDir = ['cgmDat','mrs']
+    def __init__(self, ml_context = None, filepath = None, **kws):
+        """
+
+        """
+        _str_func = 'data.__buffer__'
+        log.debug(log_start(_str_func))
+        
+        super(BlockConfig, self).__init__(filepath, **kws)
+        
+        self.str_filepath = None
+        
+        
+        self.dat = {}
+        self.mBlockDat = []
+        
+        if not ml_context and ml_context is not None:
+            ml_context = BLOCKGEN.block_getFromSelected(True)
+            if not ml_context:
+                md = BLOCKGEN.get_scene_block_heirarchy()
+                ml_context =  cgmGEN.walk_heirarchy_dict_to_list(md)                
+            
+        if ml_context:
+            self.get(ml_context)
+        
+    def get(self, ml_context = []):
+        _str_func = 'data.get'
+        log.debug(log_start(_str_func))
+        
+        self.dat = config_get(ml_context)
+        self.mBlockDat = []
+        
+        for i,block in enumerate(self.dat['blockList']):
+            log.info(block)
+            self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))
+            
+    def set(self, mBlock = None):
+        _str_func = 'data.set'
+        log.debug(log_start(_str_func))
+        
+    def read(self, filepath = None, *arg,**kws):
+        BaseDat.read(self, filepath, *arg,**kws)
+        
+        self.mBlockDat = []
+        
+        for i,block in enumerate(self.dat['blockList']):
+            log.info(block)
+            self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))        
+        
+
+def config_get(ml_context = [], report = True):
+    _str_func = 'config_get'        
+    log.debug(log_start(_str_func))
+    
+    _sel = mc.ls(sl=1)
+    #>> Find our block context -------------------------------------------------------------------
+    if not ml_context:
+        ml_context = BLOCKGEN.block_getFromSelected(True)
+    if not ml_context:
+        if _sel:mc.select(_sel)
+        return log.error("No blocks selected")        
+        #md = BLOCKGEN.get_scene_block_heirarchy()
+        #ml_context =  cgmGEN.walk_heirarchy_dict_to_list(md)
+        
+    if log.level == 10:
+        pprint.pprint(ml_context)
+        
+    _res = {'blockList':[],
+            'config':{},
+            'uiStrings':[]}
+    
+    ml,strings = BLOCKGEN.get_uiScollList_dat(showState=False,showProfile=False)
+    
+    d_order = {}
+    #...want to get our list in order as we want
+    for i,mBlock in enumerate(ml_context):
+        _idx = ml.index(mBlock)
+        d_order[_idx] = mBlock
+        
+    _keys = d_order.keys()
+    _keys.sort()
+    for i,k in enumerate(_keys):
+        _res['blockList'].append(d_order[k].p_nameBase)
+        _res['config'][str(i)] = blockDat_get(d_order[k],False)    
+        _res['uiStrings'].append(strings[k])
+    
+    if log.level == 10:
+        pprint.pprint(_res)
+    #...
+    if _sel:mc.select(_sel)
+    
+    return _res
+
+def blockConfig_create(self, idx = None, autoPush = True):
+    '''
+    blockDat self
+    '''
+    _str_func = 'blockDat_createBlock'        
+    log.debug(log_start(_str_func))
+    if not self.dat:
+        raise ValueError,"must have dat"
+    mc.select(cl=1)
+
+    if idx is not None:
+        return blockDat_createBlock(self.mBlockDat[idx], autoPush)
+        
+    ml = []
+    for i,block in enumerate(self.dat['blockList']):
+        log.info(cgmGEN.logString_sub(_str_func,block))
+        
+        ml.append( blockDat_createBlock(self.mBlockDat[i], autoPush) )
+        
+    return ml
+
+
+
+
+
+
+
 #======================================================================================================================================================
 #... UI stuff
 #======================================================================================================================================================
 
 
 d_blockDatOptions = {'General':['move','useMirror','autoPush','currentOnly','redefine']}
-l_blockDatOptions = ['General']
+l_blockDatOptions = ['General','form','loft']
+
+d_blockDatOptions.update(SHAPEDAT.d_shapeDat_options)
 
 d_shapeDat_options = {"form":['formHandles'],
                       "loft":['loftHandles','loftShapes'],
@@ -1033,6 +1210,8 @@ class uiBlockDat(CGMDAT.ui):
         
         mc.setParent(self.uiSection_top)
         _inside = self.uiSection_top
+        self.uiStatus_blockString = mUI.MelLabel(_inside,label = '...')
+        
         CGMUI.add_Header('Functions')
         mc.button(parent=_inside,
                   l = 'Create',
@@ -1084,8 +1263,13 @@ class uiBlockDat(CGMDAT.ui):
                             c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_set)),
                             ann = 'Build with MRS')                
         
+    def uiStatus_refresh(self, string=None):
+        CGMDAT.ui.uiStatus_refresh(self, string)
+        if self.uiDat:
+            _color = BLOCKSHARE.d_outlinerColors.get(self.uiDat.dat['blockType'])['main']#d_colors.get(mDat.get('side'),d_colors['center'])
+            
+            self.uiStatus_blockString(e=1, label = blockDat_getString(self.uiDat), bgc=_color)
         
-               
     def uiFunc_dat_get(self):
         _str_func = 'uiFunc_dat_get[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
@@ -1101,6 +1285,147 @@ class uiBlockDat(CGMDAT.ui):
         self.uiDat.get()
         
         self.uiStatus_refresh(string = "Scene: '{}'".format(mBlock.p_nameBase))
+        if _sel:mc.select(_sel)
+        
+        
+        return
+    
+    def uiFunc_dat_set(self,mBlocks = None,**kws):
+        _str_func = 'uiFunc_dat_set[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))        
+        
+        if not mBlocks:
+            mBlocks = BLOCKGEN.block_getFromSelected(multi=True)
+            
+        if not mBlocks:
+            return log.error("No blocks selected")
+        
+        if not self.uiDat:
+            return log.error("No dat loaded")
+            
+        
+        if not kws:
+            kws = {}
+            for k,cb in self._dCB_reg.iteritems():
+                kws[k] = cb.getValue()
+            pprint.pprint(kws)
+
+        
+        mc.undoInfo(openChunk=True)
+
+        for mBlock in mBlocks:
+            log.info(log_sub(_str_func,mBlock.mNode))
+            try:blockDat_load(mBlock, self.uiDat.dat, **kws)
+            except Exception,err:
+                log.error("{} | err: {}".format(mBlock.mNode, err))
+                    
+        mc.undoInfo(closeChunk=True)
+        
+        return
+    
+class uiBlockConfigDat(CGMDAT.ui):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = "BlockConfigUI"
+    WINDOW_TITLE = 'BlockConfig | {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = True
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 400,350
+    
+    _datClass = BlockConfig
+    
+    def post_init(self,*args,**kws):
+        if self.uiDat.dat:
+            self.uiUpdate_data()
+            
+    def uiUpdate_top(self):
+        _str_func = 'uiUpdate_top[{0}]'.format(self.__class__.TOOLNAME)
+        log.debug("|{0}| >>...".format(_str_func))
+        self.uiSection_top.clear()
+        
+        mc.setParent(self.uiSection_top)
+        _inside = self.uiSection_top
+        CGMUI.add_Header('Functions')
+        mc.button(parent=_inside,
+                  l = 'Create',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_create),
+                  #c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create, self._dCB_reg['autoPush'].getValue())),
+                  ann = 'Build with MRS')
+        
+        
+        """
+        #checkboxes frame...------------------------------------------------------------
+        self._dCB_reg = {}
+        for d in l_blockDatOptions:
+            l = d_blockDatOptions[d]
+            mUI.MelLabel(_inside, label = '{0}'.format(d.upper()), h = 13, 
+                         ut='cgmUIHeaderTemplate',align = 'center')
+            #mc.setParent(_inside)
+            #cgmUI.add_Header(d)
+            for k in l:
+                d_dat = d_shapeDatLabels.get(k,{})
+                
+                _row = mUI.MelHSingleStretchLayout(_inside,ut='cgmUISubTemplate',padding = 5)
+                mUI.MelSpacer(_row,w=10)    
+                
+                mUI.MelLabel(_row, label = '{0}:'.format( d_dat.get('label',k) ))
+                _row.setStretchWidget(mUI.MelSeparator(_row))
+    
+                _plug = 'cgmVar_blockDat_' + k#d_shapeDatShort.get(k,k)
+                try:self.__dict__[_plug]
+                except:
+                    log.debug("{0}:{1}".format(_plug,1))
+                    self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 0)
+        
+                l = k
+                _buffer = k#d_shapeDatShort.get(k)
+                if _buffer:l = _buffer
+                _cb = mUI.MelCheckBox(_row,
+                                      #annotation = d_dat.get('ann',k),
+                                      value = self.__dict__[_plug].value,
+                                      onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
+                                      offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
+                self._dCB_reg[k] = _cb
+                mUI.MelSpacer(_row,w=10)    
+                
+                _row.layout()
+
+        
+        
+        _button = mc.button(parent=_inside,
+                            l = 'Load',
+                            ut = 'cgmUITemplate',
+                            c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_set)),
+                            ann = 'Build with MRS')                """
+        
+        
+    def uiFunc_create(self,idx=None):
+        if idx:
+            blockConfig_create(self.uiDat, idx)
+            return
+        for i,a in enumerate(self.uiDat.dat['blockList']):
+            if self._dCB_blocks[i].getValue():
+                blockConfig_create(self.uiDat, i)
+                
+    def uiFunc_dat_get(self):
+        _str_func = 'uiFunc_dat_get[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        _sel = mc.ls(sl=1)
+        
+        ml_context = BLOCKGEN.block_getFromSelected(True)
+        if not ml_context:
+            md = BLOCKGEN.get_scene_block_heirarchy()
+            ml_context =  cgmGEN.walk_heirarchy_dict_to_list(md)              
+        if not ml_context:
+            return log.error("No blocks selected")
+        
+        self.uiDat.get(ml_context)
+        
+        self.uiStatus_refresh(string = "Scene: '{}'".format(len(self.uiDat.mBlockDat)))
         if _sel:mc.select(_sel)        
         
         return
@@ -1136,323 +1461,140 @@ class uiBlockDat(CGMDAT.ui):
                     
         mc.undoInfo(closeChunk=True)
         
-        return    
-
-class ui2(CGMUI.cgmGUI):
-    USE_Template = 'cgmUITemplate'
-    WINDOW_NAME = "BlockDatUI"
-    WINDOW_TITLE = 'BlockDat | {0}'.format(__version__)
-    DEFAULT_MENU = None
-    RETAIN = True
-    MIN_BUTTON = False
-    MAX_BUTTON = False
-    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 300,400
-    
-    def insert_init(self,*args,**kws):
-        self._loadedFile = ""
-        self.dat = None
-        
-    def build_menus(self):
-        self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
-        self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
-
-    def buildMenu_file(self):
-        self.uiMenu_FileMenu.clear()                      
-
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save",)
-                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_actions,self)))
-
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save As",)
-                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_as_actions,self)))
-        
-        mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",)
-                        # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
-    def buildMenu_setup(self):pass
-    
-    
-    def uiStatus_refresh(self):
-        _str_func = 'uiStatus_refresh[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))
-        
-        if not self.dat:
-            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
-            #self.uiStatus_bottom(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
-            
-            self.uiData_base(edit=True,vis=0)
-            self.uiData_base.clear()
-            
-        else:
-            self.uiData_base.clear()
-            
-            _base = self.dat['base']
-            _str = "Source: {}".format(_base['source'])
-            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('connected'),label = _str)
-            
-            self.uiData_base(edit=True,vis=True)
-            
-            mUI.MelLabel(self.uiData_base, label = "Base", h = 13, 
-                         ut='CGMUIHeaderTemplate',align = 'center')
-            
-            for a in ['type','blockType','shapers','subs']:
-                mUI.MelLabel(self.uiData_base, label = "{} : {}".format(a,self.dat['base'].get(a)),
-                             bgc = SHARED._d_gui_state_colors.get('help'))                
-            
-            
-            #_str = "blockType: {}".format(_base.get('blockType','No blockType'))
-            #self.uiStatus_bottom(edit=True,bgc = SHARED._d_gui_state_colors.get('connected'),label = _str)            
-                
-    def uiFunc_dat_get(self):
-        _str_func = 'uiFunc_dat_get[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))
-        _sel = mc.ls(sl=1)
-        
-        mBlock = BLOCKGEN.block_getFromSelected()
-        if not mBlock:
-            return log.error("No blocks selected")
-        
-        sDat = blockDat_get(mBlock)
-        self.dat = sDat
-        
-        self.uiStatus_refresh()
-        if _sel:mc.select(_sel)
-        
-    def uiFunc_dat_set(self,mBlocks = None,**kws):
-        _str_func = 'uiFunc_dat_set[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))        
-        
-        if not mBlocks:
-            mBlocks = BLOCKGEN.block_getFromSelected(multi=True)
-            
-        if not mBlocks:
-            return log.error("No blocks selected")
-        
-        if not self.dat:
-            return log.error("No dat loaded")
-            
-        
-        if not kws:
-            kws = {}
-            for k,cb in self._dCB_reg.iteritems():
-                kws[k] = cb.getValue()
-            
-            pprint.pprint(kws)
-
-        mc.undoInfo(openChunk=True)
-
-        
-        for mBlock in mBlocks:
-            log.info(log_sub(_str_func,mBlock.mNode))
-            try:dat_set(mBlock, self.dat, **kws)
-            except Exception,err:
-                log.error("{} | err: {}".format(mBlock.mNode, err))
-                    
-        mc.undoInfo(closeChunk=True)
-        
         return
-        for d in ['form','loft']:
-            l = d_shapeDat_options[d]
-            mUI.MelLabel(_inside, label = '{0}'.format(d.upper()), h = 13, 
-                         ut='CGMUIHeaderTemplate',align = 'center')
-            for k in l:
-                d_dat = d_shapeDatLabels.get(k,{})
-                
-        for d,l in MRSBATCH.d_mrsPost_calls.iteritems():
-            for k in l:# _l_post_order:
-                log.debug("|{0}| >> {1}...".format(_str_func,k)+'-'*20)
-                
-                #self._dCB_reg[k].getValue():#self.__dict__['cgmVar_mrsPostProcess_{0}'.format(k)].getValue():
-                l_join.insert(2,"'{0}' : {1} ,".format(k,int(self._dCB_reg[k].getValue())))        
-        
     
-    def uiFunc_dat(self,mode='Select Source'):
-        _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))  
-        
-        if not self.dat:
-            return log.error("No dat loaded selected")
-        
-        if mode == 'Select Source':
-            mc.select(self.dat['base']['source'])
     
-    def uiFunc_printDat(self,mode='all'):
-        _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
-        log.debug("|{0}| >>...".format(_str_func))  
+    def get_blockDatUI(self,idx=None):
+        mUI = uiBlockDat()
+        mDat = self.uiDat.dat['config'][str(idx)]
+        mUI.uiDat.dat = mDat
+        mUI.uiStatus_refresh(  )
         
-        if not self.dat:
-            return log.error("No dat loaded selected")    
+    def get_shapeDatUI(self,idx=None):
+        mDat = self.uiDat.dat['config'][str(idx)].get('shape')
+        if not mDat:
+            return log.error("No shapeDat found")
         
-        sDat = self.dat
+        mUI = SHAPEDAT.ui()
+        mUI.uiDat.dat = mDat
+        mUI.uiStatus_refresh(  )
         
-        print(log_sub(_str_func,mode))
-        if mode == 'all':
-            pprint.pprint(self.dat)
-        elif mode == 'settings':
-            pprint.pprint(sDat['settings'])
-        elif mode == 'base':
-            pprint.pprint(sDat['base'])
-        elif mode == 'settings':
-            pprint.pprint(sDat['settings'])
-        elif mode == 'formHandles':
-            pprint.pprint(sDat['handles']['form'])        
-        elif mode == 'loftHandles':
-            pprint.pprint(sDat['handles']['loft'])  
-        elif mode == 'sub':
-            pprint.pprint(sDat['handles']['sub'])
-        elif mode == 'subShapes':
-            pprint.pprint(sDat['handles']['subShapes'])
-        elif mode == 'subRelative':
-            pprint.pprint(sDat['handles']['subRelative'])            
-            
-    def build_layoutWrapper(self,parent):
-        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+    def uiUpdate_data(self):
+        _str_func = 'uiUpdate_data[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
         
-        #Declare form frames...------------------------------------------------------
-        _MainForm = mUI.MelFormLayout(parent,ut='CGMUITemplate')#mUI.MelColumnLayout(ui_tabs)
-        _inside = mUI.MelScrollLayout(_MainForm)
-
-        #SetHeader = CGMUI.add_Header('{0}'.format(_strBlock))
-        self.uiStatus_top = mUI.MelButton(_inside,
-                                         vis=True,
-                                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
-                                         bgc = SHARED._d_gui_state_colors.get('warning'),
-                                         label = 'No Data',
-                                         h=20)                
+        self.uiFrame_data.clear()
         
+        if not self.uiDat:
+            return
         
-        
-        #mc.setParent(_MainForm)
         """
-        self.uiStatus_bottom = mUI.MelButton(_MainForm,
-                                             bgc=SHARED._d_gui_state_colors.get('warning'),
-                                             #c=lambda *a:self.uiFunc_updateStatus(),
-                                             ann="...",
-                                             label='...',
-                                             h=20)"""
-  
-        self.uiPB_test=None
-        self.uiPB_test = mc.progressBar(vis=False)
-
-        
-    
-        
-        
-                
-        #checkboxes frame...------------------------------------------------------------
-        self._dCB_reg = {}
-        for d in ['form','loft']:
-            l = d_shapeDat_options[d]
-            mUI.MelLabel(_inside, label = '{0}'.format(d.upper()), h = 13, 
-                         ut='CGMUIHeaderTemplate',align = 'center')
-            #mc.setParent(_inside)
-            #CGMUI.add_Header(d)
-            for k in l:
-                d_dat = d_shapeDatLabels.get(k,{})
-                
-                _row = mUI.MelHSingleStretchLayout(_inside,ut='CGMUISubTemplate',padding = 5)
-                mUI.MelSpacer(_row,w=10)    
-                
-                mUI.MelLabel(_row, label = '{0}:'.format( d_dat.get('label',k) ))
-                _row.setStretchWidget(mUI.MelSeparator(_row))
-    
-                _plug = 'cgmVar_shapeDat_' + k#d_shapeDatShort.get(k,k)
-                try:self.__dict__[_plug]
-                except:
-                    log.debug("{0}:{1}".format(_plug,1))
-                    self.__dict__[_plug] = cgmMeta.cgmOptionVar(_plug, defaultValue = 1)
-        
-                l = k
-                _buffer = k#d_shapeDatShort.get(k)
-                if _buffer:l = _buffer
-                _cb = mUI.MelCheckBox(_row,
-                                      #annotation = d_dat.get('ann',k),
-                                      value = self.__dict__[_plug].value,
-                                      onCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,1),
-                                      offCommand = cgmGEN.Callback(self.__dict__[_plug].setValue,0))
-                self._dCB_reg[k] = _cb
-                mUI.MelSpacer(_row,w=10)    
-                
-                _row.layout()
-
-        
-        
-        _button = mc.button(parent=_inside,
-                            l = 'Load',
-                            ut = 'CGMUITemplate',
-                            c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_set)),
-                            ann = 'Build with MRS')        
-        
-        #data frame...------------------------------------------------------
-        try:self.var_shapeDat_dataFrameCollapse
-        except:self.create_guiOptionVar('shapeDat_dataFrameCollapse',defaultValue = 0)
-        mVar_frame = self.var_shapeDat_dataFrameCollapse
-        
-        _frame = mUI.MelFrameLayout(_inside,label = 'Data',vis=True,
-                                    collapse=mVar_frame.value,
-                                    collapsable=True,
-                                    enable=True,
-                                    #ann='Contextual MRS functionality',
-                                    useTemplate = 'CGMUIHeaderTemplate',
-                                    expandCommand = lambda:mVar_frame.setValue(0),
-                                    collapseCommand = lambda:mVar_frame.setValue(1)
-                                    )	
-        self.uiFrame_data = mUI.MelColumnLayout(_frame,useTemplate = 'CGMUISubTemplate') 
-        
-        
-        self.uiData_base = mUI.MelColumn(self.uiFrame_data ,useTemplate = 'CGMUISubTemplate',vis=False) 
-
         mUI.MelLabel(self.uiFrame_data, label = "Select", h = 13, 
-                     ut='CGMUIHeaderTemplate',align = 'center')
+                     ut='cgmUIHeaderTemplate',align = 'center')
         
         for util in ['Select Source']:
             mUI.MelButton(self.uiFrame_data,
                           c = cgmGEN.Callback(self.uiFunc_dat,util),
                           ann="...",
                           label=util,
-                          ut='CGMUITemplate',
-                          h=20)                            
+                          ut='cgmUITemplate',
+                          h=20)"""
         
-        
+        self._dCB_blocks = {}
+        reload(CORESHARE)
+        for i,a in enumerate(self.uiDat.dat['blockList']):
+            #...make our block list
+            mDat = self.uiDat.mBlockDat[i]
+            _type = mDat.dat['blockType']
+            _side = mDat.dat.get('side','center')
+            if _side in [False,'none',None]:
+                _side = 'center'
+            _colorSide = CORESHARE._d_gui_direction_colors.get(_side)
+            _colorSub = CORESHARE._d_gui_direction_colors_sub.get(_side)
+            
+            #_color = BLOCKSHARE.d_outlinerColors.get(mDat.dat['blockType'])['main']#d_colors.get(mDat.get('side'),d_colors['center'])
+            #_colorSub = BLOCKSHARE.d_outlinerColors.get(mDat.dat['blockType'])['sub']#d_colors.get(mDat.get('side'),d_colors['center'])
+            
+            
+            #mUI.MelIconCheckBox(self.uiFrame_data,)
+            _label = CORESTRINGS.stripWhiteSpaceStart(self.uiDat.dat['uiStrings'][i])#blockDat_getString(self.uiDat.mBlockDat[i])
+            
+            #Row...
+            _row = mUI.MelHSingleStretchLayout(self.uiFrame_data, h=30, 
+                                  bgc=_colorSide)            
+            _icon = None
+            try:
+                _icon = os.path.join(_path_imageFolder,'mrs','{}.png'.format(_type))
+            except:pass
+            #mc.iconTextButton( style='iconAndTextVertical', image1='cube.png', label='cube' )
+            #continue
+            
+            mUI.MelSpacer(_row,w=10)
+            
+            if _icon:
+                #mUI.MelIconButton
+                mUI.MelIconButton(_row,
+                                  ann=_type,
+                                  style='iconOnly',
+                                  l=_label,
+                                  image1 =_icon ,
+                                  ua=True,
+                                  #mw=5,
+                                  scaleIcon=True,
+                                  w=30,h=30,
+                                  )
+                                  #olc=[float(v) for v in d_state_colors['form']],
+                                  #olb=[float(v) for v in d_state_colors['form']]+[.5],
+                                  #w=20,h=20,
+                                  #c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
+                """
+                mUI.MelImage(_row,
+                             w=10,
+                             h=10,
+                                  image =_icon)
+                                  #olc=[float(v) for v in d_state_colors['form']],
+                                  #olb=[float(v) for v in d_state_colors['form']]+[.5],
+                                  #w=20,h=20)"""            
+            _lenParents = mDat.dat['lenParents'] 
+            if _lenParents:
+                mUI.MelSpacer(_row,w=_lenParents * 10)
+            
+            _cb = mUI.MelCheckBox(_row,l=_label,
+                                 #annotation = d_dat.get('ann',k),
+                                 value = 1)
+            self._dCB_blocks[i] = _cb
+            _row.setStretchWidget(_cb)
+            
+            mDat = mDat.dat.get('shape')
+
+            mUI.MelButton(_row, bgc=_colorSub, label = 'UI',
+                          c = cgmGEN.Callback(self.get_blockDatUI,i))
+            mUI.MelButton(_row, bgc=_colorSub, label = 'Shape',en =bool(mDat),
+                          c = cgmGEN.Callback(self.get_shapeDatUI,i))            
+            mUI.MelButton(_row, bgc=_colorSub, label = 'Create',
+                          c = cgmGEN.Callback(self.uiFunc_create,i))            
+            mUI.MelSpacer(_row,w=10)
+            
+            _row.layout()
+            
+            mUI.MelSeparator(self.uiFrame_data,h=1)
         
         
         mUI.MelLabel(self.uiFrame_data, label = "PPRINT", h = 13, 
-                     ut='CGMUIHeaderTemplate',align = 'center')
+                     ut='cgmUIHeaderTemplate',align = 'center')
         
-        for a in ['settings','base','formHandles','loftHandles','sub','subShapes','subRelative','all']:
+        for a in self.uiDat.dat.keys():
             mUI.MelButton(self.uiFrame_data,
                           c = cgmGEN.Callback(self.uiFunc_printDat,a),
                           ann="...",
                           label=a,
-                          ut='CGMUITemplate',
-                          h=20)                    
-        
-
-        _row_cgm = CGMUI.add_cgmFooter(_MainForm)            
-
-        #Form Layout--------------------------------------------------------------------
-        _MainForm(edit = True,
-                  af = [(_inside,"top",0),
-                        (_inside,"left",0),
-                        (_inside,"right",0),
-                        (_row_cgm,"left",0),
-                        (_row_cgm,"right",0),
-                        (_row_cgm,"bottom",0),
-    
-                        ],
-                  ac = [(_inside,"bottom",0,_row_cgm),
-                        #(_button,"bottom",0,_row_cgm),
-                        #(self.uiPB_test,"bottom",0,_row_cgm),
-                        ],
-                  attachNone = [(_row_cgm,"top")])    
-    
-
-        self.uiFunc_dat_get()
-        
-       
-   
-
-
-
-
+                          ut='cgmUITemplate',
+                          h=20)
+            
+        mUI.MelButton(self.uiFrame_data,
+                      c = cgmGEN.Callback(self.uiFunc_printDat,'all'),
+                      ann="...",
+                      label='all',
+                      ut='cgmUITemplate',
+                      h=20)    
 

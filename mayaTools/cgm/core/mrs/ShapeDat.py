@@ -73,8 +73,6 @@ __version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='ShapeDat'
 _padding = 5
 
-
-
 class data(MRSDAT.BaseDat):
     '''
     Class to handle blockShape data.
@@ -163,7 +161,8 @@ def dat_set(mBlock,data,
             loftShapes=True,
             loftHandleMode = 'world',
             shapeMode = 'ws',
-            loops=2):
+            loops=2,
+            **kws):
     _str_func = 'dat_get'
     log.debug(log_start(_str_func))
     

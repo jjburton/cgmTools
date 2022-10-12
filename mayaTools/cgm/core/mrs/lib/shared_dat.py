@@ -22,8 +22,12 @@ d_outlinerColors = {'master':{'main':CORESHARE._d_colors_to_RGB['yellowLight']},
 for k,d in d_outlinerColors.iteritems():
     d['sub'] = [v * .8 for v in d['main']]
     
-for k in ['eye','brow','muzzle']:
-    d_outlinerColors[k] = d_outlinerColors['face']
+d_colors_side  = {'left':[.4,.4,1],
+                  'right':[.9,.2,.2],
+                  'center':[.8,.8,0]}
+d_colors_side_sub  = {}
+for k,l in d_colors_side.iteritems():
+    d_colors_side_sub[k] = [v * .8 for v in l]
 
 d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockType':'string',
