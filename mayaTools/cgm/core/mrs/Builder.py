@@ -43,7 +43,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 import cgm.core.cgm_Dat as CGMDAT
-import cgm.core.mrs.ShapeDat as SHAPEDAT
+#import cgm.core.mrs.ShapeDat as SHAPEDAT
 import cgm.core.mrs.MRSDat as MRSDAT
 
 from cgm.core.classes import GuiFactory as CGMUI
@@ -6208,7 +6208,7 @@ class ui(cgmUI.cgmGUI):
                 #log.info('select...')
                 return mc.select([mBlock.mNode for mBlock in ml_context])
             elif args[0] == 'saveShapeDat':
-                CGMDAT.batch(ml_context, SHAPEDAT.data ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
+                CGMDAT.batch(ml_context, MRSDAT.ShapeDat ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
                 return
             elif args[0] == 'exportBlockDat':
                 CGMDAT.batch(ml_context, MRSDAT.BlockDat ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])

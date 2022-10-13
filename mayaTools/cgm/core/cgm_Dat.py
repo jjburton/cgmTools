@@ -431,7 +431,7 @@ def decodeDat(self,dat = None):
                 log.debug(log_msg(str_func, "...str"))                                                        
                 dArg[k] = r9Core.decodeString(d)
         
-        pprint.pprint(dArg)
+        #pprint.pprint(dArg)
         return dArg
                 
     for k,d in dat.iteritems():
@@ -505,7 +505,6 @@ class ui(CGMUI.cgmGUI):
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 300,300
-    
     
     _datClass = data
     

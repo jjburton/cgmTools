@@ -368,9 +368,9 @@ def rootOrCog(self,mHandle = None):
             pass
     
         CORERIG.override_color(mCog.mNode,'white')
-    
-        mCog.doStore('cgmName','{0}_cog'.format(self.d_module['partName']))
-        mCog.doStore('cgmAlias','cog')
+        _name = '{0}_cog'.format(self.d_module['partName'])
+        mCog.doStore('cgmName',_name)
+        mCog.doStore('cgmAlias',_name)
         mCog.doName()
     
         self.mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect

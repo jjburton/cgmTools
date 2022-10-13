@@ -136,11 +136,6 @@ def CGMDATui():
     reload(CGMDAT)
     CGMDAT.ui()
     
-def MRSDATui():
-    import cgm.core.mrs.MRSDat as MRSDAT
-    reload(MRSDAT)
-    MRSDAT.ui2()
-    
 def BLOCKDATui():
     import cgm.core.mrs.MRSDat as MRSDAT
     reload(MRSDAT)
@@ -152,9 +147,9 @@ def CONFIGDATui():
     MRSDAT.uiBlockConfigDat()
     
 def SHAPEDATui():
-    import cgm.core.mrs.ShapeDat as SHAPEDAT
-    reload(SHAPEDAT)
-    SHAPEDAT.ui()
+    import cgm.core.mrs.MRSDat as MRSDAT
+    reload(MRSDAT)
+    MRSDAT.uiShapeDat()
     
 def mrsShots():
     try:
@@ -181,9 +176,9 @@ def mrsSceneLegacy():
 
         
 def mrsShapeDat():
-    import cgm.core.mrs.ShapeDat as SHAPEDAT
-    reload(SHAPEDAT)
-    SHAPEDAT.ui()
+    import cgm.core.mrs.MRSDat as MRSDAT
+    reload(MRSDAT)
+    MRSDAT.uiShapeDat()
         
 def animDraw():
     try:
