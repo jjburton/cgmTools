@@ -256,7 +256,7 @@ d_defaultSettings = {'version':__version__,
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_form = {'msgLinks':['formNull'],
                  'msgLists':['formStuff'],
-                 'optional':['formStuff']}
+                 'optional':['formStuff','noTransFormNull']}
 d_wiring_define = {'msgLinks':['defineNull'],
                    'msgLists':['defineStuff'],
                    'optional':['defineStuff']}
