@@ -9560,7 +9560,7 @@ class ui_createBlock(CGMUI.cgmGUI):
             mHelper = ml_helpers[i]
 
             
-            if mHelper.mNode:
+            if mHelper and mHelper.mNode:
                 _orient = mHelper.p_orient
                 mHelper.p_orient = 0,0,0
                 _size = TRANS.bbSize_get(mHelper.mNode)
