@@ -479,7 +479,7 @@ def blockDat_load(self, blockDat = None,
                   currentOnly=False,
                   overrideMode = None,
                   shapeDat = True,
-                  redefine=False):
+                  redefine=False, **kws):
     """
     redefine - When duplicating, sometimes we need to redfine after data load
     """
@@ -677,7 +677,7 @@ def blockDat_load(self, blockDat = None,
             
         blockDat_load_state(self,'form',blockDat,_d_warnings,overrideMode=overrideMode)
     
-    if shapeDat and blockDat.get('shape'):
+    if loftShapes and shapeDat and blockDat.get('shape'):
         shapeDat_set(self,blockDat['shape'])
     
     if _target_state == 'form':

@@ -386,7 +386,7 @@ class handleFactory(object):
         _baseShape = _baseDat[0]
         _baseSize = _baseDat[1]
 
-        if _baseShape not in ['sphere','sphere2','cube','locatorForm']:
+        if baseSize is None and _baseShape not in ['sphere','sphere2','cube','locatorForm']:
             _baseSize = [_baseSize[0],_baseSize[1],None]
 
         if baseShape == 'self':
@@ -1659,7 +1659,7 @@ def addJointHelper(self,mHandle=None,
 
     return mJointCurve
 
-
+l_pivotShapes = ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']
 def pivotHelper(self,mHandle=None, 
                 baseShape=None,
                 baseSize = None,
@@ -1667,6 +1667,7 @@ def pivotHelper(self,mHandle=None,
                 setAttrs = {},
                 side = None,
                 loft = True,
+                l_pivots = l_pivotShapes,
                 mParent = False,
                 forceNew=False):
     try:
@@ -1709,8 +1710,11 @@ def pivotHelper(self,mHandle=None,
                      'center':'ball'}
 
         mAxis = VALID.simpleAxis(d_pivotDirections['front'])
-
-        _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
+        
+        if baseShape not in ['circle']:
+            _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
+        else:
+            _baseShape = baseShape
         _baseSize = baseSize
         #Main Handle -----------------------------------------------------------------------------
         pivotHandle = CURVES.create_controlCurve(mHandle.mNode,
@@ -1760,7 +1764,7 @@ def pivotHelper(self,mHandle=None,
             #_axisBox = CORERIG.create_axisProxy(self._mTransform.mNode)
 
         #Sub pivots =============================================================================
-        for a in ['pivotBack','pivotFront','pivotLeft','pivotRight','pivotCenter']:
+        for a in l_pivots:
             _strPivot = a.split('pivot')[-1]
             _strPivot = _strPivot[0].lower() + _strPivot[1:]
             _strName = d_altName.get(_strPivot,_strPivot)
@@ -1785,8 +1789,6 @@ def pivotHelper(self,mHandle=None,
 
                 #mPivot.p_position = p_ballPush
             else:
-
-
                 mAxis = VALID.simpleAxis(d_pivotDirections[_strPivot])
                 _inverse = mAxis.inverse.p_string
                 pivot = CURVES.create_controlCurve(mHandle.mNode, shape='hinge',

@@ -130,6 +130,7 @@ def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?>
                 str_Clean = str_Clean.replace( char, replaceChar )
 
         if noNumberStart:
+            str_Clean = "n{}".format(str_Clean)
             for n in range(10):		
                 while str_Clean.startswith( str(n) ):
                     log.debug("Cleaning : %s"%str(n))

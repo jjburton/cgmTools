@@ -28,6 +28,7 @@ import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.tools.Project as PROJECT
 import Red9.core.Red9_General as r9General
 import cgm.core.mrs.SceneDat as SCENEDAT
+import cgm.core.lib.string_utils as CORESTRING
 
 
 
@@ -4358,7 +4359,8 @@ example:
 
         filePath = self.versionFile
         if self.versionFile and os.path.exists(self.versionFile):
-            mc.file(filePath, r=True, ignoreVersion=True, namespace=self.assetList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
+            _namespace = self.assetList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset
+            mc.file(filePath, r=True, ignoreVersion=True, namespace=CORESTRING.stripInvalidChars(_namespace))
         else:
             log.info( "Version file doesn't exist" )
             

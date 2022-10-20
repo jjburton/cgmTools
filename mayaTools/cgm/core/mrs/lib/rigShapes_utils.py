@@ -957,7 +957,7 @@ def lever(self,ball = False):
 
 l_pivotOrder = BLOCKSHARE._l_pivotOrder
 d_pivotBankNames = BLOCKSHARE._d_pivotBankNames
-def pivotShapes(self, mPivotHelper = None):
+def pivotShapes(self, mPivotHelper = None, l_pivotOrder = l_pivotOrder):
     """
     Builder of shapes for pivot setup. Excpects to find pivotHelper on block
     
@@ -984,12 +984,24 @@ def pivotShapes(self, mPivotHelper = None):
             raise ValueError,"|{0}| >> No pivots helper found. mBlock: {1}".format(_str_func,mBlock)
         mPivotHelper = mBlock.pivotHelper
         
+    md = {}
     for a in l_pivotOrder:
         str_a = 'pivot' + a.capitalize()
         if mPivotHelper.getMessage(str_a):
             log.debug("|{0}| >> Found: {1}".format(_str_func,str_a))
             mPivotOrig = mPivotHelper.getMessage(str_a,asMeta=True)[0]
-            mPivot = mPivotOrig.doDuplicate(po=False,ic=False)
+            
+            if a in ['tilt','spin']:
+                if a == 'tilt':
+                    _tag = 'front'
+                else:
+                    _tag = 'center'
+                    
+                mPivot = mPivotHelper.getMessage('pivot' + _tag.capitalize(),asMeta=True)[0].doDuplicate(po=False,ic=False)
+                CORERIG.shapeParent_in_place(mPivot.mNode, mPivotOrig.mNode,replaceShapes=True)
+            else:
+                mPivot = mPivotOrig.doDuplicate(po=False,ic=False)
+                
             l_const = mPivot.getConstraintsTo(fullPath=1)
             if l_const:
                 mc.delete(l_const)
@@ -1001,6 +1013,7 @@ def pivotShapes(self, mPivotHelper = None):
                 mPivot.deleteAttr('cgmDirection')
             #mPivot.rename("{0}_{1}".format(self.d_module['partName'], mPivot.p_nameBase))
             mPivot.doName()
+            md[a] = mPivot
     return True
 
 
