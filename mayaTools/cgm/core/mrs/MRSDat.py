@@ -275,6 +275,9 @@ def blockDat_createBlock(self, autoPush = True):
         _d['cgmName'] = _v
         mDat['settings']['name']['cgmName'] = _v
         
+        if mDat.get('blockPosition') and mDat['blockPosition'] is not 'none':
+            _d['cgmPosition'] = mDat.get('blockPosition')
+                
     else:
         log.error("Creation cancelled")
         return False    
@@ -329,6 +332,7 @@ def blockDat_createBlock(self, autoPush = True):
     
     #mNew.p_blockParent = self.p_blockParent
     #self.connectChildNode(mMirror,'blockMirror','blockMirror')#Connect    
+    pprint.pprint(_d)
 
     return mNew    
         
@@ -358,7 +362,8 @@ def blockDat_get(self,report = True):
                 'blockProfile':self.blockProfile,
                 "buildProfile":self.getMayaAttr('buildProfile'),
                 "shapeProfile":self.getMayaAttr('shapeProfile'),                     
-                "baseName":self.getMayaAttr('cgmName'), 
+                "baseName":self.getMayaAttr('cgmName'),
+                'blockPosition':self.getMayaAttr('position') or self.getMayaAttr('cgmPosition'),
                 'position':self.p_position,
                 'orient':self.p_orient,
                 'scale':self.scale,
@@ -677,7 +682,7 @@ def blockDat_load(self, blockDat = None,
             
         blockDat_load_state(self,'form',blockDat,_d_warnings,overrideMode=overrideMode)
     
-    if loftShapes and shapeDat and blockDat.get('shape'):
+    if shapeDat and blockDat.get('shape'):
         shapeDat_set(self,blockDat['shape'])
     
     if _target_state == 'form':

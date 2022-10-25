@@ -1389,15 +1389,19 @@ def get_dynParentTargetsDat(self,allParents=True):
     
     if allParents:ml_moduleParents = mModule.atUtils('parentModules_get')
     else: ml_moduleParents = [mModuleParent]
+    _cogFound = False
     if ml_moduleParents:
         log.debug("|{0}| >> mParents: {1}".format(_str_func,len(ml_moduleParents)))        
         for mModuleParent in ml_moduleParents:
             mi_parentRigNull = mModuleParent.rigNull
-            if mModuleParent == ml_moduleParents[0]:
+            #if mModuleParent == ml_moduleParents[0]:
+            if not _cogFound:
                 #Check first for cog
                 if mi_parentRigNull.getMessage('rigRoot'):
                     mParentCog = mi_parentRigNull.rigRoot
-                    self.ml_dynParentsAbove.append(mParentCog)
+                    if 'cog' in mParentCog.p_nameBase:
+                        self.ml_dynParentsAbove.append(mParentCog)
+                        _cogFound = True
                     
             if not self.md_dynTargetsParent.get('root'):
                 if mi_parentRigNull.getMessage('rigRoot'):

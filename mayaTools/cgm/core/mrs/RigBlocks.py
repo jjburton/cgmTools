@@ -212,6 +212,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _sel = None
         _size = kws.get('size',None)
         _side =  kws.get('side')
+        _blockPosition = kws.get('cgmPosition')
         _baseSize = kws.get('baseSize')
         _sizeMode = None
         _postState = None#...for sizeMode call
@@ -324,7 +325,8 @@ class cgmRigBlock(cgmMeta.cgmControl):
                         ATTR.set(self.mNode,a,v)
                     except Exception,err:
                         log.error("|{0}| On call set attr Failure >> '{1}' | value: {2} | err: {3}".format(_str_func,a,v,err)) 
-                
+            
+            
             
             #>>>Auto flags...
             if not _blockModule:
@@ -362,6 +364,10 @@ class cgmRigBlock(cgmMeta.cgmControl):
                 try:BLOCKUTILS.attrMask_getBaseMask(self)
                 except Exception,err:
                     log.info(cgmGEN.logString_msg(_str_func,'attrMask fail | {0}'.format(err)))
+                    
+                    
+                if _blockPosition and _blockPosition not in ['none',None]:
+                    self.doStore('position',_blockPosition)
 
                 self.doName()
             

@@ -136,7 +136,7 @@ d_attrStateMask = {'define':[],
 l_createUI_attrs = ['attachPoint','attachIndex',
                     'addCog','addPivot','addScalePivot','addAim',
                     'numControls',
-                    'numSubShapers',
+                    'numSubShapers','loftShape',
                     'ikSetup','segmentStretchBy',
                     'root_dynParentMode',
                     'root_dynParentScaleMode',
@@ -208,6 +208,10 @@ d_build_profiles = {
 
 d_block_profiles = {
 'default':{'nameList':['start','mid','end'],
+           'shapeDirection':'z+',
+           'loftShape':'circle',
+           'addBall':'none',
+           'addToe':'none',
                },
 'leg digitgrade front':{
     'addCog':False,
@@ -8768,12 +8772,18 @@ def rig_cleanUp(self):
             
         mDynGroup.rebuild()
         
+        _enum_dynParentMode = mBlock.getEnumValueString('root_dynParentMode')
+        if _enum_dynParentMode == 'follow':
+            mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        
         
         if mBlock.root_dynParentScaleMode == 2 and self.str_rigSetup != 'digit':
             mRoot.scaleSpace = 'puppet'
             ATTR.set_default(mRoot.mNode, 'scaleSpace', 'puppet')
             
         #mDynGroup.dynFollow.p_parent = self.mConstrainNull
+        
+        
         
         log.debug(cgmGEN._str_subLine)
         
@@ -8817,6 +8827,7 @@ def rig_cleanUp(self):
                 mDynGroup.addDynParent(mTar)
             mDynGroup.rebuild()
             #mDynGroup.dynFollow.p_parent = self.mConstrainNull
+            
             
             if mHandle == mControlIK:
                 if self.b_legMode:

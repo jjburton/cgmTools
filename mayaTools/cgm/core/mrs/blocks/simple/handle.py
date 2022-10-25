@@ -101,7 +101,7 @@ d_attrStateMask = {'define':[],
                    'vis':[]}
 
 l_createUI_attrs = ['attachPoint','attachIndex','buildSDK',
-                    'addCog','addPivot','addScalePivot','addAim','numSubShapers',
+                    'addCog','addPivot','addScalePivot','addAim','numSubShapers','loftShape',
                     'basicShape','proxyShape','rotPivotPlace','loftSetup','scaleSetup',
                     'dynParentMode','dynParentScaleMode']
 
@@ -138,6 +138,7 @@ d_block_profiles = {
                 'rotPivotPlace':'jointHelper',
                 'shapeDirection':'y+',
                 'baseSize':[10,10,20],
+                'loftShape':'circle',
                 'addPivot':False,
                 'loftList':['circle','circle','circle','circle']
                 },
@@ -204,7 +205,8 @@ l_attrsStandard = ['side',
                    'visMeasure',
                    'visProximityMode',
                    'shapeDirection',
-                   'meshBuild',                   
+                   'meshBuild',
+                   'proxyGeoCap',
                    'moduleTarget']
 
 d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
@@ -244,6 +246,7 @@ d_defaultSettings = {'version':__version__,
                      'numShapers':2,
                      'numSubShapers':1,
                      'jointRadius':.1,
+                     'proxyGeoCap':'both',
                      'meshBuild':True,
                      'scaleSetup':False,
                      'dynParentMode':'space',
@@ -1551,6 +1554,10 @@ def rig_shapes(self):
         
         ATTR.copy_to(_short_module,'cgmName',mLookAt.mNode,driven='target')
         #mIK.doStore('cgmName','head')
+        
+        for a,v in self.d_blockNameDict.iteritems():
+            mLookAt.doStore(a,v)
+            
         mLookAt.doStore('cgmTypeModifier','lookAt')
         mLookAt.doName()
         
@@ -2118,7 +2125,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
             raise ValueError,"No geo found and proxyShape is 'geoOnly'."
         
         if str_setup == 'shapers':# and not ml_geo:
-            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
+            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5,cap= self.proxyGeoCap)[0]
             ml_proxy = [mMesh]
             
         if ml_geo:
@@ -2249,7 +2256,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
         
         if str_setup == 'shapers':# and not ml_geo:
             d_kws = {}
-            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
+            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5, cap= self.proxyGeoCap)[0]
             ml_proxy = [mMesh]
             
         if ml_geo:
@@ -2260,7 +2267,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
                 if mGeo.getMayaType() == 'nurbsSurface':
                     mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
                                                         mode = 'general',
-                                                        uNumber = mBlock.loftSplit, vNumber=mBlock.loftSides)
+                                                        uNumber = mBlock.loftSplit,
+                                                        vNumber=mBlock.loftSides)
                 else:
                     mMesh = mGeo.doDuplicate(po=False)
                     #mMesh.p_parent = False
