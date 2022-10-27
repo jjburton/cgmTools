@@ -1116,7 +1116,7 @@ def prerig(self):
                     
                     mSpin.rx = 90
                     mSpin.rz = 90
-                    mSpin.scale = 2,2,2
+                    mSpin.scale = _size_pivot,_size_pivot,_size_pivot
                     mSpin.p_parent = mPrerigNull
                     
                     mSpin.addAttr('cgmName','spin')

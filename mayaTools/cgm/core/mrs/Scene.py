@@ -4629,7 +4629,7 @@ example:
 
         
     def ExportQueue_load(self,*args):
-        mDat = SCENEDAT.SceneExport(self.batchExportItems)
+        mDat = SCENEDAT.SceneExport({'data':self.batchExportItems})
         mDat.read()
         
         if mDat.dat:
