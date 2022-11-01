@@ -2895,6 +2895,7 @@ def rig_controls(self):
 #@cgmGEN.Timer
 def rig_segments(self):
     reload(DIST)
+    reload(IK)
     _short = self.d_block['shortName']
     _str_func = 'rig_segments'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -2971,8 +2972,8 @@ def rig_segments(self):
         elif self.str_ribbonAttachEndsToInfluence == 'end':
             _d['attachEndToInfluence'] = True
             
-        if mBlock.getEnumValueString('ikBase') in ['hips','head']:
-            _d['attachStartToInfluence'] = True
+        #if mBlock.getEnumValueString('ikBase') in ['hips','head']:
+        #    _d['attachStartToInfluence'] = True
             
         if mBlock.special_swim:
             _d['attachStartToInfluence'] = False
@@ -2990,6 +2991,9 @@ def rig_segments(self):
         if self.str_segmentType in ['ribbon','ribbonLive']:
             if self.str_segmentStretchBy == 'scale':
                 _d['setupAimScale'] = True
+            else:
+                _d['setupAimScale'] = False
+                
                 
             _d['liveSurface'] = False if self.str_segmentType == 'ribbon' else True
             #log.info(cgmGEN.logString_sub,_str_func,"segment dict...")

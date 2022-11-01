@@ -1075,10 +1075,10 @@ def ribbon(jointList = None,
         int_lenInfluences = len(l_influences)#because it's called repeatedly    
     
     if attachEndsToInfluences:
-        if attachStartToInfluence == None:
-            attachStartToInfluence = True
-        if attachEndToInfluence == None:
-            attachStartToInfluence = True
+        #if attachStartToInfluence == None:
+        attachStartToInfluence = True
+        #if attachEndToInfluence == None:
+        attachEndToInfluence = True
     #module -----------------------------------------------------------------------------------------------
     mModule = cgmMeta.validateObjArg(moduleInstance,noneValid = True)
     #try:mModule.isModule()
@@ -1813,17 +1813,17 @@ def ribbon(jointList = None,
                                            mPlug_masterScale.p_combinedName)
             NODEFAC.argsToNodes(arg).doBuild()
             
-        if setupAimScale:
-            mPlug_aimNormalized = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                  "{0}_aimNormalized".format(str_baseName),
-                                                  attrType = 'float',
-                                                  hidden = False,)                
-            arg = "{0} = {1} / {2}".format(mPlug_aimNormalized.p_combinedName,
-                                           mPlug_masterAimScale.p_combinedName,
-                                           mPlug_masterScale.p_combinedName)    
-            NODEFAC.argsToNodes(arg).doBuild()
-        else:
-            mPlug_aimNormalized = None
+            if setupAimScale:
+                mPlug_aimNormalized = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                      "{0}_aimNormalized".format(str_baseName),
+                                                      attrType = 'float',
+                                                      hidden = False,)                
+                arg = "{0} = {1} / {2}".format(mPlug_aimNormalized.p_combinedName,
+                                               mPlug_masterAimScale.p_combinedName,
+                                               mPlug_masterScale.p_combinedName)    
+                NODEFAC.argsToNodes(arg).doBuild()
+            else:
+                mPlug_aimNormalized = None
 
         log.debug("|{0}| >> Making our base dist stuff".format(_str_func))
         
@@ -1955,6 +1955,7 @@ def ribbon(jointList = None,
         
         
         #>>>Hook up stretch/scale #================================================================ 
+        ml_aimInversePlugs = []
         if squashStretchMain == 'arcLength':
             log.debug("|{0}| >> arcLength aim stretch setup ".format(_str_func)+cgmGEN._str_subLine)
             for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
@@ -2062,6 +2063,7 @@ def ribbon(jointList = None,
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NODEFAC.argsToNodes(arg).doBuild()
                 
+                ml_aimInversePlugs.append(mPlug_outResult)#...collect this for later
             
                 if squashStretch == 'simple':
                     for axis in ['scaleX','scaleY']:
@@ -2078,7 +2080,7 @@ def ribbon(jointList = None,
                                                   attrType = 'float',
                                                   initialValue=0,
                                                   lock=True,
-                                                  minValue = 0)
+                                                  minValue = 0)        
                 
                 mPlug_aimBase = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                "{0}_aimBase_{1}".format(str_baseName,i),
@@ -2112,6 +2114,7 @@ def ribbon(jointList = None,
                     
                 if extraSquashControl:
                     #mPlug_segScale
+                    """
                     mPlug_baseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                      "{0}_baseRes_{1}".format(str_baseName,i),
                                                      attrType = 'float')                    
@@ -2123,6 +2126,7 @@ def ribbon(jointList = None,
                                                         defaultValue=v_scaleFactor,
                                                         lock=False,
                                                         minValue = 0)
+                    
                     mPlug_jointRes = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                      "{0}_factorRes_{1}".format(str_baseName,i),
                                                      attrType = 'float')
@@ -2138,11 +2142,11 @@ def ribbon(jointList = None,
                                                       attrType = 'float')                    
                     
                     #>> x + (y - x) * blend --------------------------------------------------------
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedName,
+                    l_argBuild.append("{0} = {2} / {1}".format(mPlug_baseRes.p_combinedName,
                                                                mPlug_aimBaseNorm.p_combinedName,
                                                                "{0}.distance".format(mActive_aim.mNode),
                                                                ))
-                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_outResult.p_combinedName,
+                    l_argBuild.append("{0} = 1 + {1}".format(mPlug_aimResult.p_combinedName,
                                                                mPlug_jointMult.p_combinedName))
                     l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedName,
                                                              mPlug_baseRes.p_combinedName))
@@ -2153,26 +2157,118 @@ def ribbon(jointList = None,
                     
                     l_argBuild.append("{0} = {1} * {2}".format(mPlug_jointRes.p_combinedName,
                                                                mPlug_jointFactor.p_combinedName,
-                                                               mPlug_segScale.p_combinedName))                    
+                                                               mPlug_segScale.p_combinedName))
+                    
+                    """
+                    mPlug_baseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                     "{0}_baseRes_{1}".format(str_baseName,i),
+                                                     attrType = 'float')                                        
+                    l_argBuild.append("{0} = {2} / {1}".format(mPlug_baseRes.p_combinedName,
+                                                               mPlug_aimBaseNorm.p_combinedName,
+                                                               "{0}.distance".format(mActive_aim.mNode),
+                                                               ))                    
+                    if setupAimScale:
+                        mPlug_aimResult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                          "{0}_aimScaleResult_{1}".format(str_baseName,i),
+                                                          attrType = 'float',
+                                                          initialValue=0,
+                                                          lock=True,
+                                                          minValue = 0)
+                        mPlug_aimFactor = cgmMeta.cgmAttr(mSettings.mNode,
+                                                          "{0}_aimFactor_{1}".format(str_baseName,i),
+                                                          attrType = 'float',
+                                                          hidden = False,
+                                                          initialValue=1.0,
+                                                          defaultValue=1.0,
+                                                          keyable = extraKeyable,
+                                                          lock=False,
+                                                          minValue = 0)                        
+                        
+                        #Blend between two values...
+                        mBlendNode = cgmMeta.cgmNode(nodeType='blendTwoAttr')
+                        mBlendNode.rename("{}_aimScaleResult_{}_blendTwoAttr".format(str_baseName,i))
+                        mBlendNode.addAttr('baseOne',value = 1.0)
+                        
+                        mPlug_aimFactor.doConnectOut("{}.attributesBlender".format(mBlendNode.mNode))
+
+                        mBlendNode.doConnectIn('input[0]', 'baseOne')                        
+                        
+                        mPlug_aimResult.doConnectIn("{}.output".format(mBlendNode.mNode))
+                        
+                        l_argBuild.append("{0}.input[1] = {1} * {2}".format(mBlendNode.mNode,
+                                                                            mPlug_baseRes.p_combinedName,
+                                                                            mPlug_segScale.p_combinedName))
+                    else:
+                        mPlug_aimResult = mPlug_baseRes
     
                     
                 else:
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_outResult.p_combinedName,
+                    l_argBuild.append("{0} = {2} / {1}".format(mPlug_aimResult.p_combinedName,
                                                                mPlug_aimBaseNorm.p_combinedName,
                                                                "{0}.distance".format(mActive_aim.mNode),
                                                                ))
+
                 
+                #Now we need to do our blends for the invserse scale
                 
+                mPlug_aimInverseBase = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                  "{0}_aimInverseScaleBase_{1}".format(str_baseName,i),
+                                                  attrType = 'float',
+                                                  initialValue=0,
+                                                  lock=True,
+                                                  minValue = 0)                                    
+                l_argBuild.append(  "{0} = {1} / {2}".format(mPlug_aimInverseBase.p_combinedName,
+                                                mPlug_aimBaseNorm.p_combinedName,
+                                                "{0}.distance".format(mActive_aim.mNode),
+                                                ) )
+                
+                if extraSquashControl:
+                    mPlug_aimInverseResult = cgmMeta.cgmAttr(mControlSurface.mNode,
+                                                      "{0}_aimInvereScaleResult_{1}".format(str_baseName,i),
+                                                      attrType = 'float',
+                                                      initialValue=0,
+                                                      lock=True,
+                                                      minValue = 0)
+                    mPlug_inverseFactor = cgmMeta.cgmAttr(mSettings.mNode,
+                                                      "{0}_outFactor_{1}".format(str_baseName,i),
+                                                      attrType = 'float',
+                                                      hidden = False,
+                                                      initialValue=1.0,
+                                                      defaultValue=1.0,
+                                                      keyable = extraKeyable,
+                                                      lock=False,
+                                                      minValue = 0)                        
+                    
+                    #Blend between two values...
+                    mBlendNode = cgmMeta.cgmNode(nodeType='blendTwoAttr')
+                    mBlendNode.rename("{}_outScaleResult_{}_blendTwoAttr".format(str_baseName,i))
+                    mBlendNode.addAttr('baseOne',value = 1.0)
+                    
+                    mPlug_inverseFactor.doConnectOut("{}.attributesBlender".format(mBlendNode.mNode))
+
+                    mBlendNode.doConnectIn('input[0]', 'baseOne')                        
+                    
+                    mPlug_aimInverseResult.doConnectIn("{}.output".format(mBlendNode.mNode))
+                    
+                    l_argBuild.append("{0}.input[1] = {1} * {2}".format(mBlendNode.mNode,
+                                                                        mPlug_aimInverseBase.p_combinedName,
+                                                                        mPlug_segScale.p_combinedName))                
+                    
+                else:
+                    mPlug_aimInverseResult = mPlug_aimInverseBase
+                ml_aimInversePlugs.append(mPlug_aimInverseResult)
+                                
                 for arg in l_argBuild:
                     log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
                     NODEFAC.argsToNodes(arg).doBuild()
                             
-                if not ml_outFollicles:
+                if squashStretch not in ['single','both']:#if not ml_outFollicles:
                     for axis in ['scaleX','scaleY']:
-                        mPlug_outResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
+                        mPlug_aimInverseResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
                         
-                if not skipAim:
-                    mPlug_outResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
+                #if not skipAim:
+                if setupAimScale:
+                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
             
         if squashStretch in ['single','both']:
             if ml_outFollicles or ml_upFollicles:
@@ -2181,19 +2277,22 @@ def ribbon(jointList = None,
                         #pass #...we'll pick up the last on the loop
                     #else:
                     mPlug_outResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                    "{0}_aimScaleResult_{1}".format(str_baseName,i))
+                                                    "{0}_outScaleResult_{1}".format(str_baseName,i),
+                                                    attrType = 'float',
+                                                    lock=True,
+                                                    minValue = 0)
                         #mActive_aim =  md_distDat['aim']['active']['mDist'][i]                        
                         
                     
                     if ml_outFollicles:
                         #mBase_out =  md_distDat['out']['base']['mDist'][i]
                         mActive_out =  md_distDat['out']['active']['mDist'][i]
-                        
+                        """
                         mPlug_outResult = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                           "{0}_outScaleResult_{1}".format(str_baseName,i),
                                                           attrType = 'float',
                                                           lock=True,
-                                                          minValue = 0)
+                                                          minValue = 0)"""
                         
                         mPlug_outBase = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                         "{0}_outBaseScaleResult_{1}".format(str_baseName,i),
@@ -2225,8 +2324,9 @@ def ribbon(jointList = None,
                                                                    '{0}.distance'.format(mActive_out.mNode),
                                                                    mPlug_outBaseNorm.p_combinedName,))
                         
-                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_aimResult.p_combinedName,
-                                                                   mPlug_outResult.p_combinedName,
+                        
+                        l_argBuild.append("{0} = {1} * {2}".format(mPlug_outResult.p_combinedName,
+                                                                   ml_aimInversePlugs[i].p_combinedName,
                                                                    mPlug_outBaseRes.p_combinedName))
                         
                         
@@ -2282,7 +2382,7 @@ def ribbon(jointList = None,
                                                                    mPlug_upBaseNorm.p_combinedName,))
                         
                         l_argBuild.append("{0} = {1} * {2}".format(mPlug_upResult.p_combinedName,
-                                                                   mPlug_outResult.p_combinedName,
+                                                                   ml_aimInversePlugs[i].p_combinedName,
                                                                    mPlug_upBaseRes.p_combinedName))
                         
                         
@@ -2297,7 +2397,7 @@ def ribbon(jointList = None,
         
                     
                     
-    if additiveScaleEnds:
+    if additiveScaleEnds == 'cat':
         log.debug("|{0}| >> Additive Scale Ends".format(_str_func)+cgmGEN._str_subLine)
         
         for i,mJnt in enumerate( [ml_joints[0],ml_joints[-1]] ):

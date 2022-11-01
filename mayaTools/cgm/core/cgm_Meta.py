@@ -4286,9 +4286,10 @@ class cgmObjectSet(cgmNode):
         return validateObjListArg(self.getList(),noneValid=True)   
 
     def getList(self,asMeta=False):
+        _res = mc.sets(self.mNode, q = True) or []   
         if asMeta:
-            return getMetaList()
-        return mc.sets(self.mNode, q = True) or []   
+            return validateObjListArg(_res)
+        return _res
     
     def log(self):
         print cgmGEN._str_subLine

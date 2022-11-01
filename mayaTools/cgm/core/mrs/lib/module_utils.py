@@ -964,14 +964,17 @@ def control_add(self, controls = None, face=True):
     ml = cgmMeta.validateObjListArg(controls,'cgmControl',setClass=True)
     ml_exists = controls_get(self)
     
-    mRigNull = self.rigNull
+    mRigNull = self.rigNull    
+    ml_set = mRigNull.moduleSet.getList(asMeta=1)
     
     for mObj in ml:
         
         if not mObj.getMessage('rigNull'):
             ATTR.set_message(mObj.mNode, 'rigNull', mRigNull.mNode)
             
-        
+        if mObj not in ml_set:
+            mRigNull.moduleSet.add(mObj)
+            
         if mObj in ml_exists:
             continue
         print mObj

@@ -1761,6 +1761,7 @@ def rig_controls(self):
                                                       makeAimable = False)
                     
                     mPivot = d_buffer['instance']
+                    ml_controlsAll.append(mPivot)
                     
                     if self.str_addPivot not in ['wobbleOnly']:
                         if self.str_addPivot == 'wobbleAdd' and a in ['spin','tilt']:
@@ -1769,7 +1770,6 @@ def rig_controls(self):
                             ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
                     
                     
-                    ml_controlsAll.append(mPivot)
             
         
         #>> headLookAt ========================================================================================
