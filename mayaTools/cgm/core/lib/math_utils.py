@@ -597,7 +597,9 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
     '''
     _str_func = 'get_factorList'
     _res = []
-    
+    if mode == 'midPeak' and count ==3:
+        return [minValue,maxValue,minValue] 
+        
     if mode in ['midPeak','blendUpMid','midBlendDown']:
         if count == 3:
             _res = [minValue, maxValue/2.0, maxValue]
@@ -612,7 +614,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
             
             if is_even(count):
                 for i in range(idx_mid):
-                    _res.append( i * blendFactor)
+                    _res.append( (i * blendFactor) + minValue)
                 _rev = copy.copy(_res)
                 if mode == 'blendUpMid':
                     _res = _res + [maxValue for i in range(idx_mid)]
@@ -624,7 +626,9 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
                     _res.extend(_rev)
             else:
                 for i in range(idx_mid+1):
-                    _res.append( i * blendFactor)
+                    _res.append( (i * blendFactor) + minValue)
+                    
+                _res[-1] = maxValue
                     
                 if mode == 'blendUpMid':
                     _res = _res + [maxValue for i in range(idx_mid-1)]
@@ -635,6 +639,9 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
                     _rev = copy.copy(_res)
                     _rev.reverse()
                     _res.extend(_rev[1:])
+            _res[0] = minValue
+            _res[-1] = minValue
+            _res[idx_mid] = maxValue
             
     elif mode == 'max':
         return [maxValue for i in range(count)]

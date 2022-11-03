@@ -3476,7 +3476,11 @@ def rig_prechecks(self):
         
         _rollCount = mBlock.datList_get('rollCount')
         str_segmentType = mBlock.getEnumValueString('segmentType')
+        str_squashMeasure= mBlock.getEnumValueString('squashMeasure')
         
+        if str_segmentType in ['curve','linear'] and str_squashMeasure == 'pointDist':
+            self.l_precheckErrors.append("segmentType {} and pointDist on | Not implemented | Use ribbon or ribbonLive".format(str_segmentType))
+            
         if not sum(_rollCount) and str_segmentType == 'ribbon':
             self.l_precheckErrors.append("No roll and segmentType ribbon. | you're going to want curve segmentType or add some roll. ")
             
@@ -6606,7 +6610,9 @@ def rig_segments(self):
                 _d['setupAim'] = 1
                 _d['skipAim'] = True
                 if self.str_segmentStretchBy == 'scale':
-                    _d['setupAimScale'] = True   
+                    _d['setupAimScale'] = True
+                    _d['skipAim'] = False
+                    
                     
                 if i == l_rollKeys[-1] and not self.b_extraHandles:
                     log.debug("|{0}| >> Last segment, buildEnd dag attachEndToInfluence = on".format(_str_func))                    
@@ -6632,7 +6638,9 @@ def rig_segments(self):
             else:
                 _d['parentDeformTo'] = ml_blendJoints[i]
                 if self.str_segmentStretchBy == 'scale':
-                    _d['setupAimScale'] = True                   
+                    _d['setupAimScale'] = True
+                
+                pprint.pprint(_d)
                 IK.ribbon(**_d)
             
                 ml_segJoints[0].parent = ml_blendJoints[i]

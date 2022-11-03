@@ -1711,7 +1711,7 @@ def pivotHelper(self,mHandle=None,
 
         mAxis = VALID.simpleAxis(d_pivotDirections['front'])
         
-        if baseShape not in ['circle']:
+        if baseShape not in ['xxx']:#circle
             _baseShape = 'loft' + baseShape[0].capitalize() + ''.join(baseShape[1:])
         else:
             _baseShape = baseShape

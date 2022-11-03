@@ -1959,26 +1959,26 @@ def ribbon(jointList = None,
         if squashStretchMain == 'arcLength':
             log.debug("|{0}| >> arcLength aim stretch setup ".format(_str_func)+cgmGEN._str_subLine)
             for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
-                
-                if extraSquashControl:
-                    try:
-                        v_scaleFactor = l_scaleFactors[i]
-                    except Exception,err:
-                        log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
-                        v_scaleFactor = 1.0                    
+                try:
+                    v_scaleFactor = l_scaleFactors[i]
+                except Exception,err:
+                    log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
+                    v_scaleFactor = 1.0
                     
+                if mJnt == ml_joints[-1]:
+                    v_aimFactor = 0
+                else:
+                    v_aimFactor = 1.0
+                    
+                if extraSquashControl:
                     mPlug_outResult = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                      "{0}_outScaleResult_{1}".format(str_baseName,i),
+                                                      "{0}_outScaleBaseResult_{1}".format(str_baseName,i),
                                                       attrType = 'float',
                                                       initialValue=0,
                                                       lock=True,
                                                       minValue = 0)                    
-                    """
-                    mPlug_baseRes = cgmMeta.cgmAttr(mControlSurface.mNode,
-                                                     "{0}_baseRes_{1}".format(str_baseName,i),
-                                                     attrType = 'float')"""                    
                     mPlug_jointFactor = cgmMeta.cgmAttr(mSettings.mNode,
-                                                        "{0}_factor_{1}".format(str_baseName,i),
+                                                        "{0}_outFactor_{1}".format(str_baseName,i),
                                                         attrType = 'float',
                                                         hidden = False,
                                                         initialValue=v_scaleFactor,
@@ -2000,10 +2000,7 @@ def ribbon(jointList = None,
                     
                     #>> x + (y - x) * blend --------------------------------------------------------
                     mPlug_baseRes = mPlug_inverseNormalized
-                    """
-                    l_argBuild.append("{0} = {1} / {2}".format(mPlug_baseRes.p_combinedName,
-                                                               mPlug_aimBaseNorm.p_combinedName,
-                                                               "{0}.distance".format(mActive_aim.mNode)))"""
+
                     l_argBuild.append("{0} = 1 + {1}".format(mPlug_outResult.p_combinedName,
                                                                mPlug_jointMult.p_combinedName))
                     l_argBuild.append("{0} = {1} - 1".format(mPlug_jointDiff.p_combinedName,
@@ -2028,8 +2025,8 @@ def ribbon(jointList = None,
                                                           "{0}_aimFactor_{1}".format(str_baseName,i),
                                                           attrType = 'float',
                                                           hidden = False,
-                                                          initialValue=1.0,
-                                                          defaultValue=1.0,
+                                                          initialValue=v_aimFactor,
+                                                          defaultValue=v_aimFactor,
                                                           keyable = extraKeyable,
                                                           lock=False,
                                                           minValue = 0)                        
@@ -2070,7 +2067,8 @@ def ribbon(jointList = None,
                         mPlug_outResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,axis))
                         
                 if not skipAim:
-                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))                
+                    mPlug_aimResult.doConnectOut('{0}.{1}'.format(mJnt.mNode,'scaleZ'))
+                    
         elif squashStretchMain == 'pointDist':
             for i,mJnt in enumerate(ml_joints):#Nodes =======================================================
                 mActive_aim =  md_distDat['aim']['active']['mDist'][i]
@@ -2112,6 +2110,11 @@ def ribbon(jointList = None,
                     log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
                     v_scaleFactor = 1.0
                     
+                if mJnt == ml_joints[-1]:
+                    v_aimFactor = 0
+                else:
+                    v_aimFactor = 1.0
+                        
                 if extraSquashControl:
                     #mPlug_segScale
                     """
@@ -2178,8 +2181,8 @@ def ribbon(jointList = None,
                                                           "{0}_aimFactor_{1}".format(str_baseName,i),
                                                           attrType = 'float',
                                                           hidden = False,
-                                                          initialValue=1.0,
-                                                          defaultValue=1.0,
+                                                          initialValue=v_aimFactor,
+                                                          defaultValue=v_aimFactor,
                                                           keyable = extraKeyable,
                                                           lock=False,
                                                           minValue = 0)                        
@@ -2210,7 +2213,6 @@ def ribbon(jointList = None,
 
                 
                 #Now we need to do our blends for the invserse scale
-                
                 mPlug_aimInverseBase = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                   "{0}_aimInverseScaleBase_{1}".format(str_baseName,i),
                                                   attrType = 'float',
@@ -2233,8 +2235,8 @@ def ribbon(jointList = None,
                                                       "{0}_outFactor_{1}".format(str_baseName,i),
                                                       attrType = 'float',
                                                       hidden = False,
-                                                      initialValue=1.0,
-                                                      defaultValue=1.0,
+                                                      initialValue=v_scaleFactor,
+                                                      defaultValue=v_scaleFactor,
                                                       keyable = extraKeyable,
                                                       lock=False,
                                                       minValue = 0)                        
@@ -2276,6 +2278,13 @@ def ribbon(jointList = None,
                     #if mJnt == ml_joints[-1]:
                         #pass #...we'll pick up the last on the loop
                     #else:
+                    
+                    try:
+                        v_scaleFactor = l_scaleFactors[i]
+                    except Exception,err:
+                        log.error("scale factor idx fail ({0}). Using 1.0 | {1}".format(i,err))
+                        v_scaleFactor = 1.0
+                        
                     mPlug_outResult = cgmMeta.cgmAttr(mControlSurface.mNode,
                                                     "{0}_outScaleResult_{1}".format(str_baseName,i),
                                                     attrType = 'float',
@@ -2331,7 +2340,7 @@ def ribbon(jointList = None,
                         
                         
                         for arg in l_argBuild:
-                            log.debug("|{0}| >> Building arg: {1}".format(_str_func,arg))
+                            log.info("|{0}| >> Building arg: {1}".format(_str_func,arg))
                             NODEFAC.argsToNodes(arg).doBuild()
                             
                             
@@ -4243,7 +4252,7 @@ def curve(jointList = None,
                                                       minValue = 0)                    
     
                     mPlug_jointFactor = cgmMeta.cgmAttr(mSettings.mNode,
-                                                        "{0}_factor_{1}".format(str_baseName,i),
+                                                        "{0}_out_factor_{1}".format(str_baseName,i),
                                                         attrType = 'float',
                                                         hidden = False,
                                                         initialValue=v_scaleFactor,

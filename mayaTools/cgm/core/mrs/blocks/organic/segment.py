@@ -2997,7 +2997,7 @@ def rig_segments(self):
                 
             _d['liveSurface'] = False if self.str_segmentType == 'ribbon' else True
             #log.info(cgmGEN.logString_sub,_str_func,"segment dict...")
-
+            #_d['sectionSpans'] = 6
             pprint.pprint(_d)
             res_ribbon = IK.ribbon(**_d)
             ml_surfaces = res_ribbon['mlSurfaces']
@@ -3871,20 +3871,22 @@ def rig_cleanUp(self):
             for mHandle in self.ml_ikMidControls:
                 #if b_ikOrientToWorld:BUILDUTILS.control_convertToWorldIK(mHandle)
             
-                mParent = mHandle.masterGroup.getParent(asMeta=True)
+                #mParent = mHandle.masterGroup.getParent(asMeta=True)
                 ml_targetDynParents = []
                 mMainDriver = mHandle.getMessageAsMeta('mainDriver')
                 if mMainDriver:
                     ml_targetDynParents.append(mMainDriver)
                     mMainDriver.doStore('cgmAlias','midIKBase')
                 else:
-                    if not mParent.hasAttr('cgmAlias'):
-                        mParent.doStore('cgmAlias','midIKBase')
+                    pass
+                    #if not mParent.hasAttr('cgmAlias'):
+                    #    mParent.doStore('cgmAlias','midIKBase')
                 
                 mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
                 if mPivotResultDriver:
                     mPivotResultDriver = mPivotResultDriver[0]
-                ml_targetDynParents.extend([mPivotResultDriver,mControlIK,mParent])
+                    
+                ml_targetDynParents.extend([mPivotResultDriver] + ml_ikControls)
                 
                 ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
                 #ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
@@ -3894,7 +3896,7 @@ def rig_cleanUp(self):
                     ml_targetDynParents.insert(0,mMainDriver)
                 
                 mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
-                #mDynGroup.dynMode = 2
+                mDynGroup.dynMode = 2
             
                 for mTar in ml_targetDynParents:
                     mDynGroup.addDynParent(mTar)

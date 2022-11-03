@@ -7655,7 +7655,7 @@ class ui(cgmUI.cgmGUI):
         #>> Top
         #=============================================================================================
         self.uiFrame_context = mUI.MelLabel(_RightUpperColumn,l='',align='center')
-        """
+        
         self.create_guiOptionVar('contextSettingsFrameCollapse',defaultValue = 0)       
         
         _frame_context = mUI.MelFrameLayout(_RightUpperColumn,label = 'Utilities - Contextual',vis=True,
@@ -7667,9 +7667,9 @@ class ui(cgmUI.cgmGUI):
                                                 collapseCommand = lambda:self.var_contextSettingsFrameCollapse.setValue(1)
                                                 )	
         self.uiFrame_context = _frame_context
-        _frame_context_inside = mUI.MelColumnLayout(_frame_context,useTemplate = 'cgmUISubTemplate') """
+        _frame_context_inside = mUI.MelColumnLayout(_frame_context,useTemplate = 'cgmUISubTemplate') 
 
-        """
+        
         
         
         #mc.setParent(_RightUpperColumn
@@ -7702,7 +7702,7 @@ class ui(cgmUI.cgmGUI):
             mUI.MelSpacer(_row_contextModes,w=2)
 
         _row_contextModes.layout()         
-  
+        """
         #Context Start  -------------------------------------------------------------------------------          
         self.create_guiOptionVar('contextStartMode',defaultValue = 1)       
     
@@ -7725,8 +7725,8 @@ class ui(cgmUI.cgmGUI):
         _on = self.var_contextStartMode.value
         for i,item in enumerate(self._l_contextStartModes):
             self.uiOM_beginWith.append(item)
-
             mUI.MelSpacer(_row_contextStartModes,w=2)
+            
         _row_contextStartModes.setStretchWidget( mUI.MelSeparator(_row_contextStartModes) )
         
         #..force modes
@@ -7735,7 +7735,6 @@ class ui(cgmUI.cgmGUI):
         _rc_contextForceMode = mUI.MelRadioCollection()
         
         #build our sub section options
-        #MelHSingleStretchLayout
         mUI.MelSpacer(_row_contextStartModes,w=1)
         mUI.MelLabel(_row_contextStartModes,l = 'Force:')
         self.uiOM_forceMode = mUI.MelOptionMenu(_row_contextStartModes,
@@ -7745,14 +7744,12 @@ class ui(cgmUI.cgmGUI):
         _on = self.var_contextForceMode.value
         for i,item in enumerate(['False','True']):
             self.uiOM_forceMode.append(item)
-
             mUI.MelSpacer(_row_contextStartModes,w=2)
             
-
     
         _row_contextStartModes.layout()       
-        """
         
+        """
         #Push Rows  -------------------------------------------------------------------------------  
         mc.setParent(_RightUpperColumn)
         CGMUI.add_LineSubBreak()
