@@ -4,7 +4,7 @@ cgm_PuppetMeta: cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 This is the core MetaClass structure for cgm's modular rigger.

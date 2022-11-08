@@ -4,7 +4,7 @@ cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Site : http://www.cgmonastery.com
+Site : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Core is the library of Python modules that make the backbone of the cgm.core. 

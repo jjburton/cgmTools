@@ -3,7 +3,7 @@
 snap_utils: cgm.core.lib.transform_utils
 Author: Josh Burton & David Bokser
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Unified location for transform calls. metanode instances may by passed

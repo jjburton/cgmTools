@@ -4,7 +4,7 @@ cgm_Meta: cgm.core.test.test_coreLib.test_PATH
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Unit Tests for the validateArgs.objString function

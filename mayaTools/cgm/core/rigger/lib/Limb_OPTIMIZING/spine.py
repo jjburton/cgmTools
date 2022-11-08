@@ -4,7 +4,7 @@ cgm.core.rigger: Limb.spine
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 spine rig builder

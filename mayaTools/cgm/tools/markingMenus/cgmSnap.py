@@ -245,7 +245,7 @@ class snapMarkingMenu(mUI.BaseMelWindow):
 		mUI.MelMenuItemDiv(parent)	
 		
 		mUI.MelMenuItem( parent, l="Docs",
-	                     c='import webbrowser;webbrowser.open("http://www.cgmonastery.com/tools/maya-tools/cgmmmsnap");')	
+	                     c='import webbrowser;webbrowser.open("https://github.com/jjburton/cgmTools/wiki/tools/maya-tools/cgmmmsnap");')	
 		
 		mUI.MelMenuItem(parent, l="Reset",
 	                 c=lambda *a: guiFactory.resetGuiInstanceOptionVars(self.optionVars))

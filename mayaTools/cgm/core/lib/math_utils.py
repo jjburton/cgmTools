@@ -3,7 +3,7 @@
 math_utils: cgm.core.lib.math_utils
 Authors: Josh Burton & David Bokser
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 """
@@ -582,6 +582,8 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
             midPeak - ease to peak and back
             midBlendDown - max to mid then blend down
             midBlendUp  - blend from min to max then max
+            blendUp
+            blendDown
             
     :returns:
         list of values
@@ -590,6 +592,8 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
             midPeak - [0.0, 0.5, 1.0, 0.5, 0.0]
             midBlendDown - [1.0, 1.0, 1.0, 0.5, 0.0]
             blendUpMid - [0.0, 0.5, 1.0, 1.0, 1.0]
+            blendUp - [0.0, 0.25, 0.5, 0.75, 1.0]
+            blendDown - [1.0, 0.75, 0.5, 0.25, 0.0]
             
     :raises:
         Exception | if reached
@@ -600,8 +604,19 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
     if mode == 'midPeak' and count ==3:
         return [minValue,maxValue,minValue] 
         
-    if mode in ['midPeak','blendUpMid','midBlendDown']:
-        if count == 3:
+    if mode in ['blendUp','blendDown']:
+        blendFactor = (float(maxValue) - float(minValue))/(count-1)
+        
+        for i in range(count):
+            _res.append( (i * blendFactor) + minValue)
+
+        if mode == 'blendDown':
+            _res.reverse()
+        
+    elif mode in ['midPeak','blendUpMid','midBlendDown']:
+        if count == 2:
+            _res = [maxValue,maxValue]
+        elif count == 3:
             _res = [minValue, maxValue/2.0, maxValue]
         else:
             idx_mid = get_midIndex(count)
@@ -634,14 +649,16 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
                     _res = _res + [maxValue for i in range(idx_mid-1)]
                 elif mode == 'midBlendDown':
                     _res.reverse()
-                    _res = [maxValue for i in range(idx_mid-1)] + _res
+                    _res = [maxValue for i in range(idx_mid)] + _res
                 else:
                     _rev = copy.copy(_res)
                     _rev.reverse()
                     _res.extend(_rev[1:])
-            _res[0] = minValue
-            _res[-1] = minValue
-            _res[idx_mid] = maxValue
+            
+            if mode in ['midPeak','blendUpMid','midBlendDown']:
+                _res[0] = minValue
+                _res[-1] = minValue
+                _res[idx_mid] = maxValue
             
     elif mode == 'max':
         return [maxValue for i in range(count)]

@@ -4,7 +4,7 @@ cgmMMPuppet: cgm.core.tools.markingMenus.cgmMMPuppet
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================

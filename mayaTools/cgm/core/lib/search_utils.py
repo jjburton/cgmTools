@@ -3,7 +3,7 @@
 search_utils: cgm.core.lib.search_utils
 Author: Josh Burton
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 """

@@ -4,7 +4,7 @@ cgm.core.mrs.blocks.simple.torso
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -129,6 +129,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                    'prerig':[],
                    'skeleton':['numJoints'],
                    'squashStretch':['squashSkipAim','segmentStretchBy'],
+                   'space':['ikMidDynParentMode','ikMidDynScaleMode'],
                    'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
                           'ribbonExtendEnds','ribbonAttachEndsToInfluence',
                           
@@ -661,7 +662,8 @@ l_attrsStandard = ['side',
                    'visJointHandle',
                    'root_dynParentMode',
                    'root_dynParentScaleMode',
-                   
+                   'controlOffsetMult',
+                   'squashFactorMode',
                    'settingsDirection',
                    'moduleTarget']
 
@@ -683,6 +685,9 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ribbonAttachEndsToInfluence':'none:start:end:both',
                  'ikMidControlNum':'int',
                  'ikMidSetup':'none:ribbon:prntConstraint:linearTrack:cubicTrack',
+                 'ikMidDynParentMode':BLOCKSHARE._d_attrsTo_make['dynParentMode'],
+                 'ikMidDynScaleMode':BLOCKSHARE._d_attrsTo_make['dynParentScaleMode'],
+                 
                  'segmentType':'ribbon:ribbonLive:spline:curve:linear:parent',
                  'segmentStretchBy':'translate:scale',
                  'ikBase':'none:cube:simple:hips:head',
@@ -697,7 +702,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikEndShape':'cast:locator:cube',
                  'ikEndLever':'bool',
                  'ikBaseExtend':'bool',
-                 'ikEndExtend':'bool',                 
+                 'ikEndExtend':'bool',
                  #'nameIter':'string',
                  #'numControls':'int',
                  #'numShapers':'int',
@@ -712,6 +717,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSetup':0,
                      'loftShape':0,
                      'numShapers':3,
+                     'controlOffsetMult':1.0,                     
                      'castVector':'up',
                      'squashMeasure':'arcLength',
                      'squash':'simple',
@@ -1937,7 +1943,7 @@ def rig_dataBuffer(self):
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
             mBlock.ikMidSetup = 0
             
-        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence','segmentStretchBy']:
+        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence','segmentStretchBy','squashFactorMode']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
                 
         #Vector ====================================================================================
@@ -2106,7 +2112,7 @@ def rig_dataBuffer(self):
         str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
         if not mBlock.offsetMode:
             log.debug("|{0}| >> default offsetMode...".format(_str_func))
-            self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+            self.v_offset = self.mPuppet.atUtils('get_shapeOffset') * mBlock.controlOffsetMult
         else:
             str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
             log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
@@ -2960,6 +2966,7 @@ def rig_segments(self):
               'attachStartToInfluence':False,
               'attachEndToInfluence':False,#True,#for autoswim
               'parentDeformTo':mRoot,
+              'squashFactorMode':self.str_squashFactorMode,
               'driverSetup':mBlock.getEnumValueString('ribbonAim'),
               'skipAim':mBlock.squashSkipAim,
               'moduleInstance':mModule}
@@ -3795,7 +3802,7 @@ def rig_cleanUp(self):
         
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
-            
+        
         mDynGroup.dynMode = mBlock.root_dynParentMode
         mDynGroup.scaleMode = mBlock.root_dynParentScaleMode
             
@@ -3896,7 +3903,9 @@ def rig_cleanUp(self):
                     ml_targetDynParents.insert(0,mMainDriver)
                 
                 mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
-                mDynGroup.dynMode = 2
+                
+                mDynGroup.dynMode = mBlock.ikMidDynParentMode
+                mDynGroup.scaleMode = mBlock.ikMidDynScaleMode                
             
                 for mTar in ml_targetDynParents:
                     mDynGroup.addDynParent(mTar)

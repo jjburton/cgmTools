@@ -3,7 +3,7 @@
 reloadFactory: cgm.core.reloadFactory
 Author: Josh Burton
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Module to handle some of the insanity of reloading our libraries.

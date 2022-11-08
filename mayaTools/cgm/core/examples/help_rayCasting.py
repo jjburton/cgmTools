@@ -4,7 +4,7 @@ cgm.core.examples
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Help for using the concept of rayCasting. We'll be looking at rayCaster,clickMesh,and control casting

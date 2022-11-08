@@ -4,7 +4,7 @@ block: cgm.core.mrs.lib
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 These are functions with self assumed to be a cgmRigBlock
@@ -7033,7 +7033,10 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     #pprint.pprint(vars())
     for i,n in enumerate(['start','end']):
         log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-        mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
+        #mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
+        crv = CURVES.create_fromName('sphere2', [_size_handle,_size_handle,.2* _size_handle], direction = 'y+',baseSize=1)
+        mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+        
         mHandle.p_parent = mFormNull
     
         mHandle.resetAttrs()
@@ -7142,7 +7145,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         ml_midLoftHandles = []
         for i,p in enumerate(_l_posMid[1:-1]):
             log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
-            crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
+            crv = CURVES.create_fromName('sphere2', [_size_handle,_size_handle,.2* _size_handle], direction = 'y+',baseSize=1)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
 
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -10044,12 +10047,14 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 #    _rotSize = [.25,.25,2.0]
                 #    if k == 'rp':_rotSize = [.5,.5,1.25]
                 #else:
-                _rotSize = [.05,.05,.8]
-                if k == 'rp':_rotSize = [.105,.105,.6]                    
+                _rotSize = [.05,.8,.05]
+                if k == 'rp':_rotSize = [.105,.6,.105]                    
                     
                 _crv = CURVES.create_fromName(name='cylinder',#'arrowsAxis', 
                                               bakeScale = True,
-                                              direction = 'y+', size = _rotSize)                
+                                              direction = 'y+',
+                                              size = _rotSize,
+                                              baseSize=1)                
                 #_crv = CORERIG.create_at(create='curveLinear', 
                 #                         l_pos=[[0,0,0],[0,1.25,0]], 
                 #                         baseName='up')
@@ -11332,7 +11337,9 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
                 if mHandle in [ml_use[0],ml_use[-1]]:
                     l_box[2] = MATH.average(xDist,yDist)
                 #TRANS.scale_to_boundingBox(_mNode,l_box,freeze=False)
-                DIST.scale_to_axisSize(_mNode,l_box)
+                #DIST.scale_to_axisSize(_mNode,l_box)
+                for i,a in enumerate('xyz'):
+                    ATTR.set(_mNode,'s{0}'.format(a),l_box[i])
                 log.debug(l_box)
             except Exception,err:
                 log.error("Form Handle failed to scale: {0}".format(mHandle))

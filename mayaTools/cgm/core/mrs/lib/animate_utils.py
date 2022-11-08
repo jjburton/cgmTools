@@ -4,7 +4,7 @@ cgm.core.mrs.lib.animate
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================

@@ -4,7 +4,7 @@ toolbox: cgmUpdate
 Author: Josh Burton,Ryan Comingdeer
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 This is housed outside our core stuff to be able to access and update it.

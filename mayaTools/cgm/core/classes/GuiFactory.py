@@ -4,7 +4,7 @@ GuiFactory: cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Class based ui builder for cgmTools
@@ -1914,7 +1914,7 @@ def add_cgmFooter(parent = False):
         #_path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
         _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')        
         mc.iconTextButton(style='iconOnly',image =_path_image,
-                          c=lambda *a:(webbrowser.open("http://www.cgmonastery.com/")))  
+                          c=lambda *a:(webbrowser.open("https://github.com/jjburton/cgmTools/wiki/")))  
                           #c=lambda *a:(webbrowser.open("http://docs.cgmonks.com/")))  
     except Exception,err:
         log.warning("Failed to add cgmFooter")
@@ -1930,7 +1930,7 @@ def add_cgMonaseryFooter(parent = False):
         _path_imageFolder = PATHS.Path(cgmImagesFolder.__file__).up().asFriendly()
         _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')
         mc.iconTextButton(style='iconOnly',image =_path_image,
-                          c=lambda *a:(webbrowser.open("http://www.cgmonastery.com/")))  
+                          c=lambda *a:(webbrowser.open("https://github.com/jjburton/cgmTools/wiki/")))  
     except Exception,err:
         log.warning("Failed to add cgmFooter")
         for arg in err.args:

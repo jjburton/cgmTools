@@ -4,7 +4,7 @@ shared_dat: cgm.core.mrs.lib.shared_dat
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -116,13 +116,14 @@ d_uiAttrDict = {'name':['nameList','cgmName','nameIter'],
                        'ikBase','ikEnd',
                        'parentVisAttr','segmentType',
                        'ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
+                       'controlOffsetMult',
                        'offsetMode','proxyDirect','parentToDriver','rigSetup'],
                 'space':['numSpacePivots','spaceSwitch_fk','spaceSwitch_direct',
                          'dynParentMode','dynParentScaleMode',
                          'root_dynParentMode','root_dynParentScaleMode',],
                 'advanced':['baseDat'],
                 'squashStretch':['scaleSetup','squash','squashExtraControl','squashFactorMin','squashFactorMax',
-                                 'squashMeasure'],
+                                 'squashMeasure','squashFactorMode'],
                 'vis':[ 'visLabels','visMeasure','visProximityMode','visJointHandle','visRotatePlane'],
                 'data':['version','blockType','blockProfile'],
                 'post':['proxyLoft','proxyGeoRoot','proxyType','castVector']}
@@ -180,6 +181,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'offsetMode':'default:proxyAverage',                   
                    'buildDirect':'bool',
                    'ikOrientToWorld':'bool',
+                   'controlOffsetMult':'float',
                    'ikSetup':'none:rp:spring:spline:ribbon:ribbonLive:curve',
                    'ikBase':'none:cube:simple:hips',
                    'ikEnd':'none:bank:foot:paw:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
@@ -194,11 +196,15 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'squashExtraControl' : 'bool',
                    'squashFactorMax':'float',
                    'squashFactorMin':'float',
+                   'squashFactorMode':"midPeak:midBlendDown:midBlendUp:blendUp:blendDown:max",
                    'ribbonAim': 'none:stable:stableBlend',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'ribbonConnectBy': 'constraint:matrix',                 
                    
                    'ribbonParam': 'fixed:floating:blend',
+                   
+                   'dynParentMode':'space:orient:follow:point',
+                   'dynParentScaleMode':'off:link:space',
                    
                    'root_dynParentMode':'space:orient:follow:point',
                    'root_dynParentScaleMode':'off:link:space',

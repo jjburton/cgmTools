@@ -4,7 +4,7 @@ cgm.core.mrs.blocks.organic.limb
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -876,7 +876,7 @@ l_attrsStandard = ['side',
                    'proxyGeoRoot',
                    'proxyDirect',
                    'proxyBuild',
-                   
+                   'controlOffsetMult',
                    'root_dynParentMode',
                    'root_dynParentScaleMode',
                    
@@ -930,7 +930,8 @@ d_attrsToMake = {'visMeasure':'bool',
 d_defaultSettings = {'version':__version__,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      'numControls': 3,
-                     'numShapers':3,                     
+                     'numShapers':3,
+                     'controlOffsetMult':1.0,
                      'loftSetup':0,
                      'formEndAim':1,
                      'loftShape':0,
@@ -1354,10 +1355,13 @@ def form(self):
         log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
         iUse = 0
         if i:iUse = -1
-        mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
+        
+        crv = CURVES.create_fromName('sphere2', [_size_handle,_size_handle,.2* _size_handle], direction = 'y+',baseSize=1)
+        mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)        
+        #mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
         mHandle.p_parent = mFormNull
         
-        mHandle.resetAttrs()
+        #mHandle.resetAttrs()
         
         self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
         mHandle.doStore('cgmType','blockHandle')
@@ -1391,7 +1395,7 @@ def form(self):
         mHandleFactory.color(mLoftCurve.mNode)            
         
         mBaseAttachGroup = mHandle.doGroup(True,True, asMeta=True,typeModifier = 'attach')
-        
+    
     #Constrain the define end to the end of the form handles
     mc.pointConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=False)
     #mc.scaleConstraint(md_handles['end'].mNode,mDefineEndObj.mNode,maintainOffset=True)
@@ -1431,13 +1435,18 @@ def form(self):
     mHandleFactory.color(mBaseOrientCurve.mNode,controlType='sub')
     mc.select(cl=True)
 
+    
     #Lever Handle ===============================================================================
     log.debug("|{0}| >> Lever handle...".format(_str_func) + '-'*40) 
     
     
     if _b_lever:
-        crv = CURVES.create_fromName('sphere2', _size_width, direction = 'y+',baseSize=1)
-        mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+        crv = CURVES.create_fromName('sphere2', [_size_width,_size_width,.2* _size_width], direction = 'y+',baseSize=1)
+        mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)       
+        
+        
+        #crv = CURVES.create_fromName('sphere2', _size_width, direction = 'y+',baseSize=1)
+        #mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
         md_handles['lever'] = mHandle
         self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
         mHandle.doStore('cgmType','blockHandle')
@@ -1509,7 +1518,9 @@ def form(self):
 
         for i,p in enumerate(_l_posMid[1:-1]):
             log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
-            crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
+            crv = CURVES.create_fromName('sphere2', [_size_handle,_size_handle,.2* _size_handle], direction = 'y+',baseSize=1)
+            
+            #crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -3923,7 +3934,7 @@ def rig_dataBuffer(self):
         
         
         #Offset ============================================================================    
-        self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+        self.v_offset = self.mPuppet.atUtils('get_shapeOffset') * mBlock.controlOffsetMult
         if self.str_rigSetup == 'digit':
             self.v_offset = self.v_offset * .5
 
@@ -6208,9 +6219,11 @@ def rig_segments(self):
         
         l_rollKeys = self.md_roll.keys()
         l_rollKeys.sort()
+        if -1 in l_rollKeys:
+            l_rollKeys.remove(-1)
+            
         for i in l_rollKeys:
-            if i == -1:
-                continue
+
             
             log.debug("|{0}| >> Segment {1}".format(_str_func,i))
             
@@ -6594,9 +6607,9 @@ def rig_segments(self):
                   }            
             
             if i == l_rollKeys[0]:
-                _d['squashFactorMode'] = 'blendUpMid'
+                _d['squashFactorMode'] = 'midPeak'
             elif i == l_rollKeys[-1]:
-                _d['squashFactorMode'] = 'midBlendDown'
+                _d['squashFactorMode'] = 'blendDown'
             else:
                 _d['squashFactorMode'] = 'max'
                 

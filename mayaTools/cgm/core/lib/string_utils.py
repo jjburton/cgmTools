@@ -3,7 +3,7 @@
 string_utils: cgm.core.lib.string_utils
 Authors: David Bokser
 email: dbokser@cgmonks.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 """

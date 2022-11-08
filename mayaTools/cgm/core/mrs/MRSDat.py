@@ -1061,7 +1061,7 @@ class BlockConfig(BaseDat):
         """
 
         """
-        _str_func = 'data.__buffer__'
+        _str_func = 'BlockConfig.__buffer__'
         log.debug(log_start(_str_func))
         
         super(BlockConfig, self).__init__(filepath, **kws)
@@ -1082,7 +1082,7 @@ class BlockConfig(BaseDat):
             self.get(ml_context)
         
     def get(self, ml_context = []):
-        _str_func = 'data.get'
+        _str_func = 'BlockConfig.get'
         log.debug(log_start(_str_func))
         
         self.dat = config_get(ml_context)
@@ -1093,7 +1093,7 @@ class BlockConfig(BaseDat):
             self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))
             
     def set(self, mBlock = None):
-        _str_func = 'data.set'
+        _str_func = 'BlockConfig.set'
         log.debug(log_start(_str_func))
         
     def read(self, filepath = None, *arg,**kws):
@@ -1103,7 +1103,12 @@ class BlockConfig(BaseDat):
         
         for i,block in enumerate(self.dat['blockList']):
             #log.info(block)
-            self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))        
+            self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))
+            
+
+        
+        
+        
         
 
 def config_get(ml_context = [], report = True):
@@ -1349,6 +1354,40 @@ class uiBlockConfigDat(CGMDAT.ui):
         if self.uiDat.dat:
             self.uiUpdate_data()
             
+    def uiFunc_update(self,idx=None, mBlock = None):
+        _str_func = 'uiFunc_update[{0}]'.format(self.__class__.TOOLNAME)
+        log.debug(log_start(_str_func))
+        
+        if idx == None:
+            raise ValueError,"No known index"
+        
+        if not mBlock:
+            mBlock = BLOCKGEN.block_getFromSelected()
+            
+        if not mBlock:
+            return log.error("No block selected")
+                
+        
+        result = mc.confirmDialog(title="Updating BlockConfig | Dat {}".format(idx),
+                                  message= "DataSource: {}".format(mBlock.p_nameBase),
+                                  button=['OK'],
+                                  defaultButton='OK',
+                                  #cancelButton='Cancel',
+                                  dismissString='OK')
+        
+        if result != 'OK':
+            log.error("|{}| >> Cancelled.".format(_str_func))
+            return False                    
+        
+        mBlockDat = BlockDat(mBlock)
+        self.uiDat.mBlockDat[idx] = mBlockDat
+        self.uiDat.dat['config'][str(idx)] = blockDat_get(mBlock, False)
+        
+        
+        return log.info("Replaced {} data with | {}".format(idx, mBlock))
+        
+        
+            
     def uiUpdate_top(self):
         _str_func = 'uiUpdate_top[{0}]'.format(self.__class__.TOOLNAME)
         log.debug("|{0}| >>...".format(_str_func))
@@ -1412,12 +1451,16 @@ class uiBlockConfigDat(CGMDAT.ui):
         
         
     def uiFunc_create(self,idx=None):
-        if idx:
+        if idx is not None:
             blockConfig_create(self.uiDat, idx)
             return
         for i,a in enumerate(self.uiDat.dat['blockList']):
             if self._dCB_blocks[i].getValue():
                 blockConfig_create(self.uiDat, i)
+                
+    def uiFunc_setToggles(self,arg):
+        for i,mCB in self._dCB_blocks.iteritems():
+            mCB.setValue(arg)
                 
     def uiFunc_dat_get(self):
         _str_func = 'uiFunc_dat_get[{0}]'.format(self.__class__.TOOLNAME)            
@@ -1510,7 +1553,15 @@ class uiBlockConfigDat(CGMDAT.ui):
                           h=20)"""
         
         self._dCB_blocks = {}
-        reload(CORESHARE)
+        
+        _row = mUI.MelHLayout(self.uiFrame_data, h=30, )
+        mUI.MelButton(_row, label = 'All',
+                      c = cgmGEN.Callback(self.uiFunc_setToggles,1))
+        mUI.MelButton(_row, label = 'None',
+                      c = cgmGEN.Callback(self.uiFunc_setToggles,0))        
+        _row.layout()
+        
+        
         for i,a in enumerate(self.uiDat.dat['blockList']):
             #...make our block list
             mDat = self.uiDat.mBlockDat[i]
@@ -1582,7 +1633,9 @@ class uiBlockConfigDat(CGMDAT.ui):
             mUI.MelButton(_row, bgc=_colorSub, label = 'ShapeDat',en =bool(mDat),
                           c = cgmGEN.Callback(self.get_shapeDatUI,i))            
             mUI.MelButton(_row, bgc=_colorSub, label = 'Create',
-                          c = cgmGEN.Callback(self.uiFunc_create,i))            
+                          c = cgmGEN.Callback(self.uiFunc_create,i))
+            mUI.MelButton(_row, bgc=_colorSub, label = 'Update',
+                          c = cgmGEN.Callback(self.uiFunc_update,i))            
             mUI.MelSpacer(_row,w=10)
             
             _row.layout()
@@ -1829,7 +1882,7 @@ def shapeDat_set(mBlock,data,
                     
                 
     
-    if ml_handles[-1].getMessage('pivotHelper'):
+    if ml_handles and ml_handles[-1].getMessage('pivotHelper'):
         log.info(log_msg(_str_func,'pivot Helper'))
         
         mPivotHelper = ml_handles[-1].pivotHelper

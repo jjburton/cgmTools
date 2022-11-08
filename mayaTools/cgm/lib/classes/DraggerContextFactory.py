@@ -10,7 +10,7 @@
 #
 # AUTHOR:
 # 	Josh Burton
-#	http://www.cgmonastery.com
+#	https://github.com/jjburton/cgmTools/wiki
 # 	Copyright 2012 CG Monks - All Rights Reserved.
 #
 # ACKNOWLEDGEMENTS:

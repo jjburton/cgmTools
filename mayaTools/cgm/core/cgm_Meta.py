@@ -4,7 +4,7 @@ cgm_Meta: cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 This is the Core of the MetaNode implementation of the systems.

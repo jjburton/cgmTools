@@ -3,7 +3,7 @@
 Light Loom Lite: cgm.core.tools
 Authors: Matt Berenty | Josh Burton
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 ================================================================
 """

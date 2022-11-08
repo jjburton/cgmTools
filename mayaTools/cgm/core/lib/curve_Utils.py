@@ -296,7 +296,7 @@ def create_oneOfEach(size = None):
 _d_shapeLibrary = {'circle':['circleX','circleY','circleZ','circle'],
                    'square':['squareX','squareY','squareZ','squareRounded','squareRoundUp','squareRoundDown','squareDoubleRounded','squareOpen'],
                    'sphere':['semiSphere','sphere2','sphere'],
-                   'form':['cube','cubeOpen','pyramid','cross','fatCross','jack','axis3d','cylinder'],
+                   'form':['cube','cubeOpen','pyramid','cross','fatCross','jack','axis3d','cylinder','formBracket'],
                    'arrow':['arrowSingle','arrowSingleOpen','arrowSingleFat','arrowSingleFatOpen',
                             'arrowSingleFat3d','arrowsAxis',
                             'arrow4','arrow4Fat','arrow8','arrowsOnBall'],
@@ -757,6 +757,12 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
             CORERIG.override_color(c,'blueLight')
         
         _l_res = _l_x + _l_z + _l_y
+    elif name == 'formBracket':
+        _l_res = []
+        _l_res.append(mc.curve( d = 1,p = [[-0.35355339059327384, -0.35355339059327384, -4.3297802811774677e-17], [-0.5000000000000001, -3.0616169978683836e-17, -6.123233995736767e-17], [-0.35355339059327384, 0.35355339059327384, -4.3297802811774677e-17]],k = (3.8268343236508984, 4.592201188381078, 5.357568053111258)))
+        _l_res.append(mc.curve( d = 1,p = [[0.35355339059327384, -0.35355339059327384, 0.0], [0.5000000000000001, -3.0616169978683836e-17, 0.0], [0.35355339059327384, 0.35355339059327384, 0.0]],k = (3.8268343236508984, 4.592201188381078, 5.357568053111258)))
+        _l_res.append(mc.curve( d = 1,p = [[-4.3297802811774677e-17, -0.35355339059327384, 0.35355339059327384], [-6.123233995736767e-17, -3.0616169978683836e-17, 0.5000000000000001], [-4.3297802811774677e-17, 0.35355339059327384, 0.35355339059327384]],k = (3.8268343236508984, 4.592201188381078, 5.357568053111258)))
+        _l_res.append(mc.curve( d = 1,p = [[9.88089540430325e-17, -0.35355339059327384, -0.35355339059327384], [6.123233995736767e-17, -3.0616169978683836e-17, -0.5000000000000001], [9.88089540430325e-17, 0.35355339059327384, -0.35355339059327384]],k = (3.8268343236508984, 4.592201188381078, 5.357568053111258)))
     #>>> Loft Shapes =============================================================================================
     elif name in ['loftSquircleNeg','squircleNeg']:
         _l_res.append(mc.curve( periodic = True,d = 1,p = [[-0.005940223840524755, 0.3886522028209911, 2.220446049250313e-16], [-0.3963059862154777, 0.45861603253878813, 0.0], [-0.4722222222222224, 0.47222222222222227, 0.0], [-0.49999996740495506, 0.38888888888888884, 0.0], [-0.49999999999999994, 0.0, 0.0], [-0.5000000000000001, -0.38888888888888884, 0.0], [-0.4722222222222221, -0.47222222222222227, 0.0], [-0.3963059862154775, -0.4586160325387882, 2.220446049250313e-16], [-0.005940223840524672, -0.3886522028209911, -2.220446049250313e-16], [0.3884448809172527, -0.317968001049204, 0.0], [0.47222222222222227, -0.302952894177099, 0.0], [0.5, -0.24949061873408146, 0.0], [0.49999999999999983, 0.0, 0.0], [0.49999999999999994, 0.24949061873408146, 0.0], [0.47222222222222227, 0.302952894177099, 0.0], [0.38844488091725243, 0.317968001049204, -2.220446049250313e-16], [-0.005940223840524755, 0.3886522028209911, 2.220446049250313e-16]],k = (0.39018064403225683, 0.7803612880645137, 1.1705419320967696, 1.5607225761290264, 1.9509032201612833, 2.341083864193539, 2.731264508225796, 3.1214451522580524, 3.511625796290309, 3.901806440322565, 4.291987084354822, 4.682167728387078, 5.072348372419335, 5.462529016451592, 5.852709660483849, 6.242890304516106, 6.6330709485483625)))
@@ -864,12 +870,20 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
             mc.makeIdentity(_res, apply=True,s=1)            
         
         #...
+        
+        _d_directionRotates = {'x+':[0,90,0],'x-':[0,-90,0],'y+':[-90,0,0],'y-':[90,0,0],'z+':[0,0,0],'z-':[0,180,0]}
+        _r_factor = _d_directionRotates.get(direction)
+        mc.rotate (_r_factor[0], _r_factor[1], _r_factor[2], _res, ws=True)
+        mc.makeIdentity(_res, apply=True,r =1, n= 1,s=0)
+        
         if cgmValid.isListArg(size):
-            TRANS.scale_to_boundingBox(_res,size)
-            for a in 'xyz':
-                v = ATTR.get(_res,'s{0}'.format(a))
-                if MATH.is_float_equivalent(v,0):
-                    ATTR.set(_res,'s{0}'.format(a),1.0)
+            #TRANS.scale_to_boundingBox(_res,size)
+            #for a in 'xyz':
+            #    v = ATTR.get(_res,'s{0}'.format(a))
+            #    if MATH.is_float_equivalent(v,0):
+            #        ATTR.set(_res,'s{0}'.format(a),1.0)
+            for i,a in enumerate('xyz'):
+                ATTR.set(_res,'s{0}'.format(a),size[i])
         else:
             if absoluteSize:
                 _f_current = DIST.get_bb_size(_res,True,True)
@@ -877,13 +891,15 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
                 mc.scale(multiplier,multiplier,multiplier, _res,relative = True,os=True)
             else:
                 mc.scale(size,size,size,_res,os=True)
-        if bakeScale:
-            mc.makeIdentity(_res, apply=True,s=1)    
 
-    _d_directionRotates = {'x+':[0,90,0],'x-':[0,-90,0],'y+':[-90,0,0],'y-':[90,0,0],'z+':[0,0,0],'z-':[0,180,0]}
-    _r_factor = _d_directionRotates.get(direction)
-    mc.rotate (_r_factor[0], _r_factor[1], _r_factor[2], _res, ws=True)
-    mc.makeIdentity(_res, apply=True,r =1, n= 1,s=0)
+        if baseSize:
+            _size = TRANS.bbSize_get(_res)
+            TRANS.scale_to_size(_res,baseSize,'max')
+            mc.makeIdentity(_res, apply=True,s=1)
+            TRANS.scale_to_boundingBox(_res,_size)
+            
+        elif bakeScale:
+            mc.makeIdentity(_res, apply=True,s=1)    
 
     return _res
 

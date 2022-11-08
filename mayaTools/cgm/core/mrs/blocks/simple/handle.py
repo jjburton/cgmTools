@@ -4,7 +4,7 @@ cgm.core.mrs.blocks.simple.handle
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -202,6 +202,7 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    'scaleSetup',                   
                    #'buildProfile',
+                   'controlOffsetMult',                   
                    'visMeasure',
                    'visProximityMode',
                    'shapeDirection',
@@ -231,6 +232,8 @@ d_defaultSettings = {'version':__version__,
                      'addAim':False,
                      'addCog':False,
                      'shapeDirection':2,
+                     'controlOffsetMult':1.0,
+                     
                      'axisAim':2,
                      'axisUp':4,
                      'addScalePivot':False,
@@ -1366,7 +1369,7 @@ def rig_dataBuffer(self):
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)        
         
         #Offset ============================================================================    
-        self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+        self.v_offset = self.mPuppet.atUtils('get_shapeOffset') * mBlock.controlOffsetMult
 
         log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
         

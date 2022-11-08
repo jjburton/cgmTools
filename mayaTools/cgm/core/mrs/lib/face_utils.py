@@ -2,7 +2,7 @@
 ------------------------------------------
 face_utils: cgm.core.mrs.lib
 Author: Josh Burton
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
