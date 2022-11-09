@@ -1060,6 +1060,11 @@ class BlockConfig(BaseDat):
     '''    
     _ext = 'cgmBlockConfig'
     _startDir = ['cgmDat','mrs']
+    _cleanDat = {'blockList':[],
+                 'config':{},
+                 'uiStrings':[],
+                 'indices':[]}
+    
     def __init__(self, ml_context = None, filepath = None, **kws):
         """
 
@@ -1083,6 +1088,12 @@ class BlockConfig(BaseDat):
             
         if ml_context:
             self.get(ml_context)
+            
+    def clear(self):
+        _str_func = 'BlockConfig.clear'
+        log.debug(log_start(_str_func))
+        self.dat = copy.copy(BlockConfig._cleanDat)
+        self.mBlockDat = []        
         
     def get(self, ml_context = []):
         _str_func = 'BlockConfig.get'
@@ -1095,10 +1106,86 @@ class BlockConfig(BaseDat):
             #log.info(block)
             self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))
             
+    def append(self, ml_context = []):
+        _str_func = 'BlockConfig.append'
+        log.debug(log_start(_str_func))        
+        
+        
+        if not ml_context and ml_context is not None:
+            ml_context = BLOCKGEN.block_getFromSelected(True)
+            if not ml_context:
+                raise ValueError, "{} | Must have a context to append".format(_str_func)
+        
+        _newDat = config_get(ml_context)
+        
+        
+        _oldIndices = self.dat.get('indices',[])
+        if _oldIndices:
+            _start = max(_oldIndices) + 1
+        else:
+            _start = 0
+            
+        for i,k in enumerate(_newDat['indices']):
+            self.dat['blockList'].append(_newDat['blockList'][i])
+            self.dat['config'][str(k+_start)] = _newDat['config'][str(k)]
+            self.dat['uiStrings'].append(_newDat['uiStrings'][k])
+            self.dat['indices'].append(k+_start)
+
+
+            self.mBlockDat.append( BlockDat(dat= _newDat['config'][str(k)] ))
+
+        return True
+        #Get the current open list
+        
+    def remove(self, idx = None, ml_context = []):
+        _str_func = 'BlockConfig.remove'
+        log.debug(log_start(_str_func))
+        
+        if idx is None:
+            raise ValueError, "{} | Must have an index".format(_str_func)
+        
+
+        if idx not in self.dat['indices']:
+            raise ValueError,"{} | Invalid idx - {} | {}".format(_str_func, idx, self.dat['indices'])
+        
+
+        #try:self.mBlockDat.pop(idx)
+        #except:
+        #    raise ValueError,"{} | Invalid idx - {} | {}".format(_str_func, idx, self.dat['indices'])
+        self.mBlockDat = []
+        
+        _baseDat = copy.deepcopy(self.dat)
+        
+        _newDat = copy.deepcopy(BlockConfig._cleanDat)
+        pprint.pprint(_newDat)
+        _i = 0
+        
+        for i,k in enumerate(_baseDat['indices']):
+            if k == idx:
+                continue
+            
+            _newDat['blockList'].append(_baseDat['blockList'][i])
+            _newDat['config'][str(_i)] = _baseDat['config'][str(k)]
+            _newDat['uiStrings'].append(_baseDat['uiStrings'][i])
+            
+            self.mBlockDat.append( BlockDat(dat= _baseDat['config'][str(k)] ))
+            
+            #self.dat['blockList'].append(_newDat['blockList'][i])
+            #self.dat['config'][str(k+_start)] = _newDat['config'][str(k)]
+            #self.dat['uiStrings'].append(_newDat['uiStrings'][k])
+            #self.dat['indices'].append(k+_start)
+            _i+=1
+
+        _newDat['indices'] = range(len(_newDat['blockList']))        
+
+        self.dat = _newDat
+        return True
+        
     def set(self, mBlock = None):
         _str_func = 'BlockConfig.set'
         log.debug(log_start(_str_func))
-        
+    
+
     def read(self, filepath = None, *arg,**kws):
         BaseDat.read(self, filepath, *arg,**kws)
         
@@ -1108,6 +1195,8 @@ class BlockConfig(BaseDat):
             #log.info(block)
             self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))
             
+        if not self.dat.get('indices'):
+            self.dat['indices'] = range(len(self.dat['blockList']))        
         
         #self.str_filepath = filepath
         return True    
@@ -1138,7 +1227,8 @@ def config_get(ml_context = [], report = True):
         
     _res = {'blockList':[],
             'config':{},
-            'uiStrings':[]}
+            'uiStrings':[],
+            'indices':[]}
     
     ml,strings = BLOCKGEN.get_uiScollList_dat(showState=False,showProfile=False)
     
@@ -1154,6 +1244,7 @@ def config_get(ml_context = [], report = True):
         _res['blockList'].append(d_order[k].p_nameBase)
         _res['config'][str(i)] = blockDat_get(d_order[k],False)    
         _res['uiStrings'].append(strings[k])
+        _res['indices'].append(i)
     
     if log.level == 10:
         pprint.pprint(_res)
@@ -1353,11 +1444,11 @@ class uiBlockConfigDat(CGMDAT.ui):
     WINDOW_NAME = "BlockConfigUI"
     WINDOW_TITLE = 'BlockConfig | {0}'.format(__version__)
     DEFAULT_MENU = None
-    RETAIN = True
+    RETAIN = False
     MIN_BUTTON = False
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 400,350
+    DEFAULT_SIZE = 600,350
     
     _datClass = BlockConfig
     
@@ -1366,6 +1457,64 @@ class uiBlockConfigDat(CGMDAT.ui):
         if self.uiDat.dat:
             self.uiUpdate_data()
             
+            
+    def uiFunc_appendData(self,ml_context = []):
+        _str_func = 'uiFunc_appendData[{0}]'.format(self.__class__.TOOLNAME)
+        log.debug(log_start(_str_func))
+        
+        if self.uiDat.append(ml_context):
+            self.uiUpdate_data()
+            
+    def uiFunc_dat_clear(self):
+        _str_func = 'uiFunc_dat_clear[{0}]'.format(self.__class__.TOOLNAME)
+        log.debug(log_start(_str_func))
+        
+        result = mc.confirmDialog(title="Clear Dat",
+                                  message= "Clear Dat",
+                                  button=['OK','Cancel'],
+                                  defaultButton='OK',
+                                  cancelButton='Cancel',
+                                  dismissString='Cancel')
+        
+        if result != 'OK':
+            log.error("|{}| >> Cancelled.".format(_str_func))
+            return False        
+        
+        self.uiDat.clear()
+        self.uiUpdate_data()
+        
+            
+    def uiFunc_removeData(self,idx=None):
+        _str_func = 'uiFunc_removeData[{0}]'.format(self.__class__.TOOLNAME)
+        log.debug(log_start(_str_func))
+        try:_block = self.uiDat.dat['blockList'][idx]
+        except:
+            raise ValueError,"{} | invalid idx: {}".format(_str_func,idx)
+            
+        result = mc.confirmDialog(title="Removing Dat| Dat {}".format(_block),
+                                  message= "Remove: {}".format(_block),
+                                  button=['OK','Cancel'],
+                                  defaultButton='OK',
+                                  cancelButton='Cancel',
+                                  dismissString='Cancel')
+        
+        if result != 'OK':
+            log.error("|{}| >> Cancelled.".format(_str_func))
+            return False        
+        
+        if idx is not None:
+            self.uiDat.remove(idx)
+            self.uiUpdate_data()            
+            return
+        
+        ml_process = copy.deepcopy(self.uiDat.dat['blockList'])
+        
+        for i,a in enumerate(ml_process):
+            if self._dCB_blocks[i].getValue():
+                self.uiDat.remove(i)
+        self.uiUpdate_data()
+        
+    
     def uiFunc_update(self,idx=None, mBlock = None):
         _str_func = 'uiFunc_update[{0}]'.format(self.__class__.TOOLNAME)
         log.debug(log_start(_str_func))
@@ -1382,7 +1531,7 @@ class uiBlockConfigDat(CGMDAT.ui):
         
         result = mc.confirmDialog(title="Updating BlockConfig | Dat {}".format(idx),
                                   message= "DataSource: {}".format(mBlock.p_nameBase),
-                                  button=['OK'],
+                                  button=['OK','Cancel'],
                                   defaultButton='OK',
                                   cancelButton='Cancel',
                                   dismissString='Cancel')
@@ -1422,13 +1571,7 @@ class uiBlockConfigDat(CGMDAT.ui):
         
         mc.setParent(self.uiSection_top)
         _inside = self.uiSection_top
-        CGMUI.add_Header('Functions')
-        mc.button(parent=_inside,
-                  l = 'Create',
-                  ut = 'cgmUITemplate',
-                  c = cgmGEN.Callback(self.uiFunc_create),
-                  #c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create, self._dCB_reg['autoPush'].getValue())),
-                  ann = 'Build with MRS')
+
         
         
         """
@@ -1581,101 +1724,123 @@ class uiBlockConfigDat(CGMDAT.ui):
         
         self._dCB_blocks = {}
         
-        _row = mUI.MelHLayout(self.uiFrame_data, h=30, )
-        mUI.MelButton(_row, label = 'All',
+        _row = mUI.MelHLayout(self.uiFrame_data, h=30, padding=5 )
+        mUI.MelButton(_row, label = 'All',ut='cgmUITemplate',
                       c = cgmGEN.Callback(self.uiFunc_setToggles,1))
-        mUI.MelButton(_row, label = 'None',
-                      c = cgmGEN.Callback(self.uiFunc_setToggles,0))        
+        mUI.MelButton(_row, label = 'None',ut='cgmUITemplate',
+                      c = cgmGEN.Callback(self.uiFunc_setToggles,0))
+        mUI.MelSeparator(_row,w=10)
+        mUI.MelButton(_row, label = 'Clear',ut='cgmUITemplate',
+                      c = cgmGEN.Callback(self.uiFunc_dat_clear))
+        mUI.MelButton(_row, label = 'Add',ut='cgmUITemplate',
+                      c = cgmGEN.Callback(self.uiFunc_appendData))
+        #mUI.MelButton(_row, label = 'Remove',ut='cgmUITemplate',
+        #              c = cgmGEN.Callback(self.uiFunc_removeData))
         _row.layout()
         
         
         for i,a in enumerate(self.uiDat.dat['blockList']):
-            #...make our block list
-            mDat = self.uiDat.mBlockDat[i]
-            _type = mDat.dat['blockType']
-            _side = mDat.dat.get('side','center')
-            if _side in [False,'none',None]:
-                _side = 'center'
-            _colorSide = CORESHARE._d_gui_direction_colors.get(_side)
-            _colorSub = CORESHARE._d_gui_direction_colors_sub.get(_side)            
-            _colorDark = CORESHARE._d_gui_direction_colors_dark.get(_side)
-            
-            #_color = BLOCKSHARE.d_outlinerColors.get(mDat.dat['blockType'])['main']#d_colors.get(mDat.get('side'),d_colors['center'])
-            #_colorSub = BLOCKSHARE.d_outlinerColors.get(mDat.dat['blockType'])['sub']#d_colors.get(mDat.get('side'),d_colors['center'])
-            
-            
-            #mUI.MelIconCheckBox(self.uiFrame_data,)
-            _label = CORESTRINGS.stripWhiteSpaceStart(self.uiDat.dat['uiStrings'][i])#blockDat_getString(self.uiDat.mBlockDat[i])
-            
-            #Row...
-            _row = mUI.MelHSingleStretchLayout(self.uiFrame_data, h=30, 
-                                  bgc=_colorDark)            
-            
-            
-            
-            _icon = None
             try:
-                _icon = os.path.join(_path_imageFolder,'mrs','{}.png'.format(_type))
-            except:pass
-            #mc.iconTextButton( style='iconAndTextVertical', image1='cube.png', label='cube' )
-            #continue
-            
-            mUI.MelSpacer(_row,w=10)
-                        
-            if _icon:
-                #mUI.MelIconButton
-                mUI.MelIconButton(_row,
-                                  ann=_type,
-                                  style='iconOnly',
-                                  l=_label,
-                                  image1 =_icon ,
-                                  ua=True,
-                                  #mw=5,
-                                  scaleIcon=True,
-                                  w=30,h=30,
-                                  )
-                                  #olc=[float(v) for v in d_state_colors['form']],
-                                  #olb=[float(v) for v in d_state_colors['form']]+[.5],
-                                  #w=20,h=20,
-                                  #c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
-                """
-                mUI.MelImage(_row,
-                             w=10,
-                             h=10,
-                                  image =_icon)
-                                  #olc=[float(v) for v in d_state_colors['form']],
-                                  #olb=[float(v) for v in d_state_colors['form']]+[.5],
-                                  #w=20,h=20)"""
-            mUI.MelLabel(_row,label = "[{}]".format(i))
-            
-            _lenParents = mDat.dat['lenParents'] 
-            if _lenParents:
-                mUI.MelSpacer(_row,w=_lenParents * 10)
-            
-            
-            _cb = mUI.MelCheckBox(_row,l=_label,
-                                 #annotation = d_dat.get('ann',k),
-                                 value = 1)
-            self._dCB_blocks[i] = _cb
-            _row.setStretchWidget(_cb)
-            
-            mDat = mDat.dat.get('shape')
-
-            mUI.MelButton(_row, bgc=_colorSub, label = 'BlockDat',
-                          c = cgmGEN.Callback(self.get_blockDatUI,i))
-            mUI.MelButton(_row, bgc=_colorSub, label = 'ShapeDat',en =bool(mDat),
-                          c = cgmGEN.Callback(self.get_shapeDatUI,i))            
-            mUI.MelButton(_row, bgc=_colorSub, label = 'Create',
-                          c = cgmGEN.Callback(self.uiFunc_create,i))
-            mUI.MelButton(_row, bgc=_colorSub, label = 'Update',
-                          c = cgmGEN.Callback(self.uiFunc_update,i))            
-            mUI.MelSpacer(_row,w=10)
-            
-            _row.layout()
-            
-            mUI.MelSeparator(self.uiFrame_data,h=1)
+                
+                #...make our block list
+                mDat = self.uiDat.mBlockDat[i]
+                _type = mDat.dat['blockType']
+                _side = mDat.dat.get('side','center')
+                if _side in [False,'none',None]:
+                    _side = 'center'
+                _colorSide = CORESHARE._d_gui_direction_colors.get(_side)
+                _colorSub = CORESHARE._d_gui_direction_colors_sub.get(_side)            
+                _colorDark = CORESHARE._d_gui_direction_colors_dark.get(_side)
+                
+                #_color = BLOCKSHARE.d_outlinerColors.get(mDat.dat['blockType'])['main']#d_colors.get(mDat.get('side'),d_colors['center'])
+                #_colorSub = BLOCKSHARE.d_outlinerColors.get(mDat.dat['blockType'])['sub']#d_colors.get(mDat.get('side'),d_colors['center'])
+                
+                
+                #mUI.MelIconCheckBox(self.uiFrame_data,)
+                _label = CORESTRINGS.stripWhiteSpaceStart(self.uiDat.dat['uiStrings'][i])#blockDat_getString(self.uiDat.mBlockDat[i])
+                
+                #Row...
+                _row = mUI.MelHSingleStretchLayout(self.uiFrame_data, h=30, 
+                                      bgc=_colorSub)            
+    
+                _icon = None
+                try:
+                    _icon = os.path.join(_path_imageFolder,'mrs','{}.png'.format(_type))
+                except:pass
+                #mc.iconTextButton( style='iconAndTextVertical', image1='cube.png', label='cube' )
+                #continue
+                
+                mUI.MelSpacer(_row,w=10)
+                            
+                if _icon:
+                    #mUI.MelIconButton
+                    mUI.MelIconButton(_row,
+                                      ann=_type,
+                                      style='iconOnly',
+                                      l=_label,
+                                      image1 =_icon ,
+                                      ua=True,
+                                      #mw=5,
+                                      scaleIcon=True,
+                                      w=30,h=30,
+                                      )
+                                      #olc=[float(v) for v in d_state_colors['form']],
+                                      #olb=[float(v) for v in d_state_colors['form']]+[.5],
+                                      #w=20,h=20,
+                                      #c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
+                    """
+                    mUI.MelImage(_row,
+                                 w=10,
+                                 h=10,
+                                      image =_icon)
+                                      #olc=[float(v) for v in d_state_colors['form']],
+                                      #olb=[float(v) for v in d_state_colors['form']]+[.5],
+                                      #w=20,h=20)"""
+                mUI.MelLabel(_row,label = "[{}]".format(i))
+                
+                _lenParents = mDat.dat['lenParents'] 
+                if _lenParents:
+                    mUI.MelSpacer(_row,w=_lenParents * 10)
+                
+                
+                _cb = mUI.MelCheckBox(_row,l=_label,
+                                     #annotation = d_dat.get('ann',k),
+                                     value = 1)
+                self._dCB_blocks[i] = _cb
+                _row.setStretchWidget(_cb)
+                
+                mDat = mDat.dat.get('shape')
+    
+                mUI.MelButton(_row, bgc=_colorDark, label = 'BlockDat',
+                              c = cgmGEN.Callback(self.get_blockDatUI,i))
+                mUI.MelButton(_row, bgc=_colorDark, label = 'ShapeDat',en =bool(mDat),
+                              c = cgmGEN.Callback(self.get_shapeDatUI,i))            
+                mUI.MelButton(_row, bgc=_colorDark, label = 'Create',
+                              c = cgmGEN.Callback(self.uiFunc_create,i))
+                mUI.MelButton(_row, bgc=_colorDark, label = 'Update',
+                              c = cgmGEN.Callback(self.uiFunc_update,i))
+                mUI.MelButton(_row, bgc=_colorDark, label = 'Remove',
+                              ann="Remove this BlockDat",
+                              c = cgmGEN.Callback(self.uiFunc_removeData,i))            
+                mUI.MelSpacer(_row,w=10)
+                
+                _row.layout()
+                
+                mUI.MelSeparator(self.uiFrame_data,h=1)
+            except Exception,err:
+                log.error(err)
+        
+        mc.setParent(self.uiFrame_data)
+        CGMUI.add_Header('Functions')
+        mc.button(parent=self.uiFrame_data,
+                  l = 'Create',
+                  ut = 'cgmUITemplate',
+                  c = cgmGEN.Callback(self.uiFunc_create),
+                  #c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create, self._dCB_reg['autoPush'].getValue())),
+                  ann = 'Build with MRS')
         
         
+        mUI.MelSpacer(self.uiFrame_data,h=30)
         mUI.MelLabel(self.uiFrame_data, label = "PPRINT", h = 13, 
                      ut='cgmUIHeaderTemplate',align = 'center')
         
