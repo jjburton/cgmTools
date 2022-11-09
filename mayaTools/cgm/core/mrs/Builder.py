@@ -4950,8 +4950,12 @@ class ui(cgmUI.cgmGUI):
                        'Rebuild Block Shape':{'ann':'Rebuild the block shape',
                                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                               'atUtils', 'rootShape_update',
-                                              **{'updateUI':0})},                       
-                       },
+                                              **{'updateUI':0})},
+                       'Snap Handles to Param Attr':{'ann':'Snap handles to their param values',
+                                                     'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                     'atUtils', 'form_snapHandlesToParam',
+                                                     **{'updateUI':0})},                       
+                              },
                
                'Names':{ 
                    'divTags':['nameList | edit'],
@@ -6262,7 +6266,8 @@ class ui(cgmUI.cgmGUI):
                     if _call == 'rebuild':
                         mBlock = res
                         
-                    log.debug("[{0}] ...".format(mBlock.p_nameShort,res))
+                    try:log.debug("[{0}] ...".format(mBlock.p_nameShort,res))
+                    except:pass
                     if kws.get('mode') not in ['prechecks']:
                         pprint.pprint(res)
                         
@@ -6470,13 +6475,18 @@ class ui(cgmUI.cgmGUI):
                                     ann = 'Specify the position for the current block to : {0}'.format(position),
                                     c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',position))                
                 
+                mUI.MelMenuItem(_popUp,
+                                label = 'Delete',
+                                c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                    'atBlockUtils','delete',
+                                                    **{'updateUI':1}))                  
                 mUI.MelMenuItemDiv(_popUp)
                 mUI.MelMenuItem(_popUp,
                                 label = 'Reload Module',
                                 ann = 'Reload block module',
-                                c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                    'getBlockModule',
-                                                    **{'reloadMod':1}))                
+                                c =  cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                     'delete',
+                                                     **{'updateUI':1})),              
                 
                 
                 return                

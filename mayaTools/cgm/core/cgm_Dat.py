@@ -497,7 +497,8 @@ def uiFunc_setDirMode(self,v):
 class ui(CGMUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
     _toolname = 'cgmDat'
-    WINDOW_NAME = "{}UI".format(_toolname)
+    TOOLNAME = 'ui_cgmDat'
+    WINDOW_NAME = "{}UI".format(TOOLNAME)
     WINDOW_TITLE = 'cgmDat | {0}'.format(__version__)
     DEFAULT_MENU = None
     RETAIN = True
@@ -507,13 +508,21 @@ class ui(CGMUI.cgmGUI):
     DEFAULT_SIZE = 300,300
     
     _datClass = data
-    
+ 
     def insert_init(self,*args,**kws):
         self._loadedFile = ""
         self.uiDat = self._datClass()
         
         self.create_guiOptionVar('startDirMode',defaultValue = 0) 
         self._l_startDirModes = _l_startDirModes
+        
+        self.create_guiOptionVar('LastLoaded',defaultValue = '')
+        self.var_LastLoaded.setType('string')
+    
+    def post_init(self,*args,**kws):
+        _path = self.var_LastLoaded.value
+        if os.path.exists(_path):
+            self.uiFunc_dat_load(filepath = _path)
         
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
@@ -618,6 +627,8 @@ class ui(CGMUI.cgmGUI):
         
         if self.uiDat.read(**kws):
             self._loadedFile = self.uiDat.str_filepath
+            self.var_LastLoaded.setValue(self.uiDat.str_filepath)
+            
         self.uiStatus_refresh()
         return
     

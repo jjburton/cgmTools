@@ -230,7 +230,7 @@ def blockDat_getString(self):
 
     
     
-def blockDat_createBlock(self, autoPush = True):
+def blockDat_createBlock(self, autoPush = True, promptName = True):
     '''
     blockDat self
     '''
@@ -261,26 +261,27 @@ def blockDat_createBlock(self, autoPush = True):
     
     
     #...prompt ------------------------------------------------------------------------------------------------------------------------------------------------
-    _title = 'New name for block'.format(_blockType)
-    result = mc.promptDialog(title=_title,
-                             message='Current: {0} | type: {1} | build: {2} | block:{3} '.format(_nameOriginal,_blockType,_d.get('blockProfile'),_d.get('buildProfile')),
-                             button=['OK', 'Cancel'],
-                             text = _nameOriginal,
-                             defaultButton='OK',
-                             cancelButton='Cancel',
-                             dismissString='Cancel')
-    if result == 'OK':
-        _v =  mc.promptDialog(query=True, text=True)
-        _d['name'] =  _v
-        _d['cgmName'] = _v
-        mDat['settings']['name']['cgmName'] = _v
-        
-        if mDat.get('blockPosition') and mDat['blockPosition'] is not 'none':
-            _d['cgmPosition'] = mDat.get('blockPosition')
-                
-    else:
-        log.error("Creation cancelled")
-        return False    
+    if promptName:
+        _title = 'New name for block'.format(_blockType)
+        result = mc.promptDialog(title=_title,
+                                 message='Current: {0} | type: {1} | build: {2} | block:{3} '.format(_nameOriginal,_blockType,_d.get('blockProfile'),_d.get('buildProfile')),
+                                 button=['OK', 'Cancel'],
+                                 text = _nameOriginal,
+                                 defaultButton='OK',
+                                 cancelButton='Cancel',
+                                 dismissString='Cancel')
+        if result == 'OK':
+            _v =  mc.promptDialog(query=True, text=True)
+            _d['name'] =  _v
+            _d['cgmName'] = _v
+            mDat['settings']['name']['cgmName'] = _v
+            
+            if mDat.get('blockPosition') and mDat['blockPosition'] is not 'none':
+                _d['cgmPosition'] = mDat.get('blockPosition')
+                    
+        else:
+            log.error("Creation cancelled")
+            return False    
     
     
     pprint.pprint(_d)
@@ -319,7 +320,7 @@ def blockDat_createBlock(self, autoPush = True):
 
     l_nameList = mNew.datList_get('nameList')
     for i,n in enumerate(l_nameList):
-        if _nameOriginal in n:
+        if _nameOriginal in n and _d.get('name'):
             l_nameList[i] = n.replace(_nameOriginal,_d['name'])
             
     mNew.datList_connect('nameList',l_nameList)
@@ -1014,6 +1015,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
                   'r':[mObj.rotate for mObj in ml_subShapers],
                   't':[mObj.translate for mObj in ml_subShapers],
                   's':[mObj.scale for mObj in ml_subShapers],
+                  'nameTags':[mObj.getMayaAttr('nameTag') or mObj.p_nameBase for mObj in ml_subShapers],                  
                   'ab':[DIST.get_axisSize(mObj.mNode) for mObj in ml_subShapers],                             
                   'bb':[TRANS.bbSize_get(mObj.mNode) for mObj in ml_subShapers]}            
             if _d:
@@ -1028,6 +1030,7 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
           'orients':[mObj.p_orient for mObj in ml_handles],
           'scales':[mObj.scale for mObj in ml_handles],
           'names':[mObj.p_nameBase for mObj in ml_handles],
+          'nameTags':[mObj.getMayaAttr('nameTag') or mObj.p_nameBase for mObj in ml_handles],
           'bb':[TRANS.bbSize_get(mObj.mNode) for mObj in ml_handles]}
     
     if _d_orientHelpers:
@@ -1105,6 +1108,11 @@ class BlockConfig(BaseDat):
             #log.info(block)
             self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))
             
+        
+        #self.str_filepath = filepath
+        return True    
+        
+            
 
         
         
@@ -1154,7 +1162,7 @@ def config_get(ml_context = [], report = True):
     
     return _res
 
-def blockConfig_create(self, idx = None, autoPush = True):
+def blockConfig_create(self, idx = None, autoPush = True, promptName = False):
     '''
     blockDat self
     '''
@@ -1165,13 +1173,13 @@ def blockConfig_create(self, idx = None, autoPush = True):
     mc.select(cl=1)
 
     if idx is not None:
-        return blockDat_createBlock(self.mBlockDat[idx], autoPush)
+        return blockDat_createBlock(self.mBlockDat[idx], autoPush, promptName)
         
     ml = []
     for i,block in enumerate(self.dat['blockList']):
         log.debug(cgmGEN.logString_sub(_str_func,block))
         
-        ml.append( blockDat_createBlock(self.mBlockDat[i], autoPush) )
+        ml.append( blockDat_createBlock(self.mBlockDat[i], autoPush, promptName) )
         
     return ml
 
@@ -1206,7 +1214,8 @@ _padding = 5
 
 class uiBlockDat(CGMDAT.ui):
     USE_Template = 'cgmUITemplate'
-    WINDOW_NAME = "{}UI".format(__toolname__)
+    TOOLNAME = "uiBlockDat"
+    WINDOW_NAME = "{}UI".format(TOOLNAME)
     WINDOW_TITLE = 'BlockDat | {0}'.format(__version__)
     DEFAULT_MENU = None
     RETAIN = True
@@ -1216,6 +1225,7 @@ class uiBlockDat(CGMDAT.ui):
     DEFAULT_SIZE = 400,350
     
     _datClass = BlockDat
+    
    
     def uiUpdate_top(self):
         _str_func = 'uiUpdate_top[{0}]'.format(self.__class__.TOOLNAME)
@@ -1339,6 +1349,7 @@ class uiBlockDat(CGMDAT.ui):
     
 class uiBlockConfigDat(CGMDAT.ui):
     USE_Template = 'cgmUITemplate'
+    TOOLNAME = "uiBlockConfigDat"
     WINDOW_NAME = "BlockConfigUI"
     WINDOW_TITLE = 'BlockConfig | {0}'.format(__version__)
     DEFAULT_MENU = None
@@ -1351,6 +1362,7 @@ class uiBlockConfigDat(CGMDAT.ui):
     _datClass = BlockConfig
     
     def post_init(self,*args,**kws):
+        CGMDAT.ui.post_init(self,*args,**kws)
         if self.uiDat.dat:
             self.uiUpdate_data()
             
@@ -1372,19 +1384,34 @@ class uiBlockConfigDat(CGMDAT.ui):
                                   message= "DataSource: {}".format(mBlock.p_nameBase),
                                   button=['OK'],
                                   defaultButton='OK',
-                                  #cancelButton='Cancel',
-                                  dismissString='OK')
+                                  cancelButton='Cancel',
+                                  dismissString='Cancel')
         
         if result != 'OK':
             log.error("|{}| >> Cancelled.".format(_str_func))
-            return False                    
+            return False
         
+        #Buffer this so updating blocks doesn't break our parentage
+        mParent = mBlock.p_blockParent
+        if not mParent or mParent.blockType in ['master']:
+            bfr_blockParent = self.uiDat.mBlockDat[idx].dat['blockParent']
+        else:
+            bfr_blockParent = False
+            
         mBlockDat = BlockDat(mBlock)
         self.uiDat.mBlockDat[idx] = mBlockDat
         self.uiDat.dat['config'][str(idx)] = blockDat_get(mBlock, False)
         
+        if bfr_blockParent:
+            self.uiDat.mBlockDat[idx].dat['blockParent'] = bfr_blockParent
+            self.uiDat.dat['config'][str(idx)]['blockParent'] = bfr_blockParent
         
-        return log.info("Replaced {} data with | {}".format(idx, mBlock))
+            print self.uiDat.mBlockDat[idx].dat['blockParent']
+            print self.uiDat.dat['config'][str(idx)]['blockParent'] 
+            log.warning("|{}| >> Using bfr'd blockParent.".format(_str_func))
+        
+        
+        return log.info("Replaced Block [{}] data with | [{}]".format(idx, mBlock))
         
         
             
@@ -1583,6 +1610,9 @@ class uiBlockConfigDat(CGMDAT.ui):
             #Row...
             _row = mUI.MelHSingleStretchLayout(self.uiFrame_data, h=30, 
                                   bgc=_colorDark)            
+            
+            
+            
             _icon = None
             try:
                 _icon = os.path.join(_path_imageFolder,'mrs','{}.png'.format(_type))
@@ -1591,7 +1621,7 @@ class uiBlockConfigDat(CGMDAT.ui):
             #continue
             
             mUI.MelSpacer(_row,w=10)
-            
+                        
             if _icon:
                 #mUI.MelIconButton
                 mUI.MelIconButton(_row,
@@ -1615,10 +1645,13 @@ class uiBlockConfigDat(CGMDAT.ui):
                                   image =_icon)
                                   #olc=[float(v) for v in d_state_colors['form']],
                                   #olb=[float(v) for v in d_state_colors['form']]+[.5],
-                                  #w=20,h=20)"""            
+                                  #w=20,h=20)"""
+            mUI.MelLabel(_row,label = "[{}]".format(i))
+            
             _lenParents = mDat.dat['lenParents'] 
             if _lenParents:
                 mUI.MelSpacer(_row,w=_lenParents * 10)
+            
             
             _cb = mUI.MelCheckBox(_row,l=_label,
                                  #annotation = d_dat.get('ann',k),
@@ -2045,7 +2078,7 @@ def shapeDat_get(mBlock=None):
         raise ValueError,"Must be in form state"
     
     _type = mBlock.blockType
-    _supported = ['limb','segment','handle']
+    _supported = ['limb','segment','handle','head']
     if _type not in _supported:
         return log.error("{} type not supported. | Supported: {}".format(_type,_supported))
     
@@ -2400,6 +2433,7 @@ d_shapeDatLabels = {'formHandles':{'ann':"Setup expected qss sets", 'label':'for
          
 class uiShapeDat(CGMDAT.ui):
     USE_Template = 'cgmUITemplate'
+    TOOLNAME = "uiShapeDat"
     WINDOW_NAME = "ShapeDatUI"
     WINDOW_TITLE = 'ShapeDat | {0}'.format(__version__)
     DEFAULT_MENU = None

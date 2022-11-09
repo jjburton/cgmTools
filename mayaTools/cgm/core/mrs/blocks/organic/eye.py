@@ -1276,12 +1276,13 @@ def prerig(self):
     
         self.connectChildNode(mHandleRoot.mNode,'rootHelper','module')
         
+        ml_handles.append(mHandleRoot)
+        
         #Iris/pupil helper =====================================================================================
         d_pupilIris = {'pupil':self.pupilBuild,
                        'iris':self.irisBuild}
         md_handles = {}
         md_shapes = {}
-        reload(BLOCKSHAPES)
         for k,v in d_pupilIris.iteritems():
             if not v:
                 continue

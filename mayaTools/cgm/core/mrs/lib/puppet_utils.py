@@ -1094,7 +1094,7 @@ def collect_worldSpaceObjects(self,progressBar = None):
                                   maxValue=len_children+1,
                                   progress=i, vis=True)
             time.sleep(.01)
-        if mObj.getMayaAttr('cgmType') in ['dynDriver']:
+        if mObj.getMayaAttr('cgmType') in ['dynDriver','dynFollow']:
             mObj.parent = mPuppetSpaceObjectsGroup
             ml_objs.append(mObj)
             
@@ -1109,9 +1109,19 @@ def collect_worldSpaceObjects(self,progressBar = None):
                                   progress=i,vis=True)
             time.sleep(.01)
             
-        if mObj.getMayaAttr('cgmType') in ['dynDriver']:
+        if mObj.getMayaAttr('cgmType') in ['dynDriver','dynFollow']:
             mObj.parent = mWorldSpaceObjectsGroup     
             ml_objs.append(mObj)
+            
+            
+    #World root stuff...
+    for mObj in cgmMeta.asMeta(mc.ls('|*', type = 'transform')):
+        if mObj.getMayaAttr('cgmType') in ['dynDriver','dynFollow']:
+            mObj.parent = mWorldSpaceObjectsGroup     
+            ml_objs.append(mObj)
+    
+    
+    
     if progressBar:cgmUI.progressBar_end(progressBar)
     return ml_objs
 

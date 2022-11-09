@@ -1009,7 +1009,7 @@ class cgmGUI(mUI.BaseMelWindow):
         
 
     def create_guiOptionVar(self,varName,*args,**kws):
-        fullName = "cgmVar_%s%s"%(self.__class__.TOOLNAME,varName)
+        fullName = "cgmVar_%s_%s"%(self.__class__.TOOLNAME,varName)
         if args:args[0] = fullName
         if kws and 'varName' in kws.keys():kws.pop('varName')
         self.__dict__['var_%s'%varName] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
