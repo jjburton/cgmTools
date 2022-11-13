@@ -1088,7 +1088,7 @@ class BlockConfig(BaseDat):
             
         if ml_context:
             self.get(ml_context)
-            
+        
     def clear(self):
         _str_func = 'BlockConfig.clear'
         log.debug(log_start(_str_func))
@@ -1201,8 +1201,7 @@ class BlockConfig(BaseDat):
         #self.str_filepath = filepath
         return True    
         
-            
-
+    
         
         
         
@@ -1303,7 +1302,185 @@ d_shapeDatLabels = {'formHandles':{'ann':"Setup expected qss sets", 'label':'for
 __toolname__ ='BlockDat'
 _padding = 5
 
-class uiBlockDat(CGMDAT.ui):
+
+
+
+def getSubMenu_recursive(key,mDict):
+    #https://stackoverflow.com/questions/6004073/how-can-i-create-directories-recursively
+    _split = k.split('.')[:-1]
+    _keyUse = k.split('.')[-1]    
+    sub_path = os.path.dirname(path)
+    if not os.path.exists(sub_path):
+        mkdir_recursive(sub_path)
+        
+    if not mDict.get(key):
+        _sub = mUI.MelMenuItem( _parent, subMenu=True, l=sub, tearOff=True)
+        md_menus[key]  = _sub        
+        
+class ui(CGMDAT.ui):
+    _datTypes = ['cgmBlockConfig']
+    
+    def insert_init(self, *args, **kws):
+        CGMDAT.ui.insert_init(self,*args,**kws)
+        
+        self.create_guiOptionVar('libraryDirMode',defaultValue = 'dev') 
+        
+    def build_menus(self):
+        self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
+        self.uiMenu_library = mUI.MelMenu(l='Library', pmc = cgmGEN.Callback(self.buildMenu_library), pmo=True, tearOff=True)
+        self.uiMenu_SetupMenu = mUI.MelMenu(l='Dev', pmc = cgmGEN.Callback(self.buildMenu_dev))
+        
+    def uiFunc_libraryDirMode(self,v):
+        _str_func = 'uiFunc_libraryDirMode[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        _path = CGMDAT.startDir_getBase(v)
+        if _path:
+            self.var_libraryDirMode.setValue(v)
+            print(_path)
+            self.buildMenu_library(True)#...force
+            
+    def buildMenu_library( self, force=True, *args, **kws):
+        if self.uiMenu_library and force is not True:
+            log.debug("No load...")
+            return
+        
+        self.uiMenu_library.clear()
+        
+        _menu = self.uiMenu_library
+        mUI.MelMenuItemDiv(self.uiMenu_library, l="Options")
+        
+        #Context ...---------------------------------------------------------------------------------
+        _starDir = mUI.MelMenuItem(_menu, l="SearchDir",tearOff=True,
+                                   subMenu = True)
+        
+        uiRC = mc.radioMenuItemCollection()
+        
+        #self._l_contextModes = ['self','below','root','scene']
+        _d_ann = {'self':'Context is only of the active/sel block',
+                  'below':'Context is active/sel block and below',
+                  'root':'Context is active/sel root and below',
+                  'scene':'Context is all blocks in the scene. Careful skippy!',}
+        
+        _on = self.var_libraryDirMode.value
+        
+        for i,item in enumerate(['workspace','dev']):
+            if item == _on:_rb = True
+            else:_rb = False
+            mUI.MelMenuItem(_starDir,label=item,
+                            collection = uiRC,
+                            ann = _d_ann.get(item),
+                            c = cgmGEN.Callback(self.uiFunc_libraryDirMode,item),                                  
+                            rb = _rb)                
+        mUI.MelMenuItemDiv(_menu, l="Found")
+                
+        
+        if force:
+            path = CGMDAT.startDir_getBase(_on)
+            
+            #if _on == 'dev':
+            path = os.path.join(path, 'cgmDat','mrs')
+            get_ext_options(True,path=path)
+            
+        _options, _categories = get_ext_options(extensions=self._datTypes)
+        
+        
+        md_menus = {}
+        for k in _categories.get(self._datTypes[0],[]):
+            f = _options.get(k)
+            #print("{} | {}".format(k,f))
+            _useMenu = self.uiMenu_library
+            if '.' in k:
+                _split = k.split('.')[:-1]
+                _keyUse = k.split('.')[-1]
+                #pprint.pprint(_split)
+                
+                for i,sub in enumerate(_split):
+                    _parentKey = '.'.join(_split[:i+1])
+                    #print ("parentKey: {}".format(_parentKey))
+                    
+                    if not i:
+                        _parent = self.uiMenu_library
+                    if not md_menus.get(_parentKey):
+                        _sub = mUI.MelMenuItem( _parent, subMenu=True, l=sub, tearOff=True)
+                        md_menus[_parentKey]  = _sub
+                    _parent = md_menus[_parentKey] 
+                _useMenu = md_menus[_parentKey]                 
+            else:
+                _keyUse = k
+            """
+            if '.' in k:
+                _split = k.split('.')[:-1]
+                _keyUse = k.split('.')[-1]
+                for i,sub in enumerate(_split):
+                    _splitKey = '.'.join(_split[i:])
+                    print _splitKey
+                    if not i:
+                        _parent = self.uiMenu_library
+                    if not md_menus.get(_splitKey):
+                        _sub = mUI.MelMenuItem( _parent, subMenu=True, l=sub, tearOff=True)
+                        md_menus[_splitKey]  = _sub
+                        
+                    _parent = md_menus[_splitKey] 
+                    _useMenu = md_menus[_splitKey] """
+                            
+            mUI.MelMenuItem(_useMenu, l=_keyUse,
+                            c=cgmGEN.Callback(self.uiFunc_dat_load,**{'filepath':f}),
+                            ann="{} | {}".format(_keyUse, f))                
+
+
+        mUI.MelMenuItemDiv(self.uiMenu_library)
+        mUI.MelMenuItem(self.uiMenu_library, l='Rebuild',
+                        c=lambda *a: mc.evalDeferred(self.buildMenu_library,lp=True))
+        log.info("Library menu rebuilt")
+        return
+    
+    
+        _d = copy.copy(self._d_modules)
+        for b in _d[1]['blocks']:
+            if _d[0][b].__dict__.get('__menuVisible__'):
+                mUI.MelMenuItem(self.uiMenu_library, l=b,
+                                c=cgmGEN.Callback(self.uiFunc_block_create,b),
+                                ann="{0} : {1}".format(b, self.uiFunc_block_create))
+                
+                l_options = RIGBLOCKS.get_blockProfile_options(b)                
+                if l_options:
+                    for o in l_options:
+                        mUI.MelMenuItem(self.uiMenu_library, l=o,
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,o),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))
+
+        
+        for c in _d[1].keys():
+            #d_sections[c] = []
+            if c == 'blocks':continue
+            for b in _d[1][c]:
+                if _d[0][b].__dict__.get('__menuVisible__'):
+                    #d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_create,b)] )
+                    l_options = RIGBLOCKS.get_blockProfile_options(b)
+                    if l_options:
+                        _sub = mUI.MelMenuItem( self.uiMenu_library, subMenu=True,l=b,tearOff=True)
+                        l_options.sort()
+                        for o in l_options:
+                            _l = "{0}".format(o)
+                            _c = cgmGEN.Callback(self.uiFunc_block_create,b,o)
+                            mUI.MelMenuItem(_sub, l=_l,
+                                            c=_c,
+                                            ann="{0} : {1}".format(_l, _c)
+                                            )
+                    else:
+                        mUI.MelMenuItem(self.uiMenu_library, l=b,
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,'default'),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))
+
+
+        mUI.MelMenuItemDiv(self.uiMenu_library)
+        mUI.MelMenuItem(self.uiMenu_library, l='Rebuild',
+                        c=lambda *a: mc.evalDeferred(self.buildMenu_library,lp=True))
+        log.info("Library menu rebuilt")        
+        
+        
+class uiBlockDat(ui):
     USE_Template = 'cgmUITemplate'
     TOOLNAME = "uiBlockDat"
     WINDOW_NAME = "{}UI".format(TOOLNAME)
@@ -1316,6 +1493,7 @@ class uiBlockDat(CGMDAT.ui):
     DEFAULT_SIZE = 400,350
     
     _datClass = BlockDat
+    _datTypes = ['cgmBlockDat']
     
    
     def uiUpdate_top(self):
@@ -1438,7 +1616,11 @@ class uiBlockDat(CGMDAT.ui):
         
         return
     
-class uiBlockConfigDat(CGMDAT.ui):
+
+    
+    
+    
+class uiBlockConfigDat(ui):
     USE_Template = 'cgmUITemplate'
     TOOLNAME = "uiBlockConfigDat"
     WINDOW_NAME = "BlockConfigUI"
@@ -1465,6 +1647,7 @@ class uiBlockConfigDat(CGMDAT.ui):
         if self.uiDat.append(ml_context):
             self.uiUpdate_data()
             
+        
     def uiFunc_dat_clear(self):
         _str_func = 'uiFunc_dat_clear[{0}]'.format(self.__class__.TOOLNAME)
         log.debug(log_start(_str_func))
@@ -1857,7 +2040,92 @@ class uiBlockConfigDat(CGMDAT.ui):
                       ann="...",
                       label='all',
                       ut='cgmUITemplate',
-                      h=20)    
+                      h=20)
+        
+    def buildMenu_library2( self, force=True, *args, **kws):
+        if self.uiMenu_library and force is not True:
+            log.debug("No load...")
+            return
+        
+        if force:
+            get_ext_options(True)
+            
+        _options, _categories = get_ext_options()
+        
+        
+        self.uiMenu_library.clear()
+        md_menus = {}
+        for k in _categories.get('cgmBlockConfig',[]):
+            f = _options.get(k)
+            print("{} | {}".format(k,f))
+            _useMenu = self.uiMenu_library
+            if '.' in k:
+                _split = k.split('.')[:-1]
+                for i,sub in enumerate(_split):
+                    _splitKey = '.'.join(_split[i:])
+                    
+                    if not i:
+                        _parent = self.uiMenu_library
+                    if not md_menus.get(_splitKey):
+                        _sub = mUI.MelMenuItem( _parent, subMenu=True, l=sub, tearOff=True)
+                        md_menus[_splitKey]  = _sub
+                    _parent = md_menus[_splitKey] 
+                    _useMenu = md_menus[_splitKey] 
+                            
+            mUI.MelMenuItem(_useMenu, l=k,
+                            c=cgmGEN.Callback(self.uiFunc_dat_load,**{'filepath':f}),
+                            ann="{} | {}".format(k, f))                
+
+
+        mUI.MelMenuItemDiv(self.uiMenu_library)
+        mUI.MelMenuItem(self.uiMenu_library, l='Rebuild',
+                        c=lambda *a: mc.evalDeferred(self.buildMenu_library,lp=True))
+        log.info("Library menu rebuilt")
+        return
+    
+    
+        _d = copy.copy(self._d_modules)
+        for b in _d[1]['blocks']:
+            if _d[0][b].__dict__.get('__menuVisible__'):
+                mUI.MelMenuItem(self.uiMenu_library, l=b,
+                                c=cgmGEN.Callback(self.uiFunc_block_create,b),
+                                ann="{0} : {1}".format(b, self.uiFunc_block_create))
+                
+                l_options = RIGBLOCKS.get_blockProfile_options(b)                
+                if l_options:
+                    for o in l_options:
+                        mUI.MelMenuItem(self.uiMenu_library, l=o,
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,o),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))
+
+        
+        for c in _d[1].keys():
+            #d_sections[c] = []
+            if c == 'blocks':continue
+            for b in _d[1][c]:
+                if _d[0][b].__dict__.get('__menuVisible__'):
+                    #d_sections[c].append( [b,cgmGEN.Callback(self.uiFunc_block_create,b)] )
+                    l_options = RIGBLOCKS.get_blockProfile_options(b)
+                    if l_options:
+                        _sub = mUI.MelMenuItem( self.uiMenu_library, subMenu=True,l=b,tearOff=True)
+                        l_options.sort()
+                        for o in l_options:
+                            _l = "{0}".format(o)
+                            _c = cgmGEN.Callback(self.uiFunc_block_create,b,o)
+                            mUI.MelMenuItem(_sub, l=_l,
+                                            c=_c,
+                                            ann="{0} : {1}".format(_l, _c)
+                                            )
+                    else:
+                        mUI.MelMenuItem(self.uiMenu_library, l=b,
+                                        c=cgmGEN.Callback(self.uiFunc_block_create,b,'default'),
+                                        ann="{0} : {1}".format(b, self.uiFunc_block_create))
+
+
+        mUI.MelMenuItemDiv(self.uiMenu_library)
+        mUI.MelMenuItem(self.uiMenu_library, l='Rebuild',
+                        c=lambda *a: mc.evalDeferred(self.buildMenu_library,lp=True))
+        log.info("Library menu rebuilt")
 
 
 #=====================================================================================================================
@@ -2596,7 +2864,7 @@ d_shapeDatLabels = {'formHandles':{'ann':"Setup expected qss sets", 'label':'for
                     'loftHandles':{'ann':"Wire for mirroring", 'label':'loft'},
                     'loftShapes':{'ann':"Connect bind joints to rig joints", 'label':'shapes'},}
          
-class uiShapeDat(CGMDAT.ui):
+class uiShapeDat(ui):
     USE_Template = 'cgmUITemplate'
     TOOLNAME = "uiShapeDat"
     WINDOW_NAME = "ShapeDatUI"
@@ -2609,6 +2877,7 @@ class uiShapeDat(CGMDAT.ui):
     DEFAULT_SIZE = 200,300
     
     _datClass = ShapeDat
+    _datTypes = ['cgmShapeDat']
     
     #def insert_init(self,*args,**kws):
     #    self._loadedFile = ""
@@ -2619,9 +2888,9 @@ class uiShapeDat(CGMDAT.ui):
     #    self.dat = None
         
         
-    def build_menus(self):
-        self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
-        self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
+    #def build_menus(self):
+    #    self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
+    #    self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
 
     def buildMenu_setup(self):pass
     
@@ -2910,3 +3179,34 @@ class uiShapeDat(CGMDAT.ui):
 
         self.uiFunc_dat_get()
 
+        
+global DAT_OPTIONS
+DAT_OPTIONS = None
+
+#def get_modules_dict(update=False):
+#    return get_modules_dat(update)[0]
+
+#@cgmGEN.Timer
+def get_ext_options(update = False,debug=None, path= None, skipRoot = True, extensions = ['cgmBlockConfig','cgmBlockDat','cgmShapeDat']):
+    """
+    Data gather for available blocks.
+
+    :parameters:
+
+    :returns
+        _d_modules, _d_categories, _l_unbuildable
+        _d_modules(dict) - keys to modules
+        _d_categories(dict) - categories to list of entries
+        _l_unbuildable(list) - list of unbuildable modules
+        
+    
+    """
+    _str_func = 'get_ext_options'    
+    global DAT_OPTIONS
+
+    if DAT_OPTIONS and not update:
+        log.debug("|{0}| >> passing buffer...".format(_str_func))          
+        return DAT_OPTIONS
+    
+    
+    DAT_OPTIONS = CGMDAT.get_ext_options(update,debug,path,skipRoot,extensions)

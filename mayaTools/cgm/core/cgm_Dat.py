@@ -785,4 +785,117 @@ class ui(CGMUI.cgmGUI):
                   attachNone = [(_row_cgm,"top")])    
     
 
-        #self.uiFunc_dat_get()
+#self.uiFunc_dat_get()
+
+#global CGM_RIGBLOCK_DAT
+#CGM_DAT = None
+
+#def get_modules_dict(update=False):
+#    return get_modules_dat(update)[0]
+
+#@cgmGEN.Timer
+def get_ext_options(update = False,debug=None, path= None, skipRoot = True, extensions = ['cgmBlockConfig','cgmBlockDat','cgmShapeDat']):
+    """
+    Data gather for available blocks.
+
+    :parameters:
+
+    :returns
+        _d_modules, _d_categories, _l_unbuildable
+        _d_modules(dict) - keys to modules
+        _d_categories(dict) - categories to list of entries
+        _l_unbuildable(list) - list of unbuildable modules
+        
+    
+    """
+    _str_func = 'get_ext_options'    
+    #global CGM_RIGBLOCK_DAT
+
+    #if CGM_RIGBLOCK_DAT and not update:
+    #    log.debug("|{0}| >> passing buffer...".format(_str_func))          
+    #    return CGM_RIGBLOCK_DAT
+    
+    if debug is not None:
+        _b_debug = debug
+    else:
+        _b_debug = log.isEnabledFor(logging.DEBUG)
+        
+    if path == None:
+        path = os.path.join(startDir_getBase('dev'), 'cgmDat','mrs')
+    _path = PATHS.Path(path)
+    
+    _l_duplicates = []
+    _l_unbuildable = []
+    _base = _path.split()[-1]
+    _d_files =  {}
+    _d_import = {}
+    _d_modules = {}
+    _d_types = {}
+    
+    log.info("|{0}| >> Checking base: {1} | path: {2}".format(_str_func,_base,_path))   
+    _i = 0
+    
+    #cgmGEN.func_snapShot(vars())
+    
+
+    for root, dirs, files in os.walk(_path, True, None):
+        # Parse all the files of given path and reload python modules
+        _mBlock = PATHS.Path(root)
+        _split = _mBlock.split()
+        _subRoot = _split[-1]
+        
+        _splitUp = _split[_split.index(_base):]
+        
+        if skipRoot:
+            _splitUp = _splitUp[1:]
+
+        log.debug("|{0}| >> On subroot: {1} | path: {2}".format(_str_func,_subRoot,root))   
+        log.debug("|{}| >> On split: {} | {}".format(_str_func,len(_splitUp),_splitUp))   
+
+
+        for f in files:
+            key = False
+            
+            for t in extensions:
+                if f.endswith('.{}'.format(t)):
+                    name = f.split('.')[0]
+                    #if _i == 'cat':
+                    #    key = '.'.join([_base,name])                            
+                    #else:
+                    key = '.'.join(_splitUp + [name])    
+                    log.debug("|{0}| >> ... {1}".format(_str_func,key))
+                    
+                    if not _d_types.get(t):
+                        _d_types[t] = []
+                        
+                    if name not in _d_modules.keys():
+                        _d_files[key] = os.path.join(root,f)
+                        _d_types[t].append(key)
+                        
+                        #_d_import[name] = key
+                        
+                    else:
+                        _l_duplicates.append("{0} >> {1} ".format(key, os.path.join(root,f)))
+            _i+=1
+
+    if _b_debug:
+        log.info(cgmGEN.logString_sub(_str_func,'Files'))
+        pprint.pprint(_d_files)
+        log.info(cgmGEN.logString_sub(_str_func,'Types'))
+        
+        pprint.pprint(_d_types)
+        
+        #cgmGEN.walk_dat(_d_files,"Files")
+        #cgmGEN.walk_dat(_d_types,"Types")
+        
+        #cgmGEN.walk_dat(_d_import,"Imports")
+
+    if _l_duplicates and _b_debug:
+        log.debug(cgmGEN._str_subLine)
+        log.debug("|{0}| >> DUPLICATE MODULES....".format(_str_func))
+        for m in _l_duplicates:
+            print(m)
+        raise Exception,"Must resolve"
+            
+    #CGM_RIGBLOCK_DAT = _d_modules, _d_categories, _l_unbuildable
+    return _d_files, _d_types
