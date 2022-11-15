@@ -883,7 +883,10 @@ def create_fromName(name = None, size = None, direction = 'z+', absoluteSize = T
             #    if MATH.is_float_equivalent(v,0):
             #        ATTR.set(_res,'s{0}'.format(a),1.0)
             for i,a in enumerate('xyz'):
-                ATTR.set(_res,'s{0}'.format(a),size[i])
+                _v = size[i]
+                if _v is None:
+                    _v = max(size)
+                ATTR.set(_res,'s{0}'.format(a),_v)
         else:
             if absoluteSize:
                 _f_current = DIST.get_bb_size(_res,True,True)

@@ -109,6 +109,7 @@ class BaseDat(CGMDAT.data):
 class BlockDat(BaseDat):
     _ext = 'cgmBlockDat'
     _startDir = ['cgmDat','mrs']
+    #_dataFormat = 'json'
     
     '''
     Class to handle blockDat data. Replacing existing block dat which storing on the node is not ideal
@@ -208,6 +209,7 @@ class BlockDat(BaseDat):
         if not self.dat:
             return False
         return blockDat_getString(self)
+        
 
 def blockDat_getString(self):
     mDat = copy.deepcopy(self.dat)
@@ -1560,7 +1562,6 @@ class uiBlockDat(ui):
         CGMDAT.ui.uiStatus_refresh(self, string)
         if self.uiDat:
             _color = BLOCKSHARE.d_outlinerColors.get(self.uiDat.dat['blockType'])['main']#d_colors.get(mDat.get('side'),d_colors['center'])
-            
             self.uiStatus_blockString(e=1, label = blockDat_getString(self.uiDat), bgc=_color)
         
     def uiFunc_dat_get(self):
@@ -1868,11 +1869,18 @@ class uiBlockConfigDat(ui):
         
         return
     
-    
+    def log_blockDat(self,idx = None):
+        _d = self.uiDat.dat['config'][str(idx)]
+        pprint.pprint(_d.keys())
+        
     def get_blockDatUI(self,idx=None):
         mUI = uiBlockDat()
-        mDat = self.uiDat.dat['config'][str(idx)]
-        mUI.uiDat.dat = mDat
+        _dSource = self.uiDat.dat['config'][str(idx)]
+        _d = {k:_dSource[k] for k in _dSource.keys()}
+        
+        mDat = BlockDat(dat = _d)
+        
+        mUI.uiDat = mDat
         mUI.uiStatus_refresh(  )
         
     def get_shapeDatUI(self,idx=None):
@@ -1887,7 +1895,7 @@ class uiBlockConfigDat(ui):
     def uiUpdate_data(self):
         _str_func = 'uiUpdate_data[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
-        
+         
         self.uiFrame_data.clear()
         
         if not self.uiDat:
@@ -1994,10 +2002,12 @@ class uiBlockConfigDat(ui):
                 
                 mDat = mDat.dat.get('shape')
     
-                mUI.MelButton(_row, bgc=_colorDark, label = 'BlockDat',
-                              c = cgmGEN.Callback(self.get_blockDatUI,i))
-                mUI.MelButton(_row, bgc=_colorDark, label = 'ShapeDat',en =bool(mDat),
-                              c = cgmGEN.Callback(self.get_shapeDatUI,i))            
+                #mUI.MelButton(_row, bgc=_colorDark, label = 'BlockDat',
+                #              c = cgmGEN.Callback(self.get_blockDatUI,i))
+                #mUI.MelButton(_row, bgc=_colorDark, label = 'Log',
+                #              c = cgmGEN.Callback(self.log_blockDat,i))                
+                #mUI.MelButton(_row, bgc=_colorDark, label = 'ShapeDat',en =bool(mDat),
+                #              c = cgmGEN.Callback(self.get_shapeDatUI,i))            
                 mUI.MelButton(_row, bgc=_colorDark, label = 'Create',
                               c = cgmGEN.Callback(self.uiFunc_create,i))
                 mUI.MelButton(_row, bgc=_colorDark, label = 'Update',
@@ -2014,7 +2024,7 @@ class uiBlockConfigDat(ui):
                 log.error(err)
         
         mc.setParent(self.uiFrame_data)
-        CGMUI.add_Header('Functions')
+        CGMUI.add_Header('Other')
         mc.button(parent=self.uiFrame_data,
                   l = 'Create',
                   ut = 'cgmUITemplate',
@@ -2200,7 +2210,7 @@ class ShapeDat(BaseDat):
         
         _path = "{}.{}".format( os.path.normpath(os.path.join(startDir,
                                                               self.mBlock.atUtils('get_partName'))),
-                                data._ext)
+                                ShapeDat._ext)
         pprint.pprint(_path)
         
         BaseDat.write(self,_path, *arg,**kws)

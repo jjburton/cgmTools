@@ -235,7 +235,13 @@ class data(object):
         
     def log_dat(self):
         log.info(cgmGEN._str_hardBreak)
-        pprint.pprint(self.dat)
+        #
+        #pprint.pprint(self.dat)
+        cgmGEN.walk_dat(self.dat)
+        
+        #for k,d in self.dat.iteritems():
+        #    log.info(cgmGEN.logString_start(k))
+        #    pprint.pprint(d)
     
     def set(self):
         str_func = 'data.set'
@@ -287,6 +293,7 @@ class data(object):
 
     def fillDatHolder(self, dataHolder = {}):
         for k,d in self.dat.iteritems():
+            print k
             dataHolder[k] = d
             
     def fillDat(self, dataHolder = {}):
@@ -384,27 +391,35 @@ class data(object):
             except IOError, err:
                 self._dataformat_resolved = 'config'
                 log.info('JSON : DataMap format failed to load, reverting to legacy ConfigObj')
+            except Exception,err:
+                log.error(err)
+                return False                
         # =========================
         # read ConfigObject
         # =========================
         if self._dataformat_resolved == 'config' or self.dataformat == 'config':
-            # for key, val in configobj.ConfigObj(filename)['filterNode_settings'].items():
-            #    self.settings.__dict__[key]=decodeString(val)
-            data = configobj.ConfigObj(mPath.asFriendly(), encoding='utf-8')
-            self.fillDat(data)
-            
-            if decode:decodeDat(self)
-            """
-            self.poseDict = data['poseData']
-            if 'info' in data:
-                self.infoDict = data['info']
-            if 'skeletonDict' in data:
-                self.skeletonDict = data['skeletonDict']
-            if 'filterNode_settings' in data:
-                self.settings_internal = r9Core.FilterNode_Settings()
-                self.settings_internal.setByDict(data['filterNode_settings'])
-            self._dataformat_resolved = 'config'"""
-        
+            try:
+                
+                # for key, val in configobj.ConfigObj(filename)['filterNode_settings'].items():
+                #    self.settings.__dict__[key]=decodeString(val)
+                data = configobj.ConfigObj(mPath.asFriendly(), encoding='utf-8')
+                self.fillDat(data)
+                
+                if decode:decodeDat(self)
+                """
+                self.poseDict = data['poseData']
+                if 'info' in data:
+                    self.infoDict = data['info']
+                if 'skeletonDict' in data:
+                    self.skeletonDict = data['skeletonDict']
+                if 'filterNode_settings' in data:
+                    self.settings_internal = r9Core.FilterNode_Settings()
+                    self.settings_internal.setByDict(data['filterNode_settings'])
+                self._dataformat_resolved = 'config'"""
+            except Exception,err:
+                log.error("Read Fail: {}".format(str(mPath)))                                
+                log.error(err)
+                return False
             
         if report:self.log_self()
         self.str_filepath = str(mPath)
@@ -628,6 +643,13 @@ class ui(CGMUI.cgmGUI):
         if self.uiDat.read(**kws):
             self._loadedFile = self.uiDat.str_filepath
             self.var_LastLoaded.setValue(self.uiDat.str_filepath)
+            log.info(cgmGEN.logString_msg(_str_func,"Read: {}".format(self.uiDat.str_filepath)))
+            
+        else:
+            self._loadedFile = ''
+            self.var_LastLoaded.setValue('')
+            
+            
             
         self.uiStatus_refresh()
         return

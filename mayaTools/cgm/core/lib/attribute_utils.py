@@ -687,7 +687,6 @@ def set(node, attr = None, value = None, lock = False,force=True, **kws):
         mc.setAttr(_combined,value, **kws)
         
     if force:
-        
         if _wasLocked or lock:
             mc.setAttr(_combined,lock=True)    
 

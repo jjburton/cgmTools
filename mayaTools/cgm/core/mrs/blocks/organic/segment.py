@@ -1458,7 +1458,7 @@ def prerig(self):
     mCog = False
     
     if self.addCog:
-        mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection= self.getEnumValueString('shapeDirection'))
+        mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(baseSize = self.jointRadius * 5, shapeDirection= self.getEnumValueString('shapeDirection'))
         
         mShape = mCog.shapeHelper
         mShape.p_parent = mPrerigNull
