@@ -123,15 +123,20 @@ class BlockDat(BaseDat):
         log.debug(log_start(_str_func))
         super(BlockDat, self).__init__(filepath, **kws)
         self.mBlock = False
+        self.structureMode = 'file'
         
         if dat:
-            self.dat = dat
-            
-        if mBlock:
-            self.mBlock = cgmMeta.asMeta(mBlock)
-        if self.mBlock:
-            self.get()
-        self.structureMode = 'file'
+            self.fillDat(dat)
+            """
+            self.test = {}
+            self.test['test'] = {}
+            self.test['test']['test'] = dat
+            self.dat = self.test['test']['test'] """
+        else:
+            if mBlock:
+                self.mBlock = cgmMeta.asMeta(mBlock)
+            if self.mBlock:
+                self.get()
         
     def get(self, mBlock = None, report = False):
         _str_func = 'data.get'
@@ -1073,23 +1078,23 @@ class BlockConfig(BaseDat):
         """
         _str_func = 'BlockConfig.__buffer__'
         log.debug(log_start(_str_func))
-        
-        super(BlockConfig, self).__init__(filepath, **kws)
-        
         self.str_filepath = None
-        
-        
         self.dat = {}
         self.mBlockDat = []
+                
+        super(BlockConfig, self).__init__(filepath, **kws)
         
-        if not ml_context and ml_context is not None:
-            ml_context = BLOCKGEN.block_getFromSelected(True)
-            if not ml_context:
-                md = BLOCKGEN.get_scene_block_heirarchy()
-                ml_context =  cgmGEN.walk_heirarchy_dict_to_list(md)                
-            
-        if ml_context:
-            self.get(ml_context)
+        
+
+        if not filepath:
+            if not ml_context and ml_context is not None:
+                ml_context = BLOCKGEN.block_getFromSelected(True)
+                if not ml_context:
+                    md = BLOCKGEN.get_scene_block_heirarchy()
+                    ml_context =  cgmGEN.walk_heirarchy_dict_to_list(md)                
+                
+            if ml_context:
+                self.get(ml_context)
         
     def clear(self):
         _str_func = 'BlockConfig.clear'
@@ -1889,7 +1894,7 @@ class uiBlockConfigDat(ui):
             return log.error("No shapeDat found")
         
         mUI = uiShapeDat()
-        mUI.uiDat.dat = mDat
+        mUI.uiDat = mDat
         mUI.uiStatus_refresh(  )
         
     def uiUpdate_data(self):
@@ -2002,12 +2007,12 @@ class uiBlockConfigDat(ui):
                 
                 mDat = mDat.dat.get('shape')
     
-                #mUI.MelButton(_row, bgc=_colorDark, label = 'BlockDat',
-                #              c = cgmGEN.Callback(self.get_blockDatUI,i))
+                mUI.MelButton(_row, bgc=_colorDark, label = 'BlockDat',
+                              c = cgmGEN.Callback(self.get_blockDatUI,i))
                 #mUI.MelButton(_row, bgc=_colorDark, label = 'Log',
                 #              c = cgmGEN.Callback(self.log_blockDat,i))                
-                #mUI.MelButton(_row, bgc=_colorDark, label = 'ShapeDat',en =bool(mDat),
-                #              c = cgmGEN.Callback(self.get_shapeDatUI,i))            
+                mUI.MelButton(_row, bgc=_colorDark, label = 'ShapeDat',en =bool(mDat),
+                              c = cgmGEN.Callback(self.get_shapeDatUI,i))            
                 mUI.MelButton(_row, bgc=_colorDark, label = 'Create',
                               c = cgmGEN.Callback(self.uiFunc_create,i))
                 mUI.MelButton(_row, bgc=_colorDark, label = 'Update',

@@ -556,7 +556,7 @@ def get_key_indices_from(node = None, mode = 'all'):
     return lists.returnListNoDuplicates(keyFrames)
     
 
-def get_selectedFromChannelBox(attributesOnly = False):
+def get_selectedFromChannelBox(attributesOnly = False, valueDict = False):
     """ 
     Returns a list of selected object attributes from the channel box
     
@@ -595,15 +595,17 @@ def get_selectedFromChannelBox(attributesOnly = False):
         _channels_long = []
         for c in channels:
             _channels_long.append(c)
-            """
-            _l = ATTR.get_nameLong(_sel[0],c)
-            if '.weight' not in _l:
-                _channels_long.append(_l)
-            else:
-                _channels_long.append(c)"""
             
         if attributesOnly:
             return _channels_long
+        elif valueDict:
+            _res = {}
+            for item in _sel:
+                _sub = {}                
+                for attr in _channels_long:
+                    _sub[str(attr)] = ATTR.get(item,attr)
+                _res[str(item)] = _sub
+            return  _res
         else:
             _res = []
             for item in _sel:

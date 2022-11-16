@@ -901,7 +901,7 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
         if mc.softSelect(q=True, sse=True):
             log.info("{0} softSelectMultiply Active...".format(_str_funcName))        
             _d_softSelect = selUtils.get_sorted_softSelectionWeights()
-            pprint.pprint(_d_softSelect)
+            #pprint.pprint(_d_softSelect)
         else:
             log.warning("{0} softSelectMultiply True but softSelect is not on. Ignoring...".format(_str_funcName))
             
@@ -1169,7 +1169,7 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
                         else:
                             _d = _d_softSelect.get(_l_longNames[i],{}) 
                             log.info("soft dict...")
-                            pprint.pprint(_d)                                
+                            #pprint.pprint(_d)                                
                             if not _d:raise ValueError,"No soft selection"
                             
                         #_d = _d_softSelect.get(_l_longNames[_b_idx],{})                        
@@ -1272,11 +1272,12 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
             _multiplier = 1
 
     log.debug(cgmGEN._str_subLine)	
-    log.debug("{0}...".format(_str_funcName))
-    log.debug("sourceValues: {0}".format(sourceValues))	
-    log.debug("targetValues: {0}".format(targetValues))	
-    log.debug("mode: {0}".format(_mode))	
-    log.debug("multiplier: {0}".format(_multiplier))
+    log.debug("{}...".format(_str_funcName))
+    log.debug("sourceValues: {}".format(sourceValues))	
+    log.debug("targetValues: {}".format(targetValues))	
+    log.debug("mode: {}".format(_mode))	
+    log.debug("multiplier: {}".format(_multiplier))
+    log.debug("multiplyDict: {}".format(multiplyDict))
 
     #meat...
     _len_obj = len(sourceValues)
@@ -1287,10 +1288,10 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
     guiFactory.doProgressWindow(winName=_str_funcName, 
                                 statusMessage='Progress...', 
                                 startingProgress=1, 
-                                interruptableState=True)    
+                                interruptableState=True)
+    
     if _mode in ['copyTo','reset']:
         _result = sourceValues  
-
     else:
         for i,pos in enumerate(targetValues):
             guiFactory.doUpdateProgressWindow("{0} -- [{1}]".format(_mode,i), i,  
@@ -1298,7 +1299,7 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
             _nPos = []
             _ssv = None
             if _multiplyDict:
-                _ssv = _multiplyDict.get(i,0)   
+                _ssv = _multiplyDict.get(i,0)
                 
             if _mode == 'add':
                 #if _ssv is not None:pos = [p * _ssv for p in pos]                
@@ -1315,7 +1316,6 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
             elif _mode == 'average':
                 for ii,p in enumerate(pos):
                     #_avValue = ((sourceValues[i][ii] + p)/2) * _multiplier
-            
                     _nPos.append(((sourceValues[i][ii] + p)/2) * _multiplier)
                         
                     
@@ -1396,12 +1396,16 @@ def meshMath_values(sourceValues = None, targetValues = None, mode = 'blend', mu
     if _multiplyDict:
         log.info("{0} -- multiplyDict mode".format(_str_funcName))       
         for i,pos in enumerate(_result):            
-            _ssv = _multiplyDict.get(i,0)
+            _ssv = _multiplyDict.get(i,None)
+            if _ssv is None:
+                _result[i] = targetValues[i]                
+                continue
             _nPos = []
             if _mode in ['copyTo','reset']:
                 _sValue = targetValues[i]
             else:
                 _sValue = sourceValues[i]
+                
             for ii,p in enumerate(pos):
                 _nPos.append( _sValue[ii] + ((p -_sValue[ii]) * _ssv))
             _result[i] = _nPos
@@ -1725,8 +1729,8 @@ def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markH
                             _hit +=1
                             if markHits:
                                 DIST.create_vectorCurve(pos,_vec ,10)
-                                pprint.pprint(d)
-                                pprint.pprint(_hits_use)
+                                #pprint.pprint(d)
+                                #pprint.pprint(_hits_use)
                                 #for i,h in enumerate(_hits_use):
                                 #    LOC.create(position=h,name='hit_{0}'.format(i))
                 else:

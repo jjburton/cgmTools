@@ -326,6 +326,7 @@ class data(object):
         # write to ConfigObject
         # =========================
         if self.dataformat == 'config':
+            reload(configobj)
             ConfigObj = configobj.ConfigObj(indent_type='\t', encoding='utf-8')
             self.fillDatHolder(ConfigObj)
             """
@@ -535,6 +536,8 @@ class ui(CGMUI.cgmGUI):
         self.var_LastLoaded.setType('string')
     
     def post_init(self,*args,**kws):
+        if self.uiDat.dat:
+            return 
         _path = self.var_LastLoaded.value
         if os.path.exists(_path):
             self.uiFunc_dat_load(filepath = _path)

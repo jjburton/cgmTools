@@ -603,7 +603,7 @@ def uiSection_mesh(parent):
     mc.menuItem(parent = uiMesh,
                 l='cgmMeshTools',
                 ann = "Launch cgmMeshTools - a series of tools including meshMath, shapeCasting and proxyMesh",                                                                                                       
-                c=cgmGEN.Callback(meshTools.run))                                 
+                c=cgmGEN.Callback(TOOLCALLS.cgmMeshTools))                                 
         #c=lambda *a: meshTools.run())         
     mc.menuItem(parent = uiMesh,
                 l='abSym',
