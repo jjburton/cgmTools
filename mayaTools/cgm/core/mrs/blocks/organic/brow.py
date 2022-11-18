@@ -2716,7 +2716,7 @@ def rig_cleanUp(self):
     self.UTILS.rigNodes_store(self)
 
 
-def create_simpleMesh(self,  deleteHistory = True, cap=True):
+def create_simpleMesh(self,  deleteHistory = True, cap=True, **kws):
     _str_func = 'create_simpleMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
@@ -2807,7 +2807,7 @@ def asdfasdfasdf(self, forceNew = True, skin = False):
         log.debug("|{0}| >> neckBuild...".format(_str_func))
 
 
-def build_proxyMesh(self, forceNew = True, puppetMeshMode = False):
+def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, **kws):
     """
     Build our proxyMesh
     """

@@ -1111,7 +1111,8 @@ class cgmGUI(mUI.BaseMelWindow):
     #=========================================================================    
     def reset(self):
         do_resetGuiInstanceOptionVars(self.l_optionVars)
-        self.__class__()
+        killChildren(self.WINDOW_NAME)
+        self.__init__()    
         #Callback(do_resetGuiInstanceOptionVars,self.l_optionVars,run).__call__()
         #reloadUI(self)
         #self.close()
@@ -1122,8 +1123,8 @@ class cgmGUI(mUI.BaseMelWindow):
     def reload(self):
         _str_func = 'reload[{0}]'.format(self.__toolName__)            
         log.debug("|{0}| >> reload".format(_str_func))
-        self.__class__()
-        #killChildren(self.WINDOW_NAME)
+        killChildren(self.WINDOW_NAME)
+        self.__init__()        
         #reloadUI(self)
         #reloadGUI(self)
         #self.build_layoutWrapper(self)
