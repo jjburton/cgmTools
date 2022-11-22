@@ -845,5 +845,8 @@ def get_nodeSnapShotDifferential(l,uuid=False):
         return [mc.ls(uuid, uuid=True)[0] for uuid in _res]
     return _res
     
-    
+def blendShape_attrs_get(blendShapeNode):
+    _l = mc.listAttr((blendShapeNode+'.weight'),m=True)
+    _l.sort()
+    return _l
     

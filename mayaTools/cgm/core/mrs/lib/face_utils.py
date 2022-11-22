@@ -500,6 +500,7 @@ class poseBuffer():
     def __init__(self,node = None, 
                  name = None,
                  baseName = 'face',
+                 attrDat = None,
                  faceType = 'default',
                  *args,**kws):
         """ 
@@ -510,6 +511,8 @@ class poseBuffer():
         
 
         self.attrDat = _d_faceBufferAttributes.get(faceType) or None
+        if attrDat:
+            self.attrDat = attrDat
        
         if kws:log.info("kws: %s"%str(kws))
         if args:log.info("args: %s"%str(args))
@@ -548,14 +551,19 @@ class poseBuffer():
         self.buffer_purge()
         self.buffer_verify()
         
-    def buffer_verify(self, addNonSplits = False, maxValue = 1.0, minValue = 0):
+    def buffer_verify(self, attrDat = None, addNonSplits = False, maxValue = 1.0, minValue = 0):
         """
         addNonSplits | add a lips_smile for example for splitting to L/R
         """
         _str_func = 'buffer_verify'
         mBuffer = self.mBuffer
-        d_buffer = _d_faceBufferAttributes.get(mBuffer.cgmName) or {}
         
+        if attrDat is None:
+            d_buffer = _d_faceBufferAttributes.get(mBuffer.cgmName) or {}
+        else:
+            d_buffer = attrDat
+            self.attrDat = attrDat
+            
         if not d_buffer:
             raise ValueError, "No attrDat"
         
@@ -565,7 +573,7 @@ class poseBuffer():
         mBuffer.addAttr("Rest",attrType = 'float',hidden = False)
         
         for section in l_sections:
-            mBuffer.addAttr("XXX_{0}_attrs_XXX".format(section),
+            mBuffer.addAttr("XXXXXXXXX_{0}_attrs".format(section),
                             attrType = 'int',
                             keyable = False,
                             hidden = False,lock=True) 

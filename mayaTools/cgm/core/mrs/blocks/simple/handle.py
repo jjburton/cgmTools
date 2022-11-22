@@ -1512,7 +1512,7 @@ def rig_shapes(self):
     if mShapeHelper:
         CORERIG.shapeParent_in_place(mControl,mShapeHelper.mNode,True)
         
-    elif mBlock.getEnumValueString('proxyShape') == 'shapers':
+    elif mBlock.getEnumValueString('proxyShape') in ['shapers','geoOnly']:
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           offset = _offset,
                                           mode = 'singleCurve')#limbHandle

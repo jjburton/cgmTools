@@ -2305,14 +2305,15 @@ def shapeDat_set(mBlock,data,
         log.info(log_sub(_str_func,'Settings...'))
         
         for a,v in data['settings'].iteritems():
-            
-            if a in l_enumLists:
-                ATTR.datList_connect(_str_block,a,v,enum=1)
-            elif a in l_datLists:
-                ATTR.datList_connect(_str_block,a,v)
-            else:
-                ATTR.set(_str_block, a, v)
-            
+            try:
+                if a in l_enumLists:
+                    ATTR.datList_connect(_str_block,a,v,enum=1)
+                elif a in l_datLists:
+                    ATTR.datList_connect(_str_block,a,v)
+                else:
+                    ATTR.set(_str_block, a, v)
+            except Exception,err:
+                log.error("{} | {} | {}".format(a,v,err))
 
         if mBlock.blockState < 1:
             mBlock.p_blockState = 1

@@ -952,7 +952,7 @@ def meshMath(targets = None, mode = 'blend', space = 'object',
             _l_posData.append(_l_pos)
             _l_meshDicts.append(_d_mesh)
         except Exception,err:
-            pprint.pprint(vars())
+            #pprint.pprint(vars())
             log.error("{0}>> Target: {1} failed to resolve. | {2}".format(_str_funcName,o,err))
 
     try:
