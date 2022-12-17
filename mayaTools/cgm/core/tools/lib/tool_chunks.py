@@ -60,9 +60,10 @@ import cgm.core.tools.lightLoomLite as LIGHTLOOMLITE
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.core.lib import transform_utils as TRANS
 from cgm.core.lib import constraint_utils as CONSTRAINTS
-
+from cgm.core.lib import search_utils as SEARCH
+reload(SEARCH)
 import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
-
+reload(MMCONTEXT)
 
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
@@ -253,7 +254,12 @@ def uiSection_query(parent = None):
               l = 'Report',
               c = cgmGEN.Callback(MMCONTEXT.func_process, CONSTRAINTS.get_datDict, None, 'each','Get contraint dat',True,**{'report':True}))
 
-
+    mUI.MelMenuItemDiv(uiQuery,l='Attributes')            
+    mc.menuItem(parent=uiQuery,
+                l='Get Value Dict',
+                ut = 'cgmUITemplate',
+                ann = "Get target value dict from obj channel box selections",
+                c = cgmGEN.Callback(MMCONTEXT.func_process, SEARCH.get_selectedFromChannelBox, None, 'each','Get targets',True,report = True, **{'valueDict':True}))
     return uiQuery
 
 

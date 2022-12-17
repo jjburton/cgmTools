@@ -2125,8 +2125,8 @@ example:
         else:
             log.debug(log_msg(_str_func,"dir passed"))            
             self.b_subFile = False            
-            for mUI in self.ml_fileOptions_set:
-                mUI(edit=True,en=False)
+            #for mUI in self.ml_fileOptions_set:
+            #    mUI(edit=True,en=False)
             for mUI in self.ml_dirOptions_set:
                 mUI(edit=True,en=True)
                 
@@ -4730,7 +4730,10 @@ example:
                 exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, animDict["subType"]))                
                 
                 if animDict.get('exportMode') == 'rig':
-                    _exportFileName = [animDict["asset"], 'rig']
+                    if animDict.get('set'):
+                        _exportFileName = [animDict["asset"], animDict["set"], 'rig']
+                    else:
+                        _exportFileName = [animDict["asset"], 'rig']
                 elif animDict.get('asset') and animDict.get('set'):
                     _exportFileName = [animDict["asset"], animDict["set"]]
                 else:
@@ -4906,6 +4909,7 @@ example:
                 'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
                 'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
                 'subType' : self.subType,
+                'subSet' : self.selectedSet,
                 'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
                 'removeNamespace' : self.d_tf['exportOptions']['removeNameSpace'].getValue(),
                 'zeroRoot' : self.d_tf['exportOptions']['zeroRoot'].getValue(),
@@ -4929,6 +4933,7 @@ example:
                     exportName = self.exportFileName,
                     exportAssetPath = exportAssetPath,
                     subType = self.subType,
+                    subSet= self.selectedSet,
                     categoryExportPath = categoryExportPath,
                     exportAnimPath = exportAnimPath,
                     removeNamespace = self.d_tf['exportOptions']['removeNameSpace'].getValue(),
@@ -4960,6 +4965,7 @@ def BatchExport(dataList = []):
             _d['exportAnimPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAnimPath'))
             _d['exportAssetPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAssetPath'))
             _d['subType'] = fileDat.get('subType')
+            _d['subSet'] = fileDat.get('set')            
             _d['exportName'] = fileDat.get('exportName')
             mFile = PATHS.Path(fileDat.get('file'))
             _d['mode'] = int(fileDat.get('mode'))
@@ -5027,6 +5033,7 @@ def ExportScene(mode = -1,
                 exportName = None,
                 categoryExportPath = None,
                 subType = None,
+                subSet = None,
                 exportAssetPath = None,
                 exportAnimPath = None,
                 exportMode = None,
@@ -5182,8 +5189,12 @@ def ExportScene(mode = -1,
     #    os.mkdir(exportAssetPath)
     log.debug(log_msg(_str_func,"Pathcheck..."))
     if not exportAnimPath:
-        exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
-    log.debug("exportPath: {0}".format(exportAnimPath))                
+        log.info("Getting path...")                        
+        if exportAsRig:
+            exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subSet, subType))
+        else:
+            exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
+    log.info("exportPath: {0}".format(exportAnimPath))                
     
     
     #pprint.pprint(vars())
@@ -5279,7 +5290,9 @@ def ExportScene(mode = -1,
         if( addNamespaceSuffix ):
             exportFile = exportFile.replace(".fbx", "_%s.fbx" % assetName )
         if( exportAsRig ):
-            exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
+            exportFile = os.path.normpath(os.path.join(exportAssetPath, exportName) )
+            
+        #    exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
         cgmObj.select()
         

@@ -12,6 +12,7 @@ __MAYALOCAL = 'SEARCH'
 # From Python =============================================================
 import copy
 import re
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -556,7 +557,7 @@ def get_key_indices_from(node = None, mode = 'all'):
     return lists.returnListNoDuplicates(keyFrames)
     
 
-def get_selectedFromChannelBox(attributesOnly = False, valueDict = False):
+def get_selectedFromChannelBox(objects = None, attributesOnly = False, valueDict = False, report= True ):
     """ 
     Returns a list of selected object attributes from the channel box
     
@@ -566,9 +567,12 @@ def get_selectedFromChannelBox(attributesOnly = False, valueDict = False):
     Keyword arguments:
     returnRaw() -- whether you just want channels or objects combined with selected attributes
 
-    """    
+    """  
     _str_func = 'get_selectedFromChannelBox'
-    _sel = mc.ls(sl=True)
+    if objects:
+        _sel = VALID.listArg(objects)
+    else:
+        _sel = mc.ls(sl=True)
     ChannelBoxName = mel.eval('$tmp = $gChannelBoxName');
 
     sma = mc.channelBox(ChannelBoxName, query=True, sma=True)
@@ -605,6 +609,8 @@ def get_selectedFromChannelBox(attributesOnly = False, valueDict = False):
                 for attr in _channels_long:
                     _sub[str(attr)] = ATTR.get(item,attr)
                 _res[str(item)] = _sub
+            if report:
+                pprint.pprint(_res)
             return  _res
         else:
             _res = []
@@ -613,6 +619,8 @@ def get_selectedFromChannelBox(attributesOnly = False, valueDict = False):
                     _comb = "{0}.{1}".format(item,attr)
                     if mc.objExists(_comb):
                         _res.append(_comb)
+            if report:
+                pprint.pprint(_res)                        
             return _res
     return False 
 

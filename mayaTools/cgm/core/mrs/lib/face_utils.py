@@ -1539,3 +1539,29 @@ _d_faceControlsToConnectBAK = {
                              '{0}.jawNDV_ry = {0}.jawBase_ry + {0}.jawDriven_left_ry + {0}.jawDriven_right_ry'.format(__attrHolder), 
                              '{0}.jawNDV_rz = {0}.jawBase_rz + {0}.jawDriven_left_rz + {0}.jawDriven_right_rz'.format(__attrHolder), 
                              ]}}}
+
+
+def getBlendDriverDict(node = 'blendShape1', ignore = ['SHAPES']):
+    import cgm.core.lib.attribute_utils as ATTR
+    d = {}
+    for a in mc.listAttr(node+'.weight',m=1):
+        _plug = ATTR.get_driver(node,a) 
+        if _plug:
+            _check = False
+            for check in ignore:
+                if check in _plug:
+                    _check = True
+                    break        
+            if not _check:                                       
+                d[a] = _plug
+    return d
+
+
+def setBlendDriverDict(node = 'blendShape1', d_wiring = {}):
+    import cgm.core.lib.attribute_utils as ATTR
+    for t,s in d_wiring.iteritems():
+        log.info("Set: {} | {}".format(t,s))
+        try:
+            ATTR.connect(s,node+'.'+t)
+        except Exception,err:
+            print err

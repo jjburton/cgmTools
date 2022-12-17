@@ -1255,11 +1255,61 @@ def setup_shapes(d_shapes = {}):
     
     l_missing = []
     
+    def process_obj(target, d):
+        mObj = cgmMeta.validateObjArg(target,noneValid=True)
+        if not mObj:
+            l_missing.append("Obj: {}".format(target))
+            return
+        
+        mExisting = mObj.getShapes(asMeta=1)[0]
+        
+        mTarget = cgmMeta.asMeta( CURVES.create_fromName(d.get('shape'),d.get('size')))
+        mTarget.doSnapTo(mObj)
+        
+        _moveOffsetAim = d.get('moveOffsetAim')
+        mTarget.p_parent = mObj
+        mTarget.resetAttrs(['tx','ty','tz','rx','ry','rz'])
+        
+        if _moveOffsetAim:
+            mTarget.tz = _moveOffsetAim
+        
+        _setAttr = d.get('setAttr',{})
+        if _setAttr:
+            for a,v in _setAttr.iteritems():
+                print("{}|{}".format(a,v))
+                mTarget.setMayaAttr(a,v)
+        mTarget.p_parent = False
+            
+        CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
+        CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)        
+        
+        
     for o,d in d_shapes.iteritems():
         log.info("{} | {}".format(o,d))
-        if d.get('noMirror'):
-            o_string = o
-            
+        if d.get('mirror'):
+            for side in ['L','R']:
+                o_string = "{}_{}".format(side,o)
+                mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
+                if not mObj:
+                    l_missing.append("Obj: {}".format(o_string))
+                    continue
+                
+                mExisting = mObj.getShapes(asMeta=1)[0]
+                
+                mTarget = cgmMeta.asMeta( CURVES.create_fromName(d.get('shape'),d.get('size')))
+                mTarget.doSnapTo(mObj)
+                
+                _moveOffsetAim = d.get('moveOffsetAim')
+                if _moveOffsetAim:
+                    mTarget.p_parent = mObj
+                    mTarget.tz = _moveOffsetAim
+                    mTarget.p_parent = False
+                    
+                CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
+                CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
+        else:
+            process_obj(o,d)
+            """
             mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
             if not mObj:
                 l_missing.append("Obj: {}".format(o_string))
@@ -1276,31 +1326,11 @@ def setup_shapes(d_shapes = {}):
                 mTarget.tz = _moveOffsetAim
                 mTarget.p_parent = False
                 
-            CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
-            CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
-            
-            continue
-            
-        for side in ['L','R']:
-            o_string = "{}_{}".format(side,o)
-            mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
-            if not mObj:
-                l_missing.append("Obj: {}".format(o_string))
-                continue
-            
-            mExisting = mObj.getShapes(asMeta=1)[0]
-            
-            mTarget = cgmMeta.asMeta( CURVES.create_fromName(d.get('shape'),d.get('size')))
-            mTarget.doSnapTo(mObj)
-            
-            _moveOffsetAim = d.get('moveOffsetAim')
-            if _moveOffsetAim:
-                mTarget.p_parent = mObj
-                mTarget.tz = _moveOffsetAim
-                mTarget.p_parent = False
+                
                 
             CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
-            CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
+            CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)"""
+            
 
     if l_missing:
         print(cgmGEN._str_hardBreak)

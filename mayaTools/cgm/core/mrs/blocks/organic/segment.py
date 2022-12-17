@@ -132,7 +132,6 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                    'space':['ikMidDynParentMode','ikMidDynScaleMode'],
                    'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
                           'ribbonExtendEnds','ribbonAttachEndsToInfluence',
-                          
                           'ikBaseExtend','ikEndExtend','ikEndLever',]}
 
 l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoints',
@@ -162,6 +161,7 @@ d_build_profiles = {
     'unityToon':{'default':{'squashMeasure':'arcLength',
                             'squash':'simple',
                             'scaleSetup':True,
+                            'squashSkipAim':False,
                             }},
     'unityHigh':{'default':{'numJoints':4,
                             'numControls':4},
@@ -4048,7 +4048,7 @@ def rig_cleanUp(self):
                 ml_handleJoints[0].followRoot = 0.0
                 
 
-            
+        """
         if mSettings.hasAttr('FKIK'):
             if mBlock.blockType in ['tail']:
                 _v = 0.0
@@ -4056,7 +4056,7 @@ def rig_cleanUp(self):
                 _v = 1.0
             ATTR.set_default(mSettings.mNode, 'FKIK', _v)
             mSettings.FKIK = _v
-        
+        """
         
         #Lock and hide =================================================================================
         ml_blendJoints = mRigNull.msgList_get('blendJoints',asMeta=True)
