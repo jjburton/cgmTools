@@ -6148,12 +6148,12 @@ def rig_controls(self):
 @cgmGEN.Timer
 def rig_segments(self):
     _short = self.d_block['shortName']
-    reload(RIGCONSTRAINT)
+    #reload(RIGCONSTRAINT)
     _str_func = 'rig_segments'
     log.debug("|{0}| >> ...".format(_str_func)+cgmGEN._str_hardBreak)
     log.debug(self)
     
-    reload(IK)
+    #reload(IK)
     mBlock = self.mBlock
     mRigNull = self.mRigNull
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
@@ -6238,7 +6238,8 @@ def rig_segments(self):
             try:ml_segHandles[0].parent = ml_handleJoints[i]
             except Exception,err:
                 log.error(err)
-                continue                
+                continue
+            
             try:ml_segHandles[-1].parent = ml_handleJoints[i+1]
             except Exception,err:#...if we don't have a target end we're not processing this
                 log.error(err)
@@ -6261,6 +6262,7 @@ def rig_segments(self):
                 mParent = mSegHandle.getParent(asMeta=1)
                 idx_parent = ml_handleJoints.index(mParent)
                 mBlendParent = ml_blendJoints[idx_parent]
+                mBlendParentsParent = ml_blendJoints[idx_parent-1]
                 
                 if mParent == ml_handleJoints[0]:
                     #First handle ================================================================
@@ -6317,6 +6319,7 @@ def rig_segments(self):
                     mAimFollow.doStore('cgmTypeModifier','follow')
                     mAimFollow.doStore('cgmType','aimer')
                     mAimFollow.doName()                    
+                    mAimFollow.rotateOrder = self.rotateOrder
                     
                     mc.aimConstraint(_aimForward, mAimFollow.mNode, maintainOffset = True,
                                      aimVector = [0,0,1], upVector = [0,1,0], 
@@ -6366,7 +6369,6 @@ def rig_segments(self):
                     log.debug("|{0}| >> Last handles...".format(_str_func))
                     _aimBack = ml_handleJoints[idx_parent-1].p_nameShort
                     
-                    mBlendParentsParent = ml_blendJoints[idx_parent-1]
                     
                     
                     
@@ -6377,6 +6379,7 @@ def rig_segments(self):
                     mFollow.doName()
 
                     mFollow.p_parent = mBlendParent
+                    mc.xform(mFollow.mNode,rotateOrder=self.rotateOrder,p=True)
                     
                     TRANS.aim(mFollow.mNode, _aimBack,
                               '{}-'.format(self.d_orientation['str'][0]),
@@ -6394,6 +6397,7 @@ def rig_segments(self):
                     mAimBack.doStore('cgmType','aimer')
                     mAimBack.doName()
                     #mAimBack.p_orient = ml_handleJoints[-2].p_orient
+                    mc.xform(mAimBack.mNode,rotateOrder=self.rotateOrder,p=True)
                     
                     log.debug("|{0}| >> Stable up...".format(_str_func))
                     mStableUp = mSegHandle.doCreateAt()#mBlendParent.doCreateAt()
@@ -6461,6 +6465,7 @@ def rig_segments(self):
                                          worldUpVector = self.v_twistUp)#[-1,0,0])
                     
                 else:
+                    log.debug("|{0}| >> Reg handle...".format(_str_func))                    
                     _aimForward = ml_handleJoints[idx_parent+1].p_nameShort
                     _aimBack = ml_handleJoints[idx_parent-1].p_nameShort
                     
@@ -6472,13 +6477,18 @@ def rig_segments(self):
                     mAimForward.doStore('cgmTypeModifier','forward')
                     mAimForward.doStore('cgmType','aimer')
                     mAimForward.doName()
+                    mc.xform(mAimForward.mNode,rotateOrder=self.rotateOrder,p=True)
                 
                     mAimBack = mSegHandle.doCreateAt()
-                    mAimBack.p_parent = mSegHandle.p_parent
+                    #mAimBack.p_parent = mSegHandle.p_parent
+                    mAimBack.p_parent  = mBlendParentsParent
+                    mc.pointConstraint(mSegHandle.mNode, mAimBack.mNode, maintainOffset = True)
+                    
                     mAimBack.doStore('cgmName',mSegHandle)                                
                     mAimBack.doStore('cgmTypeModifier','back')
                     mAimBack.doStore('cgmType','aimer')
                     mAimBack.doName()
+                    mc.xform(mAimBack.mNode,rotateOrder=self.rotateOrder,p=True)
                 
                     mc.aimConstraint(_aimForward, mAimForward.mNode, maintainOffset = False,
                                      aimVector = [0,0,1], upVector = self.v_twistUp,#[0,1,0], 
