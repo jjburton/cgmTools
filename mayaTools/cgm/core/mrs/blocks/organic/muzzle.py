@@ -2634,6 +2634,8 @@ def form(self):
                                                 'rebuild':1}
 
             else:
+                
+                """
                 l_nose_underTags = ['nostrilRight',
                                     'nostrilBaseRight',
                                     'noseBaseRight',
@@ -2643,7 +2645,10 @@ def form(self):
                                     'nostrilLeft']                
                 l_endKeys = copy.copy(l_nose_underTags)
                 d_tmp = {'right':[],'left':[]}
-
+                                d_curveCreation['overEnd'] = {'keys':l_endKeys,
+                                              'rebuild':1}
+                """
+                l_endKeys = ['cornerUprRight', 'uprOverRight', 'uprOver', 'uprOverLeft', 'cornerUprLeft']
                 d_curveCreation['overEnd'] = {'keys':l_endKeys,
                                               'rebuild':1}
                 
@@ -2652,7 +2657,7 @@ def form(self):
                                                 'rebuild':1}
                 pass
                 #raise ValueError,"Finish this"
-
+                
 
             #Loft/baseCurves ----------------------------------------------------------------------------------
             _res_tmp = mc.loft(l_curves_baseLoft,

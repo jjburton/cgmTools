@@ -3278,7 +3278,7 @@ class cgmObject(cgmNode):
                 targets = CONSTRAINT.get_targets(mConstraint)
                 if targets:l_constainingObjects.extend(targets)
 
-        if asMeta and buffer:
+        if asMeta and ml_buffer:
             return validateObjListArg(l_constainingObjects)
         if select:
             mc.select(l_constainingObjects)

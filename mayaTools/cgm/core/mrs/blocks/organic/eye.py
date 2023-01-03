@@ -1380,7 +1380,7 @@ def prerig(self):
         
         if self.buildEyeOrb:
             pass
-    
+        
         
         
         #Settings shape --------------------

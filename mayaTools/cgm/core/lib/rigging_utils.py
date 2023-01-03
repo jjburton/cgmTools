@@ -904,7 +904,7 @@ def create_at(obj = None, create = 'null',midPoint = False, l_pos = [], baseName
                     
                     
             elif _create == 'curve':
-                if len(l_use) > 3:
+                if len(l_use) >= 3:
                     knot_len = len(l_use)+2#-1		                    
                     _created = mc.curve (d=3, ep = l_use, k = [i for i in range(0,knot_len)], os=True)
                 else:
