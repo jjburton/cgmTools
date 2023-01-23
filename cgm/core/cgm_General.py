@@ -12,7 +12,7 @@ __MAYALOCAL = 'cgmGEN'
 
 __RELEASE = '23.01.23.01'
 
-__BRANCH = 'Py3'
+__BRANCH = 'PY3UNION'
 
 import maya.cmds as mc
 import maya.mel as mel
