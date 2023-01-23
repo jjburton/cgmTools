@@ -10,10 +10,47 @@ Website : https://github.com/jjburton/cgmTools/wiki
 This is housed outside our core stuff to be able to access and update it.
 ================================================================
 """
-__version__ = '1.0.10092020'
-from urllib.request import Request, urlopen
-from urllib.error import URLError
-import urllib.request, urllib.error, urllib.parse
+__version__ = '01.23.23'
+import platform
+import logging
+logging.basicConfig()
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
+
+
+_b_py3 = False
+if platform.python_version().startswith('3'):
+    _b_py3 = True
+    from urllib.request import Request, urlopen
+    from urllib.error import URLError    
+    
+    _pathMain = 'https://github.com/jjburton/cgmtoolsPy3/commits/'
+    _pathPull =  "https://github.com/jjburton/cgmtoolsPy3/get/"
+    
+    _route = 'https://api.github.com/repos/jjburton/cgmToolsPy3/commits?sha='
+    _urlBase =  "https://github.com/jjburton/cgmToolsPy3/archive/"
+    _urlGet = "https://bitbucket.org/jjburton/cgmtoolsPy3/get/"
+else:
+    from urllib2 import Request, urlopen, URLError
+    
+    _pathMain = 'https://github.com/jjburton/cgmtools/commits/'
+    _pathPull =  "https://github.com/jjburton/cgmtools/get/"
+    _route = 'https://api.github.com/repos/jjburton/cgmTools/commits?sha='
+    _urlBase =  "https://github.com/jjburton/cgmTools/archive/"
+    _urlGet = "https://bitbucket.org/jjburton/cgmTools/get/"
+
+def get_pyString():
+    if _b_py3:
+        return '[Python 3]'
+    else:
+        return '[Python 2]'
+    
+def print_pySetup():
+    return log.warning(get_pyString())
+    
+print_pySetup()
+
 import webbrowser
 import json
 import pprint
@@ -21,27 +58,11 @@ import os
 import zipfile
 from shutil import move,rmtree
 import datetime
-import time
 
-import logging
-logging.basicConfig()
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
 _test = 'MRS'
 
-_pathMain = 'https://github.com/jjburton/cgmtools/commits/'
-_pathPull =  "https://github.com/jjburton/cgmtools/get/"
-#_pathMount  = 'https://api.github.com/repos/jjburton/cgmTools/commits/'
-
-_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
+#_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
 #_pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'
-
-
-"""
-_pathMain = 'https://bitbucket.org/jjburton/cgmtools/commits/'
-_pathPull =  "https://bitbucket.org/jjburton/cgmtools/get/"
-_pathMount  = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/commits/'
-_pathRepos = 'https://api.bitbucket.org/2.0/repositories/jjburton/cgmtools/'"""
 
 _defaultBranch = 'main'
 _sep = os.sep
@@ -76,7 +97,7 @@ def get_install_path(confirm = False,branch=_defaultBranch):
         _path = os.path.abspath(__file__)        
         _path = _sep.join(__file__.split(_sep)[:-1])
         _path = os.path.abspath(_path)
-        for check in ['repos','mayaTools']:
+        for check in ['mayaTools','repo']:
             if check in _path:
                 _warn = " WARNING: Please don't install to your repos!Found check kw: '{0}' \n path: {1}".format(check,_path)
                 log.warning(_warn)
@@ -99,7 +120,13 @@ def get_install_path(confirm = False,branch=_defaultBranch):
         if not _dat:
             log.error("Failed to get branch dat")            
             return False
-        _msg = 'Would you like to install cgmTools here: \n [ {0} ] \n  {1} \n Branch: {2} || Last Updated: {3} \n {4} \n {5}'.format(_path,'-'*100,branch,_dat[0]['date'], _dat[0]['msg'],'-'*100)
+        _msg = '{} \n Would you like to install cgmTools here: \n [ {} ] \n  {} \n Branch: {} || Last Updated: {} \n {} \n {}'.format(
+            get_pyString(),
+            _path,
+            '-'*100,branch,
+            _dat[0]['date'],
+            _dat[0]['msg'],
+            '-'*100)
         if _warn:
             _msg = _msg + "\n {0}".format(_warn)
         _res_confirm = mc.confirmDialog(title="Install cgmTools",
@@ -143,13 +170,12 @@ def clean_install_path(path = None):
                 return log.error("Please don't clean your repos. Found check: '{0}' | path: {1}".format(check,path))
     
     _path = os.path.abspath(path)
-    #pprint.pprint(vars())
     
     for f in os.listdir(_path):
         if f in _l_to_clean:
             try:
                 _pathFile = _sep.join([_path,f])
-                log.debug("Cleaning: {0} >> {1} ...".format(f,_pathFile))
+                log.info("Cleaning: {0} >> {1} ...".format(f,_pathFile))
                 if '.' in f:
                     os.unlink(_pathFile)
                 else:
@@ -170,18 +196,9 @@ def unzip(zFile = zFile, deleteZip = True, cleanFirst = False, targetPath = None
     _match = True
     pprint.pprint(vars())
     
-    
-    #while _match:
-    #    for c in ["/",_sep]:
-    #        if _dir.endswith(c):
-    #            _dir=''.join(list(_dir)[:-1])
-    #    _match = False
         
     zip_ref = zipfile.ZipFile(_path, 'r')
     
-    #zip_ref.extractall(_dir)
-    #print zip_ref.infoList()
-    #print zip_ref.getinfo()
     _done = []
     _zipDir = None
     _zipRoot = None
@@ -202,6 +219,70 @@ def unzip(zFile = zFile, deleteZip = True, cleanFirst = False, targetPath = None
                         step=1,
                         vis=True,
                         maxValue= len(_name_list))
+        
+        """
+        zip_file = zFile
+        destination = targetPath
+        
+        
+        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+            for member in zip_ref.namelist():
+                if not member.endswith('/'):
+                    # getting the dir path
+                    file_path = os.path.normpath(os.path.join(destination, member))
+                    print(file_path)
+                    zip_ref.extract(member, destination)"""
+            
+        
+        for i,f in enumerate(zip_ref.namelist()):
+            mc.progressBar(mayaMainProgressBar,
+                           edit=True,
+                           progress = i)
+            
+            log.info("Unzipping: {0}...".format(f))
+            _done.append(f)
+            
+            if not _zipDir:
+                _zipDir = f.split(os.sep)[0]
+            #if not _zipRoot:
+            #    _zipRoot = ''.join(f.split(targetPath)[0])
+            zip_ref.extract(f,_dir)
+        zip_ref.close()
+        
+        log.info("Dir: {0}".format(_dir))
+        log.info("Zip Dir: {0}".format(_zipDir))
+        #log.info("Zip Root: {0}".format(_zipRoot))        
+        
+        
+        
+        
+        if targetPath:
+            _path_target = os.path.abspath(targetPath)
+        else:
+            _path_target = _dir
+
+        _path_unzipped = _sep.join([_dir,_zipDir])
+            
+        log.debug("Path mayaTools: {0}".format(_path_unzipped))
+        for f in os.listdir(_path_unzipped):
+            _skip = False
+            for check in ['cgmUpdate','.gitignore']:
+                if check in f:
+                    log.warning("Skipping: {}".format(f))
+                    _skip = True                    
+                    continue
+            if _skip:
+                continue
+            _dst = _sep.join([_path_target,f])
+            _src = _sep.join([_path_unzipped,f])
+            log.debug("Copy: {0} >> {1} ...".format(_src,_dst))
+            
+            try:move(_src, _dst)
+            except:pass        
+        
+        
+        
+        """
         
         for i,f in enumerate(zip_ref.namelist()):
             mc.progressBar(mayaMainProgressBar,
@@ -233,30 +314,28 @@ def unzip(zFile = zFile, deleteZip = True, cleanFirst = False, targetPath = None
         
         log.debug("Dir: {0}".format(_dir))
         log.debug("Zip Dir: {0}".format(_zipDir))
-        log.debug("Zip Root: {0}".format(_zipRoot))
-        
+        log.debug("Zip Root: {0}".format(_zipRoot))"""
+        """
         if targetPath:
             _path_target = os.path.abspath(targetPath)
         else:
             _path_target = _dir
             
+            
+        
         _path_mayaTools = _sep.join([_dir,_zipDir,'mayaTools'])
             
         log.debug("Path mayaTools: {0}".format(_path_mayaTools))
-        
         for f in os.listdir(_path_mayaTools):
             _dst = _sep.join([_path_target,f])
             _src = _sep.join([_path_mayaTools,f])
             log.debug("Copy: {0} >> {1} ...".format(_src,_dst))
             
             try:move(_src, _dst)
-            except:pass
+            except:pass"""
             
         try:rmtree(_sep.join([_dir,_zipDir]))
         except Exception as err:log.debug("Remove unzip temp fail | {0}".format(err))
-            
-
-        
     except Exception as err:
         log.error("Zip exception: {0}".format(err))
     finally:
@@ -286,7 +365,9 @@ def download(url='http://weknowyourdreams.com/images/mountain/mountain-03.jpg', 
         _dir = get_install_path()
         file_name = _sep.join([_dir,url.split('/')[-1]])
         
-        u = urllib.request.urlopen(url)
+        #u = urllib.request.urlopen(url)
+        u = urlopen(url)
+        
         f = open(file_name, 'wb')
         meta = u.info()
         
@@ -352,7 +433,7 @@ def get_download(branch = _defaultBranch, idx = 0,  mode = None):
     if not _dat:
         return log.error("No build dat found. {0} | idx: {1}".format(branch,idx))
     
-    url =  "https://github.com/jjburton/cgmTools/archive/" + _dat['hash'] + ".zip"
+    url =  _urlBase + _dat['hash'] + ".zip"
     log.debug(" url: {0}".format(url))    
     
     if mode == 'url':
@@ -381,7 +462,7 @@ def get_build_bit(branch = _defaultBranch, idx = 0, mode = None):
     #pprint.pprint(_dat)
     
     #Get our zip
-    url =  "https://bitbucket.org/jjburton/cgmtools/get/" + _dat['hash'] + ".zip"
+    url =  _urlGet + _dat['hash'] + ".zip"
     log.debug(" url: {0}".format(url))
     
     if mode == 'url':
@@ -411,7 +492,7 @@ def get_dat(branch = 'master', limit = 3, update = False, reportMode=False):
                 log.debug("passing buffer...")                          
                 return _dat
             
-    route = 'https://api.github.com/repos/jjburton/cgmTools/commits?sha=' + branch
+    route = _route + branch
     
     #request = Request(route)
     print(("|{0}| >> Route: {1}".format(_str_func,route)))
@@ -452,11 +533,6 @@ def get_dat(branch = 'master', limit = 3, update = False, reportMode=False):
             #print '...' + "{0}{1}".format(_pathMain,_hash)
 
             i+=1
-            
-        #_len = len(stable)
-        #log.debug("|{0}| >> Showing {1} of {2}".format(_str_func,limit,_len))
-        
-        #pprint.pprint(_l_res)
         CGM_BUILDS_DAT[branch] = _l_res
         print(('='*100))        
         
@@ -615,10 +691,12 @@ def here(branch = _defaultBranch, idx = 0, cleanFirst = True, run = True, reload
         try:
             mel.eval('rehash')
             import cgm
-            if reloadCGM:cgm.core._reload()
+            import cgm.core
+            #if reloadCGM:cgm.core._reload()
             mel.eval('cgmToolbox')
         except Exception as err:
-            return log.error("Failed to load cgm | {0}".format(err))
+            log.error("Failed to load cgm | {0}".format(err))
+            raise
 
 
 
