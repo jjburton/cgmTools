@@ -1,3 +1,0 @@
-stringTable = None
-
-

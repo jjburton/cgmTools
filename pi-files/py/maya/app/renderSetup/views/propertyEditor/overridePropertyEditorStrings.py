@@ -1,9 +1,0 @@
-kDragAttributeFromAE = []
-
-kIncompatibleAttribute = []
-
-kInvalidAttribute = []
-
-kLayer = []
-
-
