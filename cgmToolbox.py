@@ -253,7 +253,7 @@ class AutoStartInstaller(object):
     '''
     class AutoSetupError(Exception): pass
 
-    def getUserSetupFile( self ):
+    def getUserSetupFile( self, autoCreateMel=False ):
         pyUserSetup, melUserSetup = None, None
         try:
             pyUserSetup = cgmPath.Path(cgmPath.findInPyPath( 'userSetup.py'))#findInPyPath)
@@ -265,25 +265,33 @@ class AutoStartInstaller(object):
             log.info("Mel user file is '%s'"%melUserSetup)
         except: log.info ('No mel user setup')
 
+        if not melUserSetup and autoCreateMel:
+            self.createMelUserSetup()
+            melUserSetup = cgmPath.Path(cgmPath.findFirstInEnv( 'userSetup.mel', 'MAYA_SCRIPT_PATH' ))
+            log.info("Mel user file is '%s'"%melUserSetup)            
         return pyUserSetup, melUserSetup
 
     def isInstalled( self ):
         success = False
         pyUserSetup, melUserSetup = self.getUserSetupFile()
-        if pyUserSetup is not None:
-            if self.isInstalledPy( pyUserSetup ):
-                return True
-
         if melUserSetup is not None:
             if self.isInstalledMel( melUserSetup ) == True:
+                print('Mel Installed')                
                 return True
+            
+        if pyUserSetup is not None:
+            if self.isInstalledPy( pyUserSetup ) == True:
+                print('Python Installed')
+                return True
+
+
 
         print ('Not installed')
         return False
 
     def install( self ):
         success = False
-        pyUserSetup, melUserSetup = self.getUserSetupFile()
+        pyUserSetup, melUserSetup = self.getUserSetupFile(autoCreateMel=True)
         log.info("pyUserSetup: {0}".format(pyUserSetup))
         log.info("melUserSetup: {0}".format(melUserSetup))        
         if pyUserSetup is None and melUserSetup is None:
@@ -315,6 +323,8 @@ class AutoStartInstaller(object):
             print('>>>>>Failed>>>>>>')
             for x in errors:
                 log.info("Install error: {0}".format(x))
+        
+        print(success)
 
     def isInstalledPy( self, pyUserSetup ):
         l_lines = ['import cgmToolbox','import cgm.core.tools.lib.tool_chunks as TOOLCHUNKS','TOOLCHUNKS.loadLocalPython()']
@@ -325,13 +335,15 @@ class AutoStartInstaller(object):
                 for line in f:
                     if codeLine in line:
                         l_found.append(codeLine)
-                        break
+                        continue
                 if codeLine not in l_found:
                     l_missing.append(codeLine)
-        log.info("Found: %s"%l_found)
+        log.info("Py Found: %s"%l_found)
         if l_missing:
-            log.info("Failed to find: %s"%l_missing)
+            log.info("Py Failed to find: %s"%l_missing)
             return l_missing
+        if not l_found:
+            return False
         return True		
         """with open( pyUserSetup ) as f:
             for line in f:
@@ -373,13 +385,18 @@ class AutoStartInstaller(object):
                         break
                 if codeLine not in l_found:
                     l_missing.append(codeLine)
-        log.info("Found: %s"%l_found)
+        log.info("Mel Found: %s"%l_found)
         if l_missing:
-            log.info("Failed to find: %s"%l_missing)
+            log.info("Mel Failed to find: %s"%l_missing)
             return l_missing
+        if not l_found:
+            return False
         return True
 
-    def installMel( self, melUserSetup ):
+    def installMel( self, melUserSetup = None ):
+        if not melUserSetup:
+            self.getUserSetupFile()[1]
+            
         buffer = self.isInstalledMel( melUserSetup )
         if buffer == True:
             return

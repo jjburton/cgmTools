@@ -135,7 +135,7 @@ def validate_stateArg(stateArg = None,):
     _str_func = 'valid_stateArg'
     _failMsg = "|{0}| >> Invalid: {1} | valid: {2}".format(_str_func,stateArg,BLOCKSHARED._l_blockStates)
     
-    if type(stateArg) in [str,str]:
+    if VALID.stringArg(stateArg):
         stateArg = stateArg.lower()
         if stateArg in BLOCKSHARED._l_blockStates:
             stateIndex = BLOCKSHARED._l_blockStates.index(stateArg)

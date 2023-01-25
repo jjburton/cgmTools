@@ -342,6 +342,7 @@ _d_gui_direction_colors = {'center':(0.971679, 1, 0),
                            'centerSub':(0.972, 1, 0.726),
                            'left':(0.305882 ,0.814528, 1),
                            'right':(0.976471 ,0.355012, 0.310173)}
+
 _d_gui_direction_colors_sub  = {}
 for k,l in list(_d_gui_direction_colors.items()):
     _d_gui_direction_colors_sub[k] = [v * .8 for v in l]
@@ -349,6 +350,22 @@ for k,l in list(_d_gui_direction_colors.items()):
 _d_gui_direction_colors_dark  = {}
 for k,l in list(_d_gui_direction_colors.items()):
     _d_gui_direction_colors_dark[k] = [v * .5 for v in l]
+    
+
+#...new method
+_d_gui_direction_colors_use = {}
+
+for k,color in list(_d_gui_direction_colors.items()):
+    _d = {}
+    _d_gui_direction_colors_use[k] = _d
+    _d['base'] = [v *.9 for v in color ]
+    _d['base2'] = [v *.75 for v in color ]    
+    #_d['light'] = [ MATH.Clamp(v*2.0,None,.9) for v in color ]
+    _d['bgc'] = [ v * .7 for v in _d['base'] ]
+    _d['bgc2'] = [ v * .6 for v in _d['base'] ]    
+    _d['button'] = [v *.5 for v in _d['bgc'] ]
+    _d['header'] = [v *.4 for v in _d['bgc'] ]
+
 
 
 #>>>Object Sets

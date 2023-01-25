@@ -1066,7 +1066,7 @@ class simpleAxis(object):
         if isListArg(arg, types=int):
             #str_arg = '['+','.join([str(v) for v in arg]) + ']'
             str_arg = str(list(arg))
-        elif isinstance(arg, str):
+        elif stringArg(arg):
             pass
         else:
             fmt_args = [str_arg, 

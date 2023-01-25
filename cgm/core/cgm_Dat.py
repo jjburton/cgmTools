@@ -37,7 +37,7 @@ import Red9.startup.setup as r9Setup
 
 # From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core.cgmPy import validateArgs as cgmValid
+from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.classes.GuiFactory as CGMUI
 import cgm.core.cgmPy.path_Utils as PATHS
 import cgm.core.lib.path_utils as COREPATHS
@@ -104,7 +104,7 @@ class batch(object):
             raise ValueError("Must have dataClass")
         
         self.dataclass = dataClass 
-        self.mNodes = cgmValid.listArg(mNodes)
+        self.mNodes = VALID.listArg(mNodes)
         self.mode = mode
         self.ml_mData = []
         self.dir_export = ''
@@ -444,7 +444,7 @@ def decodeDat(self,dat = None):
             elif issubclass(_type,dict):
                 log.debug(log_msg(str_func, "...subdict"))                                        
                 dArg[k] = processDict(d)
-            elif issubclass(_type,str) or issubclass(_type,str):
+            elif VALID.stringArg(d):#issubclass(_type,str) or issubclass(_type,unicode):
                 log.debug(log_msg(str_func, "...str"))                                                        
                 dArg[k] = r9Core.decodeString(d)
         
@@ -461,7 +461,8 @@ def decodeDat(self,dat = None):
         elif issubclass(_type,dict):
             log.debug(log_msg(str_func, "...dict"))            
             dat[k] = processDict(d)
-        elif issubclass(_type,str) or issubclass(_type,str):
+            
+        elif VALID.stringArg(d):#issubclass(_type,str) or issubclass(_type,unicode):
             dat[k] = r9Core.decodeString(d)
         
     #pprint.pprint(dat)

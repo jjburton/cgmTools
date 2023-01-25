@@ -238,7 +238,7 @@ def blockDat_getString(self):
     return " | ".join(_res)
 
     
-    
+@cgmGEN.Wrap_exception
 def blockDat_createBlock(self, autoPush = True, promptName = True):
     '''
     blockDat self
@@ -486,7 +486,7 @@ def blockDat_get(self,report = True):
         self.p_orient = orient         
         self.blockScale = scale             
         
-
+@cgmGEN.Wrap_exception
 def blockDat_load(self, blockDat = None,
                   baseDat = True,
                   useMirror = False,
@@ -1005,11 +1005,11 @@ def blockDat_getControlDat(self,mode = 'define',report = True):
                 _d['bb'] = TRANS.bbSize_get(mLoftCurve.mNode)
                 _d['ab'] = DIST.get_axisSize(mLoftCurve.mNode)
                 
-                if not COREMATH.is_float_equivalent(sum(_rot),0.0):
+                if not MATH.is_float_equivalent(sum(_rot),0.0):
                     _d['r'] = _rot
-                if not COREMATH.is_float_equivalent(COREMATH.multiply(_scale), 1.0):
+                if not MATH.is_float_equivalent(MATH.multiply(_scale), 1.0):
                     _d['s'] = _scale
-                if not COREMATH.is_float_equivalent(sum(_trans),0.0):
+                if not MATH.is_float_equivalent(sum(_trans),0.0):
                     _d['t'] = _trans
                     
                 _d['p'] = _p
@@ -1487,7 +1487,100 @@ class ui(CGMDAT.ui):
         mUI.MelMenuItemDiv(self.uiMenu_library)
         mUI.MelMenuItem(self.uiMenu_library, l='Rebuild',
                         c=lambda *a: mc.evalDeferred(self.buildMenu_library,lp=True))
-        log.info("Library menu rebuilt")        
+        log.info("Library menu rebuilt")
+        
+    def build_bottomButtonRow(self,parent):
+        
+        mRow = mUI.MelHRowLayout(parent)
+                    
+        mUI.MelButton(mRow,
+                      h=30,
+                      en=False,
+                      bgc = CGMUI.guiHeaderColor,
+                      label='Fix')
+                
+        self.uiButton_row = mRow
+        mRow.layout()
+                
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        #Declare form frames...------------------------------------------------------
+        _MainForm = mUI.MelFormLayout(parent,ut='CGMUITemplate')#mUI.MelColumnLayout(ui_tabs)
+        
+        
+        #self.uiStatus_topRow = mUI.MelHLayout(_MainForm,)
+        self.uiStatus_top = mUI.MelButton(_MainForm,
+                                         vis=True,
+                                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
+                                         bgc = CORESHARE._d_gui_state_colors.get('warning'),
+                                         label = 'No Data',
+                                         h=20)
+        _inside = mUI.MelScrollLayout(_MainForm,ut='CGMUITemplate')
+        
+
+        
+        #Top Section -----------
+        self.uiSection_top = mUI.MelColumn(_inside ,useTemplate = 'cgmUISubTemplate',vis=True)         
+        self.uiUpdate_top()
+  
+        #data frame...------------------------------------------------------
+        try:self.var_shapeDat_dataFrameCollapse
+        except:self.create_guiOptionVar('cgmDat_dataFrameCollapse',defaultValue = 0)
+        mVar_frame = self.var_cgmDat_dataFrameCollapse
+        
+        _frame = mUI.MelFrameLayout(_inside,label = 'Data',vis=True,
+                                    collapse=mVar_frame.value,
+                                    collapsable=True,
+                                    enable=True,
+                                    #ann='Contextual MRS functionality',
+                                    useTemplate = 'cgmUIHeaderTemplate',
+                                    expandCommand = lambda:mVar_frame.setValue(0),
+                                    collapseCommand = lambda:mVar_frame.setValue(1)
+                                    )	
+        self.uiFrame_data = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
+
+        mUI.MelLabel(self.uiFrame_data, label = "Select", h = 13, 
+                     ut='cgmUIHeaderTemplate',align = 'center')
+        
+
+        #Progress bar... ----------------------------------------------------------------------------
+        self.uiPB_test=None
+        self.uiPB_test = mc.progressBar(vis=False)
+
+
+        _buttonRow = self.build_bottomButtonRow(_MainForm)
+            
+        """
+        mUI.MelButton(_MainForm,
+                            h=30,
+                            bgc = CGMUI.guiHeaderColor,
+                            label='Create')"""
+        
+
+        _row_cgm = CGMUI.add_cgmFooter(_MainForm)            
+
+        #Form Layout--------------------------------------------------------------------
+        _MainForm(edit = True,
+                  af = [(self.uiStatus_top,"top",0),
+                        (self.uiStatus_top,"left",0),
+                        (self.uiStatus_top,"right",0),                        
+                        (_inside,"left",0),
+                        (_inside,"right",0),
+                        (self.uiButton_row,"left",0),
+                        (self.uiButton_row,"right",0),                           
+                        (_row_cgm,"left",0),
+                        (_row_cgm,"right",0),
+                        (_row_cgm,"bottom",0),
+    
+                        ],
+                  ac = [(_inside,"bottom",2,self.uiButton_row),
+                        (self.uiButton_row,"bottom",2,_row_cgm),
+                        (_inside,"top",0,self.uiStatus_top),
+                        ],
+                  attachNone = [(self.uiButton_row,"top")])    
+
         
         
 class uiBlockDat(ui):
@@ -1505,7 +1598,28 @@ class uiBlockDat(ui):
     _datClass = BlockDat
     _datTypes = ['cgmBlockDat']
     
-   
+    
+    
+    def build_bottomButtonRow(self,parent):
+        mRow = mUI.MelHLayout(parent,padding=4)
+        
+        
+        mc.button(parent=mRow,
+                  l = 'Create',
+                  ut = 'cgmUITemplate',
+                  c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create, self._dCB_reg['autoPush'].getValue())),
+                  ann = 'Build with MRS')
+        
+        #mUI.MelSeparator(mRow,w=5)
+        mc.button(parent=mRow,
+                  l = 'Load',
+                  ut = 'cgmUITemplate',
+                  c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_set)),
+                  ann = 'Build with MRS')                        
+                
+        self.uiButton_row = mRow
+        mRow.layout()
+        
     def uiUpdate_top(self):
         _str_func = 'uiUpdate_top[{0}]'.format(self.__class__.TOOLNAME)
         log.debug("|{0}| >>...".format(_str_func))
@@ -1515,12 +1629,13 @@ class uiBlockDat(ui):
         _inside = self.uiSection_top
         self.uiStatus_blockString = mUI.MelLabel(_inside,label = '...')
         
+        """        
         CGMUI.add_Header('Functions')
         mc.button(parent=_inside,
                   l = 'Create',
                   ut = 'cgmUITemplate',
                   c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create, self._dCB_reg['autoPush'].getValue())),
-                  ann = 'Build with MRS')
+                  ann = 'Build with MRS')"""
 
         #checkboxes frame...------------------------------------------------------------
         self._dCB_reg = {}
@@ -1559,17 +1674,17 @@ class uiBlockDat(ui):
                 _row.layout()
 
         
-        
+        """
         _button = mc.button(parent=_inside,
                             l = 'Load',
                             ut = 'cgmUITemplate',
                             c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_set)),
-                            ann = 'Build with MRS')                
+                            ann = 'Build with MRS')"""                
         
     def uiStatus_refresh(self, string=None):
         CGMDAT.ui.uiStatus_refresh(self, string)
         if self.uiDat:
-            _color = BLOCKSHARE.d_outlinerColors.get(self.uiDat.dat['blockType'])['main']#d_colors.get(mDat.get('side'),d_colors['center'])
+            _color = BLOCKSHARE.d_outlinerColors.get(self.uiDat.dat['blockType'])['main'] or SHARED._d_gui_state_colors.get('warning')#d_colors.get(mDat.get('side'),d_colors['center'])
             self.uiStatus_blockString(e=1, label = blockDat_getString(self.uiDat), bgc=_color)
         
     def uiFunc_dat_get(self):
@@ -1628,7 +1743,7 @@ class uiBlockDat(ui):
 
     
     
-    
+@cgmGEN.Wrap_exception
 class uiBlockConfigDat(ui):
     USE_Template = 'cgmUITemplate'
     TOOLNAME = "uiBlockConfigDat"
@@ -1945,12 +2060,27 @@ class uiBlockConfigDat(ui):
                 mDat = self.uiDat.mBlockDat[i]
                 _type = mDat.dat['blockType']
                 _side = mDat.dat.get('side','center')
+                if _side in ['none','None']:
+                    _side = 'center'
                 if _side in [False,'none',None]:
                     _side = 'center'
-                _colorSide = CORESHARE._d_gui_direction_colors.get(_side)
-                _colorSub = CORESHARE._d_gui_direction_colors_sub.get(_side)            
-                _colorDark = CORESHARE._d_gui_direction_colors_dark.get(_side)
+                    
+                reload(CORESHARE)
+                d_color = CORESHARE._d_gui_direction_colors_use[_side]
+                if MATH.is_even(i):
+                    _ut = 'cgmUITemplate'
+                    _header = d_color['base']
+                else:
+                    _ut = 'cgmUIHeaderTemplate'
+                    _header = d_color['base2']
+                _bgc = d_color['bgc']
+                                        
+                    
+                #_colorSide = CORESHARE._d_gui_direction_colors_use.get(_side) or SHARED._d_gui_state_colors.get('warning')
+                #_colorSub = CORESHARE._d_gui_direction_colors_use.get(_side) or SHARED._d_gui_state_colors.get('warning')
+                #_colorDark = CORESHARE._d_gui_direction_colors_use.get(_side) or SHARED._d_gui_state_colors.get('warning')
                 
+                #pprint.pprint([mDat.dat['baseName'],_colorSide,_colorSub,_colorDark])
                 #_color = BLOCKSHARE.d_outlinerColors.get(mDat.dat['blockType'])['main']#d_colors.get(mDat.get('side'),d_colors['center'])
                 #_colorSub = BLOCKSHARE.d_outlinerColors.get(mDat.dat['blockType'])['sub']#d_colors.get(mDat.get('side'),d_colors['center'])
                 
@@ -1959,8 +2089,7 @@ class uiBlockConfigDat(ui):
                 _label = CORESTRINGS.stripWhiteSpaceStart(self.uiDat.dat['uiStrings'][i])#blockDat_getString(self.uiDat.mBlockDat[i])
                 
                 #Row...
-                _row = mUI.MelHSingleStretchLayout(self.uiFrame_data, h=30, 
-                                      bgc=_colorSub)            
+                _row = mUI.MelHSingleStretchLayout(self.uiFrame_data, h=30, bgc=_header)            
     
                 _icon = None
                 try:
@@ -1982,6 +2111,7 @@ class uiBlockConfigDat(ui):
                                       #mw=5,
                                       scaleIcon=True,
                                       w=30,h=30,
+                                      #bgc = d_color['base']
                                       )
                                       #olc=[float(v) for v in d_state_colors['form']],
                                       #olb=[float(v) for v in d_state_colors['form']]+[.5],
@@ -2010,17 +2140,17 @@ class uiBlockConfigDat(ui):
                 
                 mDat = mDat.dat.get('shape')
     
-                mUI.MelButton(_row, bgc=_colorDark, label = 'BlockDat',
+                mUI.MelButton(_row, bgc=d_color['button'], label = 'BlockDat',
                               c = cgmGEN.Callback(self.get_blockDatUI,i))
                 #mUI.MelButton(_row, bgc=_colorDark, label = 'Log',
                 #              c = cgmGEN.Callback(self.log_blockDat,i))                
-                mUI.MelButton(_row, bgc=_colorDark, label = 'ShapeDat',en =bool(mDat),
+                mUI.MelButton(_row, bgc=d_color['button'], label = 'ShapeDat',en =bool(mDat),
                               c = cgmGEN.Callback(self.get_shapeDatUI,i))            
-                mUI.MelButton(_row, bgc=_colorDark, label = 'Create',
+                mUI.MelButton(_row, bgc=d_color['button'], label = 'Create',
                               c = cgmGEN.Callback(self.uiFunc_create,i))
-                mUI.MelButton(_row, bgc=_colorDark, label = 'Update',
+                mUI.MelButton(_row, bgc=d_color['button'], label = 'Update',
                               c = cgmGEN.Callback(self.uiFunc_update,i))
-                mUI.MelButton(_row, bgc=_colorDark, label = 'Remove',
+                mUI.MelButton(_row, bgc=d_color['button'], label = 'Remove',
                               ann="Remove this BlockDat",
                               c = cgmGEN.Callback(self.uiFunc_removeData,i))            
                 mUI.MelSpacer(_row,w=10)
@@ -2033,13 +2163,13 @@ class uiBlockConfigDat(ui):
         
         mc.setParent(self.uiFrame_data)
         CGMUI.add_Header('Other')
+        """
         mc.button(parent=self.uiFrame_data,
                   l = 'Create',
                   ut = 'cgmUITemplate',
                   c = cgmGEN.Callback(self.uiFunc_create),
                   #c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiDat.create, self._dCB_reg['autoPush'].getValue())),
-                  ann = 'Build with MRS')
-        
+                  ann = 'Build with MRS')"""
         
         mUI.MelSpacer(self.uiFrame_data,h=30)
         mUI.MelLabel(self.uiFrame_data, label = "PPRINT", h = 13, 
@@ -2059,6 +2189,16 @@ class uiBlockConfigDat(ui):
                       label='all',
                       ut='cgmUITemplate',
                       h=20)
+        
+    def build_bottomButtonRow(self,parent):
+        mRow = mUI.MelButton(parent,
+                      l = 'Create',
+                      c = cgmGEN.Callback(self.uiFunc_create),
+                      bgc = CGMUI.guiHeaderColor,
+                      en=True)
+                
+        self.uiButton_row = mRow
+        
         
     def buildMenu_library2( self, force=True, *args, **kws):
         if self.uiMenu_library and force is not True:
