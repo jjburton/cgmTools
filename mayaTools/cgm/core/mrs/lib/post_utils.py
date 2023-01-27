@@ -1279,9 +1279,10 @@ def setup_shapes(d_shapes = {}):
                 print("{}|{}".format(a,v))
                 mTarget.setMayaAttr(a,v)
         mTarget.p_parent = False
-            
+        
         CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
-        CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)        
+        #CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)        
+        CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,d.get('replaceShape',True))
         
         
     for o,d in d_shapes.iteritems():
@@ -1304,9 +1305,9 @@ def setup_shapes(d_shapes = {}):
                     mTarget.p_parent = mObj
                     mTarget.tz = _moveOffsetAim
                     mTarget.p_parent = False
-                    
+
                 CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
-                CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
+                CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,d.get('replaceShape',True))
         else:
             process_obj(o,d)
             """
