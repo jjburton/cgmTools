@@ -1163,7 +1163,7 @@ def override_color(target = None, key = None, index = None, rgb = None, pushToSh
         if key:
             _type = type(key)
             
-            if _type not in [str,str] :
+            if not VALID.stringArg(key):#_type not in [str,str] :
                 log.debug("|{0}|  >> Not a string arg for key...".format(_str_func))
                 
                 if rgb is None and issubclass(_type,list) or issubclass(_type,tuple):

@@ -1692,7 +1692,28 @@ def buildRow_shapeUtils(self,parent):
 
 
     mUI.MelSpacer(_row,w=5)                      
-    _row.layout()   
+    _row.layout()
+    
+    #>>>Tweak -------------------------------------------------------------------------------------
+    _row = mUI.MelHSingleStretchLayout(parent,ut='cgmUISubTemplate',padding = 5)
+
+    mUI.MelSpacer(_row,w=5)                      
+    mUI.MelLabel(_row,l='Tweak Shape:')
+    _row.setStretchWidget( mUI.MelSeparator(_row))
+    mc.button(parent=_row,
+              l = 'Normalize',
+              ut = 'cgmUITemplate',
+              ann = "Normalize shape by vector",  
+              c = lambda *a:MMCONTEXT.func_process( DIST.normalizeShape_byVector, None, 'all', 'normalizeShape_byVector'),
+              )               
+    mc.button(parent=_row,
+              l = 'Smooth',
+              ut = 'cgmUITemplate',
+              ann = "Normalize shape by vector | smooth",  
+              c = lambda *a:MMCONTEXT.func_process( DIST.normalizeShape_byVector, None, 'all', 'normalizeShape_byVector', **{'mode':'smooth'}),
+              )
+    mUI.MelSpacer(_row,w=5)                          
+    _row.layout()
 
 def buildRow_skin(self,parent):
     #>>>Match mode -------------------------------------------------------------------------------------

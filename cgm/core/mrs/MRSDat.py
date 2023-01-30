@@ -2449,10 +2449,16 @@ def shapeDat_set(mBlock,data,
         
         for a,v in list(data['settings'].items()):
             try:
-                if a in l_enumLists:
-                    ATTR.datList_connect(_str_block,a,v,enum=1)
-                elif a in l_datLists:
-                    ATTR.datList_connect(_str_block,a,v)
+                #if a in l_enumLists:
+                #    ATTR.datList_connect(_str_block,a,v,enum=1)
+                if a in l_datLists:
+                    dTmp = {'enum':False}
+                    if a == 'loftList':
+                        dTmp['enum']  = BLOCKSHARE._d_attrsTo_make['loftShape']
+                        dTmp['mode'] = 'enum'
+                        
+                    ATTR.datList_connect(_str_block, a,v, **dTmp)                     
+                    
                 else:
                     ATTR.set(_str_block, a, v)
             except Exception as err:

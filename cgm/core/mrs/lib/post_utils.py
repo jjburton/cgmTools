@@ -1285,7 +1285,7 @@ def setup_shapes(d_shapes = {}):
         mTarget.p_parent = False
             
         CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
-        CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)        
+        CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,d.get('replaceShape',True))
         
         
     for o,d in list(d_shapes.items()):
@@ -1310,7 +1310,7 @@ def setup_shapes(d_shapes = {}):
                     mTarget.p_parent = False
                     
                 CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
-                CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
+                CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,d.get('replaceShape',True))
         else:
             process_obj(o,d)
             """

@@ -502,6 +502,76 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
         
     return True
 
+def normalizeShape_byVector(dag=None, distance = 1, origin = None, component = 'ep', vector = None, mode = 'origin',factor = 1.0, offsetMode = 'fixed'):
+    """
+    Attempt for more consistency 
+    
+    If origin is None, juse the center of each shape
+    """
+    _str_func = 'normalizeShape_byVector'
+    log.debug("|{0}| >> dag: {1} | distance: {2} | origin: {3} | component: {4}".format(_str_func,
+                                                                                       dag,
+                                                                                       distance,
+                                                                                       origin,
+                                                                                       component))
+    
+    _originUse = None
+    _sl = mc.ls(sl=1)
+    
+    if origin is None:
+        origin = _sl[0]
+        
+    if VALID.isListArg(origin):
+        _originUse = origin
+    elif VALID.objString(origin,noneValid=True):
+        log.debug("|{0}| >> Getting origin from transform of origin string: {1}".format(_str_func, origin))
+        _originUse = POS.get(origin)
+        
+    if dag is None:
+        if _sl:
+            dag = _sl[0]
+    
+    if VALID.is_shape(dag):
+        l_shapes = [dag]
+    else:
+        l_shapes = mc.listRelatives(dag,shapes=True, fullPath= True)
+    
+
+    
+    for i,s in enumerate(l_shapes):
+        log.debug("|{0}| >> On shape: {1}".format(_str_func, s))        
+        if _originUse is None:
+            _origin = POS.get_bb_center(s)
+            log.debug("|{0}| >> Getting origin from center of s: {1}".format(_str_func, _origin))
+        else:
+            _origin = _originUse
+    
+        _l_source = mc.ls("{0}.{1}[*]".format(s,component),flatten=True,long=True)
+        
+        
+        l_dist = []
+        l_pos = []
+        #...first loop get our distances
+        for ii,c in enumerate(_l_source):
+            log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))
+            pMe = POS.get(c)
+            l_pos.append(pMe)
+            l_dist.append(get_distance_between_points(_origin,pMe))
+            
+        _v = MATHUTILS.average(l_dist)
+        #pprint.pprint([l_dist,_v])        
+        for ii,c in enumerate(_l_source):
+            log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))
+            _vec = MATHUTILS.get_vector_of_two_points(_origin,l_pos[ii])
+            newPos = get_pos_by_vec_dist(_origin,_vec, _v *factor)
+            
+            if mode == 'smooth':
+                newPos = get_pos_by_linearPct(l_pos[ii],newPos,.25)
+            POS.set(c,newPos)
+                
+    return True
+
+
 def get_distance_between_points(point1,point2):
     """
     Gets the distance bewteen two points  

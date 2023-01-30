@@ -1102,7 +1102,7 @@ def create_controlCurve(target = None, shape= 'circle', color = 'yellow',
         #Figure out size
         
         if _sizeMode == 'guess':
-            _size = DIST.get_createSize(t)
+            _size = MATH.average(DIST.get_axisSize(t))   #DIST.get_createSize(t)
             if sizeMulti is not None:
                 _size = _size * sizeMulti
         elif _sizeMode == 'cast':
@@ -1159,7 +1159,11 @@ def create_text(text = 'test', size = None, font = 'arial', centerPivot = True):
         mc.makeIdentity(_curve, apply = True, t=True,s=True,r=True)
 
     return _curve
-    
+
+
+
+
+
 def getUSplitList(curve=None, points=3, markPoints=False,
                   startSplitFactor=None, insetSplitFactor=None,
                   rebuild=False, rebuildSpans=10,minU=None,maxU=None,
@@ -1193,6 +1197,7 @@ def getUSplitList(curve=None, points=3, markPoints=False,
         if rebuild:
             log.debug("|{0}| >> rebuild...".format(_str_func))                                
             useCurve = mc.rebuildCurve (curve, ch=0, rpo=0, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=rebuildSpans, d=3, tol=0.001)[0]
+            
         else:
             useCurve = mc.duplicate(curve)[0]
         
@@ -2155,21 +2160,40 @@ def match(base=None, target = None, autoRebuild = True, keepOriginal = True, spa
     return True
 
 def distribute(target=None,comp='ep',closed= True, rebuild = 1):
+    _sl=mc.ls(sl=1)    
+    if target is None:
+        if _sl:
+            target = _sl[0]
+            
     _l_shapes_target = mc.listRelatives(target,shapes=True,fullPath=True)
     
     for i,s in enumerate(_l_shapes_target):
-        _l_ep_source = mc.ls("{0}.{1}[*]".format(s,comp),flatten=True)    
+        _l_ep_source = mc.ls("{0}.{1}[*]".format(s,comp),flatten=True)
+        _len = len(_l_ep_source)
         
-        if closed:
-            _l_split = getUSplitList(target,len(_l_ep_source)+1,rebuild=rebuild, rebuildSpans=20)
-        else:
-            _l_split = getUSplitList(target,len(_l_ep_source),rebuild=rebuild, rebuildSpans=20)
+        #if closed:
+        #    _l_split = getUSplitList(target,len(_l_ep_source)+1,rebuild=rebuild, )#rebuildSpans=_len)
+        #else:
+        #    _l_split = getUSplitList(target,len(_l_ep_source),rebuild=rebuild, )#rebuildSpans=_len)
             
+        #useCurve = mc.rebuildCurve (s, ch=0, rpo=0, rt=6, end=1, kr=0, kcp=0, kep=1, kt=0, s=_len / 2.0, d=3, tol=0.001)[0]
+        useCurve = mc.rebuildCurve (s, ch=0, rpo=0, rt=4,  tol=0.001)[0]
+
+        _min = ATTR.get(s,'min')
+        _max = ATTR.get(s,'max')
+        _split = MATH.get_splitValueList(_min,_max, _len+1)
+        
+        pprint.pprint([_len,_split])
+        
         for ii,ep in enumerate(_l_ep_source):
-            #if ep == _l_ep_source[-1]:
-            #    POS.set(ep, _l_split[0])
-            #else:
-            POS.set(ep, _l_split[ii])
+            POS.set(ep, mc.pointPosition("{}.u[{}]".format(useCurve,_split[ii]), w=True))
+        """
+        for ii,ep in enumerate(_l_ep_source):
+            POS.set(ep, _l_split[ii])"""
+        
+        #mc.delete(useCurve)
+    if _sl:
+        mc.select(_sl)
 
     
     
