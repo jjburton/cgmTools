@@ -1798,16 +1798,27 @@ def is_reversed(mesh, factorCheck = .1, threshold = .4, method = 'bokser', markH
 def get_edgeLoopVertsByLoopAndVerts(obj, loopNum, numVerts):
     return ['%s.vtx[%i]' % (obj, x) for x in range(loopNum*numVerts+1, loopNum*numVerts+numVerts+1)]
 
-def get_vertsFromCurve(obj,crv,tolerance = .1):
-    _dict = VALID.MeshDict(obj)
-    _pointDat = {}
+@cgmGEN.Timer
+def get_vertsFromCurve(obj,crv,tolerance = .1, mode = 'default', planarOffset = 1.0):
     _res = []
-    for i in range(_dict['pointCount']):
-        v = "{0}.vtx[{1}]".format(_dict['mesh'],i)
-        p1 = mc.xform(v, t = True, ws = True, q=True)
-        p2,d,shape = DIST.get_closest_point(p1,crv)        
-        if d < tolerance:
-            _res.append(v)
+    if mode == 'bbCheck':
+        #This mode we'll use a bounding box check to get initial pass and not process every vert
+
+        _verts = get_proximityGeo(crv,obj,returnMode=3) or []
+        for v in _verts:
+            p1 = mc.xform(v, t = True, ws = True, q=True)
+            p2,d,shape = DIST.get_closest_point(p1,crv)        
+            if d < tolerance:
+                _res.append(v)
+        #mc.delete(_planar,_res_body,_crv)
+    else:
+        _dict = VALID.MeshDict(obj)
+        for i in range(_dict['pointCount']):
+            v = "{0}.vtx[{1}]".format(_dict['mesh'],i)
+            p1 = mc.xform(v, t = True, ws = True, q=True)
+            p2,d,shape = DIST.get_closest_point(p1,crv)        
+            if d < tolerance:
+                _res.append(v)        
     return _res
 
 def get_edgeLoopFromVerts( verts ):

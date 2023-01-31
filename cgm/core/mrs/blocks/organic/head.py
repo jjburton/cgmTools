@@ -266,7 +266,7 @@ l_attrsStandard = ['side',
                    'visProximityMode',
                    'meshBuild',                   
                    'visLabels',
-                   
+                   'proxyHardenEdge',                   
                    'root_dynParentMode',
                    'root_dynParentScaleMode',
                    
@@ -4953,6 +4953,7 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                                                                                       ml_rigJoints,
                                                                                       ballBase = _ballBase,
                                                                                       ballMode = _ballMode,
+                                                                                      hardenEdges = self.proxyHardenEdge,                                                                                      
                                                                                       extendToStart=_extendToStart),
                                                           'cgmObject')                
                 

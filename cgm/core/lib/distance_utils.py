@@ -491,6 +491,10 @@ def offsetShape_byVector(dag=None, distance = 1, origin = None, component = 'cv'
             log.debug("|{0}| >> Shape {1} | Comp: {2} | {3}".format(_str_func, i, ii, c))
             if offsetMode == 'fixed':
                 set_vectorOffset(c,_origin,distance,vector,mode=mode)
+            elif offsetMode == 'castVector':
+                pMe = POS.get(c)
+                newPos = get_pos_by_vec_dist(POS.get(c),vector,distance*factor)
+                POS.set(c,newPos)            
             else:
                 pMe = POS.get(c)
                 _vec = MATHUTILS.get_vector_of_two_points(_origin,pMe)

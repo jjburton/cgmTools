@@ -126,7 +126,8 @@ def modules_getHeirarchal(self,rewire=False):
     try:ml_initialModules = self.moduleChildren
     except:ml_initialModules = []
     
-
+    if not ml_initialModules:
+        return []
     ml_allModules = BLOCKGEN.get_puppet_heirarchy_context(ml_initialModules[0],'root',asList=True,report=False)
                 
     if rewire:
@@ -164,7 +165,7 @@ def modules_get(self,rewire=False):
             if m not in ml_allModules:
                 ml_allModules.append(m)
                 
-    if rewire:
+    if rewire and ml_allModules:
         ATTR.set_message(self.mNode, 'mModulesAll', [mObj.mNode for mObj in ml_allModules])
         #self.connectChildren(_res, 'mControlsAll', srcAttr='msg')
                 
@@ -2185,7 +2186,7 @@ def puppetMesh_create(self,unified=True,skin=False, proxy = False, forceNew=True
                 #mMesh = mMeshBase.doDuplicate(po=False,ic=False)
                 mMesh.rename('{0}_unified_geo'.format(mPuppet.p_nameBase))
                 mMesh.p_parent = mParent
-                cgmGEN.func_snapShot(vars())
+                #cgmGEN.func_snapShot(vars())
                 
                 #now copy weights
                 #CORESKIN.transfer_fromTo(mMeshBase.mNode, [mMesh.mNode])

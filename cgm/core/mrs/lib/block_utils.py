@@ -11868,7 +11868,7 @@ def shapes_castTest(self,orient= 'zyx'):
         mHandleFactory.color(mObj.mNode, controlType = 'main')        
                 
     
-@cgmGEN.Timer
+@cgmGEN.Wrap_suspendCall
 def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToStart=False, 
                      ballBase = True,
                      ballMode = 'asdf',
@@ -11877,7 +11877,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                      extendCastSurface = False,
                      l_values = [],
                      orient = 'zyx',
-                     hardenEdges = True,
+                     hardenEdges = False,
                      extendToStart = True,method = 'u'):
     #try:
     _short = self.mNode
@@ -12187,9 +12187,24 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                     try:
                         l_edges = []
                         for c in _loftCurves[0],_loftCurves[-1],root:
-                            vtxs = GEO.get_vertsFromCurve(_mesh,c)
+                            _crv = mc.duplicate(c)[0]
+                            DIST.offsetShape_byVector(_crv, 1.0)
+                            _crv2 = mc.duplicate(_crv)[0]
+                            DIST.offsetShape_byVector(_crv2, .1, vector= vec, offsetMode='castVector')
+                            
+                            _checkMesh = BUILDUTILS.create_loftMesh([_crv,_crv2], name = '{}_check'.format(c),degree=1,divisions=1)
+                            
+                            """
+                            _res_body = mc.nurbsToPoly(_planar,mnd=1,ch=0,f=2,pt= 1,pc=200,
+                                                       chr=0.9,ft =0.01,mel=0.001,d =0.1,ut =1,
+                                                       un =3,vt =1,vn =3,uch =0,ucr =0,
+                                                       cht =0.2,es =0,ntr =0,mrt =0,uss =1)[0]"""                            
+                            
+                            vtxs = GEO.get_vertsFromCurve(_mesh,_checkMesh, mode ='bbCheck')                            
+                            #vtxs = GEO.get_vertsFromCurve(_mesh,c)
                             l_edges.extend(GEO.get_edgeLoopFromVerts(vtxs))
-    
+                            
+                            mc.delete([_crv,_crv2,_checkMesh])
                         mc.polySoftEdge(l_edges, a=0, ch=0)
                     except Exception as err:print(err)
                 

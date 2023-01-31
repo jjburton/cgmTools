@@ -869,6 +869,7 @@ l_attrsStandard = ['side',
                    'visProximityMode',
                    'visJointHandle',
                    'meshBuild',
+                   'proxyHardenEdge',                   
                    #'ribbonConnectBy': 'constraint:matrix',
                    'jointRadius',
                    'shapeDirection',
@@ -9265,6 +9266,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False)
                                                                     ballMode = _ballMode,
                                                                     reverseNormal=0,#mBlock.loftReverseNormal,
                                                                     extendCastSurface = _extendToEnd,
+                                                                    hardenEdges = self.proxyHardenEdge,
+
                                                                     extendToStart=_extendToStart),#_extendToStart),
                                                      'cgmObject')
             

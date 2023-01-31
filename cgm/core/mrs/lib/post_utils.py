@@ -1358,7 +1358,7 @@ def setup_defaults(d_defaults = {}):
             
             for a,v in list(d.items()):
                 if not mObj.hasAttr(a):
-                    l_missing.append("Attribute: {}".format(a))
+                    l_missing.append("Attribute: {}.{}".format(o,a))
                     continue
                 if a == 'rotateOrder':
                     if VALID.valueArg(v):

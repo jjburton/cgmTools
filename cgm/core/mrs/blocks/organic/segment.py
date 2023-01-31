@@ -652,6 +652,7 @@ l_attrsStandard = ['side',
                    'ribbonParam',
                    'proxyDirect',
                    'proxyGeoRoot',
+                   'proxyHardenEdge',
                    'meshBuild',
                    'shapeDirection',
                    #'settingsPlace',
@@ -4203,6 +4204,7 @@ def build_proxyMesh(self, forceNew = True,  puppetMeshMode = False, skin = False
                                                               firstToStart=True,
                                                               ballBase = _ballBase,
                                                               ballMode = _ballMode,
+                                                              hardenEdges = self.proxyHardenEdge,
                                                               extendToStart=_extendToStart),
                                                  'cgmObject')
     
