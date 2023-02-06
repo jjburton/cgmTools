@@ -4,7 +4,7 @@ cgm.core.mrs.blocks.organic.eye
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -120,7 +120,11 @@ d_attrStateMask = {'define':['eyeType',
                              'irisDepth',
                              'irisBuild',
                              'lidDepth',
-                             'pupilBuild',                             
+                             'pupilBuild',
+                             'buildEyeOrb',
+                             'ballSetup',
+                             'lidBuild',
+
                              
     ],
                    'form':[
@@ -135,7 +139,8 @@ d_attrStateMask = {'define':['eyeType',
                        'controlOffset',
                        'lidJointDepth',
                        'numConLids',
-
+                       'preLidStartSplit',
+                       'prerigJointOrient'
                        'paramMidLwr',
                        'paramMidUpr',                       
                        
@@ -203,7 +208,28 @@ d_block_profiles = {
        }    
 }
 
-
+l_createUI_attrs = ['eyeType',
+                    'buildEyeOrb',
+                    'ikSetup',
+                    'ballSetup',
+                    'pupilBuild',
+                    'irisBuild',
+                    'lidAttach',
+                    'irisAttach',
+                    'pupilAttach',
+                    'lidBuild',
+                    'lidFanUpr',
+                    'lidFanLwr',
+                    'prerigJointOrient',
+                    'numConLids',
+                    'numLidUprJoints',
+                    'numLidUprShapers',
+                    'numLidLwrJoints',
+                    'numLidLwrShapers',
+                    'numLidSplit_u',
+                    'numLidSplit_v',
+                    'preLidStartSplit',
+                    'highlightSetup']
 
 #>>>Attrs =================================================================================================
 l_attrsStandard = ['side',
@@ -265,6 +291,7 @@ d_attrsToMake = {'eyeType':'sphere:nonsphere',
 d_defaultSettings = {'version':__version__,
                      'proxyDirect':True,
                      'attachPoint':'end',
+                     'buildEyeOrb':True,
                      'side':'right',
                      'ballSetup':'aim',
                      'nameList':['eye','eyeOrb','pupil','iris','cornea'],
@@ -287,7 +314,9 @@ d_defaultSettings = {'version':__version__,
                      'numLidLwrShapers':5,
                      'numLidUprShapers':5,
                      'preLidStartSplit':.05,
-                     'visFormHandles':True,                     
+                     'visFormHandles':True,
+                     'irisDepth':-.2,
+                     'pupilDepth':-.3,
                      #'baseSize':MATH.get_space_value(__dimensions[1]),
                      }
 
@@ -1247,12 +1276,13 @@ def prerig(self):
     
         self.connectChildNode(mHandleRoot.mNode,'rootHelper','module')
         
+        ml_handles.append(mHandleRoot)
+        
         #Iris/pupil helper =====================================================================================
         d_pupilIris = {'pupil':self.pupilBuild,
                        'iris':self.irisBuild}
         md_handles = {}
         md_shapes = {}
-        reload(BLOCKSHAPES)
         for k,v in d_pupilIris.iteritems():
             if not v:
                 continue
@@ -1350,7 +1380,7 @@ def prerig(self):
         
         if self.buildEyeOrb:
             pass
-    
+        
         
         
         #Settings shape --------------------
@@ -4051,9 +4081,10 @@ def rig_frame(self):
         mIKGroup.doStore('cgmTypeModifier','ik')
         mIKGroup.doName()
         mPlug_IKon.doConnectOut("{0}.visibility".format(mIKGroup.mNode))
+        mPlug_IKon.doConnectOut("{0}.visibility".format(mControlIK.masterGroup.mNode))
     
         mIKGroup.parent = mBallRoot
-        mControlIK.masterGroup.parent = mIKGroup
+        mControlIK.masterGroup.parent = self.mDeformNull#mIKGroup
         mIKTarget.p_parent = mIKGroup
         
         #FK...

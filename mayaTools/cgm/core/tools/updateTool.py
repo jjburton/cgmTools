@@ -4,7 +4,7 @@ updateTool: cgm.core.tools
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 Example ui to start from
 ================================================================
@@ -27,6 +27,7 @@ import maya.cmds as mc
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 
+import cgm
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
@@ -39,7 +40,7 @@ import cgmUpdate
 __version__ = cgmGEN.__RELEASESTRING
 __toolname__ ='cgmUpdate'
 _commit_limit = 12
-_l_branches = ['stable','master','MRS','MRSDEV','MRSWORKSHOP','MRSWORKSHOPDEV']
+_l_branches = ['MRSDAILY','MRSDEV','stable','master','MRS','MRSWORKSHOP','MRSWORKSHOPDEV']
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -230,6 +231,8 @@ class ui(cgmUI.cgmGUI):
         _msg = _d['msg']
         _lastBranch = None
         _lastHash = None
+        _lastDate = None
+        _lastMsg = None
         
         _lastUpdate = self.var_lastUpdate.getValue() or None
         
@@ -261,8 +264,7 @@ class ui(cgmUI.cgmGUI):
             log.debug("|{0}| >> go!".format(_str_func))
             
             try:
-                cgmUpdate.here(_branch,_idx)
-                
+                cgmUpdate.here(_branch,_idx,reloadCGM=False)
                 self.var_lastUpdate.setValue([_branch,
                                               _hash,
                                               _msg,datetime.datetime.now().__str__()[:-7]])
@@ -272,7 +274,8 @@ class ui(cgmUI.cgmGUI):
                 self.uiUpdate_topReport()
             except Exception,err:
                 pprint.pprint(vars())
-            finally:pass
+            finally:
+                cgm.core._reload()
         else:
             return log.error("|{0}| update cancelled".format(_str_func))
         
@@ -441,6 +444,9 @@ def checkBranch():
     var_lastUpdate.report()
     if _lastUpdate == 'None':
         return log.error("No last update found. Can't check for updates")
+    
+    if not issubclass(type(_lastUpdate),list):
+        return log.error("Not returning list. Problem with data")
     
     _lastBranch = _lastUpdate[0]
     

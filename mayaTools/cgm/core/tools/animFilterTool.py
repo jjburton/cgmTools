@@ -4,7 +4,7 @@ baseTool: cgm.core.tools
 Author: David Bokser
 email: dbokser@cgmonks.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 Collection of anim post filters to help with animation
 ================================================================

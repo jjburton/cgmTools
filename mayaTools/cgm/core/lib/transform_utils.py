@@ -3,7 +3,7 @@
 snap_utils: cgm.core.lib.transform_utils
 Author: Josh Burton & David Bokser
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Unified location for transform calls. metanode instances may by passed
@@ -539,7 +539,7 @@ def scale_to_boundingBox(node = None, box = [1,1,1],shapes=True,freeze=True):
         if v_b is None:
             _l_scale.append( v )            
         else:
-            _l_scale.append( box[i]/v )
+            _l_scale.append( MATH.Clamp(box[i],.000001)/MATH.Clamp(v,.000001))
             #_l_scale.append( v ) 
     #mc.scale(_l_scale[0],_l_scale[1],_l_scale[2], node, absolute = True)
     mc.xform(node, scale = _l_scale, worldSpace = True, absolute = True)

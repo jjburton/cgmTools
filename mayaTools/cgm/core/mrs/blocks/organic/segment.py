@@ -4,7 +4,7 @@ cgm.core.mrs.blocks.simple.torso
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -128,9 +128,10 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                            'loftShapeEnd','loftShapeStart'],
                    'prerig':[],
                    'skeleton':['numJoints'],
+                   'squashStretch':['squashSkipAim','segmentStretchBy'],
+                   'space':['ikMidDynParentMode','ikMidDynScaleMode'],
                    'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
                           'ribbonExtendEnds','ribbonAttachEndsToInfluence',
-                          
                           'ikBaseExtend','ikEndExtend','ikEndLever',]}
 
 l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoints',
@@ -138,7 +139,7 @@ l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoi
                     'loftSetup','scaleSetup',
                     'numControls',
                     'numSubShapers',
-                    'ikSetup',
+                    'ikSetup','segmentStretchBy',
                     'ribbonExtendEnds','ribbonAttachEndsToInfluence',
                     'root_dynParentMode',
                     'root_dynParentScaleMode','squashSkipAim',
@@ -160,6 +161,7 @@ d_build_profiles = {
     'unityToon':{'default':{'squashMeasure':'arcLength',
                             'squash':'simple',
                             'scaleSetup':True,
+                            'squashSkipAim':False,
                             }},
     'unityHigh':{'default':{'numJoints':4,
                             'numControls':4},
@@ -660,7 +662,8 @@ l_attrsStandard = ['side',
                    'visJointHandle',
                    'root_dynParentMode',
                    'root_dynParentScaleMode',
-                   
+                   'controlOffsetMult',
+                   'squashFactorMode',
                    'settingsDirection',
                    'moduleTarget']
 
@@ -682,7 +685,11 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ribbonAttachEndsToInfluence':'none:start:end:both',
                  'ikMidControlNum':'int',
                  'ikMidSetup':'none:ribbon:prntConstraint:linearTrack:cubicTrack',
+                 'ikMidDynParentMode':BLOCKSHARE._d_attrsTo_make['dynParentMode'],
+                 'ikMidDynScaleMode':BLOCKSHARE._d_attrsTo_make['dynParentScaleMode'],
+                 
                  'segmentType':'ribbon:ribbonLive:spline:curve:linear:parent',
+                 'segmentStretchBy':'translate:scale',
                  'ikBase':'none:cube:simple:hips:head',
                  'settingsPlace':'start:end:cog',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
@@ -695,7 +702,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikEndShape':'cast:locator:cube',
                  'ikEndLever':'bool',
                  'ikBaseExtend':'bool',
-                 'ikEndExtend':'bool',                 
+                 'ikEndExtend':'bool',
                  #'nameIter':'string',
                  #'numControls':'int',
                  #'numShapers':'int',
@@ -710,6 +717,7 @@ d_defaultSettings = {'version':__version__,
                      'loftSetup':0,
                      'loftShape':0,
                      'numShapers':3,
+                     'controlOffsetMult':1.0,                     
                      'castVector':'up',
                      'squashMeasure':'arcLength',
                      'squash':'simple',
@@ -749,6 +757,7 @@ d_defaultSettings = {'version':__version__,
                      #'blockProfile':'spine',
                      'scaleSetup':False,
                      'squashSkipAim':True,
+                     'segmentStretchBy':'scale',
                      'attachPoint':'closest',}
 
 
@@ -1449,7 +1458,7 @@ def prerig(self):
     mCog = False
     
     if self.addCog:
-        mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection= self.getEnumValueString('shapeDirection'))
+        mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(baseSize = self.jointRadius * 5, shapeDirection= self.getEnumValueString('shapeDirection'))
         
         mShape = mCog.shapeHelper
         mShape.p_parent = mPrerigNull
@@ -1893,7 +1902,7 @@ def rig_prechecks(self):
             
         for mObj in mBlock.moduleTarget.rigNull.msgList_get('moduleJoints'):
             if not mObj.p_parent:
-                self.l_precheckErrors.append("Joint not parented: {0}".format(mObj.mNode))
+                self.l_precheckErrors.append("Joint not parented: {0} | Reskeletonize.".format(mObj.mNode))
                 
         #ml = mBlock.moduleTarget.rigNull.msgList_get('moduleJoints',cull=True)
         #if len(ml) != mBlock.numJoints:
@@ -1934,7 +1943,7 @@ def rig_dataBuffer(self):
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
             mBlock.ikMidSetup = 0
             
-        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence']:
+        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence','segmentStretchBy','squashFactorMode']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
                 
         #Vector ====================================================================================
@@ -1979,7 +1988,7 @@ def rig_dataBuffer(self):
             _driverSetup =  mBlock.getEnumValueString('ribbonAim')
         self.d_squashStretch['driverSetup'] = _driverSetup
     
-        self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
+        #self.d_squashStretch['additiveScaleEnds'] = mBlock.scaleSetup
         self.d_squashStretch['extraSquashControl'] = mBlock.squashExtraControl
         self.d_squashStretch['squashFactorMax'] = mBlock.squashFactorMax
         self.d_squashStretch['squashFactorMin'] = mBlock.squashFactorMin
@@ -2103,7 +2112,7 @@ def rig_dataBuffer(self):
         str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
         if not mBlock.offsetMode:
             log.debug("|{0}| >> default offsetMode...".format(_str_func))
-            self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+            self.v_offset = self.mPuppet.atUtils('get_shapeOffset') * mBlock.controlOffsetMult
         else:
             str_offsetMode = ATTR.get_enumValueString(mBlock.mNode,'offsetMode')
             log.debug("|{0}| >> offsetMode: {1}".format(_str_func,str_offsetMode))
@@ -2232,12 +2241,13 @@ def rig_skeleton(self):
                     
                 mJnt.doCopyNameTagsFromObject(mTar.mNode,ignore=['cgmType'])
                 mJnt.doName()
-                
+            
+            """
             for i,mObj in enumerate(ml_ribbonIKDrivers):
                 if not i:
                     mObj.doSnapTo(mBlock.ikStartHandle)
                 else:
-                    mObj.doSnapTo(mBlock.ikEndHandle)
+                    mObj.doSnapTo(mBlock.ikEndHandle)"""
             
             ml_jointsToConnect.extend(ml_ribbonIKDrivers)
             
@@ -2891,6 +2901,7 @@ def rig_controls(self):
 #@cgmGEN.Timer
 def rig_segments(self):
     reload(DIST)
+    reload(IK)
     _short = self.d_block['shortName']
     _str_func = 'rig_segments'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
@@ -2955,6 +2966,7 @@ def rig_segments(self):
               'attachStartToInfluence':False,
               'attachEndToInfluence':False,#True,#for autoswim
               'parentDeformTo':mRoot,
+              'squashFactorMode':self.str_squashFactorMode,
               'driverSetup':mBlock.getEnumValueString('ribbonAim'),
               'skipAim':mBlock.squashSkipAim,
               'moduleInstance':mModule}
@@ -2963,27 +2975,36 @@ def rig_segments(self):
         if self.str_ribbonAttachEndsToInfluence == 'both':
             _d['attachEndsToInfluences'] = True
         elif self.str_ribbonAttachEndsToInfluence == 'start':
-            _d['attachStartToInfluences'] = True
-        elif self.str_ribbonAttachEndsToInfluence == 'end':
-            _d['attachEndToInfluences'] = True
-            
-        if mBlock.getEnumValueString('ikBase') in ['hips','head']:
             _d['attachStartToInfluence'] = True
+        elif self.str_ribbonAttachEndsToInfluence == 'end':
+            _d['attachEndToInfluence'] = True
+            
+        #if mBlock.getEnumValueString('ikBase') in ['hips','head']:
+        #    _d['attachStartToInfluence'] = True
+            
         if mBlock.special_swim:
             _d['attachStartToInfluence'] = False
             _d['attachEndToInfluence'] = False
             
             
             
-        #reload(IK)
+        reload(IK)
 
         
         _d.update(self.d_squashStretch)
         
+
         
         if self.str_segmentType in ['ribbon','ribbonLive']:
+            if self.str_segmentStretchBy == 'scale':
+                _d['setupAimScale'] = True
+            else:
+                _d['setupAimScale'] = False
+                
+                
             _d['liveSurface'] = False if self.str_segmentType == 'ribbon' else True
-            log.info(cgmGEN.logString_sub,_str_func,"segment dict...")
+            #log.info(cgmGEN.logString_sub,_str_func,"segment dict...")
+            #_d['sectionSpans'] = 6
             pprint.pprint(_d)
             res_ribbon = IK.ribbon(**_d)
             ml_surfaces = res_ribbon['mlSurfaces']
@@ -3028,7 +3049,7 @@ def rig_segments(self):
             
             pprint.pprint(ml_segJoints)
             RIGFRAME.spline(self,ml_ikUse, None, ml_handleJoints[-1], ml_handleJoints[0],
-                            ml_handleJoints, mPlug_masterScale, 'translate',
+                            ml_handleJoints, mPlug_masterScale, self.str_segmentStretchBy,
                             mBlock.ikSplineTwistEndConnect, mBlock.ikSplineExtendEnd, mBlock.ikSplineAimEnd, mSettings)
             
             if mSettings.hasAttr('twistType'):
@@ -3060,6 +3081,8 @@ def rig_segments(self):
             _l_segJoints = _d['jointList']
             _ml_segTmp = cgmMeta.asMeta(_l_segJoints)
             _d['setupAim'] = 1                
+            if self.str_segmentStretchBy == 'scale':
+                _d['setupAimScale'] = True
             #_d['attachEndToInfluence'] = False                
             pprint.pprint(_d)
             IK.curve(**_d)
@@ -3779,7 +3802,7 @@ def rig_cleanUp(self):
         
         for mTar in ml_targetDynParents:
             mDynGroup.addDynParent(mTar)
-            
+        
         mDynGroup.dynMode = mBlock.root_dynParentMode
         mDynGroup.scaleMode = mBlock.root_dynParentScaleMode
             
@@ -3855,20 +3878,22 @@ def rig_cleanUp(self):
             for mHandle in self.ml_ikMidControls:
                 #if b_ikOrientToWorld:BUILDUTILS.control_convertToWorldIK(mHandle)
             
-                mParent = mHandle.masterGroup.getParent(asMeta=True)
+                #mParent = mHandle.masterGroup.getParent(asMeta=True)
                 ml_targetDynParents = []
                 mMainDriver = mHandle.getMessageAsMeta('mainDriver')
                 if mMainDriver:
                     ml_targetDynParents.append(mMainDriver)
                     mMainDriver.doStore('cgmAlias','midIKBase')
                 else:
-                    if not mParent.hasAttr('cgmAlias'):
-                        mParent.doStore('cgmAlias','midIKBase')
+                    pass
+                    #if not mParent.hasAttr('cgmAlias'):
+                    #    mParent.doStore('cgmAlias','midIKBase')
                 
                 mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
                 if mPivotResultDriver:
                     mPivotResultDriver = mPivotResultDriver[0]
-                ml_targetDynParents.extend([mPivotResultDriver,mControlIK,mParent])
+                    
+                ml_targetDynParents.extend([mPivotResultDriver] + ml_ikControls)
                 
                 ml_targetDynParents.extend(ml_baseDynParents + ml_endDynParents)
                 #ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
@@ -3878,7 +3903,9 @@ def rig_cleanUp(self):
                     ml_targetDynParents.insert(0,mMainDriver)
                 
                 mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
-                #mDynGroup.dynMode = 2
+                
+                mDynGroup.dynMode = mBlock.ikMidDynParentMode
+                mDynGroup.scaleMode = mBlock.ikMidDynScaleMode                
             
                 for mTar in ml_targetDynParents:
                     mDynGroup.addDynParent(mTar)
@@ -4021,7 +4048,7 @@ def rig_cleanUp(self):
                 ml_handleJoints[0].followRoot = 0.0
                 
 
-            
+        """
         if mSettings.hasAttr('FKIK'):
             if mBlock.blockType in ['tail']:
                 _v = 0.0
@@ -4029,7 +4056,7 @@ def rig_cleanUp(self):
                 _v = 1.0
             ATTR.set_default(mSettings.mNode, 'FKIK', _v)
             mSettings.FKIK = _v
-        
+        """
         
         #Lock and hide =================================================================================
         ml_blendJoints = mRigNull.msgList_get('blendJoints',asMeta=True)

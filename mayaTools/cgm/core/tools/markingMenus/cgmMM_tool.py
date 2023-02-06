@@ -288,8 +288,8 @@ class cgmMarkingMenu(cgmUI.markingMenu):
                     c = cgmGEN.Callback(self.report))
         
         mc.menuItem(p=uiHelp, l="Docs",
-                    c = lambda *a: webbrowser.open("http://www.cgmonastery.com/tools/maya-tools/cgmmarkingmenu/"))                            
-                    #c='import webbrowser;webbrowser.open("http://www.cgmonastery.com/tools/maya-tools/cgmmarkingmenu/");')        
+                    c = lambda *a: webbrowser.open("https://github.com/jjburton/cgmTools/wiki/tools/maya-tools/cgmmarkingmenu/"))                            
+                    #c='import webbrowser;webbrowser.open("https://github.com/jjburton/cgmTools/wiki/tools/maya-tools/cgmmarkingmenu/");')        
         
         mc.menuItem(p=uiHelp,l = 'Reset Options',
                     c=cgmGEN.Callback(self.button_action,self.reset))           

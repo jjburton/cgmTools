@@ -3,7 +3,7 @@
 string_utils: cgm.core.lib.string_utils
 Authors: David Bokser
 email: dbokser@cgmonks.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 """
@@ -130,8 +130,12 @@ def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?>
                 str_Clean = str_Clean.replace( char, replaceChar )
 
         if noNumberStart:
+            _number = False
             for n in range(10):		
                 while str_Clean.startswith( str(n) ):
+                    if not _number:
+                        str_Clean = "n{}".format(str_Clean)
+                        _number = True
                     log.debug("Cleaning : %s"%str(n))
                     str_Clean = str_Clean[ 1: ]	
         if cleanDoubles and replaceChar:
@@ -145,3 +149,8 @@ def stripInvalidChars(arg = None,invalidChars = """`~!@#$%^&*()-+=[]\\{}|;':"/?>
         return str_Clean		
     except Exception,err:
         cgmGEN.cgmException(Exception,err)
+
+def stripWhiteSpaceStart(arg = None):
+    while arg.startswith( ' ' ):
+        arg = arg[ 1: ]    
+    return arg

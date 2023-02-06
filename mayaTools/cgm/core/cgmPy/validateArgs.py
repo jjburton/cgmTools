@@ -3,7 +3,7 @@
 cgm_Meta: cgm.core
 Authors: Josh Burton & Ryan Porter
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 This is the Core of the MetaNode implementation of the systems.

@@ -4,7 +4,7 @@ cgm.core.mrs.blocks.simple.handle
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -21,7 +21,7 @@ import pprint
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 # From Maya =============================================================
 import maya.cmds as mc
@@ -94,14 +94,14 @@ d_build_profiles = {'unityLow':{'default':{}},
 
 d_attrStateMask = {'define':[],
                    'form':['loftList','basicShape','proxyShape','proxyType','shapersAim'],
-                   'prerig':[],
+                   'prerig':['addScalePivot','addPivot'],
                    'skeleton':['hasJoint'],
                    'proxySurface':['proxy'],
                    'rig':['rotPivotPlace','dynParentMode','dynParentScaleMode'],
                    'vis':[]}
 
 l_createUI_attrs = ['attachPoint','attachIndex','buildSDK',
-                    'addCog','addPivot','addScalePivot','addAim','numSubShapers',
+                    'addCog','addPivot','addScalePivot','addAim','numSubShapers','loftShape',
                     'basicShape','proxyShape','rotPivotPlace','loftSetup','scaleSetup',
                     'dynParentMode','dynParentScaleMode']
 
@@ -138,6 +138,7 @@ d_block_profiles = {
                 'rotPivotPlace':'jointHelper',
                 'shapeDirection':'y+',
                 'baseSize':[10,10,20],
+                'loftShape':'circle',
                 'addPivot':False,
                 'loftList':['circle','circle','circle','circle']
                 },
@@ -180,7 +181,7 @@ l_attrsStandard = ['side',
                    'attachPoint',
                    'attachIndex',
                    'blockState_BUFFER',
-                   'addPivot',
+                   #'addPivot',
                    'addCog',
                    'buildSDK',
                    'addScalePivot',
@@ -201,10 +202,12 @@ l_attrsStandard = ['side',
                    'spaceSwitch_direct',
                    'scaleSetup',                   
                    #'buildProfile',
+                   'controlOffsetMult',                   
                    'visMeasure',
                    'visProximityMode',
                    'shapeDirection',
-                   'meshBuild',                   
+                   'meshBuild',
+                   'proxyGeoCap',
                    'moduleTarget']
 
 d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
@@ -212,9 +215,11 @@ d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
                  'rotPivotPlace':'handle:jointHelper:cog',
                  'loftSetup':'default:loftList',
                  'parentToDriver':'bool',
+                 'addPivot':'none:simple:wobbleAdd:wobbleOnly',
                  'addAim':'none:default:handle',
                  'parentVisAttr':'bool',
-                 'proxyShape':'cube:sphere:cylinder:cone:torus:shapers',
+                 'proxyShape':'cube:sphere:cylinder:cone:torus:shapers:geoOnly',
+                 #'pivotSetup':'simple:wobble',
                  'targetJoint':'messageSimple',
                  'shapersAim':'toEnd:chain:orientToHandle',
                  'dynParentMode':'space:orient:follow:point',
@@ -227,8 +232,11 @@ d_defaultSettings = {'version':__version__,
                      'addAim':False,
                      'addCog':False,
                      'shapeDirection':2,
+                     'controlOffsetMult':1.0,
+                     
                      'axisAim':2,
                      'axisUp':4,
+                     'addScalePivot':False,
                      'buildSDK':0,
                      'attachPoint':'end',
                      'rotPivotPlace':0,
@@ -241,6 +249,7 @@ d_defaultSettings = {'version':__version__,
                      'numShapers':2,
                      'numSubShapers':1,
                      'jointRadius':.1,
+                     'proxyGeoCap':'both',
                      'meshBuild':True,
                      'scaleSetup':False,
                      'dynParentMode':'space',
@@ -255,7 +264,7 @@ d_defaultSettings = {'version':__version__,
 d_wiring_prerig = {'msgLinks':['moduleTarget','prerigNull']}
 d_wiring_form = {'msgLinks':['formNull'],
                  'msgLists':['formStuff'],
-                 'optional':['formStuff']}
+                 'optional':['formStuff','noTransFormNull']}
 d_wiring_define = {'msgLinks':['defineNull'],
                    'msgLists':['defineStuff'],
                    'optional':['defineStuff']}
@@ -976,76 +985,77 @@ def form(self):
 #=============================================================================================================
 def prerig(self):
     #self._factory.puppet_verify()
-    try:
-        _str_func = 'prerig'
-        _short = self.p_nameShort
-        _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
-        _l_baseNames = ATTR.datList_get(self.mNode, 'baseNames')
-        
-        _shape = self.getEnumValueString('basicShape')
-        _shapeDirection = self.getEnumValueString('shapeDirection')
-        
-        _side = self.atUtils('get_side')
-        _size = DIST.get_bb_size(self.mNode,True,True)
-        
-        if self.hasAttr('jointRadius'):
-            _sizeSub = self.jointRadius * .5
-        else:
-            _sizeSub = _size * .2                
-        
-        #Create preRig Null  ==================================================================================
-        mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
-        
-        self.atUtils('module_verify')
-        mHandleFactory =  self.asHandleFactory(self.mNode)
+    _str_func = 'prerig'
+    _short = self.p_nameShort
+    _baseNameAttrs = ATTR.datList_getAttrs(self.mNode,'baseNames')
+    _l_baseNames = ATTR.datList_get(self.mNode, 'baseNames')
     
-        ml_formHandles = self.msgList_get('formHandles')
+    _shape = self.getEnumValueString('basicShape')
+    _shapeDirection = self.getEnumValueString('shapeDirection')
+    
+    _side = self.atUtils('get_side')
+    _size = DIST.get_bb_size(self.mNode,True,True)
+    
+    if self.hasAttr('jointRadius'):
+        _sizeSub = self.jointRadius * .5
+    else:
+        _sizeSub = _size * .2                
+    
+    #Create preRig Null  ==================================================================================
+    mPrerigNull = BLOCKUTILS.prerigNull_verify(self)       
+    
+    self.atUtils('module_verify')
+    mHandleFactory =  self.asHandleFactory(self.mNode)
+
+    ml_formHandles = self.msgList_get('formHandles')
+    
+    _proxyShape = self.getEnumValueString('proxyShape')
+    b_shapers = False
+    if self.blockProfile in ['snapPoint']:
+        log.debug("|{0}| >> snapPoint ...".format(_str_func)+ '-'*60)            
+        mMain = self
+        crv = CURVES.create_fromName(_shape, size = _size, direction= _shapeDirection )
+        mCrv = cgmMeta.validateObjArg(crv,setClass='cgmObject')
+        self.connectChildNode(mCrv,'shapeHelper')
+        mCrv.doSnapTo(self)
+        mCrv.p_parent = mPrerigNull
+        BLOCKSHAPES.color(self, mCrv)
         
-        _proxyShape = self.getEnumValueString('proxyShape')
-        b_shapers = False
-        if self.blockProfile in ['snapPoint']:
-            log.debug("|{0}| >> snapPoint ...".format(_str_func)+ '-'*60)            
-            mMain = self
-            crv = CURVES.create_fromName(_shape, size = _size, direction= _shapeDirection )
-            mCrv = cgmMeta.validateObjArg(crv,setClass='cgmObject')
-            self.connectChildNode(mCrv,'shapeHelper')
-            mCrv.doSnapTo(self)
-            mCrv.p_parent = mPrerigNull
-            BLOCKSHAPES.color(self, mCrv)
-            
-            
-            
-        elif _proxyShape == 'shapers':
-            log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
-            mMain = self
-            b_shapers = True
-            pos_shaperBase = ml_formHandles[0].p_position
-        else:
-            mMain = ml_formHandles[0]
+        
+        
+    elif _proxyShape == 'shapers':
+        log.debug("|{0}| >> Shapers ...".format(_str_func)+ '-'*60)
+        mMain = self
+        b_shapers = True
+        pos_shaperBase = ml_formHandles[0].p_position
+    else:
+        mMain = ml_formHandles[0]
 
 
-        mHandleFactory =  self.asHandleFactory(self.mNode)
-        
+    mHandleFactory =  self.asHandleFactory(self.mNode)
+    
 
-        if self.hasJoint:        
-            log.debug("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
+    if self.hasJoint:        
+        log.debug("|{0}| >> [{1}]  Has joint| baseSize: {2} | side: {3}".format(_str_func,_short,_size, _side))     
+    
+        #Joint Helper ==========================================================================================
+        mJointHelper = mHandleFactory.addJointHelper('axis3d',baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
+        ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
+                               lock=False, visible=True,keyable=False)
+    
+        self.msgList_connect('jointHelpers',[mJointHelper.mNode])
+        if b_shapers:
+            mJointHelper.p_parent = mPrerigNull
+            mJointHelper.p_position = pos_shaperBase
         
-            #Joint Helper ==========================================================================================
-            mJointHelper = mHandleFactory.addJointHelper('axis3d',baseSize = _sizeSub, loftHelper = False, lockChannels = ['scale'])
-            ATTR.set_standardFlags(mJointHelper.mNode, attrs=['sx', 'sy', 'sz'], 
-                                   lock=False, visible=True,keyable=False)
-        
-            self.msgList_connect('jointHelpers',[mJointHelper.mNode])
-            if b_shapers:
-                mJointHelper.p_parent = mPrerigNull
-                mJointHelper.p_position = pos_shaperBase
-            
-        
-        #Helpers=====================================================================================
-        #self.msgList_connect('prerigHandles',[self.mNode])
-        
-        if self.addPivot:
-            _size_pivot = _size
+    
+    #Helpers=====================================================================================
+    #self.msgList_connect('prerigHandles',[self.mNode])
+    
+    if self.addPivot:
+        _size_pivot = _size
+        _pivotSetup = self.getEnumValueString('addPivot')
+        if _pivotSetup in ['simple','wobbleOnly','wobbleAdd']:
             if ml_formHandles:
                 _size_pivot = DIST.get_bb_size(ml_formHandles[0].mNode,True,True)
                 """
@@ -1054,7 +1064,14 @@ def prerig(self):
                     _base = DIST.get_axisSize(mLoft.mNode)
                     _size_pivot = MATH.average(_base[0],_base[1])"""
                     
-            mPivot = BLOCKSHAPES.pivotHelper(self,self,baseShape = 'square', baseSize=_size_pivot,loft=False, mParent = mPrerigNull)
+            
+            _kws = {"baseShape":'square'}
+            
+            if _pivotSetup == 'wobbleOnly':
+                _kws['baseShape'] = 'squircle'
+                _kws['l_pivots'] = ['pivotFront','pivotCenter']
+
+            mPivot = BLOCKSHAPES.pivotHelper(self,self,baseSize=_size_pivot,loft=False, mParent = mPrerigNull, **_kws)
             mPivot.p_parent = mPrerigNull
             mDriverGroup = ml_formHandles[0].doCreateAt(setClass=True)
             mDriverGroup.rename("Pivot_driver_grp")
@@ -1069,43 +1086,86 @@ def prerig(self):
             if _shape in ['pyramid','semiSphere','circle','square']:
                 mPivot.p_position = self.p_position
             elif b_shapers:mPivot.p_position = pos_shaperBase
+            
+            if _pivotSetup in ['wobbleOnly','wobbleAdd']:
+                #...Make Pivot point
+                #...Make Tilt shape
                 
-        
-        if self.addScalePivot:
-            mScalePivot = mHandleFactory.addScalePivotHelper()
-            mScalePivot.p_parent = mPrerigNull
-            if b_shapers:mScalePivot.p_position = pos_shaperBase
-            
-            
-        if self.addCog:
-            mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection= self.getEnumValueString('shapeDirection'))
-            
-            mShape = mCog.shapeHelper
-            
-            mLoftMesh = self.getMessageAsMeta('prerigLoftMesh')
-            if mLoftMesh:
-                p_bb = TRANS.bbCenter_get(mLoftMesh.mNode)
-                for mObj in mCog,mShape:
-                    mObj.p_position = p_bb
-            
-            mShape.p_parent = mPrerigNull
-            mCog.p_parent = mPrerigNull
-            
-
-            self.UTILS.controller_walkChain(self,[mCog,mShape],'prerig')
-
-            #if b_shapers:mCog.p_position = pos_shaperBase
-            
-        if b_shapers:
-            mc.parentConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
-            #mc.scaleConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
+                crv = CURVES.create_fromName('arrowsOnBall', direction = 'y+', size = _size_pivot * 2.0)
+                mTilt = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+                
+                BLOCKSHAPES.color(self, mTilt,controlType='sub')
+                
+                mTilt.scale = 2,2,2
+                
+                mTilt.doSnapTo(ml_formHandles[-1])
+                mTilt.p_parent = mPrerigNull
+                
+                
+                mTilt.addAttr('cgmName','tilt')
+                mTilt.addAttr('cgmType','pivotHelper')            
+                mTilt.doName()
+                
+                mPivot.connectChildNode(mTilt,'pivotTilt')
+                self.msgList_append('prerigHandles',mTilt)
+                
+                #...Make Spin shape
+                mSpin = mHandleFactory.buildBaseShape('arrowRotate180_smallest')
+                BLOCKSHAPES.color(self, mSpin,controlType='sub')
+                
+                mTilt.p_parent = mPivot
+                mTilt.resetAttrs()
+                
+                mSpin.rx = 90
+                mSpin.rz = 90
+                mSpin.scale = _size_pivot,_size_pivot,_size_pivot
+                mSpin.p_parent = mPrerigNull
+                
+                mSpin.addAttr('cgmName','spin')
+                mSpin.addAttr('cgmType','pivotHelper')            
+                mSpin.doName()                       
+                
+                mPivot.connectChildNode(mSpin,'pivotSpin')
+                self.msgList_append('prerigHandles',mSpin)
+                
         else:
-            mc.parentConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
-            #mc.scaleConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
+            raise ValueError,"Unknown pivot setup: {}".format(_pivotSetup)
+                
+    
+    if self.addScalePivot:
+        mScalePivot = mHandleFactory.addScalePivotHelper()
+        mScalePivot.p_parent = mPrerigNull
+        if b_shapers:mScalePivot.p_position = pos_shaperBase
         
-        return
+        
+    if self.addCog:
+        mCog = self.asHandleFactory(ml_formHandles[0]).addCogHelper(shapeDirection= self.getEnumValueString('shapeDirection'))
+        
+        mShape = mCog.shapeHelper
+        
+        mLoftMesh = self.getMessageAsMeta('prerigLoftMesh')
+        if mLoftMesh:
+            p_bb = TRANS.bbCenter_get(mLoftMesh.mNode)
+            for mObj in mCog,mShape:
+                mObj.p_position = p_bb
+        
+        mShape.p_parent = mPrerigNull
+        mCog.p_parent = mPrerigNull
+        
 
-    except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+        self.UTILS.controller_walkChain(self,[mCog,mShape],'prerig')
+
+        #if b_shapers:mCog.p_position = pos_shaperBase
+        
+    if b_shapers:
+        mc.parentConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
+        #mc.scaleConstraint([ml_formHandles[0].mNode],mPrerigNull.mNode, maintainOffset = True)
+    else:
+        mc.parentConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
+        #mc.scaleConstraint([mMain.mNode],mPrerigNull.mNode, maintainOffset = True)
+    
+    return
+
 
 
 
@@ -1303,8 +1363,11 @@ def rig_dataBuffer(self):
         
         log.debug(cgmGEN._str_subLine)
         
+        for k in ['addPivot']:
+            self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)        
+        
         #Offset ============================================================================    
-        self.v_offset = self.mPuppet.atUtils('get_shapeOffset')
+        self.v_offset = self.mPuppet.atUtils('get_shapeOffset') * mBlock.controlOffsetMult
 
         log.debug("|{0}| >> self.v_offset: {1}".format(_str_func,self.v_offset))    
         
@@ -1428,18 +1491,19 @@ def rig_shapes(self):
         
     if mBlock.addCog and mBlock.getMessage('cogHelper'):
         log.info("|{0}| >> Cog helper setup... ".format(_str_func))
-        mCog = mBlock.cogHelper.doCreateAt()
-        mCog.p_parent = False
+        mCog = RIGSHAPES.rootOrCog(self)#mBlock.cogHelper.doCreateAt()
         #ATTR.break_connection(mCog.mNode,'visibility')
-        
+        """
+        mCogHelper = mBlock.cogHelper
+        mCog = mCogHelper.doCreateAt(setClass=True)        
         CORERIG.shapeParent_in_place(mCog.mNode,mBlock.cogHelper.shapeHelper.mNode,True)
 
         mRigNull.connectChildNode(mCog,'rigRoot','rigNull')#Connect    
         CORERIG.colorControl(mCog.mNode,_side,'sub')
-        mCog.doStore('cgmName','cog')
+        mCog.doStore('cgmName','{0}_cog'.format(self.d_module['partName']))
         mCog.doStore('cgmAlias','cog')
-        
-        mCog.doName()
+        mCog.doName()"""
+        mCog.p_parent = False
         
     
         
@@ -1448,7 +1512,7 @@ def rig_shapes(self):
     if mShapeHelper:
         CORERIG.shapeParent_in_place(mControl,mShapeHelper.mNode,True)
         
-    elif mBlock.getEnumValueString('proxyShape') == 'shapers':
+    elif mBlock.getEnumValueString('proxyShape') in ['shapers','geoOnly']:
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           offset = _offset,
                                           mode = 'singleCurve')#limbHandle
@@ -1491,6 +1555,10 @@ def rig_shapes(self):
         
         ATTR.copy_to(_short_module,'cgmName',mLookAt.mNode,driven='target')
         #mIK.doStore('cgmName','head')
+        
+        for a,v in self.d_blockNameDict.iteritems():
+            mLookAt.doStore(a,v)
+            
         mLookAt.doStore('cgmTypeModifier','lookAt')
         mLookAt.doName()
         
@@ -1528,7 +1596,16 @@ def rig_shapes(self):
             
     #Pivots =======================================================================================
     if mBlock.getMessage('pivotHelper'):
-        RIGSHAPES.pivotShapes(self,mBlock.pivotHelper)
+        if self.str_addPivot == 'wobbleOnly':
+            reload(RIGSHAPES)
+            #_l = ['center','front','spin','tilt']
+            _l = ['spin','tilt','center']
+            RIGSHAPES.pivotShapes(self,mBlock.pivotHelper, _l)
+        elif self.str_addPivot == 'wobbleAdd':
+            _l  = ['center','back','front','left','right','spin','tilt']
+            RIGSHAPES.pivotShapes(self,mBlock.pivotHelper, _l)            
+        else:
+            RIGSHAPES.pivotShapes(self,mBlock.pivotHelper)
         
         #mBlock.atBlockUtils('pivots_buildShapes', mMainHandle.pivotHelper, mRigNull)
 
@@ -1663,7 +1740,15 @@ def rig_controls(self):
         # Pivots =================================================================================================
         if mBlock.getMessage('pivotHelper'):
             log.info("|{0}| >> Pivot helper found".format(_str_func))
-            for a in 'center','front','back','left','right':#This order matters
+            if self.str_addPivot == 'wobbleOnly':
+                l_order = ['spin','tilt','center']
+            elif self.str_addPivot == 'wobbleAdd':
+                l_order  = ['center','back','front','left','right','spin','tilt']                
+            else:
+                l_order = ['center','front','back','left','right']
+                
+                
+            for a in l_order:#This order matters
                 str_a = 'pivot' + a.capitalize()
                 if mRigNull.getMessage(str_a):
                     log.info("|{0}| >> Found: {1}".format(_str_func,str_a))
@@ -1677,11 +1762,15 @@ def rig_controls(self):
                                                       makeAimable = False)
                     
                     mPivot = d_buffer['instance']
-                    for mShape in mPivot.getShapes(asMeta=True):
-                        ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
-                    
-                    
                     ml_controlsAll.append(mPivot)
+                    
+                    if self.str_addPivot not in ['wobbleOnly']:
+                        if self.str_addPivot == 'wobbleAdd' and a in ['spin','tilt']:
+                            continue
+                        for mShape in mPivot.getShapes(asMeta=True):
+                            ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
+                    
+                    
             
         
         #>> headLookAt ========================================================================================
@@ -1768,9 +1857,24 @@ def rig_frame(self):
             mDirectDriver = mPivotResultDriver
             mAimDriver = mPivotResultDriver
             mRigNull.connectChildNode(mPivotResultDriver,'pivotResultDriver','rigNull')#Connect    
-     
+            
+            reload(mBlock.UTILS)
+            
+            _pivot_kws = {}
+            pivotSetup = 'default'
+            if self.str_addPivot == 'wobbleOnly':
+                _pivot_kws['l_pivotOrder'] = ['spin','tilt','center']
+                pivotSetup = 'wobble'
+                _pivot_kws['setupWobble'] = True 
+            elif self.str_addPivot == 'wobbleAdd':
+                _pivot_kws['l_pivotOrder']  = ['center','back','front','left','right','spin','tilt']                
+                _pivot_kws['setupWobble'] = True 
+                _pivot_kws['setupSpin'] = False 
+                
+            
+            
             mBlock.atBlockUtils('pivots_setup', mControl = mHandle, mRigNull = mRigNull, pivotResult = mPivotResultDriver, rollSetup = 'default',
-                                front = 'front', back = 'back')#front, back to clear the toe, heel defaults
+                                front = 'front', back = 'back', setup= pivotSetup, **_pivot_kws)#front, back to clear the toe, heel defaults
             
     
         #Aim ========================================================================================
@@ -2018,10 +2122,11 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         ml_geo = self.msgList_get('proxyMeshGeo')
         ml_proxy = []
         str_setup = self.getEnumValueString('proxyShape')
+        if str_setup == 'geoOnly' and not ml_geo:
+            raise ValueError,"No geo found and proxyShape is 'geoOnly'."
         
-        if str_setup == 'shapers' and not ml_geo:
-            d_kws = {}
-            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
+        if str_setup == 'shapers':# and not ml_geo:
+            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5,cap= self.proxyGeoCap)[0]
             ml_proxy = [mMesh]
             
         if ml_geo:
@@ -2147,9 +2252,12 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
     if _buildMesh:
         log.warning("|{0}| >> building mesh...".format(_str_func))            
         
-        if str_setup == 'shapers' and not ml_geo:
+        if str_setup == 'geoOnly' and not ml_geo:
+            raise ValueError,"No geo found and proxyShape is 'geoOnly'."
+        
+        if str_setup == 'shapers':# and not ml_geo:
             d_kws = {}
-            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5)[0]
+            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5, cap= self.proxyGeoCap)[0]
             ml_proxy = [mMesh]
             
         if ml_geo:
@@ -2160,7 +2268,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
                 if mGeo.getMayaType() == 'nurbsSurface':
                     mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
                                                         mode = 'general',
-                                                        uNumber = mBlock.loftSplit, vNumber=mBlock.loftSides)
+                                                        uNumber = mBlock.loftSplit,
+                                                        vNumber=mBlock.loftSides)
                 else:
                     mMesh = mGeo.doDuplicate(po=False)
                     #mMesh.p_parent = False

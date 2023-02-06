@@ -4,7 +4,7 @@ tool_chunks: cgm.core.tools.lib
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -60,9 +60,10 @@ import cgm.core.tools.lightLoomLite as LIGHTLOOMLITE
 import cgm.core.rig.joint_utils as JOINTS
 from cgm.core.lib import transform_utils as TRANS
 from cgm.core.lib import constraint_utils as CONSTRAINTS
-
+from cgm.core.lib import search_utils as SEARCH
+reload(SEARCH)
 import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
-
+reload(MMCONTEXT)
 
 from cgm.core.lib.ml_tools import (ml_breakdownDragger,
                                    ml_breakdown,
@@ -107,22 +108,23 @@ def uiSection_git(parent):
 def uiSection_help(parent):
     _str_func = 'uiSection_help'  
     
-
-    
-    """
-    mc.menuItem(parent = parent,
-                    l='Check for updates',
-                    ann = "Check your local cgm branch for updates...",
-                    c=lambda *a: mc.evalDeferred(CGMUPDATE.checkBranch,lp=True))
-    mc.menuItem(parent = parent,
-                l='cgmUpdateTool',
-                ann = "Get Tool Updates",
-                c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))"""
     mc.menuItem(parent = parent,
                 l='About CGM',
                 ann = "About CGM",
                 c=lambda *a: cgmUI.uiWindow_thanks(False))  
     
+    mUI.MelMenuItemDiv(parent,label = 'Updates')
+    
+    mc.menuItem(parent = parent,
+                    l='Check for updates',
+                    ann = "Check your local cgm branch for updates...",
+                    c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool_lastBranch,lp=True))
+    mc.menuItem(parent = parent,
+                l='cgmUpdateTool',
+                ann = "Get Tool Updates",
+                c=lambda *a: mc.evalDeferred(TOOLCALLS.cgmUpdateTool,lp=True))
+
+    mUI.MelMenuItemDiv(parent,label = 'Other')    
     mc.menuItem(parent = parent,
                 l='Support our Work',
                 ann = "Support our work",
@@ -252,7 +254,12 @@ def uiSection_query(parent = None):
               l = 'Report',
               c = cgmGEN.Callback(MMCONTEXT.func_process, CONSTRAINTS.get_datDict, None, 'each','Get contraint dat',True,**{'report':True}))
 
-
+    mUI.MelMenuItemDiv(uiQuery,l='Attributes')            
+    mc.menuItem(parent=uiQuery,
+                l='Get Value Dict',
+                ut = 'cgmUITemplate',
+                ann = "Get target value dict from obj channel box selections",
+                c = cgmGEN.Callback(MMCONTEXT.func_process, SEARCH.get_selectedFromChannelBox, None, 'each','Get targets',True,report = True, **{'valueDict':True}))
     return uiQuery
 
 
@@ -602,7 +609,7 @@ def uiSection_mesh(parent):
     mc.menuItem(parent = uiMesh,
                 l='cgmMeshTools',
                 ann = "Launch cgmMeshTools - a series of tools including meshMath, shapeCasting and proxyMesh",                                                                                                       
-                c=cgmGEN.Callback(meshTools.run))                                 
+                c=cgmGEN.Callback(TOOLCALLS.cgmMeshTools))                                 
         #c=lambda *a: meshTools.run())         
     mc.menuItem(parent = uiMesh,
                 l='abSym',
@@ -845,7 +852,7 @@ def uiSection_mrsTD(parent):
     mc.menuItem(parent = parent,
                 l='Builder',
                 ann = "MRS Rigging Tool | Beta",
-                c=lambda *a:TOOLCALLS.mrsUI())
+                c=lambda *a:TOOLCALLS.mrsUI())   
     mc.menuItem(parent = parent,
                 l='Block Picker',
                 ann = "MRS Block Picker Tool | Beta",
@@ -855,9 +862,17 @@ def uiSection_mrsTD(parent):
                 ann = "MRS Block Editor Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsBlockEditor())
     mc.menuItem(parent = parent,
+                l='BlockDat',
+                ann = "MRS BlockDat | Alpha",
+                c=lambda *a:TOOLCALLS.BLOCKDATui())    
+    mc.menuItem(parent = parent,
                 l='ShapeDat',
                 ann = "MRS ShapeDat | Alpha",
-                c=lambda *a:TOOLCALLS.mrsShapeDat())      
+                c=lambda *a:TOOLCALLS.mrsShapeDat())
+    mc.menuItem(parent = parent,
+                l='Block Config',
+                ann = "MRS Block Config Tool | Beta",
+                c=lambda *a:TOOLCALLS.CONFIGDATui())         
 
     mUI.MelMenuItemDiv(parent,label='Manage')
     mc.menuItem(parent = parent,
@@ -1136,10 +1151,6 @@ def uiSection_dev(parent):
                 l='BlockDat',
                 ann = "Blockdat",
                 c=lambda *a: TOOLCALLS.BLOCKDATui())
-    mc.menuItem(parent = _wipTools,
-                l='MrsDat',
-                ann = "MRS Dat ui",
-                c=lambda *a: TOOLCALLS.MRSDATui())            
     mc.menuItem(parent = _wipTools,
                 l='ShapeDat',
                 ann = "ShapeDat",

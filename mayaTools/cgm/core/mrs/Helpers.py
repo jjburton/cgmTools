@@ -4,7 +4,7 @@ Builder: cgm.core.mrs.helpers
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -154,10 +154,10 @@ def uiFunc_helper_build(self):
     
     ml_helpers = []
     for mObj in self.ml_helpers:
-        try:
+        if mObj.mNode:
             mObj.mNode
             ml_helpers.append(mObj)
-        except:
+        else:
             return returnFail()
 
     self.uiFunc_create(count = len(ml_helpers))

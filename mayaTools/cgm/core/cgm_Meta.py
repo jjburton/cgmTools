@@ -4,7 +4,7 @@ cgm_Meta: cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 This is the Core of the MetaNode implementation of the systems.
@@ -3066,7 +3066,7 @@ class cgmObject(cgmNode):
     def getTransformInversePoint(self,*a,**kws):
         return TRANS.transformInversePoint(self,*a,**kws)
     
-    def dagLock(self,state=True,ignore = None, visibilty= True,keyable = False):
+    def dagLock(self,state=True,ignore = None, visibilty= False,keyable = False):
         _attrs = ['tx','ty','tz','rx','ry','rz','sx','sy','sz','v']
         _ignore = VALID.listArg(ignore)
         if ignore:
@@ -3278,7 +3278,7 @@ class cgmObject(cgmNode):
                 targets = CONSTRAINT.get_targets(mConstraint)
                 if targets:l_constainingObjects.extend(targets)
 
-        if asMeta and buffer:
+        if asMeta and ml_buffer:
             return validateObjListArg(l_constainingObjects)
         if select:
             mc.select(l_constainingObjects)
@@ -4286,9 +4286,10 @@ class cgmObjectSet(cgmNode):
         return validateObjListArg(self.getList(),noneValid=True)   
 
     def getList(self,asMeta=False):
+        _res = mc.sets(self.mNode, q = True) or []   
         if asMeta:
-            return getMetaList()
-        return mc.sets(self.mNode, q = True) or []   
+            return validateObjListArg(_res)
+        return _res
     
     def log(self):
         print cgmGEN._str_subLine

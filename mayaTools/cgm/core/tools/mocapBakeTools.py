@@ -4,7 +4,7 @@ baseTool: cgm.core.tools
 Author: Josh Burton and David Bokser
 email: dbokser@cgmonks.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 mocapBakeTools
 ================================================================

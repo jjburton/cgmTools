@@ -4,7 +4,7 @@ Builder: cgm.core.mrs
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -43,7 +43,7 @@ from cgm.core import cgm_Meta as cgmMeta
 from cgm.core import cgm_RigMeta as RIGMETA
 from cgm.core import cgm_PuppetMeta as PUPPETMETA
 import cgm.core.cgm_Dat as CGMDAT
-import cgm.core.mrs.ShapeDat as SHAPEDAT
+#import cgm.core.mrs.ShapeDat as SHAPEDAT
 import cgm.core.mrs.MRSDat as MRSDAT
 
 from cgm.core.classes import GuiFactory as CGMUI
@@ -4621,6 +4621,12 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelMenuItemDiv(_menu, l='UIs')
         
+        
+        mc.menuItem(parent = _menu,
+                    l='BlockConfig',
+                    ann = "BlockConfig",
+                    c=lambda *a: TOOLCALLS.CONFIGDATui())        
+        
         mc.menuItem(parent = _menu,
                     l='BlockDat',
                     ann = "Blockdat",
@@ -4944,8 +4950,12 @@ class ui(cgmUI.cgmGUI):
                        'Rebuild Block Shape':{'ann':'Rebuild the block shape',
                                               'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
                                               'atUtils', 'rootShape_update',
-                                              **{'updateUI':0})},                       
-                       },
+                                              **{'updateUI':0})},
+                       'Snap Handles to Param Attr':{'ann':'Snap handles to their param values',
+                                                     'call':cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                     'atUtils', 'form_snapHandlesToParam',
+                                                     **{'updateUI':0})},                       
+                              },
                
                'Names':{ 
                    'divTags':['nameList | edit'],
@@ -5313,8 +5323,12 @@ class ui(cgmUI.cgmGUI):
 
         log.info("Context menu rebuilt")        
         
-    def buildMenu_multiset(self,*args,**kws):
+    def buildMenu_multiset(self,force=True, *args,**kws):
         _str_func = 'buildMenu_multiset'
+        if self.uiMenu_multiset and force is not True:
+            log.debug("No load...")
+            return
+        
         self.uiMenu_multiset.clear()   
         _menu = self.uiMenu_multiset
         
@@ -6198,7 +6212,7 @@ class ui(cgmUI.cgmGUI):
                 #log.info('select...')
                 return mc.select([mBlock.mNode for mBlock in ml_context])
             elif args[0] == 'saveShapeDat':
-                CGMDAT.batch(ml_context, SHAPEDAT.data ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
+                CGMDAT.batch(ml_context, MRSDAT.ShapeDat ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
                 return
             elif args[0] == 'exportBlockDat':
                 CGMDAT.batch(ml_context, MRSDAT.BlockDat ).write(startDirMode = self._l_startDirModes[self.var_startDirMode.value])
@@ -6252,7 +6266,8 @@ class ui(cgmUI.cgmGUI):
                     if _call == 'rebuild':
                         mBlock = res
                         
-                    log.debug("[{0}] ...".format(mBlock.p_nameShort,res))
+                    try:log.debug("[{0}] ...".format(mBlock.p_nameShort,res))
+                    except:pass
                     if kws.get('mode') not in ['prechecks']:
                         pprint.pprint(res)
                         
@@ -6460,13 +6475,18 @@ class ui(cgmUI.cgmGUI):
                                     ann = 'Specify the position for the current block to : {0}'.format(position),
                                     c = uiCallback_withUpdate(self,_mBlock,_mBlock.atBlockUtils,'set_position',position))                
                 
+                mUI.MelMenuItem(_popUp,
+                                label = 'Delete',
+                                c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                    'atBlockUtils','delete',
+                                                    **{'updateUI':1}))                  
                 mUI.MelMenuItemDiv(_popUp)
                 mUI.MelMenuItem(_popUp,
                                 label = 'Reload Module',
                                 ann = 'Reload block module',
-                                c = cgmGEN.Callback(self.uiFunc_contextBlockCall,
-                                                    'getBlockModule',
-                                                    **{'reloadMod':1}))                
+                                c =  cgmGEN.Callback(self.uiFunc_contextBlockCall,
+                                                     'delete',
+                                                     **{'updateUI':1})),              
                 
                 
                 return                
@@ -7645,7 +7665,7 @@ class ui(cgmUI.cgmGUI):
         #>> Top
         #=============================================================================================
         self.uiFrame_context = mUI.MelLabel(_RightUpperColumn,l='',align='center')
-        """
+        
         self.create_guiOptionVar('contextSettingsFrameCollapse',defaultValue = 0)       
         
         _frame_context = mUI.MelFrameLayout(_RightUpperColumn,label = 'Utilities - Contextual',vis=True,
@@ -7657,9 +7677,9 @@ class ui(cgmUI.cgmGUI):
                                                 collapseCommand = lambda:self.var_contextSettingsFrameCollapse.setValue(1)
                                                 )	
         self.uiFrame_context = _frame_context
-        _frame_context_inside = mUI.MelColumnLayout(_frame_context,useTemplate = 'cgmUISubTemplate') """
+        _frame_context_inside = mUI.MelColumnLayout(_frame_context,useTemplate = 'cgmUISubTemplate') 
 
-        """
+        
         
         
         #mc.setParent(_RightUpperColumn
@@ -7692,7 +7712,7 @@ class ui(cgmUI.cgmGUI):
             mUI.MelSpacer(_row_contextModes,w=2)
 
         _row_contextModes.layout()         
-  
+        """
         #Context Start  -------------------------------------------------------------------------------          
         self.create_guiOptionVar('contextStartMode',defaultValue = 1)       
     
@@ -7715,8 +7735,8 @@ class ui(cgmUI.cgmGUI):
         _on = self.var_contextStartMode.value
         for i,item in enumerate(self._l_contextStartModes):
             self.uiOM_beginWith.append(item)
-
             mUI.MelSpacer(_row_contextStartModes,w=2)
+            
         _row_contextStartModes.setStretchWidget( mUI.MelSeparator(_row_contextStartModes) )
         
         #..force modes
@@ -7725,7 +7745,6 @@ class ui(cgmUI.cgmGUI):
         _rc_contextForceMode = mUI.MelRadioCollection()
         
         #build our sub section options
-        #MelHSingleStretchLayout
         mUI.MelSpacer(_row_contextStartModes,w=1)
         mUI.MelLabel(_row_contextStartModes,l = 'Force:')
         self.uiOM_forceMode = mUI.MelOptionMenu(_row_contextStartModes,
@@ -7735,14 +7754,12 @@ class ui(cgmUI.cgmGUI):
         _on = self.var_contextForceMode.value
         for i,item in enumerate(['False','True']):
             self.uiOM_forceMode.append(item)
-
             mUI.MelSpacer(_row_contextStartModes,w=2)
             
-
     
         _row_contextStartModes.layout()       
-        """
         
+        """
         #Push Rows  -------------------------------------------------------------------------------  
         mc.setParent(_RightUpperColumn)
         CGMUI.add_LineSubBreak()
@@ -9547,10 +9564,10 @@ class ui_createBlock(CGMUI.cgmGUI):
             ml_helpers = []
             
         for i in xrange(count):
-            try:mHelper = ml_helpers[i]
-            except:mHelper = False
+            mHelper = ml_helpers[i]
+
             
-            if mHelper:
+            if mHelper and mHelper.mNode:
                 _orient = mHelper.p_orient
                 mHelper.p_orient = 0,0,0
                 _size = TRANS.bbSize_get(mHelper.mNode)

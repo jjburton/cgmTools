@@ -4,7 +4,7 @@ HotkeyFactory: cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 Issues:
 -runtime command only available in mel
@@ -1134,9 +1134,17 @@ class go(cgmUI.cgmGUI):
             #>>>Blend Slider...
             uiRow_blend = mUI.MelHSingleStretchLayout(containerName ,ut='cgmUITemplate',expand = True, padding = 5)
             mUI.MelSpacer(uiRow_blend,w=5)
-            mUI.MelLabel(uiRow_blend,l='Blend:',align='right')            
+            mUI.MelLabel(uiRow_blend,l='Blend:',align='right')
+            self.uiFF_baseBlend = mUI.MelFloatField(uiRow_blend,
+                                                    w = 40,
+                                                    ut='cgmUITemplate',
+                                                    precision = 2,
+                                                    value = 1.0)            
             self.uiSlider_baseBlend = mUI.MelFloatSlider(uiRow_blend,-1.2,1.2,0,step = .2)
-            self.uiSlider_baseBlend.setPostChangeCB(mUI.Callback(self.baseObject_blendSlider))
+            self.uiSlider_baseBlend.setChangeCB(mUI.Callback(self.baseObject_blendSlider))
+            cgmUI.add_Button(uiRow_blend,'Do',
+                             mUI.Callback(self.baseObject_blendSliderDo),
+                             'Reset this slider')
             cgmUI.add_Button(uiRow_blend,'R',
                              mUI.Callback(self.uiSlider_baseBlend.reset,False),
                              'Reset this slider')
@@ -1231,9 +1239,17 @@ class go(cgmUI.cgmGUI):
             #>>>Blend Slider...
             uiRow_blendTargets = mUI.MelHSingleStretchLayout(containerName ,ut='cgmUITemplate',expand = True, padding = 5)
             mUI.MelSpacer(uiRow_blendTargets,w=5)
-            mUI.MelLabel(uiRow_blendTargets,l='Blend:',align='right')            
+            mUI.MelLabel(uiRow_blendTargets,l='Blend:',align='right')
+            self.uiFF_targetBlend = mUI.MelFloatField(uiRow_blendTargets,
+                                                      ut='cgmUITemplate',                                                      
+                                                      w = 40,
+                                                      precision = 2,
+                                                      value = 1.0)
             self.uiSlider_targetsBlend = mUI.MelFloatSlider(uiRow_blendTargets,-1.2,1.2,0,step = .2)
-            self.uiSlider_targetsBlend.setPostChangeCB(mUI.Callback(self.targets_blendSlider))
+            self.uiSlider_targetsBlend.setChangeCB(mUI.Callback(self.targets_blendSlider))
+            cgmUI.add_Button(uiRow_blendTargets,'Do',
+                             mUI.Callback(self.targets_blendSliderDo),
+                             'Reset this slider')            
             cgmUI.add_Button(uiRow_blendTargets,'R',
                              mUI.Callback(self.uiSlider_targetsBlend.reset,False),
                              'Reset this slider')
@@ -1546,11 +1562,21 @@ class go(cgmUI.cgmGUI):
 
     def baseObject_blendSlider(self):
         _multiplier = self.uiSlider_baseBlend(q=True, value=True)
+        log.info(_multiplier)
+        self.uiFF_baseBlend.setValue(_multiplier)
+        
+    def baseObject_blendSliderDo(self):
+        _multiplier = self.uiFF_baseBlend.getValue()     
         self.baseObject_meshMath('blend',_multiplier)
 
     def targets_blendSlider(self):
         _multiplier = self.uiSlider_targetsBlend(q=True, value=True)
-        self.targets_meshMath('blend',_multiplier)
+        log.info(_multiplier)
+        self.uiFF_targetBlendBlend.setValue(_multiplier)
+        
+    def targets_blendSliderDo(self):
+        _multiplier = self.uiFF_targetBlend.getValue()
+        self.targets_meshMath('blend',_multiplier)    
 
     def castTargets_add(self,l):
         _ml_objs = cgmMeta.validateObjListArg(l,'cgmObject',mayaType=['mesh','nurbsSurface'])

@@ -216,14 +216,10 @@ def Prep(removeNamespace = False,
 
     # delete garbage
     
-    
+        
     log.debug("{0} || delete set: {1}".format(_str_func,deleteSet))
     
-    if(mc.objExists(deleteSet)):
-        mc.delete( mc.sets( deleteSet, q=True ) )  
-    else:
-        print "No delete set found."  
-        prepped = False
+
 
     if exportSetObjs:
         for exportObj in exportSetObjs:
@@ -236,7 +232,14 @@ def Prep(removeNamespace = False,
                     mc.cutKey(exportObj.mNode, at=['translate', 'rotate'], clear=True)
                     mc.setAttr('{0}.translate'.format(exportObj.mNode), 0, 0, 0, type='float3')
                     mc.setAttr('{0}.rotate'.format(exportObj.mNode), 0, 0, 0, type='float3')
-
+                    
+    if(mc.objExists(deleteSet)):
+        mc.delete( mc.sets( deleteSet, q=True ) )  
+    else:
+        print "No delete set found."  
+        prepped = False    
+                    
+                    
     if removeNamespace and len(exportSetObjs) > 0:
         l_deformers = []
         for mObj in exportSetObjs:

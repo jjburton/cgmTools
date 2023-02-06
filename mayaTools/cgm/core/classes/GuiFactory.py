@@ -4,7 +4,7 @@ GuiFactory: cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Class based ui builder for cgmTools
@@ -1009,7 +1009,7 @@ class cgmGUI(mUI.BaseMelWindow):
         
 
     def create_guiOptionVar(self,varName,*args,**kws):
-        fullName = "cgmVar_%s%s"%(self.__class__.TOOLNAME,varName)
+        fullName = "cgmVar_%s_%s"%(self.__class__.TOOLNAME,varName)
         if args:args[0] = fullName
         if kws and 'varName' in kws.keys():kws.pop('varName')
         self.__dict__['var_%s'%varName] = cgmMeta.cgmOptionVar(varName = fullName, *args,**kws)
@@ -1111,7 +1111,8 @@ class cgmGUI(mUI.BaseMelWindow):
     #=========================================================================    
     def reset(self):
         do_resetGuiInstanceOptionVars(self.l_optionVars)
-        self.__class__()
+        killChildren(self.WINDOW_NAME)
+        self.__init__()    
         #Callback(do_resetGuiInstanceOptionVars,self.l_optionVars,run).__call__()
         #reloadUI(self)
         #self.close()
@@ -1122,8 +1123,8 @@ class cgmGUI(mUI.BaseMelWindow):
     def reload(self):
         _str_func = 'reload[{0}]'.format(self.__toolName__)            
         log.debug("|{0}| >> reload".format(_str_func))
-        self.__class__()
-        #killChildren(self.WINDOW_NAME)
+        killChildren(self.WINDOW_NAME)
+        self.__init__()        
         #reloadUI(self)
         #reloadGUI(self)
         #self.build_layoutWrapper(self)
@@ -1914,7 +1915,7 @@ def add_cgmFooter(parent = False):
         #_path_image = os.path.join(_path_imageFolder,'cgm_uiFooter_gray.png')
         _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')        
         mc.iconTextButton(style='iconOnly',image =_path_image,
-                          c=lambda *a:(webbrowser.open("http://www.cgmonastery.com/")))  
+                          c=lambda *a:(webbrowser.open("https://github.com/jjburton/cgmTools/wiki/")))  
                           #c=lambda *a:(webbrowser.open("http://docs.cgmonks.com/")))  
     except Exception,err:
         log.warning("Failed to add cgmFooter")
@@ -1930,7 +1931,7 @@ def add_cgMonaseryFooter(parent = False):
         _path_imageFolder = PATHS.Path(cgmImagesFolder.__file__).up().asFriendly()
         _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')
         mc.iconTextButton(style='iconOnly',image =_path_image,
-                          c=lambda *a:(webbrowser.open("http://www.cgmonastery.com/")))  
+                          c=lambda *a:(webbrowser.open("https://github.com/jjburton/cgmTools/wiki/")))  
     except Exception,err:
         log.warning("Failed to add cgmFooter")
         for arg in err.args:

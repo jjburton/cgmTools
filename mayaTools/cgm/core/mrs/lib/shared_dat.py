@@ -4,7 +4,7 @@ shared_dat: cgm.core.mrs.lib.shared_dat
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -22,8 +22,12 @@ d_outlinerColors = {'master':{'main':CORESHARE._d_colors_to_RGB['yellowLight']},
 for k,d in d_outlinerColors.iteritems():
     d['sub'] = [v * .8 for v in d['main']]
     
-for k in ['eye','brow','muzzle']:
-    d_outlinerColors[k] = d_outlinerColors['face']
+d_colors_side  = {'left':[.4,.4,1],
+                  'right':[.9,.2,.2],
+                  'center':[.8,.8,0]}
+d_colors_side_sub  = {}
+for k,l in d_colors_side.iteritems():
+    d_colors_side_sub[k] = [v * .8 for v in l]
 
 d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockType':'string',
@@ -98,7 +102,7 @@ d_uiAttrDict = {'name':['nameList','cgmName','nameIter'],
                 'form':['numShapers','numSubShapers','shapersAim',
                         'loftSetup','loftList','loftShape','loftShapeEnd','loftShapeStart',
                         'proxyShape'],
-                'proxySurface':['loftSides','loftDegree','loftSplit','meshBuild','proxyEnd','castVector'],
+                'proxySurface':['loftSides','loftDegree','loftSplit','meshBuild','proxyEnd','castVector','proxyGeoCap'],
                 'prerig':['addAim','addCog','addPivot','addScalePivot','rotPivotplace',
                           'numControls',],
                 'skeleton':['numRoll','hasJoint','rollCount'],
@@ -112,13 +116,14 @@ d_uiAttrDict = {'name':['nameList','cgmName','nameIter'],
                        'ikBase','ikEnd',
                        'parentVisAttr','segmentType',
                        'ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
+                       'controlOffsetMult',
                        'offsetMode','proxyDirect','parentToDriver','rigSetup'],
                 'space':['numSpacePivots','spaceSwitch_fk','spaceSwitch_direct',
                          'dynParentMode','dynParentScaleMode',
                          'root_dynParentMode','root_dynParentScaleMode',],
                 'advanced':['baseDat'],
                 'squashStretch':['scaleSetup','squash','squashExtraControl','squashFactorMin','squashFactorMax',
-                                 'squashMeasure'],
+                                 'squashMeasure','squashFactorMode'],
                 'vis':[ 'visLabels','visMeasure','visProximityMode','visJointHandle','visRotatePlane'],
                 'data':['version','blockType','blockProfile'],
                 'post':['proxyLoft','proxyGeoRoot','proxyType','castVector']}
@@ -176,6 +181,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'offsetMode':'default:proxyAverage',                   
                    'buildDirect':'bool',
                    'ikOrientToWorld':'bool',
+                   'controlOffsetMult':'float',
                    'ikSetup':'none:rp:spring:spline:ribbon:ribbonLive:curve',
                    'ikBase':'none:cube:simple:hips',
                    'ikEnd':'none:bank:foot:paw:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
@@ -190,11 +196,15 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'squashExtraControl' : 'bool',
                    'squashFactorMax':'float',
                    'squashFactorMin':'float',
+                   'squashFactorMode':"midPeak:midBlendDown:midBlendUp:blendUp:blendDown:max",
                    'ribbonAim': 'none:stable:stableBlend',
                    #'ribbonConnectBy': 'constraint:matrix',
                    'ribbonConnectBy': 'constraint:matrix',                 
                    
                    'ribbonParam': 'fixed:floating:blend',
+                   
+                   'dynParentMode':'space:orient:follow:point',
+                   'dynParentScaleMode':'off:link:space',
                    
                    'root_dynParentMode':'space:orient:follow:point',
                    'root_dynParentScaleMode':'off:link:space',
@@ -209,6 +219,7 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    'proxyDirect':'bool',
                    'proxyGeoRoot':'none:loft:ball',
                    'proxyType':'none:castMesh',
+                   'proxyGeoCap':'none:both',
                    'proxyBuild':'bool',
                    'meshBuild':'bool',
                    'visBoundingBox':'bool',

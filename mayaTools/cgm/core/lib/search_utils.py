@@ -3,7 +3,7 @@
 search_utils: cgm.core.lib.search_utils
 Author: Josh Burton
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 """
@@ -12,6 +12,7 @@ __MAYALOCAL = 'SEARCH'
 # From Python =============================================================
 import copy
 import re
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -556,7 +557,7 @@ def get_key_indices_from(node = None, mode = 'all'):
     return lists.returnListNoDuplicates(keyFrames)
     
 
-def get_selectedFromChannelBox(attributesOnly = False):
+def get_selectedFromChannelBox(objects = None, attributesOnly = False, valueDict = False, report= True ):
     """ 
     Returns a list of selected object attributes from the channel box
     
@@ -566,9 +567,12 @@ def get_selectedFromChannelBox(attributesOnly = False):
     Keyword arguments:
     returnRaw() -- whether you just want channels or objects combined with selected attributes
 
-    """    
+    """  
     _str_func = 'get_selectedFromChannelBox'
-    _sel = mc.ls(sl=True)
+    if objects:
+        _sel = VALID.listArg(objects)
+    else:
+        _sel = mc.ls(sl=True)
     ChannelBoxName = mel.eval('$tmp = $gChannelBoxName');
 
     sma = mc.channelBox(ChannelBoxName, query=True, sma=True)
@@ -595,15 +599,19 @@ def get_selectedFromChannelBox(attributesOnly = False):
         _channels_long = []
         for c in channels:
             _channels_long.append(c)
-            """
-            _l = ATTR.get_nameLong(_sel[0],c)
-            if '.weight' not in _l:
-                _channels_long.append(_l)
-            else:
-                _channels_long.append(c)"""
             
         if attributesOnly:
             return _channels_long
+        elif valueDict:
+            _res = {}
+            for item in _sel:
+                _sub = {}                
+                for attr in _channels_long:
+                    _sub[str(attr)] = ATTR.get(item,attr)
+                _res[str(item)] = _sub
+            if report:
+                pprint.pprint(_res)
+            return  _res
         else:
             _res = []
             for item in _sel:
@@ -611,6 +619,8 @@ def get_selectedFromChannelBox(attributesOnly = False):
                     _comb = "{0}.{1}".format(item,attr)
                     if mc.objExists(_comb):
                         _res.append(_comb)
+            if report:
+                pprint.pprint(_res)                        
             return _res
     return False 
 
@@ -843,5 +853,8 @@ def get_nodeSnapShotDifferential(l,uuid=False):
         return [mc.ls(uuid, uuid=True)[0] for uuid in _res]
     return _res
     
-    
+def blendShape_attrs_get(blendShapeNode):
+    _l = mc.listAttr((blendShapeNode+'.weight'),m=True)
+    _l.sort()
+    return _l
     

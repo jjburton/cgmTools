@@ -4,7 +4,7 @@ module_utils: cgm.core.mrs.lib
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -404,6 +404,7 @@ def rig_connect(self,force=False):
                 log.debug("|{0}| >>  Reg connect mode...".format(_str_func))                                
                 pntConstBuffer = mc.pointConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1)        
                 orConstBuffer = mc.orientConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=False,weight=1) 
+            
             scConstBuffer = mc.scaleConstraint(ml_rigJoints[i].mNode,mJnt.mNode,maintainOffset=True,weight=1)                         
             #ATTR.connect((ml_rigJoints[i].mNode+'.s'),(mJnt.mNode+'.s'))
             #attributes.doConnectAttr((ml_rigJoints[i].mNode+'.s'),(i_jnt.mNode+'.s'))
@@ -963,14 +964,17 @@ def control_add(self, controls = None, face=True):
     ml = cgmMeta.validateObjListArg(controls,'cgmControl',setClass=True)
     ml_exists = controls_get(self)
     
-    mRigNull = self.rigNull
+    mRigNull = self.rigNull    
+    ml_set = mRigNull.moduleSet.getList(asMeta=1)
     
     for mObj in ml:
         
         if not mObj.getMessage('rigNull'):
             ATTR.set_message(mObj.mNode, 'rigNull', mRigNull.mNode)
             
-        
+        if mObj not in ml_set:
+            mRigNull.moduleSet.add(mObj)
+            
         if mObj in ml_exists:
             continue
         print mObj

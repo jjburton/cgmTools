@@ -84,6 +84,14 @@ def cgmUpdateTool():
     except Exception,err:
         cgmGEN.cgmExceptCB(Exception,err)
         
+def cgmUpdateTool_lastBranch():
+    try:
+        import cgm.core.tools.updateTool as CGMUPDATE
+        reload(CGMUPDATE)
+        CGMUPDATE.checkBranch()
+    except Exception,err:
+        cgmGEN.cgmExceptCB(Exception,err)
+        
 def locinator():
     from cgm.core.tools import locinator as LOCINATOR
     reload(LOCINATOR)
@@ -128,20 +136,20 @@ def CGMDATui():
     reload(CGMDAT)
     CGMDAT.ui()
     
-def MRSDATui():
-    import cgm.core.mrs.MRSDat as MRSDAT
-    reload(MRSDAT)
-    MRSDAT.ui2()
-    
 def BLOCKDATui():
     import cgm.core.mrs.MRSDat as MRSDAT
     reload(MRSDAT)
     MRSDAT.uiBlockDat()
     
+def CONFIGDATui():
+    import cgm.core.mrs.MRSDat as MRSDAT
+    reload(MRSDAT)
+    MRSDAT.uiBlockConfigDat()
+    
 def SHAPEDATui():
-    import cgm.core.mrs.ShapeDat as SHAPEDAT
-    reload(SHAPEDAT)
-    SHAPEDAT.ui()
+    import cgm.core.mrs.MRSDat as MRSDAT
+    reload(MRSDAT)
+    MRSDAT.uiShapeDat()
     
 def mrsShots():
     try:
@@ -168,9 +176,9 @@ def mrsSceneLegacy():
 
         
 def mrsShapeDat():
-    import cgm.core.mrs.ShapeDat as SHAPEDAT
-    reload(SHAPEDAT)
-    SHAPEDAT.ui()
+    import cgm.core.mrs.MRSDat as MRSDAT
+    reload(MRSDAT)
+    MRSDAT.uiShapeDat()
         
 def animDraw():
     try:

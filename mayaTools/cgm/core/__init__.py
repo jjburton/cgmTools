@@ -4,7 +4,7 @@ cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Site : http://www.cgmonastery.com
+Site : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Core is the library of Python modules that make the backbone of the cgm.core. 
@@ -75,6 +75,7 @@ _l_core_order = ['cgm_General',
                  'lib.shapeCaster']
 
 _l_ignoreTags = ['cgm.core.examples',
+                 'cgm.core.lib.wing.wingdbstub',
                  'cgm.lib.gigs',
                  'cgm.lib.zoo',
                  'cgm.projects',

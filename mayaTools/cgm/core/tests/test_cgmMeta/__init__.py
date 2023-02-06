@@ -4,7 +4,7 @@ cgm_Meta: cgm.core.test
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 Unit Tests for the validateArgs module

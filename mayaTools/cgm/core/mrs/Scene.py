@@ -27,6 +27,8 @@ import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 import cgm.core.cgmPy.validateArgs as VALID
 import cgm.core.tools.Project as PROJECT
 import Red9.core.Red9_General as r9General
+import cgm.core.mrs.SceneDat as SCENEDAT
+import cgm.core.lib.string_utils as CORESTRING
 
 
 
@@ -123,7 +125,7 @@ example:
         self.var_showAllFiles           = cgmMeta.cgmOptionVar("cgmVar_sceneUI_show_all_files", defaultValue = 1)
         #self.var_removeNamespace        = cgmMeta.cgmOptionVar("cgmVar_sceneUI_remove_namespace", defaultValue = 0)
         #self.var_zeroRoot               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_zero_root", defaultValue = 0)
-        self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 0)
+        self.var_useMayaPy              = cgmMeta.cgmOptionVar("cgmVar_sceneUI_use_mayaPy", defaultValue = 1)
         self.var_categoryStore               = cgmMeta.cgmOptionVar("cgmVar_sceneUI_category", defaultValue = 0)
         self.var_subTypeStore                = cgmMeta.cgmOptionVar("cgmVar_sceneUI_subType", defaultValue = 0)
         self.var_alwaysSendReferenceFiles    = cgmMeta.cgmOptionVar("cgmVar_sceneUI_alwaysSendReferences", varType= 'int', defaultValue = 0)
@@ -215,6 +217,8 @@ example:
         self.d_buttons = {}
         self.d_labels = {}        
         self.d_userPaths = {}
+        self.mExportDat = None
+        
         global UI
         UI = self
 
@@ -239,7 +243,7 @@ example:
     
     def rebuild_scriptUI(self):
         _str_func = 'rebuild_scriptUI'
-        log.info(log_start(_str_func))
+        log.debug(log_start(_str_func))
         self.uiMenu_projectUtils(edit=True, vis=False)
         
         _path = self.d_userPaths.get('scriptUI')
@@ -249,7 +253,7 @@ example:
         if not os.path.exists(_path):
             return log.warning(cgmGEN.logString_msg(_str_func, "path doesn't exist: {}".format(_path)))
         
-        log.info(cgmGEN.logString_msg(_str_func, _path))
+        log.debug(cgmGEN.logString_msg(_str_func, _path))
         module = None
         if float(cgmGEN.__mayaVersion__) < 2022:
             import imp
@@ -398,7 +402,7 @@ example:
     def versionFile(self):
         
         _set =  self.path_set
-        log.info(_set)
+        log.debug(_set)
         if _set and os.path.isfile(_set):
             return _set        
         """
@@ -475,15 +479,12 @@ example:
         log.debug(log_msg(_str_func, _path))
         
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        try:
-            _dirs = CGMOS.get_lsFromPath(_path,'dir')
-            for d in _l_directoryMask:
-                try:_dirs.remove(d)
-                except:pass
-        except Exception,err:
-            log.error(log_msg(_str_func, err))
-            return False
+        _dirs = CGMOS.get_lsFromPath(_path,'dir')        
         
+        for d in _l_directoryMask:
+            if d in _dirs:
+                _dirs.remove(d)
+            
         if _dirs:
             _res = True
             
@@ -514,14 +515,13 @@ example:
         log.debug(log_msg(_str_func, self.subType))
         
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        try:
-            _dirs = CGMOS.get_lsFromPath(_path,'dir')
-            for d in _l_directoryMask:
-                try:_dirs = _dirs.remove(d)
-                except:pass
-        except Exception,err:
-            log.error(log_msg(_str_func, err))
-            return False
+        _dirs = CGMOS.get_lsFromPath(_path,'dir')
+        
+        for d in _l_directoryMask:
+            if d in _dirs:
+                _dirs.remove(d)
+
+            #return False
             
         if _dirs:
             _res = True
@@ -542,14 +542,11 @@ example:
         log.debug(log_msg(_str_func, self.subType))
         
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        try:
-            _dirs = CGMOS.get_lsFromPath(_path,'dir')
-            for d in _l_directoryMask:
-                try:_dirs = _dirs.remove(d)
-                except:pass
-        except Exception,err:
-            log.error(log_msg(_str_func, err))
-            return False
+        _dirs = CGMOS.get_lsFromPath(_path,'dir')
+        
+        for d in _l_directoryMask:
+            if d in _dirs:
+                _dirs.remove(d)
             
         if _dirs:
             _res = True
@@ -561,27 +558,27 @@ example:
     def hasVariant(self):
         _str_func = 'hasVariant'
         _res = False
-        
+        _dirs = []
         try:
             _path_set= self.path_set
             log.debug(log_msg(_str_func, _path_set))
-        except:
+        except Exception, err:
+            log.error(log_msg(_str_func, err))            
             return _res
         
         log.debug(log_start(_str_func))
-        log.debug(log_msg(_str_func, _path_set))        
-        try:
-            if _path_set and os.path.isdir(_path_set):
-                _dirs = CGMOS.get_lsFromPath(_path_set,'dir')
-                for d in _l_directoryMask:
-                    try:_dirs = _dirs.remove(d)
-                    except:pass
-                        
-                if _dirs:
-                    _res = True
-        except Exception,err:
-            log.error(log_msg(_str_func, err))
-            return False
+        log.debug(log_msg(_str_func, "path_set | {}".format(_path_set)))        
+        if _path_set and os.path.isdir(_path_set):
+            _dirs = CGMOS.get_lsFromPath(_path_set,'dir')        
+
+
+        for d in _l_directoryMask:
+            if d in _dirs:
+                _dirs.remove(d)
+                
+        if _dirs:
+            _res = True
+ 
 
         log.debug(log_msg(_str_func,_res))
 
@@ -1384,7 +1381,14 @@ example:
         self.queueTSL.allowMultiSelect(True)
 
         _col = mUI.MelColumnLayout(_rcl,width=200,adjustableColumn=True,useTemplate = 'cgmUISubTemplate')#mc.columnLayout(width=200,adjustableColumn=True)
-
+        
+        _row = mUI.MelHLayout(_col,padding=5)
+        mUI.MelButton(_row, label="Save", ut = 'cgmUITemplate', command=partial(self.ExportQueue_write))
+        mUI.MelButton(_row, label="Load", ut = 'cgmUITemplate', command=partial(self.ExportQueue_load))
+        _row.layout()
+        
+        
+        mc.setParent(_col)
         cgmUI.add_LineSubBreak()
         #mUI.MelButton(_col, label="Add", ut = 'cgmUITemplate', command=partial(self.AddToExportQueue))
         #cgmUI.add_LineSubBreak()
@@ -1475,23 +1479,29 @@ example:
     #=========================================================================
     def buildAssetForm(self):
         _str_func = 'buildAssetForm'
+        log.debug("|{0}| >>...".format(_str_func))
+        
         #pprint.pprint(self.subTypes)
         if not self.subTypes:
-            log.debug(log_msg(_str_func,"subtypes..."))
+            log.debug(log_msg(_str_func,"no subtypes..."))
             
             mc.formLayout( self._subForms[1], e=True, vis=False )            
             mc.formLayout( self._subForms[3], e=True, vis=True )
             
         else:
-            log.debug(log_msg(_str_func,"no subtypes..."))            
+            log.debug(log_msg(_str_func,"subtypes..."))            
             mc.formLayout( self._subForms[2], e=True, vis=self.hasVariant and self.hasSub )
             mc.formLayout( self._subForms[1], e=True, vis=True )            
             
             _hasSub = self.hasSub
+            log.debug(log_msg(_str_func,"hasSub: {}".format(_hasSub)))
+            
             if not self.subTypeSearchList['scrollList'].getSelectedItem():
+                log.debug(log_msg(_str_func,"no subTypeSearchList selected"))
                 mc.formLayout( self._subForms[3], e=True, vis=False)
                 
             else:
+                log.debug(log_msg(_str_func,"subTypeSearchList selected"))                
                 if self.b_subFile:
                     log.debug(log_msg(_str_func,"subfile..."))                
                     mc.formLayout( self._subForms[3], e=True, vis=False)
@@ -1500,14 +1510,12 @@ example:
                     mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
                     
                     if not self.hasSubTypes:
+                        log.debug(log_msg(_str_func,"no subtypes 2..."))                                
+                        
                         mc.formLayout( self._subForms[3], e=True, vis=self.hasSub )
                     
                     else:
-                            
-                        #    mc.formLayout( self._subForms[3], e=True, vis=0)#self.hasSub )                
-                        #else:
-                        #mc.formLayout( self._subForms[3], e=True, vis=True)#self.hasSub )
-                            
+                        log.debug(log_msg(_str_func,"subtypes 2..."))                                
                         mc.formLayout( self._subForms[1], e=True, vis=True )
             
         
@@ -2115,26 +2123,32 @@ example:
             
             return
         else:
+            log.debug(log_msg(_str_func,"dir passed"))            
             self.b_subFile = False            
-            for mUI in self.ml_fileOptions_set:
-                mUI(edit=True,en=False)
+            #for mUI in self.ml_fileOptions_set:
+            #    mUI(edit=True,en=False)
             for mUI in self.ml_dirOptions_set:
                 mUI(edit=True,en=True)
                 
         
         
         if self.hasVariant:
+            log.debug(log_msg(_str_func,"hasVariant"))                        
             self.LoadVariationList()
         else:
+            log.debug(log_msg(_str_func,"hasVariant == false"))                                    
             self.variationList['items'] = []
             self.variationList['scrollList'].clear()            
 
         #if not self.subTypes:#...if we have 
+        
         self.LoadVersionList()
+        
         #else:
         #self.LoadSubTypeList()
+        
         self.buildAssetForm()
-            
+        
         self.uiUpdate_setsButtons()
         self.SaveCurrentSelection()
             
@@ -3043,7 +3057,7 @@ example:
                         subList.append(d)
                     else:
                         subList.append(d)
-                        
+                    
 
         self.subTypeSearchList['items'] = subList
         self.subTypeSearchList['scrollList'].clear()
@@ -3108,6 +3122,7 @@ example:
                     #animDir = os.path.normpath(os.path.join(animationDir, d))
                     #if os.path.isdir(animDir):
                     variationList.append(d)
+                    
             else:
                 log.error(log_msg(_str_func, "path doesn't exist? {}".format(animationDir)))                                    
         
@@ -3243,7 +3258,8 @@ example:
             print "No version selected"
             return
         """
-        VALID.fileOpen(self.versionFile,True,True)
+        if VALID.fileOpen(self.versionFile,True,True):
+            self.refreshMetaData()
         
     def uiFunc_getOpenFileDict(self,*args):
         
@@ -3897,7 +3913,7 @@ example:
         self.SaveCurrentSelection()
 
         #self.uiFunc_selectOpenFile()
-        #self.refreshMetaData()
+        self.refreshMetaData()
         
 
     def OpenDirectory(self, path):
@@ -4343,7 +4359,8 @@ example:
 
         filePath = self.versionFile
         if self.versionFile and os.path.exists(self.versionFile):
-            mc.file(filePath, r=True, ignoreVersion=True, namespace=self.assetList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset)
+            _namespace = self.assetList['scrollList'].getSelectedItem() if self.hasSub else self.selectedAsset
+            mc.file(filePath, r=True, ignoreVersion=True, namespace=CORESTRING.stripInvalidChars(_namespace))
         else:
             log.info( "Version file doesn't exist" )
             
@@ -4601,7 +4618,25 @@ example:
                                            "version":self.versionList['scrollList'].getItems()[-1]} )
 
         self.RefreshQueueList()
+    
+    def ExportQueue_write(self,*args):
+        if not self.batchExportItems:
+            return log.error("Nothing in queue")
+        
+        mDat = SCENEDAT.SceneExport({'data':self.batchExportItems})
+        mDat.write()
+        
 
+        
+    def ExportQueue_load(self,*args):
+        mDat = SCENEDAT.SceneExport({'data':self.batchExportItems})
+        mDat.read()
+        
+        if mDat.dat:
+            self.batchExportItems = mDat.dat.get('data',[])
+            
+        self.RefreshQueueList()
+    
     def AddToExportQueue(self, exportMode = 'export', *args):
         if self.versionList['scrollList'].getSelectedItem() != None:
             self.batchExportItems.append( {"category":self.category,
@@ -4695,10 +4730,15 @@ example:
                 exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, animDict["subType"]))                
                 
                 if animDict.get('exportMode') == 'rig':
-                    _exportFileName = [animDict["asset"], 'rig']
-                else:
+                    if animDict.get('set'):
+                        _exportFileName = [animDict["asset"], animDict["set"], 'rig']
+                    else:
+                        _exportFileName = [animDict["asset"], 'rig']
+                elif animDict.get('asset') and animDict.get('set'):
                     _exportFileName = [animDict["asset"], animDict["set"]]
-                
+                else:
+                    _exportFileName = [animDict.get('version').split('.')[0]]
+                    
                 if animDict.get("variation"):
                     _exportFileName.append(animDict["variation"])
                 
@@ -4869,6 +4909,7 @@ example:
                 'exportAssetPath' : PATHS.Path(exportAssetPath).split(),
                 'categoryExportPath' : PATHS.Path(categoryExportPath).split(),
                 'subType' : self.subType,
+                'subSet' : self.selectedSet,
                 'exportAnimPath' : PATHS.Path(exportAnimPath).split(),
                 'removeNamespace' : self.d_tf['exportOptions']['removeNameSpace'].getValue(),
                 'zeroRoot' : self.d_tf['exportOptions']['zeroRoot'].getValue(),
@@ -4892,6 +4933,7 @@ example:
                     exportName = self.exportFileName,
                     exportAssetPath = exportAssetPath,
                     subType = self.subType,
+                    subSet= self.selectedSet,
                     categoryExportPath = categoryExportPath,
                     exportAnimPath = exportAnimPath,
                     removeNamespace = self.d_tf['exportOptions']['removeNameSpace'].getValue(),
@@ -4923,6 +4965,7 @@ def BatchExport(dataList = []):
             _d['exportAnimPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAnimPath'))
             _d['exportAssetPath'] = PATHS.NICE_SEPARATOR.join(fileDat.get('exportAssetPath'))
             _d['subType'] = fileDat.get('subType')
+            _d['subSet'] = fileDat.get('set')            
             _d['exportName'] = fileDat.get('exportName')
             mFile = PATHS.Path(fileDat.get('file'))
             _d['mode'] = int(fileDat.get('mode'))
@@ -4990,6 +5033,7 @@ def ExportScene(mode = -1,
                 exportName = None,
                 categoryExportPath = None,
                 subType = None,
+                subSet = None,
                 exportAssetPath = None,
                 exportAnimPath = None,
                 exportMode = None,
@@ -5145,8 +5189,12 @@ def ExportScene(mode = -1,
     #    os.mkdir(exportAssetPath)
     log.debug(log_msg(_str_func,"Pathcheck..."))
     if not exportAnimPath:
-        exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
-    log.debug("exportPath: {0}".format(exportAnimPath))                
+        log.info("Getting path...")                        
+        if exportAsRig:
+            exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subSet, subType))
+        else:
+            exportAnimPath = os.path.normpath(os.path.join(exportAssetPath, subType))
+    log.info("exportPath: {0}".format(exportAnimPath))                
     
     
     #pprint.pprint(vars())
@@ -5242,7 +5290,9 @@ def ExportScene(mode = -1,
         if( addNamespaceSuffix ):
             exportFile = exportFile.replace(".fbx", "_%s.fbx" % assetName )
         if( exportAsRig ):
-            exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
+            exportFile = os.path.normpath(os.path.join(exportAssetPath, exportName) )
+            
+        #    exportFile = os.path.normpath(os.path.join(exportAssetPath, '{}_rig.fbx'.format( assetName )))
 
         cgmObj.select()
         

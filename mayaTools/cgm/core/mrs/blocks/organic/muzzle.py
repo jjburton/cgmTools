@@ -4,7 +4,7 @@ cgm.core.mrs.blocks.organic.lowerFace
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -161,7 +161,6 @@ d_attrStateMask = {'define':[
                               'controlOffset',
                               'conDirectOffset',
 
-
                        ],
                    'skeleton':[
                        'numJointsLipLwr',
@@ -171,6 +170,8 @@ d_attrStateMask = {'define':[
                        'numJointsTongue',
                        ],
                    'rig':[
+                       'lipMidSetup',
+                       
                    ]}
 
 
@@ -256,6 +257,8 @@ d_attrsToMake = {'faceType':'default:muzzle:beak',
                  'numJointsNostril':'int',
                  'numJointsNoseTip':'int',
                  #Lips...
+                 'lipMidSetup':'ribbon:prntConstraint',
+                 
                  #'lipSealSetup':'none:default',
                  'numConLips':'int',
                  'numLipShapersUpr':'int',
@@ -2631,6 +2634,8 @@ def form(self):
                                                 'rebuild':1}
 
             else:
+                
+                """
                 l_nose_underTags = ['nostrilRight',
                                     'nostrilBaseRight',
                                     'noseBaseRight',
@@ -2640,7 +2645,10 @@ def form(self):
                                     'nostrilLeft']                
                 l_endKeys = copy.copy(l_nose_underTags)
                 d_tmp = {'right':[],'left':[]}
-
+                                d_curveCreation['overEnd'] = {'keys':l_endKeys,
+                                              'rebuild':1}
+                """
+                l_endKeys = ['cornerUprRight', 'uprOverRight', 'uprOver', 'uprOverLeft', 'cornerUprLeft']
                 d_curveCreation['overEnd'] = {'keys':l_endKeys,
                                               'rebuild':1}
                 
@@ -2649,7 +2657,7 @@ def form(self):
                                                 'rebuild':1}
                 pass
                 #raise ValueError,"Finish this"
-
+                
 
             #Loft/baseCurves ----------------------------------------------------------------------------------
             _res_tmp = mc.loft(l_curves_baseLoft,
@@ -5494,7 +5502,7 @@ def rig_dataBuffer(self):
         log.debug("|{0}| >> self.str_{1} = {2}".format(_str_func,_tag,self.__dict__['str_{0}'.format(_tag)]))    
     
     
-    for k in ['buildSDK']:
+    for k in ['buildSDK','lipMidSetup']:
         self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)    
         self.__dict__['v_{0}'.format(k)] = mBlock.getMayaAttr(k)    
     
@@ -6472,57 +6480,88 @@ def rig_frame(self):
                 
             
             #side handles ---------------------------
-            #First we're going to attach our handles to a surface to ge general placement. Then we're going to try
-            d_lipSetup = {'upr':{'ml_chain':[mRightCorner] + ml_uprChain + [mLeftCorner],
-                                   'mInfluences':[mRightCorner.uprInfluence,mUprCenter,mLeftCorner.uprInfluence],
-                                   'mHandles':ml_uprLip},
-                          'lwr':{'ml_chain':[mRightCorner] + ml_lwrChain + [mLeftCorner],
-                                   'mInfluences':[mRightCorner.lwrInfluence,mLwrCenter,mLeftCorner.lwrInfluence],
-                                   'mHandles':ml_lwrLip}}
             
-            for k,d in d_lipSetup.iteritems():
-                #need our handle chain to make a ribbon
-                ml_chain = d['ml_chain']
-                mInfluences = d['mInfluences']
-                l_surfaceReturn = IK.ribbon_createSurface([mJnt.mNode for mJnt in ml_chain],
-                                                'z+')
-                mControlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
-                mControlSurface.addAttr('cgmName',"{0}HandlesFollow_lip".format(k),attrType='string',lock=True)    
-                mControlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
-                mControlSurface.doName()
-                mControlSurface.p_parent = _str_rigNull
+            if self.str_lipMidSetup in ['ribbon']:
+                #First we're going to attach our handles to a surface to ge general placement. Then we're going to try
+                d_lipSetup = {'upr':{'ml_chain':[mRightCorner] + ml_uprChain + [mLeftCorner],
+                                       'mInfluences':[mRightCorner.uprInfluence,mUprCenter,mLeftCorner.uprInfluence],
+                                       'mHandles':ml_uprLip},
+                              'lwr':{'ml_chain':[mRightCorner] + ml_lwrChain + [mLeftCorner],
+                                       'mInfluences':[mRightCorner.lwrInfluence,mLwrCenter,mLeftCorner.lwrInfluence],
+                                       'mHandles':ml_lwrLip}}
                 
+                for k,d in d_lipSetup.iteritems():
+                    #need our handle chain to make a ribbon
+                    ml_chain = d['ml_chain']
+                    mInfluences = d['mInfluences']
+                    l_surfaceReturn = IK.ribbon_createSurface([mJnt.mNode for mJnt in ml_chain],
+                                                    'z+')
+                    mControlSurface = cgmMeta.validateObjArg( l_surfaceReturn[0],'cgmObject',setClass = True )
+                    mControlSurface.addAttr('cgmName',"{0}HandlesFollow_lip".format(k),attrType='string',lock=True)    
+                    mControlSurface.addAttr('cgmType','controlSurface',attrType='string',lock=True)
+                    mControlSurface.doName()
+                    mControlSurface.p_parent = _str_rigNull
+                    
+                    
+                    log.debug("|{0}| >> Skinning surface: {1}".format(_str_func,mControlSurface))
+                    mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mObj.mNode for mObj in mInfluences],
+                                                                          mControlSurface.mNode,
+                                                                          tsb=True,nurbsSamples=4,
+                                                                          maximumInfluences = 3,
+                                                                          normalizeWeights = 1,dropoffRate=10.0),
+                                                          'cgmNode',
+                                                          setClass=True)
                 
-                log.debug("|{0}| >> Skinning surface: {1}".format(_str_func,mControlSurface))
-                mSkinCluster = cgmMeta.validateObjArg(mc.skinCluster ([mObj.mNode for mObj in mInfluences],
-                                                                      mControlSurface.mNode,
-                                                                      tsb=True,nurbsSamples=4,
-                                                                      maximumInfluences = 3,
-                                                                      normalizeWeights = 1,dropoffRate=10.0),
-                                                      'cgmNode',
-                                                      setClass=True)
-            
-                mSkinCluster.doStore('cgmName', mControlSurface)
-                mSkinCluster.doName()
+                    mSkinCluster.doStore('cgmName', mControlSurface)
+                    mSkinCluster.doName()
+    
+                    for mHandle in d['mHandles']:
+                        mHandle.masterGroup.p_parent = mFollowParent
+                        _resAttach = RIGCONSTRAINT.attach_toShape(mHandle.masterGroup.mNode,
+                                                                  mControlSurface.mNode,
+                                                                  'conParent')
+                        TRANS.parent_set(_resAttach[0],_str_rigNull)
+                        
+                        
+                    
+                    for mObj in [mControlSurface]:
+                        mObj.overrideEnabled = 1
+                        cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
+                        cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
+                        mObj.parent = mRigNull
+            else:
+                #...parentConstraint....
+                d_lipSetup = {'upr':{'left':self.md_handles['lipUpr']['left'][1:],
+                                     'right':self.md_handles['lipUpr']['right'][1:],
+                                    'mInfluences':[mRightCorner.uprInfluence,mUprCenter,mLeftCorner.uprInfluence]},
+                              
+                              'lwr':{'left':self.md_handles['lipLwr']['left'],
+                                     'mInfluences':[mRightCorner.lwrInfluence,mLwrCenter,mLeftCorner.lwrInfluence],                                         
+                                     'right':self.md_handles['lipLwr']['right']}}
 
-                for mHandle in d['mHandles']:
-                    mHandle.masterGroup.p_parent = mFollowParent
-                    _resAttach = RIGCONSTRAINT.attach_toShape(mHandle.masterGroup.mNode,
-                                                              mControlSurface.mNode,
-                                                              'conParent')
-                    TRANS.parent_set(_resAttach[0],_str_rigNull)
+                for k,d in d_lipSetup.iteritems():
+                    #need our handle chain to make a ribbon
+                    pprint.pprint(d)
+                    ml_left = d['left']
+                    ml_right = d['right']
+                    mInfluences = d['mInfluences']
                     
-                    
-                
-                for mObj in [mControlSurface]:
-                    mObj.overrideEnabled = 1
-                    cgmMeta.cgmAttr(_str_rigNull,'gutsVis',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideVisibility'))
-                    cgmMeta.cgmAttr(_str_rigNull,'gutsLock',lock=False).doConnectOut("%s.%s"%(mObj.mNode,'overrideDisplayType'))    
-                    mObj.parent = mRigNull
-                    
+                    for mHandle in ml_left:
+                        mHandle.masterGroup.p_parent = mFollowParent                        
+                        mc.parentConstraint([mObj.mNode for mObj in mInfluences[1:]],
+                                            mHandle.masterGroup.mNode,
+                                            maintainOffset = True, weight = 1)
+                    for mHandle in ml_right:
+                        mHandle.masterGroup.p_parent = mFollowParent                        
+                        mc.parentConstraint([mObj.mNode for mObj in mInfluences[:2]],
+                                            mHandle.masterGroup.mNode,
+                                            maintainOffset = True, weight = 1)
+                                                
+                 
+                        
                     
 
-                
+                #Lip Aim setup...
                 ml_lwrLeft = self.md_handles['lipLwr']['left']
                 ml_lwrRight = self.md_handles['lipLwr']['right']
                 d_lipAim = {'upr':{'left':self.md_handles['lipUpr']['left'][1:],

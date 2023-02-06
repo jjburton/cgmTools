@@ -2421,6 +2421,13 @@ def buildUIForObject( obj, parent, typeMapping=None ):
     return ui
 
 
+
+def doNothing():
+    '''
+    closes the window (if it exists)
+    '''
+    pass
+        
 class BaseMelWindow(BaseMelUI):
     '''
     This is a wrapper class for a mel window to make it behave a little more like an object.  It
@@ -2473,10 +2480,21 @@ class BaseMelWindow(BaseMelUI):
         '''
         closes the window (if it exists)
         '''
-        if cls.Exists():
-            cmd.deleteUI( cls.WINDOW_NAME )
+        #if cls.Exists():
+        def close():
+            if cmd.window( cls.WINDOW_NAME, ex=True ):
+                #print("Classmethod Close")                                
+                cmd.deleteUI( cls.WINDOW_NAME )
+        cmd.evalDeferred(close,lp=True)
 
     def __new__( cls, *a, **kw ):
+        #print("New")
+        
+        if cmd.window( cls.WINDOW_NAME, ex=True ):
+            cmd.window(cls.WINDOW_NAME, edit=True,  closeCommand = doNothing)            
+            #print('delete')
+            cmd.deleteUI( cls.WINDOW_NAME )
+            
         kw.setdefault( 'title', cls.WINDOW_TITLE )
         kw.setdefault( 'widthHeight', cls.DEFAULT_SIZE )
         kw.setdefault( 'menuBar', True )
@@ -2484,12 +2502,14 @@ class BaseMelWindow(BaseMelUI):
         kw.setdefault( 'useTemplate', cls.USE_Template )
         kw.setdefault( 'minimizeButton', cls.MIN_BUTTON )
         kw.setdefault( 'maximizeButton', cls.MAX_BUTTON )
+        kw.setdefault( 'closeCommand', cls.Close )
 
-        if cmd.window( cls.WINDOW_NAME, ex=True ):
-            cmd.deleteUI( cls.WINDOW_NAME )
 
         new = unicode.__new__( cls, cmd.window( cls.WINDOW_NAME, **kw ) )
+        
+        
         cmd.window( new, e=True, docTag=cls.__name__ )   #store the classname in the
+        
         if cls.DEFAULT_MENU is not None:
             MelMenu( l=cls.DEFAULT_MENU, helpMenu=cls.DEFAULT_MENU_IS_HELP )
 
@@ -2499,16 +2519,23 @@ class BaseMelWindow(BaseMelUI):
             MelMenuItem( helpMenu, l="Help...", en=helpPage is not None, c=lambda x: cmd.showHelp(helpPage, absolute=True) )
             #MelMenuItemDiv( helpMenu )
             #bugReporterUI.addBugReporterMenuItems( toolName, assignee=authorEmail, parent=helpMenu )
-
+            
+        #cmd.window(new, edit=True,  closeCommand = cls.Close)
+        #print(new)
         return new
+    
     def __init__( self, *a, **kw ): pass
+    
     def __call__( self, *a, **kw ):
         return cmd.window( self, *a, **kw )
+    
     def setTitle( self, newTitle ):
         cmd.window( self.WINDOW_NAME, e=True, title=newTitle )
+    
     def getMenus( self ):
         menus = self( q=True, menuArray=True ) or []
         return [ MelMenu.FromStr( m ) for m in menus ]
+    
     def getMenu( self, menuName, createIfNotFound=True ):
         '''
         returns the UI name for the menu with the given name
@@ -2532,13 +2559,17 @@ class BaseMelWindow(BaseMelUI):
                 return BaseMelLayout.FromStr( '%s|%s' % (self, toks[1]) )
     def exists( self ):
         return cmd.window( self.WINDOW_NAME, q=True, ex=True )
+    
     def show( self, state=True, forceDefaultSize=None ):
         '''
         if forceDefaultSize is None - it uses the FORCE_DEFAULT_SIZE class attribute
         '''
+        #print('Show')
         if state:
+            print('show True')            
             cmd.showWindow( self )
         else:
+            print('show not true')            
             self( e=True, visible=False )
 
         if forceDefaultSize is None:
@@ -2546,6 +2577,8 @@ class BaseMelWindow(BaseMelUI):
 
         if forceDefaultSize:
             self( e=True, widthHeight=self.DEFAULT_SIZE )
+        #print("Show end")
+            
     def layout( self ):
         '''
         forces the window to re calc layouts for children
@@ -2553,13 +2586,14 @@ class BaseMelWindow(BaseMelUI):
         curWidth = self( q=True, width=True )
         self( e=True, width=curWidth+1 )
         self( e=True, width=curWidth )
+        
     def processEvent( self, methodName, methodArgs, methodKwargs ):
         method = getattr( self, methodName, None )
         if callable( method ):
             method( *methodArgs, **methodKwargs )
+            
     def close( self ):
         self.Close()
-
 
 ###
 ### PROCEDURAL UI BUILDING ###

@@ -12,7 +12,7 @@
 #
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - cgmonks.info@gmail.com
-#	http://www.cgmonastery.com
+#	https://github.com/jjburton/cgmTools/wiki
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 # CHANGELOG:
@@ -170,7 +170,7 @@ def showAbout(uiWin):
     mc.separator(ut='cgmUITemplate')
     mc.separator(ut='cgmUITemplate')
     mc.text(label='')
-    mc.button(label='Visit Website', ut = 'cgmUITemplate', command=('import webbrowser;webbrowser.open("http://www.cgmonastery.com")') )
+    mc.button(label='Visit Website', ut = 'cgmUITemplate', command=('import webbrowser;webbrowser.open("https://github.com/jjburton/cgmTools/wiki")') )
     mc.button(label='Close', ut = 'cgmUITemplate', command=('mc.deleteUI(\"' + window + '\", window=True)') )
     mc.setParent( '..' )
     mc.showWindow( window )

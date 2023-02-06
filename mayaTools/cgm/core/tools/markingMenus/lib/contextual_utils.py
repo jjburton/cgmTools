@@ -3,13 +3,14 @@
 contextual_utils: cgm.core.tools.markingMenus.lib.contextual_utils
 Author: Josh Burton
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 """
 # From Python =============================================================
 import copy
 import re
+import pprint
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -356,8 +357,9 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
                 elif processMode == 'eachToLast':
                     _res = func(o,objects[-1],**kws)
                 
-                if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
-                
+                if _res:
+                    print( "|{0}| >> {1}".format( _str_func, _res ))
+                    pprint.pprint(_res)
             except Exception,err:
                 log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
     elif processMode in ['firstToEach','eachToFirst','eachToPrevious','previousToEach']:
@@ -374,8 +376,9 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
                         _res = func(o,objects[i],**kws)     
                     elif processMode == 'previousToEach':
                         _res = func(objects[i],o,**kws)                       
-                    if _res:print( "|{0}| >> {1}".format( _str_func, _res ))
-                        
+                    if _res:
+                        print( "|{0}| >> {1}".format( _str_func, _res ))
+                        pprint.pprint(_res)                        
                 except Exception,err:
                     log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
     elif processMode in ['lastFromRest','restFromLast','firstToRest','restFromFirst','all']:
@@ -398,7 +401,9 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
             log.debug("|{0}| >> {1} : {2}".format(_str_func,i,pair))  
             _res = func(pair[0],pair[1],**kws)
                 
-            if _res:print( "|{0}| >> {1}".format( _str_func, _res ))            
+            if _res:
+                print( "|{0}| >> {1}".format( _str_func, _res ))            
+                pprint.pprint(_res)                
     else:
         raise ValueError,"|{0}.{1}| Unkown processMode: {2}".format(__name__,_str_func,processMode)
     

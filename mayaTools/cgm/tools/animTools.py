@@ -13,7 +13,7 @@
 #
 # AUTHOR:
 # 	Josh Burton (under the supervision of python guru (and good friend) David Bokser) - cgmonks.info@gmail.com
-#	http://www.cgmonastery.com
+#	https://github.com/jjburton/cgmTools/wiki
 # 	Copyright 2011 CG Monks - All Rights Reserved.
 #
 #=================================================================================================================================================
@@ -248,7 +248,7 @@ class animToolsClass(BaseMelWindow):
 		guiFactory.lineBreak()
 		mc.text(label='Version: %s' % self.version)
 		mc.text(label='')
-		guiFactory.doButton('Visit Tool Webpage', 'import webbrowser;webbrowser.open(" http://www.cgmonastery.com/tools/maya-tools/animTools/")')
+		guiFactory.doButton('Visit Tool Webpage', 'import webbrowser;webbrowser.open(" https://github.com/jjburton/cgmTools/wiki/tools/maya-tools/animTools/")')
 		guiFactory.doButton('Close', 'import maya.cmds as mc;mc.deleteUI(\"' + window + '\", window=True)')
 		mc.setParent( '..' )
 		mc.showWindow( window )

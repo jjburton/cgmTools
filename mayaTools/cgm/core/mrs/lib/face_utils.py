@@ -2,7 +2,7 @@
 ------------------------------------------
 face_utils: cgm.core.mrs.lib
 Author: Josh Burton
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -500,6 +500,7 @@ class poseBuffer():
     def __init__(self,node = None, 
                  name = None,
                  baseName = 'face',
+                 attrDat = None,
                  faceType = 'default',
                  *args,**kws):
         """ 
@@ -510,6 +511,8 @@ class poseBuffer():
         
 
         self.attrDat = _d_faceBufferAttributes.get(faceType) or None
+        if attrDat:
+            self.attrDat = attrDat
        
         if kws:log.info("kws: %s"%str(kws))
         if args:log.info("args: %s"%str(args))
@@ -548,14 +551,19 @@ class poseBuffer():
         self.buffer_purge()
         self.buffer_verify()
         
-    def buffer_verify(self, addNonSplits = False, maxValue = 1.0, minValue = 0):
+    def buffer_verify(self, attrDat = None, addNonSplits = False, maxValue = 1.0, minValue = 0):
         """
         addNonSplits | add a lips_smile for example for splitting to L/R
         """
         _str_func = 'buffer_verify'
         mBuffer = self.mBuffer
-        d_buffer = _d_faceBufferAttributes.get(mBuffer.cgmName) or {}
         
+        if attrDat is None:
+            d_buffer = _d_faceBufferAttributes.get(mBuffer.cgmName) or {}
+        else:
+            d_buffer = attrDat
+            self.attrDat = attrDat
+            
         if not d_buffer:
             raise ValueError, "No attrDat"
         
@@ -565,7 +573,7 @@ class poseBuffer():
         mBuffer.addAttr("Rest",attrType = 'float',hidden = False)
         
         for section in l_sections:
-            mBuffer.addAttr("XXX_{0}_attrs_XXX".format(section),
+            mBuffer.addAttr("XXXXXXXXX_{0}_attrs".format(section),
                             attrType = 'int',
                             keyable = False,
                             hidden = False,lock=True) 
@@ -1531,3 +1539,29 @@ _d_faceControlsToConnectBAK = {
                              '{0}.jawNDV_ry = {0}.jawBase_ry + {0}.jawDriven_left_ry + {0}.jawDriven_right_ry'.format(__attrHolder), 
                              '{0}.jawNDV_rz = {0}.jawBase_rz + {0}.jawDriven_left_rz + {0}.jawDriven_right_rz'.format(__attrHolder), 
                              ]}}}
+
+
+def getBlendDriverDict(node = 'blendShape1', ignore = ['SHAPES']):
+    import cgm.core.lib.attribute_utils as ATTR
+    d = {}
+    for a in mc.listAttr(node+'.weight',m=1):
+        _plug = ATTR.get_driver(node,a) 
+        if _plug:
+            _check = False
+            for check in ignore:
+                if check in _plug:
+                    _check = True
+                    break        
+            if not _check:                                       
+                d[a] = _plug
+    return d
+
+
+def setBlendDriverDict(node = 'blendShape1', d_wiring = {}):
+    import cgm.core.lib.attribute_utils as ATTR
+    for t,s in d_wiring.iteritems():
+        log.info("Set: {} | {}".format(t,s))
+        try:
+            ATTR.connect(s,node+'.'+t)
+        except Exception,err:
+            print err

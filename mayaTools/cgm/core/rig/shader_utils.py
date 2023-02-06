@@ -3,7 +3,7 @@
 shader_utils: cgm.core.lib
 Author: Josh Burton & David Bokser
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 """

@@ -4,7 +4,7 @@ block: cgm.core.mrs.lib
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 These are functions with self assumed to be a cgmRigBlock
@@ -1484,7 +1484,7 @@ def get_castMesh(self,extend=False,pivotEnd=False):
             justMesh = True,
             baseName = self.cgmName)
     else:
-        mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0]
+        mMesh = self.getMessage('prerigLoftMesh', asMeta = True)[0].doDuplicate(po=False)
         
     mRebuildNode = mMesh.getMessage('rebuildNode',asMeta=True)[0]
         
@@ -2232,7 +2232,12 @@ def pivots_setup(self, mControl = None,
                  jointOrientation = 'zyx',
                  pivotResult = None,
                  mDag = None,
-                 rollSetup = 'default', **kws):
+                 rollSetup = 'default',
+                 l_pivotOrder = l_pivotOrder,
+                 setup = 'default',
+                 setupWobble = False,
+                 setupSpin = True,
+                 **kws):
     """
     Builder for pivot setup
     
@@ -2300,9 +2305,9 @@ def pivots_setup(self, mControl = None,
                 if a in ['left','right']:
                     mPivot.doStore('cgmName', d_bankNames[a])
                 
-                _str = NAMETOOLS.get_combinedNameDict(mControl.mNode,['cgmType','cgmTypeModifier'])
-                mPivot.doStore('cgmNameModifier',_str)
-                mPivot.doName()
+                    _str = NAMETOOLS.get_combinedNameDict(mControl.mNode,['cgmType','cgmTypeModifier'])
+                    mPivot.doStore('cgmNameModifier',_str)
+                    mPivot.doName()
                     
                 mPivot.rotateOrder = 2
                 mPivot.masterGroup.parent = mLastParent
@@ -2344,277 +2349,314 @@ def pivots_setup(self, mControl = None,
         raise ValueError,"|{0}| >> No pivots found. mBlock: {1}".format(_str_func,self)
     
     #pprint.pprint(vars())
+    
+    
+    
     #Logic ======================================================================================
-    if d_drivenGroups.get('center'):
-        b_centerOK = True
-    else:
-        log.error("|{0}| >> Missing center pivot setup info...".format(_str_func))        
-        b_centerOK = False
-        
-    if d_drivenGroups.get('front') and d_drivenGroups.get('back'):
-        b_rollOK = True
-    else:
-        log.error("|{0}| >> Missing roll setup...".format(_str_func))                
-        b_rollOK = False
-        
-    if d_drivenGroups.get('left') and d_drivenGroups.get('right'):
-        b_bankOK = True
-    else:
-        log.error("|{0}| >> Missing bank setup...".format(_str_func))                
-        b_bankOK = False
-        
-    
-    
-    #Attributes ...---------------------------------------------------------------------------------------------
-    
-    log.debug("|{0}| >> Attributes ...".format(_str_func))    
+    if setup == 'default':
+        if d_drivenGroups.get('center'):
+            b_centerOK = True
+        else:
+            log.error("|{0}| >> Missing center pivot setup info...".format(_str_func))        
+            b_centerOK = False
+            
+        if d_drivenGroups.get('front') and d_drivenGroups.get('back'):
+            b_rollOK = True
+        else:
+            log.error("|{0}| >> Missing roll setup...".format(_str_func))                
+            b_rollOK = False
+            
+        if d_drivenGroups.get('left') and d_drivenGroups.get('right'):
+            b_bankOK = True
+        else:
+            log.error("|{0}| >> Missing bank setup...".format(_str_func))                
+            b_bankOK = False
 
-    #Roll ===================================================================================================
-    if b_rollOK:
-        mPlug_roll = cgmMeta.cgmAttr(mControl,'roll',attrType='float',defaultValue = 0,keyable = True)
-        
-        
-        if rollSetup in ['human','ik','foot']:
-            log.debug("|{0}| >> foot setup ...".format(_str_func))
-            mFrontToe = d_drivenGroups['front']
-            mHeel = d_drivenGroups['back']
+        #Attributes ...---------------------------------------------------------------------------------------------
+        log.debug("|{0}| >> Attributes ...".format(_str_func))    
+    
+        #Roll ===================================================================================================
+        if b_rollOK:
+            mPlug_roll = cgmMeta.cgmAttr(mControl,'roll',attrType='float',defaultValue = 0,keyable = True)
             
-            mPlug_toeLift = cgmMeta.cgmAttr(mControl,'rollBallLift_set',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
-            mPlug_toeStaighten = cgmMeta.cgmAttr(mControl,'rollBallStraight_set',attrType='float',initialValue = 65,defaultValue = 65,keyable = True)
             
-            if mBallWiggleJoint:
-                mPlug_ballUpDn = cgmMeta.cgmAttr(mControl,'ballLift',attrType='float',defaultValue = 0,keyable = True)
-                mPlug_ballTwist= cgmMeta.cgmAttr(mControl,'ballTwist',attrType='float',defaultValue = 0,keyable = True)                
-                mPlug_ballWiggle= cgmMeta.cgmAttr(mControl,'ballSide',attrType='float',defaultValue = 0,keyable = True)                
+            if rollSetup in ['human','ik','foot']:
+                log.debug("|{0}| >> foot setup ...".format(_str_func))
+                mFrontToe = d_drivenGroups['front']
+                mHeel = d_drivenGroups['back']
                 
-                mPlug_ballUpDn.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[2].lower()))
+                mPlug_toeLift = cgmMeta.cgmAttr(mControl,'rollBallLift_set',attrType='float',initialValue = 35, defaultValue = 35,keyable = True)
+                mPlug_toeStaighten = cgmMeta.cgmAttr(mControl,'rollBallStraight_set',attrType='float',initialValue = 65,defaultValue = 65,keyable = True)
                 
-                if _side in ['right']:
-                    str_arg = "{0}.r{1} = -{2}".format(mBallWiggleJoint.mNode,
-                                                       jointOrientation[0].lower(),
-                                                       mPlug_ballTwist.p_combinedShortName)
-                    log.debug("|{0}| >> Ball wiggle Right arg: {1}".format(_str_func,str_arg))        
-                    NODEFACTORY.argsToNodes(str_arg).doBuild()
+                if mBallWiggleJoint:
+                    mPlug_ballUpDn = cgmMeta.cgmAttr(mControl,'ballLift',attrType='float',defaultValue = 0,keyable = True)
+                    mPlug_ballTwist= cgmMeta.cgmAttr(mControl,'ballTwist',attrType='float',defaultValue = 0,keyable = True)                
+                    mPlug_ballWiggle= cgmMeta.cgmAttr(mControl,'ballSide',attrType='float',defaultValue = 0,keyable = True)                
                     
-                    str_arg = "{0}.r{1} = -{2}".format(mBallWiggleJoint.mNode,
-                                                       jointOrientation[1].lower(),
-                                                       mPlug_ballWiggle.p_combinedShortName)
-                    log.debug("|{0}| >> Ball wiggle Right arg: {1}".format(_str_func,str_arg))        
-                    NODEFACTORY.argsToNodes(str_arg).doBuild()                    
+                    mPlug_ballUpDn.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[2].lower()))
+                    
+                    if _side in ['right']:
+                        str_arg = "{0}.r{1} = -{2}".format(mBallWiggleJoint.mNode,
+                                                           jointOrientation[0].lower(),
+                                                           mPlug_ballTwist.p_combinedShortName)
+                        log.debug("|{0}| >> Ball wiggle Right arg: {1}".format(_str_func,str_arg))        
+                        NODEFACTORY.argsToNodes(str_arg).doBuild()
+                        
+                        str_arg = "{0}.r{1} = -{2}".format(mBallWiggleJoint.mNode,
+                                                           jointOrientation[1].lower(),
+                                                           mPlug_ballWiggle.p_combinedShortName)
+                        log.debug("|{0}| >> Ball wiggle Right arg: {1}".format(_str_func,str_arg))        
+                        NODEFACTORY.argsToNodes(str_arg).doBuild()                    
+                    else:
+                        mPlug_ballTwist.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[0].lower()))
+                        mPlug_ballWiggle.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[1].lower()))
+                    
+                    
+                #Heel setup ----------------------------------------------------------------------------------------
+                log.debug("|{0}| >> Heel ...".format(_str_func))        
+                mPlug_heelClampResult = cgmMeta.cgmAttr(mControl,'result_clamp_heel',attrType='float',keyable = False,hidden=True)
+            
+                #Setup the heel roll
+                #Clamp
+            
+                _arg = "{0} = clamp({1},0,{2})".format(mPlug_heelClampResult.p_combinedShortName,
+                                                       mPlug_roll.p_combinedShortName,
+                                                       mPlug_roll.p_combinedShortName)
+            
+                log.debug("|{0}| >> heel arg: {1}".format(_str_func,_arg))        
+                NODEFACTORY.argsToNodes(_arg).doBuild()
+            
+                #Inversion
+                mPlug_heelClampResult.doConnectOut("%s.rx"%(mHeel.mNode))        
+            
+                #Ball setup ----------------------------------------------------------------------------------------------
+                """
+                    Schleifer's
+                    ball_loc.rx = (linstep(0,$toeLift, $roll) * (1-(linstep( $toeLift, $toeStraight, $roll))) * $roll;
+                            ballToeLiftRoll        md   ( pma   toeToeStraightRoll                    md  
+                                1               4       3             2                            5
+                    """
+                log.debug("|{0}| >> ball ...".format(_str_func))    
+            
+                mPlug_ballToeLiftRollResult = cgmMeta.cgmAttr(mControl,'result_range_ballToeLiftRoll',
+                                                              attrType='float',keyable = False,hidden=True)
+                mPlug_toeStraightRollResult = cgmMeta.cgmAttr(mControl,'result_range_toeStraightRoll',
+                                                              attrType='float',keyable = False,hidden=True)
+                mPlug_oneMinusToeResultResult = cgmMeta.cgmAttr(mControl,
+                                                                'result_pma_one_minus_toeStraitRollRange',
+                                                                attrType='float',keyable = False,hidden=True)
+                mPlug_ball_x_toeResult = cgmMeta.cgmAttr(mControl,'result_md_roll_x_toeResult',
+                                                         attrType='float',keyable = False,hidden=True)
+                mPlug_all_x_rollResult = cgmMeta.cgmAttr(mControl,'result_md_all_x_rollResult',
+                                                         attrType='float',keyable = False,hidden=True)
+            
+                arg1 = "%s = setRange(0,1,0,%s,%s)"%(mPlug_ballToeLiftRollResult.p_combinedShortName,
+                                                     mPlug_toeLift.p_combinedShortName,
+                                                     mPlug_roll.p_combinedShortName)
+                arg2 = "%s = setRange(0,1,%s,%s,%s)"%(mPlug_toeStraightRollResult.p_combinedShortName,
+                                                      mPlug_toeLift.p_combinedShortName,
+                                                      mPlug_toeStaighten.p_combinedShortName,
+                                                      mPlug_roll.p_combinedShortName)
+                arg3 = "%s = 1 - %s"%(mPlug_oneMinusToeResultResult.p_combinedShortName,
+                                      mPlug_toeStraightRollResult.p_combinedShortName)
+            
+                arg4 = "%s = %s * %s"%(mPlug_ball_x_toeResult.p_combinedShortName,
+                                       mPlug_oneMinusToeResultResult.p_combinedShortName,
+                                       mPlug_ballToeLiftRollResult.p_combinedShortName)
+            
+                arg5 = "%s = %s * %s"%(mPlug_all_x_rollResult.p_combinedShortName,
+                                       mPlug_ball_x_toeResult.p_combinedShortName,
+                                       mPlug_roll.p_combinedShortName)
+            
+                for arg in [arg1,arg2,arg3,arg4,arg5]:
+                    NODEFACTORY.argsToNodes(arg).doBuild()
+                
+                #>>>Josh - resolve getting this back in and where it need to be in heirarchy
+                if mBallJoint:
+                    mPlug_all_x_rollResult.doConnectOut("%s.r%s"%(mBallJoint.mNode,jointOrientation[2]))
+            
+            
+                #Toe setup -----------------------------------------------------------------------------------------------
+                """
+                    Schleifer's
+                    toe_loc.rotateX = linstep($toeLift, $toeStraight,$roll) * $roll;
+                                  setRange                           md
+                                 1                                2
+                    """
+                log.debug("|{0}| >> Toe ...".format(_str_func))        
+            
+                mPlug_toeRangeResult = cgmMeta.cgmAttr(mControl,'result_range_toeLiftStraightRoll',attrType='float',keyable = False,hidden=True)
+                mPlug_toe_x_rollResult = cgmMeta.cgmAttr(mControl,'result_md_toeRange_x_roll',attrType='float',keyable = False,hidden=True)
+            
+                arg1 = "%s = setRange(0,1,%s,%s,%s)"%(mPlug_toeRangeResult.p_combinedShortName,
+                                                      mPlug_toeLift.p_combinedShortName,
+                                                      mPlug_toeStaighten.p_combinedShortName,                                         
+                                                      mPlug_roll.p_combinedShortName)
+                arg2 = "%s = %s * %s"%(mPlug_toe_x_rollResult.p_combinedShortName,
+                                       mPlug_toeRangeResult.p_combinedShortName,
+                                       mPlug_roll.p_combinedShortName)
+                for arg in [arg1,arg2]:
+                    NODEFACTORY.argsToNodes(arg).doBuild()    
+            
+                mPlug_toe_x_rollResult.doConnectOut("%s.rx"%(mFrontToe.mNode))
+                
+                #mPlug_toeRollResult.doConnectOut("%s.rx"%(mToe.mNode))
+                #mPlug_heelRollResult.doConnectOut("%s.rx"%(mHeel.mNode))            
+            else:
+                log.debug("|{0}| >> StandardRoll ...".format(_str_func))
+                
+                #Roll setup -----------------------------------------------------------------------------------------------
+                """
+                Schleifer's
+                outside_loc.rotateZ = min($side,0);
+                clamp1
+                inside_loc.rotateZ = max(0,$side);
+                clamp2
+                """   
+                log.debug("|{0}| >> Bank ...".format(_str_func))        
+                mToe = d_drivenGroups['front']
+                mHeel = d_drivenGroups['back']
+                
+                mPlug_toeRollResult = cgmMeta.cgmAttr(mControl,'result_clamp_toeRoll',attrType='float',keyable = False,hidden=True)
+                mPlug_heelRollResult = cgmMeta.cgmAttr(mControl,'result_clamp_heelRoll',attrType='float',keyable = False,hidden=True)
+        
+                arg1 = "%s = clamp(-360,0,%s)"%(mPlug_heelRollResult.p_combinedShortName,                                  
+                                                mPlug_roll.p_combinedShortName)
+                arg2 = "%s = clamp(0,360,%s)"%(mPlug_toeRollResult.p_combinedShortName,
+                                               mPlug_roll.p_combinedShortName)
+                for arg in [arg1,arg2]:
+                    NODEFACTORY.argsToNodes(arg).doBuild()   
+        
+                mPlug_toeRollResult.doConnectOut("%s.rx"%(mToe.mNode))
+                mPlug_heelRollResult.doConnectOut("%s.rx"%(mHeel.mNode))
+                
+        if b_centerOK:        
+            mPlug_bankBall = cgmMeta.cgmAttr(mControl,'centerBank',attrType='float',defaultValue = 0,keyable = True)
+            mPlug_rollBall = cgmMeta.cgmAttr(mControl,'centerRoll',attrType='float',defaultValue = 0,keyable = True)    
+            
+            #Ball roll ....
+            mDriven = d_drivenGroups['center']
+            mPlug_rollBall.doConnectOut("{0}.rx".format(mDriven.mNode))         
+            """
+            if _side in ['right']:
+                str_arg = "{0}.rx = -{1}".format(mDriven.mNode,
+                                                 mPlug_rollBall.p_combinedShortName)
+                log.debug("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
+                NODEFACTORY.argsToNodes(str_arg).doBuild()
+            else:
+                mPlug_rollBall.doConnectOut("{0}.rx".format(mDriven.mNode))         """
+                
+        
+        #Spins ===================================================================================================
+        
+        log.debug("|{0}| >> Spin ...".format(_str_func))
+        if setupSpin:
+            d_mPlugSpin = {}
+            for k in d_drivenGroups.keys():
+                d_mPlugSpin[k] = cgmMeta.cgmAttr(mControl,'spin{0}'.format(d_strCaps[k]),attrType='float',defaultValue = 0,keyable = True)
+                
+            for k in d_drivenGroups.keys():
+                str_key = d_strCaps[k]
+                mPlug = d_mPlugSpin[k]
+                mDriven = d_drivenGroups[k]
+                log.debug("|{0}| >> Spin {1} setup".format(_str_func,str_key))        
+                
+                if _side in ['right']:# and k not in ['inner','outer']:
+                    str_arg = "{0}.ry = -{1}".format(mDriven.mNode,
+                                                     mPlug.p_combinedShortName)
+                    log.debug("|{0}| >> Spin Right arg: {1}".format(_str_func,str_arg))        
+                    NODEFACTORY.argsToNodes(str_arg).doBuild()
                 else:
-                    mPlug_ballTwist.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[0].lower()))
-                    mPlug_ballWiggle.doConnectOut("%s.r%s"%(mBallWiggleJoint.mNode,jointOrientation[1].lower()))
+                    mPlug.doConnectOut("{0}.ry".format(mDriven.mNode))     
+                    
+        
+        if b_bankOK:#Bank ===================================================================================================
+            log.debug("|{0}| >> Bank ...".format(_str_func))
+            mPlug_bank = cgmMeta.cgmAttr(mControl,'bank',attrType='float',defaultValue = 0,keyable = True)
+            
+            mPlug_outerResult = cgmMeta.cgmAttr(mControl,'result_clamp_outerBank',attrType='float',keyable = False,hidden=True)
+            mPlug_innerResult = cgmMeta.cgmAttr(mControl,'result_clamp_innerBank',attrType='float',keyable = False,hidden=True)
+            
+            if _side in ['right']:
+                log.debug("|{0}| >> Bank right...".format(_str_func))            
+                mDrivenOutr = d_drivenGroups['left']
+                mDrivenInner =d_drivenGroups['right']
+                
+                arg1 = "%s = clamp(-360,0,%s)"%(mPlug_innerResult.p_combinedShortName,                                  
+                                                mPlug_bank.p_combinedShortName)
+                arg2 = "%s = clamp(0,360,%s)"%(mPlug_outerResult.p_combinedShortName,
+                                               mPlug_bank.p_combinedShortName)
+                for arg in [arg1,arg2]:
+                    NODEFACTORY.argsToNodes(arg).doBuild()           
+                
+                str_bankDriverOutr = "%s.rz = -%s"%(mDrivenInner.mNode,
+                                                 mPlug_outerResult.p_combinedShortName)
+                str_bankDriverInnr = "%s.rz = -%s"%(mDrivenOutr.mNode,
+                                                    mPlug_innerResult.p_combinedShortName)    
+                for arg in [str_bankDriverInnr,str_bankDriverOutr]:
+                    NODEFACTORY.argsToNodes(arg).doBuild()
+            else:
+                log.debug("|{0}| >> Bank normal...".format(_str_func))                        
+                mDrivenOutr = d_drivenGroups['left']
+                mDrivenInner =d_drivenGroups['right']
+                
+                arg1 = "%s = clamp(-360,0,%s)"%(mPlug_outerResult.p_combinedShortName,                                  
+                                                mPlug_bank.p_combinedShortName)
+                arg2 = "%s = clamp(0,360,%s)"%(mPlug_innerResult.p_combinedShortName,
+                                               mPlug_bank.p_combinedShortName)
+                for arg in [arg1,arg2]:
+                    NODEFACTORY.argsToNodes(arg).doBuild()           
+                
+                mPlug_outerResult.doConnectOut("%s.rz"%(mDrivenOutr.mNode))
+                mPlug_innerResult.doConnectOut("%s.rz"%(mDrivenInner.mNode))
                 
                 
-            #Heel setup ----------------------------------------------------------------------------------------
-            log.debug("|{0}| >> Heel ...".format(_str_func))        
-            mPlug_heelClampResult = cgmMeta.cgmAttr(mControl,'result_clamp_heel',attrType='float',keyable = False,hidden=True)
-        
-            #Setup the heel roll
-            #Clamp
-        
-            _arg = "{0} = clamp({1},0,{2})".format(mPlug_heelClampResult.p_combinedShortName,
-                                                   mPlug_roll.p_combinedShortName,
-                                                   mPlug_roll.p_combinedShortName)
-        
-            log.debug("|{0}| >> heel arg: {1}".format(_str_func,_arg))        
-            NODEFACTORY.argsToNodes(_arg).doBuild()
-        
-            #Inversion
-            mPlug_heelClampResult.doConnectOut("%s.rx"%(mHeel.mNode))        
-        
-            #Ball setup ----------------------------------------------------------------------------------------------
-            """
-                Schleifer's
-                ball_loc.rx = (linstep(0,$toeLift, $roll) * (1-(linstep( $toeLift, $toeStraight, $roll))) * $roll;
-                        ballToeLiftRoll        md   ( pma   toeToeStraightRoll                    md  
-                            1               4       3             2                            5
-                """
-            log.debug("|{0}| >> ball ...".format(_str_func))    
-        
-            mPlug_ballToeLiftRollResult = cgmMeta.cgmAttr(mControl,'result_range_ballToeLiftRoll',
-                                                          attrType='float',keyable = False,hidden=True)
-            mPlug_toeStraightRollResult = cgmMeta.cgmAttr(mControl,'result_range_toeStraightRoll',
-                                                          attrType='float',keyable = False,hidden=True)
-            mPlug_oneMinusToeResultResult = cgmMeta.cgmAttr(mControl,
-                                                            'result_pma_one_minus_toeStraitRollRange',
-                                                            attrType='float',keyable = False,hidden=True)
-            mPlug_ball_x_toeResult = cgmMeta.cgmAttr(mControl,'result_md_roll_x_toeResult',
-                                                     attrType='float',keyable = False,hidden=True)
-            mPlug_all_x_rollResult = cgmMeta.cgmAttr(mControl,'result_md_all_x_rollResult',
-                                                     attrType='float',keyable = False,hidden=True)
-        
-            arg1 = "%s = setRange(0,1,0,%s,%s)"%(mPlug_ballToeLiftRollResult.p_combinedShortName,
-                                                 mPlug_toeLift.p_combinedShortName,
-                                                 mPlug_roll.p_combinedShortName)
-            arg2 = "%s = setRange(0,1,%s,%s,%s)"%(mPlug_toeStraightRollResult.p_combinedShortName,
-                                                  mPlug_toeLift.p_combinedShortName,
-                                                  mPlug_toeStaighten.p_combinedShortName,
-                                                  mPlug_roll.p_combinedShortName)
-            arg3 = "%s = 1 - %s"%(mPlug_oneMinusToeResultResult.p_combinedShortName,
-                                  mPlug_toeStraightRollResult.p_combinedShortName)
-        
-            arg4 = "%s = %s * %s"%(mPlug_ball_x_toeResult.p_combinedShortName,
-                                   mPlug_oneMinusToeResultResult.p_combinedShortName,
-                                   mPlug_ballToeLiftRollResult.p_combinedShortName)
-        
-            arg5 = "%s = %s * %s"%(mPlug_all_x_rollResult.p_combinedShortName,
-                                   mPlug_ball_x_toeResult.p_combinedShortName,
-                                   mPlug_roll.p_combinedShortName)
-        
-            for arg in [arg1,arg2,arg3,arg4,arg5]:
-                NODEFACTORY.argsToNodes(arg).doBuild()
-            
-            #>>>Josh - resolve getting this back in and where it need to be in heirarchy
-            if mBallJoint:
-                mPlug_all_x_rollResult.doConnectOut("%s.r%s"%(mBallJoint.mNode,jointOrientation[2]))
-        
-        
-            #Toe setup -----------------------------------------------------------------------------------------------
-            """
-                Schleifer's
-                toe_loc.rotateX = linstep($toeLift, $toeStraight,$roll) * $roll;
-                              setRange                           md
-                             1                                2
-                """
-            log.debug("|{0}| >> Toe ...".format(_str_func))        
-        
-            mPlug_toeRangeResult = cgmMeta.cgmAttr(mControl,'result_range_toeLiftStraightRoll',attrType='float',keyable = False,hidden=True)
-            mPlug_toe_x_rollResult = cgmMeta.cgmAttr(mControl,'result_md_toeRange_x_roll',attrType='float',keyable = False,hidden=True)
-        
-            arg1 = "%s = setRange(0,1,%s,%s,%s)"%(mPlug_toeRangeResult.p_combinedShortName,
-                                                  mPlug_toeLift.p_combinedShortName,
-                                                  mPlug_toeStaighten.p_combinedShortName,                                         
-                                                  mPlug_roll.p_combinedShortName)
-            arg2 = "%s = %s * %s"%(mPlug_toe_x_rollResult.p_combinedShortName,
-                                   mPlug_toeRangeResult.p_combinedShortName,
-                                   mPlug_roll.p_combinedShortName)
-            for arg in [arg1,arg2]:
-                NODEFACTORY.argsToNodes(arg).doBuild()    
-        
-            mPlug_toe_x_rollResult.doConnectOut("%s.rx"%(mFrontToe.mNode))
-            
-            #mPlug_toeRollResult.doConnectOut("%s.rx"%(mToe.mNode))
-            #mPlug_heelRollResult.doConnectOut("%s.rx"%(mHeel.mNode))            
-        else:
-            log.debug("|{0}| >> StandardRoll ...".format(_str_func))
-            
-            #Roll setup -----------------------------------------------------------------------------------------------
-            """
-            Schleifer's
-            outside_loc.rotateZ = min($side,0);
-            clamp1
-            inside_loc.rotateZ = max(0,$side);
-            clamp2
-            """   
-            log.debug("|{0}| >> Bank ...".format(_str_func))        
-            mToe = d_drivenGroups['front']
-            mHeel = d_drivenGroups['back']
-            
-            mPlug_toeRollResult = cgmMeta.cgmAttr(mControl,'result_clamp_toeRoll',attrType='float',keyable = False,hidden=True)
-            mPlug_heelRollResult = cgmMeta.cgmAttr(mControl,'result_clamp_heelRoll',attrType='float',keyable = False,hidden=True)
+        if b_centerOK:#Ball bank ....
+            log.debug("|{0}| >> Bank Center...".format(_str_func))        
+            mDriven = d_drivenGroups['center']
+            if _side in ['right']:
+                str_arg = "{0}.rz = -{1}".format(mDriven.mNode,
+                                                 mPlug_bankBall.p_combinedShortName)
+                log.debug("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
+                NODEFACTORY.argsToNodes(str_arg).doBuild()
+            else:
+                mPlug_bankBall.doConnectOut("{0}.rz".format(mDriven.mNode))         
     
-            arg1 = "%s = clamp(-360,0,%s)"%(mPlug_heelRollResult.p_combinedShortName,                                  
-                                            mPlug_roll.p_combinedShortName)
-            arg2 = "%s = clamp(0,360,%s)"%(mPlug_toeRollResult.p_combinedShortName,
-                                           mPlug_roll.p_combinedShortName)
-            for arg in [arg1,arg2]:
-                NODEFACTORY.argsToNodes(arg).doBuild()   
-    
-            mPlug_toeRollResult.doConnectOut("%s.rx"%(mToe.mNode))
-            mPlug_heelRollResult.doConnectOut("%s.rx"%(mHeel.mNode))
+    if setupWobble:
+        mDriven = d_drivenGroups['tilt']
+        mSpin = d_pivots['spin']
+        mDriven.p_position = d_pivots['center'].p_position
+        d_pivots['center'].masterGroup.p_position = mDriven.p_position
+        
+        arg1 = "{}.ry = {}.ry * -1.0".format(mDriven.p_nameShort,
+                                             mSpin.p_nameShort)        
+        for arg in [arg1]:
+            NODEFACTORY.argsToNodes(arg).doBuild()
             
-    if b_centerOK:        
-        mPlug_bankBall = cgmMeta.cgmAttr(mControl,'centerBank',attrType='float',defaultValue = 0,keyable = True)
-        mPlug_rollBall = cgmMeta.cgmAttr(mControl,'centerRoll',attrType='float',defaultValue = 0,keyable = True)    
-        
-        #Ball roll ....
-        mDriven = d_drivenGroups['center']
-        mPlug_rollBall.doConnectOut("{0}.rx".format(mDriven.mNode))         
-        """
-        if _side in ['right']:
-            str_arg = "{0}.rx = -{1}".format(mDriven.mNode,
-                                             mPlug_rollBall.p_combinedShortName)
-            log.debug("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
-            NODEFACTORY.argsToNodes(str_arg).doBuild()
-        else:
-            mPlug_rollBall.doConnectOut("{0}.rx".format(mDriven.mNode))         """
+        mSpin.dagLock(ignore='ry')
             
-    
-    #Spins ===================================================================================================
-    log.debug("|{0}| >> Spin ...".format(_str_func))
-    
-    d_mPlugSpin = {}
-    for k in d_drivenGroups.keys():
-        d_mPlugSpin[k] = cgmMeta.cgmAttr(mControl,'spin{0}'.format(d_strCaps[k]),attrType='float',defaultValue = 0,keyable = True)
+        #Inner spin --------------------------------------------------------
+        mInnerSpinGroup = mDriven.doGroup(False, False, asMeta=True)
+        mInnerSpinGroup.addAttr('cgmType','innerSpin')
+                
+        mInnerSpinGroup.doName()
+        mInnerSpinGroup.parent = mDriven
         
-    for k in d_drivenGroups.keys():
-        str_key = d_strCaps[k]
-        mPlug = d_mPlugSpin[k]
-        mDriven = d_drivenGroups[k]
-        log.debug("|{0}| >> Spin {1} setup".format(_str_func,str_key))        
+        mLastParent = mInnerSpinGroup        
         
+        mPlug = cgmMeta.cgmAttr(d_pivots['tilt'],'innerSpin',attrType='float',defaultValue = 0,keyable = True)
+            
+
         if _side in ['right']:# and k not in ['inner','outer']:
-            str_arg = "{0}.ry = -{1}".format(mDriven.mNode,
+            str_arg = "{0}.ry = -{1}".format(mInnerSpinGroup.mNode,
                                              mPlug.p_combinedShortName)
             log.debug("|{0}| >> Spin Right arg: {1}".format(_str_func,str_arg))        
             NODEFACTORY.argsToNodes(str_arg).doBuild()
         else:
-            mPlug.doConnectOut("{0}.ry".format(mDriven.mNode))     
+            mPlug.doConnectOut("{0}.ry".format(mInnerSpinGroup.mNode))           
             
-    
-    if b_bankOK:#Bank ===================================================================================================
-        log.debug("|{0}| >> Bank ...".format(_str_func))
-        mPlug_bank = cgmMeta.cgmAttr(mControl,'bank',attrType='float',defaultValue = 0,keyable = True)
         
-        mPlug_outerResult = cgmMeta.cgmAttr(mControl,'result_clamp_outerBank',attrType='float',keyable = False,hidden=True)
-        mPlug_innerResult = cgmMeta.cgmAttr(mControl,'result_clamp_innerBank',attrType='float',keyable = False,hidden=True)
-        
-        if _side in ['right']:
-            log.debug("|{0}| >> Bank right...".format(_str_func))            
-            mDrivenOutr = d_drivenGroups['left']
-            mDrivenInner =d_drivenGroups['right']
             
-            arg1 = "%s = clamp(-360,0,%s)"%(mPlug_innerResult.p_combinedShortName,                                  
-                                            mPlug_bank.p_combinedShortName)
-            arg2 = "%s = clamp(0,360,%s)"%(mPlug_outerResult.p_combinedShortName,
-                                           mPlug_bank.p_combinedShortName)
-            for arg in [arg1,arg2]:
-                NODEFACTORY.argsToNodes(arg).doBuild()           
-            
-            str_bankDriverOutr = "%s.rz = -%s"%(mDrivenInner.mNode,
-                                             mPlug_outerResult.p_combinedShortName)
-            str_bankDriverInnr = "%s.rz = -%s"%(mDrivenOutr.mNode,
-                                                mPlug_innerResult.p_combinedShortName)    
-            for arg in [str_bankDriverInnr,str_bankDriverOutr]:
-                NODEFACTORY.argsToNodes(arg).doBuild()
-        else:
-            log.debug("|{0}| >> Bank normal...".format(_str_func))                        
-            mDrivenOutr = d_drivenGroups['left']
-            mDrivenInner =d_drivenGroups['right']
-            
-            arg1 = "%s = clamp(-360,0,%s)"%(mPlug_outerResult.p_combinedShortName,                                  
-                                            mPlug_bank.p_combinedShortName)
-            arg2 = "%s = clamp(0,360,%s)"%(mPlug_innerResult.p_combinedShortName,
-                                           mPlug_bank.p_combinedShortName)
-            for arg in [arg1,arg2]:
-                NODEFACTORY.argsToNodes(arg).doBuild()           
-            
-            mPlug_outerResult.doConnectOut("%s.rz"%(mDrivenOutr.mNode))
-            mPlug_innerResult.doConnectOut("%s.rz"%(mDrivenInner.mNode))
-            
-            
-    if b_centerOK:#Ball bank ....
-        log.debug("|{0}| >> Bank Center...".format(_str_func))        
-        mDriven = d_drivenGroups['center']
-        if _side in ['right']:
-            str_arg = "{0}.rz = -{1}".format(mDriven.mNode,
-                                             mPlug_bankBall.p_combinedShortName)
-            log.debug("|{0}| >> Right arg: {1}".format(_str_func,str_arg))        
-            NODEFACTORY.argsToNodes(str_arg).doBuild()
-        else:
-            mPlug_bankBall.doConnectOut("{0}.rz".format(mDriven.mNode))         
-    
     if mPivotResult:#Do this at the very end...
         mPivotResult.parent = mLastParent        
 
@@ -6991,7 +7033,10 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     #pprint.pprint(vars())
     for i,n in enumerate(['start','end']):
         log.debug("|{0}| >> {1}:{2}...".format(_str_func,i,n)) 
-        mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
+        #mHandle = mHandleFactory.buildBaseShape('sphere2',baseSize = _size_handle, shapeDirection = 'y+')
+        crv = CURVES.create_fromName('sphere2', [_size_handle,_size_handle,.2* _size_handle], direction = 'y+',baseSize=1)
+        mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+        
         mHandle.p_parent = mFormNull
     
         mHandle.resetAttrs()
@@ -7100,7 +7145,7 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         ml_midLoftHandles = []
         for i,p in enumerate(_l_posMid[1:-1]):
             log.debug("|{0}| >> mid handle cnt: {1} | p: {2}".format(_str_func,i,p))
-            crv = CURVES.create_fromName('sphere2', _size_handle, direction = 'y+')
+            crv = CURVES.create_fromName('sphere2', [_size_handle,_size_handle,.2* _size_handle], direction = 'y+',baseSize=1)
             mHandle = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
 
             self.copyAttrTo('cgmName',mHandle.mNode,'cgmName',driven='target')
@@ -10002,12 +10047,14 @@ def create_defineHandles(self,l_order,d_definitions,baseSize,mParentNull = None,
                 #    _rotSize = [.25,.25,2.0]
                 #    if k == 'rp':_rotSize = [.5,.5,1.25]
                 #else:
-                _rotSize = [.05,.05,.8]
-                if k == 'rp':_rotSize = [.105,.105,.6]                    
+                _rotSize = [.05,.8,.05]
+                if k == 'rp':_rotSize = [.105,.6,.105]                    
                     
                 _crv = CURVES.create_fromName(name='cylinder',#'arrowsAxis', 
                                               bakeScale = True,
-                                              direction = 'y+', size = _rotSize)                
+                                              direction = 'y+',
+                                              size = _rotSize,
+                                              baseSize=1)                
                 #_crv = CORERIG.create_at(create='curveLinear', 
                 #                         l_pos=[[0,0,0],[0,1.25,0]], 
                 #                         baseName='up')
@@ -11290,7 +11337,9 @@ def form_shapeHandlesToDefineMesh(self,ml_handles = None):
                 if mHandle in [ml_use[0],ml_use[-1]]:
                     l_box[2] = MATH.average(xDist,yDist)
                 #TRANS.scale_to_boundingBox(_mNode,l_box,freeze=False)
-                DIST.scale_to_axisSize(_mNode,l_box)
+                #DIST.scale_to_axisSize(_mNode,l_box)
+                for i,a in enumerate('xyz'):
+                    ATTR.set(_mNode,'s{0}'.format(a),l_box[i])
                 log.debug(l_box)
             except Exception,err:
                 log.error("Form Handle failed to scale: {0}".format(mHandle))
@@ -12130,12 +12179,7 @@ def mesh_proxyCreate(self, targets = None, aimVector = None, degree = 1,firstToS
                 TRANS.position_set(end,pSet3)
 
                 #now loft new mesh...
-                _loftTargets = [end,mid2,mid1,root]
-                #_loftTargets.reverse()
-                #if cgmGEN.__mayaVersion__ in [2018]:
-                    #_loftTargets.reverse()
-
-                #mc.delete(_mesh)#...we're going to replace our mesh
+                _loftTargets = [end,mid2,mid1]#root
 
                 _mesh = BUILDUTILS.create_loftMesh(_loftTargets+_loftCurves, name="{0}_{1}".format('test',i), degree=1,divisions=1)
 

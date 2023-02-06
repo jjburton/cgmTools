@@ -4,7 +4,7 @@ cgm.core.mrs.lib.post_utils
 Author: Josh Burton
 email: cgmonks.info@gmail.com
 
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
@@ -60,7 +60,7 @@ import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
 import cgm.core.lib.shapeCaster as SHAPECASTER
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.cgm_RigMeta as cgmRIGMETA
-
+import cgm.core.lib.shared_data as CORESHARE
 
 # From cgm ==============================================================
 import cgm.core.cgm_Meta as cgmMeta
@@ -1255,11 +1255,62 @@ def setup_shapes(d_shapes = {}):
     
     l_missing = []
     
+    def process_obj(target, d):
+        mObj = cgmMeta.validateObjArg(target,noneValid=True)
+        if not mObj:
+            l_missing.append("Obj: {}".format(target))
+            return
+        
+        mExisting = mObj.getShapes(asMeta=1)[0]
+        
+        mTarget = cgmMeta.asMeta( CURVES.create_fromName(d.get('shape'),d.get('size')))
+        mTarget.doSnapTo(mObj)
+        
+        _moveOffsetAim = d.get('moveOffsetAim')
+        mTarget.p_parent = mObj
+        mTarget.resetAttrs(['tx','ty','tz','rx','ry','rz'])
+        
+        if _moveOffsetAim:
+            mTarget.tz = _moveOffsetAim
+        
+        _setAttr = d.get('setAttr',{})
+        if _setAttr:
+            for a,v in _setAttr.iteritems():
+                print("{}|{}".format(a,v))
+                mTarget.setMayaAttr(a,v)
+        mTarget.p_parent = False
+        
+        CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
+        #CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)        
+        CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,d.get('replaceShape',True))
+        
+        
     for o,d in d_shapes.iteritems():
         log.info("{} | {}".format(o,d))
-        if d.get('noMirror'):
-            o_string = o
-            
+        if d.get('mirror'):
+            for side in ['L','R']:
+                o_string = "{}_{}".format(side,o)
+                mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
+                if not mObj:
+                    l_missing.append("Obj: {}".format(o_string))
+                    continue
+                
+                mExisting = mObj.getShapes(asMeta=1)[0]
+                
+                mTarget = cgmMeta.asMeta( CURVES.create_fromName(d.get('shape'),d.get('size')))
+                mTarget.doSnapTo(mObj)
+                
+                _moveOffsetAim = d.get('moveOffsetAim')
+                if _moveOffsetAim:
+                    mTarget.p_parent = mObj
+                    mTarget.tz = _moveOffsetAim
+                    mTarget.p_parent = False
+
+                CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
+                CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,d.get('replaceShape',True))
+        else:
+            process_obj(o,d)
+            """
             mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
             if not mObj:
                 l_missing.append("Obj: {}".format(o_string))
@@ -1276,31 +1327,11 @@ def setup_shapes(d_shapes = {}):
                 mTarget.tz = _moveOffsetAim
                 mTarget.p_parent = False
                 
-            CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
-            CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
-            
-            continue
-            
-        for side in ['L','R']:
-            o_string = "{}_{}".format(side,o)
-            mObj = cgmMeta.validateObjArg(o_string,noneValid=True)
-            if not mObj:
-                l_missing.append("Obj: {}".format(o_string))
-                continue
-            
-            mExisting = mObj.getShapes(asMeta=1)[0]
-            
-            mTarget = cgmMeta.asMeta( CURVES.create_fromName(d.get('shape'),d.get('size')))
-            mTarget.doSnapTo(mObj)
-            
-            _moveOffsetAim = d.get('moveOffsetAim')
-            if _moveOffsetAim:
-                mTarget.p_parent = mObj
-                mTarget.tz = _moveOffsetAim
-                mTarget.p_parent = False
+                
                 
             CORERIG.override_color(mTarget.mNode, rgb = mExisting.overrideColorRGB)
-            CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)
+            CORERIG.shapeParent_in_place(mObj.mNode,mTarget.mNode,False,True)"""
+            
 
     if l_missing:
         print(cgmGEN._str_hardBreak)
@@ -1326,6 +1357,20 @@ def setup_defaults(d_defaults = {}):
                 if not mObj.hasAttr(a):
                     l_missing.append("Attribute: {}".format(a))
                     continue
+                if a == 'rotateOrder':
+                    if VALID.valueArg(v):
+                        _v = CORESHARE._d_rotateOrder_from_index(v)
+                    else:_v = v
+                    mc.xform(o,rotateOrder=_v,p=True)
+                    
+                    if mObj.hasAttr('defaultValues'):
+                        _d = mObj.defaultValues
+                        _dNew = {}
+                        for a2 in 'XYZ':
+                            _dNew['rotate{}'.format(a2)] = mObj.getMayaAttr('rotate{}'.format(a2))
+                        _d.update(_dNew)
+                        mObj.defaultValues = _d
+                    
                 try:ATTR.set_default(o,a,v)
                 except Exception,err:log.error(err)
                 ATTR.set(o,a,v)

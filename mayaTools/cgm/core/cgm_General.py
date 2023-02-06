@@ -3,14 +3,14 @@
 cgm_General: cgm.core
 Author: Josh Burton
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 ================================================================
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '22.08.30.1'
+__RELEASE = '22.01.26.1'
 
 __BRANCH = 'MRSDEV'
 

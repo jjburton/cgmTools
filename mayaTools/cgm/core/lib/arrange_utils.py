@@ -3,7 +3,7 @@
 arrange_utils: cgm.core.lib.distance_utils
 Author: Josh Burton
 email: cgmonks.info@gmail.com
-Website : http://www.cgmonastery.com
+Website : https://github.com/jjburton/cgmTools/wiki
 ------------------------------------------
 
 """
