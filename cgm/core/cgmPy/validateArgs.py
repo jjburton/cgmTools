@@ -426,15 +426,24 @@ def stringArg(arg=None, noneValid=True, calledFrom = None, **kwargs):
         arg = arg[0]  
         
     result = arg
-   
-    if not isinstance(arg, str) and not isinstance(arg,unicode):      
-        if noneValid:
-            result = False
-        else:
-            fmt_args = (arg, _str_func, type(arg).__name__)
-            s_errorMsg = "Arg {0} from func '{1}' is type '{2}', not 'str'"
-
-            raise TypeError(s_errorMsg.format(*fmt_args))
+    if cgmGEN._b_py3:
+        if not isinstance(arg, str):
+            if noneValid:
+                result = False
+            else:
+                fmt_args = (arg, _str_func, type(arg).__name__)
+                s_errorMsg = "Arg {0} from func '{1}' is type '{2}', not 'str'"
+    
+                raise TypeError(s_errorMsg.format(*fmt_args))        
+    else:
+        if not isinstance(arg, str) and not isinstance(arg,unicode):      
+            if noneValid:
+                result = False
+            else:
+                fmt_args = (arg, _str_func, type(arg).__name__)
+                s_errorMsg = "Arg {0} from func '{1}' is type '{2}', not 'str'"
+    
+                raise TypeError(s_errorMsg.format(*fmt_args))
 
     return result
 
@@ -673,7 +682,7 @@ def objString(arg=None, mayaType=None, isTransform=None, noneValid=False, called
     if issubclass(type(arg),list or tuple):
         arg = arg[0]  
     
-    if not isinstance(arg, str) and not isinstance(arg,unicode):
+    if not stringArg(arg):
         if noneValid:
             return False
         raise TypeError('{0}: arg must be string'.format(_str_func))
