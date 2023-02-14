@@ -783,7 +783,7 @@ example:
         
         k_use = None
         for k,d in list(self.uiScrollList_dirExport._d_dir.items()):
-            print((d['split']))
+            #print((d['split']))
             if d['split'][-3:] == [_category,_asset, _subType]:
                 k_use = d['uiString']
                 break
@@ -3033,6 +3033,10 @@ example:
         subList = []
 
         if self.path_dir_category and self.assetList['scrollList'].getSelectedItem():
+            if not self.hasSub:
+                self.LoadVersionList()
+                return
+
             charDir = os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem(), self.subType ))
 
             if os.path.exists(charDir):
@@ -3213,6 +3217,7 @@ example:
                     
                     if _break:
                         continue
+                    
                     anims.append(f)
                     
                 elif os.path.splitext(f)[-1].lower()[1:] in fileExtensions:
@@ -5279,7 +5284,7 @@ def ExportScene(mode = -1,
 
     for obj in exportObjs:			
         log.info( log_sub(_str_func,'On: {0}'.format(obj)) )
-        print(obj)
+        #print(obj)
         cgmObj = cgmMeta.asMeta(obj)
         
         assetName = obj.split(':')[0].split('|')[-1]
