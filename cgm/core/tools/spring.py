@@ -187,9 +187,10 @@ class Spring(PostBake.PostBake):
             self.aimTargetPos = self.aimTargetPos + (self.angularForce * deltaTime)
             self.upTargetPos = self.upTargetPos + (self.angularUpForce * deltaTime)
                     
-            SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.upTargetPos.normalized() )
-            
-            
+            SNAP.aim_atPoint(obj=self.obj.mNode, mode='local',position=self.aimTargetPos,
+                             aimAxis=self.aimFwd.p_string,upAxis=self.aimUp.p_string,
+                             vectorUp=self.upTargetPos.normalized())
+
             for a in 'XYZ':
                 for a2 in ['Min','Max']:
                     _plugUse = 'rotate{}{}LimitUse'.format(a2,a)
@@ -201,10 +202,10 @@ class Spring(PostBake.PostBake):
                         if _value is not None:
                             if a2 == 'Min':
                                 if self.obj.getMayaAttr(_attr) < _value:
-                                    self.obj.setMayaAttr(_attr, _value,force=False)                                 
+                                    self.obj.setMayaAttr(_attr, _value,force=False)
                             else:
                                 if self.obj.getMayaAttr(_attr) > _value:
-                                    self.obj.setMayaAttr(_attr, _value,force=False)                                 
+                                    self.obj.setMayaAttr(_attr, _value,force=False)
 
         if self.debug:
             if not self._debugLoc:
