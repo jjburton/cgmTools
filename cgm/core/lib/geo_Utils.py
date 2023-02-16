@@ -1839,6 +1839,72 @@ def get_edgeLoopFromVerts( verts ):
                 loopList.append(e)
     return loopList
 
+def get_faces_with_materials(materials):
+    sel = mc.ls(sl=True, type="transform")
+    mc.select(cl = True)
+    faces = []
+    for mesh in sel:
+        for mat in materials:
+            sg = mc.listConnections(mat + ".outColor")[0]
+            connections = mc.listConnections(sg, d=False, s=True, p=False)
+            plugs = mc.listConnections(sg, d=False, s=True, p=True)
+            if mesh in connections:
+                index = connections.index(mesh)
+                if index >= 0:
+                    faces.extend( ['%s.%s' % (mesh,x) for x in mc.getAttr(plugs[index] + ".objectGrpCompList")])
+    return faces
+
+def split_materials(materials, keepMaterialsTogether=False):   
+    sel = mc.ls(sl=True, type="transform")
+    
+    mc.select(cl = True)
+    for mesh in sel:
+        if keepMaterialsTogether:
+            faces = []
+            for mat in materials:
+                sg = mc.listConnections(mat + ".outColor")[0]
+                connections = mc.listConnections(sg, d=False, s=True, p=False)
+                plugs = mc.listConnections(sg, d=False, s=True, p=True)
+                if mesh in connections:
+                    index = connections.index(mesh)
+                    if index >= 0:
+                        faces.extend([y.split('.')[-1] for y in mc.ls( ['%s.%s' % (mesh,x) for x in mc.getAttr(plugs[index] + ".objectGrpCompList")], fl=True)])
+                        # make faces unique
+            
+            faces = list(set(faces))
+            if faces:
+                dupe = mc.duplicate(mesh)[0]
+                dupe = mc.rename(dupe, "%s_split1"%(mesh.split('|')[-1]))
+                all_faces = ['f[%d]' % x for x in range(mc.polyEvaluate(mesh, f=True))]
+                orig_faces = list(set(all_faces) - set(faces))
+                mc.delete([dupe + '.' + x for x in orig_faces])
+                mc.delete([mesh + '.' + x for x in faces])
+                mc.select(dupe, add=True)
+        else:
+            for mat in materials:
+                sg = mc.listConnections(mat + ".outColor")[0]
+                connections = mc.listConnections(sg, d=False, s=True, p=False)
+                plugs = mc.listConnections(sg, d=False, s=True, p=True)
+                # get index of mesh in connections
+                
+                if mesh in connections:
+                    index = connections.index(mesh)
+                    if index >= 0:
+                        faces = [y.split('.')[-1] for y in mc.ls( ['%s.%s' % (mesh,x) for x in mc.getAttr(plugs[index] + ".objectGrpCompList")], fl=True)]
+                        dupe = mc.duplicate(mesh)[0]
+                        dupe = mc.rename(dupe, "%s_%s"%(mesh.split('|')[-1], mat))
+                        all_faces = ['f[%d]' % x for x in range(mc.polyEvaluate(mesh, f=True))]
+                        orig_faces = list(set(all_faces) - set(faces))
+                        if not orig_faces:
+                            mc.delete(dupe)
+                            mc.select(mesh, add=True)
+                            continue
+                        
+                        mc.delete([dupe + '.' + x for x in orig_faces])
+                        mc.delete([mesh + '.' + x for x in faces])
+                        mc.select(mesh, add=True)
+
+
 #obj = 'L_UPR_L_UPR_arm_limb_part_4_proxyGeo'
 #x = ListEdgeLoopVertsByLoopNum( obj, 4, 16)
 #mc.select(x)

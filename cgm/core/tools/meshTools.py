@@ -367,12 +367,12 @@ class go(cgmUI.cgmGUI):
         self.create_guiOptionVar('CastYOffset', defaultValue = 0.0)
         self.create_guiOptionVar('CastZOffset', defaultValue = 0.0)
         self.create_guiOptionVar('CastMarkHits', defaultValue = 0)
-        self.create_guiOptionVar('CastClosedCurve', defaultValue = 1)	    
+        self.create_guiOptionVar('CastClosedCurve', defaultValue = 1)
         self.create_guiOptionVar('CastMinRotate', defaultValue = 0.0)
         self.create_guiOptionVar('CastMinUse', defaultValue = 0)	    
         self.create_guiOptionVar('CastMaxRotate', defaultValue = 0.0)
-        self.create_guiOptionVar('CastMaxUse', defaultValue = 0)	  
-        self.create_guiOptionVar('CastDegree', defaultValue = 3)	    	    
+        self.create_guiOptionVar('CastMaxUse', defaultValue = 0)
+        self.create_guiOptionVar('CastDegree', defaultValue = 3)
         self.create_guiOptionVar('CastRange', defaultValue = 100.0)
         self.create_guiOptionVar('CastClosestInRange', defaultValue = 1)
 
@@ -387,6 +387,7 @@ class go(cgmUI.cgmGUI):
         self.create_guiOptionVar('CastMidMeshCast', defaultValue = 0)
         self.create_guiOptionVar('CastRotateBank', defaultValue = 0.0)
 
+        self.create_guiOptionVar('MeshSplitterKeepMaterialsTogether', defaultValue = 0)#Register the option var   
 
     def reload(self):
         """
@@ -869,6 +870,74 @@ class go(cgmUI.cgmGUI):
         except Exception as err:
             log.error("{0} {1} failed to load. err: {12}".format(self._str_reportStart,_str_section,err))
 
+        # Mesh Splitter
+        mc.setParent(containerName)
+        cgmUI.add_Header('Mesh Splitter')
+        _help = mUI.MelLabel(containerName,
+                             bgc = dictionary.returnStateColor('help'),
+                             align = 'center',
+                             label = 'Load and remove materials for mesh splitting',
+                             h=20,
+                             vis = self.var_ShowHelp.value)	
+
+        self.l_helpElements.append(_help)
+
+        self.uiList_MeshSplitterTargets = mUI.MelObjectScrollList(containerName, ut='cgmUITemplate',
+                                                      allowMultiSelection=True, h=100, dcc=self.meshSplitter_selectMaterials )
+        self.uiList_updateCastTargets()
+
+        try:#Mesh Splitter targets row
+            _str_section = 'Mesh Splitter Targets Row'
+            _uiRow_meshSplitterTargets = mUI.MelHLayout(containerName,padding = 1)
+            cgmUI.add_Button(_uiRow_meshSplitterTargets, 'Load Selected', 
+                             lambda *a:self.meshSplitter_loadSelected(),
+                             annotationText='Load materials from selected objects')
+            cgmUI.add_Button(_uiRow_meshSplitterTargets, 'Load All', 
+                             lambda *a:self.meshSplitter_loadAll(),
+                             annotationText='Load all materials from scene')
+            cgmUI.add_Button(_uiRow_meshSplitterTargets, 'Clear All', 
+                             lambda *a:self.meshSplitter_clearAll(),
+                             annotationText='Remove all materials from list')
+            _uiRow_meshSplitterTargets.layout()      
+        except Exception as err:
+            log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+
+        try:#Mesh Splitter Keep Materials Together Row 1 ---------------------------------------------------------------------------------------
+            _str_section = 'Mesh Splitter Keep Materials Together Row'
+            _uiRow_slice =  mUI.MelHSingleStretchLayout(containerName,ut='cgmUISubTemplate',padding = 1)
+
+            mUI.MelSpacer(_uiRow_slice,w=2)	
+            mUI.MelLabel(_uiRow_slice,l='Keep Materials Together:')	    
+            mUI.MelSpacer(_uiRow_slice,w=2)	
+
+            _uiRow_slice.setStretchWidget( mUI.MelSeparator(_uiRow_slice, w=2) )
+            mUI.MelSpacer(_uiRow_slice,w=2)	
+
+            mUI.MelCheckBox(_uiRow_slice,
+                            label = '',
+                            annotation = "Keep materials together",		                           
+                            value = bool(self.var_MeshSplitterKeepMaterialsTogether.value),
+                            onCommand = mUI.Callback(self.var_MeshSplitterKeepMaterialsTogether.setValue,1),
+                            offCommand = mUI.Callback(self.var_MeshSplitterKeepMaterialsTogether.setValue,0))	
+            mUI.MelSpacer(_uiRow_slice,w=2)		    
+            _uiRow_slice.layout()    
+        except Exception as err:
+            log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
+
+
+        mc.setParent(containerName)
+        try:#Mesh Splitter action row
+            _str_section = 'MeshSplitter Actions Row'
+            _uiRow_meshSplitterActions = mUI.MelHLayout(containerName,padding = 1)
+            cgmUI.add_Button(_uiRow_meshSplitterActions, 'Select', 
+                             lambda *a:self.meshSplitter_select(),
+                             annotationText='Select faces with material assignments')
+            cgmUI.add_Button(_uiRow_meshSplitterActions, 'Split', 
+                             lambda *a:self.meshSplitter_split(),
+                             annotationText='Split meshes with material assignments')
+            _uiRow_meshSplitterActions.layout()      
+        except Exception as err:
+            log.error("{0} {1} failed to load. err: {2}".format(self._str_reportStart,_str_section,err))
 
         return containerName
 
@@ -2094,8 +2163,35 @@ class go(cgmUI.cgmGUI):
                 _cM = _symMap.get(c)
                 _selSym.append("{0}.vtx[{1}]".format(t,_cM[0]))
         mc.select(_selSym)       
-        
-        
+    
+    def meshSplitter_selectMaterials(self, *args):
+        print("meshSplitter_selectMaterials")
+        mc.select(self.uiList_MeshSplitterTargets.getSelectedItems())
+    def meshSplitter_loadSelected(self, *args):
+        print("meshSplitter_loadSelected")
+        self.uiList_MeshSplitterTargets.clear()
+        selected_meshes = mc.listRelatives(shapes=True)
+        # Get the unique list of shaders assigned to the selected meshes
+        shadingEngines = list(set(mc.listConnections(selected_meshes, type='shadingEngine')))
+        materials = [mc.listConnections(se + '.surfaceShader')[0] for se in shadingEngines if mc.listConnections(se + '.surfaceShader')]
+        for mat in materials:
+            self.uiList_MeshSplitterTargets.append(mat)
+    def meshSplitter_loadAll(self, *args):
+        print("meshSplitter_loadAll")
+        self.uiList_MeshSplitterTargets.clear()
+        shadingEngines = mc.ls(type="shadingEngine")
+        materials = [mc.listConnections(se + '.surfaceShader')[0] for se in shadingEngines if mc.listConnections(se + '.surfaceShader')]
+        for mat in materials:
+            self.uiList_MeshSplitterTargets.append(mat)
+    def meshSplitter_clearAll(self, *args):
+        print("meshSplitter_clearAll")
+        self.uiList_MeshSplitterTargets.clear()
+    def meshSplitter_select(self, *args):
+        print("meshSplitter_select -- kmt: %i" % self.var_MeshSplitterKeepMaterialsTogether.value)
+        mc.select(GEO.get_faces_with_materials(self.uiList_MeshSplitterTargets.getSelectedItems()))
+    def meshSplitter_split(self, *args):
+        print("meshSplitter_split -- kmt: %i" % self.var_MeshSplitterKeepMaterialsTogether.value)
+        GEO.split_materials(self.uiList_MeshSplitterTargets.getSelectedItems(), keepMaterialsTogether=self.var_MeshSplitterKeepMaterialsTogether.value)
 
 class EXMAPLE(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
