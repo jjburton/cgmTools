@@ -2170,7 +2170,7 @@ class go(cgmUI.cgmGUI):
     def meshSplitter_loadSelected(self, *args):
         print("meshSplitter_loadSelected")
         self.uiList_MeshSplitterTargets.clear()
-        selected_meshes = mc.listRelatives(shapes=True)
+        selected_meshes = mc.listRelatives(shapes=True, f=True)
         # Get the unique list of shaders assigned to the selected meshes
         shadingEngines = list(set(mc.listConnections(selected_meshes, type='shadingEngine')))
         materials = [mc.listConnections(se + '.surfaceShader')[0] for se in shadingEngines if mc.listConnections(se + '.surfaceShader')]
