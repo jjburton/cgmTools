@@ -1,3 +1,4 @@
+indices = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
 uiStrings = ' "male"| [Master]', '      "spine"| [Segment]', '         L | "arm"| [Limb]', '            L | "index"| [Limb]', '            L | "middle"| [Limb]', '            L | "pinky"| [Limb]', '            L | "ring"| [Limb]', '            L | "thumb"| [Limb]', '         L | "leg"| [Limb]', '         R | "arm"| [Limb]', '            R | "index"| [Limb]', '            R | "middle"| [Limb]', '            R | "pinky"| [Limb]', '            R | "ring"| [Limb]', '            R | "thumb"| [Limb]', '         R | "leg"| [Limb]', '         "head"| [Head]'
 blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbBlock, L_middle_limbBlock, L_pinky_limbBlock, L_ring_limbBlock, L_thumb_limbBlock, L_leg_limbBlock, R_arm_limbBlock, R_index_limbBlock, R_middle_limbBlock, R_pinky_limbBlock, R_ring_limbBlock, R_thumb_limbBlock, R_leg_limbBlock, head_headBlock
 [config]
@@ -163,6 +164,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -172,10 +174,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -188,6 +190,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -399,6 +402,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -408,10 +412,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -424,6 +428,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -634,6 +639,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -643,10 +649,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -659,6 +665,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -869,6 +876,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -878,10 +886,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -894,6 +902,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -1115,6 +1124,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -1124,10 +1134,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = base
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = default
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = end
+				rigSetup = default
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -1140,6 +1150,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = end
 				settingsDirection = down
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -1156,7 +1167,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				numRoll = 3
 				numJoints = 0.0
 			[[[[squashStretch]]]]
-				segmentStretchBy = scale
+				segmentStretchBy = translate
 				squashFactorMax = 1.0
 				squashMeasure = arcLength
 				squash = simple
@@ -1168,8 +1179,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[2.7266449931154026, 2.59668174280561, 2.575353583431513]", "[2.460284251665267, 2.486833207352582, 2.4295719600382557]", "[2.689433085842583, 2.475741862916422, 2.444678911010466]", "[2.4354578561593323, 2.4489563786423787, 2.440475999423576]", "[4.803004146010258, 5.14729189937043, 4.808790868248582]", "[2.6384577231075106, 2.1999999999999886, 2.6384577231075097]", "[2.5947777081116286, 2.200000000000017, 2.594777708111627]", "[2.5947777081116215, 2.1999999999999886, 2.5947777081116232]", "[2.5947777081116286, 2.200000000000017, 2.594777708111625]", "[2.5947777081116215, 2.1999999999999886, 2.5947777081116232]", "[2.4856450043401885, 2.48205523376906, 2.4476981583195614]", "[2.4856450043401885, 2.48205523376906, 2.4476981583195614]", "[2.495687571798408, 2.6314761197404053, 2.66488057548921]", "[2.495687571798406, 2.631476119740398, 2.66488057548921]", "[2.2667308710708802, 11.35872885910058, 11.13025841805566]"
 			scales = "(2.2, 2.1999999999999997, 2.199999999999999)", "(1.0000000000000002, 1.0000000000000004, 1.0000000000000007)", "(2.2, 2.2, 2.2)", "(1.0000000000000002, 1.0, 1.0)", "(6.284864469054177, 6.284864469054177, 6.2848644690541775)", "(0.35004732573510583, 0.35004732573510583, 0.3500473257351058)", "(2.2, 2.2000000000000015, 2.200000000000001)", "(0.9999999999999997, 0.9999999999999988, 1.0)", "(2.2, 2.2000000000000015, 2.200000000000001)", "(0.9999999999999997, 0.9999999999999988, 1.0)", "(2.2000000000000006, 2.2000000000000006, 2.2000000000000006)", "(2.2000000000000006, 2.2000000000000006, 2.2000000000000006)", "(2.2000000000000006, 2.2000000000000006, 2.2000000000000006)", "(2.2000000000000006, 2.2000000000000006, 2.2000000000000006)", "(11.358728859100587, 11.35872885910059, 11.358728859100587)"
 			positions = "[-0.8314850195504108, -6.798124825514278, -0.2544076592062341]", "[-0.8314850195504089, -6.798124825514265, -0.25440765920623226]", "[-6.952372775898078, -50.629782235182255, -1.3795755058859207]", "[-6.952372775898083, -50.62978223518226, -1.3795755058859207]", "[-12.682656335463246, -93.59106309182685, -4.219296147390894]", "[-12.682656335463248, -93.59106309182684, -4.219296147390872]", "[-15.173656092657891, -100.16497451692766, 7.139003202799666]", "[-15.173656092657886, -100.16497451692766, 7.139003202799663]", "[-16.404678629803808, -101.19476947082565, 13.183655054393874]", "[-16.4046786298038, -101.19476947082565, 13.183655054393872]", "[-3.004289587400012, -21.381989818796526, 0.4758335138358858]", "[-5.104506396785175, -36.03204358699062, 0.5408830654356149]", "[-8.479072830156724, -64.58911921484778, -5.019689666117283]", "[-10.308078978040465, -79.09690640033234, -6.838530870033483]", "[-9.324249262610273, -89.51126339299626, -20.740300627278213]"
-			names = R_hip_preHandle, hip_jointHandle, R_knee_preHandle, knee_jointHandle, R_ankle_preHandle, ankle_jointHandle, R_ball_preHandle, ball_jointHandle, R_toe_preHandle, toe_jointHandle, R_hip_roll_jointHandle, R_hip_roll_1_jointHandle, R_knee_roll_jointHandle, R_knee_roll_1_jointHandle, R_R_leg_plantigradeRear_limbBlock_settings_shapeHelper
-			nameTags = R_hip_preHandle, hip_jointHandle, R_knee_preHandle, knee_jointHandle, R_ankle_preHandle, ankle_jointHandle, R_ball_preHandle, ball_jointHandle, R_toe_preHandle, toe_jointHandle, R_hip_roll_jointHandle, R_hip_roll_1_jointHandle, R_knee_roll_jointHandle, R_knee_roll_1_jointHandle, R_R_leg_plantigradeRear_limbBlock_settings_shapeHelper
+			names = R_hip_preHandle, R_hip_jointHandle, R_knee_preHandle, R_knee_jointHandle, R_ankle_preHandle, R_ankle_jointHandle, R_ball_preHandle, R_ball_jointHandle, R_toe_preHandle, R_toe_jointHandle, R_hip_roll_jointHandle, R_hip_roll_1_jointHandle, R_knee_roll_jointHandle, R_knee_roll_1_jointHandle, R_R_leg_plantigradeRear_limbBlock_settings_shapeHelper
+			nameTags = R_hip_preHandle, R_hip_jointHandle, R_knee_preHandle, R_knee_jointHandle, R_ankle_preHandle, R_ankle_jointHandle, R_ball_preHandle, R_ball_jointHandle, R_toe_preHandle, R_toe_jointHandle, R_hip_roll_jointHandle, R_hip_roll_1_jointHandle, R_knee_roll_jointHandle, R_knee_roll_1_jointHandle, R_R_leg_plantigradeRear_limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = 9.02056207508e-17, 4.02455846427e-16, -6.2172489379e-15
 				8 = 2.6645352591e-15, 0.0, -1.7763568394e-15
@@ -1337,6 +1348,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -1346,10 +1358,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -1362,6 +1374,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -1491,7 +1504,6 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			[[[[name]]]]
 				cgmName = head
 			[[[[form]]]]
-				proxyType = geo
 				neckShapers = 2
 				loftSetup = default
 				neckBuild = True
@@ -1522,11 +1534,12 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visLabels = False
 				visRotatePlane = False
 			[[[[proxySurface]]]]
-				meshBuild = True
 				loftSides = 10
-				loftSplit = 1
+				proxyHardenEdge = False
+				meshBuild = True
 				castVector = up
 				loftDegree = linear
+				loftSplit = 1
 			[[[[basic]]]]
 				attachPoint = end
 				attachIndex = 0
@@ -1552,6 +1565,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				neckIKBaseExtend = False
 				ribbonExtendEnds = False
 			[[[[post]]]]
+				proxyType = geo
 				proxyGeoRoot = loft
 			[[[[define]]]]
 				jointRadius = 2.24
@@ -1705,11 +1719,13 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				proxyShape = cube
 				loftShape = circle
 			[[[[space]]]]
-				spaceSwitch_direct = False
-				spaceSwitch_fk = False
-				numSpacePivots = 2
-				root_dynParentScaleMode = off
 				root_dynParentMode = space
+				root_dynParentScaleMode = off
+				spaceSwitch_fk = False
+				ikMidDynParentMode = space
+				numSpacePivots = 2
+				spaceSwitch_direct = False
+				ikMidDynScaleMode = off
 			[[[[prerig]]]]
 				addPivot = False
 				addCog = True
@@ -1729,17 +1745,18 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visLabels = False
 				visRotatePlane = False
 			[[[[proxySurface]]]]
-				meshBuild = True
 				loftSides = 10
-				loftSplit = 1
+				proxyHardenEdge = False
+				meshBuild = True
 				castVector = up
 				loftDegree = linear
+				loftSplit = 1
 			[[[[basic]]]]
 				attachPoint = base
 				attachIndex = 0
 			[[[[rig]]]]
 				ikOrientToWorld = True
-				ikMidSetup = prntConstraint
+				ikMidSetup = ribbon
 				ribbonParam = blend
 				segmentMidIKControl = none
 				ikSplineExtendEnd = False
@@ -1751,17 +1768,18 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				ikSetup = ribbon
 				ikSplineAimEnd = False
 				ribbonExtendEnds = False
-				ikMidControlNum = 0
-				ikSplineTwistEndConnect = True
+				ikMidControlNum = 1
+				controlOffsetMult = 1.0
 				parentToDriver = False
 				ikEndShape = cast
+				settingsDirection = up
 				settingsPlace = cog
 				special_swim = none
 				ribbonConnectBy = constraint
 				ikBaseExtend = False
 				proxyDirect = True
 				ribbonAim = stable
-				settingsDirection = up
+				ikSplineTwistEndConnect = True
 				ikEndExtend = False
 				offsetMode = default
 			[[[[post]]]]
@@ -1775,6 +1793,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			[[[[skeleton]]]]
 				numJoints = 4
 			[[[[squashStretch]]]]
+				squashFactorMode = midPeak
 				segmentStretchBy = scale
 				squashFactorMax = 1.0
 				squashMeasure = pointDist
@@ -1784,10 +1803,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				squashFactorMin = 0.25
 				squashSkipAim = False
 		[[[prerig]]]
-			orients = "[-84.29709309633733, 0.0, 0.0]", "[-93.81500529956567, 0.0, 0.0]", "[-94.8312454544277, 0.0, 0.0]", "[-94.8312454544277, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[89.99999999999999, 45.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]"
-			bb = "[2.8900000000000006, 3.1628760064831702, 3.162876006483169]", "[2.8900000000000006, 3.0758827530324098, 3.0758827530324084]", "[2.8900000000000006, 3.1231314820263236, 3.123131482026333]", "[2.8900000000000006, 3.1231314820263236, 3.1231314820263325]", "[2.8900000000000006, 2.8900000000000006, 2.8900000000000006]", "[2.8900000000000006, 2.8900000000000006, 2.8900000000000006]", "[2.8900000000000006, 2.8900000000000006, 2.8900000000000006]", "[2.8900000000000006, 2.8900000000000006, 2.8900000000000006]", "[4.370107171235991, 5.3125, 4.7499007957775845]", "[41.3215525255889, 5.312500000000014, 41.3215525255889]", "[1.6452168174064903, 2.0, 1.7881979466456772]", "[1.6452168174064907, 2.0, 1.7881979466456779]"
-			scales = "(2.8900000000000006, 2.8900000000000015, 2.8900000000000015)", "(2.8900000000000006, 2.8900000000000006, 2.8900000000000006)", "(2.8900000000000006, 2.890000000000001, 2.890000000000001)", "(2.8900000000000006, 2.890000000000001, 2.890000000000001)", "(2.890000000000001, 2.890000000000001, 2.890000000000001)", "(2.890000000000001, 2.890000000000001, 2.890000000000001)", "(2.890000000000001, 2.890000000000001, 2.890000000000001)", "(2.890000000000001, 2.890000000000001, 2.890000000000001)", "(1.0, 1.0000000000000002, 1.0000000000000002)", "(1.0, 1.0000000000000004, 0.9999999999999999)", "(2.856756576842807, 2.856756576842807, 2.856756576842807)", "(2.8567565768428076, 2.8567565768428067, 2.8567565768428067)"
-			positions = "[0.0, 12.792795142141903, 1.382470068798967]", "[0.0, 22.37470772499042, 1.2059274621559968]", "[0.0, 36.45147414734771, 1.2653225128514933]", "[0.0, 50.441188089148596, 0.05710129159531996]", "[0.0, 12.792795142141902, 1.382470068798967]", "[0.0, 22.37470772499042, 1.2059274621559972]", "[0.0, 36.45147414734771, 1.2653225128514927]", "[0.0, 50.4411880891486, 0.057101291595318404]", "[0.0, 22.674306071840526, 1.2071915776826412]", "[0.0, 22.437190923384307, 2.1429461700581323]", "[0.0, 22.374707724990397, 1.2059274621559974]", "[0.0, 50.4411880891486, 0.05710129159532075]"
+			orients = "[-84.29709309633857, 0.0, 0.0]", "[-93.81500529956199, 0.0, 0.0]", "[-94.83124545443, 0.0, 0.0]", "[-94.83124545443, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[-90.98727003442515, 0.0, 0.0]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]"
+			bb = "[2.8900000000000006, 3.1628760064831134, 3.1628760064831125]", "[2.8900000000000006, 3.0758827530322392, 3.0758827530322352]", "[2.8900000000000006, 3.1231314820264373, 3.123131482026439]", "[2.8900000000000006, 3.1231314820264373, 3.1231314820264386]", "[2.8900000000000006, 2.8900000000000006, 2.8900000000000006]", "[2.8900000000000006, 2.8900000000000006, 2.8900000000000006]", "[2.8900000000000006, 2.8900000000000006, 2.8900000000000006]", "[2.8900000000000006, 2.8900000000000006, 2.8900000000000006]", "[4.370107171235991, 5.3125, 4.749900795777583]", "[40.21597397747234, 4.713932072944974, 40.279297006654765]", "[4.754676602304759, 5.780000000000001, 5.167892065806012]", "[4.754676602304759, 5.780000000000001, 5.167892065806013]"
+			scales = "(2.8900000000000006, 2.890000000000001, 2.890000000000001)", "(2.8900000000000006, 2.89, 2.89)", "(2.8900000000000006, 2.8900000000000006, 2.8900000000000006)", "(2.8900000000000006, 2.8900000000000006, 2.8900000000000006)", "(2.890000000000001, 2.8900000000000006, 2.890000000000001)", "(2.890000000000001, 2.8900000000000006, 2.890000000000001)", "(2.890000000000001, 2.8900000000000006, 2.890000000000001)", "(2.890000000000001, 2.8900000000000006, 2.890000000000001)", "(1.0, 1.0000000000000002, 1.0000000000000002)", "(0.7570065689877145, 0.7570065689877149, 0.7570065689877143)", "(8.256026507075715, 8.256026507075717, 8.256026507075717)", "(8.256026507075715, 8.256026507075713, 8.256026507075713)"
+			positions = "[0.0, 12.79279514214189, 1.3824700687989668]", "[0.0, 22.374707724990493, 1.2059274621560037]", "[0.0, 36.45147414734762, 1.2653225128514958]", "[0.0, 50.44118808914857, 0.057101291595320625]", "[0.0, 12.79279514214189, 1.3824700687989668]", "[0.0, 22.374707724990493, 1.2059274621560037]", "[0.0, 36.45147414734762, 1.2653225128514958]", "[0.0, 50.44118808914857, 0.057101291595320625]", "[0.0, 22.374708144510862, 1.2059274639261137]", "[0.0, 22.437190923384662, 2.142946170057657]", "[0.0, 22.374708144510848, 1.2059274639261142]", "[0.0, 50.44118808914865, 0.057101291595316454]"
 			names = pelvis_preHandle, spine_1_preHandle, spine_2_preHandle, chest_preHandle, pelvis_crv, spine_1_crv, spine_2_crv, chest_crv, spine_dag_cogHelper, spine_shape_cogHelper, spine_ikStartHandle, spine_ikEndHandle
 			nameTags = pelvis_preHandle, spine_1_preHandle, spine_2_preHandle, chest_preHandle, pelvis_crv, spine_1_crv, spine_2_crv, chest_crv, spine_dag_cogHelper, spine_shape_cogHelper, spine_ikStartHandle, spine_ikEndHandle
 			[[[[orientHelpers]]]]
@@ -1799,9 +1818,9 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			orients = "[-90.98727003442515, 0.0, 0.0]", "[-89.99999999999999, 0.0, 0.0]", "[-89.99999999999999, 0.0, 0.0]", "[-90.98727003442515, 0.0, 0.0]", "[-90.98727003442515, 0.0, 0.0]"
 			bb = "[30.00000000000001, 22.755113731655086, 15.385454071534232]", "[1.5000000000000002, 1.1250000000000067, 12.0]", "[3.1500000000000004, 2.362500000000006, 9.0]", "[90.0, 45.768681363827184, 45.768681363827184]", "[19.285714285714285, 0.3876808507755106, 22.496659831138086]"
 			scales = "(30.0, 15.0, 22.5)", "(30.0, 15.0, 22.5)", "(30.0, 15.0, 22.5)", "(30.0, 15.0, 22.5)", "(1.0, 1.0, 1.0)"
-			positions = "[0.0, 64.21322174898626, -1.1065747815694245]", "[0.0, 0.0, 0.0]", "[0.0, 12.792795142141903, 1.382470068798967]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]"
-			names = end_defineHandle, up_defineHandle, rp_defineHandle, start_defineHandle, spine_start_orientHandle
-			nameTags = end_defineHandle, up_defineHandle, rp_defineHandle, start_defineHandle, spine_start_orientHandle
+			positions = "[0.0, 64.21322174898626, -1.1065747815694245]", "[0.0, 0.0, 0.0]", "[0.0, 12.79279514214189, 1.3824700687989668]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0]"
+			names = end_defineHandle, up_defineHandle, rp_defineHandle, start_defineHandle, spine_orientHandle
+			nameTags = end_defineHandle, up_defineHandle, rp_defineHandle, start_defineHandle, spine_orientHandle
 	[[0]]
 		form = False
 		shape = None
@@ -1875,8 +1894,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.9436292174965208, 4.641541503682542, 1.462048403100102]", "[2.809963417179768, 2.8179315948998314, 2.8053097916400116]", "[2.383851856303999, 2.476519878834483, 2.766460455328252]", "[2.3661913317184817, 2.7050943582050646, 2.917924061698951]", "[2.0670130222906655, 2.2445732610605873, 2.3515322464021473]"
 			scales = "(1.9436292174965086, 4.610334333696933, 1.3514164051281659)", "(2.7930699315771346, 2.581882762139993, 2.567906826873238)", "(2.367099367467484, 1.9725828062229067, 2.3670993674675063)", "(2.349359538454843, 1.9577996153790702, 2.3493595384548818)", "(2.067013022290666, 1.7225108519089012, 1.8947619370997797)"
 			positions = "[-2.6645352591003757e-14, -1.7398839695471793, -8.640409588568602]", "[0.0008297936793217099, -0.19478374518009933, 0.1250853727544826]", "[0.033795769144355184, -1.2750024261132613, 5.094466837536991]", "[0.05194900964472743, -2.6466971733602844, 7.830936048495706]", "[0.06884056339476885, -4.41837365978671, 10.377215141798395]"
-			names = index_form_lever_blockHandle, L_index_form_start_blockHandle, index_form_1_blockHandle, index_form_2_blockHandle, L_index_form_end_blockHandle
-			nameTags = index_form_lever_blockHandle, L_index_form_start_blockHandle, index_form_1_blockHandle, index_form_2_blockHandle, L_index_form_end_blockHandle
+			names = L_index_form_lever_blockHandle, L_index_form_start_blockHandle, L_index_form_1_blockHandle, L_index_form_2_blockHandle, L_index_form_end_blockHandle
+			nameTags = L_index_form_lever_blockHandle, L_index_form_start_blockHandle, L_index_form_1_blockHandle, L_index_form_2_blockHandle, L_index_form_end_blockHandle
 			[[[[orientHelpers]]]]
 			[[[[loftCurves]]]]
 				[[[[[1]]]]]
@@ -2019,6 +2038,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -2028,10 +2048,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -2044,6 +2064,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -2071,8 +2092,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.7001804448133986, 1.9310871923626458, 1.7658943316674574]", "[0.8000745793209942, 0.9267293424377172, 0.9267293382852131]", "[0.8062954808716878, 0.9516724151103118, 0.9569584135683837]", "[0.8051682349207643, 0.9516724151103019, 0.9516514754157572]", "[0.8071047773070174, 1.0736706614951623, 1.0789539756198385]", "[0.8047266863166611, 1.0736706614951466, 1.0736470374672402]", "[0.8073696043881421, 1.113592299694926, 1.11887473542187]", "[0.8043386397156074, 1.1135922996949077, 1.1135677972692477]", "[1.7027185104426819, 2.106746489462795, 1.6915680899283512]", "[0.8043386397156076, 1.1135922996949081, 1.1135677972692513]", "[0.0063130833106901894, 0.9516724151102993, 0.9516514754157541]"
 			scales = "(2.2854052614742466, 2.2854052614742466, 2.2854052614742457)", "(0.35004732573510616, 0.3500473257351061, 0.35004732573510616)", "(0.8000000000000004, 0.8000000000000002, 0.8000000000000002)", "(1.0000000000000002, 1.0, 1.0000000000000002)", "(0.8, 0.8000000000000004, 0.8)", "(1.0000000000000002, 1.0000000000000002, 1.0000000000000007)", "(0.8, 0.7999999999999998, 0.7999999999999999)", "(1.0, 0.9999999999999998, 0.9999999999999999)", "(2.2854052614742453, 2.2854052614742457, 2.2854052614742457)", "(0.3500473257351059, 0.35004732573510605, 0.35004732573510594)", "(0.8000000000000003, 0.8, 0.8000000000000003)"
 			positions = "[4.1489683925905115e-05, -1.6626289583287852, -8.202134840502476]", "[4.1489683954326276e-05, -1.6626289583287956, -8.20213484050244]", "[0.0008297936793252437, -0.19478374518001262, 0.12508537275441522]", "[0.0008297936793348964, -0.19478374518000297, 0.12508537275437073]", "[0.033795769144323654, -1.2750024261132866, 5.094466837537012]", "[0.03379576914431476, -1.2750024261132713, 5.094466837536956]", "[0.05194900964469403, -2.646697173360234, 7.830936048495632]", "[0.05194900964470872, -2.6466971733602493, 7.830936048495704]", "[0.06630683033228567, -4.15262218682273, 9.995273277802934]", "[0.06630683033223692, -4.152622186822765, 9.995273277802928]", "[0.004292421780187184, 2.2065472025486916, 0.6470514198991569]"
-			names = L_index_0_preHandle, index_0_jointHandle, L_index_1_preHandle, index_1_jointHandle, L_index_2_preHandle, index_2_jointHandle, L_index_3_preHandle, index_3_jointHandle, L_index_4_preHandle, index_4_jointHandle, L_index_limbBlock_settings_shapeHelper
-			nameTags = L_index_0_preHandle, index_0_jointHandle, L_index_1_preHandle, index_1_jointHandle, L_index_2_preHandle, index_2_jointHandle, L_index_3_preHandle, index_3_jointHandle, L_index_4_preHandle, index_4_jointHandle, L_index_limbBlock_settings_shapeHelper
+			names = L_index_0_preHandle, L_index_0_jointHandle, L_index_1_preHandle, L_index_1_jointHandle, L_index_2_preHandle, L_index_2_jointHandle, L_index_3_preHandle, L_index_3_jointHandle, L_index_4_preHandle, L_index_4_jointHandle, L_L_index_limbBlock_settings_shapeHelper
+			nameTags = L_index_0_preHandle, L_index_0_jointHandle, L_index_1_preHandle, L_index_1_jointHandle, L_index_2_preHandle, L_index_2_jointHandle, L_index_3_preHandle, L_index_3_jointHandle, L_index_4_preHandle, L_index_4_jointHandle, L_L_index_limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = 1.24344978758e-14, -7.1054273576e-15, 1.42108547152e-14
 				8 = -2.13162820728e-14, -1.42108547152e-14, 7.1054273576e-15
@@ -2089,8 +2110,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[2.2007987972576517, 2.4639807621052916, 2.5602846204704903]", "[0.1332604754995507, 1.7768063399940086, 0.12215543587458857]", "[0.2798469985490564, 1.3326047549955067, 0.2565264153366354]", "[1.1993835991295163, 4.1953125729944425, 1.2040538641717422]", "[8.036818874997076, 8.044611418034464, 7.141060439667086]", "[1.718362142174474, 1.848216677404627, 0.7727457224836147]"
 			scales = "(2.188602023601894, 1.8238350196682445, 2.006218521635069)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(1.0, 1.0000000000000002, 1.0)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(1.0, 1.0, 1.0)"
 			positions = "[0.06884056339476885, -4.41837365978671, 10.377215141798395]", "[0.0, 0.0, 0.0]", "[0.0008297936793252437, -0.19478374518001262, 0.12508537275441522]", "[-2.6645352591003757e-14, -1.7398839695471793, -8.640409588568602]", "[0.0, 0.0, 0.0]", "[0.0008297936793217097, -0.19478374518009955, 0.1250853727544825]"
-			names = L_index_limbBlock_end_defineHandle, L_index_limbBlock_up_defineHandle, L_index_limbBlock_rp_defineHandle, L_index_limbBlock_lever_defineHandle, L_index_limbBlock_start_defineHandle, L_index_form_start_orientHandle
-			nameTags = L_index_limbBlock_end_defineHandle, L_index_limbBlock_up_defineHandle, L_index_limbBlock_rp_defineHandle, L_index_limbBlock_lever_defineHandle, L_index_limbBlock_start_defineHandle, L_index_form_start_orientHandle
+			names = L_index_limbBlock_end_defineHandle, L_index_limbBlock_up_defineHandle, L_index_limbBlock_rp_defineHandle, L_index_limbBlock_lever_defineHandle, L_index_limbBlock_start_defineHandle, L_index_orientHandle
+			nameTags = L_index_limbBlock_end_defineHandle, L_index_limbBlock_up_defineHandle, L_index_limbBlock_rp_defineHandle, L_index_limbBlock_lever_defineHandle, L_index_limbBlock_start_defineHandle, L_index_orientHandle
 	[[2]]
 		rootOrientHelper = 0.0, 0.0, 0.0
 		shapeProfile = None
@@ -2114,8 +2135,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[13.247482953559876, 16.842404473271717, 14.27670915462545]", "[20.031697523176717, 20.268588563798286, 14.562148091382856]", "[18.393726537318123, 16.942258416644414, 17.161666973454956]", "[15.315578085114284, 14.678194410320918, 11.887765620069002]", "[11.579833711188346, 11.363722839577832, 10.547198815262266]", "[9.630974072922882, 9.09899250360894, 9.858370184496067]", "[7.522539425943833, 8.480813496010072, 10.028021977080176]"
 			scales = "(14.276709154625449, 13.247482953559876, 13.247482953559876)", "(14.276709154625449, 13.247482953559876, 14.276709154625124)", "(13.085351334304466, 11.667690370133506, 13.08535133430421)", "(9.024144687903222, 8.924096413936512, 11.893993512233408)", "(8.018533527966953, 7.738195905322243, 8.699780641934007)", "(7.554053934977914, 5.5026094169716115, 7.55405393497787)", "(8.319920049590408, 5.348520031879415, 6.8342200407348885)"
 			positions = "[-14.293891168229326, 7.4904739680776515, 2.0969264633258984]", "[3.145348505993372e-14, 6.855748921054901e-14, 2.143302545796408e-14]", "[9.262924396562331, -11.504579370770063, 1.4754000963631682]", "[19.058237678729864, -21.50207169738739, 2.3689348329700044]", "[27.00902492195031, -31.59757881449046, 8.252777220377354]", "[31.112510256642388, -38.92156619984924, 12.503433023087178]", "[34.37819078429632, -44.62029966274005, 14.983261346283998]"
-			names = arm_form_lever_blockHandle, L_arm_form_start_blockHandle, arm_form_1_blockHandle, arm_form_2_blockHandle, arm_form_3_blockHandle, arm_form_4_blockHandle, L_arm_form_end_blockHandle
-			nameTags = arm_form_lever_blockHandle, L_arm_form_start_blockHandle, arm_form_1_blockHandle, arm_form_2_blockHandle, arm_form_3_blockHandle, arm_form_4_blockHandle, L_arm_form_end_blockHandle
+			names = L_arm_form_lever_blockHandle, L_arm_form_start_blockHandle, L_arm_form_1_blockHandle, L_arm_form_2_blockHandle, L_arm_form_3_blockHandle, L_arm_form_4_blockHandle, L_arm_form_end_blockHandle
+			nameTags = L_arm_form_lever_blockHandle, L_arm_form_start_blockHandle, L_arm_form_1_blockHandle, L_arm_form_2_blockHandle, L_arm_form_3_blockHandle, L_arm_form_4_blockHandle, L_arm_form_end_blockHandle
 			[[[[orientHelpers]]]]
 			[[[[loftCurves]]]]
 				[[[[[1]]]]]
@@ -2276,6 +2297,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -2285,10 +2307,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = default
+				controlOffsetMult = 1.0
 				mainRotAxis = up
 				ikOrientToWorld = True
-				settingsPlace = end
+				rigSetup = default
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = free
@@ -2296,11 +2318,12 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				followParentBank = True
 				ikRollSetup = control
 				proxyDirect = True
-				segmentType = ribbon
+				segmentType = curve
 				ikEnd = hand
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = end
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -2316,9 +2339,9 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			[[[[skeleton]]]]
 				numRoll = 3
 			[[[[squashStretch]]]]
-				segmentStretchBy = scale
+				segmentStretchBy = translate
 				squashFactorMax = 1.0
-				squashMeasure = pointDist
+				squashMeasure = arcLength
 				squash = simple
 				scaleSetup = True
 				squashExtraControl = True
@@ -2328,8 +2351,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[2.841252174003973, 3.1149062398465945, 2.8403110404801444]", "[1.429791680164037, 1.4266496147073235, 1.4266123920155351]", "[2.148769623115701, 1.9214331340912802, 1.7776530496939382]", "[1.7732685439834395, 1.8462597571073263, 1.5819385463614872]", "[2.2521064835248126, 1.8546331297967171, 2.1975280580813257]", "[1.6177209572034883, 1.8440943971110144, 1.6566490624577501]", "[2.6499226438549606, 3.3814101473069798, 2.8211015489703577]", "[1.600905198300218, 1.8186415563184113, 1.6680091588203432]", "[1.9890323745852392, 2.005319764662268, 1.6583258563218155]", "[1.9890323745852392, 2.005319764662266, 1.6583258563218155]", "[1.7906682746532567, 1.9366753480326864, 1.938228681499941]", "[1.7906682746532567, 1.9366753480326935, 1.9382286814999397]", "[9.130674209765488, 12.091544785838124, 7.927533903936501]"
 			scales = "(3.742351115664078, 3.7423511156640785, 3.742351115664079)", "(0.3500473257351059, 0.350047325735106, 0.35004732573510583)", "(1.3100000000000003, 1.3100000000000005, 1.3100000000000005)", "(1.0, 1.0, 1.0000000000000004)", "(1.3100000000000012, 1.3100000000000005, 1.3100000000000005)", "(1.0, 1.0000000000000002, 0.9999999999999998)", "(3.742351115664079, 3.742351115664079, 3.7423511156640794)", "(0.3500473257351057, 0.3500473257351059, 0.3500473257351058)", "(1.4299188852310187, 1.4299188852310187, 1.4299188852310187)", "(1.4299188852310187, 1.4299188852310187, 1.4299188852310187)", "(1.4299188852310187, 1.4299188852310187, 1.4299188852310187)", "(1.4299188852310187, 1.4299188852310187, 1.4299188852310187)", "(8.589540586568118, 8.589540586568114, 8.589540586568118)"
 			positions = "[-12.217986435787697, 2.504446379078189, 1.4244779152310318]", "[-12.217986435787656, 2.504446379078215, 1.424477915231027]", "[-1.9326407241201337e-07, -7.099927484443055e-06, 3.709517508694899e-08]", "[-1.932640391518906e-07, -7.099927500719391e-06, 3.709519867943388e-08]", "[19.510855481479627, -23.643126911939056, 1.1596184147807325]", "[19.510855481479663, -23.64312691193917, 1.1596184147807944]", "[30.825452067415917, -38.27433406982934, 12.023565775004844]", "[30.82545206741591, -38.27433406982931, 12.023565775004794]", "[6.503611861365238, -7.881039156224734, 0.38653910978422307]", "[13.00724342685027, -15.762094855641866, 0.7730793420916847]", "[23.282383905259532, -28.520191087500155, 4.780930580206314]", "[27.053923643636026, -33.39726989426832, 8.40225360957922]", "[39.451226931883085, -36.720015916897566, 19.55372817636948]"
-			names = L_clav_preHandle, clav_jointHandle, L_shoulder_preHandle, shoulder_jointHandle, L_elbow_preHandle, elbow_jointHandle, L_wrist_preHandle, wrist_jointHandle, L_shoulder_roll_jointHandle, L_shoulder_roll_1_jointHandle, L_elbow_roll_jointHandle, L_elbow_roll_1_jointHandle, L_arm_limbBlock_settings_shapeHelper
-			nameTags = L_clav_preHandle, clav_jointHandle, L_shoulder_preHandle, shoulder_jointHandle, L_elbow_preHandle, elbow_jointHandle, L_wrist_preHandle, wrist_jointHandle, L_shoulder_roll_jointHandle, L_shoulder_roll_1_jointHandle, L_elbow_roll_jointHandle, L_elbow_roll_1_jointHandle, L_arm_limbBlock_settings_shapeHelper
+			names = L_clav_preHandle, L_clav_jointHandle, L_shoulder_preHandle, L_shoulder_jointHandle, L_elbow_preHandle, L_elbow_jointHandle, L_wrist_preHandle, L_wrist_jointHandle, L_shoulder_roll_jointHandle, L_shoulder_roll_1_jointHandle, L_elbow_roll_jointHandle, L_elbow_roll_1_jointHandle, L_L_arm_limbBlock_settings_shapeHelper
+			nameTags = L_clav_preHandle, L_clav_jointHandle, L_shoulder_preHandle, L_shoulder_jointHandle, L_elbow_preHandle, L_elbow_jointHandle, L_wrist_preHandle, L_wrist_jointHandle, L_shoulder_roll_jointHandle, L_shoulder_roll_1_jointHandle, L_elbow_roll_jointHandle, L_elbow_roll_1_jointHandle, L_L_arm_limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = 8.881784197e-16, 7.1054273576e-15, 1.08246744901e-14
 				2 = -1.06581410364e-14, 1.42108547152e-14, 2.84217094304e-14
@@ -2345,8 +2368,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[8.242279692121873, 9.183219388719465, 9.935814668544081]", "[9.452576790703455, 7.0019582576274715, 3.0624337654390548]", "[1.7176110559170654, 2.0530515251120067, 8.493894879526366]", "[1.183721552204105, 16.621941806506175, 1.1993835991295174]", "[54.16340496253534, 47.11694599705873, 53.93873578528899]", "[11.407102216611014, 8.09084421526331, 11.227700099019867]"
 			scales = "(8.80932711133101, 5.6631388572842205, 7.2362329843076125)", "(15.116515575485714, 14.026746656710385, 11.5)", "(15.116515575485714, 14.026746656710385, 11.5)", "(1.0, 1.0, 1.0)", "(15.116515575485714, 14.026746656710385, 11.5)", "(1.0, 1.0, 1.0)"
 			positions = "[34.37819078429632, -44.62029966274005, 14.983261346283998]", "[0.0, 0.0, 0.0]", "[-1.9326407241201337e-07, -7.099927484443055e-06, 3.709517508694899e-08]", "[-14.293891168229326, 7.4904739680776515, 2.0969264633258984]", "[0.0, 0.0, 0.0]", "[3.197442310920451e-14, 6.927791673660977e-14, 2.1316282072803006e-14]"
-			names = L_arm_limbBlock_end_defineHandle, L_arm_limbBlock_up_defineHandle, L_arm_limbBlock_rp_defineHandle, L_arm_limbBlock_lever_defineHandle, L_arm_limbBlock_start_defineHandle, L_arm_form_start_orientHandle
-			nameTags = L_arm_limbBlock_end_defineHandle, L_arm_limbBlock_up_defineHandle, L_arm_limbBlock_rp_defineHandle, L_arm_limbBlock_lever_defineHandle, L_arm_limbBlock_start_defineHandle, L_arm_form_start_orientHandle
+			names = L_arm_limbBlock_end_defineHandle, L_arm_limbBlock_up_defineHandle, L_arm_limbBlock_rp_defineHandle, L_arm_limbBlock_lever_defineHandle, L_arm_limbBlock_start_defineHandle, L_arm_orientHandle
+			nameTags = L_arm_limbBlock_end_defineHandle, L_arm_limbBlock_up_defineHandle, L_arm_limbBlock_rp_defineHandle, L_arm_limbBlock_lever_defineHandle, L_arm_limbBlock_start_defineHandle, L_arm_orientHandle
 	[[5]]
 		rootOrientHelper = 0.0, 0.0, -3.65936075016
 		shapeProfile = None
@@ -2370,8 +2393,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.4016833106023365, 4.137340879528251, 2.874199766001837]", "[2.9399139408579607, 2.8450374473694575, 2.291199989304859]", "[2.0268008378569595, 2.0159128419444228, 2.2721004783229635]", "[2.2997743779644333, 2.5130549469912813, 2.73704078921591]", "[1.9165785202303585, 2.081216157247411, 2.18039080764419]"
 			scales = "(1.3052866284611382, 4.105946334477047, 1.0877388570509554)", "(2.9067247402420495, 2.6576363114656814, 2.0405890726110076)", "(1.9724663931896431, 1.643721994324706, 1.9724663931896622)", "(2.230770487039309, 1.858975405866124, 2.2307704870393463)", "(1.9165785202303587, 1.5971487668586446, 1.7568636435444978)"
 			positions = "[0.8009014140341364, -4.4652397768178105, -7.338496224157609]", "[0.02108431720484637, -0.47398297521285, -0.017610825581523715]", "[0.028675735390773158, -0.5797845189314527, 4.274756698032333]", "[-0.041666966187765817, -1.864994134679613, 6.352159826020392]", "[-0.1452162848210916, -3.7227365055997126, 8.778943013979926]"
-			names = pinky_form_lever_blockHandle, L_pinky_form_start_blockHandle, pinky_form_1_blockHandle, pinky_form_2_blockHandle, L_pinky_form_end_blockHandle
-			nameTags = pinky_form_lever_blockHandle, L_pinky_form_start_blockHandle, pinky_form_1_blockHandle, pinky_form_2_blockHandle, L_pinky_form_end_blockHandle
+			names = L_pinky_form_lever_blockHandle, L_pinky_form_start_blockHandle, L_pinky_form_1_blockHandle, L_pinky_form_2_blockHandle, L_pinky_form_end_blockHandle
+			nameTags = L_pinky_form_lever_blockHandle, L_pinky_form_start_blockHandle, L_pinky_form_1_blockHandle, L_pinky_form_2_blockHandle, L_pinky_form_end_blockHandle
 			[[[[orientHelpers]]]]
 			[[[[loftCurves]]]]
 				[[[[[1]]]]]
@@ -2514,6 +2537,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -2523,10 +2547,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -2539,6 +2563,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -2566,8 +2591,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.7428045948198982, 1.882184888861219, 1.9687739486103917]", "[0.8880053043387462, 1.08275357576942, 1.071399651511296]", "[0.8508884220457944, 0.8688978119392491, 0.8220087744001211]", "[0.8494739856153197, 0.8491848210104351, 0.8193382501956418]", "[0.8671814772741309, 1.1502972876105482, 1.105927291973194]", "[0.8441544616432197, 1.0992385298489562, 1.1013722344736094]", "[0.8690127745383119, 1.1704611386885697, 1.126628924123704]", "[0.8419231226285533, 1.119402558896611, 1.121607973518195]", "[1.724701561571797, 2.1117576253664825, 1.6644004792450353]", "[0.8419231226285528, 1.1194025588966103, 1.121607973518195]", "[0.05252395885420408, 0.8178385109915309, 0.8193382501956488]"
 			scales = "(2.2854052614742453, 2.285405261474246, 2.285405261474245)", "(0.35004732573510583, 0.35004732573510594, 0.3500473257351059)", "(0.8000000000000003, 0.8000000000000004, 0.8000000000000006)", "(1.0000000000000004, 1.0000000000000004, 1.0000000000000002)", "(0.8000000000000002, 0.8000000000000006, 0.8000000000000003)", "(1.0000000000000004, 1.0000000000000002, 1.0)", "(0.8000000000000003, 0.8000000000000004, 0.8000000000000002)", "(1.0000000000000002, 0.9999999999999998, 0.9999999999999999)", "(2.2854052614742466, 2.285405261474246, 2.285405261474246)", "(0.3500473257351059, 0.35004732573510594, 0.3500473257351059)", "(0.8000000000000002, 0.8, 0.8000000000000002)"
 			positions = "[0.7619105591926509, -4.2656769367376, -6.972451954228791]", "[0.7619105591926476, -4.265676936737574, -6.972451954228741]", "[0.021084317204859957, -0.4739829752128715, -0.017610825581457504]", "[0.021084317204866695, -0.47398297521285976, -0.01761082558149134]", "[0.02867573539080838, -0.5797845189314288, 4.274756698032443]", "[0.028675735390805847, -0.5797845189314745, 4.274756698032442]", "[-0.0416669661877607, -1.8649941346795684, 6.3521598260204915]", "[-0.041666966187755027, -1.8649941346795733, 6.352159826020516]", "[-0.12968388702608377, -3.4440751499617437, 8.414925535786073]", "[-0.1296838870260912, -3.44407514996176, 8.41492553578608]", "[0.17176573832177852, 1.8790557911386827, 0.04012217301789178]"
-			names = L_pinky_0_preHandle, pinky_0_jointHandle, L_pinky_1_preHandle, pinky_1_jointHandle, L_pinky_2_preHandle, pinky_2_jointHandle, L_pinky_3_preHandle, pinky_3_jointHandle, L_pinky_4_preHandle, pinky_4_jointHandle, L_pinky_limbBlock_settings_shapeHelper
-			nameTags = L_pinky_0_preHandle, pinky_0_jointHandle, L_pinky_1_preHandle, pinky_1_jointHandle, L_pinky_2_preHandle, pinky_2_jointHandle, L_pinky_3_preHandle, pinky_3_jointHandle, L_pinky_4_preHandle, pinky_4_jointHandle, L_pinky_limbBlock_settings_shapeHelper
+			names = L_pinky_0_preHandle, L_pinky_0_jointHandle, L_pinky_1_preHandle, L_pinky_1_jointHandle, L_pinky_2_preHandle, L_pinky_2_jointHandle, L_pinky_3_preHandle, L_pinky_3_jointHandle, L_pinky_4_preHandle, L_pinky_4_jointHandle, L_L_pinky_limbBlock_settings_shapeHelper
+			nameTags = L_pinky_0_preHandle, L_pinky_0_jointHandle, L_pinky_1_preHandle, L_pinky_1_jointHandle, L_pinky_2_preHandle, L_pinky_2_jointHandle, L_pinky_3_preHandle, L_pinky_3_jointHandle, L_pinky_4_preHandle, L_pinky_4_jointHandle, L_L_pinky_limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = 8.881784197e-16, 0.0, 2.48689957516e-14
 				8 = -2.81719092499e-15, -3.74700270811e-15, 7.1054273576e-15
@@ -2584,8 +2609,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.7930711989027057, 1.989787435946425, 2.067664154944855]", "[0.10768883530768425, 1.43585113743579, 0.09871476569871068]", "[0.2944173139048779, 1.0891264143473687, 0.20730100796729195]", "[1.0547003190313031, 3.01945931333965, 2.1449394732841442]", "[6.543746835501549, 6.498618934045981, 5.807635706863597]", "[1.4746040379773842, 1.595134613125805, 0.5647376838195036]"
 			scales = "(1.7686264587471274, 1.4738553822892737, 1.6212409205182003)", "(2.1537767061536846, 1.7948139217947374, 1.9742953139742065)", "(2.1537767061536846, 1.7948139217947374, 1.9742953139742065)", "(0.8081078422089772, 0.8081078422089772, 0.8081078422089772)", "(2.1537767061536846, 1.7948139217947374, 1.9742953139742065)", "(1.0, 1.0, 1.0)"
 			positions = "[-0.1452162848210916, -3.7227365055997126, 8.778943013979926]", "[0.0, 0.0, 0.0]", "[0.021084317204859957, -0.4739829752128715, -0.017610825581457504]", "[0.8009014140341364, -4.4652397768178105, -7.338496224157609]", "[0.0, 0.0, 0.0]", "[0.021084317204846367, -0.4739829752128495, -0.017610825581523604]"
-			names = L_pinky_limbBlock_end_defineHandle, L_pinky_limbBlock_up_defineHandle, L_pinky_limbBlock_rp_defineHandle, L_pinky_limbBlock_lever_defineHandle, L_pinky_limbBlock_start_defineHandle, L_pinky_form_start_orientHandle
-			nameTags = L_pinky_limbBlock_end_defineHandle, L_pinky_limbBlock_up_defineHandle, L_pinky_limbBlock_rp_defineHandle, L_pinky_limbBlock_lever_defineHandle, L_pinky_limbBlock_start_defineHandle, L_pinky_form_start_orientHandle
+			names = L_pinky_limbBlock_end_defineHandle, L_pinky_limbBlock_up_defineHandle, L_pinky_limbBlock_rp_defineHandle, L_pinky_limbBlock_lever_defineHandle, L_pinky_limbBlock_start_defineHandle, L_pinky_orientHandle
+			nameTags = L_pinky_limbBlock_end_defineHandle, L_pinky_limbBlock_up_defineHandle, L_pinky_limbBlock_rp_defineHandle, L_pinky_limbBlock_lever_defineHandle, L_pinky_limbBlock_start_defineHandle, L_pinky_orientHandle
 	[[4]]
 		rootOrientHelper = 0.0, 0.0, 0.0
 		shapeProfile = None
@@ -2609,8 +2634,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.6744552774306125, 4.5173243267206065, 2.3567300913722775]", "[3.2781238962335766, 3.2810916395189125, 3.266342063789571]", "[2.4341419423735124, 2.4617642930087493, 2.7545796094293236]", "[2.4167942492443037, 2.6741573133435432, 2.896826601280499]", "[2.0670130222906646, 2.2445732610605904, 2.3515322464021473]"
 			scales = "(1.674455277430599, 4.311300591509403, 1.3953793978588418)", "(3.2456188120188014, 3.0002139110412047, 2.9839735162324303)", "(2.3670993674674836, 1.9725828062229063, 2.3670993674675063)", "(2.3493595384548414, 1.9577996153790684, 2.3493595384548818)", "(2.067013022290665, 1.7225108519089003, 1.8947619370997786)"
 			positions = "[1.4210854715202004e-14, -2.905268948784098, -8.52297769141613]", "[-0.19283170986302256, -0.32697532868871043, -0.23398602987868355]", "[-0.038620791450566044, -1.372558052378926, 5.510253163142234]", "[0.047600889807375826, -3.0426174032719673, 8.72194508397736]", "[0.1297784223255949, -4.982909790707993, 11.782995546135993]"
-			names = middle_form_lever_blockHandle, L_middle_form_start_blockHandle, middle_form_1_blockHandle, middle_form_2_blockHandle, L_middle_form_end_blockHandle
-			nameTags = middle_form_lever_blockHandle, L_middle_form_start_blockHandle, middle_form_1_blockHandle, middle_form_2_blockHandle, L_middle_form_end_blockHandle
+			names = L_middle_form_lever_blockHandle, L_middle_form_start_blockHandle, L_middle_form_1_blockHandle, L_middle_form_2_blockHandle, L_middle_form_end_blockHandle
+			nameTags = L_middle_form_lever_blockHandle, L_middle_form_start_blockHandle, L_middle_form_1_blockHandle, L_middle_form_2_blockHandle, L_middle_form_end_blockHandle
 			[[[[orientHelpers]]]]
 			[[[[loftCurves]]]]
 				[[[[[1]]]]]
@@ -2753,6 +2778,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -2762,10 +2788,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -2778,6 +2804,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -2805,8 +2832,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.709360425693026, 1.9374415378037328, 1.8151053897148755]", "[0.8175502511846877, 1.0014691233726989, 1.0011982384503613]", "[0.824677639036106, 0.9302909794302936, 0.9514251361353776]", "[0.8208342651997201, 0.9302909794302417, 0.9299559219219615]", "[0.8286632027997033, 1.078803681347122, 1.099884349093477]", "[0.8187612259184842, 1.078803681347111, 1.0784151348800517]", "[0.8293380566031164, 1.103950528239503, 1.1250221389918096]", "[0.8178469840144589, 1.1039505282394857, 1.1035529247783806]", "[1.7102514796268027, 2.094049255488839, 1.713084965403759]", "[0.8178469840144595, 1.1039505282394853, 1.1035529247783806]", "[0.024965770397746556, 0.9302909794302474, 0.929955921921968]"
 			scales = "(2.2854052614742466, 2.2854052614742466, 2.2854052614742457)", "(0.3500473257351059, 0.350047325735106, 0.350047325735106)", "(0.8000000000000003, 0.7999999999999999, 0.8)", "(1.0, 1.0000000000000004, 0.9999999999999999)", "(0.8000000000000003, 0.8000000000000005, 0.8000000000000006)", "(1.0, 1.0, 1.0)", "(0.7999999999999999, 0.7999999999999999, 0.8)", "(1.0000000000000002, 1.0000000000000007, 1.0000000000000007)", "(2.2854052614742466, 2.285405261474246, 2.2854052614742457)", "(0.350047325735106, 0.350047325735106, 0.3500473257351061)", "(0.8, 0.7999999999999999, 0.7999999999999999)"
 			positions = "[-0.009641585493129748, -2.7763542677792534, -8.108528108339314]", "[-0.009641585493142913, -2.776354267779308, -8.108528108339272]", "[-0.19283170986305423, -0.3269753286886682, -0.23398602987861758]", "[-0.19283170986301335, -0.32697532868872003, -0.23398602987852407]", "[-0.03862079145059283, -1.3725580523789227, 5.510253163142285]", "[-0.038620791450596895, -1.3725580523789118, 5.51025316314224]", "[0.04760088980736972, -3.0426174032718514, 8.721945083977289]", "[0.04760088980737075, -3.042617403271835, 8.72194508397738]", "[0.11745179244786802, -4.691865932592517, 11.323837976812213]", "[0.11745179244784072, -4.691865932592543, 11.323837976812255]", "[-0.1803034271006041, 2.2386660256572664, 0.23268295572971454]"
-			names = L_middle_0_preHandle, middle_0_jointHandle, L_middle_1_preHandle, middle_1_jointHandle, L_middle_2_preHandle, middle_2_jointHandle, L_middle_3_preHandle, middle_3_jointHandle, L_middle_4_preHandle, middle_4_jointHandle, L_middle_limbBlock_settings_shapeHelper
-			nameTags = L_middle_0_preHandle, middle_0_jointHandle, L_middle_1_preHandle, middle_1_jointHandle, L_middle_2_preHandle, middle_2_jointHandle, L_middle_3_preHandle, middle_3_jointHandle, L_middle_4_preHandle, middle_4_jointHandle, L_middle_limbBlock_settings_shapeHelper
+			names = L_middle_0_preHandle, L_middle_0_jointHandle, L_middle_1_preHandle, L_middle_1_jointHandle, L_middle_2_preHandle, L_middle_2_jointHandle, L_middle_3_preHandle, L_middle_3_jointHandle, L_middle_4_preHandle, L_middle_4_jointHandle, L_L_middle_limbBlock_settings_shapeHelper
+			nameTags = L_middle_0_preHandle, L_middle_0_jointHandle, L_middle_1_preHandle, L_middle_1_jointHandle, L_middle_2_preHandle, L_middle_2_jointHandle, L_middle_3_preHandle, L_middle_3_jointHandle, L_middle_4_preHandle, L_middle_4_jointHandle, L_L_middle_limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = -5.3290705182e-15, -2.84217094304e-14, 1.06581410364e-14
 				8 = -1.24344978758e-14, 0.0, 2.13162820728e-14
@@ -2823,8 +2850,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[2.2088198297480197, 2.461190133745662, 2.557983431089017]", "[0.1332604754995507, 1.7768063399940086, 0.12215543587458857]", "[0.2798469985490564, 1.3326047549955065, 0.25652641533663534]", "[1.1993835991295163, 4.306210503268777, 2.0123997214088964]", "[8.063761760920741, 8.039948821251716, 7.153738670795843]", "[1.7321060922935136, 1.8639852717260474, 0.7676543029916155]"
 			scales = "(2.1886020236018933, 1.8238350196682445, 2.0062185216350694)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(0.9999999999999999, 0.9999999999999998, 0.9999999999999999)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(1.0, 1.0, 1.0)"
 			positions = "[0.1297784223255949, -4.982909790707993, 11.782995546135993]", "[0.0, 0.0, 0.0]", "[-0.19283170986305423, -0.3269753286886682, -0.23398602987861758]", "[1.4210854715202004e-14, -2.905268948784098, -8.52297769141613]", "[0.0, 0.0, 0.0]", "[-0.19283170986302256, -0.3269753286887105, -0.23398602987868355]"
-			names = L_middle_limbBlock_end_defineHandle, L_middle_limbBlock_up_defineHandle, L_middle_limbBlock_rp_defineHandle, L_middle_limbBlock_lever_defineHandle, L_middle_limbBlock_start_defineHandle, L_middle_form_start_orientHandle
-			nameTags = L_middle_limbBlock_end_defineHandle, L_middle_limbBlock_up_defineHandle, L_middle_limbBlock_rp_defineHandle, L_middle_limbBlock_lever_defineHandle, L_middle_limbBlock_start_defineHandle, L_middle_form_start_orientHandle
+			names = L_middle_limbBlock_end_defineHandle, L_middle_limbBlock_up_defineHandle, L_middle_limbBlock_rp_defineHandle, L_middle_limbBlock_lever_defineHandle, L_middle_limbBlock_start_defineHandle, L_middle_orientHandle
+			nameTags = L_middle_limbBlock_end_defineHandle, L_middle_limbBlock_up_defineHandle, L_middle_limbBlock_rp_defineHandle, L_middle_limbBlock_lever_defineHandle, L_middle_limbBlock_start_defineHandle, L_middle_orientHandle
 	[[7]]
 		rootOrientHelper = 0.0, 0.0, 0.0
 		shapeProfile = None
@@ -2848,8 +2875,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.989484935456288, 1.7006401599019245, 1.8793772412422933]", "[3.2519625550653997, 3.2594845170265563, 3.32253335230301]", "[2.4789377569063067, 2.392280876051903, 2.550421086253129]", "[2.062006940953614, 1.422267657972206, 1.7414741130267934]"
 			scales = "(1.9444654361398486, 1.6203878634498872, 1.7824266497948353)", "(3.1490019750266107, 3.1360196486538854, 3.149001975026611)", "(2.4177981332226226, 2.2835119661474295, 2.4177981332225933)", "(2.0464136069803383, 1.3990066144081221, 1.722710110694244)"
 			positions = "[3.371207427055961e-14, -1.7463316811740665e-14, 7.121351169415621e-14]", "[-0.25655515448561506, -0.7890178985726849, 7.34656112896033]", "[-0.3203180212569153, -0.4547007257626565, 10.668279051130265]", "[-0.3511916551934249, -0.6304563722033905, 13.690763255802622]"
-			names = L_thumb_form_start_blockHandle, thumb_form_1_blockHandle, thumb_form_2_blockHandle, L_thumb_form_end_blockHandle
-			nameTags = L_thumb_form_start_blockHandle, thumb_form_1_blockHandle, thumb_form_2_blockHandle, L_thumb_form_end_blockHandle
+			names = L_thumb_form_start_blockHandle, L_thumb_form_1_blockHandle, L_thumb_form_2_blockHandle, L_thumb_form_end_blockHandle
+			nameTags = L_thumb_form_start_blockHandle, L_thumb_form_1_blockHandle, L_thumb_form_2_blockHandle, L_thumb_form_end_blockHandle
 			[[[[orientHelpers]]]]
 			[[[[loftCurves]]]]
 				[[[[[1]]]]]
@@ -2977,6 +3004,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -2986,10 +3014,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -3002,6 +3030,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -3029,8 +3058,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[0.7264716392468016, 0.7707071339827702, 0.7946679815340341]", "[0.7238644007449676, 0.7707071339827549, 0.7702376122773132]", "[0.7145832027817963, 0.7665678254892067, 0.7798611833319153]", "[0.7132381128615122, 0.7665678254891687, 0.7664266332710801]", "[0.7075163523023869, 0.7394534661235977, 0.7465647777866664]", "[0.7071013134544448, 0.739453466123593, 0.7394148921578356]", "[1.491174696450177, 1.660691734501186, 1.513091804761153]", "[0.7071013134544447, 0.7394534661235932, 0.7394148921578356]", "[0.026898085531412666, 0.7707071339827525, 0.7702376122773107]"
 			scales = "(0.7000000000000003, 0.7000000000000004, 0.7000000000000003)", "(1.0000000000000004, 1.0000000000000004, 1.0000000000000004)", "(0.7000000000000002, 0.7000000000000003, 0.7000000000000005)", "(1.0000000000000004, 1.0, 1.0000000000000004)", "(0.7000000000000002, 0.6999999999999997, 0.7000000000000003)", "(1.0, 1.0000000000000004, 1.0000000000000002)", "(1.9997296037899646, 1.999729603789965, 1.999729603789966)", "(0.3500473257351059, 0.350047325735106, 0.35004732573510594)", "(0.7000000000000002, 0.7000000000000002, 0.7000000000000004)"
 			positions = "[-0.03848327317279361, -0.11835268478585928, 1.1019841693440253]", "[-0.038483273172805005, -0.11835268478584375, 1.1019841693440666]", "[-0.2565551544857246, -0.7890178985726785, 7.346561128960453]", "[-0.2565551544857042, -0.7890178985726408, 7.34656112896043]", "[-0.3203180212569661, -0.45470072576261306, 10.668279051130215]", "[-0.32031802125698683, -0.45470072576261766, 10.668279051130295]", "[-0.34656061010296285, -0.6040930252371768, 13.237390625101705]", "[-0.3465606101029634, -0.6040930252372297, 13.237390625101758]", "[-0.046394734433171436, 1.9936118101002123, 1.3285320782545538]"
-			names = L_thumb_0_preHandle, thumb_0_jointHandle, L_thumb_1_preHandle, thumb_1_jointHandle, L_thumb_2_preHandle, thumb_2_jointHandle, L_thumb_3_preHandle, thumb_3_jointHandle, L_thumb_limbBlock_settings_shapeHelper
-			nameTags = L_thumb_0_preHandle, thumb_0_jointHandle, L_thumb_1_preHandle, thumb_1_jointHandle, L_thumb_2_preHandle, thumb_2_jointHandle, L_thumb_3_preHandle, thumb_3_jointHandle, L_thumb_limbBlock_settings_shapeHelper
+			names = L_thumb_0_preHandle, L_thumb_0_jointHandle, L_thumb_1_preHandle, L_thumb_1_jointHandle, L_thumb_2_preHandle, L_thumb_2_jointHandle, L_thumb_3_preHandle, L_thumb_3_jointHandle, L_L_thumb_limbBlock_settings_shapeHelper
+			nameTags = L_thumb_0_preHandle, L_thumb_0_jointHandle, L_thumb_1_preHandle, L_thumb_1_jointHandle, L_thumb_2_preHandle, L_thumb_2_jointHandle, L_thumb_3_preHandle, L_thumb_3_jointHandle, L_L_thumb_limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = -1.42108547152e-14, 2.84217094304e-14, 5.68434188608e-14
 				2 = 2.84217094304e-14, 5.68434188608e-14, -2.84217094304e-14
@@ -3046,8 +3075,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[2.5368535770726814, 1.8113631876034713, 2.8237256894259897]", "[0.15000000000000002, 2.0, 0.13750000000000048]", "[0.31500000000000006, 1.5, 0.2887500000000003]", "[1.1993835991295168, 4.505426646899243, 1.1837215522041038]", "[9.143825433324556, 7.744988204567947, 5.991015442863623]", "[1.9305904987026024, 2.2476196982908063, 0.15288919863760014]"
 			scales = "(2.4672204699358677, 1.6866862812433374, 2.7500000000000004)", "(3.0, 2.5, 2.75)", "(3.0, 2.5, 2.75)", "(1.0, 1.0, 1.0)", "(3.0, 2.5, 2.75)", "(1.0, 1.0, 1.0)"
 			positions = "[-0.3511916551934249, -0.6304563722033905, 13.690763255802622]", "[0.0, 0.0, 0.0]", "[-0.03848327317279361, -0.11835268478585928, 1.1019841693440253]", "[-1.4210854715202004e-14, -4.973799150320701e-14, -2.5000000000000995]", "[0.0, 0.0, 0.0]", "[3.3712182351264275e-14, -1.7319479184152442e-14, 7.122080702970379e-14]"
-			names = L_thumb_limbBlock_end_defineHandle, L_thumb_limbBlock_up_defineHandle, L_thumb_limbBlock_rp_defineHandle, L_thumb_limbBlock_lever_defineHandle, L_thumb_limbBlock_start_defineHandle, L_thumb_form_start_orientHandle
-			nameTags = L_thumb_limbBlock_end_defineHandle, L_thumb_limbBlock_up_defineHandle, L_thumb_limbBlock_rp_defineHandle, L_thumb_limbBlock_lever_defineHandle, L_thumb_limbBlock_start_defineHandle, L_thumb_form_start_orientHandle
+			names = L_thumb_limbBlock_end_defineHandle, L_thumb_limbBlock_up_defineHandle, L_thumb_limbBlock_rp_defineHandle, L_thumb_limbBlock_lever_defineHandle, L_thumb_limbBlock_start_defineHandle, L_thumb_orientHandle
+			nameTags = L_thumb_limbBlock_end_defineHandle, L_thumb_limbBlock_up_defineHandle, L_thumb_limbBlock_rp_defineHandle, L_thumb_limbBlock_lever_defineHandle, L_thumb_limbBlock_start_defineHandle, L_thumb_orientHandle
 	[[6]]
 		rootOrientHelper = 0.0, 0.0, 0.0
 		shapeProfile = None
@@ -3071,8 +3100,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.8942094099852924, 5.367085741602867, 2.8623070971020743]", "[3.2636326363033246, 3.2644467344027657, 3.2497251482947784]", "[2.4092231676679523, 2.5131476063572453, 2.793044758202389]", "[2.3915553710576436, 2.728498162563859, 2.9324316072409493]", "[2.0670130222906655, 2.244573261060589, 2.3515322464021473]"
 			scales = "(1.8942094099852476, 5.133062810040881, 1.5785078416543838)", "(3.2456188120188014, 3.0002139110412025, 2.9839735162324286)", "(2.367099367467484, 1.9725828062229067, 2.367099367467508)", "(2.349359538454843, 1.9577996153790695, 2.3493595384548818)", "(2.0670130222906655, 1.722510851908901, 1.8947619370997795)"
 			positions = "[0.21843099302030478, -3.2579229749102154, -7.110264892975209]", "[-0.10637275329130527, -0.3134069088910385, 0.7637767607509952]", "[-0.02150164893663736, -1.3271088368832356, 5.8423734812888135]", "[0.02449667113068931, -2.9691762800867467, 8.594864087139246]", "[0.0681922952620031, -4.822431573323541, 11.209563814481442]"
-			names = ring_form_lever_blockHandle, L_ring_form_start_blockHandle, ring_form_1_blockHandle, ring_form_2_blockHandle, L_ring_form_end_blockHandle
-			nameTags = ring_form_lever_blockHandle, L_ring_form_start_blockHandle, ring_form_1_blockHandle, ring_form_2_blockHandle, L_ring_form_end_blockHandle
+			names = L_ring_form_lever_blockHandle, L_ring_form_start_blockHandle, L_ring_form_1_blockHandle, L_ring_form_2_blockHandle, L_ring_form_end_blockHandle
+			nameTags = L_ring_form_lever_blockHandle, L_ring_form_start_blockHandle, L_ring_form_1_blockHandle, L_ring_form_2_blockHandle, L_ring_form_end_blockHandle
 			[[[[orientHelpers]]]]
 			[[[[loftCurves]]]]
 				[[[[[1]]]]]
@@ -3215,6 +3244,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -3224,10 +3254,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = digit
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = start
+				rigSetup = digit
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -3240,6 +3270,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = start
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -3267,8 +3298,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[1.7158019340751123, 1.9303009259067496, 1.8726618746070285]", "[0.8302066508286345, 1.02940066842966, 1.028525992262825]", "[0.8156133492111686, 0.9411008260790168, 0.9543367954256963]", "[0.8129971537623393, 0.9411008260789564, 0.9409694405736411]", "[0.8182162663601859, 1.096878370873359, 1.1100925923787077]", "[0.8113684553100708, 1.0968783708733283, 1.0967252375266838]", "[0.8185237079027909, 1.1152779148956546, 1.1284895676716111]", "[0.8107945965604582, 1.1152779148956404, 1.1151222128195677]", "[1.7064702288992277, 2.1088230392059755, 1.6865573757432042]", "[0.8107945965604582, 1.1152779148956395, 1.1151222128195641]", "[0.015725035867201448, 0.9411008260789604, 0.9409694405736443]"
 			scales = "(2.2854052614742453, 2.2854052614742453, 2.2854052614742453)", "(0.3500473257351057, 0.3500473257351058, 0.35004732573510583)", "(0.8000000000000002, 0.7999999999999998, 0.8000000000000004)", "(1.0000000000000002, 1.0, 1.0000000000000002)", "(0.8000000000000004, 0.8, 0.8000000000000004)", "(0.9999999999999998, 1.0, 1.0)", "(0.8000000000000002, 0.8000000000000002, 0.8000000000000004)", "(0.9999999999999994, 0.9999999999999998, 0.9999999999999997)", "(2.2854052614742453, 2.2854052614742453, 2.2854052614742457)", "(0.3500473257351058, 0.3500473257351056, 0.3500473257351057)", "(0.8000000000000007, 0.8000000000000004, 0.8)"
 			positions = "[0.20219080570473813, -3.1106971716093312, -6.7165628102887664]", "[0.20219080570473696, -3.110697171609279, -6.716562810288812]", "[-0.10637275329131958, -0.3134069088909349, 0.7637767607510765]", "[-0.10637275329130828, -0.31340690889099515, 0.7637767607510295]", "[-0.02150164893664998, -1.3271088368832105, 5.842373481288821]", "[-0.021501648936654166, -1.3271088368831803, 5.842373481288825]", "[0.024496671130680926, -2.9691762800866974, 8.594864087139245]", "[0.02449667113069243, -2.9691762800866845, 8.594864087139296]", "[0.06163795164228761, -4.54444327933803, 10.817358855380068]", "[0.06163795164228985, -4.544443279337984, 10.81735885538008]", "[-0.09786708960029508, 2.237219239482144, 1.2727466399047243]"
-			names = L_ring_0_preHandle, ring_0_jointHandle, L_ring_1_preHandle, ring_1_jointHandle, L_ring_2_preHandle, ring_2_jointHandle, L_ring_3_preHandle, ring_3_jointHandle, L_ring_4_preHandle, ring_4_jointHandle, L_ring_limbBlock_settings_shapeHelper
-			nameTags = L_ring_0_preHandle, ring_0_jointHandle, L_ring_1_preHandle, ring_1_jointHandle, L_ring_2_preHandle, ring_2_jointHandle, L_ring_3_preHandle, ring_3_jointHandle, L_ring_4_preHandle, ring_4_jointHandle, L_ring_limbBlock_settings_shapeHelper
+			names = L_ring_0_preHandle, L_ring_0_jointHandle, L_ring_1_preHandle, L_ring_1_jointHandle, L_ring_2_preHandle, L_ring_2_jointHandle, L_ring_3_preHandle, L_ring_3_jointHandle, L_ring_4_preHandle, L_ring_4_jointHandle, L_L_ring_limbBlock_settings_shapeHelper
+			nameTags = L_ring_0_preHandle, L_ring_0_jointHandle, L_ring_1_preHandle, L_ring_1_jointHandle, L_ring_2_preHandle, L_ring_2_jointHandle, L_ring_3_preHandle, L_ring_3_jointHandle, L_ring_4_preHandle, L_ring_4_jointHandle, L_L_ring_limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = -1.33226762955e-15, 2.84217094304e-14, -1.06581410364e-14
 				8 = 8.881784197e-16, 1.95399252334e-14, -7.1054273576e-15
@@ -3285,8 +3316,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[2.199772533122035, 2.4682014441351274, 2.5636173432617895]", "[0.1332604754995507, 1.7768063399940086, 0.12215543587458857]", "[0.2798469985490564, 1.3326047549955065, 0.25652641533663545]", "[1.1993835991295163, 4.306646337722111, 2.125201294024137]", "[8.033464028590442, 8.051617705741862, 7.153894857191252]", "[1.7263451444512836, 1.8352675223923285, 0.8206184122379687]"
 			scales = "(2.1886020236018937, 1.823835019668244, 2.0062185216350694)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(0.9999999999999998, 0.9999999999999994, 0.9999999999999997)", "(2.6652095099910134, 2.2210079249925108, 2.4431087174917625)", "(1.0, 1.0, 1.0)"
 			positions = "[0.0681922952620031, -4.822431573323541, 11.209563814481442]", "[0.0, 0.0, 0.0]", "[-0.10637275329131958, -0.3134069088909349, 0.7637767607510765]", "[0.21843099302030478, -3.2579229749102154, -7.110264892975209]", "[0.0, 0.0, 0.0]", "[-0.10637275329130527, -0.3134069088910385, 0.7637767607509951]"
-			names = L_ring_limbBlock_end_defineHandle, L_ring_limbBlock_up_defineHandle, L_ring_limbBlock_rp_defineHandle, L_ring_limbBlock_lever_defineHandle, L_ring_limbBlock_start_defineHandle, L_ring_form_start_orientHandle
-			nameTags = L_ring_limbBlock_end_defineHandle, L_ring_limbBlock_up_defineHandle, L_ring_limbBlock_rp_defineHandle, L_ring_limbBlock_lever_defineHandle, L_ring_limbBlock_start_defineHandle, L_ring_form_start_orientHandle
+			names = L_ring_limbBlock_end_defineHandle, L_ring_limbBlock_up_defineHandle, L_ring_limbBlock_rp_defineHandle, L_ring_limbBlock_lever_defineHandle, L_ring_limbBlock_start_defineHandle, L_ring_orientHandle
+			nameTags = L_ring_limbBlock_end_defineHandle, L_ring_limbBlock_up_defineHandle, L_ring_limbBlock_rp_defineHandle, L_ring_limbBlock_lever_defineHandle, L_ring_limbBlock_start_defineHandle, L_ring_orientHandle
 	[[9]]
 		rootOrientHelper = 0.0, 0.0, 0.0
 		shapeProfile = None
@@ -3469,6 +3500,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -3478,10 +3510,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = end
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = default
+				controlOffsetMult = 1.0
 				mainRotAxis = up
 				ikOrientToWorld = True
-				settingsPlace = end
+				rigSetup = default
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = free
@@ -3489,11 +3521,12 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				followParentBank = True
 				ikRollSetup = control
 				proxyDirect = True
-				segmentType = ribbon
+				segmentType = curve
 				ikEnd = hand
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = end
 				settingsDirection = up
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -3510,9 +3543,9 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				numRoll = 3
 				numJoints = 0.0
 			[[[[squashStretch]]]]
-				segmentStretchBy = scale
+				segmentStretchBy = translate
 				squashFactorMax = 1.0
-				squashMeasure = pointDist
+				squashMeasure = arcLength
 				squash = simple
 				scaleSetup = True
 				squashExtraControl = True
@@ -3522,8 +3555,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[2.841252174004012, 3.1149062398466465, 2.8403110404801515]", "[1.429791680164037, 1.4266496147073235, 1.4266123920155351]", "[2.1487696231157, 1.9214331340912807, 1.7776530496939376]", "[1.7732685439834395, 1.8462597571073256, 1.5819385463614868]", "[2.2521064835248126, 1.8546331297967171, 2.197528058081326]", "[1.6177209572034883, 1.8440943971110144, 1.656649062457749]", "[2.99495925856332, 3.3814101473069798, 2.734303688575613]", "[1.600905198300218, 1.8186415563184113, 1.6680091588203467]", "[1.8222239300557916, 1.8371453925396297, 1.5192518220574462]", "[1.8222239300557916, 1.8371453925396324, 1.519251822057446]", "[1.640495460283951, 1.7742577793235697, 1.775680843850596]", "[1.640495460283951, 1.7742577793235768, 1.775680843850595]", "[9.130674209765502, 12.091544785838124, 7.927533903936487]"
 			scales = "(3.742351115664077, 3.742351115664078, 3.7423511156640785)", "(0.3500473257351059, 0.35004732573510583, 0.3500473257351058)", "(1.3099999999999998, 1.3100000000000003, 1.3100000000000003)", "(1.0, 1.0, 1.0)", "(1.3100000000000012, 1.3100000000000007, 1.3100000000000007)", "(0.9999999999999999, 1.0000000000000002, 1.0)", "(3.74235111566408, 3.74235111566408, 3.74235111566408)", "(0.3500473257351057, 0.35004732573510583, 0.3500473257351058)", "(1.3100000000000005, 1.3100000000000005, 1.3100000000000005)", "(1.3100000000000005, 1.3100000000000005, 1.3100000000000005)", "(1.3100000000000005, 1.3100000000000005, 1.3100000000000005)", "(1.3100000000000005, 1.3100000000000005, 1.3100000000000005)", "(8.589540586568114, 8.589540586568114, 8.589540586568114)"
 			positions = "[12.217986435787655, 2.504446379078188, 1.4244779152310292]", "[12.217986435787655, 2.5044463790781615, 1.4244779152310267]", "[1.9326403006221e-07, -7.099927512901567e-06, 3.7095184811477715e-08]", "[1.9326401933365323e-07, -7.099927527072655e-06, 3.7095192043502796e-08]", "[-19.510855481479645, -23.64312691193915, 1.1596184147807378]", "[-19.51085548147965, -23.643126911939156, 1.1596184147807416]", "[-30.82545206741592, -38.27433406982928, 12.02356577500483]", "[-30.82545206741591, -38.27433406982929, 12.023565775004828]", "[-6.503611861365266, -7.881039156224766, 0.3865391097842245]", "[-13.007243426850282, -15.762094855641882, 0.77307934209168]", "[-23.282383905259522, -28.52019108750013, 4.780930580206312]", "[-27.05392364363602, -33.39726989426829, 8.402253609579226]", "[-39.451226931883106, -36.72001591689756, 19.55372817636948]"
-			names = R_clav_preHandle, clav_jointHandle, R_shoulder_preHandle, shoulder_jointHandle, R_elbow_preHandle, elbow_jointHandle, R_wrist_preHandle, wrist_jointHandle, R_shoulder_roll_jointHandle, R_shoulder_roll_1_jointHandle, R_elbow_roll_jointHandle, R_elbow_roll_1_jointHandle, R_R_arm__limbBlock_settings_shapeHelper
-			nameTags = R_clav_preHandle, clav_jointHandle, R_shoulder_preHandle, shoulder_jointHandle, R_elbow_preHandle, elbow_jointHandle, R_wrist_preHandle, wrist_jointHandle, R_shoulder_roll_jointHandle, R_shoulder_roll_1_jointHandle, R_elbow_roll_jointHandle, R_elbow_roll_1_jointHandle, R_R_arm__limbBlock_settings_shapeHelper
+			names = R_clav_preHandle, R_clav_jointHandle, R_shoulder_preHandle, R_shoulder_jointHandle, R_elbow_preHandle, R_elbow_jointHandle, R_wrist_preHandle, R_wrist_jointHandle, R_shoulder_roll_jointHandle, R_shoulder_roll_1_jointHandle, R_elbow_roll_jointHandle, R_elbow_roll_1_jointHandle, R_R_arm__limbBlock_settings_shapeHelper
+			nameTags = R_clav_preHandle, R_clav_jointHandle, R_shoulder_preHandle, R_shoulder_jointHandle, R_elbow_preHandle, R_elbow_jointHandle, R_wrist_preHandle, R_wrist_jointHandle, R_shoulder_roll_jointHandle, R_shoulder_roll_1_jointHandle, R_elbow_roll_jointHandle, R_elbow_roll_1_jointHandle, R_R_arm__limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = 0.0, -7.1054273576e-15, -5.55111512313e-17
 				2 = 3.5527136788e-15, 0.0, 1.42108547152e-14
@@ -3564,8 +3597,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[17.610495409003896, 17.50281256809594, 17.066122069037093]", "[21.125574475229914, 20.04876307145837, 20.6103040894933]", "[12.39716342886798, 11.758685879115248, 12.614446237843309]", "[14.436743321966489, 13.721546714596364, 14.503868518592606]", "[8.94473953641669, 8.496861344489872, 8.70694748825949]", "[9.71309149997838, 10.1503127365375, 9.773425194174713]", "[15.757998788097572, 0.0, 28.86053159662807]", "[2.594777708111625, 2.200000000000003, 2.5947777081116232]", "[2.5947777081116215, 2.200000000000003, 2.5947777081116232]", "[2.594777708111625, 2.200000000000003, 2.5947777081116223]", "[2.5947777081116232, 2.200000000000003, 2.5947777081116223]", "[2.3610400024801734, 0.0, 2.360088328639822]", "[15.918298157702178, 1.5321289871251196, 28.808386156343598]"
 			scales = "(14.78242399594032, 16.566509105827787, 15.674466550883983)", "(18.04912643449229, 20.227468614847638, 18.04912643449239)", "(10.137638368813505, 11.202367526891956, 10.137638368813453)", "(12.048095756473918, 13.502175834783625, 12.04809575647387)", "(7.557860413769949, 8.470015702409897, 7.5578604137699426)", "(8.664250673726174, 9.589252150989722, 9.072907945090614)", "(11.573773414378387, 1.0, 27.187271132972533)", "(1.0000000000000002, 1.0, 1.0000000000000002)", "(1.0000000000000002, 1.0, 1.0000000000000002)", "(1.0000000000000002, 1.0, 1.0000000000000002)", "(1.0000000000000002, 1.0, 1.0000000000000002)", "(1.0000000000000002, 1.0, 1.0000000000000002)", "(11.600000381469721, 11.600000381469727, 11.600000381469721)"
 			positions = "[-3.6060766843658176e-15, -4.527555792018355e-16, -4.49286902471061e-16]", "[3.3259405349460005, -27.19249412148631, -1.0176313536927961]", "[5.973433049818573, -49.50239521854027, -1.513304852292789]", "[9.971695427392765, -67.37854736870837, -6.320695083726646]", "[12.143547360544305, -89.57331088769627, -5.444382950140131]", "[12.735097945667569, -97.47010616245643, -3.992115939001805]", "[14.390049701603742, -102.32165387824867, 3.291285001321065]", "[11.677324204687418, -102.32165387824867, -10.028927019995276]", "[17.102775198520078, -102.32165387824867, 16.611497022637387]", "[20.424597426348104, -102.32165387824867, 4.94234655676327]", "[9.481848951267509, -102.32165387824867, 7.170890122525516]", "[14.9907811015066, -102.32165387824867, 6.241037795573286]", "[14.39004970160374, -101.16165384010169, 3.2912850013210586]"
-			names = L_leg_form_start_blockHandle, leg_form_1_blockHandle, leg_form_2_blockHandle, leg_form_3_blockHandle, leg_form_4_blockHandle, L_leg_form_end_blockHandle, base_pivotHelper, L_heel_pivotHelper, L_toe_pivotHelper, L_pivotHelper, L_R_pivotHelper, L_ball_pivotHelper, topLoft_pivotHelper
-			nameTags = L_leg_form_start_blockHandle, leg_form_1_blockHandle, leg_form_2_blockHandle, leg_form_3_blockHandle, leg_form_4_blockHandle, L_leg_form_end_blockHandle, base_pivotHelper, L_heel_pivotHelper, L_toe_pivotHelper, L_pivotHelper, L_R_pivotHelper, L_ball_pivotHelper, topLoft_pivotHelper
+			names = L_leg_form_start_blockHandle, L_leg_form_1_blockHandle, L_leg_form_2_blockHandle, L_leg_form_3_blockHandle, L_leg_form_4_blockHandle, L_leg_form_end_blockHandle, L_base_pivotHelper, L_heel_pivotHelper, L_toe_pivotHelper, L_pivotHelper, L_R_pivotHelper, L_ball_pivotHelper, L_topLoft_pivotHelper
+			nameTags = L_leg_form_start_blockHandle, L_leg_form_1_blockHandle, L_leg_form_2_blockHandle, L_leg_form_3_blockHandle, L_leg_form_4_blockHandle, L_leg_form_end_blockHandle, L_base_pivotHelper, L_heel_pivotHelper, L_toe_pivotHelper, L_pivotHelper, L_R_pivotHelper, L_ball_pivotHelper, L_topLoft_pivotHelper
 			[[[[orientHelpers]]]]
 			[[[[loftCurves]]]]
 				[[[[[1]]]]]
@@ -3717,6 +3750,7 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				visRotatePlane = False
 			[[[[proxySurface]]]]
 				loftSides = 10
+				proxyHardenEdge = False
 				meshBuild = True
 				castVector = out
 				loftDegree = linear
@@ -3726,10 +3760,10 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				attachPoint = base
 				attachIndex = 0
 			[[[[rig]]]]
-				rigSetup = default
+				controlOffsetMult = 1.0
 				mainRotAxis = out
 				ikOrientToWorld = True
-				settingsPlace = end
+				rigSetup = default
 				ribbonParam = blend
 				ribbonAim = stable
 				ikRPAim = default
@@ -3737,11 +3771,12 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 				followParentBank = True
 				ikRollSetup = control
 				proxyDirect = True
-				segmentType = ribbon
+				segmentType = curve
 				ikEnd = foot
 				segmentMidIKControl = True
 				ikOrientEndTo = end
 				offsetMode = default
+				settingsPlace = end
 				settingsDirection = down
 				ikSetup = rp
 				ikExtendSetup = aim
@@ -3757,9 +3792,9 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			[[[[skeleton]]]]
 				numRoll = 3
 			[[[[squashStretch]]]]
-				segmentStretchBy = scale
+				segmentStretchBy = translate
 				squashFactorMax = 1.0
-				squashMeasure = pointDist
+				squashMeasure = arcLength
 				squash = simple
 				scaleSetup = True
 				squashExtraControl = True
@@ -3769,8 +3804,8 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[2.7266449931154, 2.5966817428056084, 2.5753535834315118]", "[2.460284251665265, 2.486833207352581, 2.429571960038254]", "[2.689433085842624, 2.475741862916422, 2.444678911010509]", "[2.435457856159325, 2.4489563786423787, 2.4404759994236205]", "[4.803004146010258, 5.147291899370444, 4.808790868248578]", "[2.6384577231075106, 2.1999999999999886, 2.6384577231075106]", "[2.5947777081116232, 2.200000000000017, 2.594777708111625]", "[2.5947777081116232, 2.200000000000017, 2.594777708111624]", "[2.594777708111641, 2.200000000000017, 2.5947777081116303]", "[2.5947777081116232, 2.200000000000017, 2.5947777081116232]", "[2.4856450043401743, 2.482055233769053, 2.447698158319663]", "[2.4856450043401743, 2.48205523376906, 2.447698158319663]", "[2.4956875717983396, 2.6314761197404337, 2.6648805754892186]", "[2.4956875717983404, 2.6314761197404266, 2.664880575489218]", "[2.266730871070873, 11.35872885910058, 11.13025841805566]"
 			scales = "(2.1999999999999993, 2.2, 2.2)", "(1.0, 1.0000000000000002, 1.0000000000000002)", "(2.1999999999999997, 2.2000000000000006, 2.2000000000000006)", "(1.0000000000000002, 1.0000000000000007, 1.0000000000000007)", "(6.284864469054178, 6.284864469054178, 6.284864469054179)", "(0.35004732573510583, 0.35004732573510583, 0.35004732573510583)", "(2.2000000000000015, 2.2000000000000037, 2.200000000000001)", "(1.0, 1.0000000000000002, 0.9999999999999999)", "(2.2000000000000015, 2.2000000000000037, 2.200000000000001)", "(1.0, 1.0000000000000002, 0.9999999999999999)", "(2.2000000000000006, 2.2000000000000006, 2.2000000000000006)", "(2.2000000000000006, 2.2000000000000006, 2.2000000000000006)", "(2.2000000000000006, 2.2000000000000006, 2.2000000000000006)", "(2.2000000000000006, 2.2000000000000006, 2.2000000000000006)", "(11.358728859100587, 11.35872885910059, 11.358728859100587)"
 			positions = "[0.8314850195504186, -6.798124825514261, -0.2544076592062348]", "[0.8314850195504275, -6.798124825514323, -0.2544076592062351]", "[6.952372775898077, -50.62978223518224, -1.3795755058859225]", "[6.952372775898075, -50.62978223518223, -1.3795755058859258]", "[12.682656335463252, -93.59106309182683, -4.219296147390899]", "[12.68265633546325, -93.59106309182683, -4.219296147390871]", "[15.173656092657897, -100.16497451692766, 7.139003202799661]", "[15.173656092657897, -100.16497451692766, 7.139003202799662]", "[16.40467862980382, -101.19476947082565, 13.183655054393874]", "[16.4046786298038, -101.19476947082565, 13.183655054393865]", "[3.0042895874000095, -21.381989818796512, 0.47583351383588357]", "[5.104506396785169, -36.03204358699062, 0.5408830654356094]", "[8.47907283015672, -64.58911921484778, -5.019689666117287]", "[10.308078978040466, -79.0969064003323, -6.838530870033486]", "[9.324249262610273, -89.51126339299626, -20.740300627278213]"
-			names = L_hip_preHandle, hip_jointHandle, L_knee_preHandle, knee_jointHandle, L_ankle_preHandle, ankle_jointHandle, L_ball_preHandle, ball_jointHandle, L_toe_preHandle, toe_jointHandle, L_hip_roll_jointHandle, L_hip_roll_1_jointHandle, L_knee_roll_jointHandle, L_knee_roll_1_jointHandle, L_leg_limbBlock_settings_shapeHelper
-			nameTags = L_hip_preHandle, hip_jointHandle, L_knee_preHandle, knee_jointHandle, L_ankle_preHandle, ankle_jointHandle, L_ball_preHandle, ball_jointHandle, L_toe_preHandle, toe_jointHandle, L_hip_roll_jointHandle, L_hip_roll_1_jointHandle, L_knee_roll_jointHandle, L_knee_roll_1_jointHandle, L_leg_limbBlock_settings_shapeHelper
+			names = L_hip_preHandle, L_hip_jointHandle, L_knee_preHandle, L_knee_jointHandle, L_ankle_preHandle, L_ankle_jointHandle, L_ball_preHandle, L_ball_jointHandle, L_toe_preHandle, L_toe_jointHandle, L_hip_roll_jointHandle, L_hip_roll_1_jointHandle, L_knee_roll_jointHandle, L_knee_roll_1_jointHandle, L_L_leg_limbBlock_settings_shapeHelper
+			nameTags = L_hip_preHandle, L_hip_jointHandle, L_knee_preHandle, L_knee_jointHandle, L_ankle_preHandle, L_ankle_jointHandle, L_ball_preHandle, L_ball_jointHandle, L_toe_preHandle, L_toe_jointHandle, L_hip_roll_jointHandle, L_hip_roll_1_jointHandle, L_knee_roll_jointHandle, L_knee_roll_1_jointHandle, L_L_leg_limbBlock_settings_shapeHelper
 			[[[[jointHelpers]]]]
 				0 = 0.0, 1.7763568394e-15, 2.84217094304e-14
 				8 = -7.1054273576e-15, -1.44328993201e-15, -5.3290705182e-15
@@ -3787,5 +3822,5 @@ blockList = male_masterBlock, spine_segmentBlock, L_arm_limbBlock, L_index_limbB
 			bb = "[10.22709799541846, 10.691556892125064, 10.534786706984796]", "[1.850406600473148, 0.6150000095367465, 10.39266972156749]", "[2.698066325519738, 2.4234871176873023, 7.998587878733602]", "[1.1993835991295168, 1.183721552204105, 13.10542702836897]", "[40.682996000214764, 29.646768972026372, 42.49533536613379]", "[8.428891763147691, 1.2058534014073814, 9.534229055346366]"
 			scales = "(9.059891017967512, 10.153325806930281, 9.606608412448884)", "(11.600000381469727, 13.0, 12.300000190734863)", "(11.600000381469727, 13.0, 12.300000190734863)", "(1.0, 1.0, 1.0)", "(11.600000381469727, 13.0, 12.300000190734863)", "(1.0, 1.0, 1.0)"
 			positions = "[12.735097945667569, -97.47010616245643, -3.992115939001805]", "[0.0, 0.0, 0.0]", "[0.8314850195504186, -6.798124825514261, -0.2544076592062348]", "[0.0, 13.0, 0.0]", "[0.0, 0.0, 0.0]", "[-3.552713678800501e-15, -4.440892098500626e-16, 0.0]"
-			names = L_leg_limbBlock_end_defineHandle, L_leg_limbBlock_up_defineHandle, L_leg_limbBlock_rp_defineHandle, L_leg_limbBlock_lever_defineHandle, L_leg_limbBlock_start_defineHandle, L_leg_form_start_orientHandle
-			nameTags = L_leg_limbBlock_end_defineHandle, L_leg_limbBlock_up_defineHandle, L_leg_limbBlock_rp_defineHandle, L_leg_limbBlock_lever_defineHandle, L_leg_limbBlock_start_defineHandle, L_leg_form_start_orientHandle
+			names = L_leg_limbBlock_end_defineHandle, L_leg_limbBlock_up_defineHandle, L_leg_limbBlock_rp_defineHandle, L_leg_limbBlock_lever_defineHandle, L_leg_limbBlock_start_defineHandle, L_leg_orientHandle
+			nameTags = L_leg_limbBlock_end_defineHandle, L_leg_limbBlock_up_defineHandle, L_leg_limbBlock_rp_defineHandle, L_leg_limbBlock_lever_defineHandle, L_leg_limbBlock_start_defineHandle, L_leg_orientHandle
