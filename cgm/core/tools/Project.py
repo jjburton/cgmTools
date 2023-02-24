@@ -799,7 +799,10 @@ class ui_pathList_project(cgmUI.cgmGUI):
         self.mColumn.clear()
         self.mPathList.verify()
         
-        for i,p in enumerate(self.mPathList.l_paths):
+        l_paths = self.mPathList.l_paths
+        
+        
+        for i,p in enumerate(sorted(l_paths)):
             proj = data(filepath=p)
             name = proj.d_project['name']
             
@@ -819,12 +822,25 @@ def buildMenu_project(self,key, toProject=False):
     self.mPathList.verify()
     
     project_names = []
+    
+    d_paths = {}
+    """
+    project name use:{path}
+    """
     for i,p in enumerate(self.mPathList.l_paths):
         proj = data(filepath=p)
         name = proj.d_project['name']
         project_names.append(name)
+        nameUse = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1)
+        
+        d_paths[nameUse] = p
+        
+    #sort that
+    pprint.pprint(d_paths.keys())
+    for l in sorted(d_paths, key=lambda s: s.lower()):
+        p = d_paths[l]
         mUI.MelMenuItem(mMenu,
-                        label = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
+                        label = l,
                         ann = "Set the project to: {0} | {1}".format(i,p),
                         c=cgmGEN.Callback(uiProject_load,self,p))
         

@@ -2065,7 +2065,7 @@ class uiBlockConfigDat(ui):
                 if _side in [False,'none',None]:
                     _side = 'center'
                     
-                reload(CORESHARE)
+                cgmGEN._reloadMod(CORESHARE)
                 d_color = CORESHARE._d_gui_direction_colors_use[_side]
                 if MATH.is_even(i):
                     _ut = 'cgmUITemplate'

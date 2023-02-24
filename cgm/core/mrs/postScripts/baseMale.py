@@ -141,7 +141,40 @@ def gameToon():
     # ================================================================================
     # Values
     # ================================================================================
-    d_values = {'spine_cog_anim':{'spine_rigRibbon_aimFactor_0':.25,
+    d_values = {#'head_settings_anim': {'visRoot':True},
+            'settingsControl':{'geo':'lock', 'proxy':'off'},
+            'head_fk_anim':{'orientTo':'spine_cog'},
+            'head_root_anim':{'orientTo':'spine_cog'},
+
+            'L_shoulder_fk_anim': {'ro': 'yzx'},
+            'L_elbow_fk_anim': {'ro': 'yzx'},
+            'L_wrist_fk_anim': {'ro': 'yzx'},
+            'R_shoulder_fk_anim': {'ro': 'yzx'},
+            'R_elbow_fk_anim': {'ro': 'yzx'},
+            'R_wrist_fk_anim': {'ro': 'yzx'},                
+
+            'hips_ikBase_anim': {'ro': 'xyz'},
+            'spine_1_fk_anim': {'ro': 'xyz'},
+            'spine_2_fk_anim': {'ro': 'xyz'},
+            'chest_fk_anim': {'ro': 'xyz'},
+            
+            'L_wrist_ik_anim': {'space': 'chest',
+                                'ro':'yzx'},
+            'R_wrist_ik_anim': {'space': 'chest',
+                                'ro':'yzx'},
+            
+            'L_ankle_ik_anim': {'ro':'zxy'},
+            'R_ankle_ik_anim': {'ro':'zxy'},            
+
+
+            'spine_midIK_0_ik_anim': {'space': 'spine_cog'},
+
+            'chest_ik_anim': {'ro': 'xyz'},
+            'hips_ikBase_anim': {'ro': 'xyz'},
+            'settingsControl':{'geo':'lock', 'proxy':'off'},
+
+
+            'spine_cog_anim':{'spine_rigRibbon_aimFactor_0':.25,
                                   'spine_rigRibbon_aimFactor_1':1,
                                   'spine_rigRibbon_aimFactor_2':.25,
                                   'spine_rigRibbon_aimFactor_3':0,
@@ -151,11 +184,50 @@ def gameToon():
                                   'spine_rigRibbon_outFactor_2':.5,
                                   'blendParam':1,
                                   'visScaleRoot':False,
-                                  },
-                'settingsControl':{'geo':'lock', 'proxy':'off'},
-                'head_fk_anim':{'orientTo':'spine_cog'},
-                'head_ik_anim':{'orientTo':'spine_cog'},                
-                }    
+                                  },                   
+
+            'L_arm_settings_anim': {'elbow_seg_1_out_factor_0': 1.0,
+                                    'elbow_seg_1_out_factor_1': 1.0,
+                                     'elbow_seg_1_out_factor_2': 0.0,
+                                     'elbow_seg_1_segScale': 1.0,
+                                     'shoulder_seg_0_out_factor_0': 1.0,
+                                     'shoulder_seg_0_out_factor_1': 1.0,
+                                     'shoulder_seg_0_out_factor_2': 1.0,
+                                     'shoulder_seg_0_segScale': 1.0},
+            'R_arm_settings_anim': {'elbow_seg_1_out_factor_0': 1.0,
+                                    'elbow_seg_1_out_factor_1': 1.0,
+                                     'elbow_seg_1_out_factor_2': 0.0,
+                                     'elbow_seg_1_segScale': 1.0,
+                                     'shoulder_seg_0_out_factor_0': 1.0,
+                                     'shoulder_seg_0_out_factor_1': 1.0,
+                                     'shoulder_seg_0_out_factor_2': 1.0,
+                                     'shoulder_seg_0_segScale': 1.0},
+            'R_leg_settings_anim': {'ankle_seg_2_out_factor_0': 1.0,
+                                          'ankle_seg_2_out_factor_1': 1.0,
+                                           'ankle_seg_2_out_factor_2': 0.0,
+                                           'ankle_seg_2_segScale': 1.0,
+                                           'hip_seg_0_out_factor_0': 1.0,
+                                           'hip_seg_0_out_factor_1': 1.0,
+                                           'hip_seg_0_out_factor_2': 1.0,
+                                           'hip_seg_0_segScale': 1.0,
+                                           'knee_seg_1_out_factor_0': 1.0,
+                                           'knee_seg_1_out_factor_1': 1.0,
+                                           'knee_seg_1_out_factor_2': 1.0,
+                                           'knee_seg_1_segScale': 1.0},
+            'L_leg_settings_anim': {'ankle_seg_2_out_factor_0': 1.0,
+                                          'ankle_seg_2_out_factor_1': 1.0,
+                                           'ankle_seg_2_out_factor_2': 0.0,
+                                           'ankle_seg_2_segScale': 1.0,
+                                           'hip_seg_0_out_factor_0': 1.0,
+                                           'hip_seg_0_out_factor_1': 1.0,
+                                           'hip_seg_0_out_factor_2': 1.0,
+                                           'hip_seg_0_segScale': 1.0,
+                                           'knee_seg_1_out_factor_0': 1.0,
+                                           'knee_seg_1_out_factor_1': 1.0,
+                                           'knee_seg_1_out_factor_2': 1.0,
+                                           'knee_seg_1_segScale': 1.0},
+            }        
+ 
     MRSPOST.setup_defaults(d_values)
     
     # ================================================================================

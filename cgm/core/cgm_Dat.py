@@ -12,6 +12,7 @@ import copy
 import os
 import pprint
 import getpass
+from functools import partial
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -536,6 +537,8 @@ class ui(CGMUI.cgmGUI):
         
         self.create_guiOptionVar('LastLoaded',defaultValue = '')
         self.var_LastLoaded.setType('string')
+        
+        self.mPathList_recent = cgmMeta.pathList('{}PathsRecent'.format(self._datClass.__name__))
     
     def post_init(self,*args,**kws):
         if self.uiDat.dat:
@@ -589,6 +592,21 @@ class ui(CGMUI.cgmGUI):
                           c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_load)))
                         # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
                         
+        #Recent Projects --------------------------------------------------------------------------
+        self.mPathList_recent.verify()
+        _recent = mUI.MelMenuItem( self.uiMenu_FileMenu, l="Recent",
+                                   ann='Open an recent file',subMenu=True)
+        
+        for p in self.mPathList_recent.l_paths:
+            if '.' in p:
+                _split = p.split('.')
+                _l = CORESTRINGS.short(str(_split[0]),20)                
+            else:
+                _l = CORESTRINGS.short(str(p),20)
+            mUI.MelMenuItem(_recent, l=_l,
+                            c = partial(self.uiFunc_dat_load,**{'filepath':p}))            
+        #==========================================================================================        
+                        
     def uiFunc_setDirMode(self,v):
         _str_func = 'uiFunc_setDirMode[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
@@ -637,7 +655,7 @@ class ui(CGMUI.cgmGUI):
         self.uiDat.write(startDirMode = self._l_startDirModes[self.var_startDirMode.value], forcePrompt=True)
         return
     
-    def uiFunc_dat_load(self,**kws):
+    def uiFunc_dat_load(self,*args,**kws):
         _str_func = 'uiFunc_dat_load[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
         
@@ -649,6 +667,7 @@ class ui(CGMUI.cgmGUI):
             self._loadedFile = self.uiDat.str_filepath
             self.var_LastLoaded.setValue(self.uiDat.str_filepath)
             log.info(cgmGEN.logString_msg(_str_func,"Read: {}".format(self.uiDat.str_filepath)))
+            self.mPathList_recent.append_recent(self.uiDat.str_filepath)
             
         else:
             self._loadedFile = ''

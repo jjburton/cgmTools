@@ -109,7 +109,7 @@ example:
 
     def insert_init(self,*args,**kws):
         self.b_loadState = False
-        
+        self.path_current = None
         self.categoryList                = ["Character", "Environment", "Props"]
         self.categoryIndex               = 0
 
@@ -208,11 +208,12 @@ example:
         self.pathProject = None
         self.mDat = PROJECT.data()
         self.path_projectConfig = None
-        
         self.var_project = cgmMeta.cgmOptionVar('cgmVar_projectCurrent',defaultValue = '')
         self.var_pathProject = cgmMeta.cgmOptionVar('cgmVar_projectPath',defaultValue = '')
         self.var_pathLastProject = cgmMeta.cgmOptionVar('cgmVar_projectLastPath',defaultValue = '')
         self.mPathList = PROJECT.pathList_project('cgmProjectPaths')
+        self.mPathList_recent = cgmMeta.pathList('cgmProjectPathsRecent')
+        self.d_projectPathsToNames = {}
         self.d_tf = {}
         self.d_uiTypes = {}
         self.d_buttons = {}
@@ -1550,7 +1551,7 @@ example:
     def build_menus(self):
         _str_func = 'build_menus[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))   
-        self.uiMenu_FirstMenu = mUI.MelMenu(l='Setup', pmo=1, pmc = cgmGEN.Callback(self.buildMenu_first))
+        self.uiMenu_FirstMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_first))
 
         self.uiMenu_Projects = mUI.MelMenu( l='Projects', pmc=self.buildMenu_project)		        
         
@@ -1754,7 +1755,27 @@ example:
         
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Open",
                          ann='Open an existing project',                         
-                         c = lambda *a:mc.evalDeferred(self.uiProject_open,lp=True))        
+                         c = lambda *a:mc.evalDeferred(self.uiProject_open,lp=True))
+        
+        #Recent Projects --------------------------------------------------------------------------
+        self.mPathList_recent.verify()
+        _recent = mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Recent",
+                                   ann='Open an existing project',subMenu=True)
+        
+        for p in self.mPathList_recent.l_paths:
+            if '.' in p:
+                _split = p.split('.')
+                _l = CORESTRING.short(str(_split[0]),20)                
+            else:
+                _l = CORESTRING.short(str(p),20)            
+            
+            _short = self.d_projectPathsToNames.get(os.path.normpath(p)) or _l
+            
+            mUI.MelMenuItem(_recent, l=_short,
+                            c = partial(self.LoadProject,p))            
+        #==========================================================================================
+        
+        
         
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save ",
                          c = lambda *a:mc.evalDeferred(self.uiProject_saveAndRefresh,lp=True))
@@ -1882,27 +1903,52 @@ example:
         mPathList.verify()
         
         project_names = []
+        
+        d_paths = {}
+        """
+        project name use:{path}
+        """
+        d_pathToName = {}
+        
         for i,p in enumerate(mPathList.mOptionVar.value):
             proj = Project.data(filepath=p)
             name = proj.d_project['name']
             project_names.append(name)
-            en = True
+            nameUse = name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1)
             _path = proj.userPaths_get().get('content') or False
             if _path and os.path.exists(_path):
-                #en=True
                 pass
             else:
-                log.warning("'{0}' Missing content path".format(name))
+                log.warning("'{0}' Missing content path".format(name))            
+            
+            _current = False
+            #print('{} | {}'.format(p,self.path_current))
+            _normpath = os.path.normpath(p)
+            if  _normpath == self.path_current:
+                _current = True
                 
-            mUI.MelMenuItem( self.uiMenu_Projects, en=en, l=name if project_names.count(name) == 1 else '%s {%i}' % (name,project_names.count(name)-1),
-                                         c = partial(self.LoadProject,p))
+            d_paths[nameUse] = {'path':p, 'en':True, 'current':_current}
+            d_pathToName[_normpath] = nameUse
+        for l in sorted(d_paths, key=lambda s: s.lower()):        
+            d = d_paths[l]
+            if d['current']:
+                mUI.MelMenuItemDiv( self.uiMenu_Projects, label='Current')                
+                _label = "[ {} ]".format(l)
+            else:
+                _label = l
+                
+            mUI.MelMenuItem( self.uiMenu_Projects, en=d['en'], l=_label,
+                             c = partial(self.LoadProject,d['path']))
+            if d['current']:
+                mUI.MelMenuItemDiv( self.uiMenu_Projects )
+                
 
         mUI.MelMenuItemDiv( self.uiMenu_Projects )
 
         mUI.MelMenuItem( self.uiMenu_Projects, l="MRSProject",
                                  c = lambda *a:mc.evalDeferred(Project.ui,lp=True))                         
         
-        
+        self.d_projectPathsToNames = d_pathToName
         mUI.MelMenuItemDiv(mMenu)
         #mUI.MelMenuItem(mMenu,
         #                label = "Clear Recent",
@@ -3982,6 +4028,8 @@ example:
         #self.report_lastSelection()
         
         self.b_loadState = False
+        self.path_current = os.path.normpath(path)
+        self.mPathList_recent.append_recent(path)
         return
     
     

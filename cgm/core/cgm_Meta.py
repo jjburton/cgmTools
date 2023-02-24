@@ -44,6 +44,7 @@ from cgm.core.lib import name_utils as NAMES
 from cgm.core.lib import search_utils as SEARCH
 from cgm.core.lib import constraint_utils as CONSTRAINT
 import cgm.core.cgmPy.path_Utils as PATHS
+import cgm.core.lib.list_utils as CORELISTS
 
 from cgm.lib.ml import ml_resetChannels
 from cgm.lib import lists
@@ -2959,6 +2960,28 @@ class cgmOptionVar(object):
 
             except:
                 log.warning("'%s' couldn't be added to '%s' of type '%s'"%(value,self.name,self.varType))
+                
+    def append_recent(self,arg):
+        _str_func = 'cgmOptionVar.append_recent'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        if type(self.value) is list:
+            if arg not in self.value:
+                l_buffer = self.value
+                l_buffer.insert(0,arg)
+            else:
+                return False
+                
+        else:
+            if arg != self.value:
+                l_buffer = [arg,self.value]
+            else:
+                return False
+        
+        if len(l_buffer) > 5:
+            l_buffer = l_buffer[:5]        
+            
+        self.value =  l_buffer
 
     def remove(self,value):
         if value in self.value:
@@ -5909,14 +5932,34 @@ class pathList(object):
         log.debug(cgmGEN.logString_start(_str_func))
         self.l_paths = []
         
-        for p in self.mOptionVar.value:
-            log.debug(p)
-            mPath = PATHS.Path(p)
+        if type(self.mOptionVar.value) is list:
+            for p in self.mOptionVar.value:
+                log.debug(p)
+                mPath = PATHS.Path(p)
+                if not mPath.exists():
+                    log.warning(cgmGEN.logString_msg(_str_func,"{} | Path doesn't exist. removing: {}".format(self.mOptionVar.name,p)))
+                    #self.mOptionVar.remove(p)
+                else:
+                    self.l_paths.append(p)
+        else:
+            _p = self.mOptionVar.value
+            mPath = PATHS.Path(_p)
             if not mPath.exists():
-                log.warning(cgmGEN.logString_msg(_str_func,"Path doesn't exist. removing: {0}".format(p)))
-                self.mOptionVar.remove(p)
+                log.warning(cgmGEN.logString_msg(_str_func,"{} | Path doesn't exist. removing: {}".format(self.mOptionVar.name,_p)))
+                #self.mOptionVar = ''
             else:
-                self.l_paths.append(p)
+                self.l_paths = [_p]
+                
+        
+        self.l_paths = CORELISTS.get_noDuplicates(self.l_paths)
+        self.mOptionVar.clear()
+        for p in self.l_paths:
+            self.mOptionVar.append(p)
+
+
+        
+        
+       
                 
     def remove(self,arg = None):
         _str_func = 'pathList.remove'
@@ -5934,6 +5977,24 @@ class pathList(object):
     def clear(self):
         self.mOptionVar.clear()
         self.l_paths = []
+        
+        
+    def append_recent(self,arg=None):
+        _str_func = 'pathList.append_recent'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        mPath = PATHS.Path(arg)
+        self.verify()#...verify to make sure we have a good list
+
+        
+        if mPath.exists():
+            log.debug(cgmGEN.logString_msg(_str_func,'Path exists | {0}'.format(arg)))
+            _friendly = mPath.asFriendly()
+            self.l_paths.insert(0,_friendly)
+            if len(self.l_paths) > 5:
+                self.l_paths = self.l_paths[:5]
+                
+            self.mOptionVar.value =  self.l_paths
         
     def ui(self):
         pass

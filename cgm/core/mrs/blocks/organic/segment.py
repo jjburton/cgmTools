@@ -125,7 +125,7 @@ _d_attrStateOff = {0:[],
                    4:[]}
 
 d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
-                   'form':['formEndAim',
+                   'form':['formEndAim','loftShape',
                            'loftShapeEnd','loftShapeStart'],
                    'prerig':[],
                    'skeleton':['numJoints'],
@@ -137,7 +137,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
 
 l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoints',
                     'addCog','addPivot','numSubShapers','segmentType',
-                    'loftSetup','scaleSetup',
+                    'loftSetup','scaleSetup','loftShape',
                     'numControls',
                     'numSubShapers',
                     'ikSetup','segmentStretchBy',
@@ -217,6 +217,7 @@ d_block_profiles = {
     'loftList_2': 'circle',
     'loftSetup': 'default',
     'loftShape': 'circle',
+    'nameList':['dangleStart','dangleEnd'],
     'nameList_0': 'dangleStart',
     'nameList_1': 'dangleEnd',
     'numControls': 3,
@@ -717,7 +718,7 @@ d_defaultSettings = {'version':__version__,
                      'numControls': 3,
                      'numSubShapers':0,
                      'loftSetup':0,
-                     'loftShape':0,
+                     'loftShape':'circle',
                      'numShapers':3,
                      'controlOffsetMult':1.0,                     
                      'castVector':'up',
@@ -2137,7 +2138,8 @@ def rig_dataBuffer(self):
     
         #rotateOrder =============================================================================
         _str_orientation = self.d_orientation['str']
-        self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
+        #self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
+        self.rotateOrder = _str_orientation
         log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
     
         log.debug(cgmGEN._str_subLine)
@@ -3372,7 +3374,7 @@ def rig_frame(self):
                     
                     ml_ikJoints[-1].p_parent = mIKControl#...to get free orient
                     
-                    pprint.pprint(ml_ikJoints)
+                    #pprint.pprint(ml_ikJoints)
                     RIGFRAME.spline(self,ml_ikUse,
                                     ml_ribbonIkHandles,
                                     mIKControl,mIKBaseControl,
@@ -3393,7 +3395,7 @@ def rig_frame(self):
                     mIKSplineIKDriver = ml_ikJoints[-1].doDuplicate()
                     mIKSplineIKDriver.rename("{}_splineControl".format(ml_ikJoints[-1].p_nameBase))
                     mIKSplineIKDriver.p_parent = mIKControl
-                    mIKSplineEnd.dagLock()
+                    #mIKSplineEnd.dagLock()#....why did I think locking this was a good idea
                     #...this orient here isn't what we want?
                     #mc.orientConstraint([mIKSplineEnd.mNode], ml_ikJoints[-1].mNode, maintainOffset = True)                    
                     
