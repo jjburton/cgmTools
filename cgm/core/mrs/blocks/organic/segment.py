@@ -131,7 +131,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                    'skeleton':['numJoints'],
                    'squashStretch':['squashSkipAim','segmentStretchBy'],
                    'space':['ikMidDynParentMode','ikMidDynScaleMode'],
-                   'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum',
+                   'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum','ikSplineTwistAxis',
                           'ribbonExtendEnds','ribbonAttachEndsToInfluence',
                           'ikBaseExtend','ikEndExtend','ikEndLever',]}
 
@@ -702,6 +702,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikSplineTwistEndConnect':'bool',
                  'ikSplineExtendEnd':'bool',                 
                  'ikSplineAimEnd':'bool',
+                 'ikSplineTwistAxis':'x:y:z',
                  'ikEndShape':'cast:locator:cube',
                  'ikEndLever':'bool',
                  'ikBaseExtend':'bool',
@@ -735,6 +736,7 @@ d_defaultSettings = {'version':__version__,
                      'ribbonAim':'stableBlend',
                      'ribbonParam':'blend',
                      'settingsPlace':1,
+                     'ikSplineTwistAxis':'z',
                      'loftSides': 10,
                      'loftSplit':1,
                      'loftDegree':'linear',
@@ -2139,8 +2141,10 @@ def rig_dataBuffer(self):
         #rotateOrder =============================================================================
         _str_orientation = self.d_orientation['str']
         #self.rotateOrder = "{0}{1}{2}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
-        self.rotateOrder = _str_orientation
-        log.debug("|{0}| >> rotateOrder | self.rotateOrder: {1}".format(_str_func,self.rotateOrder))
+        self.rotateOrder_IK = "{}{}{}".format(_str_orientation[0],_str_orientation[2],_str_orientation[1])
+        self.rotateOrder_FK = "{}{}{}".format(_str_orientation[1],_str_orientation[2],_str_orientation[0])
+        
+        log.debug("|{}| >> rotateOrder | fk: {} | ik: {}".format(_str_func,self.rotateOrder_FK, self.rotateOrder_IK))
     
         log.debug(cgmGEN._str_subLine)
         
@@ -2879,7 +2883,11 @@ def rig_controls(self):
         
         mHandleFactory = mBlock.asHandleFactory()
         for mCtrl in ml_controlsAll:
-            ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder)
+            if 'fk' in mCtrl.p_nameBase:
+                ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder_FK)
+                
+            else:
+                ATTR.set(mCtrl.mNode,'rotateOrder',self.rotateOrder_IK)
             
             if mCtrl.hasAttr('radius'):
                 ATTR.set(mCtrl.mNode,'radius',0)        

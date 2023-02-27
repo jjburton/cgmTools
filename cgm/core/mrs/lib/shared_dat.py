@@ -258,3 +258,29 @@ __l_moduleControlMsgListHooks__ = ('spacePivots')
 #>>General ======================================================================================
 str_defaultFont = 'arial'
 
+#>>rotateOrders ======================================================================================
+#Default on modules in generally the joint orient zyx
+d_rotateOrders_zyx = {'limb':{'fk':'zyx'},
+                      'clav':'xyz',
+                      'shoulder':{'ik':'xyz',
+                                  'fk':'zyx'},                         
+                      'wrist':{'ik':'zxy',
+                               'fk':'xyz'},
+                      
+                      'hip':{'ik':'zxy',
+                             'fk':'zyx'},
+                      
+                      'ankle':{'ik':'zxy',
+                               'fk':'xzy'},
+                      
+                      'chest':{'y_ik':'zxy',
+                               'z_ik':'xyz',
+                               'fk':'xyz'},
+                      'hips':{'y_ik':'yzx',
+                              'z_ik':'xyz',
+                               'fk':'xyz'},
+                      'head':{'ik':'xzy',
+                               'fk':'xzy'},
+                      }
+
+

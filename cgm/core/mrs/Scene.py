@@ -4756,6 +4756,8 @@ example:
                       'zeroRoot' : self.d_tf['exportOptions']['zeroRoot'].getValue(),
                       'euler':self.d_tf['exportOptions']['postEuler'].getValue(),
                       'tangent':self.d_tf['exportOptions']['postTangent'].getValue(),
+                      'sampleBy':self.d_tf['exportOptions']['sampleBy'].getValue(),
+                      
                       }
 
             for animDict in self.batchExportItems:
@@ -4943,6 +4945,8 @@ example:
 
         postEuler = self.d_tf['exportOptions']['postEuler'].getValue()
         postTangent = self.d_tf['exportOptions']['postTangent'].getValue()
+        sampleBy = self.d_tf['exportOptions']['sampleBy'].getValue()
+        
         if postTangent == 'none':
             postTangent = False
 
@@ -4971,6 +4975,7 @@ example:
                 'exportSetName':exportSetName,
                 'deleteSetName':deleteSetName,
                 'animationName':self.selectedSet,
+                'sampleBy':sampleBy,
                 'tangent':postTangent,
                 'euler':postEuler,
             'workspace':d_userPaths['content']
@@ -4995,6 +5000,7 @@ example:
                     animationName = _l_openTokens[0],#self.selectedSet,
                     tangent=postTangent,
                     euler=postEuler,                            
+                    sampleBy=sampleBy,
                     workspace=d_userPaths['content']
                     )        
 
@@ -5040,6 +5046,8 @@ def BatchExport(dataList = []):
             _euler =  fileDat.get('euler', "0")        
             _d['euler'] = False if _euler == '0' else True
             _d['tangent'] = fileDat.get('tangent')
+            
+            _d['sampleBy'] = float(fileDat.get('sampleBy',1.0))
     
             log.info(mFile)
             #pprint.pprint(_d)
@@ -5101,6 +5109,7 @@ def ExportScene(mode = -1,
                 updateAndIncrement = False,
                 updateRigs = False,
                 euler = False,
+                sampleBy = 1.0,
                 tangent = False,
                 ):
     
@@ -5321,7 +5330,7 @@ def ExportScene(mode = -1,
     #    log.debug("bake...")        
     
     if not exportStatic:
-        bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,
+        bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,sampleBy=sampleBy,
                          euler=euler,tangent=tangent)
     #else:
     #    log.debug("bake skip...")

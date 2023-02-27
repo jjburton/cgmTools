@@ -196,8 +196,9 @@ _structureSettings = [{'n':'assetTypes','t':'text','dv':['Character','Props','En
 _exportOptionSettings = [{'n':'removeNameSpace','t':'bool','dv':False},
                          {'n':'zeroRoot','t':'bool','dv':True},
                          {'n':'postEuler','t':'bool','dv':True},
-                         {'n':'fbxVersion','t':['default'] + _fbxVersions,'dv':'default'},                         
-                         {'n':'postTangent','t':['none','auto','linear',],'dv':'auto'}]
+                         {'n':'sampleBy','t':'float','dv':1.0},
+                         {'n':'fbxVersion','t':['default'] + _fbxVersions,'dv':'default'},
+                         {'n':'postTangent','t':['none','auto','linear','step'],'dv':'auto'}]
 
 _d_defaultsMap = {'general':_projSettings,
                   'anim':_animSettings,

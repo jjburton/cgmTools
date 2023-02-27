@@ -15,10 +15,11 @@ def BakeAndPrep(bakeSetName = 'bake_tdSet',
                 exportSetName = "export_tdSet",
                 startFrame = None,
                 endFrame = None,
+                sampleBy=1.0,                
                 euler = True,
                 tangent = 'auto'):
     
-    baked = Bake(bakeSetName,startFrame = startFrame,endFrame=endFrame, euler=euler, tangent=tangent)
+    baked = Bake(bakeSetName,startFrame = startFrame,endFrame=endFrame, sampleBy=sampleBy,euler=euler, tangent=tangent)
     if baked:
         prepped = Prep(deleteSetName,
                        exportSetName)
@@ -33,6 +34,7 @@ def BakeAndPrep(bakeSetName = 'bake_tdSet',
 def Bake(assets, bakeSetName = 'bake_tdSet',
          startFrame = None,
          endFrame = None,
+         sampleBy=1.0,
          euler = True,
          tangent = 'auto'):
     _str_func = 'Bake'
@@ -97,7 +99,7 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
         mc.bakeResults( bakeTransforms, 
                         simulation=True, 
                         t=( startFrame, endFrame), 
-                        sampleBy=1, 
+                        sampleBy=sampleBy, 
                         disableImplicitControl=True,
                         preserveOutsideKeys = False, 
                         sparseAnimCurveBake = False,
@@ -122,7 +124,10 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
                 if tangent:
                     _anim = mc.listConnections(obj, type = 'animCurve')
                     if _anim:
-                        mc.keyTangent(_anim, e=1, itt=tangent,ott=tangent,animation='keysOrObjects')            
+                        if tangent == 'step':
+                            mc.keyTangent(_anim, e=1, itt='stepnext',ott='step',animation='keysOrObjects')  
+                        else:
+                            mc.keyTangent(_anim, e=1, itt=tangent,ott=tangent,animation='keysOrObjects')            
             
             
 

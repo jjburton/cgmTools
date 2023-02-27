@@ -744,11 +744,12 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
     
         #Twist end...--------------------------------------------------------------------
         if ikEndTwistConnect:
+            _twistAxis = mBlock.getEnumValueString('ikSplineTwistAxis')
             mPlug_addEnd = cgmMeta.cgmAttr(mIKControl.mNode,'twistEndAdd',attrType='float',keyable=True, hidden=False)
 
             arg1 = "{}.twistEnd = {}.r{} + {}".format(mSplineCurve.mNode,
                                                       mIKControl.mNode,
-                                                      _jointOrientation[0],
+                                                      _twistAxis,#_jointOrientation[0],
                                                       mPlug_addEnd.p_combinedName)    
             
             NODEFACTORY.argsToNodes(arg1).doBuild()
@@ -757,7 +758,7 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
             mPlug_addEnd = cgmMeta.cgmAttr(mIKBaseControl.mNode,'twistBaseAdd',attrType='float',keyable=True, hidden=False)            
             arg1 = "{}.twistStart = {}.r{} + {}".format(mSplineCurve.mNode,
                                                         mIKBaseControl.mNode,
-                                                        _jointOrientation[0],
+                                                        _twistAxis,#_jointOrientation[0],
                                                         mPlug_addEnd.p_combinedName)    
             
             NODEFACTORY.argsToNodes(arg1).doBuild()            
