@@ -4108,11 +4108,18 @@ class ui_toStandAlone(cgmUI.cgmGUI):
             l_check = [mc.file(q=True, sn=True)]
             
         
+        _current = os.path.normpath(mc.file(q=True, sn=True))
+        
+        
         for f in l_check:
             mFile = PATHS.Path(f)
             if not mFile.exists():
                 log.error("Invalid file: {0}".format(f))
                 continue
+            
+            if os.path.normpath(f) == _current:
+                if VALID.fileDirtyCheck() == False:
+                    continue
             
             log.debug(cgmGEN.logString_sub(_str_func))
             

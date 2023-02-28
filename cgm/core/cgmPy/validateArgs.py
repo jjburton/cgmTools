@@ -1282,8 +1282,26 @@ def fileOpen(filepath= None, force = True, ignoreVersion = True):
     mc.file(filepath, o=True, f=force, ignoreVersion=ignoreVersion)
     
     
-    
-    
+def fileDirtyCheck():
+    """
+    If open file is dirty, prompts to save, otherwise nothin
+    """
+    _current = mc.file(q=True, sn=True)
+    _res = True
+    if mc.file(_current, q=1, modified = 1):
+        log.warning("File has been modified: {0}".format(_current))
+        result = mc.confirmDialog(title="Save Changes?",
+                                  message= "{0} Has unsaved changes. \n Would you like to save?".format(_current),
+                                  icon='warning',
+                                  button=['Save',"Don't Save","Cancel"],
+                                  defaultButton='Save',
+                                  cancelButton='Cancel',
+                                  dismissString='Cancel')
+        if result == 'Save':
+            mc.file( save=True )
+        elif result == "Cancel":
+            _res = False
+    return _res
     
 
 def kw_fromDict(arg = None ,d = None, indexCallable = False, returnIndex = False,  noneValid = False, calledFrom = None):

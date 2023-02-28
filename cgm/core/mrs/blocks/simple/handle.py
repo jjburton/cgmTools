@@ -60,6 +60,7 @@ import cgm.core.mrs.lib.block_utils as BLOCKUTILS
 import cgm.core.mrs.lib.builder_utils as BUILDERUTILS
 import cgm.core.mrs.lib.rigShapes_utils as RIGSHAPES
 import cgm.core.mrs.lib.post_utils as MRSPOST
+import cgm.core.mrs.lib.builder_utils as BUILDUTILS
 
 #reload(RIGSHAPES)
 #=============================================================================================================
@@ -98,10 +99,10 @@ d_attrStateMask = {'define':[],
                    'prerig':['addScalePivot','addPivot'],
                    'skeleton':['hasJoint'],
                    'proxySurface':['proxy'],
-                   'rig':['rotPivotPlace','dynParentMode','dynParentScaleMode'],
+                   'rig':['rotPivotPlace','dynParentMode','dynParentScaleMode','mirrorSetup'],
                    'vis':[]}
 
-l_createUI_attrs = ['attachPoint','attachIndex','buildSDK',
+l_createUI_attrs = ['attachPoint','attachIndex','buildSDK','mirrorSetup',
                     'addCog','addPivot','addScalePivot','addAim','numSubShapers','loftShape',
                     'basicShape','proxyShape','rotPivotPlace','loftSetup','scaleSetup',
                     'dynParentMode','dynParentScaleMode']
@@ -218,6 +219,8 @@ d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
                  'parentToDriver':'bool',
                  'addPivot':'none:simple:wobbleAdd:wobbleOnly',
                  'addAim':'none:default:handle',
+                 'mirrorSetup':'auto:on:off',
+                 
                  'parentVisAttr':'bool',
                  'proxyShape':'cube:sphere:cylinder:cone:torus:shapers:geoOnly',
                  #'pivotSetup':'simple:wobble',
@@ -1364,7 +1367,7 @@ def rig_dataBuffer(self):
         
         log.debug(cgmGEN._str_subLine)
         
-        for k in ['addPivot']:
+        for k in ['addPivot','mirrorSetup']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)        
         
         #Offset ============================================================================    
@@ -1389,6 +1392,15 @@ def rig_dataBuffer(self):
             
             self.mSettingsParent = mSettings
         
+        #Mirror handle setup ======================================================================
+        self.b_mirrorSetup = False
+        if self.str_mirrorSetup == 'auto':
+            if self.d_module['mirrorDirection'] in ['Left','left']:
+                self.b_mirrorSetup = True
+        elif self.str_mirrorSetup == 'on':
+            self.b_mirrorSetup = True
+            
+            
         #rotateOrder =============================================================================
         _str_orientation = self.d_orientation['str']
         
@@ -1418,7 +1430,9 @@ def rig_skeleton(self):
     ml_joints = mRigNull.msgList_get('moduleJoints')
 
     self.d_joints['ml_moduleJoints'] = ml_joints
-    BLOCKUTILS.skeleton_pushSettings(ml_joints, self.d_orientation['str'], self.d_module['mirrorDirection'],
+    BLOCKUTILS.skeleton_pushSettings(ml_joints,
+                                     self.d_orientation['str'],
+                                     self.d_module['mirrorDirection'],
                                      d_rotateOrders, d_preferredAngles)
     
     for mJnt in ml_joints:
@@ -1428,12 +1442,20 @@ def rig_skeleton(self):
     
     if self.mBlock.addAim:
         log.info("|{0}| >> Aim...".format(_str_func))              
-        ml_aimFKJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints[-1], 'fk', self.mRigNull, 'aimFKJoint', singleMode = True )
+        ml_aimFKJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints[-1], 'aimFK', self.mRigNull, 'aimFKJoint', singleMode = True )
         ml_aimBlendJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints[-1], 'blend', self.mRigNull, 'aimBlendJoint', singleMode = True)
         ml_aimIkJoints = BLOCKUTILS.skeleton_buildDuplicateChain(self,ml_joints[-1], 'aim', self.mRigNull, 'aimIKJoint', singleMode = True)
         ml_jointsToConnect.extend(ml_aimFKJoints + ml_aimIkJoints)
         ml_jointsToHide.extend(ml_aimBlendJoints)
-    
+        
+    """
+    #Mirror if side...
+    if self.d_module['mirrorDirection'] in ['Left','left']:
+        log.debug("|{0}| >> Mirror direction ...".format(_str_func))
+        ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_joints)
+        ml_jointsToHide.extend(ml_fkAttachJoints)#...make sure to do this to other modules. settings get hidden on left side modules otherwise    
+        #ATTR.set(mJoint.mNode,"r{0}".format(self.d_orientation['str'][2]),180)
+    """
     #...joint hide -----------------------------------------------------------------------------------
     for mJnt in ml_jointsToHide:
         try:
@@ -1485,6 +1507,15 @@ def rig_shapes(self):
     else:
         mControl = mMainHandle.doCreateAt()
         
+    #Mirror if side...
+    if self.b_mirrorSetup:
+        mTmpGrp = mControl.doCreateAt()
+        mControl.p_parent = mTmpGrp
+        log.debug("|{0}| >> Mirror direction ...".format(_str_func))
+        ATTR.set(mControl.mNode,"r{0}".format(self.d_orientation['str'][2]),180)
+        mControl.p_parent = False
+        mTmpGrp.delete()
+        
     if mBlock.addScalePivot and mBlock.getMessage('scalePivotHelper'):
         log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
         TRANS.scalePivot_set(mControl.mNode, mBlock.scalePivotHelper.p_position)
@@ -1514,6 +1545,7 @@ def rig_shapes(self):
         CORERIG.shapeParent_in_place(mControl,mShapeHelper.mNode,True)
         
     elif mBlock.getEnumValueString('proxyShape') in ['shapers','geoOnly']:
+        
         ml_fkShapes = self.atBuilderUtils('shapes_fromCast',
                                           offset = _offset,
                                           mode = 'singleCurve')#limbHandle
@@ -1672,12 +1704,20 @@ def rig_controls(self):
         d_space = {'addDynParentGroup':True}
         if mBlock.numSpacePivots:
             d_space['addSpacePivots'] = mBlock.numSpacePivots
+        
+        if mBlock.getMessage('blockMirror') or self.b_mirrorSetup:
+            _mirrorAxis = "translateX,translateY,translateZ"
+        else:
+            _mirrorAxis="translateX,rotateY,rotateZ"
             
+
+        
+        
         _d = MODULECONTROL.register(mHandle,
                                     addConstraintGroup=False,
                                     addSDKGroup = mBlock.buildSDK,
                                     mirrorSide= self.d_module['mirrorDirection'],
-                                    mirrorAxis="translateX,rotateY,rotateZ",
+                                    mirrorAxis=_mirrorAxis,
                                     makeAimable = True,**d_space)
         
         mHandle = _d['mObj']
