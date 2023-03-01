@@ -596,9 +596,9 @@ class ui_blockPicker(cgmUI.cgmGUI):
                                        **{})}"""
         
         
-        l_keys = sorted(d)
+        #l_keys = sorted(d)
                 
-        for s in l_keys:
+        for s in sorted(d_s):
             d = d_s[s]
             divTags = d.get('divTags',[])
             headerTags = d.get('headerTags',[])
@@ -10073,4 +10073,3 @@ def buildFrame_helpers(self,parent,changeCommand = ''):
     _inside = mUI.MelColumnLayout(_frame,useTemplate = 'cgmUISubTemplate') 
     
     CGMUI.add_Header('Helpers')
-    
