@@ -38,6 +38,8 @@ import cgm.core.lib.curve_Utils as CURVES
 from cgm.core.cgmPy import validateArgs as VALID
 import cgm.core.lib.shared_data as CORESHARE
 import cgm.core.classes.NodeFactory as NODEFACTORY
+import cgm.core.lib.snap_utils as SNAP
+
 """
 from cgm.core.rigger import ModuleShapeCaster as mShapeCast
 import cgm.core.cgmPy.os_Utils as cgmOS
@@ -46,15 +48,14 @@ import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.rig.general_utils as CORERIGGEN
 import cgm.core.lib.math_utils as MATH
 
-import cgm.core.tools.lib.snap_calls as SNAPCALLS
 from cgm.core import cgm_RigMeta as cgmRigMeta
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.nameTools as NAMETOOLS
 import cgm.core.lib.locator_utils as LOC
 import cgm.core.rig.create_utils as RIGCREATE
 import cgm.core.lib.string_utils as STRINGS
-import cgm.core.lib.snap_utils as SNAP
 import cgm.core.lib.rayCaster as RAYS
+import cgm.core.tools.lib.snap_calls as SNAPCALLS
 
 import cgm.core.rig.constraint_utils as RIGCONSTRAINT
 import cgm.core.lib.constraint_utils as CONSTRAINT
@@ -115,6 +116,25 @@ def swimSettings_set(deformer = None,handle = None, d=None):
 
 
 def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseName = '', mModule = None, ml_joints = None, setupCycle = 1,cycleLength = 100, cycleOffset = -20, orient = 'zyx'):
+    '''
+    Setup for swim setup for mrs using a blendshape fed in
+
+    :parameters:
+    controlSurface : surface to use
+    waveControl, control to use for the wave setup
+    deformer | deformer to use, wave/sine
+    baseName | naming setup
+    mModule |
+    ml_joints
+    setupCycle | 
+    cycleLength |
+    cycleOffset |
+    orient | 
+
+    :raises:
+    Exception | when reached
+
+    '''    
     _str_func = 'autoSwim'
     log_start(_str_func)
     
@@ -220,10 +240,20 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
     
     
     #Duplicate our surface
-    mSwimSurface = mTargetSurface.doDuplicate(po=False)
-    #mSwimSurface.p_parent = False
-    mSwimSurface.rename("{}_autoSwim_surface".format(baseName))
-    
+    mSwimSurface = mRigNull.getMessageAsMeta('swimSurface')
+    if not mSwimSurface:
+        mSwimSurface = mTargetSurface.doDuplicate(po=False)
+        #mSwimSurface.p_parent = False
+        mSwimSurface.rename("{}_autoSwim_surface".format(baseName))
+        
+        #...blendshape
+        blendshapeNode = mc.blendShape (mSwimSurface.mNode, mTargetSurface.mNode, name = '{}_bsNode'.format(_nameTag) )
+        
+        mRigNull.connectChildNode(blendshapeNode[0],'swimBlendshapeNode','rigNull')
+        mRigNull.connectChildNode(mSwimSurface.mNode,'swimSurface','rigNull')        
+    else:
+        blendshapeNode = mRigNull.getMessage('swimBlendshapeNode')[0]
+        
     #Make our deformer
     _buffer = mc.nonLinear (mSwimSurface.mNode, type = deformer, name = _nameTag)
     
@@ -246,9 +276,7 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
     else:
         mDeformerHandle.p_parent = ml_blends[0]
     
-    #...blendshape
-    blendshapeNode = mc.blendShape (mSwimSurface.mNode, mTargetSurface.mNode, name = '{}_bsNode'.format(_nameTag) )
-    
+
     mRigNull.connectChildNode(mDeformerHandle.mNode,'swimHandle','rigNull')
     
     
@@ -256,7 +284,7 @@ def autoSwim(controlSurface = None, waveControl = None, deformer = 'wave', baseN
     _settings = mSettings.mNode
     l_order = ['swim','speed','wavelength','amplitude','dropoff','dropoffPosition']
     d_attrs = {'swim':{'min':0,'max':1, 'dv':0,'target':"{0}.{1}".format(blendshapeNode[0],
-                                                                        mSwimSurface.p_nameBase)},
+                                                                         mSwimSurface.p_nameBase)},
                'speed':{'min':-100,'max':100,'dv':0,'v':1},
                'wavelength':{'min':0,'max':10,'dv':5,'v':5,'target':'deformer'},
                'amplitude':{'min':0,'max':10,'dv':0,'v':0,'target':'deformer'},

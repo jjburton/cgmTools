@@ -471,9 +471,15 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
                 mIKCrv = mBlock.ikEndHandle.doCreateAt()#ml_handleTargets[self.int_handleEndIdx]
             elif ikEnd == 'tipMid':
                 mIKCrv =  mBlock.ikEndHandle.doCreateAt()
-    
+                
+                _crv = CORERIG.create_at(create='curve',l_pos=[mJnt.p_position for mJnt in ml_rigJoints])
+                
+                mIKCrv.p_position = CURVES.getPercentPointOnCurve(_crv,.5)
+                
+                mc.delete(_crv)
+                """
                 mIKCrv.p_position = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
-                                                               ml_rigJoints[-1].p_position])
+                                                               ml_rigJoints[-1].p_position])"""
     
                 
             elif ikEnd == 'tipEnd':
@@ -572,8 +578,8 @@ def ik_base(self,ikBase = None, ml_baseJoints = None, ml_fkShapes = None):
             #bb_ik = mHandleFactory.get_axisBox_size(mIK_formHandle.mNode)
             bb_ik = POS.get_bb_size(mIK_formHandle.mNode,True,mode='max')
             
-            _ik_shape = CURVES.create_fromName('cube', size = bb_ik)
-            ATTR.set(_ik_shape,'scale', 1.1)
+            _ik_shape = CURVES.create_fromName('cube', size = bb_ik, bakeScale=True)
+            ATTR.set(_ik_shape,'scale', 2.0)
         
             mIKBaseShape = cgmMeta.validateObjArg(_ik_shape, 'cgmObject',setClass=True)
         

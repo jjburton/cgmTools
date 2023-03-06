@@ -1089,29 +1089,30 @@ def prerig_simple(self):
     return True
 
 def prerig_delete(self, msgLinks = [], msgLists = [], formHandles = True):
-    try:
-        _str_func = 'prerig_delete'
-        log.debug(cgmGEN.logString_start(_str_func))
-        
-        try:self.moduleTarget.delete()
-        except:log.debug("|{0}| >> No moduleTarget...".format(_str_func))
+    _str_func = 'prerig_delete'
+    log.debug(cgmGEN.logString_start(_str_func))
+    
+    try:self.moduleTarget.delete()
+    except:log.debug("|{0}| >> No moduleTarget...".format(_str_func))
+    if self.getMessage('prerigNull'):
         self.prerigNull.delete()
-        if self.getMessage('noTransformNull'):
-            self.noTransformNull.delete()
-        if formHandles:
-            for mHandle in [self] + self.msgList_get('formHandles'):
-                try:mHandle.jointHelper.delete()
-                except:pass    
-        
-        for l in msgLists:
-            _buffer = self.msgList_get(l,asMeta=False)
-            if not _buffer:
-                log.debug("|{0}| >> Missing msgList: {1}".format(_str_func,l))  
-            else:
-                mc.delete(_buffer)
-        return True   
-    except Exception as err:
-        cgmGEN.cgmExceptCB(Exception,err)
+    else:
+        log.warning("No prerigNull found")
+    if self.getMessage('noTransformNull'):
+        self.noTransformNull.delete()
+    if formHandles:
+        for mHandle in [self] + self.msgList_get('formHandles'):
+            try:mHandle.jointHelper.delete()
+            except:pass    
+    
+    for l in msgLists:
+        _buffer = self.msgList_get(l,asMeta=False)
+        if not _buffer:
+            log.debug("|{0}| >> Missing msgList: {1}".format(_str_func,l))  
+        else:
+            mc.delete(_buffer)
+    return True   
+
         
 def prerig_handlesLock(self, lock=None):
     try:

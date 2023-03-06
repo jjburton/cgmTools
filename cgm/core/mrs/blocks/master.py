@@ -414,8 +414,7 @@ def prerigDelete(self):
     self.atBlockUtils('prerig_delete',formHandles=True)
     try:self.moduleTarget.masterNull.delete()
     except Exception as err:
-        for a in err:
-            print(a)
+        print (err)
     return True   
 
 def is_prerig(self):

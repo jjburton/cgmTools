@@ -269,7 +269,7 @@ class DesignerSpring(PostBake.PostBake):
                 self.previousUpPosition = x            
                 self.upTargetPos  = x
             
-            SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.upTargetPos.normalized() )
+            SNAP.aim_atPoint(obj=self.obj.mNode, mode='local', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.upTargetPos.normalized() )
             
             for a in 'XYZ':
                 for a2 in ['Min','Max']:

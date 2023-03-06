@@ -145,7 +145,7 @@ class Dragger(PostBake.PostBake):
     
             self.lastFwd = MATH.Vector3.Lerp( self.lastFwd, self._bakedLoc.getTransformDirection(self.aimFwd.p_vector), min(deltaTime * self.angularDamp, 1.0) ).normalized()
             
-            SNAP.aim_atPoint(obj=self.obj.mNode, mode='matrix', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
+            SNAP.aim_atPoint(obj=self.obj.mNode, mode='local', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
             
             
             for a in 'XYZ':
