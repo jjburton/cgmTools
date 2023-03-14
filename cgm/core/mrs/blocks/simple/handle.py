@@ -919,6 +919,9 @@ def form(self):
     
         #Proxy geo ==================================================================================
         #reload(CORERIG)
+        if _proxyShape  == 'geoOnly':
+            _proxyShape = 'cube'
+            
         _proxy = CORERIG.create_proxyGeo(_proxyShape, [_size_width,_size_length,_size_height], 'y+',bakeScale=False)
         mProxy = cgmMeta.validateObjArg(_proxy[0], mType = 'cgmObject',setClass=True)
         

@@ -275,6 +275,9 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
         for i,mObj in enumerate(ml):
             log.debug("|{0}| >> Register: {1}".format(_str_func,mObj))
             
+            if md_cgmTags.get(mObj):
+                continue
+            
             if not issubclass(type(mObj), cgmMeta.cgmControl):
                 log.debug("|{0}| >> Reclassing: {1}".format(_str_func,mObj))
                 mObj = cgmMeta.asMeta(mObj,'cgmControl',setClass = True)#,setClass = True
@@ -382,7 +385,7 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                             #l_candSplit = mCandidate.p_nameBase.split('_')
                             
                             _match = True
-                            tags_second = md_cgmTags[mCandidate]
+                            tags_second = md_cgmTags.get(mCandidate) or mCandidate.getCGMNameTags(['cgmDirection'])
                             for a,v in list(tags_second.items()):
                                 if tags_prime[a] != v:
                                     _match = False
@@ -423,8 +426,8 @@ def mirror_verify(self,progressBar = None,progressEnd=True):
                             d_Indices[_sideMirror] = _v#...push it back                
                             ml_cull.remove(mMatch)
                             md_indicesToControls[_sideMirror][_v] = mMatch
-                            ml_controlOrphans.remove(mMatch)
-                            
+                            try:ml_controlOrphans.remove(mMatch)
+                            except:pass
                             
                     d_Indices[_side] = _v
                     

@@ -2475,17 +2475,21 @@ class BaseMelWindow(BaseMelUI):
         returns the existing instance
         '''
         return cls.FromStr( cls.WINDOW_NAME )
+    
     @classmethod
     def Close( cls ):
         '''
         closes the window (if it exists)
         '''
+        if cmd.window(cls.WINDOW_NAME,ex=True):
+            cmd.window(cls.WINDOW_NAME, e=True, visible=False )
         #if cls.Exists():
+        """
         def close():
             if cmd.window( cls.WINDOW_NAME, ex=True ):
                 #print("Classmethod Close")                                
                 cmd.deleteUI( cls.WINDOW_NAME )
-        cmd.evalDeferred(close,lp=True)
+        cmd.evalDeferred(close,lp=True)"""
 
     def __new__( cls, *a, **kw ):
         #print("New")

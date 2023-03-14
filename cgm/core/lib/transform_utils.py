@@ -273,7 +273,31 @@ def scalePivot_set(node=None, new_pos = None):
     log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_pos,_node))
     
     mc.xform (_node,  ws=True, sp= new_pos, p=True)
+    
+def pivots_set(node=None, new_pos = None):
+    """
+    Set the rotatePivot  and scalePivot of a given obj in worldSpace
+    
+    :parameters:
+        node(str): node to query
+        new_pos(double3): Value to set. May be Euclid.Vector3
 
+    :returns
+        rotation(vector/asEuclid.Vector3)
+    """   
+    _str_func = 'rotatePivot_set'
+    
+    _node = VALID.mNodeString(node)
+    
+    try:new_pos = VALID.euclidVector3List(new_pos)
+    except:pass
+    
+    log.debug("|{0}| >> [{2}] = {1}".format(_str_func,new_pos,_node))
+    
+    mc.xform (_node,  ws=True, sp= new_pos, p=True)
+    mc.xform (_node,  ws=True, rp= new_pos, p=True)
+    
+    
 def rotateOrder_get(node=None):
     """
     Query the local rotation/euler of a given obj

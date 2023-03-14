@@ -104,13 +104,15 @@ def swimSettings_set(deformer = None,handle = None, d=None):
     mObj.scale = d['node_s']
     
     for a,v in list(d.items()): 
+        if a in ['handle_r','handle_s','handle_t','node_t','node_r','node_s']:
+            continue
         try:ATTR.set(mObj.mNode, a, v)
         except Exception as err:
             print(("{} | {} | {}".format(a,v,err)))
-    mHandle = cgmMeta.asMeta(handle)
-    mHandle.translate =  d['handle_t'] 
-    mHandle.rotated = ['handle_r'] 
-    mHandle.scaled = ['handle_s']  
+    mHandle = cgmMeta.cgmObject(handle)
+    mHandle.translate =  d['handle_t']
+    mHandle.rotate = d['handle_r']
+    mHandle.scaled = d['handle_s']
 
     return d
 

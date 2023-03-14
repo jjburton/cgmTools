@@ -393,7 +393,7 @@ def verify_blockAttrs(self, blockType = None, forceReset = False, queryMode = Tr
         return True
     except Exception as err:cgmGEN.cgmExceptCB(Exception,err)
     
-def verify(self, blockType = None, size = None, side = None, forceReset = False):
+def verify(self, blockType = None, size = None, side = None, forceReset = False, reloadModule=True):
     """
     Verify a block
     """
@@ -413,7 +413,8 @@ def verify(self, blockType = None, size = None, side = None, forceReset = False)
         blockType = _type
         
     _mBlockModule = self.query_blockModuleByType(blockType)
-    #reload(_mBlockModule)
+    if reloadModule:
+        cgmGEN._reloadMod(_mBlockModule)
     
     self.doStore('blockType',blockType)
     verify_blockAttrs(self,blockType,queryMode=False,mBlockModule=_mBlockModule,forceReset=forceReset)

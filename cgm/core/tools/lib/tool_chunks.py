@@ -53,7 +53,7 @@ from cgm.core.tools import locinator as LOCINATOR
 import cgm.core.classes.GuiFactory as cgmUI
 mUI = cgmUI.mUI
 import cgm.core.tools.lib.annotations as TOOLANNO
-#import cgmUpdate as CGMUPDATE
+import cgmUpdate as CGMUPDATE
 from cgm.core.lib import attribute_utils as ATTRS
 from cgm.core.classes import HotkeyFactory as HKEY
 from cgm.core.tools.lib import snap_calls as UISNAPCALLS
@@ -86,9 +86,13 @@ if cgmGEN.__mayaVersion__ >=2016:
 
 def uiSection_git(parent):
     _str_func = 'uiSection_git'  
-    return
+    if cgmGEN._b_py3:
+        l_branches = ['main']
+        
+    else:
+        l_branches = ['master','MRSDEV','MRSDAILY','MRSWORKSHOP']
+        
     
-    l_branches = ['main','MRSDEV','MRSDAILY','MRSWORKSHOP']
     
     _git = mc.menuItem(parent = parent,subMenu=True,
                        l='Pull',
@@ -116,6 +120,9 @@ def uiSection_help(parent):
                 l='About CGM',
                 ann = "About CGM",
                 c=lambda *a: cgmUI.uiWindow_thanks(False))  
+    
+    _Learn = mc.menuItem(p=parent,l='Learn',subMenu = True, tearOff = True)
+    uiSection_mrsLearn(_Learn)        
     
     mUI.MelMenuItemDiv(parent,label = 'Updates')
     
@@ -1113,7 +1120,10 @@ def uiSection_dev(parent):
                 ann = "Run Maya scanner on a given directory",
                 c=lambda *a: MAYABEODD.mayaScanner_batch())
     
-
+    mc.menuItem(parent = parent,
+                l='[ Reload Core ]',
+                ann = "Reload the cgm core to local python",
+                c=lambda *a: reloadCore())    
     
     mUI.MelMenuItemDiv(parent,label = 'Code')
     mc.menuItem(parent = parent,
@@ -1130,10 +1140,7 @@ def uiSection_dev(parent):
                 l='Load Local CGM Python',
                 ann = "Sets up standard cgm python imports for use in the script editor",
                 c=lambda *a: loadLocalPython())
-    mc.menuItem(parent = parent,
-                l='Reload Core',
-                ann = "Reload the cgm core to local python",
-                c=lambda *a: reloadCore())    
+
 
     
     _mayaOdd = mc.menuItem(parent = parent,subMenu = True,tearOff = True,

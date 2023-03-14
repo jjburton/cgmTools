@@ -144,7 +144,7 @@ d_attrStateMask = {'define':['eyeType',
                        'prerigJointOrient'
                        'paramMidLwr',
                        'paramMidUpr',                       
-                       
+                       'addScalePivot', 
                        'conDirectOffset',],
                    'skeleton':[
                        'numLidLwrJoints',
@@ -170,10 +170,10 @@ d_block_profiles = {
                  'lidBuild':'none',
                  'baseDat':{'baseSize':[2.7,2.7,2.7]},
                  },
-    'clam':{
+    'clamSimple':{
     'eyeType':'sphere',
     'ikSetup':True,
-    'lidBuild':'clam',
+    'lidBuild':'clamSimple',
     'ballSetup':'aim',    
     'numLidUprJoints':1,
     'numLidLwrJoints':1,
@@ -221,6 +221,7 @@ l_createUI_attrs = ['eyeType',
                     'lidBuild',
                     'lidFanUpr',
                     'lidFanLwr',
+                    'addScalePivot', 
                     'prerigJointOrient',
                     'numConLids',
                     'numLidUprJoints',
@@ -252,7 +253,8 @@ l_attrsStandard = ['side',
                    'moduleTarget',
                    'meshBuild',                                      
                    'visProximityMode',
-                   'visFormHandles',                   
+                   'visFormHandles',
+                   'addScalePivot',                   
                    'scaleSetup']
 
 d_attrsToMake = {'eyeType':'sphere:nonsphere',
@@ -521,7 +523,7 @@ def define(self):
     
     
     
-    BLOCKSHAPES.eyeOrb(self,self,None, _side, 'baseSize')
+    BLOCKSHAPES.eyeOrb(self,self,mDefineNull, _side, 'baseSize')
     
     mBBShape = self.bbHelper
     mMidDriver = mBBShape
@@ -1227,6 +1229,7 @@ def prerig(self):
         _v_range = max(TRANS.bbSize_get(self.mNode)) *2
         _bb_axisBox = SNAPCALLS.get_axisBox_size(mBBHelper.mNode, _v_range, mark=False)
         _size_width = _bb_axisBox[0]#...x width
+        _size = MATH.average(_bb_axisBox)        
         
         if self.lidBuild:
             _size_base = self.jointRadius * 3.0 #_size_width * .25
@@ -1258,7 +1261,7 @@ def prerig(self):
         #loc = LOC.create(position=_pos_bbCenter,name="bbCenter_loc")
         #TRANS.parent_set(loc,mFormNull)
     
-        crv = CURVES.create_fromName('sphere', size = _size_base)
+        crv = CURVES.create_fromName('sphere', size = _size)
         mHandleRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
         mHandleFactory.color(mHandleRoot.mNode)
         
@@ -1388,10 +1391,8 @@ def prerig(self):
         if self.ikSetup or self.buildEyeOrb:
             log.debug("|{0}| >> Settings/Orb setup ... ".format(_str_func)) 
             
-            _size_bb = mHandleFactory.get_axisBox_size(self.getMessage('bbHelper'))
-            _size = MATH.average(_size_bb)
             
-            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size_base,
+            mSettingsShape = cgmMeta.validateObjArg(CURVES.create_fromName('gear',_size/4.0,
                                                                            'z+'),'cgmObject',setClass=True)
             
             mSettingsShape.doSnapTo(mHandleRoot.mNode)
@@ -1400,7 +1401,7 @@ def prerig(self):
             str_settingsDirections = d_directions.get(_side,'z+')
             
             mSettingsShape.p_position = self.getPositionByAxisDistance(str_settingsDirections,
-                                                                        _size_bb[1] * .7)
+                                                                        _bb_axisBox[1] * .7)
             
             mSettingsShape.p_parent = mStateNull
             
@@ -1530,7 +1531,7 @@ def prerig(self):
             mModule_lids = self.atUtils('module_verify','eyelid','moduleEyelid')
             
             #Lid Root ---------------------------------------------------------
-            crv = CURVES.create_fromName('jack', size = _size_sub)
+            crv = CURVES.create_fromName('jack', size = _size_base)
             mLidRoot = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
             mHandleFactory.color(mLidRoot.mNode)
         
@@ -1600,7 +1601,7 @@ def prerig(self):
                                               mJointTrack=mUprLid,
                                               trackAttr = 'paramMidUpr',
                                               controlShape='loftCircleHalfUp',
-                                              multiplier=1.5,
+                                              multiplier=2.5,
                                               )
                 
                 mLwrHandle = create_lidHandle(self,'lwr',
@@ -1608,7 +1609,7 @@ def prerig(self):
                                               mJointTrack=mLwrLid,                                              
                                               trackAttr = 'paramMidLwr',
                                               controlShape='loftCircleHalfDown',
-                                              multiplier=1.5,
+                                              multiplier=2.5,
                                               )
                 
                 """
@@ -2272,12 +2273,13 @@ def prerig(self):
                 ml_resCurves.extend(md_res['ml_curves'])
                 
                 #Scale Setup -------------------------------------
+                """
                 if self.scaleSetup:
                     log.debug(cgmGEN.logString_msg('Scale Pivot'))
                     mScalePivot = mHandleFactory.addScalePivotHelper(self)
                     ml_handles.append(mScalePivot)
                     
-                    mScalePivot.p_position = self.bbHelper.p_position
+                    mScalePivot.p_position = self.bbHelper.p_position"""
                 
                 #Mirror setup --------------------------------
                 log.debug(cgmGEN.logString_sub('mirror'))
@@ -2309,7 +2311,15 @@ def prerig(self):
                     mRight.doStore('mirrorHandle',mLeft)            
                     idx_side +=1                
              
-                        
+
+        #ScalePivot ============================================================================================
+        if self.addScalePivot:
+            log.debug(cgmGEN.logString_msg('Scale Pivot'))
+            mScalePivot = mHandleFactory.addScalePivotHelper(self)
+            ml_handles.append(mScalePivot)
+            
+            mScalePivot.p_position = self.bbHelper.p_position
+                                        
         # Connect -------------------------------------------------
         self.msgList_connect('prerigHandles', ml_handles)
         if md_crvDrivers:
@@ -3192,400 +3202,402 @@ def rig_skeleton(self):
 
 #@cgmGEN.Timer
 def rig_shapes(self):
-    try:
-        _short = self.d_block['shortName']
-        _str_func = 'rig_shapes'
-        log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-        log.debug("{0}".format(self))
+    _short = self.d_block['shortName']
+    _str_func = 'rig_shapes'
+    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.debug("{0}".format(self))
+    
+
+    mBlock = self.mBlock
+    _baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'nameList')    
+    mHandleFactory = mBlock.asHandleFactory()
+    mRigNull = self.mRigNull
+    mPrerigNull = mBlock.prerigNull
+    mEyeDirect = mRigNull.getMessageAsMeta('directEye')
+    
+    ml_rigJoints = mRigNull.msgList_get('rigJoints')
+    mSettings = None
+    
+    if mBlock.buildEyeOrb or mBlock.ikSetup or self.b_needEyeOrb:
+        log.debug("|{0}| >> Settings needed...".format(_str_func))
+        mSettingsHelper = mBlock.getMessageAsMeta('settingsHelper')
+        if not mSettingsHelper:
+            raise ValueError("Settings helper should have been generated during prerig phase. Please go back")
+        log.debug(mSettingsHelper)
+        
+        if mBlock.buildEyeOrb:
+            log.debug("|{0}| >> EyeOrb Settings...".format(_str_func))
+            mEyeOrbJoint = mPrerigNull.getMessageAsMeta('eyeOrbJoint')
+            mEyeOrbRigJoint = mEyeOrbJoint.getMessageAsMeta('rigJoint')
+            mSettings = mEyeOrbRigJoint.doCreateAt(setClass=True)
+            
+            CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,False)
+            #mSettings = mEyeOrbRigJoint
+            mEyeOrbRigJoint.p_parent = mSettings
+            
+        elif self.b_needEyeOrb or mBlock.buildEyeOrb:
+            mSettings = mEyeDirect.doCreateAt(setClass=True)
+            CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,False)
+            
+        else:
+            mSettings = mSettingsHelper.doCreateAt()
+            CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,True)
+            
+        mSettings.doStore('mClass','cgmObject')
+        #mSettings.doStore('cgmName','{0}_eyeRoot'.format(self.d_module['partName']))
+        #mSettings.doName()
+        mSettings.rename('{0}_eyeRoot'.format(self.d_module['partName']))
+            
+        mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
+        mRigNull.connectChildNode(mSettings,'rigRoot','rigNull')#Connect
         
     
-        mBlock = self.mBlock
-        _baseNameAttrs = ATTR.datList_getAttrs(mBlock.mNode,'nameList')    
-        mHandleFactory = mBlock.asHandleFactory()
-        mRigNull = self.mRigNull
-        mPrerigNull = mBlock.prerigNull
-        mEyeDirect = mRigNull.getMessageAsMeta('directEye')
+    if mBlock.scaleSetup:
+        mRoot = mRigNull.getMessageAsMeta('rigRoot')
+        if mBlock.getMessage('scalePivotHelper'):
+            log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
+            p_scalePivot = mBlock.scalePivotHelper.p_position
+            TRANS.scalePivot_set(mSettings.mNode, p_scalePivot)
+            TRANS.rotatePivot_set(mSettings.mNode, p_scalePivot)
+            
+    
+    mBallRoot = False
+    
+    log.debug("|{0}| >> ballRoot ...".format(_str_func))
+    mBallControl = mBlock.rootHelper.doDuplicate(po=False)
+    mc.makeIdentity(mBallControl.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
+    mBallControl.doStore('cgmName','ball')
+    mBallControl.p_parent = mSettings
+    mBallControl.doName()
+    mBallRoot = mBallControl
+    mRigNull.connectChildNode(mBallControl,'controlBall','rigNull')#Connect
         
-        ml_rigJoints = mRigNull.msgList_get('rigJoints')
-        mSettings = None
+    if self.str_ballSetup != 'fixed':
+        #Logic ====================================================================================
+        mFKEye = mRigNull.getMessageAsMeta('fkEye')
+        mEyeOrientHelper = mBlock.eyeOrientHelper
         
-        if mBlock.buildEyeOrb or mBlock.ikSetup or self.b_needEyeOrb:
-            log.debug("|{0}| >> Settings needed...".format(_str_func))
-            mSettingsHelper = mBlock.getMessageAsMeta('settingsHelper')
-            if not mSettingsHelper:
-                raise ValueError("Settings helper should have been generated during prerig phase. Please go back")
-            log.debug(mSettingsHelper)
-            
-            if mBlock.buildEyeOrb:
-                log.debug("|{0}| >> EyeOrb Settings...".format(_str_func))
-                mEyeOrbJoint = mPrerigNull.getMessageAsMeta('eyeOrbJoint')
-                mEyeOrbRigJoint = mEyeOrbJoint.getMessageAsMeta('rigJoint')
-                CORERIG.shapeParent_in_place(mEyeOrbRigJoint.mNode,mSettingsHelper.mNode,False)
-                mSettings = mEyeOrbRigJoint
-            elif self.b_needEyeOrb:
-                mSettings = mEyeDirect.doCreateAt(setClass=True)
-                CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,False)
-                
-            else:
-                mSettings = mSettingsHelper.doCreateAt()
-                CORERIG.shapeParent_in_place(mSettings.mNode,mSettingsHelper.mNode,True)
-                
-            mSettings.doStore('mClass','cgmObject')
-            #mSettings.doStore('cgmName','{0}_eyeRoot'.format(self.d_module['partName']))
-            #mSettings.doName()
-            mSettings.rename('{0}_eyeRoot'.format(self.d_module['partName']))
-                
-            mRigNull.connectChildNode(mSettings,'settings','rigNull')#Connect
-            mRigNull.connectChildNode(mSettings,'rigRoot','rigNull')#Connect
-            
-        
-        if mBlock.scaleSetup:
-            mRoot = mRigNull.getMessageAsMeta('rigRoot')
-            if mBlock.getMessage('scalePivotHelper'):
-                log.info("|{0}| >> Scale Pivot setup...".format(_str_func))
-                p_scalePivot = mBlock.scalePivotHelper.p_position
-                TRANS.scalePivot_set(mRoot.mNode, p_scalePivot)
-                TRANS.rotatePivot_set(mRoot.mNode, p_scalePivot)
-                
-        
-        mBallRoot = False
-        
-        log.debug("|{0}| >> ballRoot ...".format(_str_func))
-        mBallControl = mBlock.rootHelper.doDuplicate(po=False)
-        mc.makeIdentity(mBallControl.mNode, apply = True, t=0, r=0,s=1,n=0,pn=1)
-        mBallControl.doStore('cgmName','ball')
-        mBallControl.p_parent = mSettings
-        mBallControl.doName()
-        mBallRoot = mBallControl
-        mRigNull.connectChildNode(mBallControl,'controlBall','rigNull')#Connect
-            
-        if self.str_ballSetup != 'fixed':
-            #Logic ====================================================================================
-            mFKEye = mRigNull.getMessageAsMeta('fkEye')
-            mEyeOrientHelper = mBlock.eyeOrientHelper
-            
-            if mFKEye:
-                log.debug("|{0}| >> FK eye...".format(_str_func))  
-                log.debug(mFKEye)
-                
-                
-                #_shape_fk = CURVES.create_fromName('sphere', size = [v*1.1 for v in self.v_baseSize])
-                #SNAP.go(_shape_fk,mFKEye.mNode)
-                #mHandleFactory.color(_shape_fk, controlType = 'main')
-                CORERIG.shapeParent_in_place(mFKEye.mNode,mEyeOrientHelper.mNode,1)
-                mHandleFactory.color(mFKEye.mNode, controlType = 'main')
-                
-                #mShape = mBlock.getMessageAsMeta('bbHelper').doDuplicate()
-                mRigNull.connectChildNode(mFKEye.mNode,'controlFK','rigNull')#Connect
-                
-                if not mSettings:
-                    mRigNull.connectChildNode(mFKEye,'settings','rigNull')#Connect
-                    
-                
-            mIKEye = mRigNull.getMessageAsMeta('ikEye')
-            if mIKEye:
-                log.debug("|{0}| >> IK eye...".format(_str_func))  
-                log.debug(mIKEye)
-                
-                if not self.b_eyeSlide:#IK direct shape... -------------------------------------------
-                    CORERIG.shapeParent_in_place(mIKEye.mNode,mEyeOrientHelper.mNode,1)
-                    mHandleFactory.color(mIKEye.mNode, controlType = 'sub')
-                    
-                    mRigNull.connectChildNode(mIKEye.mNode,'controlIKDirect','rigNull')#Connect
-                
-                
-                #Create shape... -----------------------------------------------------------------------        
-                log.debug("|{0}| >> Creating shape...".format(_str_func))
-                mIKControl = cgmMeta.asMeta( CURVES.create_fromName('eye',
-                                                                    direction = 'z+',
-                                                                    size = self.f_sizeAvg * .5 ,
-                                                                    absoluteSize=False),'cgmObject',setClass=True)
-                mIKControl.doSnapTo(mBlock.mNode)
-                pos = RIGGEN.get_planeIntersect(self.mEyeLook, mIKEye)
-                #pos = mBlock.getPositionByAxisDistance('z+',
-                #                                       self.f_sizeAvg * 4)
-            
-                mIKControl.p_position = pos
-                mIKControl.p_orient = self.mEyeLook.p_orient
-                
-                if mIKEye.hasAttr('cgmDirection'):
-                    mIKControl.doStore('cgmDirection',mIKEye.cgmDirection)
-                mIKControl.doStore('cgmName',mIKEye.cgmName)
-                
-                mHandleFactory.color(mIKControl.mNode)
-        
-                mIKControl.doName()
-                
-                mIKControl.p_parent = self.mEyeLook
-                mRigNull.connectChildNode(mIKControl,'controlIK','rigNull')#Connect
+        if mFKEye:
+            log.debug("|{0}| >> FK eye...".format(_str_func))  
+            log.debug(mFKEye)
             
             
-        
-        mDirectEye = mRigNull.getMessageAsMeta('directEye')
-        if mDirectEye:#Direct Eye =======================================================================
-            log.debug("|{0}| >> direct eye...".format(_str_func))  
-            log.debug(mDirectEye)
+            #_shape_fk = CURVES.create_fromName('sphere', size = [v*1.1 for v in self.v_baseSize])
+            #SNAP.go(_shape_fk,mFKEye.mNode)
+            #mHandleFactory.color(_shape_fk, controlType = 'main')
+            CORERIG.shapeParent_in_place(mFKEye.mNode,mEyeOrientHelper.mNode,1)
+            mHandleFactory.color(mFKEye.mNode, controlType = 'main')
             
-            trackcrv= CORERIG.create_at(l_pos=[mDirectEye.p_position,
-                                               mBlock.getPositionByAxisDistance('z+',
-                                               self.f_sizeAvg * 1.5)],#ml_handleJoints[1]],
-                                        create='curveLinear',
-                                        baseName = '{0}_eyeTrack'.format(self.d_module['partName']))
-        
-            
-            CORERIG.shapeParent_in_place(mDirectEye,trackcrv,False)
-            mHandleFactory = mBlock.asHandleFactory()
-            mHandleFactory.color(mDirectEye.mNode, controlType = 'sub')
+            #mShape = mBlock.getMessageAsMeta('bbHelper').doDuplicate()
+            mRigNull.connectChildNode(mFKEye.mNode,'controlFK','rigNull')#Connect
             
             if not mSettings:
-                mRigNull.connectChildNode(mDirectEye,'settings','rigNull')#Connect
+                mRigNull.connectChildNode(mFKEye,'settings','rigNull')#Connect
                 
-            #mDirectEye.p_parent = mBallRoot
             
-            #for s in mDirectEye.getShapes(asMeta=True):
-                #s.overrideEnabled = 1
-                #s.overrideDisplayType = 2
-
-        
-        if self.str_pupilBuild in ['joint','surfaceSlide'] :
-            log.debug("|{0}| >> Pupil ...".format(_str_func))
-            mPupilRigJoint = self.mPupilRigJoint
-            mShape = mPrerigNull.pupilDirectShape.doDuplicate(po=False)
-            mHandleFactory.color(mShape.mNode, controlType = 'sub')
+        mIKEye = mRigNull.getMessageAsMeta('ikEye')
+        if mIKEye:
+            log.debug("|{0}| >> IK eye...".format(_str_func))  
+            log.debug(mIKEye)
             
-            #mShape.tz = mShape.tz + self.v_offset
-            
-            CORERIG.shapeParent_in_place(mPupilRigJoint.mNode, mShape.mNode,False)
-            mRigNull.connectChildNode(mPupilRigJoint,'controlPupil','rigNull')#Connect
-
-        if self.str_irisBuild in ['joint','surfaceSlide'] :
-            log.debug("|{0}| >> Iris ...".format(_str_func))
-            mIrisRigJoint = self.mIrisRigJoint
-            mShape = mPrerigNull.irisDirectShape.doDuplicate(po=False)
-            #mShape.tz = mShape.tz + self.v_offset
-            mHandleFactory.color(mShape.mNode, controlType = 'sub')
-            
-            CORERIG.shapeParent_in_place(mIrisRigJoint.mNode, mShape.mNode,False)
-            mRigNull.connectChildNode(mIrisRigJoint,'controlIris','rigNull')#Connect
-            
-        
-        if self.b_irisPupilSlide:
-            log.debug("|{0}| >> slideEye ...".format(_str_func))
-            mSlideEyeHelper = mBlock.getMessageAsMeta('irisPosHelper')
-            log.debug(mSettingsHelper)
-            
-            mSlideEye = mSlideEyeHelper.doDuplicate(po=False)
-            
-            mSlideEye.p_parent = False
-            
-            mSlideEye.doStore('mClass','cgmObject')
-            #mSettings.doStore('cgmName','{0}_eyeRoot'.format(self.d_module['partName']))
-            #mSettings.doName()
-            mSlideEye.rename('{0}_slideEye'.format(self.d_module['partName']))
+            if not self.b_eyeSlide:#IK direct shape... -------------------------------------------
+                CORERIG.shapeParent_in_place(mIKEye.mNode,mEyeOrientHelper.mNode,1)
+                mHandleFactory.color(mIKEye.mNode, controlType = 'sub')
                 
-            mRigNull.connectChildNode(mSlideEye,'controlSlideEye','rigNull')#Connect
+                mRigNull.connectChildNode(mIKEye.mNode,'controlIKDirect','rigNull')#Connect
             
-        
-        mHighlight = mPrerigNull.getMessageAsMeta('eyeHighlightJoint')
-        if mHighlight:#==============================================================================
-            log.debug("|{0}| >> highlight ...".format(_str_func))
-            mHighlightDirectJoint = mHighlight.getMessageAsMeta('rigJoint')
             
-            mHighlightShape = cgmMeta.asMeta( CURVES.create_fromName('circle',
+            #Create shape... -----------------------------------------------------------------------        
+            log.debug("|{0}| >> Creating shape...".format(_str_func))
+            mIKControl = cgmMeta.asMeta( CURVES.create_fromName('eye',
                                                                 direction = 'z+',
-                                                                size = mBlock.jointRadius ,
+                                                                size = self.f_sizeAvg * .5 ,
                                                                 absoluteSize=False),'cgmObject',setClass=True)
-            mHighlightShape.doSnapTo(mHighlightDirectJoint.mNode)
-            
-            
-            if self.str_highlightSetup == 'joint':
-                pos = mBlock.getPositionByAxisDistance('z+',
-                                                       self.f_sizeAvg * .25 + mBlock.controlOffset)
-            else:
-                pos = mBlock.getPositionByAxisDistance('z+',
-                                                       mBlock.controlOffset)
-                
-            mHighlightShape.p_position = pos
-            mHandleFactory.color(mHighlightShape.mNode, controlType='sub')
-            
-            CORERIG.shapeParent_in_place(mHighlightDirectJoint.mNode,mHighlightShape.mNode,False)
-            
-            mRigNull.connectChildNode(mHighlightDirectJoint,'controlHighlight','rigNull')#Connect            
-            
+            mIKControl.doSnapTo(mBlock.mNode)
+            pos = RIGGEN.get_planeIntersect(self.mEyeLook, mIKEye)
+            #pos = mBlock.getPositionByAxisDistance('z+',
+            #                                       self.f_sizeAvg * 4)
         
-        if self.str_lidBuild:#Lid setup =======================================================================
-            log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidBuild))
-            if self.str_lidBuild == 'clam':
-                for k in 'upr','lwr':
-                    log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
-                    _key = '{0}LidHandle'.format(k)
-                    mShapeSource = mBlock.getMessageAsMeta(_key)
-                    mHandle = mShapeSource.doCreateAt('joint',setClass=True)
-                    
-                    try:mHandle.drawStyle =2
-                    except:mHandle.radius = .00001
-                    
-                    CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
-                    mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
-                    _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
-                    mHandleFactory.color(mHandle.mNode, controlType = 'main')
-                    
-                    if self.mModule.hasAttr('cgmDirection'):
-                        mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
-                    
-                    self.d_lidData[k]['mHandle'] = mHandle
-                    mHandle.doName()
-                    mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
-                    
-                    log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
-                    mRig =  self.d_lidData[k]['mRig']
-                    
-                    _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
-                                                        sizeMode= 'fixed',
-                                                        size = _size)
-                    mHandleFactory.color(_shape, controlType = 'sub')
-                    CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
+            mIKControl.p_position = pos
+            mIKControl.p_orient = self.mEyeLook.p_orient
             
-            elif self.str_lidBuild == 'clamSimple':
-                
-                _baseSize = [v * 1.4 for v in mBlock.baseSize]
-                
-
-                    
-                _size = mBlock.jointRadius #TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
-                    
-                for k in 'upr','lwr':
-                    log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
-                    _key = '{0}LidHandle'.format(k)
-                    mTarget = mBlock.getMessageAsMeta(_key)
-                    
-                    if k == 'upr':
-                        _dir = 'y+'
-                        _color = 'main'
-                    else:
-                        _dir = 'y-'
-                        _color = 'sub'
-                        _baseSize = [v * .95 for v in _baseSize]
-                    
-                    mHandle = self.d_lidData[k]['mRig'].doCreateAt(setClass=True)
-                    mShapeSource = cgmMeta.asMeta( CURVES.create_fromName('semiSphere', size =1.0, direction= _dir) )
-                    
-                    mShapeSource.scale = _baseSize
-                    
-                    mShapeSource.doSnapTo(mHandle)
-                    
-                    CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode, False)
-                    mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
-                    
-                    
-                    mHandleFactory.color(mHandle.mNode, controlType = _color)                    
-                    
-                    
-                    """
-                    mShapeSource = mBlock.getMessageAsMeta(_key)
-                    mHandle = mShapeSource.doCreateAt('joint',setClass=True)
-                    
-                    try:mHandle.drawStyle =2
-                    except:mHandle.radius = .00001
-                    
-                    CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
-                    mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
-                    _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
-                    mHandleFactory.color(mHandle.mNode, controlType = 'main')"""
-                    
-                    if self.mModule.hasAttr('cgmDirection'):
-                        mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
-                    
-                    self.d_lidData[k]['mHandle'] = mHandle
-                    mHandle.doName()
-                    mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
-                    
-                    log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
-                    mRig =  self.d_lidData[k]['mRig']
-                    
-                    _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
-                                                        sizeMode= 'fixed',
-                                                        size = _size)
-                    mShape = cgmMeta.asMeta(_shape)[0]
-                    mShape.p_position = mTarget.p_position
-                    mHandleFactory.color(_shape, controlType = 'sub')
-                    CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)            
+            if mIKEye.hasAttr('cgmDirection'):
+                mIKControl.doStore('cgmDirection',mIKEye.cgmDirection)
+            mIKControl.doStore('cgmName',mIKEye.cgmName)
             
+            mHandleFactory.color(mIKControl.mNode)
+    
+            mIKControl.doName()
             
-            elif self.v_lidBuild:
-                log.debug("|{0}| >> lid setup...".format(_str_func)+ '-'*40)
+            mIKControl.p_parent = self.mEyeLook
+            mRigNull.connectChildNode(mIKControl,'controlIK','rigNull')#Connect
+        
+        
+    
+    mDirectEye = mRigNull.getMessageAsMeta('directEye')
+    if mDirectEye:#Direct Eye =======================================================================
+        log.debug("|{0}| >> direct eye...".format(_str_func))  
+        log.debug(mDirectEye)
+        
+        trackcrv= CORERIG.create_at(l_pos=[mDirectEye.p_position,
+                                           mBlock.getPositionByAxisDistance('z+',
+                                           self.f_sizeAvg * 1.5)],#ml_handleJoints[1]],
+                                    create='curveLinear',
+                                    baseName = '{0}_eyeTrack'.format(self.d_module['partName']))
+    
+        
+        CORERIG.shapeParent_in_place(mDirectEye,trackcrv,False)
+        mHandleFactory = mBlock.asHandleFactory()
+        mHandleFactory.color(mDirectEye.mNode, controlType = 'sub')
+        
+        if not mSettings:
+            mRigNull.connectChildNode(mDirectEye,'settings','rigNull')#Connect
+            
+        #mDirectEye.p_parent = mBallRoot
+        
+        #for s in mDirectEye.getShapes(asMeta=True):
+            #s.overrideEnabled = 1
+            #s.overrideDisplayType = 2
+
+    
+    if self.str_pupilBuild in ['joint','surfaceSlide'] :
+        log.debug("|{0}| >> Pupil ...".format(_str_func))
+        mPupilRigJoint = self.mPupilRigJoint
+        mShape = mPrerigNull.pupilDirectShape.doDuplicate(po=False)
+        mHandleFactory.color(mShape.mNode, controlType = 'sub')
+        
+        #mShape.tz = mShape.tz + self.v_offset
+        
+        CORERIG.shapeParent_in_place(mPupilRigJoint.mNode, mShape.mNode,False)
+        mRigNull.connectChildNode(mPupilRigJoint,'controlPupil','rigNull')#Connect
+
+    if self.str_irisBuild in ['joint','surfaceSlide'] :
+        log.debug("|{0}| >> Iris ...".format(_str_func))
+        mIrisRigJoint = self.mIrisRigJoint
+        mShape = mPrerigNull.irisDirectShape.doDuplicate(po=False)
+        #mShape.tz = mShape.tz + self.v_offset
+        mHandleFactory.color(mShape.mNode, controlType = 'sub')
+        
+        CORERIG.shapeParent_in_place(mIrisRigJoint.mNode, mShape.mNode,False)
+        mRigNull.connectChildNode(mIrisRigJoint,'controlIris','rigNull')#Connect
+        
+    
+    if self.b_irisPupilSlide:
+        log.debug("|{0}| >> slideEye ...".format(_str_func))
+        mSlideEyeHelper = mBlock.getMessageAsMeta('irisPosHelper')
+        log.debug(mSettingsHelper)
+        
+        mSlideEye = mSlideEyeHelper.doDuplicate(po=False)
+        
+        mSlideEye.p_parent = False
+        
+        mSlideEye.doStore('mClass','cgmObject')
+        #mSettings.doStore('cgmName','{0}_eyeRoot'.format(self.d_module['partName']))
+        #mSettings.doName()
+        mSlideEye.rename('{0}_slideEye'.format(self.d_module['partName']))
+            
+        mRigNull.connectChildNode(mSlideEye,'controlSlideEye','rigNull')#Connect
+        
+    
+    mHighlight = mPrerigNull.getMessageAsMeta('eyeHighlightJoint')
+    if mHighlight:#==============================================================================
+        log.debug("|{0}| >> highlight ...".format(_str_func))
+        mHighlightDirectJoint = mHighlight.getMessageAsMeta('rigJoint')
+        
+        mHighlightShape = cgmMeta.asMeta( CURVES.create_fromName('circle',
+                                                            direction = 'z+',
+                                                            size = mBlock.jointRadius ,
+                                                            absoluteSize=False),'cgmObject',setClass=True)
+        mHighlightShape.doSnapTo(mHighlightDirectJoint.mNode)
+        
+        
+        if self.str_highlightSetup == 'joint':
+            pos = mBlock.getPositionByAxisDistance('z+',
+                                                   self.f_sizeAvg * .25 + mBlock.controlOffset)
+        else:
+            pos = mBlock.getPositionByAxisDistance('z+',
+                                                   mBlock.controlOffset)
+            
+        mHighlightShape.p_position = pos
+        mHandleFactory.color(mHighlightShape.mNode, controlType='sub')
+        
+        CORERIG.shapeParent_in_place(mHighlightDirectJoint.mNode,mHighlightShape.mNode,False)
+        
+        mRigNull.connectChildNode(mHighlightDirectJoint,'controlHighlight','rigNull')#Connect            
+        
+    
+    if self.str_lidBuild:#Lid setup =======================================================================
+        log.debug("|{0}| >> Lid setup: {1}".format(_str_func,self.str_lidBuild))
+        if self.str_lidBuild == 'clam':
+            for k in 'upr','lwr':
+                log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
+                _key = '{0}LidHandle'.format(k)
+                mShapeSource = mBlock.getMessageAsMeta(_key)
+                mHandle = mShapeSource.doCreateAt('joint',setClass=True)
+                
+                try:mHandle.drawStyle =2
+                except:mHandle.radius = .00001
+                
+                CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
+                mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
+                mHandleFactory.color(mHandle.mNode, controlType = 'main')
+                
+                if self.mModule.hasAttr('cgmDirection'):
+                    mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
+                
+                self.d_lidData[k]['mHandle'] = mHandle
+                mHandle.doName()
+                mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
+                
+                log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
+                mRig =  self.d_lidData[k]['mRig']
+                
+                _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
+                                                    sizeMode= 'fixed',
+                                                    size = _size)
+                mHandleFactory.color(_shape, controlType = 'sub')
+                CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
+        
+        elif self.str_lidBuild == 'clamSimple':
+            
+            _baseSize = [v * 1.4 for v in mBlock.baseSize]
+            
 
                 
-                #Handles ================================================================================
-                log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
-                for k in 'lidLwr','lidUpr':
-                    log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
-                    for side,ml in list(self.md_handles[k].items()):
-                        log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
-                        for i,mHandle in enumerate(ml):
-                            log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
-                            CORERIG.shapeParent_in_place(mHandle.mNode,
-                                                         self.md_handleShapes[k][side][i].mNode)
-                log.debug(cgmGEN._str_subLine)
+            _size = mBlock.jointRadius #TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
                 
-                for k,d in list(self.md_directJoints.items()):
-                    log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
-                    for side,ml in list(d.items()):
-                        log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
-                        for i,mHandle in enumerate(ml):
-                            log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
-                            CORERIG.shapeParent_in_place(mHandle.mNode,
-                                                         self.md_directShapes[k][side][i].mNode)
-                            #ml_processed.append(mHandle)                
+            for k in 'upr','lwr':
+                log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
+                _key = '{0}LidHandle'.format(k)
+                mTarget = mBlock.getMessageAsMeta(_key)
+                
+                if k == 'upr':
+                    _dir = 'y+'
+                    _color = 'main'
+                else:
+                    _dir = 'y-'
+                    _color = 'sub'
+                    _baseSize = [v * .95 for v in _baseSize]
+                
+                mHandle = self.d_lidData[k]['mRig'].doCreateAt(setClass=True)
+                mShapeSource = cgmMeta.asMeta( CURVES.create_fromName('semiSphere', size =1.0, direction= _dir) )
+                
+                mShapeSource.scale = _baseSize
+                
+                mShapeSource.doSnapTo(mHandle)
+                
+                CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode, False)
+                mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                
+                
+                mHandleFactory.color(mHandle.mNode, controlType = _color)                    
+                
+                
+                """
+                mShapeSource = mBlock.getMessageAsMeta(_key)
+                mHandle = mShapeSource.doCreateAt('joint',setClass=True)
+                
+                try:mHandle.drawStyle =2
+                except:mHandle.radius = .00001
+                
+                CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
+                mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
+                mHandleFactory.color(mHandle.mNode, controlType = 'main')"""
+                
+                if self.mModule.hasAttr('cgmDirection'):
+                    mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
+                
+                self.d_lidData[k]['mHandle'] = mHandle
+                mHandle.doName()
+                mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
+                
+                log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
+                mRig =  self.d_lidData[k]['mRig']
+                
+                _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
+                                                    sizeMode= 'fixed',
+                                                    size = _size)
+                mShape = cgmMeta.asMeta(_shape)[0]
+                mShape.p_position = mTarget.p_position
+                mHandleFactory.color(_shape, controlType = 'sub')
+                CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)            
+        
+        
+        elif self.v_lidBuild:
+            log.debug("|{0}| >> lid setup...".format(_str_func)+ '-'*40)
 
-        if self.v_lidBuild:
-            if mBlock.lidFanLwr or mBlock.lidFanUpr:
-                l_toDo = []
-                if mBlock.lidFanUpr:
-                    l_toDo.append('uprFanCenter')
-                if mBlock.lidFanLwr:
-                    l_toDo.append('lwrFanCenter')
-                    
-                for k in l_toDo:
-                    log.info("|{0}| >> lid fan handle| {1}...".format(_str_func,k))                      
-                    _key = '{0}LidHandle'.format(k)
-                    
-                    mShapeSource = mBlock.getMessageAsMeta(_key)
-                    mHandle = mShapeSource.doCreateAt('joint',setClass=True)
-                    
-                    try:mHandle.drawStyle =2
-                    except:mHandle.radius = .00001
-                    
-                    CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
-                    mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
-                    
-                    _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
-                    
-                    if self.mModule.hasAttr('cgmDirection'):
-                        mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
-                    
-                    self.d_lidData[k]['mHandle'] = mHandle
-                    mHandle.doName()
-                    mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
-                    
-                    log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
-                    mRig =  self.d_lidData[k]['mRig']
-                    
-                    _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
-                                                        sizeMode= 'fixed',
-                                                        size = _size)
-                    mHandleFactory.color(_shape, controlType = 'sub')
-                    CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
+            
+            #Handles ================================================================================
+            log.debug("|{0}| >> Handles...".format(_str_func)+ '-'*80)
+            for k in 'lidLwr','lidUpr':
+                log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
+                for side,ml in list(self.md_handles[k].items()):
+                    log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
+                    for i,mHandle in enumerate(ml):
+                        log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+                        CORERIG.shapeParent_in_place(mHandle.mNode,
+                                                     self.md_handleShapes[k][side][i].mNode)
+            log.debug(cgmGEN._str_subLine)
+            
+            for k,d in list(self.md_directJoints.items()):
+                log.debug("|{0}| >> {1}...".format(_str_func,k)+ '-'*40)
+                for side,ml in list(d.items()):
+                    log.debug("|{0}| >> {1}...".format(_str_func,side)+ '-'*10)
+                    for i,mHandle in enumerate(ml):
+                        log.debug("|{0}| >> {1}...".format(_str_func,mHandle))
+                        CORERIG.shapeParent_in_place(mHandle.mNode,
+                                                     self.md_directShapes[k][side][i].mNode)
+                        #ml_processed.append(mHandle)                
+
+    if self.v_lidBuild:
+        if mBlock.lidFanLwr or mBlock.lidFanUpr:
+            l_toDo = []
+            if mBlock.lidFanUpr:
+                l_toDo.append('uprFanCenter')
+            if mBlock.lidFanLwr:
+                l_toDo.append('lwrFanCenter')
                 
- 
-        for mJnt in ml_rigJoints:
-            try:
-                mJnt.drawStyle =2
-            except:
-                mJnt.radius = .00001                
-        return
-    except Exception as error:
-        cgmGEN.cgmExceptCB(Exception,error,msg=vars())
+            for k in l_toDo:
+                log.info("|{0}| >> lid fan handle| {1}...".format(_str_func,k))                      
+                _key = '{0}LidHandle'.format(k)
+                
+                mShapeSource = mBlock.getMessageAsMeta(_key)
+                mHandle = mShapeSource.doCreateAt('joint',setClass=True)
+                
+                try:mHandle.drawStyle =2
+                except:mHandle.radius = .00001
+                
+                CORERIG.shapeParent_in_place(mHandle.mNode,mShapeSource.mNode)
+                mHandle.doStore('cgmName','{0}Lid'.format(k),attrType='string')
+                
+                _size = TRANS.bbSize_get(mHandle.mNode,True, mode ='max')
+                
+                if self.mModule.hasAttr('cgmDirection'):
+                    mHandle.doStore('cgmDirection',self.mModule.cgmDirection)
+                
+                self.d_lidData[k]['mHandle'] = mHandle
+                mHandle.doName()
+                mRigNull.connectChildNode(mHandle,_key,'rigNull')#Connect
+                
+                log.debug("|{0}| >> lid direct| {1}...".format(_str_func,k))
+                mRig =  self.d_lidData[k]['mRig']
+                
+                _shape = CURVES.create_controlCurve(mRig.mNode, 'cube',
+                                                    sizeMode= 'fixed',
+                                                    size = _size)
+                mHandleFactory.color(_shape, controlType = 'sub')
+                CORERIG.shapeParent_in_place(mRig.mNode,_shape,False)
+            
+
+    for mJnt in ml_rigJoints:
+        try:
+            mJnt.drawStyle =2
+        except:
+            mJnt.radius = .00001                
+    return
+
 
 
 #@cgmGEN.Timer
@@ -5757,7 +5769,7 @@ def rig_cleanUp(self):
 def create_simpleMesh(self,  deleteHistory = True, cap=True, skin = True, **kws):
     _str_func = 'create_simpleMesh'
     log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
-    log.debug("{0}".format(self))
+    log.info("{0}".format(self))
     
     if not self.meshBuild:
         log.warning(" MeshBuild [off] | {}".format(self))        
@@ -5850,9 +5862,10 @@ def create_simpleMesh(self,  deleteHistory = True, cap=True, skin = True, **kws)
             #mDup2.rz = _r
             mDup2.dagLock(False)
             mDup2.p_parent = mDup
-            d = DIST.get_bb_size(mDup.mNode,mode='max')
-            mDup2.tz = - d * .2
-            pos_bb = TRANS.bbCenter_get(mDup2.mNode)
+            #d = DIST.get_bb_size(mDup.mNode,mode='max')
+            d = DIST.get_bb_size(mBlock.bbHelper.mNode,mode='max')
+            #mDup2.tz = - d * .2
+            pos_bb = TRANS.bbCenter_get(mBlock.bbHelper.mNode)
             
             mDup2.p_parent = False
             
@@ -6202,7 +6215,7 @@ def build_proxyMesh(self, forceNew = True, skin = False, puppetMeshMode = False)
     Build our proxyMesh
     """
     _str_func = 'build_proxyMesh'
-    log.debug("|{0}| >>  ".format(_str_func)+ '-'*80)
+    log.info("|{0}| >>  ".format(_str_func)+ '-'*80)
     log.debug("{0}".format(self))
     
     mBlock = self
@@ -6324,9 +6337,10 @@ def build_proxyMesh(self, forceNew = True, skin = False, puppetMeshMode = False)
             #mDup2.rz = _r
             mDup2.dagLock(False)
             mDup2.p_parent = mDup
-            d = DIST.get_bb_size(mDup.mNode,mode='max')
-            mDup2.tz = - d * .2
-            pos_bb = TRANS.bbCenter_get(mDup2.mNode)
+            #d = DIST.get_bb_size(mDup.mNode,mode='max')
+            d = DIST.get_bb_size(mBlock.bbHelper.mNode,mode='max')
+            #mDup2.tz = - d * .2
+            pos_bb = TRANS.bbCenter_get(mBlock.bbHelper.mNode)
             
             mDup2.p_parent = False
             

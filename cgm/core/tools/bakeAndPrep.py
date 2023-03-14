@@ -292,7 +292,7 @@ def Prep(removeNamespace = False,
             
             
     if removeNamespace:#...attempt to clean name space stuff
-        for mObj in cgmMeta.asMeta(mc.ls("{}:*".format(ns))):
+        for mObj in cgmMeta.asMeta(mc.ls("{}:*".format(ns)) or []):
             mObj.rename(mObj.p_nameBase.replace("{}:".format(ns),''))            
 
     mc.select( [x.mNode for x in exportObjs] )

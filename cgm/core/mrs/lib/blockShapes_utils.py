@@ -2508,7 +2508,7 @@ def eyeOrb(self, mTarget, mStateNull, side='left', attr= 'eyeSize'):
     mBlockVolume = mTarget.doCreateAt(setClass=1)
 
     mBlockVolume.doSnapTo(mTarget)
-    mBlockVolume.p_parent = mTarget        
+    mBlockVolume.p_parent = mStateNull        
     #mBlockVolume.tz = -.5
     #mBlockVolume.p_parent = False
     mBlockVolume.rename(side + 'BlockVolume')
@@ -2676,6 +2676,7 @@ def eyeOrb(self, mTarget, mStateNull, side='left', attr= 'eyeSize'):
                                  name = "{0}_approx".format(k))
             mc.reverseSurface(_surf[0])
             mSurf = cgmMeta.validateObjArg(_surf[0], 'cgmObject',setClass=True)
+
         else:
             _surf =  mc.loft([mHelper.mNode,_res[-2].mNode], o = True, d = 3, po = 0,ch=1,
                              name = "{0}_approx".format(k))            
@@ -2688,7 +2689,11 @@ def eyeOrb(self, mTarget, mStateNull, side='left', attr= 'eyeSize'):
             
         mSurf.p_parent = mNoTransformNull
         mSurf.dagLock()
- 
+        mSurf.overrideEnabled = 1
+        mSurf.overrideDisplayType = 2
+        for mShape in mSurf.getShapes(asMeta=1):
+            mShape.overrideEnabled = 1
+            mShape.overrideDisplayType = 2
     self.doConnectOut(attr, "{0}.scale".format(mBlockVolume.mNode))
     
     return _res

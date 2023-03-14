@@ -42,9 +42,7 @@ from Red9.core import Red9_General as r9General
     
 #>>> From cgm ==============================================================
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.lib import (search,
-                     guiFactory,
-                     dictionary)
+
 
 from cgm.core import cgm_General as cgmGEN
 import cgm.core.cgmPy.path_Utils as PATHS
@@ -1663,8 +1661,9 @@ class cgmGUI2(mUI.BaseMelWindow):
 #=========================================================================
 # Define our Colors
 #=========================================================================
-def setBGColorState(textFieldToChange, newState):
-    mc.textField(textFieldToChange,edit = True, bgc = dictionary.returnStateColor(newState))
+#def setBGColorState(textFieldToChange, newState):
+#    mc.textField(textFieldToChange,edit = True, bgc = dictionary.returnStateColor(newState))
+    
 #=========================================================================
 # Define our Templates
 #=========================================================================

@@ -562,8 +562,7 @@ def uiBuild_cgmMenu( *args ):
     _hotkeys = mc.menuItem(p=menu,l='Hotkeys',subMenu = True, tearOff = False)
     UICHUNKS.uiSection_hotkeys(_hotkeys)    
     
-    _Learn = mc.menuItem(p=menu,l='Learn',subMenu = True, tearOff = True)
-    UICHUNKS.uiSection_mrsLearn(_Learn)        
+
     #>>Mrs ----------------------------------------------------------------------
     #_layout = mc.menuItem(p=menu,l='MRS',subMenu = True, tearOff = True)
     #UICHUNKS.uiSection_mrs(_layout)        
@@ -591,7 +590,10 @@ def uiBuild_cgmMenu( *args ):
     #>>Help ----------------------------------------------------------------------
     _help = mc.menuItem(p=menu,l='Help',subMenu = True, tearOff = True)
     #cgmUI.uiSection_help(_help)
+    
     UICHUNKS.uiSection_help(_help)
+    
+
     
     mUI.MelMenuItemDiv(menu)    
     mc.menuItem(p = menu, l='Rebuild',
