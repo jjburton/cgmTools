@@ -277,7 +277,7 @@ def segment_mid(self, ml_handles = None,ml_ribbonHandles= None, mGroup = None,
                                  worldUpType = 'objectrotation', worldUpVector = [1,0,0])                
             
         else:
-            raise Exception("unknown mode : {}".format(_str_mode))
+            raise Exception("{} | unknown mode : {}".format(_str_func, _str_mode))
             
     except Exception as err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
     

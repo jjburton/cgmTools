@@ -6018,13 +6018,14 @@ def create_simpleMesh(self,  deleteHistory = True, cap=True, skin = True, **kws)
                 ml_proxy.append(mLoftSurface)
                 
         elif str_lidBuild in ['clamSimple']:
-            _baseSize = [v * 1.1 for v in mBlock.baseSize]
-            
+            _baseSize = [v * 1.4 for v in mBlock.baseSize]
+        
+        
             for k in 'upr','lwr':
                 log.debug("|{0}| >> lid handle| {1}...".format(_str_func,k))                      
                 _key = '{0}LidHandle'.format(k)
                 mLidSkin = mPrerigNull.getMessageAsMeta('{0}LidJoint'.format(k))
-                
+        
                 _d_create = {"ax":[1,0,0], 'ch':0}
                 if k == 'upr':
                     _color = 'main'
@@ -6036,33 +6037,31 @@ def create_simpleMesh(self,  deleteHistory = True, cap=True, skin = True, **kws)
                     _d_create['ssw'] = 0
                     _d_create['esw'] = 180
                     _d_create['r'] = _baseSize[0]/2 * .8                    
-                    
+        
                 _sphere = mc.sphere(**_d_create)
-                
                 mShapeSource = RIGCREATE.get_meshFromNurbs(_sphere[0],
-                                                    mode = 'general')
-                                                    #uNumber = self.loftSplit, vNumber=self.loftSides)
-                
+                                                           mode = 'general',
+                                                           uNumber = 10, vNumber=10)
                 mc.delete(_sphere)
-                mc.polyExtrudeFacet(mShapeSource.mNode, ltz=1.0, kft=True)
                 #mShapeSource = cgmMeta.asMeta(_sphere[0])
-                
+        
                 #mShapeSource.scale = _baseSize
-                
+        
                 mShapeSource.doSnapTo(mLidSkin)            
                 CORERIG.colorControl(mShapeSource.mNode,_side,_color,transparent=False,proxy=True)
-            
-            
+        
+        
                 mShapeSource.overrideEnabled = 1
                 mShapeSource.overrideDisplayType = 2
-            
+        
+                mShapeSource.p_parent = mLidSkin.rigJoint#mModule
                 #mShapeSource.resetAttrs()
-            
+        
                 mShapeSource.doStore('cgmName',"{0}_{1}Lid".format(str_partName,k),attrType='string')
                 mShapeSource.doStore('cgmType','proxy')
                 mShapeSource.doName()
-    
-                ml_proxy.append(mShapeSource)
+        
+                ml_proxy.append(mShapeSource) 
                 
                 if skin:
                     MRSPOST.skin_mesh(mShapeSource,[mLidSkin.rigJoint])

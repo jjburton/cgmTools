@@ -2122,8 +2122,8 @@ example:
         else:
             log.debug(log_msg(_str_func,"no sub"))            
             self.mRow_setButtons.clear()
-            mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)
             mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Add Set", command=self.CreateSubAsset)
+            mUI.MelButton(self.mRow_setButtons, ut='cgmUITemplate', label="Save New Version", command=self.SaveVersion)            
             #self.subTypeButton(edit=True, label="Save New Version", command=self.SaveVersion)
             self.mRow_setButtons.layout()
             
@@ -3611,7 +3611,8 @@ example:
             charPath = os.path.normpath(os.path.join(self.path_dir_category, charName))
             if not os.path.exists(charPath):
                 os.makedirs(charPath)
-                for subType in self.l_subTypesBase:
+            for subType in self.l_subTypesBase:
+                if not os.path.exists(os.path.normpath(os.path.join(charPath, subType))):
                     os.mkdir(os.path.normpath(os.path.join(charPath, subType)))
 
             self.LoadCategoryList(self.directory)
@@ -3747,6 +3748,7 @@ example:
         mc.file(f=True,new=True)
         mc.file(filePath, r=True, ignoreVersion=True, gl=True, mergeNamespacesOnClash=False,
                 namespace=self.assetList['scrollList'].getSelectedItem())        
+        SCENEUTILS.fncMayaSett_do(self,True,True)
         
         saveLocation = os.path.join(self.path_asset, self.subType)
         if self.hasSub:
@@ -3765,7 +3767,6 @@ example:
 
         versionList['scrollList'].selectByValue( wantedName )
         self.SaveCurrentSelection()
-
         self.refreshMetaData()
             
             

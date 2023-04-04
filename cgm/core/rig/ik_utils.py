@@ -1517,7 +1517,7 @@ def ribbon(jointList = None,
         
         mDriven = mJnt
         if specialMode == 'noStartEnd' and mJnt in [ml_joints[0],ml_joints[-1]]:
-            pass
+            continue
         else:
             if msgDriver:
                 log.debug("|{0}| >> Checking msgDriver: {1}".format(_str_func,msgDriver))                
@@ -1534,11 +1534,12 @@ def ribbon(jointList = None,
         mFollShape = _res[-1]['mFollicleShape']#cgmMeta.asMeta(shape)
         
         if mCrv_reparam:
-            if str_paramaterization == 'blend':
-                ATTR.set(md_paramBlenders[i].mNode,"input[0]",mFollShape.parameterV)
-            ATTR.connect(d_vParameters[i],
-                         '{0}.parameterV'.format(mFollShape.mNode))
-            
+            if mJnt not in [ml_joints[0],ml_joints[-1]]:
+                if str_paramaterization == 'blend':
+                    ATTR.set(md_paramBlenders[i].mNode,"input[0]",mFollShape.parameterV)
+                ATTR.connect(d_vParameters[i],
+                             '{0}.parameterV'.format(mFollShape.mNode))
+                
 
         
         ml_follicleShapes.append(mFollShape)
