@@ -18,6 +18,7 @@ import os
 import logging
 import json
 import importlib
+from functools import partial
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ mUI = cgmUI.mUI
 
 from cgm.core.lib import search_utils as SEARCH
 #from cgm.core.lib import shared_data as SHARED
-from cgm.core.lib import string_utils as CORESTRING
+from cgm.core.lib import string_utils as CORESTRINGS
 
 #from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core import cgm_General as cgmGEN
@@ -119,7 +120,15 @@ class ui(cgmUI.cgmGUI):
         
         self._actionList = []
         self._loadedFile = ""
-
+        self.mPathList_recent = cgmMeta.pathList('{}_PathsRecent'.format(__toolname__))
+        self.create_guiOptionVar('LastLoaded',defaultValue = '')
+        self.var_LastLoaded.setType('string')
+        
+    def post_init(self,*args,**kws):
+        _path = self.var_LastLoaded.value
+        if os.path.exists(_path):
+            uiFunc_load_actions(self,**{'filepath':_path})
+            
     def uiFunc_setToggles(self,arg):
         for i,mCB in list(self._dCB_actions.items()):
             mCB.setValue(arg) 
@@ -144,12 +153,38 @@ class ui(cgmUI.cgmGUI):
         self._actionList = []
         uiBuild_ActionsColumn(self)
         
+    def uiStatus_refresh(self, string = None):
+        _str_func = 'uiStatus_refresh[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        if not string:
+            string = CORESTRINGS.short(self._loadedFile,max=40,start=10)
+        self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('ready'),label = string )            
+            
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
         self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
 
     def buildMenu_file(self):
         self.uiMenu_FileMenu.clear()                      
+
+        #Recent Projects --------------------------------------------------------------------------
+        self.mPathList_recent.verify()
+        _recent = mUI.MelMenuItem( self.uiMenu_FileMenu, l="Recent",
+                                   ann='Open an recent file',subMenu=True)
+        
+        for p in self.mPathList_recent.l_paths:
+            if '.' in p:
+                _split = p.split('.')
+                _l = CORESTRINGS.short(str(_split[0]),20)                
+            else:
+                _l = CORESTRINGS.short(str(p),20)
+            mUI.MelMenuItem(_recent, l=_l,
+                            c = cgmGEN.Callback(uiFunc_load_actions,self,p)) 
+            
+        
+        mUI.MelMenuItemDiv(self.uiMenu_FileMenu)
+
 
         mUI.MelMenuItem( self.uiMenu_FileMenu, l="Save",
                          c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_save_actions,self)))
@@ -159,6 +194,8 @@ class ui(cgmUI.cgmGUI):
         
         mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",
                          c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
+        
+        
 
     def buildMenu_setup(self):
         self.uiMenu_SetupMenu.clear()
@@ -180,8 +217,7 @@ class ui(cgmUI.cgmGUI):
         _MainForm = mUI.MelFormLayout(self,ut='cgmUITemplate')
         
         
-        
-        
+         
         _button = mUI.MelButton(_MainForm,
                                 h=30,
                                 bgc = cgmUI.guiHeaderColor,
@@ -224,6 +260,12 @@ def buildColumn_main(self,parent, asScroll = False):
         _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
     
     #>>>Objects Load Row ---------------------------------------------------------------------------------------
+    self.uiStatus_top = mUI.MelLabel(_inside,
+                                      vis=True,
+                                      #c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
+                                      bgc = CORESHARE._d_gui_state_colors.get('warning'),
+                                      label = 'No Data',
+                                      h=20)            
     uiFunc_build_post_process_column(self,_inside)
     
     return _inside
@@ -499,7 +541,7 @@ def uiFunc_run_action(self, idx):
     animLayerName = None
     
     if action.name:#...if we have a name we try to to find the layer
-        _name = CORESTRING.stripInvalidChars(action.name)
+        _name = CORESTRINGS.stripInvalidChars(action.name)
         
         if mc.objExists(_name):
             if SEARCH.get_mayaType(_name) == 'animLayer':
@@ -568,7 +610,6 @@ def uiFunc_duplicate_action(self, idx):
     action = self._actionList[idx]   
 
     self._actionList.append( action_class[action._optionDict['filterType']](action._optionDict) )
-
     mc.evalDeferred( cgmGEN.Callback(uiBuild_ActionsColumn,self) )
 
 def uiFunc_save_actions(self):
@@ -577,12 +618,16 @@ def uiFunc_save_actions(self):
 
     if os.path.exists(self._loadedFile):
         uiFunc_updateActionDicts(self)
-
         f = open(self._loadedFile, 'w')
         f.write(json.dumps( [copy.copy(action._optionDict) for action in self._actionList] ))
         f.close()
     else:
         uiFunc_save_as_actions(self)
+        
+    self.var_LastLoaded.setValue(f)
+    log.info(cgmGEN.logString_msg(_str_func,"Written: {}".format(f)))
+    self.mPathList_recent.append_recent(f)
+    self.uiStatus_refresh()
 
 def uiFunc_save_as_actions(self):
     _str_func = 'uiFunc_save_actions[{0}]'.format(self.__class__.TOOLNAME)            
@@ -601,12 +646,15 @@ def uiFunc_save_as_actions(self):
 
     mc.window(self, e=True, title="{0} - {1}".format(self.__class__.WINDOW_TITLE, filename[0]))
 
-def uiFunc_load_actions(self):
+def uiFunc_load_actions(self, filepath = None):
     _str_func = 'uiFunc_load_actions[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func)) 
-
-    basicFilter = "*.afs"
-    filename = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fileMode=1)
+    
+    if filepath and os.path.exists(filepath):
+        filename = [filepath]
+    else:
+        basicFilter = "*.afs"
+        filename = mc.fileDialog2(fileFilter=basicFilter, dialogStyle=2, fileMode=1)
 
     f = open(filename[0], 'r')
     actionDicts = json.loads(f.read())
@@ -623,6 +671,11 @@ def uiFunc_load_actions(self):
             self._actionList.append( action_class[data['filterType']](data) )
 
     mc.evalDeferred( cgmGEN.Callback(uiBuild_ActionsColumn,self) )
+    
+    self.var_LastLoaded.setValue(filename[0])
+    log.info(cgmGEN.logString_msg(_str_func,"Read: {}".format(filename[0])))
+    self.mPathList_recent.append_recent(filename[0])
+    self.uiStatus_refresh()
 
 def uiFunc_rename_action(self, idx):
     _str_func = 'uiFunc_rename_action[{0}]'.format(self.__class__.TOOLNAME)            
@@ -779,7 +832,7 @@ class ui_post_filter(object):
             return
         
         _string = "[{}] | {}".format(len(self._optionDict['objs']),
-                                         CORESTRING.short(','.join(self._optionDict['objs']),max=30,start=10))
+                                         CORESTRINGS.short(','.join(self._optionDict['objs']),max=30,start=10))
         
         self.uiTF_objects(edit=True, label=_string)
         

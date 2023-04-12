@@ -1370,7 +1370,7 @@ def rig_dataBuffer(self):
         
         log.debug(cgmGEN._str_subLine)
         
-        for k in ['addPivot','mirrorSetup']:
+        for k in ['addPivot','mirrorSetup','addAim']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)        
         
         #Offset ============================================================================    
@@ -2112,9 +2112,10 @@ def rig_cleanUp(self):
             ml_headLookAtDynParents.insert(0, mRoot)
             
         
-        mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
-        if mPivotResultDriver:
-            ml_headLookAtDynParents.insert(0, mPivotResultDriver)
+        if self.str_addAim != 'handle':
+            mPivotResultDriver = mRigNull.getMessage('pivotResultDriver',asMeta=True)
+            if mPivotResultDriver:
+                ml_headLookAtDynParents.insert(0, mPivotResultDriver)
 
             
         #mHandle.masterGroup.addAttr('cgmAlias','headRoot')
