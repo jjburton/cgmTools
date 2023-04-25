@@ -219,10 +219,7 @@ def Prep(removeNamespace = False,
     else:
         exportSetObjs = [topNode]
 
-    # delete garbage
-    
-        
-    log.debug("{0} || delete set: {1}".format(_str_func,deleteSet))
+
     
 
 
@@ -237,13 +234,7 @@ def Prep(removeNamespace = False,
                     mc.cutKey(exportObj.mNode, at=['translate', 'rotate'], clear=True)
                     mc.setAttr('{0}.translate'.format(exportObj.mNode), 0, 0, 0, type='float3')
                     mc.setAttr('{0}.rotate'.format(exportObj.mNode), 0, 0, 0, type='float3')
-                    
-    if(mc.objExists(deleteSet)):
-        mc.delete( mc.sets( deleteSet, q=True ) )  
-    else:
-        print("No delete set found.")  
-        prepped = False    
-                    
+                
                     
     if removeNamespace and len(exportSetObjs) > 0:
         l_deformers = []
@@ -291,9 +282,31 @@ def Prep(removeNamespace = False,
             print(("%s already a child of 'world'" % obj))
             
             
+    # delete garbage       
+    log.debug("{0} || delete set: {1}".format(_str_func,deleteSet))
+    if(mc.objExists(deleteSet)):
+        for o in mc.sets( deleteSet, q=True ):
+            try:mc.delete( o )  
+            except Exception as err:
+                log.error("{} | ".format(o,err))
+    else:
+        print("No delete set found.")  
+        prepped = False    
+
     if removeNamespace:#...attempt to clean name space stuff
-        for mObj in cgmMeta.asMeta(mc.ls("{}:*".format(ns)) or []):
-            mObj.rename(mObj.p_nameBase.replace("{}:".format(ns),''))            
+        l_targets = mc.ls("{}:*".format(ns)) or []
+        l_fails = []
+        for o in l_targets:
+            try:
+                mObj = cgmMeta.asMeta(o)
+                mObj.rename(mObj.p_nameBase.replace("{}:".format(ns),''))            
+            except Exception as err:
+                #print(err)
+                l_fails.append(o)
+        if l_fails:
+            print("removeNamespace fails: ")              
+            pprint.pprint(l_fails)
+
 
     mc.select( [x.mNode for x in exportObjs] )
 
