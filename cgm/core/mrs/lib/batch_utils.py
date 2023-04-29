@@ -101,6 +101,7 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = True,
     'om2.MGlobal.displayInfo("Begin")',
     'import maya.cmds as mc',
     'mc.loadPlugin("fbxmaya")',
+    'mc.loadPlugin("mtoa")',    
     'mc.workspace("{0}",openWorkspace=1)'.format(mPath_content),
     'import cgm.core.mrs.lib.batch_utils as MRSBATCH',
     '']

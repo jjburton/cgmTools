@@ -3799,11 +3799,11 @@ example:
             subTypeName = mc.promptDialog(query=True, text=True)
             subTypeDir = self.path_subType #os.path.normpath(os.path.join(self.path_asset, self.subType)) if self.hasSub else os.path.normpath(self.path_asset)
             if not os.path.exists(subTypeDir):
-                os.mkdir(subTypeDir)
+                os.mkdir(PATHS.get_dir(subTypeDir))
 
             subTypePath = os.path.normpath(os.path.join(subTypeDir, subTypeName))
             if not os.path.exists(subTypePath):
-                os.mkdir(subTypePath)
+                os.mkdir(PATHS.get_dir(subTypePath))
                 
             self.buildAssetForm()
 
@@ -3850,7 +3850,7 @@ example:
             variationName = mc.promptDialog(query=True, text=True)
             variationDir = os.path.normpath( os.path.join(self.path_set, variationName) )
             if not os.path.exists(variationDir):
-                os.mkdir(variationDir)
+                os.mkdir(PATHS.get_dir(variationDir))
 
                 self.LoadVariationList()
                 self.variationList['scrollList'].clearSelection()
@@ -4655,12 +4655,12 @@ example:
         #subTypes = [x['n'] for x in self.mDat.assetType_get(category).get('content', [{'n':'animation'}])]
 
         if not os.path.exists(assetPath):
-            os.mkdir(charPath)
+            os.mkdir(PATHS.get_dir(charPath))
             log.info('{0}>> Path not found. Appending: {1}'.format(_str_func, assetPath))		
         for subType in self.subTypes:
             subPath = os.path.normpath(os.path.join(assetPath, subType))
             if not os.path.exists(subPath):
-                os.mkdir(subPath)
+                os.mkdir(PATHS.get_dir(subPath))
                 log.info('{0}>> Path not found. Appending: {1}'.format(_str_func, subPath))
 
     def AddLastToExportQueue(self, *args):
@@ -5282,7 +5282,7 @@ def ExportScene(mode = -1,
         if animationName is not None:
             exportAnimPath = os.path.normpath(os.path.join(exportAnimPath, animationName))
         
-        CGMOS.mkdir_recursive(exportAnimPath)
+        CGMOS.mkdir_recursive(PATHS.get_dir(exportAnimPath))
         #if not os.path.exists(exportAnimPath):
         #    os.mkdir(exportAnimPath)
 
