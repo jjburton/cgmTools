@@ -665,8 +665,24 @@ def get_pos_by_axis_dist(obj, axis, distance = 1):
     _vector = MATHUTILS.get_obj_vector(obj,axis,False)
     return get_pos_by_vec_dist(POS.get(obj),_vector,distance)
 
-
+def get_min_max_bbPoints_distances(source = None, targets = []):
+    if VALID.vectorArg(source) is not False:
+        _point = source   
+    elif mc.objExists(source):
+        _point = POS.get(source)    
     
+    targets = VALID.listArg(targets)
+        
+    if not _point:raise ValueError("Must have point of reference")
+    
+    l_dists = []
+    
+    for p in ['bottom','top','left','right','front','back']:
+        l_dists.append(get_distance_between_points(_point, POS.get_bb_pos(targets,mode=p)))
+
+    #pprint.pprint(l_dists)
+    return min(l_dists), max(l_dists)    
+
 def get_posList_fromStartEnd(start=[0,0,0],end=[0,1,0],split = 1):
     _str_func = 'get_posList_fromStartEnd'
 

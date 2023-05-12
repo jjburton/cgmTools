@@ -3248,8 +3248,9 @@ def uiCC_checkPath(self, key, mode='local'):
         return log.debug("uiCC_checkPath | Invalid path: {0}".format(_value))
     else:
         mField(edit=True,bgc = _colorGood)
-        
         log.warning("Path {0}| {1} changed to: {2}".format(mode, key, _value))
+        uiProject_save(self)
+        
 
 
 
@@ -3300,6 +3301,7 @@ def uiButton_setPathToTextField(self,key,mode='project'):
         
         mField.setValue( x[0] )
         mField(edit=True,bgc = _colorGood)
+        uiProject_save(self)
         
         #self.optionVarExportDirStore.setValue( self.exportDirectory )    
         
