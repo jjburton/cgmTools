@@ -60,6 +60,10 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 #=========================================================================
 
+import cgm.images.icons as cgmIcons
+_path_imageFolder = PATHS.Path(cgmIcons.__file__).up().asFriendly()
+
+
 #>>> Root settings =============================================================
 
 __version__ = cgmGEN.__RELEASESTRING

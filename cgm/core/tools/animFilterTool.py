@@ -38,7 +38,7 @@ from cgm.core.lib import string_utils as CORESTRINGS
 from cgm.core import cgm_General as cgmGEN
 from cgm.core import cgm_Meta as cgmMeta
 #import cgm.core.lib.transform_utils as TRANS
-#from cgm.core.cgmPy import path_Utils as CGMPATH
+from cgm.core.cgmPy import path_Utils as PATHS
 import cgm.core.lib.math_utils as MATH
 #from cgm.lib import lists
 
@@ -159,7 +159,14 @@ class ui(cgmUI.cgmGUI):
         
         if not string:
             string = CORESTRINGS.short(self._loadedFile,max=40,start=10)
-        self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('ready'),label = string )            
+        self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('connected'),label = string )
+    def uiStatus_fileExplorer(self):
+        if os.path.exists(self._loadedFile):
+            os.startfile(PATHS.Path(self._loadedFile).up().asFriendly())    
+    def uiStatus_fileClear(self):
+        self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('help'),label = '' )
+        self._loadedFile = None
+        
             
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
@@ -260,12 +267,33 @@ def buildColumn_main(self,parent, asScroll = False):
         _inside = mUI.MelColumnLayout(parent,useTemplate = 'cgmUISubTemplate') 
     
     #>>>Objects Load Row ---------------------------------------------------------------------------------------
-    self.uiStatus_top = mUI.MelLabel(_inside,
+    _row = mUI.MelHSingleStretchLayout(_inside)
+    mUI.MelSpacer(_row, w = 5)
+    
+    self.uiStatus_top = mUI.MelLabel(_row,
                                       vis=True,
                                       #c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
                                       bgc = CORESHARE._d_gui_state_colors.get('warning'),
                                       label = 'No Data',
-                                      h=20)            
+                                      h=20)
+    mUI.MelIconButton(_row,
+                      ann='Clear the loaded file link',
+                      image=os.path.join(cgmUI._path_imageFolder,'clear.png') ,
+                      w=25,h=25,
+                      bgc = cgmUI.guiButtonColor,
+                      c = partial(self.uiStatus_fileClear))
+    mUI.MelIconButton(_row,
+                      ann='Open Dir',
+                      image=os.path.join(cgmUI._path_imageFolder,'find_file.png') ,
+                      w=25,h=25,
+                      bgc = cgmUI.guiButtonColor,
+                      c = lambda *a:self.uiStatus_fileExplorer())            
+    _row.setStretchWidget(self.uiStatus_top)
+    mUI.MelSpacer(_row, w = 5)
+    _row.layout()
+    
+    mc.setParent(_inside)
+    
     uiFunc_build_post_process_column(self,_inside)
     
     return _inside

@@ -635,12 +635,12 @@ class ui(CGMUI.cgmGUI):
         log.debug("|{0}| >>...".format(_str_func))
         
         if not self.uiDat.checkState():
-            self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('warning'),label = 'No Data')            
+            self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('help'),label = 'No Data')            
         else:
             #self.uiData_base.clear()
             if not string:
                 string = CORESTRINGS.short(self._loadedFile,max=40,start=10)
-            self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('ready'),label = string )            
+            self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('connected'),label = string )            
             self.uiUpdate_data()
             
     def uiFunc_dat_save(self):
@@ -763,7 +763,10 @@ class ui(CGMUI.cgmGUI):
         else:
             pprint.pprint(sDat[mode])
   
-            
+    def uiStatus_fileClear(self):
+        self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('help'),label = '' )
+        self._loadedFile = ""
+        
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
@@ -772,13 +775,34 @@ class ui(CGMUI.cgmGUI):
         _MainForm = mUI.MelFormLayout(parent,ut='CGMUITemplate')#mUI.MelColumnLayout(ui_tabs)
         
         
+        
+        #>>>Objects Load Row ---------------------------------------------------------------------------------------
+        _row_status = mUI.MelHSingleStretchLayout(_MainForm)
+        mUI.MelSpacer(_row_status, w = 5)
+        
+        self.uiStatus_top = mUI.MelButton(_row_status,
+                                         vis=True,
+                                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
+                                         bgc = CORESHARE._d_gui_state_colors.get('help'),
+                                         label = 'No Data',
+                                         h=20)
+        mUI.MelIconButton(_row_status,
+                          ann='Clear the loaded file link',
+                          image=os.path.join(CGMUI._path_imageFolder,'clear.png') ,
+                          w=25,h=25,
+                          bgc = CGMUI.guiButtonColor,
+                          c = partial(self.uiStatus_fileClear))
+        _row_status.setStretchWidget(self.uiStatus_top)
+        mUI.MelSpacer(_row_status, w = 5)
+        _row_status.layout()
+        """
         #self.uiStatus_topRow = mUI.MelHLayout(_MainForm,)
         self.uiStatus_top = mUI.MelButton(_MainForm,
                                          vis=True,
                                          c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
                                          bgc = CORESHARE._d_gui_state_colors.get('warning'),
                                          label = 'No Data',
-                                         h=20)
+                                         h=20)"""
         _inside = mUI.MelScrollLayout(_MainForm,ut='CGMUITemplate')
         
 
@@ -815,9 +839,9 @@ class ui(CGMUI.cgmGUI):
 
         #Form Layout--------------------------------------------------------------------
         _MainForm(edit = True,
-                  af = [(self.uiStatus_top,"top",0),
-                        (self.uiStatus_top,"left",0),
-                        (self.uiStatus_top,"right",0),                        
+                  af = [(_row_status,"top",0),
+                        (_row_status,"left",0),
+                        (_row_status,"right",0),                        
                         (_inside,"left",0),
                         (_inside,"right",0),
                         (_row_cgm,"left",0),
@@ -826,7 +850,7 @@ class ui(CGMUI.cgmGUI):
     
                         ],
                   ac = [(_inside,"bottom",0,_row_cgm),
-                        (_inside,"top",0,self.uiStatus_top),
+                        (_inside,"top",0,_row_status),
                         ],
                   attachNone = [(_row_cgm,"top")])    
     

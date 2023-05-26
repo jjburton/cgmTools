@@ -1501,7 +1501,19 @@ class ui(CGMDAT.ui):
                 
         self.uiButton_row = mRow
         mRow.layout()
-                
+        
+    def uiStatus_fileClear(self):
+        self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('help'),label = '' )
+        self._loadedFile = ""
+        
+    def uiStatus_fileExplorer(self):
+        if os.path.exists(self._loadedFile):
+            os.startfile(PATHS.Path(self._loadedFile).up().asFriendly())
+        
+        return
+        if self._loadedFile and os.path.exists(self._loadedFile):
+            PATHS.Path(self._loadedFile).up().asFriendly()
+        
     def build_layoutWrapper(self,parent):
         _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
@@ -1511,12 +1523,42 @@ class ui(CGMDAT.ui):
         
         
         #self.uiStatus_topRow = mUI.MelHLayout(_MainForm,)
+        """
         self.uiStatus_top = mUI.MelButton(_MainForm,
                                          vis=True,
                                          c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
                                          bgc = CORESHARE._d_gui_state_colors.get('warning'),
                                          label = 'No Data',
+                                         h=20)"""
+        #>>>Objects Load Row ---------------------------------------------------------------------------------------
+        _row_status = mUI.MelHSingleStretchLayout(_MainForm)
+        mUI.MelSpacer(_row_status, w = 2)
+        
+        self.uiStatus_top = mUI.MelButton(_row_status,
+                                         vis=True,
+                                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
+                                         bgc = CORESHARE._d_gui_state_colors.get('warning'),
+                                         label = 'No Data',
                                          h=20)
+        mUI.MelIconButton(_row_status,
+                          ann='Clear the loaded file link',
+                          image=os.path.join(CGMUI._path_imageFolder,'clear.png') ,
+                          w=25,h=25,
+                          bgc = CGMUI.guiButtonColor,
+                          c = lambda *a:self.uiStatus_fileClear())
+        mUI.MelIconButton(_row_status,
+                          ann='Open Dir',
+                          image=os.path.join(CGMUI._path_imageFolder,'find_file.png') ,
+                          w=25,h=25,
+                          bgc = CGMUI.guiButtonColor,
+                          c = lambda *a:self.uiStatus_fileExplorer())        
+        
+        _row_status.setStretchWidget(self.uiStatus_top)
+        mUI.MelSpacer(_row_status, w = 2)
+        _row_status.layout()        
+        
+        
+        
         _inside = mUI.MelScrollLayout(_MainForm,ut='CGMUITemplate')
         
 
@@ -1563,9 +1605,9 @@ class ui(CGMDAT.ui):
 
         #Form Layout--------------------------------------------------------------------
         _MainForm(edit = True,
-                  af = [(self.uiStatus_top,"top",0),
-                        (self.uiStatus_top,"left",0),
-                        (self.uiStatus_top,"right",0),                        
+                  af = [(_row_status,"top",0),
+                        (_row_status,"left",0),
+                        (_row_status,"right",0),                        
                         (_inside,"left",0),
                         (_inside,"right",0),
                         (self.uiButton_row,"left",0),
@@ -1577,7 +1619,7 @@ class ui(CGMDAT.ui):
                         ],
                   ac = [(_inside,"bottom",2,self.uiButton_row),
                         (self.uiButton_row,"bottom",2,_row_cgm),
-                        (_inside,"top",0,self.uiStatus_top),
+                        (_inside,"top",0,_row_status),
                         ],
                   attachNone = [(self.uiButton_row,"top")])    
 
@@ -1684,7 +1726,7 @@ class uiBlockDat(ui):
     def uiStatus_refresh(self, string=None):
         CGMDAT.ui.uiStatus_refresh(self, string)
         if self.uiDat:
-            _color = BLOCKSHARE.d_outlinerColors.get(self.uiDat.dat['blockType'])['main'] or SHARED._d_gui_state_colors.get('warning')#d_colors.get(mDat.get('side'),d_colors['center'])
+            _color = BLOCKSHARE.d_outlinerColors.get(self.uiDat.dat['blockType'])['main'] or SHARED._d_gui_state_colors.get('connected')#d_colors.get(mDat.get('side'),d_colors['center'])
             self.uiStatus_blockString(e=1, label = blockDat_getString(self.uiDat), bgc=_color)
         
     def uiFunc_dat_get(self):
@@ -3039,7 +3081,7 @@ class uiShapeDat(ui):
     MIN_BUTTON = False
     MAX_BUTTON = False
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
-    DEFAULT_SIZE = 200,300
+    DEFAULT_SIZE = 300,400
     
     _datClass = ShapeDat
     _datTypes = ['cgmShapeDat']
@@ -3065,7 +3107,7 @@ class uiShapeDat(ui):
         log.debug("|{0}| >>...".format(_str_func))
         
         if not self.uiDat.dat:
-            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
+            self.uiStatus_top(edit=True,bgc = SHARED._d_gui_state_colors.get('help'),label = 'No Data')
             #self.uiStatus_bottom(edit=True,bgc = SHARED._d_gui_state_colors.get('warning'),label = 'No Data')
             
             self.uiData_base(edit=True,vis=0)
@@ -3206,7 +3248,7 @@ class uiShapeDat(ui):
         #Declare form frames...------------------------------------------------------
         _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
         _inside = mUI.MelScrollLayout(_MainForm)
-
+        """
         #SetHeader = cgmUI.add_Header('{0}'.format(_strBlock))
         self.uiStatus_top = mUI.MelButton(_inside,
                                          vis=True,
@@ -3214,17 +3256,35 @@ class uiShapeDat(ui):
                                          bgc = SHARED._d_gui_state_colors.get('warning'),
                                          label = 'No Data',
                                          h=20)                
-        
-        
-        
-        #mc.setParent(_MainForm)
         """
-        self.uiStatus_bottom = mUI.MelButton(_MainForm,
-                                             bgc=SHARED._d_gui_state_colors.get('warning'),
-                                             #c=lambda *a:self.uiFunc_updateStatus(),
-                                             ann="...",
-                                             label='...',
-                                             h=20)"""
+        #>>>Objects Load Row ---------------------------------------------------------------------------------------
+        _row_status = mUI.MelHSingleStretchLayout(_inside)
+        mUI.MelSpacer(_row_status, w = 2)
+        
+        self.uiStatus_top = mUI.MelButton(_row_status,
+                                         vis=True,
+                                         c = lambda *a:mc.evalDeferred(cgmGEN.Callback(self.uiFunc_dat_get)),
+                                         bgc = CORESHARE._d_gui_state_colors.get('help'),
+                                         label = 'No Data',
+                                         h=20)
+        mUI.MelIconButton(_row_status,
+                          ann='Clear the loaded file link',
+                          image=os.path.join(CGMUI._path_imageFolder,'clear.png') ,
+                          w=25,h=25,
+                          bgc = CGMUI.guiButtonColor,
+                          c = lambda *a:self.uiStatus_fileClear())
+        mUI.MelIconButton(_row_status,
+                          ann='Open Dir',
+                          image=os.path.join(CGMUI._path_imageFolder,'find_file.png') ,
+                          w=25,h=25,
+                          bgc = CGMUI.guiButtonColor,
+                          c = lambda *a:self.uiStatus_fileExplorer())        
+        
+        _row_status.setStretchWidget(self.uiStatus_top)
+        mUI.MelSpacer(_row_status, w = 2)
+        _row_status.layout()                
+        
+
   
         self.uiPB_test=None
         self.uiPB_test = mc.progressBar(vis=False)
