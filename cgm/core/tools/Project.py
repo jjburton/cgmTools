@@ -54,6 +54,8 @@ import cgm.core.mrs.lib.scene_utils as SCENEUTILS
 #reload(PU)
 import cgm.images as cgmImages
 mImagesPath = PATHS.Path(cgmImages.__path__[0])
+import cgm.images.icons as cgmIcons
+_path_imageFolder = PATHS.Path(cgmIcons.__file__).up().asFriendly()
 
 mUI = cgmUI.mUI
 
@@ -474,14 +476,17 @@ def buildFrame_paths(self,parent,changeCommand = ''):
                                  vis=False,
                                  )            
         
-        _d2[key] = mUI.MelButton(_row,
-                                 l = 'Set',
-                                 ut = 'cgmUITemplate',
-                                 c = cgmGEN.Callback(uiButton_setPathToTextField,self,key,'project'),
-                                 #en = _d.get('en',True),
-                                 #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
-                                 #ann = _d.get('ann',b))
-                                 )            
+        _d2[key] =  mUI.MelIconButton(parent=_row,
+                                      #l = 'Set',
+                                      ut = 'cgmUITemplate',
+                                      style='iconOnly',
+                                      image=os.path.join(_path_imageFolder,'set_25.png'),
+                                      #w=25,h=25,
+                                      ann = 'Set the path',
+                                      bgc = cgmUI.guiButtonColor,                                            
+                                      c = cgmGEN.Callback(uiButton_setPathToTextField,self,key,'project'),
+                                      )
+
         
         _row.setStretchWidget(_d[key])
         mUI.MelSpacer(_row,w=5)
@@ -511,19 +516,28 @@ def buildFrame_paths(self,parent,changeCommand = ''):
                                     cc = cgmGEN.Callback(uiCC_checkPath,self,key,'local'),
                                     text = '')
         
-        mc.button(parent=_row,
-                  l = 'Set',
+        mc.iconTextButton(parent=_row,
+                  #l = 'Set',
                   ut = 'cgmUITemplate',
+                  style='iconOnly',
+                  image=os.path.join(_path_imageFolder,'set_25.png'),
+                  #w=25,h=25,
+                  ann = 'Set the path',
+                  bgc = cgmUI.guiButtonColor,                                            
                   c = cgmGEN.Callback(uiButton_setPathToTextField,self,key,'local'),
-                  
-                  #en = _d.get('en',True),
-                  #c = cgmGEN.Callback(uiCB_contextualAction,self,**_arg),
-                  #ann = _d.get('ann',b))
-                  )            
+                  )
+        """
+        mUI.MelIconButton(_row,
+                          #ann='Recheck the target directory for new data',
+                          image=os.path.join(_path_imageFolder,'white','set.png'),
+                          bgc = cgmUI.guiButtonColor,                          
+                          w=25,h=25,
+                          c = cgmGEN.Callback(uiButton_setPathToTextField,self,key,'local'))"""
         
         _row.setStretchWidget(_d[key])
         mUI.MelSpacer(_row,w=5)
         _row.layout()
+    
         
 def buildFrame_baseDat(self,parent,changeCommand = ''):
     try:self.var_projectBaseDatCollapse
@@ -1865,7 +1879,7 @@ def uiProject_addDir(self,pSet = None, mScrollList = None):
     if result == 'OK':
         subFolder = mc.promptDialog(query=True, text=True)
         
-        mDir =  PATHS.Path( os.path.join(mPath, subFolder))
+        mDir =  PATHS.Path( os.path.join(mPath.asFriendly(), subFolder))
         if not mDir.exists():
             os.makedirs(mDir)
             log.warning("created dir: {0}".format(mDir))
@@ -1906,7 +1920,7 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None, addHo
         log.debug(cgmGEN.logString_msg(_str_func,'dict...'))
         for k,l in list(_dat.items()):
             
-            mDir =  PATHS.Path( os.path.join(mPath, k))
+            mDir =  PATHS.Path( os.path.join(mPath.asFriendly(), k))
             if not mDir.exists():
                 os.makedirs(mDir)
                 log.warning("created dir: {0}".format(mDir))
@@ -1915,7 +1929,7 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None, addHo
                 #if case == 'lower':
                     #k2 = k2.lower()
                     
-                mSub = PATHS.Path( os.path.join(mPath, k, k2))
+                mSub = PATHS.Path( os.path.join(mPath.asFriendly(), k, k2))
                 if not mSub.exists():
                     os.makedirs(mSub)
                     log.warning("created dir: {0}".format(mSub))               
@@ -1927,9 +1941,9 @@ def uiProject_verifyDir(self,pSet = None,pType = None, mScrollList = None, addHo
             #if case == 'lower':
                 #k2 = k2.lower()
                 
-                mSub = PATHS.Path( os.path.join(mPath, k))
+                mSub = PATHS.Path( os.path.join(mPath.asFriendly(), k))
                 if not mSub.exists():
-                    os.makedirs(mSub)
+                    os.makedirs(mSub.asFriendly())
                     log.warning("created dir: {0}".format(mSub))
         else:
             log.warning(cgmGEN.logString_msg(_str_func,'No dat found'))
@@ -2502,7 +2516,7 @@ class data(object):
         
         if result == 'OK':
             main = mc.promptDialog(query=True, text=True)
-            mDir =  PATHS.Path( os.path.join(mPath, main))
+            mDir =  PATHS.Path( os.path.join(mPath.asFriendly(), main))
             if not mDir.exists():
                 os.makedirs(mDir)
                 log.warning("created dir: {0}".format(mDir))
@@ -2511,7 +2525,7 @@ class data(object):
                                 
             if l_subs and mDir.exists():
                 for s in l_subs:
-                    mSub =  PATHS.Path( os.path.join(mPath, main,s))
+                    mSub =  PATHS.Path( os.path.join(mPath.asFriendly(), main,s))
                     if not mSub.exists():
                         os.makedirs(mSub)
                         log.warning("created dir: {0}".format(mSub))
@@ -2726,7 +2740,7 @@ class cgmProjectDirList(mUI.BaseMelWidget):
         if result == 'OK':
             subFolder = mc.promptDialog(query=True, text=True)
             
-            mDir =  PATHS.Path( os.path.join(mPath, subFolder))
+            mDir =  PATHS.Path( os.path.join(mPath.asFriendly(), subFolder))
             if not mDir.exists():
                 os.makedirs(mDir)
                 log.warning("created dir: {0}".format(mDir))
