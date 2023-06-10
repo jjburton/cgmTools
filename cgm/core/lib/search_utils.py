@@ -619,16 +619,24 @@ def get_key_indices_from(node = None, mode = 'all'):
 def get_anim_value_by_time(node = None, attributes = [], time = 0.0):
     _str_func = 'get_anim_value_by_time'    
     _res = []
+    _current = None
     for a in attributes:
         _comb = "{}.{}".format(node,a)
         anim_curve_node = mc.listConnections(_comb, source=True, destination=False, type="animCurve")
         if anim_curve_node:
             anim_curve_node = anim_curve_node[0]
+            _res.append(mc.getAttr("{}.output".format(anim_curve_node), time = time))
+            
         else:
-            log.error(log_msg(_str_func,"| Doesn't have anim: {}".format(_comb)))
-            continue
-        _res.append(mc.getAttr("{}.output".format(anim_curve_node), time = time))
+            if _current == None:
+                _current = mc.currentTime(q=True)
+                mc.currentTime(time)
+            _res.append(ATTR.get(node,a))
+            #log.warning(log_msg(_str_func,"| Doesn't have anim: {}".format(_comb)))
+            #continue
         
+    if _current != None:
+        mc.currentTime(_current)
     if _res and len(_res)==1:
         return _res[0]
     return _res

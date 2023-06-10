@@ -9417,6 +9417,7 @@ class ui_createBlock(CGMUI.cgmGUI):
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
         self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
+        self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap,pmo=True, tearOff=1)                
         self.uiMenu_HelpMenu = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
 
     def buildMenu_file(self):
