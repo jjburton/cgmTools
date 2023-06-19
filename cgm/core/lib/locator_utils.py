@@ -19,7 +19,7 @@ log.setLevel(logging.INFO)
 import maya.cmds as mc
 
 from Red9.core import Red9_Meta as r9Meta
-
+import pprint
 # From cgm ==============================================================
 #May not use DISTANCE,CURVES
 from cgm.core import cgm_General as cgmGeneral
@@ -103,6 +103,7 @@ def create(target = None, position = None, tag = True, setMatchTarget=True, pivo
             if not _mi_loc.hasAttr('cgmLocDat'):
                 _mi_loc.addAttr('cgmLocDat',attrType='string')
                 
+        log.debug("|{0}| >> {1} targets...".format(_str_func,_targets))
         log.debug("|{0}| >> {1} mode...".format(_str_func,mode))
                
         if mode in ['fromTarget','attachPoint']:
@@ -210,7 +211,7 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
     """   
     def getAndMove(loc,targets = None,mode=None,forceBBCenter=False):
         
-        log.debug("|{0}| >> mode: {1} | targets: {2}".format(_str_func,mode,targets))
+        log.debug("|{0}| >> mode: {1} | targets: {2} | forceBBCenter: {3}".format(_str_func,mode,targets, forceBBCenter))
         if not targets:
             raise ValueError("Must have targets")
         
@@ -228,7 +229,7 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
             elif not len(targets) >= 2:
                 raise ValueError("midPoint mode must have at least two targets")
             else:
-                _d = get_midPointDict(targets,forceBBCenter)
+                _d = get_midPointDict(targets,True)
                 _kws['infoDict'] = _d
 
         elif mode == 'closestPoint':
@@ -264,6 +265,7 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
             log.error("|{0}| >> unknown mode: {1}".format(_str_func,_mode))                
             return False        
             
+        pprint.pprint(_kws)
         try:return position(**_kws)
         except Exception as err:
             log.error("|{0}| >> loc: {1}".format(_str_func,loc))
@@ -279,6 +281,8 @@ def update(loc = None, targets = None, mode = None, forceBBCenter = False):
     _targets = VALID.listArg(targets)
 
     if _type == 'locator':
+        log.debug("|{0}| >> locator...".format(_str_func))         
+        
         if mode and _targets:
             log.debug("|{0}| >> mode override...".format(_str_func))         
             
@@ -363,6 +367,10 @@ def position(target = None, infoDict = None, move = True, rotate = True):
 
 
 def get_midPointDict(sourceList,forceBBCenter = False):
+    _str_func = "get_midPointDict"    
+    log.debug(cgmGeneral.logString_start(_str_func))
+    log.debug("|{0}| >> sourceList: {1} | forceBBCenter: {2}".format(_str_func,sourceList,forceBBCenter))
+    
     _l_info = []
     _l_pos = []
     _l_rot = []
@@ -371,10 +379,16 @@ def get_midPointDict(sourceList,forceBBCenter = False):
         _l_pos.append(_d['position'])
         _l_rot.append(_d['rotation'])
         _l_info.append(_d)
+        
     _d = _l_info[0]
-    _d['position'] = MATH.get_average_pos(_l_pos)
+    if forceBBCenter:
+        _d['position'] = POS.get_bb_center(sourceList)
+    else:
+        _d['position'] = MATH.get_average_pos(_l_pos)
+        
     _d['rotation'] = MATH.get_average_pos(_l_rot)
     #position(_target,_d)
+    pprint.pprint(_d)
     return _d   
 
 def get_closestPointDict(basePoint,sourceList):

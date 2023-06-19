@@ -158,7 +158,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
         raise RuntimeError("|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj))
     except Exception as err:cgmGen.cgmExceptCB(Exception,err)
     
-def set(obj = None, pos = None, pivot = 'rp', space = 'ws', relative = False):
+def set(obj = None, pos = None, pivot = 'rp', space = 'ws', selectMove = True, relative = False):
     """
     General call for querying position data in maya.
     Note -- pivot and space are ingored in boundingBox mode which returns the center pivot in worldSpace
@@ -189,7 +189,12 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws', relative = False):
             else:kws['ws']=True
             
             log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
-        
+            if selectMove:
+                _sl = mc.ls(sl=1)
+                mc.select(_obj)
+                _res =  mc.move(_pos[0],_pos[1],_pos[2],**kws)#mc.xform(_obj,**kws )  
+                if _sl:mc.select(_sl)
+                return _res        
             return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )        
         else:
             log.debug("|{0}| >> obj: {1} | pos: {4} | pivot: {2} | space: {3}".format(_str_func,_obj,_pivot,_space,_pos))             
@@ -207,7 +212,13 @@ def set(obj = None, pos = None, pivot = 'rp', space = 'ws', relative = False):
                 else:kws['ws']=True
                 
                 log.debug("|{0}| >> xform kws: {1}".format(_str_func, kws)) 
-            
+                
+                if selectMove:
+                    _sl = mc.ls(sl=1)
+                    mc.select(_obj)
+                    _res =  mc.move(_pos[0],_pos[1],_pos[2],**kws)#mc.xform(_obj,**kws )  
+                    if _sl:mc.select(_sl)
+                    return _res
                 return mc.move(_pos[0],_pos[1],_pos[2], _obj,**kws)#mc.xform(_obj,**kws )  
     except Exception as err:cgmGen.cgmExceptCB(Exception,err)
     

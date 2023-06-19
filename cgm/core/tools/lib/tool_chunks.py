@@ -341,7 +341,23 @@ def uiSection_arrange(parent = None, selection = None, pairSelected = True):
 def uiSection_distance(parent = None, selection = None, pairSelected = True):
     _p = mc.menuItem(parent=parent, subMenu = True,tearOff = True,
                      ann = 'Get info on distance',
-                     l = 'Distance')  
+                     l = 'Distance')
+    
+    mc.menuItem(parent=_p, 
+                l = 'Sum',
+                ann = "Get the sum distance between selected targets",
+                c = cgmGEN.Callback(MMCONTEXT.func_process, DIST.get_distance_between_targets, selection,'all','Measure sum',True,**{}),                                                                      
+                )
+    mc.menuItem(parent=_p, 
+                l = 'Ordered',
+                ann = "Get the distance between selected targets",
+                c = cgmGEN.Callback(MMCONTEXT.func_process, DIST.get_distance_between_targets, selection,'eachToNextSet','Measure Each To Next',True,**{}),                                                                      
+                )    
+    mc.menuItem(parent=_p, 
+                l = 'Arc length',
+                ann = "Length of a curve",
+                c = cgmGEN.Callback(MMCONTEXT.func_process, DIST.get_arcLen, selection,'each','Arc length',True,**{}),                                                                      
+                )    
 
     #if pairSelected:     
     _n = mc.menuItem(parent=_p, subMenu = True,
@@ -802,8 +818,12 @@ def uiSection_mrsAnim(parent):
     mc.menuItem(parent = parent,
                 l='cgmAnimFilterTool',
                 ann = "Launch cgm's animFilterTool - a tool for simple dynamics",
-                
-                c=lambda *a: TOOLCALLS.animFilter())        
+                c=lambda *a: TOOLCALLS.animFilter())
+    mc.menuItem(parent = parent,
+                l='cgmKeyEaser',
+                ann = "Launch cgm's KeyEaser - a tool for easing anim curves",
+                c=lambda *a: TOOLCALLS.keyEaser())    
+    
     mc.menuItem(parent = parent,
                 l='cgmFuncIterTime',
                 ann = "Launch cgm's funcIterTime - a tool for doing stuff over time via the script editor",
@@ -873,7 +893,16 @@ def uiSection_mrsLearn(parent):
                     ann = "{} | ...".format(k),
                     c=cgmGEN.Callback(webbrowser.open,l))    
 
+def uiSection_cgmAI(parent):
+    _str_func = 'uiSection_cgmAI'  
+    
+    mUI.MelMenuItemDiv(parent,label='AI')
 
+    mc.menuItem(parent = parent,
+                l='GrAIBox',
+                ann = "Stable Diffusion Projection Tool | Beta",
+                c=lambda *a:TOOLCALLS.grAIBox())   
+    
 def uiSection_mrsTD(parent):
     _str_func = 'uiSection_layout'  
     
@@ -1371,15 +1400,20 @@ def uiSection_createFromSel(parent, selection = None):
             elif m in ['castCenter']:
                 l_use = l_use[:3]
                 
+            if m == 'boundingBox':
+                _selectMode = 'all'
+            else:
+                _selectMode = 'each'
+                
             label_section = m
             if m in ['castFar','castNear','castCenter']:
                 label_section = m + ' self'
-            mc.menuItem(parent=_locSub,subMenu = True,
+            mc.menuItem(parent=_locSub,subMenu = True,tearOff = True,
                         l = label_section)
             for a in l_use:
                 mc.menuItem(l = a,
                             c = cgmGEN.Callback(MMCONTEXT.func_process, SNAPCALLS.get_special_pos,
-                                                None,'each','Create Loc at mid',
+                                                None,_selectMode,'Create Loc at mid',False,
                                                 **{'arg':m,
                                                    'mode':a,
                                                    'mark':True}),           

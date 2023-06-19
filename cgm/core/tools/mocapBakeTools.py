@@ -327,6 +327,9 @@ class ui(cgmUI.cgmGUI):
         cgmUI.add_Button(_row,'Distance',
                  cgmGEN.Callback(self.uiFunc_link_by_distance,self),
                  _d_annotations.get('linkDistance','fix'), bgc=_buttonBGC) 
+        cgmUI.add_Button(_row,'Index',
+                 cgmGEN.Callback(self.uiFunc_link_by_index,self),
+                 _d_annotations.get('linkIndex','fix'), bgc=_buttonBGC) 
         mUI.MelSpacer(_row,w=5)
         _row.layout()
 
@@ -609,6 +612,15 @@ class ui(cgmUI.cgmGUI):
                             del self.parent_links[idx]
                 if make_link:
                     self.parent_links.append(wantedLink)
+
+        self.refresh_aliases()
+
+    def uiFunc_link_by_index(self, *args):
+        self.parent_links = []
+
+        for i, trg in enumerate(self.parent_target_items):
+            wantedLink = [min(i, len(self.parent_source_items)-1), i]
+            self.parent_links.append(wantedLink)
 
         self.refresh_aliases()
 

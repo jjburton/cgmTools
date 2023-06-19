@@ -203,6 +203,10 @@ def animDraw():
     except Exception as err:
         cgmGEN.cgmException(Exception,err)
         
+def keyEaser():
+    import cgm.core.tools.keyEaser as KEYEASER
+    cgmGEN._reloadMod(KEYEASER)
+    mel.eval('python "import cgm.core.tools.keyEaser as KEYEASER;cgmKeyEaserUI = KEYEASER.ui()"')
         
 def animFilter():
     try:

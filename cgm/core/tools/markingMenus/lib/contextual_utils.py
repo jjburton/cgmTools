@@ -290,6 +290,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
             all -- objects
             each -- func to each object
             eachToNext -- o,objects[i+1]
+            eachToNextSet -- [o,objects[i+1]]
             fromPreviousEach -- objects[-1],o
             eachToLast -- o,objects[-1]
             firstToEach -- objects[0],o
@@ -312,6 +313,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
 
     if calledFrom is not None:_str_func = "{0}".format(calledFrom)
     else:_str_func = "func_process"
+
     
     if objects == None:
         log.debug("|{0}| >> objects None. Gathering".format(_str_func)) 
@@ -333,6 +335,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
         log.warning("|{0}| >> No targets specified. func: {1}".format(_str_func, func.__name__))         
         return False
     
+    _msg ="{}({}) | Objects: {}".format(_str_func,processMode,objects)
     
     if processMode in ['each']:
         for i,o in enumerate(objects):
@@ -341,27 +344,35 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
             if processMode == 'each':
                 _res = func(o,**kws)    
                 
-            if _res:log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
+            if _res:print( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
     elif processMode in ['all']:
         _res = func(objects,**kws)    
-        if _res:log.info( "|{0}.{1}| >> {2}".format( _str_func,processMode, _res ))
+        if _res:
+            print( "{} >> {}".format( _msg, _res ))
         
-    elif processMode in ['eachToNext','fromPreviousEach','eachToLast']:
+    elif processMode in ['eachToNext','fromPreviousEach','eachToLast','eachToNextSet']:
         for i,o in enumerate(objects[:-1]):
-            log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
-            try:
-                if processMode == 'eachToNext':
-                    _res = func(o,objects[i+1],**kws)
-                elif processMode == 'fromPreviousEach':
-                    _res = func(objects[-1],o,**kws)
-                elif processMode == 'eachToLast':
-                    _res = func(o,objects[-1],**kws)
-                
-                if _res:
-                    print(( "|{0}| >> {1}".format( _str_func, _res )))
-                    pprint.pprint(_res)
-            except Exception as err:
-                log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
+            #try:
+            if processMode == 'eachToNext':
+                log.debug("|{}| >> {} : {} > {}".format(_str_func,i,o, objects[i+1]))
+                _msg = "{}[{}] | {}".format(_str_func,i,' -> '.join([o, objects[i+1]]))                
+                _res = func(o,objects[i+1],**kws)
+            elif processMode == 'eachToNextSet':
+                log.debug("|{}| >> {} : {} > {}".format(_str_func,i,o, objects[i+1]))
+                _msg = "{}[{}] | {}".format(_str_func,i,' -> '.join([o, objects[i+1]]))
+                _res = func([o,objects[i+1]],**kws)
+            elif processMode == 'fromPreviousEach':
+                _msg = "{}[{}] | {}".format(_str_func,i,' -> '.join([objects[-1],o]))                
+                _res = func(objects[-1],o,**kws)
+            elif processMode == 'eachToLast':
+                _msg = "{}[{}] | {}".format(_str_func,i,' -> '.join([o, objects[-1]]))                
+                _res = func(o,objects[-1],**kws)
+            
+            if _res:
+                print(_msg)
+                pprint.pprint(_res)
+            #except Exception as err:
+            #    log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))
     elif processMode in ['firstToEach','eachToFirst','eachToPrevious','previousToEach']:
             for i,o in enumerate(objects[1:]):
                 log.debug("|{0}| >> {1} : {2}".format(_str_func,i,o))  
@@ -377,7 +388,7 @@ def func_process(func,objects = None, processMode = 'all', calledFrom = None, no
                     elif processMode == 'previousToEach':
                         _res = func(objects[i],o,**kws)                       
                     if _res:
-                        print(( "|{0}| >> {1}".format( _str_func, _res )))
+                        print(_msg)
                         pprint.pprint(_res)                        
                 except Exception as err:
                     log.error("|{0}| >> {1} : {2} failed! | processMode:{4} | err: {3}".format(_str_func,i,o,err,processMode))                 
