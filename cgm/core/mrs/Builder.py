@@ -9419,7 +9419,19 @@ class ui_createBlock(CGMUI.cgmGUI):
         self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
         self.uiMenu_snap = mUI.MelMenu( l='Snap', pmc=self.buildMenu_snap,pmo=True, tearOff=1)                
         self.uiMenu_HelpMenu = mUI.MelMenu(l='Help', pmc = cgmGEN.Callback(self.buildMenu_help))
-
+        
+    def buildMenu_snap( self, force=False, *args, **kws):
+        if self.uiMenu_snap and force is not True:
+            return
+        self.uiMenu_snap.clear()
+        
+        UICHUNKS.uiSection_snap(self.uiMenu_snap)
+            
+        mUI.MelMenuItemDiv(self.uiMenu_snap)
+        
+        mUI.MelMenuItem(self.uiMenu_snap, l='Rebuild',
+                        c=cgmGEN.Callback(self.buildMenu_snap,True))
+        log.info("Snap menu rebuilt")
     def buildMenu_file(self):
         self.uiMenu_FileMenu.clear()                      
 
