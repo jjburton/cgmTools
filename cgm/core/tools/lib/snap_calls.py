@@ -329,10 +329,10 @@ def specialSnap(obj = None, targets = None,
             
             
             #cgmGEN.func_snapShot(vars())
-            POS.set(_obj,p_result)
+            POS.set(_obj,p_result,selectMove=True)
             return
             
-        POS.set(_obj,p)
+        POS.set(_obj,p,selectMove=True)
     except Exception as err:
         cgmGEN.cgmExceptCB(Exception,err,msg=vars())
 
@@ -488,7 +488,7 @@ def snap(obj = None, targets = None,
             if position:
                 log.debug("|{0}| >> Positioning... ".format(_str_func))
                 if _pivotObj == 'rp':
-                    TRANS.position_set(obj,pos_target)
+                    TRANS.position_set(obj,pos_target,selectMove=True)
                     #POS.set(_obj, pos_target)
                 else:
                     p_start = TRANS.position_get(_obj)
@@ -497,7 +497,7 @@ def snap(obj = None, targets = None,
                     p_result = DIST.get_pos_by_vec_dist(pos_target,_vector_to_objPivot,-_dist_base)
 
                     #cgmGEN.func_snapShot(vars())
-                    POS.set(_obj,p_result)
+                    POS.set(_obj,p_result,selectMove=True)
 
 
         if rotateAxis:

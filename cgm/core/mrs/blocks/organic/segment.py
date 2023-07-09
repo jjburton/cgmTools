@@ -132,7 +132,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                    'squashStretch':['squashSkipAim','segmentStretchBy'],
                    'space':['ikMidDynParentMode','ikMidDynScaleMode'],
                    'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum','ikSplineTwistAxis',
-                          'ribbonExtendEnds','ribbonAttachEndsToInfluence',
+                          'ribbonExtendEnds','ribbonAttachEndsToInfluence','reverseSetup',
                           'ikBaseExtend','ikEndExtend','ikEndLever',]}
 
 l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoints',
@@ -140,6 +140,7 @@ l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoi
                     'loftSetup','scaleSetup','loftShape',
                     'numControls',
                     'numSubShapers',
+                    'reverseSetup',
                     'ikSetup','segmentStretchBy',
                     'ribbonExtendEnds','ribbonAttachEndsToInfluence',
                     'root_dynParentMode',
@@ -690,7 +691,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikMidSetup':'none:ribbon:prntConstraint:linearTrack:cubicTrack',
                  'ikMidDynParentMode':BLOCKSHARE._d_attrsTo_make['dynParentMode'],
                  'ikMidDynScaleMode':BLOCKSHARE._d_attrsTo_make['dynParentScaleMode'],
-                 
+                 'reverseSetup':'none:single',
                  'segmentType':'ribbon:ribbonLive:spline:curve:linear:parent',
                  'segmentStretchBy':'translate:scale',
                  'ikBase':'none:cube:simple:hips:head',
@@ -1370,8 +1371,8 @@ def prerig(self):
     ATTR.set_lock(str_vectorRP,'translate',True)
     
     #Move start and end... ------------------------------------------------------------------------
-    ml_handles[0].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .05)
-    ml_handles[-1].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .95)
+    #ml_handles[0].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .05)
+    #ml_handles[-1].p_position = CURVES.getPercentPointOnCurve(mTrackCurve.mNode, .95)
     
     self.atUtils('prerig_handlesLayout','even','cubic',2)
     
@@ -1948,7 +1949,7 @@ def rig_dataBuffer(self):
             log.warning("|{0}| >> Mid control unavilable with count: joint: {1} | controls: {2}".format(_str_func,mBlock.numJoints, mBlock.numControls))  
             mBlock.ikMidSetup = 0
             
-        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence','segmentStretchBy','squashFactorMode']:
+        for k in ['segmentType','settingsPlace','ikEndShape','ikEnd','ikBase','ikMidSetup','ribbonAttachEndsToInfluence','segmentStretchBy','squashFactorMode','reverseSetup']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
                 
         #Vector ====================================================================================
@@ -2198,9 +2199,19 @@ def rig_skeleton(self):
         #...fk chain -------------------------------------------------------------------------------------
         log.debug("|{0}| >> fk_chain".format(_str_func))
         ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk','fkJoints')
-        
         ml_jointsToHide.extend(ml_fkJoints)
-    
+        
+        if self.str_reverseSetup in ['single']:
+            #...fk chain -------------------------------------------------------------------------------------
+            log.debug("|{0}| >> reverse chain".format(_str_func))            
+            ml_fkReverse = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fkReverse','fkReverseJoints')
+            ml_jointsToHide.extend(ml_fkReverse)
+            ml_fkReverse.reverse()
+            for mObj in ml_fkReverse:
+                mObj.p_parent = False
+            for i,mObj in enumerate(ml_fkReverse):
+                if i:
+                    mObj.p_parent = ml_fkReverse[i-1]
         
         #...fk chain ------------------------------------------------------------------------------------
         if mBlock.ikSetup:
@@ -2510,12 +2521,28 @@ def rig_shapes(self):
             
             if i == 0 and str_ikBase in ['hips','head']:
                 log.debug("|{0}| >> FK hips. no shape on frame...".format(_str_func))
-                mCrv.delete()
+                #mCrv.delete()
                 continue
             else:
                 mHandleFactory.color(mCrv.mNode, controlType = 'main')        
-                CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, False, replaceShapes=True)
+                CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, True, replaceShapes=True)
                 
+        #Reverse...
+        ml_fkReverseJoints = mRigNull.msgList_get('fkReverseJoints')
+        if ml_fkReverseJoints:
+            #ml_fkShapes.reverse()
+            for i,mJnt in enumerate(ml_fkReverseJoints):
+                if not i:
+                    continue
+                """
+                if i == 0 and str_ikBase in ['hips','head']:
+                    log.debug("|{0}| >> FK hips. no shape on frame...".format(_str_func))
+                    #mCrv.delete()
+                    continue
+                else:"""
+                #mHandleFactory.color(mCrv.mNode, controlType = 'main')        
+                CORERIG.shapeParent_in_place(mJnt.mNode,ml_fkShapes[i-1].mNode, True, replaceShapes=True)            
+
 
 
         for mShape in ml_fkShapes:
@@ -3342,7 +3369,7 @@ def rig_frame(self):
                 ml_segMidDrivers = copy.copy(ml_ribbonIkHandles)
                     
                 #Mid controls ====================
-                if self.ml_ikMidControls:
+                if self.ml_ikMidControls and mBlock.ikMidSetup:
                     RIGFRAME.segment_mid(self,self.ml_ikMidControls,
                                          ml_segMidDrivers,mIKGroup,
                                          mIKBaseControl,mIKControl,ml_ikJoints)

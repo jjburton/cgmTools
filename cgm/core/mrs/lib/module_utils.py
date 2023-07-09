@@ -1763,7 +1763,6 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
                 mLoc.delete()
             
             if distCheck:
-                
                 for i,v in list(md_datPostCompare.items()):
                     mBlend = ml_blendJoints[i]
                     dNew = {'pos':mBlend.p_position, 'orient':mBlend.p_orient}

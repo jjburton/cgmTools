@@ -3958,12 +3958,20 @@ example:
         existingFiles = versionList['items']
 
         #animationName = self.subTypeSearchList['scrollList'].getSelectedItem()
-        wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem() if self.hasSub else self.subType)
+        if self.hasSub:
+            wantedName = "%s_%s" % (self.assetList['scrollList'].getSelectedItem(), self.subTypeSearchList['scrollList'].getSelectedItem())
+        else:
+            wantedName = "%s" % (self.assetList['scrollList'].getSelectedItem())
+            
         log.debug("Wanted name: {}".format(wantedName))
         
         if self.hasVariant:
             wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
             log.debug("Has variant name: {}".format(wantedName))
+        
+        if self.subType and self.subType not in ['animation','anim']:
+            wantedName = "%s_%s" % (wantedName, self.subType)
+            log.debug("Has subTpe name: {}".format(wantedName))            
             
         if len(existingFiles) == 0:
             wantedName = "{0}_0{1}.{2}".format(wantedName, 1, _fileType)

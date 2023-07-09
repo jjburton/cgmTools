@@ -158,7 +158,7 @@ def get(obj = None, pivot = 'rp', space = 'ws', targets = None, mode = 'xform', 
         raise RuntimeError("|{0}| >> Shouldn't have gotten here: obj: {1}".format(_str_func,_obj))
     except Exception as err:cgmGen.cgmExceptCB(Exception,err)
     
-def set(obj = None, pos = None, pivot = 'rp', space = 'ws', selectMove = True, relative = False):
+def set(obj = None, pos = None, pivot = 'rp', space = 'ws', selectMove = False, relative = False):
     """
     General call for querying position data in maya.
     Note -- pivot and space are ingored in boundingBox mode which returns the center pivot in worldSpace
