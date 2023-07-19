@@ -10,7 +10,7 @@ Website : https://github.com/jjburton/cgmTools/wiki
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '23.09.09.01'
+__RELEASE = '23.07.18.01'
 
 __BRANCH = 'MRSDAILY'
 
@@ -22,7 +22,7 @@ import time
 import inspect
 import platform
 import sys
-import traceback
+#import traceback
 #import linecache
 #import datetime
 import pprint

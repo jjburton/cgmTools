@@ -129,7 +129,7 @@ d_attrStateMask = {'define':['neckDirection'],
                    'prerig':['neckControls'],
                    'skeleton':['neckJoints'],
                    'squashStretch':['segmentStretchBy'],
-                   'rig':['neckIK','headAim',
+                   'rig':['neckIK','headAim','neckIKRoot',
                           'neckIKEndLever','neckIKBaseExtend','neckIKEndExtend']}
 
 l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoints',
@@ -140,6 +140,7 @@ l_createUI_attrs = ['attachPoint','attachIndex','nameIter','numControls','numJoi
                     'ikSetup','segmentStretchBy',
                     'ribbonExtendEnds','ribbonAttachEndsToInfluence',
                     'root_dynParentMode',
+                    'neckIKRoot',
                     'root_dynParentScaleMode','squashSkipAim',
                     'dynParentMode','dynParentScaleMode',
                     ]
@@ -285,7 +286,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'squashFactorMax':'float',
                  'squashFactorMin':'float',
                  'neckSize':'double3',
-                 
+                 'neckIKRoot':'bool',
                  'neckIKEndLever':'bool',
                  'neckIKBaseExtend':'bool',
                  'neckIKEndExtend':'bool',
@@ -2640,15 +2641,13 @@ def rig_shapes(self):
             #Root -------------------------------------------------------------------------------------------
             #Grab form handle root - use for sizing, make ball
             mNeckBaseHandle = self.mBlock.msgList_get('formHandles')[1]
-            size_neck = DIST.get_bb_size(mNeckBaseHandle.mNode,True,True) /2
-    
             mRoot = ml_joints[0].doCreateAt()
+
+            size_neck = DIST.get_bb_size(mNeckBaseHandle.mNode,True,True) /2
             mRootCrv = cgmMeta.validateObjArg(CURVES.create_fromName('locatorForm', size_neck),
-                                              'cgmObject',setClass=True)
+                                              'cgmObject',setClass=True)    
+
             mRootCrv.doSnapTo(ml_joints[0])
-    
-            #SNAP.go(mRootCrv.mNode, ml_joints[0].mNode,position=False)
-    
             CORERIG.shapeParent_in_place(mRoot.mNode,mRootCrv.mNode, False)
     
             ATTR.copy_to(_short_module,'cgmName',mRoot.mNode,driven='target')
@@ -2657,6 +2656,25 @@ def rig_shapes(self):
     
             CORERIG.colorControl(mRoot.mNode,_side,'sub')
             self.mRigNull.connectChildNode(mRoot,'rigRoot','rigNull')#Connect
+            
+            
+            #Neck IK Root ==============================================================================
+            if mBlock.neckIKRoot:
+                size_neckRoot = (DIST.get_bb_size(mNeckBaseHandle.mNode,True,True) * 1.4) + self.v_offset
+                mNeckIKRootShape = cgmMeta.validateObjArg(CURVES.create_fromName('loftDiamond', size_neckRoot),
+                                                  'cgmObject',setClass=True)                    
+                
+                mNeckIKRoot = ml_joints[0].doCreateAt()
+                
+
+                mNeckIKRootShape.doSnapTo(ml_joints[0])
+                CORERIG.shapeParent_in_place(mNeckIKRoot.mNode,mNeckIKRootShape.mNode, False)
+                ATTR.copy_to(_short_module,'cgmName',mNeckIKRoot.mNode,driven='target')
+                mNeckIKRoot.doStore('cgmTypeModifier','ikNeckRoot')
+                mNeckIKRoot.doName()
+        
+                CORERIG.colorControl(mNeckIKRoot.mNode,_side,'sub')
+                self.mRigNull.connectChildNode(mNeckIKRoot,'controlIKNeckRoot','rigNull')#Connect            
     
     
             #controlSegMidIK... =============================================================================
@@ -2784,7 +2802,7 @@ def rig_controls(self):
     
     d_controlSpaces = self.atBuilderUtils('get_controlSpaceSetupDict')    
     ml_controlsIK = []
-    
+    ml_controlsFK = []
     
     # Drivers ==========================================================================================    
     if self.mBlock.neckBuild:
@@ -2836,7 +2854,10 @@ def rig_controls(self):
         for mShape in mRoot.getShapes(asMeta=True):
             ATTR.connect(mPlug_visRoot.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))
             
-        
+        #if mBlock.neckIKRoot:
+        #    mPlug_visRoot.p_defaultValue = 1.0
+        #    mPlug_visRoot.p_value = 1.0
+            
         #FK controls -------------------------------------------------------------------------------------
         log.debug("|{0}| >> FK Controls...".format(_str_func))
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
@@ -2860,14 +2881,39 @@ def rig_controls(self):
                                               makeAimable = True)
     
             mObj = d_buffer['mObj']
-            #mObj.axisAim = "%s+"%self._go._jointOrientation[0]
-            #mObj.axisUp= "%s+"%self._go._jointOrientation[1]	
-            #mObj.axisOut= "%s+"%self._go._jointOrientation[2]
-            #try:i_obj.drawStyle = 2#Stick joint draw style	    
-            #except:self.log_error("{0} Failed to set drawStyle".format(i_obj.p_nameShort))
             ATTR.set_hidden(mObj.mNode,'radius',True)
+            ml_controlsFK.append(mObj)
+        
+        #IK Neck Root ----------------------------------------------------------------
+        mControlIKNeckRoot = mRigNull.getMessageAsMeta('controlIKNeckRoot')
+        if mBlock.neckIKRoot and not mControlIKNeckRoot:
+            raise ValueError,"Should have a neckIKRoot shape by now"
+        if mControlIKNeckRoot:
+            mControlIKNeckRoot = mRigNull.controlIKNeckRoot
+            log.debug("|{0}| >> Found controlBaseIK : {1}".format(_str_func, mControlIKNeckRoot))
+            _d = MODULECONTROL.register(mControlIKNeckRoot,
+                                        addDynParentGroup = True, 
+                                        mirrorSide= self.d_module['mirrorDirection'],
+                                        mirrorAxis="translateX,rotateY,rotateZ",
+                                        makeAimable = True,
+                                        **d_controlSpaces)
+                                        
             
+            mControlIKNeckRoot = _d['mObj']
+            mControlIKNeckRoot.masterGroup.parent = mRootParent
+            ml_controlsAll.append(mControlIKNeckRoot)
+            ml_controlsIK.append(mControlIKNeckRoot)
             
+            mRootIKParent = mControlIKNeckRoot#...this is our new root parent
+            
+            #Register our snapToTarget -------------------------------------------------------------
+            self.atUtils('get_switchTarget', mControlIKNeckRoot,ml_parentJoints[0])        
+        else:
+            mRootIKParent = mRootParent
+        
+        
+        
+        
         
         mControlBaseIK = mRigNull.getMessageAsMeta('controlIKBase')
         if mControlBaseIK:
@@ -2883,13 +2929,13 @@ def rig_controls(self):
                                         
             
             mControlBaseIK = _d['mObj']
-            mControlBaseIK.masterGroup.parent = mRootParent
+            mControlBaseIK.masterGroup.parent = mRootIKParent
             ml_controlsAll.append(mControlBaseIK)
-            ml_controlsIK.insert(0,mControlBaseIK)
+            ml_controlsIK.append(mControlBaseIK)
             
             #Register our snapToTarget -------------------------------------------------------------
             self.atUtils('get_switchTarget', mControlBaseIK,ml_parentJoints[0])
-
+        
             
         """
         mControlSegMidIK = False
@@ -2918,7 +2964,7 @@ def rig_controls(self):
             log.debug("|{0}| >> Found midIKControls".format(_str_func))            
             d_mid = copy.copy(d_controlSpaces)
             if d_mid.get('addSpacePivots'):d_mid.pop('addSpacePivots')
-            for mHandle in self.ml_ikMidControls:
+            for i,mHandle in enumerate(self.ml_ikMidControls):
                 _d = MODULECONTROL.register(mHandle,
                                             addDynParentGroup = True, 
                                             mirrorSide= self.d_module['mirrorDirection'],
@@ -2928,9 +2974,13 @@ def rig_controls(self):
                 
                 
                 mNew = _d['mObj']
-                mNew.masterGroup.parent = mRootParent
+                mNew.masterGroup.parent = mRootIKParent
                 ml_controlsAll.append(mNew)            
-                ml_controlsIK.insert(-1,mNew)            
+                ml_controlsIK.append(mNew)            
+                self.ml_ikMidControls[i] = mNew
+                
+                self.atUtils('get_switchTarget', mNew, DIST.get_closestTarget(mNew.mNode,[mParent for mParent in ml_parentJoints]))
+                
 
 
     #ikHead ========================================================================================
@@ -2945,12 +2995,17 @@ def rig_controls(self):
                                     **d_controlSpaces)
         
         mHeadIK = _d['mObj']
-        mHeadIK.masterGroup.parent = mRootParent
+        mHeadIK.masterGroup.parent = mRootIKParent
         ml_controlsAll.append(mHeadIK)
         
         if mBlock.neckBuild:
             self.atUtils('get_switchTarget', mHeadIK, ml_parentJoints[-1])
-        ml_controlsIK.append(mHeadIK)
+            
+        if self.ml_ikMidControls:#we need the ik end to process in swtiching other other stuff before the mids
+            _idx = ml_controlsIK.index(self.ml_ikMidControls[0])
+            ml_controlsIK.insert(_idx,mHeadIK)
+        else:
+            ml_controlsIK.append(mHeadIK)
     
     
     #>> headLookAt ========================================================================================
@@ -3025,6 +3080,7 @@ def rig_controls(self):
         
         mSettings.masterGroup.parent = ml_parentJoints[-1]
         ml_controlsAll.append(mSettings)
+        ml_controlsFK.append(mHeadFK)
     
     #>> handleJoints ========================================================================================
     ml_handleJoints = self.mRigNull.msgList_get('handleJoints')
@@ -3092,6 +3148,7 @@ def rig_controls(self):
     mRigNull.msgList_connect('controlsAll',ml_controlsAll)
     mRigNull.moduleSet.extend(ml_controlsAll)
     mRigNull.msgList_connect('controlsIK',ml_controlsIK)
+    mRigNull.msgList_connect('controlsFK',ml_controlsFK)
 
     return 
 
@@ -3297,6 +3354,7 @@ def rig_frame(self):
         
         
         mHeadFK = False
+        mControlIKNeckRoot = mRigNull.getMessageAsMeta('controlIKNeckRoot')
         
         mHeadFK = mRigNull.getMessageAsMeta('headFK')
         mHeadIK = mRigNull.getMessageAsMeta('headIK')
@@ -3496,6 +3554,10 @@ def rig_frame(self):
                 #mIKControl.masterGroup.parent = mIKGroup            
                 mIKGroup.dagLock(True)
                 mHeadIK.masterGroup.p_parent = mIKGroup
+                mControlIKNeckRoot = mRigNull.getMessageAsMeta('controlIKNeckRoot')
+                if mControlIKNeckRoot:
+                    mControlIKNeckRoot.masterGroup.p_parent = mIKGroup
+                    
                 
                 """
                 # Create head position driver ------------------------------------------------
@@ -3541,7 +3603,11 @@ def rig_frame(self):
                         mc.orientConstraint(mIKBaseControl.mNode,ml_ikJoints[0].mNode,maintainOffset=False)
                         
                         mNeckAim = mIKBaseControl.doCreateAt()
-                        mNeckAim.parent = mIKGroup            
+                        if mControlIKNeckRoot:
+                            mNeckAim.parent = mControlIKNeckRoot
+                        else:
+                            mNeckAim.parent = mIKGroup
+                            
                         mNeckAim.doStore('cgmName','neckAim')                        
                         mNeckAim.doStore('cgmTypeModifier','back')
                         mNeckAim.doStore('cgmType','aimer')
@@ -3793,7 +3859,6 @@ def rig_frame(self):
                             mObj.doStore('cgmName',mIKBaseControl.mNode)                        
                             mObj.doName()
                     
-                        mLocAim.p_parent = mIKBaseControl.dynParentGroup
                 
                         mAimTarget = mIKControl
                         """
@@ -3810,8 +3875,13 @@ def rig_frame(self):
                                          worldUpVector = self.v_twistUp)
                     
                     
-                        mLocBase.p_parent = mIKBaseControl.dynParentGroup
-                    
+                        if mControlIKNeckRoot:
+                            mLocAim.p_parent = mControlIKNeckRoot                            
+                            mLocBase.p_parent = mControlIKNeckRoot
+                        else:
+                            mLocAim.p_parent = mIKBaseControl.dynParentGroup                            
+                            mLocBase.p_parent = mIKBaseControl.dynParentGroup
+                            
                     
                         const = mc.orientConstraint([mLocAim.mNode,mLocBase.mNode],
                                                     mBaseOrientGroup.mNode, maintainOffset = True)[0]
@@ -4311,7 +4381,7 @@ def rig_cleanUp(self):
         log.debug("|{0}| >>  IK Handles ... ".format(_str_func))                
         
         ml_ikControls = []
-        mControlIK = mRigNull.getMessage('controlIK')
+        mControlIK = mRigNull.getMessageAsMeta('controlIK')
         
         if mControlIK:
             ml_ikControls.append(mRigNull.controlIK)
@@ -4320,8 +4390,10 @@ def rig_cleanUp(self):
         if mControlIKBase:
             ml_ikControls.append(mRigNull.controlIKBase)
             
+        
+            
         for mHandle in ml_ikControls:
-            log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))
+            log.info("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))
             if b_ikOrientToWorld and mHandle != mControlIKBase:BUILDERUTILS.control_convertToWorldIK(mHandle)
             
             ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
@@ -4333,10 +4405,17 @@ def rig_cleanUp(self):
                 mAim = mHandle.getMessageAsMeta('aimDriver')
                 if mAim:
                     ml_targetDynParents.insert(0,mAim)
-        
+            
+            if mHandle == mControlIK:
+                mControlIKNeckRoot = mRigNull.getMessageAsMeta('controlIKNeckRoot')
+                if mControlIKNeckRoot:
+                    ml_targetDynParents.insert(0,mControlIKNeckRoot )
+                    
+            
             mDynGroup = cgmRIGMETA.cgmDynParentGroup(dynChild=mHandle,dynMode=2)
             #mDynGroup.dynMode = 2
-        
+            
+            pprint.pprint(ml_targetDynParents)
             for mTar in ml_targetDynParents:
                 mDynGroup.addDynParent(mTar)
             mDynGroup.rebuild()
@@ -4527,8 +4606,9 @@ def rig_cleanUp(self):
                 ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
                 
                 mParent = mObj.masterGroup.getParent(asMeta=True)
-                if mParent and mParent.hasAttr('cgmAlias'):
+                if mParent and not mParent.hasAttr('cgmAlias'):
                     mParent.addAttr('cgmAlias','{0}_base'.format(mObj.p_nameBase))
+                    
                 _mode = 2
                 if i == 0:
                     ml_targetDynParents.append(mParent)
@@ -4560,9 +4640,9 @@ def rig_cleanUp(self):
         mSettings.visDirect = 0
         
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
-        if ml_handleJoints:
-            ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', .5)
-            ml_handleJoints[0].followRoot = .5
+        #if ml_handleJoints:
+        #    ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', .5)
+        #    ml_handleJoints[0].followRoot = .5
             
             
         #Lock and hide =================================================================================

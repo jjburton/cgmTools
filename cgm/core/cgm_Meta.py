@@ -2257,8 +2257,22 @@ class cgmControl(cgmObject):
         except Exception as error:
             raise Exception("%s >>> error: %s"%(_str_func,error))
         
+    def controlTags_getDat(self):
+        if not self.hasAttr('cgmControlTags'):
+            self.addAttr('cgmControlTags',attrType='string')
+        return self.cgmControlTags or {}
         
-
+    def controlTags_getKeys(self):
+        return self.controlTags_getDat().keys()
+    
+    def controlTags_setKeyValue(self,key,v):
+        _d = self.controlTags_getDat()
+        _d[key] = v
+        self.cgmControlTags = _d
+    def controlTags_removeKey(self,key):
+        _d = self.controlTags_getDat()
+        _d.remove(key)
+        self.cgmControlTags = _d
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>   
 # cgmObjectSet - subclass to cgmNode
@@ -2448,6 +2462,7 @@ class cgmObjectSet(cgmNode):
             self.addObj(objectList)
 
         return self.getList()
+    
     def deleteSet(self):
         if not self.isReferenced():
             del(self)	    

@@ -820,7 +820,7 @@ def segment_handles(self, ml_handles = None, ml_handleParents = None, mIKBaseCon
                                             mode = 'singleBlend',
                                             upMode = 'objectRotation')
         else:
-            if str_ikBase == 'hips':
+            if str_ikBase == 'pickles':#'hips':
                 log.debug("|{0}| >> hips handles...".format(_str_func))                    
                 ml_handles[0].masterGroup.p_parent = mIKBaseControl
                 mHipHandle = ml_handles[1]
@@ -1064,7 +1064,10 @@ def segment_handles(self, ml_handles = None, ml_handleParents = None, mIKBaseCon
                     mHandle.parent = mAimGroup#...parent back
 
         for mHandle in ml_handles:
-            if mHandle in [ml_handles[0],ml_handles[-1]]:
+            if mHandle == ml_handles[0]:
+                mHandle.followRoot = 0
+                ATTR.set_default(mHandle.mNode,'followRoot',0)                
+            elif mHandle == ml_handles[-1]:
                 mHandle.followRoot = 1
                 ATTR.set_default(mHandle.mNode,'followRoot',1.0)
             else:

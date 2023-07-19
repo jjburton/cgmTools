@@ -691,7 +691,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikMidSetup':'none:ribbon:prntConstraint:linearTrack:cubicTrack',
                  'ikMidDynParentMode':BLOCKSHARE._d_attrsTo_make['dynParentMode'],
                  'ikMidDynScaleMode':BLOCKSHARE._d_attrsTo_make['dynParentScaleMode'],
-                 'reverseSetup':'none:single',
+                 'reverseSetup':'none:fkOnly',
                  'segmentType':'ribbon:ribbonLive:spline:curve:linear:parent',
                  'segmentStretchBy':'translate:scale',
                  'ikBase':'none:cube:simple:hips:head',
@@ -2201,17 +2201,65 @@ def rig_skeleton(self):
         ml_fkJoints = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fk','fkJoints')
         ml_jointsToHide.extend(ml_fkJoints)
         
-        if self.str_reverseSetup in ['single']:
+        ml_fkControls = copy.copy(ml_fkJoints)
+        if self.str_ikBase in ['hips','head']:
+            log.debug("|{0}| >> FK hips. no shape on frame...".format(_str_func))
+            
+            mFKpelvis = ml_fkJoints[1].doDuplicate(parentOnly = True)
+            mFKpelvis.doCopyNameTagsFromObject(ml_fkJoints[0].mNode)
+            if mFKpelvis.getMayaAttr('cgmIterator'):
+                ATTR.delete(mFKpelvis.mNode, 'cgmIterator')
+                
+            mFKpelvis.p_parent = False            
+            ml_fkJoints[0].p_parent = mFKpelvis
+            #ml_fkJoints[0].doStore('cgmName',"{}_driver".format(ml_fkJoints[0].cgmName))
+            #ml_fkJoints[0].doName()
+            
+            ml_fkJoints[1].p_parent = False
+            
+            ml_fkControls[0] = mFKpelvis
+            mFKpelvis.doName()
+            
+        mRigNull.msgList_connect('fkControls',ml_fkControls)
+        mk_fkUse = ml_fkJoints
+        
+        
+        if self.str_reverseSetup in ['fkOnly']:
+            #...fk chain -------------------------------------------------------------------------------------
+            ml_fkBlend = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fkBlend','fkBlendJoints')
+            mk_fkUse = ml_fkBlend
+            
+            ml_jointsToHide.extend(ml_fkBlend)
+            
             #...fk chain -------------------------------------------------------------------------------------
             log.debug("|{0}| >> reverse chain".format(_str_func))            
-            ml_fkReverse = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fkReverse','fkReverseJoints')
+            ml_fkReverse = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fkReverseDriver','fkReverseDrivers')
             ml_jointsToHide.extend(ml_fkReverse)
+            
+            
             ml_fkReverse.reverse()
             for mObj in ml_fkReverse:
                 mObj.p_parent = False
             for i,mObj in enumerate(ml_fkReverse):
                 if i:
                     mObj.p_parent = ml_fkReverse[i-1]
+            
+            #Make the control chain
+            ml_fkReverseCon = BLOCKUTILS.skeleton_buildHandleChain(mBlock,'fkReverse','fkReverseControls')
+            ml_jointsToHide.extend(ml_fkReverseCon)
+            ml_fkReverseCon.reverse()
+            for mObj in ml_fkReverseCon:
+                mObj.p_parent = False
+            for i,mObj in enumerate(ml_fkReverseCon):
+                if i:
+                    mObj.doSnapTo(ml_fkReverse[i-1])
+                    mObj.p_parent = ml_fkReverseCon[i-1]
+            for i,mObj in enumerate(ml_fkReverse):
+                mObj.p_parent = ml_fkReverseCon[i]
+            
+            JOINT.freezeOrientation(ml_fkReverseCon)
+            
+
         
         #...fk chain ------------------------------------------------------------------------------------
         if mBlock.ikSetup:
@@ -2261,12 +2309,12 @@ def rig_skeleton(self):
                 mJnt.doCopyNameTagsFromObject(mTar.mNode,ignore=['cgmType'])
                 mJnt.doName()
             
-            """
+            
             for i,mObj in enumerate(ml_ribbonIKDrivers):
                 if not i:
                     mObj.doSnapTo(mBlock.ikStartHandle)
                 else:
-                    mObj.doSnapTo(mBlock.ikEndHandle)"""
+                    mObj.doSnapTo(mBlock.ikEndHandle)
             
             ml_jointsToConnect.extend(ml_ribbonIKDrivers)
             
@@ -2328,7 +2376,7 @@ def rig_skeleton(self):
                     mJnt.parent = ml_blendJoints[i]
             else:
                 for i,mJnt in enumerate(ml_segmentHandles):
-                    mJnt.parent = ml_fkJoints[i]        
+                    mJnt.parent = mk_fkUse[i]        
             
             
             log.debug("|{0}| >> segment necessary...".format(_str_func))
@@ -2340,7 +2388,7 @@ def rig_skeleton(self):
             ml_jointsToHide.extend(ml_segmentChain)
         else:
             log.debug("|{0}| >> Simple setup. Parenting rigJoints to blend...".format(_str_func))
-            ml_rigParents = ml_fkJoints
+            ml_rigParents = mk_fkUse
             if ml_blendJoints:
                 ml_rigParents = ml_blendJoints
             for i,mJnt in enumerate(ml_rigJoints):
@@ -2349,7 +2397,7 @@ def rig_skeleton(self):
             if str_ikBase in ['hips','head']:
                 log.debug("|{0}| >> Simple setup. Need single handle.".format(_str_func))
                 ml_segmentHandles = BLOCKUTILS.skeleton_buildDuplicateChain(mBlock,
-                                                                            ml_fkJoints, 
+                                                                            mk_fkUse, 
                                                                             'handle', mRigNull,
                                                                             'handleJoints',
                                                                             cgmType = 'handle', indices=[1])
@@ -2358,7 +2406,7 @@ def rig_skeleton(self):
         #Mirror if side...
         if self.d_module['mirrorDirection'] == 'Left':
             log.debug("|{0}| >> Mirror direction ...".format(_str_func))
-            ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, ml_fkJoints)
+            ml_fkAttachJoints = BUILDUTILS.joints_mirrorChainAndConnect(self, mk_fkUse)
             ml_jointsToHide.extend(ml_fkAttachJoints)
            
         
@@ -2389,6 +2437,7 @@ def rig_shapes(self):
         ml_formHandles = mBlock.msgList_get('formHandles')
         ml_prerigHandleTargets = mBlock.atBlockUtils('prerig_getHandleTargets')
         ml_fkJoints = mRigNull.msgList_get('fkJoints')
+        ml_fkControls = mRigNull.msgList_get('fkControls')
         ml_ikJoints = mRigNull.msgList_get('ikJoints',asMeta=True)
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
         ml_rigJoints = self.mRigNull.msgList_get('rigJoints')
@@ -2516,24 +2565,24 @@ def rig_shapes(self):
         #                                        offset = _offset,
         #                                        mode = 'frameHandle')        
         for i,mCrv in enumerate(ml_fkShapes):
-            mJnt = ml_fkJoints[i]
+            mJnt = ml_fkControls[i]
             #CORERIG.match_orientation(mCrv.mNode,mJnt.mNode)
             
-            if i == 0 and str_ikBase in ['hips','head']:
-                log.debug("|{0}| >> FK hips. no shape on frame...".format(_str_func))
+            #if i == 0 and str_ikBase in ['hips','head']:
+            #    log.debug("|{0}| >> FK hips. no shape on frame...".format(_str_func))
                 #mCrv.delete()
-                continue
-            else:
-                mHandleFactory.color(mCrv.mNode, controlType = 'main')        
-                CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, True, replaceShapes=True)
+                #continue
+                
+            #    mJnt.doSnapTo(ml_fkJoints[1])
+            #else:
+            mHandleFactory.color(mCrv.mNode, controlType = 'main')        
+            CORERIG.shapeParent_in_place(mJnt.mNode,mCrv.mNode, True, replaceShapes=True)
                 
         #Reverse...
-        ml_fkReverseJoints = mRigNull.msgList_get('fkReverseJoints')
-        if ml_fkReverseJoints:
+        ml_fkReverseControls = mRigNull.msgList_get('fkReverseControls')
+        if ml_fkReverseControls:
             #ml_fkShapes.reverse()
-            for i,mJnt in enumerate(ml_fkReverseJoints):
-                if not i:
-                    continue
+            for i,mJnt in enumerate(ml_fkReverseControls):
                 """
                 if i == 0 and str_ikBase in ['hips','head']:
                     log.debug("|{0}| >> FK hips. no shape on frame...".format(_str_func))
@@ -2541,7 +2590,7 @@ def rig_shapes(self):
                     continue
                 else:"""
                 #mHandleFactory.color(mCrv.mNode, controlType = 'main')        
-                CORERIG.shapeParent_in_place(mJnt.mNode,ml_fkShapes[i-1].mNode, True, replaceShapes=True)            
+                CORERIG.shapeParent_in_place(mJnt.mNode,ml_fkShapes[i].mNode, True, replaceShapes=True)            
 
 
 
@@ -2572,6 +2621,7 @@ def rig_controls(self):
         mRootParent = self.mDeformNull
         mSettings = mRigNull.settings
         ml_controlsIKRO = []
+        ml_blendJoints = mRigNull.msgList_get('blendJoints')
         
         b_cog = False
         if mBlock.getMessage('cogHelper'):
@@ -2585,6 +2635,10 @@ def rig_controls(self):
         if mBlock.ikSetup:
             log.debug("|{0}| >> Build IK drivers...".format(_str_func))
             mPlug_FKIK = cgmMeta.cgmAttr(mSettings.mNode,'FKIK',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+            
+        if mBlock.reverseSetup:
+            mPlug_FKReverse = cgmMeta.cgmAttr(mSettings.mNode,'FKReverse',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+            
         
         #>> vis Drivers ====================================================================================
         
@@ -2660,13 +2714,14 @@ def rig_controls(self):
                 
         #FK controls =============================================================================================
         log.debug("|{0}| >> FK Controls...".format(_str_func))
-        ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
+        ml_fkJoints = self.mRigNull.msgList_get('fkControls')
         
         if str_ikBase in ['hips','head']:
             p_pelvis = ml_fkJoints[0].p_position
-            ml_fkJoints = ml_fkJoints[1:]
+            ml_fkJoints[1].p_parent = mRootParent
+            #ml_fkJoints = ml_fkJoints[1:]
         
-        ml_fkJoints[0].parent = mRoot
+        ml_fkJoints[0].parent = mRootParent
         ml_controlsAll.extend(ml_fkJoints)
         
         if self.d_module['mirrorDirection'] == 'Centre':
@@ -2684,7 +2739,24 @@ def rig_controls(self):
             mObj = d_buffer['mObj']
             ATTR.set_hidden(mObj.mNode,'radius',True)
             if mBlock.ikSetup:
-                self.atUtils('get_switchTarget', mObj, mObj.getMessage('blendJoint'))                
+                self.atUtils('get_switchTarget', mObj, ml_blendJoints[i])#mObj.getMessage('blendJoint'))
+                
+        #Reverse...---------------------------------------------------------------------------
+        ml_fkReverseControls = mRigNull.msgList_get('fkReverseControls')
+        if ml_fkReverseControls:
+            ml_fkReverseControls[-1].parent = mRootParent
+            ml_controlsAll.extend(ml_fkReverseControls)
+            
+            for i,mObj in enumerate(ml_fkReverseControls):
+                d_buffer = MODULECONTROL.register(mObj,
+                                                  mirrorSide= self.d_module['mirrorDirection'],
+                                                  mirrorAxis=_fkMirrorAxis,
+                                                  makeAimable = True)
+        
+                mObj = d_buffer['mObj']
+                ATTR.set_hidden(mObj.mNode,'radius',True)
+                if mBlock.ikSetup:
+                    self.atUtils('get_switchTarget', mObj, mObj.getMessageAsMeta('sourceJoint').getMessage('blendJoint')[0])
         
         #ControlIK ========================================================================================
         mControlIK = False
@@ -3159,6 +3231,8 @@ def rig_frame(self):
         cgmGEN._reloadMod(IK)
         ml_rigJoints = mRigNull.msgList_get('rigJoints')
         ml_fkJoints = mRigNull.msgList_get('fkJoints')
+        ml_fkControls = mRigNull.msgList_get('fkControls')
+        ml_fkUseJoints = ml_fkJoints
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
         ml_baseIKDrivers = mRigNull.msgList_get('baseIKDrivers')
         ml_blendJoints = mRigNull.msgList_get('blendJoints')
@@ -3204,8 +3278,19 @@ def rig_frame(self):
             RIGFRAME.segment_handles(self,ml_handleJoints,ml_handleParents,
                                      mIKBaseControl,mRoot,str_ikBase)
            
+            #if str_ikBase in ['hips','head']:
+                #ml_handleJoints[0].masterGroup.p_parent = ml_handleParents[1]
             
-       
+        
+        #FK Group ======================================================================================
+        mFKGroup = mRoot.doCreateAt()
+        mFKGroup.doStore('cgmTypeModifier','fk')
+        mFKGroup.doName()
+        
+        mFKGroup.parent = mRoot
+        mFKGroup.dagLock(True)
+        
+        
         #>> Build IK ======================================================================================
         if mBlock.ikSetup:
             _ikSetup = mBlock.getEnumValueString('ikSetup')
@@ -3228,6 +3313,8 @@ def rig_frame(self):
             #>>> Setup a vis blend result
             mPlug_FKon = cgmMeta.cgmAttr(mSettings,'result_FKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
             mPlug_IKon = cgmMeta.cgmAttr(mSettings,'result_IKon',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
+            
+            mPlug_FKonUse = mPlug_FKon
         
             NODEFACTORY.createSingleBlendNetwork(mPlug_FKIK.p_combinedName,
                                                  mPlug_IKon.p_combinedName,
@@ -3239,13 +3326,16 @@ def rig_frame(self):
             mIKGroup.doName()
             
             mPlug_IKon.doConnectOut("{0}.visibility".format(mIKGroup.mNode))
+            mPlug_FKon.doConnectOut("{0}.visibility".format(mFKGroup.mNode))
             
             mIKGroup.parent = mRoot
             mIKGroup.dagLock(True)
             mIKControl.masterGroup.parent = mIKGroup
+            mIKBaseControl.masterGroup.parent = mIKGroup
             
-            mIKBaseControl = False
+            #mIKBaseControl = False
             mSpinGroup = False
+            
             def get_spinGroup(self):
                 #=========================================================================================
                 log.debug("|{0}| >> spin setup...".format(_str_func))
@@ -3265,13 +3355,16 @@ def rig_frame(self):
                 mPlug_spin.doConnectOut("%s.r%s"%(mSpinGroup.mNode,_jointOrientation[0]))
                 return mSpinGroup
                 
+            
+            
             if mRigNull.getMessage('controlIKBase'):
                 mIKBaseControl = mRigNull.controlIKBase
                 
                 if str_ikBase in ['hips','head']:
-                    mIKBaseControl.masterGroup.parent = mRoot
+                    #mIKBaseControl.masterGroup.parent = mRoot
+                    pass
                 else:
-                    mIKBaseControl.masterGroup.parent = mIKGroup
+                    #mIKBaseControl.masterGroup.parent = mIKGroup
                     
                     mBaseOrientGroup = cgmMeta.validateObjArg(mIKBaseControl.doGroup(True,False,asMeta=True,typeModifier = 'aim'),'cgmObject',setClass=True)
                     ATTR.set(mBaseOrientGroup.mNode, 'rotateOrder', _jointOrientation)
@@ -3589,11 +3682,65 @@ def rig_frame(self):
             
             #Parent --------------------------------------------------
             #Fk...
+            
+            ml_fkReverseControls = mRigNull.msgList_get('fkReverseControls')
+            if ml_fkReverseControls:
+                mPlug_FKReverse = cgmMeta.cgmAttr(mSettings.mNode,'FKReverse',attrType='float',minValue=0,maxValue=1,lock=False,keyable=True)
+                
+                mPlug_FKReverseOn = cgmMeta.cgmAttr(mSettings,'result_FKReverseOn',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
+                mPlug_FKReverseOff = cgmMeta.cgmAttr(mSettings,'result_FKReversOff',attrType='float',defaultValue = 0,keyable = False,lock=True,hidden=True)	
+            
+                NODEFACTORY.createSingleBlendNetwork(mPlug_FKReverse.p_combinedName,
+                                                     mPlug_FKReverseOn.p_combinedName,
+                                                     mPlug_FKReverseOff.p_combinedName)            
+                
+                #Reverse FK Group ...
+                mFKReverseGroup = mRoot.doCreateAt()
+                mFKReverseGroup.doStore('cgmTypeModifier','fkReverse')
+                mFKReverseGroup.doName()
+                
+                
+                for arg in [
+                "{}.visibility = {} * {}".format(mFKReverseGroup.mNode,mPlug_FKReverseOn.asCombinedName(), mPlug_FKon.asCombinedName()),
+                "{}.visibility = {} * {}".format(mFKGroup.mNode,mPlug_FKReverseOff.asCombinedName(), mPlug_FKon.asCombinedName()),
+                ]:
+                    NODEFACTORY.argsToNodes(arg).doBuild()
+                    
+                #mPlug_FKReverseOn.doConnectOut("{0}.visibility".format(mFKReverseGroup.mNode))
+                #mPlug_FKReverseOff.doConnectOut("{0}.visibility".format(mFKGroup.mNode))
+                
+                mFKReverseGroup.parent = mRoot
+                mFKReverseGroup.dagLock(True)
+                ml_fkReverseControls[-1].masterGroup.parent = mFKReverseGroup
+                
+                
+                #mFKGroup = mRoot.doCreateAt()
+                #mFKGroup.doStore('cgmTypeModifier','fk')
+                #mFKGroup.doName()                
+                #mFKReverseGroup.parent = mRoot
+                
+                mPlug_FKonUse = mPlug_FKReverseOff
+                
+                
+                ml_fkBlendJoints  = mRigNull.msgList_get('fkBlendJoints')
+                ml_fkBlendJoints[0].parent = mRoot
+                ml_fkUseJoints = ml_fkBlendJoints
+            
+            
+            
             if str_ikBase in ['hips','head']:
-                mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[1].masterGroup.mNode))
-                ml_fkJoints[0].p_parent = mIKBaseControl
+                ml_fkControls[0].masterGroup.p_parent = mFKGroup
+                ml_fkControls[1].masterGroup.p_parent = mFKGroup
+                
+                #mPlug_FKonUse.doConnectOut("{0}.visibility".format(ml_fkJoints[1].masterGroup.mNode))
             else:
-                mPlug_FKon.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))            
+                #mPlug_FKonUse.doConnectOut("{0}.visibility".format(ml_fkJoints[0].masterGroup.mNode))
+                ml_fkControls[0].masterGroup.p_parent = mFKGroup
+                
+                
+            
+                
+                
             
             
             ml_blendJoints[0].parent = mRoot
@@ -3603,9 +3750,17 @@ def rig_frame(self):
                 ml_ikJoints[0].parent = mIKBaseControl
             
             ml_fkAttachJoints = []
-            for mObj in ml_fkJoints:
+            for mObj in ml_fkUseJoints:
                 mAttach = mObj.getMessageAsMeta('fkAttach')
                 ml_fkAttachJoints.append(mAttach or mObj)
+                
+            #Setup our reverse fk blend setup....
+            if ml_fkReverseControls:
+                ml_fkReverseDrivers = mRigNull.msgList_get('fkReverseDrivers')
+                
+                RIGCONSTRAINT.blendChainsBy(ml_fkJoints,ml_fkReverseDrivers,ml_fkBlendJoints,
+                                            driver = mPlug_FKReverse.p_combinedName,
+                                            l_constraints=['parent','scale'])                
                 
             #Pivot Setup ========================================================================================
             if mBlock.getMessage('pivotHelper'):
@@ -3637,7 +3792,7 @@ def rig_frame(self):
                 log.debug("|{0}| >> scale blend chain setup...".format(_str_func))                
                 RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                             driver = mPlug_FKIK.p_combinedName,
-                                            l_constraints=['point','orient','scale'])
+                                            l_constraints=['parent','scale'])
                 
                 
                 #Scale setup for ik joints                
@@ -3684,7 +3839,7 @@ def rig_frame(self):
             else:
                 RIGCONSTRAINT.blendChainsBy(ml_fkAttachJoints,ml_ikJoints,ml_blendJoints,
                                             driver = mPlug_FKIK.p_combinedName,
-                                            l_constraints=['point','orient'])
+                                            l_constraints=['parent'])
         
 
         #cgmGEN.func_snapShot(vars())
@@ -4022,50 +4177,57 @@ def rig_cleanUp(self):
         
         #...fk controls ====================================================================================
         log.debug("|{0}| >>  FK...".format(_str_func)+'-'*80)                
+        ml_fkJoints = self.mRigNull.msgList_get('controlsFK')
+        
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
+        ml_fkReverseControls = self.mRigNull.msgList_get('fkReverseControls')
+        if ml_fkReverseControls:
+            ml_fkReverseControls.reverse()
         
-        for i,mObj in enumerate(ml_fkJoints):
-            if i and not mBlock.spaceSwitch_fk:
-                continue
-            if not mObj.getMessage('masterGroup'):
-                log.debug("|{0}| >>  Lacks masterGroup: {1}".format(_str_func,mObj))            
-                continue
-            log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))
-            ml_targetDynParents = copy.copy(ml_baseDynParents)
-            ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
-            
-            mParent = mObj.masterGroup.getParent(asMeta=True)
-            if not mParent.hasAttr('cgmAlias'):
-                mParent.addAttr('cgmAlias','{0}_base'.format(mObj.p_nameBase))
+        for ml in [ml_fkJoints, ml_fkReverseControls]:
+            for i,mObj in enumerate(ml):
+                if i and not mBlock.spaceSwitch_fk:
+                    continue
+                if not mObj.getMessage('masterGroup'):
+                    log.debug("|{0}| >>  Lacks masterGroup: {1}".format(_str_func,mObj))            
+                    continue
+                log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))
+                ml_targetDynParents = copy.copy(ml_baseDynParents)
+                ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
                 
-            if i == 0:
-                ml_targetDynParents.append(mParent)
-                _mode = 2
+                mParent = mObj.masterGroup.getParent(asMeta=True)
+                if not mParent.hasAttr('cgmAlias'):
+                    mParent.addAttr('cgmAlias','{0}_base'.format(mObj.p_nameBase))
+                    
+                if i == 0:
+                    ml_targetDynParents.append(mParent)
+                    _mode = 2
+                    
+                    if mPivotResultDriver:
+                        ml_targetDynParents.insert(0, mPivotResultDriver)                        
+                else:
+                    ml_targetDynParents.insert(0,mParent)
+                    _mode = 2
                 
-                if mPivotResultDriver:
-                    ml_targetDynParents.insert(0, mPivotResultDriver)                        
-            else:
-                ml_targetDynParents.insert(0,mParent)
-                _mode = 2
+                ml_targetDynParents.extend(ml_endDynParents)
+                ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))
+                
             
-            ml_targetDynParents.extend(ml_endDynParents)
-            ml_targetDynParents.extend(mObj.msgList_get('spacePivots',asMeta = True))
             
-        
-        
-            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode, dynMode=_mode)# dynParents=ml_targetDynParents)
-            #mDynGroup.dynMode = 2
-        
-            for mTar in ml_targetDynParents:
-                mDynGroup.addDynParent(mTar)
-            mDynGroup.rebuild()
-    
-            if i == 0:
-                mDynGroup.dynFollow.p_parent = mRoot    
+                mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mObj.mNode, dynMode=_mode)# dynParents=ml_targetDynParents)
+                #mDynGroup.dynMode = 2
             
-            log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
-            #pprint.pprint(ml_targetDynParents)                
-            log.debug(cgmGEN._str_subLine)    
+                for mTar in ml_targetDynParents:
+                    mDynGroup.addDynParent(mTar)
+                mDynGroup.rebuild()
+        
+                if i == 0:
+                    mDynGroup.dynFollow.p_parent = mRoot    
+                
+                log.debug("|{0}| >>  FK targets: {1}...".format(_str_func,mObj))
+                #pprint.pprint(ml_targetDynParents)                
+                log.debug(cgmGEN._str_subLine)    
+        
         
         
         #Settings =================================================================================
@@ -4075,6 +4237,7 @@ def rig_cleanUp(self):
         
         
         ml_handleJoints = mRigNull.msgList_get('handleJoints')
+        """
         if ml_handleJoints:
             #ATTR.set_default(ml_handleJoints[-1].mNode, 'followRoot', 1.0)
             #ml_handleJoints[-1].followRoot = 1.0
@@ -4084,7 +4247,7 @@ def rig_cleanUp(self):
                 
             if mBlock.getEnumValueString('ikBase') not in ['hips','head']:
                 ATTR.set_default(ml_handleJoints[0].mNode, 'followRoot', 0.0)
-                ml_handleJoints[0].followRoot = 0.0
+                ml_handleJoints[0].followRoot = 0.0"""
                 
 
         """
@@ -4358,7 +4521,8 @@ def controller_getDat(self):
     md['pivots'] = checkList(['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder])
     
     #FK...
-    md['fk'] = checkList(['leverFK','fkJoints','controlsFK','controlFK'])
+    md['fk'] = checkList(['leverFK','fkControl','fkControls','controlsFK','controlFK'])
+    md['fkReverse'] = checkList(['fkReverseControls'])
     
     md['noHide'] = md['root'] + md['settings']
     

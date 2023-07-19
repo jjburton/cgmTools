@@ -767,19 +767,19 @@ def get_driverPoint(self, mode = 'end',idx = None,noneValid = True):
     
 #reload(BLOCKSHARE)
 l_controlOrder = BLOCKSHARE._l_controlOrder
-d_controlLinks = {'root':['cog','rigRoot','limbRoot'],
-                  'fk':['leverFK','fkJoints','controlsFK','controlFK'],
+d_controlLinks = {'root':['cog','rigRoot','scaleRoot','limbRoot'],
+                  'fk':['leverFK','controlsFK','fkControls','controlFK'],#'fkJoints',
+                  'fkReverse':['fkReverseControls'],
                   'ikEnd':['controlIK'],
                   'ik':['controlsIK','controlIK','controlIKEnd','controlBallRotation',
-                        'controlIKBase','controlsFK','controlFollowParentBank',
+                        'controlIKBase','controlFollowParentBank',
                         'controlIKBall','controlIKBallHinge','controlIKToe',
                         'controlIKMid','leverIK','eyeLookAt','lookAt'],
                   'face':['controlsFace'],
-                  'pivots':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
-                  'segmentHandles':['handleJoints','controlSegMidIK'],
+                  'pivot':['pivot{0}'.format(n.capitalize()) for n in BLOCKSHARE._l_pivotOrder],
+                  'segmentHandle':['handleJoints','controlSegMidIK'],
                   'direct':['rigJoints']}
 
-#@cgmGEN.Timer
 def controls_getDat(self, keys = None,
                     ignore = [],
                     report = False,
@@ -817,20 +817,27 @@ def controls_getDat(self, keys = None,
     
     
     _isReferenced = self.isReferenced()
+    d_running = {}
     
     def addMObj(mObj,mList):
         if mObj not in mList:
             _mClass = mObj.getMayaAttr('mClass')
             if not _mClass:
                 mObj = cgmMeta.validateObjArg(mObj,'cgmControl',setClass=True)
+                
+            _tag = str(mObj.getMayaAttr('cgmTypeModifier')) or None
+            if not md_controls.get(_tag):
+                md_controls[_tag] = []
+            _ml = md_controls[_tag] 
+            if mObj not in _ml:
+                _ml.append(mObj)
+                
             if ml_objs is not None:
                 if mObj in ml_objs:
                     ml_objs.remove(mObj)
                 else:
                     if rewire and not _isReferenced:
-                        log.debug("|{0}| >> Repair on. Connecting: {1}".format(_str_func,mObj))
-                        mRigNull.msgList_append('controlsAll',mObj)
-                        mRigNull.moduleSet.append(mObj.mNode)                        
+                        log.debug("|{0}| >> Repair on. Connecting: {1}".format(_str_func,mObj))                 
                     else:
                         log.debug("|{0}| >> Not in list. resolve: {1}".format(_str_func,mObj))
             log.debug("|{0}| >> adding: {1}".format(_str_func,mObj))
@@ -839,7 +846,6 @@ def controls_getDat(self, keys = None,
     mRigNull = self.rigNull
     try:ml_objs = mRigNull.moduleSet.getMetaList() or []
     except:ml_objs = []
-    #l_objs = [mObj.mNode for mObj in ml_objs]
     md_controls = {}
     ml_controls = []
     
@@ -856,9 +862,19 @@ def controls_getDat(self, keys = None,
         for k in ignore:
             if k in l_useKeys:
                 l_useKeys.remove(k)
-                
+    
+    #Check our block module for special control links
+    mModule = self.getBlockModule()
+    cgmGEN._reloadMod(mModule)
+    d_controlLinksUse = copy.copy(d_controlLinks)
+    
+    if mModule.__dict__.get('d_controlDat_links'):
+        log.debug("get_controllerDat | getting from module: {}".format(self))
+        _d = mModule.d_controlDat_links
+        d_controlLinksUse.update(_d)
+        
     for key in l_useKeys:
-        l_options = d_controlLinks.get(key,[key])
+        l_options = d_controlLinksUse.get(key,[key])
         log.debug("|{0}| >>  {1}:{2}".format(_str_func,key,l_options))
         md_controls[key] = []
         _ml = md_controls[key]
@@ -878,7 +894,15 @@ def controls_getDat(self, keys = None,
         ml_dup = copy.copy(ml_objs)
         log.debug("|{0}| >> Second pass {1}... ".format(_str_func,len(ml_objs))+'-'*20)
         for mObj in ml_dup:
-            log.debug("|{0}| >> {1} ".format(_str_func,mObj))            
+            log.debug("|{0}| >> {1} ".format(_str_func,mObj))
+            
+            _tag = mObj.getMayaAttr('cgmTypeModifier')
+            if not md_controls.get(_tag):
+                md_controls[_tag] = []
+            _ml = md_controls[_tag] 
+            if mObj not in _ml:
+                _ml.append(mObj)
+            
             if mObj.hasAttr('cgmControlDat'):
                 _tags = mObj.cgmControlDat.get('tags',[])
                 log.debug("|{0}| >> tags: {1} ".format(_str_func,_tags))            
@@ -892,6 +916,9 @@ def controls_getDat(self, keys = None,
                     if mObj not in ml_controls:
                         ml_controls.append(mObj)                    
                     addMObj(mObj,_ml)
+                    
+
+            """
             for _t in 'fk','ik':
                 _tag = mObj.getMayaAttr('cgmTypeModifier') or []
                 if _t in _tag:
@@ -901,17 +928,19 @@ def controls_getDat(self, keys = None,
                     if mObj not in ml_controls:
                         ml_controls.append(mObj)
                         addMObj(mObj,_ml)
-                    addMObj(mObj,_ml)                
+                    addMObj(mObj,_ml) """               
             
     
-    if not keys and 'spacePivots' not in ignore:
-        md_controls['spacePivots'] = []
-        _ml = md_controls['spacePivots']
+    if not keys and 'spacePivot' not in ignore:
+        md_controls['spacePivot'] = []
+        _ml = md_controls['spacePivot']
         for mObj in ml_controls:
             mBuffer = mObj.msgList_get('spacePivots')
             for mSpace in mBuffer:
                 addMObj(mSpace,_ml)
                 if mSpace not in ml_controls:ml_controls.append(mSpace)
+    
+    
     
     ml_core = []
     for k in 'settings','cog','root','settings','fk','ik','segmentHandles','face':
@@ -942,8 +971,12 @@ def controls_getDat(self, keys = None,
         ml_controls.extend(ml_objs)
         
     if rewire and not _isReferenced:
-        log.debug("|{0}| >> rewire [{1}] ".format(_str_func,self))        
+        log.debug("|{0}| >> rewire [{1}] ".format(_str_func,self))
+        
+        mRigNull.moduleSet.purge()
+        
         for mObj in ml_controls:
+            mRigNull.moduleSet.append(mObj.mNode)
             if not mObj.getMessageAsMeta('rigNull'):
                 log.info("|{0}| >> Repair on. Broken rigNull connection on: {1}".format(_str_func,mObj))
                 mObj.connectParentNode(mRigNull,'rigNull')
@@ -957,7 +990,8 @@ def controls_getDat(self, keys = None,
     if keys or listOnly:
         return ml_controls
     return md_controls,ml_controls
-    
+
+
 def control_add(self, controls = None, face=True):
     _str_func = ' controls_get'
     
@@ -1598,6 +1632,12 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
             
         elif _mode == 'fkon':
             mSettings.FKIK = 0
+            if mSettings.hasAttr('FKReverse'):
+                mSettings.FKReverse = 0
+        elif _mode == 'fkreverseon':
+            if mSettings.hasAttr('FKReverse'):
+                mSettings.FKReverse = 1
+            mSettings.FKIK = 0
             
         elif _mode == 'ikon':
             mSettings.FKIK = 1
@@ -1658,7 +1698,55 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
                 mLookAt.select()        
                 mLoc.delete()
             
+        elif _mode == 'fkreversesnap':
+            ml_controls= self.atUtils('controls_get','fkReverse')
             
+            if not ml_controls:
+                return log.warning("{} | No fkReverseControls".format(_str_func))
+            ml_blends = []
+            ml_targets = []
+            l_pos = []
+            l_rot = []
+            md_locs = {}
+            
+            ml_controls.reverse()
+            
+            for i,mObj in enumerate(ml_controls):
+                log.debug("|{0}| >> On: {1} ".format(_str_func,mObj))
+                
+
+                mTarget = mObj.getMessageAsMeta('switchTarget')
+                if not mTarget:
+                    log.debug("|{0}| >> no switchTarget ".format(_str_func))                    
+                    mTarget = mObj.getMessageAsMeta('blendJoint')
+                if not mTarget:
+                    log.warning("|{0}| >> No target joint found! {1} ".format(_str_func,mObj.p_nameShort))
+                    continue
+                
+                log.debug("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
+                
+                ml_blends.append(mTarget)
+                l_pos.append(mTarget.p_position)
+                l_rot.append(mTarget.p_orient)
+                md_locs[i] = mTarget.doLoc(fastMode = True)
+                
+            mSettings.FKIK = 0
+            mSettings.FKReverse = 1
+            
+            for i,mObj in enumerate(ml_controls):
+                mLoc = md_locs.get(i)
+                if not mLoc:
+                    continue
+                #mObj.p_position = l_pos[i]
+                #mObj.p_orient = l_rot[i]
+                SNAP.go(mObj.mNode,mLoc.mNode)
+            
+            for i,mLoc in list(md_locs.items()):
+                mLoc.delete()
+                
+            for mObj in mRigNull.msgList_get('handleJoints'):
+                mObj.resetAttrs(transformsOnly = True)
+                    
         elif _mode == 'fksnap':
             ml_controls= self.atUtils('controls_get','fk')
             ml_blends = []
@@ -1692,6 +1780,8 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
                 md_locs[i] = mTarget.doLoc(fastMode = True)
                 
             mSettings.FKIK = 0
+            if mSettings.hasAttr('FKReverse'):
+                mSettings.FKReverse = 0
             
             for i,mObj in enumerate(ml_controls):
                 mLoc = md_locs.get(i)
@@ -1713,17 +1803,20 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
             if MATH.is_float_equivalent(mSettings.FKIK,1.0):
                 return log.debug("|{0}| >> Already in IK mode ".format(_str_func))
             
-            mControlIK = mRigNull.controlIK        
-            ml_controls = [mControlIK]
+            
+            ml_controls= self.atUtils('controls_get','ik')
+            
+            #mControlIK = mRigNull.controlIK        
+            #ml_controls = [mControlIK]
             md_controls = {}        
             md_locs = {}
-            if mRigNull.getMessage('controlIKBase'):
-                ml_controls.append(mRigNull.controlIKBase)
-            if mRigNull.getMessage('controlIKMid'):
-                ml_controls.append(mRigNull.controlIKMid)
+            #if mRigNull.getMessage('controlIKBase'):
+            #    ml_controls.append(mRigNull.controlIKBase)
+            #if mRigNull.getMessage('controlIKMid'):
+            #    ml_controls.append(mRigNull.controlIKMid)
                
                 
-            ml_ikJoints = mRigNull.msgList_get('ikJoints')
+            #ml_ikJoints = mRigNull.msgList_get('ikJoints')
             ml_blendJoints = mRigNull.msgList_get('blendJoints')
             
             md_datPostCompare = {}
@@ -1758,8 +1851,11 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
             
             mSettings.FKIK = 1
             
+            for ii in xrange(2):
+                for i,mLoc in list(md_locs.items()):
+                    SNAP.go(md_controls[i].mNode,mLoc.mNode)
+                    
             for i,mLoc in list(md_locs.items()):
-                SNAP.go(md_controls[i].mNode,mLoc.mNode)
                 mLoc.delete()
             
             if distCheck:
