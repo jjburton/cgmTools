@@ -2193,7 +2193,7 @@ def get_contextTimeDat(self,mirrorQuery=False,**kws):
 
 _l_timeFunctions = ['reset','report',
                     'resetFK','resetIK','resetIKEnd','resetSeg','resetDirect',
-                    'FKon','IKon','FKsnap','blendsnap','IKsnap','IKsnapAll','mirrorPush','mirrorPull','mirrorFlip',
+                    'FKon','IKon','FKsnap','FKreverseOn','FKreverseSnap','blendsnap','IKsnap','IKsnapAll','mirrorPush','mirrorPull','mirrorFlip',
                    'aimToFK','aimOn','aimOff','aimToIK','aimSnap',
                    'aimSnap','aimToIK','aimToFK']
 
@@ -2240,7 +2240,7 @@ def uiCB_contextualAction(self,**kws):
             d_contextSettings[k] = kws.get(k)
             
             
-    if _mode in ['FKsnap','FKon',
+    if _mode in ['FKsnap','FKon','FKreverseOn','FKreverseSnap',
                  'IKsnap','IKforce','IKon',
                  'blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
                  ]:
@@ -2590,7 +2590,7 @@ def uiCB_contextualAction(self,**kws):
                         #mc.setKeyframe(o,time = f)
                         
             if _mode in ['FKon','IKon','FKsnap','IKsnap','IKsnapAll',
-                         'blendsnap',
+                         'blendsnap','FKreverseOn','FKreverseSnap',
                          'aimToFK','aimOn','aimOff','aimToIK','aimSnap']:
                 log.info("Context: {0} | Switch call".format(_context))
                 res = []
@@ -5318,9 +5318,19 @@ def mmUI_part(self,parent = None):
     #Switch =============================================================================
     _select = mc.menuItem(p=parent,l="Switch",subMenu=True)
     d_modes = {'BlendSnap':'blendsnap'}
+    ml_selection = cgmMeta.asMeta(self._l_sel)
     
-    for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
+    print("0"*90)
+    pprint.pprint(ml_selection)
+    print("0"*90)
+
+    for m in ['FKon','FKsnap','FKreverseSnap','FKreverseOn','IKon','IKsnap','IKsnapAll','blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
               ]:
+        if m in ['FKreverseSnap','FKreverseOn']:
+            if ml_selection:
+                try:ml_selection[0].rigNull.settings.hasAttr('FKReverse')
+                except:
+                    continue
         #_d = d_setup[m]
         _d_tmp = {'mode':d_modes.get(m,m),
                   'contextMode':_context,
@@ -5466,7 +5476,7 @@ def mmUI_part(self,parent = None):
         #Switch =============================================================================
         _select = mc.menuItem(p=_sub,l="Switch",subMenu=True)
     
-        for m in ['FKon','FKsnap','IKon','IKsnap','IKsnapAll','blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
+        for m in ['FKon','FKsnap','FKreverseSnap','FKreverseOn','IKon','IKsnap','IKsnapAll','blendsnap',#'aimToFK','aimOn','aimOff','aimToIK','aimSnap'
                  ]:
             #_d = d_setup[m]
             _d_tmp = {'mode':m,

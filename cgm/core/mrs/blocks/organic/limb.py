@@ -9699,6 +9699,12 @@ def get_handleIndices(self):
         return idx_start,idx_end
     except Exception as err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
 
+
+d_controlDat_links = {
+    'fk' : ['leverFK','fkJoints','controlsFK','controlFK'],
+    'root' : ['cog','rigRoot','limbRoot'],
+}
+
 def controller_getDat(self):
     _str_func = 'controller_getDat'
     log.debug("|{0}| >>  {1}".format(_str_func,self)+ '-'*80)

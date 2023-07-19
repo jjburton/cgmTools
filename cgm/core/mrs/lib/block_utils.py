@@ -11855,6 +11855,8 @@ def shapes_castTest(self,orient= 'zyx'):
     _aimVector = mdOrient.get('string{0}'.format(CORESTRING.capFirst(_castVector)))
     
     _offset = mFac.mPuppet.atUtils('get_shapeOffset')
+    if self.getMayaAttr('controlOffsetMult'):
+        _offset = _offset * self.controlOffsetMult
     
     mFac.d_orientation = mdOrient
     ml_shapes = mFac.atBuilderUtils('shapes_fromCast',

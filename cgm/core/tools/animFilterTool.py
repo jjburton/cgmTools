@@ -532,6 +532,27 @@ def uiFunc_run(self):
     _str_func = 'uiFunc_run[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func))
     
+    _cnt = 0
+    for i, action in enumerate(self._actionList):
+        if self._dCB_actions[i].getValue():
+            _cnt+=1
+        
+    _msg = "Processing [{0}] Actions".format(_cnt)
+
+
+    result = mc.confirmDialog(title="AnimFilter Confirm",
+                              message= _msg,
+                              button=['OK', 'Cancel'],
+                              defaultButton='OK',
+                              cancelButton='Cancel',
+                              dismissString='Cancel')
+    
+    if result != 'OK':
+        log.error("|{0}| >> Cancelled.".format(_str_func))
+        return False    
+    
+    
+    
     d_time = SEARCH.get_timeline_dict()
     _start = d_time['rangeStart']
     _current = d_time['currentTime']
