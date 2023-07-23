@@ -9523,6 +9523,11 @@ def switchMode(self,mode = 'fkOn'):
         for mCtrl in mBallHingeControl,mBallControl,mToeControl:
             if mCtrl:
                 ml_controls.append(mCtrl)
+        
+        ml_handleJoints = mRigNull.msgList_get('handleJoints')
+        if ml_handleJoints:
+            ml_controls.extend(ml_handleJoints)
+        
     
         md_datPostCompare = {}
         for i,mObj in enumerate (ml_blendJoints):
@@ -9539,20 +9544,24 @@ def switchMode(self,mode = 'fkOn'):
             for i,mObj in enumerate(ml_rigJoints):
                 ml_rigLocs.append( mObj.doLoc(fastMode = True) )
                 
-            ml_handleLocs = []
-            ml_handleJoints = mRigNull.msgList_get('handleJoints')
-            for i,mObj in enumerate(ml_handleJoints):
-                ml_handleLocs.append( mObj.doLoc(fastMode = True) )        
+            #ml_handleLocs = []
+            #ml_handleJoints = mRigNull.msgList_get('handleJoints')
+            #for i,mObj in enumerate(ml_handleJoints):
+            #    ml_handleLocs.append( mObj.doLoc(fastMode = True) )        
     
         #Main IK control =====================================================================
     
         #dat we need
         #We need to store the blendjoint target for the ik control or loc it
         for i,mCtrl in enumerate(ml_controls):
+            
             if mCtrl in [mBallHingeControl]:
                 mCtrl.resetAttrs(transformsOnly = True)
                 continue
-            if mCtrl.getMessage('switchTarget'):
+            if mCtrl in ml_handleJoints:
+                md_locs[i] = mCtrl.doLoc(fastMode=True)
+                md_controls[i] = mCtrl                
+            elif mCtrl.getMessage('switchTarget'):
                 mCtrl.resetAttrs(transformsOnly = True)
                 md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
                 md_controls[i] = mCtrl
@@ -9562,9 +9571,17 @@ def switchMode(self,mode = 'fkOn'):
     
         mSettings.FKIK = 1
         log.debug(cgmGEN.logString_sub(_str_func,"Snapping") )
+        for ii in range(len(ml_blendJoints)):
+            for i,mObj in enumerate(ml_controls):
+                mLoc = md_locs.get(i)
+                if not mLoc:
+                    log.warning("Missing loc: {}".format(mObj))
+                    continue            
+                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(i,md_controls[i])))
+                SNAP.go(mObj.mNode,mLoc.mNode)
+                
+                
         for i,mLoc in list(md_locs.items()):
-            log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(i,md_controls[i])))
-            SNAP.go(md_controls[i].mNode,mLoc.mNode)
             mLoc.delete()
             
         #if mControlMid:
@@ -9597,11 +9614,11 @@ def switchMode(self,mode = 'fkOn'):
             log.debug("|{0}| >> ik snap all end...".format(_str_func))
             
             
-            for ii in range(2):
-                for i,mObj in enumerate(ml_handleJoints):
-                    SNAP.go(mObj.mNode,ml_handleLocs[i].mNode)
-                    if ii==1:
-                        ml_handleLocs[i].delete()
+            #for ii in range(2):
+            #    for i,mObj in enumerate(ml_handleJoints):
+            #        SNAP.go(mObj.mNode,ml_handleLocs[i].mNode)
+            #        if ii==1:
+            #            ml_handleLocs[i].delete()
     
             for i,mObj in enumerate(ml_rigJoints):
                 SNAP.go(mObj.mNode,ml_rigLocs[i].mNode)

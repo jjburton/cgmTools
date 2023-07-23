@@ -52,7 +52,8 @@ class ui(cgmUI.cgmGUI):
     FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
     DEFAULT_SIZE = 425,170
     TOOLNAME = '{0}.ui'.format(__toolname__)
-    
+    UNDO_CHUNK_NAME = "undo-keyser-drag"
+
     def insert_init(self,*args,**kws):
         _str_func = '__init__[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func))        
@@ -63,6 +64,8 @@ class ui(cgmUI.cgmGUI):
 
         self.__version__ = __version__
         self.__toolName__ = self.__class__.WINDOW_NAME	
+
+        self._isChunkOpen = False
 
         #self.l_allowedDockAreas = []
         self.WINDOW_TITLE = self.__class__.WINDOW_TITLE
@@ -131,8 +134,8 @@ class ui(cgmUI.cgmGUI):
         self.uiSlider_favor.setValue(defaultFavor)
         cmd = cgmGEN.Callback(self.uiFunc_setFavorSlider, "slider")
 
-        self.uiSlider_favor(edit=True, changeCommand=cmd)
-        self.uiSlider_favor(edit=True, dragCommand=cmd)
+        self.uiSlider_favor(edit=True, changeCommand=cgmGEN.Callback(self.uiFunc_handleChange, cmd))
+        self.uiSlider_favor(edit=True, dragCommand=cgmGEN.Callback(self.uiFunc_handleDrag, cmd))
 
         _row.setStretchWidget(self.uiSlider_favor)
         mUI.MelSpacer(_row, w=5)
@@ -148,14 +151,15 @@ class ui(cgmUI.cgmGUI):
             precision=2,
             annotation="Midpoint"
         )
+        
         self.uiTF_midPoint(edit=True, changeCommand=cgmGEN.Callback(self.uiFunc_setMidPointSlider, "field"))
         
         self.uiSlider_midPoint = mUI.MelFloatSlider(_row,0.0, 1.0, defaultMidPoint, step=0.01)
         self.uiSlider_midPoint.setValue(defaultMidPoint)
         cmd = cgmGEN.Callback(self.uiFunc_setMidPointSlider, "slider")
         
-        self.uiSlider_midPoint(edit=True, changeCommand=cmd)
-        self.uiSlider_midPoint(edit=True, dragCommand=cmd)
+        self.uiSlider_midPoint(edit=True, changeCommand=cgmGEN.Callback(self.uiFunc_handleChange, cmd))
+        self.uiSlider_midPoint(edit=True, dragCommand=cgmGEN.Callback(self.uiFunc_handleDrag, cmd))
 
         _row.setStretchWidget(self.uiSlider_midPoint)
         mUI.MelSpacer(_row, w=5)
@@ -176,6 +180,20 @@ class ui(cgmUI.cgmGUI):
         _row.layout()
 
         return _inside
+
+    def uiFunc_handleDrag(self, func):
+        if not self._isChunkOpen:
+            mc.undoInfo(openChunk=True,chunkName=self.UNDO_CHUNK_NAME)
+            self._isChunkOpen = True
+        
+        func()
+
+    def uiFunc_handleChange(self, func):
+        if self._isChunkOpen:
+            mc.undoInfo(closeChunk=True)
+            self._isChunkOpen = False
+        
+        func()
 
     def uiFunc_setFavorSlider(self, source):
         uiFunc_setFieldSlider(self.uiTF_favor, self.uiSlider_favor, source, 1.0, .01)
@@ -418,6 +436,7 @@ def adjust_favoring(favor=1.0, midpoint=0.5):
 
                 mc.keyTangent(attr_full_name, time=(keys[0][0],), edit=True, inTangentType='auto', outTangentType='auto')
                 mc.keyTangent(attr_full_name, time=(keys[-1][0],), edit=True, inTangentType='auto', outTangentType='auto')
+            mc.dgdirty(obj)
 
 def set_values_by_ratio(ratio = 0):
     # Get the currently selected keys
@@ -428,7 +447,7 @@ def set_values_by_ratio(ratio = 0):
         for obj, attr_dict in object_dict.items():
             for attr, keys in attr_dict.items():
                 if len(keys) < 2: # We need at least two keys to interpolate between
-                    print("For object {} and attribute {}, please select at least two keys.".format(obj,attr))
+                    print("For object {} and attribute {}, please select at least two keys.".format(obj,attr))                    
                     continue
 
                 # Get the first and last key values

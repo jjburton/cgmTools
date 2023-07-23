@@ -468,7 +468,8 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
             ml_curves = []
     
             if ikEnd == 'tipBase':
-                mIKCrv = mBlock.ikEndHandle.doCreateAt()#ml_handleTargets[self.int_handleEndIdx]
+                mIKCrv = ml_handleTargets[self.int_handleEndIdx].doCreateAt()                
+                #mIKCrv = mBlock.ikEndHandle.doCreateAt()#ml_handleTargets[self.int_handleEndIdx]
             elif ikEnd == 'tipMid':
                 mIKCrv =  mBlock.ikEndHandle.doCreateAt()
                 
@@ -480,8 +481,6 @@ def ik_end(self,ikEnd=None,ml_handleTargets = None, ml_rigJoints = None,ml_fkSha
                 """
                 mIKCrv.p_position = DIST.get_average_position([ml_rigJoints[self.int_segBaseIdx].p_position,
                                                                ml_rigJoints[-1].p_position])"""
-    
-                
             elif ikEnd == 'tipEnd':
                 mIKCrv = mBlock.ikEndHandle.doCreateAt()#ml_handleTargets[self.int_handleEndIdx]
                 mIKCrv.p_position = ml_rigJoints[-1].p_position

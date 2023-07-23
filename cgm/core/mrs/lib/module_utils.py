@@ -1710,25 +1710,31 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
             md_locs = {}
             
             ml_controls.reverse()
-            
+            ml_handleJoints = mRigNull.msgList_get('handleJoints')
+            if ml_handleJoints:
+                ml_handleJoints.reverse()
+                ml_controls.extend(ml_handleJoints)
+                
             for i,mObj in enumerate(ml_controls):
                 log.debug("|{0}| >> On: {1} ".format(_str_func,mObj))
                 
-
-                mTarget = mObj.getMessageAsMeta('switchTarget')
-                if not mTarget:
-                    log.debug("|{0}| >> no switchTarget ".format(_str_func))                    
-                    mTarget = mObj.getMessageAsMeta('blendJoint')
-                if not mTarget:
-                    log.warning("|{0}| >> No target joint found! {1} ".format(_str_func,mObj.p_nameShort))
-                    continue
-                
-                log.debug("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
-                
-                ml_blends.append(mTarget)
-                l_pos.append(mTarget.p_position)
-                l_rot.append(mTarget.p_orient)
-                md_locs[i] = mTarget.doLoc(fastMode = True)
+                if mObj in ml_handleJoints:
+                    md_locs[i] = mObj.doLoc(fastMode=True)
+                else:
+                    mTarget = mObj.getMessageAsMeta('switchTarget')
+                    if not mTarget:
+                        log.debug("|{0}| >> no switchTarget ".format(_str_func))                    
+                        mTarget = mObj.getMessageAsMeta('blendJoint')
+                    if not mTarget:
+                        log.warning("|{0}| >> No target joint found! {1} ".format(_str_func,mObj.p_nameShort))
+                        continue
+                    
+                    log.debug("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
+                    
+                    ml_blends.append(mTarget)
+                    l_pos.append(mTarget.p_position)
+                    l_rot.append(mTarget.p_orient)
+                    md_locs[i] = mTarget.doLoc(fastMode = True)
                 
             mSettings.FKIK = 0
             mSettings.FKReverse = 1
@@ -1744,8 +1750,8 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
             for i,mLoc in list(md_locs.items()):
                 mLoc.delete()
                 
-            for mObj in mRigNull.msgList_get('handleJoints'):
-                mObj.resetAttrs(transformsOnly = True)
+            #for mObj in mRigNull.msgList_get('handleJoints'):
+            #    mObj.resetAttrs(transformsOnly = True)
                     
         elif _mode == 'fksnap':
             ml_controls= self.atUtils('controls_get','fk')
@@ -1757,45 +1763,51 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
             
             ml_handleJoints = mRigNull.msgList_get('handleJoints')
             
-            for i,mObj in enumerate(ml_controls):
+            for i,mObj in enumerate(ml_controls+ml_handleJoints):
                 log.debug("|{0}| >> On: {1} ".format(_str_func,mObj))
                 
                 #if ml_handleJoints:
                 #    md_locs[i] = ml_handleJoints[i].doLoc(fastMode = True)
                     
                 #else:
-                mTarget = mObj.getMessageAsMeta('switchTarget')
-                if not mTarget:
-                    log.debug("|{0}| >> no switchTarget ".format(_str_func))                    
-                    mTarget = mObj.getMessageAsMeta('blendJoint')
-                if not mTarget:
-                    log.warning("|{0}| >> No target joint found! {1} ".format(_str_func,mObj.p_nameShort))
-                    continue
-                
-                log.debug("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
-                
-                ml_blends.append(mTarget)
-                l_pos.append(mTarget.p_position)
-                l_rot.append(mTarget.p_orient)
-                md_locs[i] = mTarget.doLoc(fastMode = True)
+                if mObj in ml_handleJoints:
+                    md_locs[i] = mObj.doLoc(fastMode=True)
+                    
+                else:
+                    mTarget = mObj.getMessageAsMeta('switchTarget')
+                    if not mTarget:
+                        log.debug("|{0}| >> no switchTarget ".format(_str_func))                    
+                        mTarget = mObj.getMessageAsMeta('blendJoint')
+                    if not mTarget:
+                        log.warning("|{0}| >> No target joint found! {1} ".format(_str_func,mObj.p_nameShort))
+                        continue
+                    
+                    log.debug("|{0}| >> blend: {1} ".format(_str_func,mTarget.mNode))
+                    
+                    ml_blends.append(mTarget)
+                    l_pos.append(mTarget.p_position)
+                    l_rot.append(mTarget.p_orient)
+                    md_locs[i] = mTarget.doLoc(fastMode = True)
                 
             mSettings.FKIK = 0
             if mSettings.hasAttr('FKReverse'):
                 mSettings.FKReverse = 0
             
-            for i,mObj in enumerate(ml_controls):
-                mLoc = md_locs.get(i)
-                if not mLoc:
-                    continue
-                #mObj.p_position = l_pos[i]
-                #mObj.p_orient = l_rot[i]
-                SNAP.go(mObj.mNode,mLoc.mNode)
+            for ii in range(len(ml_controls+ml_handleJoints)):
+                for i,mObj in enumerate(ml_controls+ml_handleJoints):
+                    mLoc = md_locs.get(i)
+                    if not mLoc:
+                        log.warning("Missing loc: {}".format(mObj))
+                        continue
+                    #mObj.p_position = l_pos[i]
+                    #mObj.p_orient = l_rot[i]
+                    SNAP.go(mObj.mNode,mLoc.mNode)
             
             for i,mLoc in list(md_locs.items()):
                 mLoc.delete()
                 
-            for mObj in mRigNull.msgList_get('handleJoints'):
-                mObj.resetAttrs(transformsOnly = True)
+            #for mObj in mRigNull.msgList_get('handleJoints'):
+            #    mObj.resetAttrs(transformsOnly = True)
                 
         elif _mode in ['iksnap','iksnapall']:
             if not mRigNull.getMessage('controlIK'):
@@ -1830,7 +1842,7 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
                 log.debug("|{0}| >> iksnapall prep...".format(_str_func))
                 mSettings.visDirect=True
                 ml_rigLocs = []
-                ml_rigJoints = mRigNull.msgList_get('rigJoints')
+                ml_rigJoints = mRigNull.msgList_get('rigJoints')             
                 for i,mObj in enumerate(ml_rigJoints):
                     ml_rigLocs.append( mObj.doLoc(fastMode = True) )
                     
@@ -1838,20 +1850,25 @@ def switchMode(self,mode = 'fkOn', bypassModuleCheck=False, distCheck = False):
             
             #dat we need
             #We need to store the blendjoint target for the ik control or loc it
-            for i,mCtrl in enumerate(ml_controls):
-                if mCtrl.getMessage('switchTarget'):
-                    md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
+            ml_handleJoints = mRigNull.msgList_get('handleJoints')
+            
+            for i,mCtrl in enumerate(ml_controls+ml_handleJoints):
+                if mCtrl in ml_handleJoints:
+                    md_locs[i] = mCtrl.doLoc(fastMode=True)
                     md_controls[i] = mCtrl
+                elif mCtrl.getMessage('switchTarget'):
+                    md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
+                    md_controls[i] = mCtrl                    
                 else:
                     log.error("mCtrl: {0}  missing switchTarget".format(mCtrl))
-                    
+            
             
             for i,mCtrl in list(md_controls.items()):
                 mCtrl.resetAttrs(transformsOnly = True)
             
             mSettings.FKIK = 1
             
-            for ii in xrange(2):
+            for ii in range(len(ml_controls+ml_handleJoints)):
                 for i,mLoc in list(md_locs.items()):
                     SNAP.go(md_controls[i].mNode,mLoc.mNode)
                     
