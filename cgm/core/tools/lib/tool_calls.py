@@ -207,7 +207,10 @@ def keyEaser():
     import cgm.core.tools.keyEaser as KEYEASER
     cgmGEN._reloadMod(KEYEASER)
     mel.eval('python "import cgm.core.tools.keyEaser as KEYEASER;cgmKeyEaserUI = KEYEASER.ui()"')
-        
+
+def mrsPicker():
+    mel.eval('python "import cgm.core.mrs.Animate as MRSANIMATE;cgmMRSPicker = MRSANIMATE.ui_picker()"')
+
 def animFilter():
     try:
         import cgm.core.tools.animFilterTool as ANIMFILTER

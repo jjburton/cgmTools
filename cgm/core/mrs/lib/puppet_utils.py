@@ -115,7 +115,7 @@ def modules_getHeirarchal(self,rewire=False):
             _res = self.mModulesAll
             if _res:
                 log.debug(cgmGEN.logString_msg(_str_func,'mModulesAll buffer...'))
-                return _res
+                return VALID.listArg(_res)
         except Exception as err:
             log.error(err)
     else:

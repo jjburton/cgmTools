@@ -9524,9 +9524,9 @@ def switchMode(self,mode = 'fkOn'):
             if mCtrl:
                 ml_controls.append(mCtrl)
         
-        ml_handleJoints = mRigNull.msgList_get('handleJoints')
-        if ml_handleJoints:
-            ml_controls.extend(ml_handleJoints)
+        #ml_handleJoints = mRigNull.msgList_get('handleJoints')
+        #if ml_handleJoints:
+        #    ml_controls.extend(ml_handleJoints)
         
     
         md_datPostCompare = {}
@@ -9544,10 +9544,10 @@ def switchMode(self,mode = 'fkOn'):
             for i,mObj in enumerate(ml_rigJoints):
                 ml_rigLocs.append( mObj.doLoc(fastMode = True) )
                 
-            #ml_handleLocs = []
-            #ml_handleJoints = mRigNull.msgList_get('handleJoints')
-            #for i,mObj in enumerate(ml_handleJoints):
-            #    ml_handleLocs.append( mObj.doLoc(fastMode = True) )        
+            ml_handleLocs = []
+            ml_handleJoints = mRigNull.msgList_get('handleJoints')
+            for i,mObj in enumerate(ml_handleJoints):
+                ml_handleLocs.append( mObj.doLoc(fastMode = True) )        
     
         #Main IK control =====================================================================
     
@@ -9558,10 +9558,10 @@ def switchMode(self,mode = 'fkOn'):
             if mCtrl in [mBallHingeControl]:
                 mCtrl.resetAttrs(transformsOnly = True)
                 continue
-            if mCtrl in ml_handleJoints:
-                md_locs[i] = mCtrl.doLoc(fastMode=True)
-                md_controls[i] = mCtrl                
-            elif mCtrl.getMessage('switchTarget'):
+            #if mCtrl in ml_handleJoints:
+            #    md_locs[i] = mCtrl.doLoc(fastMode=True)
+            #    md_controls[i] = mCtrl                
+            if mCtrl.getMessage('switchTarget'):
                 mCtrl.resetAttrs(transformsOnly = True)
                 md_locs[i] = mCtrl.switchTarget.doLoc(fastMode=True)
                 md_controls[i] = mCtrl
@@ -9614,11 +9614,11 @@ def switchMode(self,mode = 'fkOn'):
             log.debug("|{0}| >> ik snap all end...".format(_str_func))
             
             
-            #for ii in range(2):
-            #    for i,mObj in enumerate(ml_handleJoints):
-            #        SNAP.go(mObj.mNode,ml_handleLocs[i].mNode)
-            #        if ii==1:
-            #            ml_handleLocs[i].delete()
+            for ii in range(2):
+                for i,mObj in enumerate(ml_handleJoints):
+                    SNAP.go(mObj.mNode,ml_handleLocs[i].mNode)
+                    if ii==1:
+                        ml_handleLocs[i].delete()
     
             for i,mObj in enumerate(ml_rigJoints):
                 SNAP.go(mObj.mNode,ml_rigLocs[i].mNode)

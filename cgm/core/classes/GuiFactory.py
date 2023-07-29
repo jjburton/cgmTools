@@ -1001,7 +1001,10 @@ class cgmGUI(mUI.BaseMelWindow):
         """ This is meant to be overloaded per gui """
         _str_func = 'post_init[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
-
+    
+    def insert_baseVariables(self):
+        pass
+    
     def setup_baseVariables(self):
         _str_func = 'setup_baseVariables[{0}]'.format(self.__class__.TOOLNAME)            
         log.info("|{0}| >>...".format(_str_func)) 
@@ -1009,6 +1012,8 @@ class cgmGUI(mUI.BaseMelWindow):
         self.create_guiOptionVar('Dock',defaultValue = 0)
         self.create_guiOptionVar('DockSide',defaultValue = 0)	
         self.create_cgmDebugOptionVar(defaultValue = 0)
+        
+        self.insert_baseVariables()
         
 
     def create_guiOptionVar(self,varName,*args,**kws):
@@ -1931,7 +1936,7 @@ def add_cgmFooter(parent = False):
 def add_cgMonaseryFooter(parent = False):
     from cgm import images as cgmImagesFolder
     
-    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.25,.25,.25], h = 20)
+    _row_cgm = mUI.MelHRowLayout(parent, bgc = [.2,.2,.2], h = 20)
     try:
         _path_imageFolder = PATHS.Path(cgmImagesFolder.__file__).up().asFriendly()
         _path_image = os.path.join(_path_imageFolder,'cgmonastery_uiFooter_gray.png')

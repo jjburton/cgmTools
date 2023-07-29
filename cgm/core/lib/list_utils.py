@@ -100,5 +100,11 @@ def get_matchList(list1,list2):
         return matchList
     else:
         return []
+    
+def get_keys_from_dict(d):
+    _keys = []
+    for k,d in list(d.items()):
+        _keys.append(k)
+    return _keys
 
 

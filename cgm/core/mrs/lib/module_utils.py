@@ -967,7 +967,7 @@ def controls_getDat(self, keys = None,
         pprint.pprint( ml_objs)
         #raise ValueError,("|{0}| >> Resolve missing controls! | {1}".format(_str_func, ml_objs))
         #return log.error("|{0}| >> Resolve missing controls!".format(_str_func))
-        md_controls['extra'] = [ml_objs]
+        md_controls['extra'] = ml_objs
         ml_controls.extend(ml_objs)
         
     if rewire and not _isReferenced:

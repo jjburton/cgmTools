@@ -18,6 +18,8 @@ import sys
 import os
 import logging
 import importlib
+from functools import partial
+
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -53,6 +55,10 @@ import cgm.core.lib.transform_utils as TRANS
 from cgm.core.cgmPy import path_Utils as CGMPATH
 import cgm.core.lib.math_utils as MATH
 from cgm.lib import lists
+import cgm.core.lib.shared_data as CORESHARE
+
+from cgm.core.lib import string_utils as CORESTRING
+
 import cgm.core.tools.lib.tool_chunks as UICHUNKS
 import cgm.core.tools.dynParentTool as DYNPARENTTOOL
 import cgm.core.lib.attribute_utils as ATTR
@@ -63,6 +69,7 @@ import cgm.core.lib.constraint_utils as CONSTRAINT
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
+import cgm.core.mrs.lib.shared_dat as MRSSHARE
 
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
 #reload(MMUTILS)
@@ -92,9 +99,14 @@ _d_shorts = MRSANIMUTILS._d_timeShorts
 _l_contextKeys = MRSANIMUTILS._l_contextKeys
 
 _subLineBGC = [.75,.75,.75]
+_spacer = 2
 
 log_start = cgmGEN.log_start
-log_sub = cgmGEN.log_sub
+log_sub = cgmGEN.logString_sub
+log_msg = cgmGEN.logString_msg
+
+import cgm.images.icons as cgmIcons
+_path_imageFolder = CGMPATH.Path(cgmIcons.__file__).up().asFriendly()
 
 class ui(cgmUI.cgmGUI):
     USE_Template = 'cgmUITemplate'
@@ -2729,8 +2741,8 @@ def uiCB_contextualAction(self,**kws):
         try:cgmUI.progressBar_end(self.uiProgressBar)
         except:pass
         
-        if err:
-            cgmGEN.cgmExceptCB(Exception,err,localDat=vars())            
+        #if err:
+        #    cgmGEN.cgmExceptCB(Exception,err,localDat=vars())            
         return endCall(self)            
         
         
@@ -5916,3 +5928,953 @@ class mrsScrollList(mUI.BaseMelWidget):
             
     def selectCallBack(self,func=None,*args,**kws):
         print((self.getSelectedBlocks()))
+        
+class ui_picker(cgmUI.cgmGUI):
+    USE_Template = 'cgmUITemplate'
+    WINDOW_NAME = 'mrsPicker'    
+    WINDOW_TITLE = 'mrsPicker | - {0}'.format(__version__)
+    DEFAULT_MENU = None
+    RETAIN = False
+    MIN_BUTTON = False
+    MAX_BUTTON = False
+    FORCE_DEFAULT_SIZE = True  #always resets the size of the window when its re-created  
+    DEFAULT_SIZE = 350,600
+    
+    _d_ui_annotations = {'select':"Select rigBlocks in maya from ui."}
+    
+    def __init__(self,*a,**kws):
+        global BLOCKPICKER
+        self.d_puppet_uis = {}
+        self.mPuppet = None
+        self.uiFilterField  = None
+        self.md_puppetDat = None
+        
+        """
+        d[puppet][mod]{'ui':x, 'sub':x}
+        """
+
+        super(ui_picker, self).__init__(*a,**kws)
+        
+        self.uiPopUpMenu_children = None
+        self.uiPopUpMenu_siblings = None
+        #self.uiMenu_load = None 
+        #BLOCKPICKER = self
+    
+    def insert_baseVariables(self):
+        self.create_guiOptionVar('selectMode',defaultValue = 0)
+        
+    def buildMenu_vis(self,*args,**kws):
+        self.uiMenu_vis.clear()   
+        _menu = self.uiMenu_vis
+        
+        d_s = {'Focus':{'Clear':{'ann':self._d_ui_annotations.get('focus clear'),
+                                 'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                        'focus',False,None,
+                                        **{'updateUI':0})},
+                        'Vis':{'ann':self._d_ui_annotations.get('focus vis'),
+                               'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                      'focus',True,'vis',
+                                      **{'updateUI':0})},
+                        'Template':{'ann':self._d_ui_annotations.get('focus template'),
+                                    'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                           'focus',True,'template',
+                                           **{'updateUI':0})},},
+                   }
+
+
+        
+        """
+        for state in ['define','form','prerig']:
+            d_s['blockDat']['order'].append('Load {0}'.format(state))
+            d_s['blockDat']['Load {0}'.format(state)] = {
+                'ann':"Load {0} blockDat in context".format(state),
+                'call':cgmGEN.Callback(self.uiFunc_blockCall,
+                                       'atUtils','blockDat_load_state',state,
+                                       **{})}"""
+        
+        
+        #l_keys = sorted(d)
+                
+        for s in sorted(d_s):
+            d = d_s[s]
+            divTags = d.get('divTags',[])
+            headerTags = d.get('headerTags',[])
+            
+                
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=True,
+                            label = s,
+                            en=True,)
+
+            l_keys2 = d.get('order',False)
+            if l_keys2:
+                for k in list(d.keys()):
+                    if k not in l_keys2:
+                        l_keys2.append(k)
+            else:
+                l_keys2 = sorted(d)
+            for l in l_keys2:
+                if l in ['divTags','headerTags','order']:
+                    continue
+                if l in divTags:
+                    mUI.MelMenuItemDiv(_sub)                
+                if l in headerTags:
+                    mUI.MelMenuItemDiv(_sub)
+                    mUI.MelMenuItem(_sub,
+                                    label = "--- {0} ---".format(l.upper()),
+                                    en=False)
+                    mUI.MelMenuItemDiv(_sub)
+                    continue
+                d2 = d[l]
+                mUI.MelMenuItem(_sub,
+                                label = l,
+                                ann = d2.get('ann',''),
+                                c=d2.get('call'))
+
+        #Vis menu -----------------------------------------------------------------------------
+        for a in ['Measure','RotatePlane','Labels','ProximityMode']:
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
+                                   label = a,
+                                   en=True,)
+            if a == 'ProximityMode':
+                _l = ['off','inherit','proximity']
+            else:
+                _l = ['off','on']
+                
+            for i,v in enumerate(_l):
+                mUI.MelMenuItem(_sub,
+                                l = v,
+                                ann='Set visibility of: {0} | {1}'.format(a,v),
+                                c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                            'atUtils', 'blockAttr_set',
+                                            **{"vis{0}".format(a):i,'updateUI':0}))
+                
+                
+                
+        d_shared = {'formNull':{},
+                    'prerigNull':{}}
+        
+        l_settings = ['visibility']
+        l_locks = ['rigBlock','formNull','prerigNull']
+        l_enums = []
+    
+        for n in l_locks:
+            _sub = mUI.MelMenuItem(_menu, subMenu = True,tearOff=False,
+                                   label = n,
+                                   en=True,)
+            
+    
+            if n in l_settings:
+                l_options = ['hide','show']
+                _mode = 'moduleSettings'
+            elif n in l_locks:
+                l_options = ['unlock','lock']
+                _mode = 'moduleSettings'
+                if n != 'rigBlock':
+                    _plug = d_shared[n].get('plug',n)
+            else:
+                l_options = ['off','lock','on']
+                _mode = 'puppetSettings'
+                
+            for v,o in enumerate(l_options):
+                if n == 'rigBlock':
+                    mUI.MelMenuItem(_sub,
+                                    l = o,
+                                    ann='Set visibility of: {0} | {1}'.format(a,v),
+                                    c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                                'atUtils','templateAttrLock',v,**{'updateUI':0}))
+                         
+  
+                else:
+                    mUI.MelMenuItem(_sub,
+                                    l = o,
+                                    ann='Set visibility of: {0} | {1}'.format(a,v),
+                                    c = cgmGEN.Callback(self.uiFunc_blockCall,
+                                                'atUtils', 'messageConnection_setAttr',
+                                                _plug,**{'template':v,'updateUI':0}))                    
+
+
+        
+            for n in l_settings:
+                l_options = ['hide','show']
+    
+                for v,o in enumerate(l_options):
+                    mUI.MelMenuItem(_sub,
+                                    l = o,
+                                    ann='Set visibility of: {0} | {1}'.format(a,v),
+                                    c=cgmGEN.Callback(self.uiFunc_blockCall,
+                                                'atUtils', 'blockAttr_set',
+                                                **{n:v,'updateUI':0}))                    
+
+        log.info("Context menu rebuilt")
+        
+
+            
+    def build_menus(self):
+        _str_func = 'build_menus[{0}]'.format(self.__class__.TOOLNAME)            
+        log.info("|{0}| >>...".format(_str_func))
+        
+        
+        
+        #self.uiMenu_load = mUI.MelMenu( l='Load',pmc=self.buildMenu_load,)
+        #self.uiMenu_block = mUI.MelMenu( l='Block', pmc=self.buildMenu_block,pmo=1, tearOff=1)
+        #self.uiMenu_vis = mUI.MelMenu( l='Vis', tearOff=1)
+        
+        #self.buildMenu_vis()
+        #self.uiMenu_OptionsMenu = mUI.MelMenu( l='Options', pmc=self.buildMenu_options)		
+        #self.uiMenu_snap = mUI.MelMenu( l='Snap', pmo=1, tearOff=1)
+        #self.buildMenu_snap()
+        
+        self.uiMenu_HelpMenu = mUI.MelMenu( l='Help', pmc=self.buildMenu_help)   
+
+ 
+    def buildMenu_help(self,*args):
+        self.uiMenu_HelpMenu.clear()
+        
+        self.uiMenu_buildDock(self.uiMenu_HelpMenu)
+        
+        mUI.MelMenuItemDiv( self.uiMenu_HelpMenu )
+        
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Show Help",
+                         cb=self.var_ShowHelp.value,
+                         c = lambda *a:mc.evalDeferred(self.do_showHelpToggle,lp=True))                         
+
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Print Tools Help",
+                         c=lambda *a: cgmUI.log_selfReport(self) )
+        mUI.MelMenuItemDiv( self.uiMenu_HelpMenu )
+        
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Log Self",
+                         c=lambda *a: cgmUI.log_selfReport(self) )
+        
+        mUI.MelMenuItem( self.uiMenu_HelpMenu, l="Thanks",
+                         c=lambda *a: cgmUI.uiWindow_thanks() )        
+
+        # Update Mode
+        iMenu_loggerMaster = mUI.MelMenuItem( self.uiMenu_HelpMenu, l='Logger Level', subMenu=True)
+        mUI.MelMenuItem( iMenu_loggerMaster, l='Info',
+                         c = lambda *a:mc.evalDeferred(self.set_loggingInfo,lp=True))                         
+                         
+        mUI.MelMenuItem( iMenu_loggerMaster, l='Debug',
+                         c = lambda *a:mc.evalDeferred(self.set_loggingDebug,lp=True))             
+  
+        
+        
+        
+    def buildMenu_load( self, *args):
+        _str_func = 'buildMenu_load'
+        
+        if self.uiMenu_load:
+            log.info(cgmGEN.logString_sub(_str_func,'Clear...'))               
+            self.uiMenu_load.clear()
+        
+        #>>> Reset Options		
+        log.info("|{0}| >>...".format(_str_func))   
+        
+        mUI.MelMenuItem(self.uiMenu_load,
+                        l="Selected",
+                        c = lambda *a: self.uiFunc_loadBlock(),
+                        ann='Load Selected')                
+        
+        if not self.mBlock:
+            mUI.MelMenuItem(self.uiMenu_load,label='None')
+            return
+        
+        mUI.MelMenuItem(self.uiMenu_load,
+                        l="To Builder",
+                        c = lambda *a: self.uiFunc_toBuilder(),
+                        ann='Open Builder')        
+
+        mUI.MelMenuItemDiv( self.uiMenu_load )        
+        
+        
+
+
+        mUI.MelMenuItemDiv( self.uiMenu_load )
+        
+        mParent = self.mParent
+        mChildren = self.mChildren
+        mSiblings = self.mSiblings
+        mMirror = self.mMirror
+        
+        if mParent:
+            log.info(cgmGEN.logString_sub(_str_func,'Parent...'))                           
+            _key = mParent.UTILS.get_uiString(mParent)
+            #NAMETOOLS.get_combinedNameDict(mParent.mNode,'cgmType')            
+            mUI.MelMenuItem(self.uiMenu_load,
+                          l="^ {0}".format(_key),
+                          c = lambda *a: self.uiFunc_loadBlock(mParent),
+                          en=  1 if mParent else 0,
+                          ann='Load Parent block')
+        else:
+            mUI.MelMenuItem(self.uiMenu_load,
+                          l='Parent',
+                          en= 0,
+                          ann='Load Parent block')
+            
+        if mChildren:
+            log.info(cgmGEN.logString_sub(_str_func,'Children...'))               
+            _menu =  mUI.MelMenuItem( self.uiMenu_load, l="Children ({0})".format(len(mChildren)),
+                                      subMenu=True)        
+            
+            for i,mObj in enumerate(mChildren):
+                _key = self.d_BlockStrings[mObj]
+                #NAMETOOLS.get_combinedNameDict(mObj.mNode,'cgmType')
+                
+                mUI.MelMenuItem( _menu, l = _key,
+                                 c = lambda *a:self.uiFunc_loadBlock(mObj))#
+                
+                
+        if mSiblings:
+            #mUI.MelLabel(_mRow_load,label = "Sib")
+            log.info(cgmGEN.logString_sub(_str_func,'Siblings...'))    
+            
+            _menu =  mUI.MelMenuItem( self.uiMenu_load, l="Siblings ({0})".format(len(mSiblings)),
+                                      subMenu=True)                 
+
+            for i,mObj in enumerate(mSiblings):
+                _key = self.d_BlockStrings[mObj]
+                
+                #_key = NAMETOOLS.get_combinedNameDict(mObj.mNode,'cgmType')
+                
+                mUI.MelMenuItem( _menu, l = _key,
+                                 c = lambda *a:self.uiFunc_loadBlock(mObj))#
+                    
+        if mMirror:
+            mUI.MelMenuItemDiv( self.uiMenu_load )
+            
+            log.info(cgmGEN.logString_sub(_str_func,'mirror...'))
+            _key = mMirror.UTILS.get_uiString(mMirror)
+            
+            mUI.MelMenuItem(  self.uiMenu_load, l = "Mirror: {0}".format(_key),
+                             c = lambda *a:self.uiFunc_loadBlock(mMirror))#
+                
+        
+    def uiFunc_updateStatus(self):
+        if not self.mBlock:
+            self.uiStatus(edit=1,
+                          label='...')
+            
+            if self.uiMenu_load:self.uiMenu_load.clear()
+            
+            return log.error("No block loaded")
+
+        self.uiFunc_updateBlock()
+        
+        #_strBlock = self.mBlock.UTILS.get_uiString(self.mBlock)#p_nameBase
+        mBlock = self.mBlock
+        
+        """
+        l = []
+
+        #...pre
+        for a in ['cgmDirection','cgmPosition']:
+            _v = mBlock.getMayaAttr(a)
+            if _v:
+                l.append(_v)
+                
+        #...base
+        l.extend([mBlock.cgmName, mBlock.blockType])
+        
+        #...post
+        for a in ['blockProfile']:
+            _v = mBlock.getMayaAttr(a)
+            if _v:
+                l.append(_v)
+                
+        _strBlock = ">>> {0} <<<".format(' | '.join(l))"""
+        
+        _strBlock = self.mBlock.atUtils('get_uiString',skip = ['blockState'])
+        _strState = self.mBlock.getEnumValueString('blockState')
+        
+        self.uiStr_header(edit=1, label = _strBlock,
+                          bgc=cgmUI.guiBackgroundColorLight,
+                          en=True)
+                          #bgc = d_state_colors[_strState])        
+        
+        
+        self.uiStatus(edit=1,
+                      bgc = d_state_colors[_strState],
+                      label="State: {0}".format(_strState))        
+        
+
+                
+    def uiRebuild_puppetChooser(self):
+        self.uiPuppet_chooser.clear()
+        mPuppets = r9Meta.getMetaNodes(mTypes = 'cgmRigPuppet',nTypes=['network'])
+        self.ml_puppets = mPuppets
+        for mPuppet in mPuppets:
+            _name = mPuppet.getMayaAttr('cgmName') or mPuppet.p_nameBase
+            _ref = mPuppet.getReferencePrefix()
+            if _ref:
+                _name = "{}:{}".format(_ref,_name)
+            self.uiPuppet_chooser.append(_name)
+            
+            
+            
+        self.uiLoad_puppet()
+        
+    def uiFunc_toggleSubUI_all(self,arg):
+        _str_func = '{}.toggleSubUI_all {} '.format(self.__class__.TOOLNAME,arg)            
+        
+        if not self.mPuppet:
+            return log.warning("{} | No active puppet".format(_str_func))
+        
+        for mod,ui in list(self.d_puppet_uis[self.mPuppet].items()):
+            if issubclass(type(mod),cgmMeta.cgmNode):
+                ui['sub'](edit=True, vis=arg)
+        
+        
+        #self.d_puppet_uis[mPuppet.p_nameShort][mModule.p_nameShort]['sub'](edit = True, vis = not(self.d_puppet_uis[mPuppet.p_nameShort][mModule.p_nameShort]['sub'](q=1,vis=1)))
+        
+        
+    def uiFunc_toggleSubUI(self,mPuppet=None, mModule=None):
+        #pprint.pprint(self.d_puppet_uis)
+        #return
+        #print(self.d_puppet_uis[mPuppet])
+        #print(self.d_puppet_uis[mPuppet][mModule])
+        self.d_puppet_uis[mPuppet][mModule]['sub'](edit = True, vis = not(self.d_puppet_uis[mPuppet][mModule]['sub'](q=1,vis=1)))
+        
+    def uiFunc_select(self,items = None):
+        _mode = self.var_selectMode.getValue()
+        if not items:
+            return(log.warning("No items passed"))
+        
+        if not _mode:
+            mc.select(items, replace=True)
+        else:
+            mc.select(items, add = True)
+            
+    def uiFunc_checkStringKey(self,d,k):
+        if k in d['strings']:
+            return 
+        
+        d['strings'].append(k)
+        d['stringsToUi'][k] = []
+        return 
+    
+    def uiLoad_puppet(self, force=False):
+        _str_func = 'uiLoad_puppet[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        #Buffer Check;
+        
+        if not self.ml_puppets:
+            return(log.warning("No puppets found in scene. Try refreshing."))        
+        
+        self.uiPuppet_modules.clear()
+        
+        #Get our puppet ------------------------------------------------------
+        _idx = self.uiPuppet_chooser.getSelectedIdx()
+        _value = self.uiPuppet_chooser.getValue()
+
+        
+        _mPuppet = self.ml_puppets[_idx]
+        self.mPuppet = _mPuppet
+        self.ml_modules = []
+        
+        self.d_puppet_uis[_mPuppet] = {}#...set our puppet ui dict up
+        d_ui = self.d_puppet_uis[_mPuppet]#...short link that
+        
+        d_ui['strings'] = []
+        d_ui['stringsToUi'] = {}
+        
+
+        
+        log.debug(log_msg(_str_func,"{},{}".format(_idx,_value)))
+        
+        #reload(CORESHARE)
+        
+        #Get the modules
+        for i,mModule in enumerate([_mPuppet] + _mPuppet.atUtils('modules_getHeirarchal')):
+            log.debug(log_sub(_str_func,mModule))
+            
+            self.ml_modules.append(mModule)
+            
+            d_ui[mModule] = {}
+            _dModule = d_ui[mModule] 
+            
+            mModuleUI_sub = mUI.MelColumn(self.uiPuppet_modules,useTemplate = 'cgmUITemplate')            
+
+            _dModule['ui'] = mModuleUI_sub
+            _dModule['uiStrings'] = []
+            
+            if mModule in self.ml_puppets:
+                log.debug(log_msg(_str_func,"Puppet..."))
+                _side = 'center'
+                _uiString = mModule.atUtils('get_uiString')
+                _type = 'master'
+            else:
+                log.debug(log_msg(_str_func,"Module..."))
+                _side = mModule.getMayaAttr('cgmDirection')
+                _uiString = mModule.atUtils('get_uiString')
+                _type = mModule.moduleType
+            
+            if _side in ['none','None']:
+                _side = 'center'
+            if _side in [False,'none',None]:
+                _side = 'center'
+            
+            d_color = CORESHARE._d_gui_direction_colors_use[_side]
+            
+            if MATH.is_even(i):
+                _header = d_color['raw']
+            else:
+                _header = [v * .9 for v in d_color['raw']]
+                
+            _bgc = d_color['bgc']
+            
+            _row = mUI.MelHSingleStretchLayout(mModuleUI_sub,bgc = d_color['bgc'], h = 30)
+            
+            _icon = None
+            try:
+                _icon = os.path.join(_path_imageFolder,'mrs','{}.png'.format(_type))
+            except:pass
+            #mc.iconTextButton( style='iconAndTextVertical', image1='cube.png', label='cube' )
+            #continue
+                                    
+            if _icon:
+                
+                mUI.MelIconButton(_row,
+                                  ann=_type,
+                                  style='iconOnly',
+                                  #style = 'iconAndTextHorizontal',
+                                  l=_uiString,
+                                  image1 =_icon ,
+                                  ua=True,
+                                  #mw=5,
+                                  bgc = d_color['bgc'],
+                                  olc = d_color['button'],
+                                  c = cgmGEN.Callback(self.uiFunc_toggleSubUI, _mPuppet, mModule),
+                                  scaleIcon=True,
+                                  w=30,h=30,
+                                  )
+                """
+                mUI.MelImage(_row,
+                             w=20,
+                             h=20,
+                            image =_icon)"""
+                            #olc=[float(v) for v in d_state_colors['form']],
+                            #olb=[float(v) for v in d_state_colors['form']]+[.5],
+                            #w=20,h=20)           
+            
+            _row.setStretchWidget( mUI.MelButton( _row, label= _uiString,
+                                                  bgc = _header,
+                                                  c = cgmGEN.Callback(self.uiFunc_toggleSubUI, _mPuppet, mModule),                                                  
+                                                  ) )
+            #_row.setStretchWidget(_btn)
+            
+            
+            _dModule['selectAll'] = mUI.MelIconButton(_row,
+                                                      ann=_type,
+                                                      style='iconOnly',
+                                                      #style = 'iconAndTextHorizontal',
+                                                      l=_uiString,
+                                                      image1 =os.path.join(_path_imageFolder,'{}.png'.format('select_all')) ,
+                                                      ua=True,
+                                                      #mw=5,
+                                                      bgc = d_color['bgc'],
+                                                      olc = d_color['button'],
+                                                      scaleIcon=True,
+                                                      w=30,h=30,
+                                                      )            
+            
+                       
+            _row.layout()
+            
+            
+            #==========================================================================================
+            #>>> Sub section
+            mModuleUI_inside = mUI.MelColumn(mModuleUI_sub,
+                                             vis=True,
+                                             co=['left',12],
+                                             bgc = d_color['bgc'])
+            mModuleUI_inside(edit=True,co=['right',12],)
+            
+            _dModule['sub'] = mModuleUI_inside
+            
+            #if _type != 'master':
+            #    continue
+            
+            d_controls = mModule.atUtils('controls_getDat')
+            _ml = []
+            ii = 0
+            
+            if not d_controls[0]:
+                return False
+            
+            _keys = LISTS.get_keys_from_dict(d_controls[0])
+            """
+            _keys = []
+            for k,d in list(d_controls[0].items()):
+                _keys.append(k)
+            """
+            
+            _l_order = [k for k in MRSSHARE._l_controlOrder]
+            _l_order.reverse()
+            
+            for k in _l_order:
+                if k in _keys:
+                    _keys.remove(k)
+                    _keys.insert(0,k)
+                    
+            for k in ['core','handle']:
+                if k in _keys:
+                    _keys.remove(k)
+            
+            
+            _d_controls = d_controls[0]
+            _ml_controls = d_controls[1]
+            
+            _dModule['selectAll'](edit=True,
+                                  c=cgmGEN.Callback(self.uiFunc_select,[mObj.mNode for mObj in _ml_controls]))
+            
+            for k in _keys:
+                v = _d_controls.get(k,[])
+                
+                if not v:
+                    continue
+                if k in ['None']:
+                    continue
+                
+                log.debug(log_sub(_str_func,"Key: {}".format(k)))
+                _len = len(v)
+                
+                if _len > 1:
+                    _string = "{} [{}] || {}".format(k,_len,_uiString)
+                    self.uiFunc_checkStringKey(d_ui, _string)
+                    _dModule['uiStrings'].append(_string)
+                    
+                    d_ui['stringsToUi'][_string].append(  mUI.MelButton(mModuleUI_inside,label=_string,
+                                                              bgc = d_color['header'],
+                                                              c=cgmGEN.Callback(self.uiFunc_select,[mObj.mNode for mObj in v])) )                   
+                
+                for iii, mObj in enumerate(v):
+                    #if mObj in _ml:
+                    #    continue
+                    
+                    log.debug(log_msg(_str_func,"Control: {}".format(mObj)))
+                    
+                    
+                    if MATH.is_even(ii):
+                        _buttonColor = [v2 * 1.2 for v2 in d_color['button']]
+                    else:
+                        _buttonColor = [v2 * 1.4 for v2 in d_color['button']]
+                    ii+=1
+                        
+                    _string = " [{}] {} ".format( iii,  mObj.p_nameBase)
+                    _stringShort = " [{}] {} ".format( iii, CORESTRING.short( mObj.p_nameBase, max = 30))
+                    
+                    _dModule['uiStrings'].append(_string)                    
+                    self.uiFunc_checkStringKey(d_ui, _string)
+                    
+                    if _len > 1:
+                        _row = mUI.MelHSingleStretchLayout(mModuleUI_inside, bgc= _buttonColor, h=20)
+                        d_ui['stringsToUi'][_string].append(_row)
+
+                        _btn= mUI.MelButton(_row,label=_stringShort,
+                                            ann = "Obj: {} |||  Module: {}".format(mObj.p_nameBase, mModule.p_nameBase),
+                                            bgc= _buttonColor,
+                                            c=cgmGEN.Callback(self.uiFunc_select,mObj.mNode))
+                        
+                        if not _len-1 == iii:
+                            en_down = True
+                        else:
+                            en_down = False
+                            
+                        mUI.MelIconButton(_row,
+                                          style='iconOnly',
+                                          image1 =os.path.join(_path_imageFolder,'{}.png'.format('arrow_down')) ,
+                                          ua=True,
+                                          en = en_down,
+                                          bgc = d_color['button'],
+                                          ann = "Select items below in {}".format(k),
+                                          c=cgmGEN.Callback(self.uiFunc_select,[mObj.mNode for mObj in v[iii:]]),
+                                          olc = d_color['button'],
+                                          scaleIcon=True,
+                                          w=20,h=20,
+                                          )
+                        if not iii:
+                            en_up = False
+                        else:
+                            en_up= True
+                            
+                        mUI.MelIconButton(_row,
+                                          style='iconOnly',
+                                          image1 =os.path.join(_path_imageFolder,'{}.png'.format('arrow_up')) ,
+                                          ua=True,
+                                          en = en_up,
+                                          bgc = d_color['button'],                                          
+                                          ann = "Select items above  in {}".format(k),
+                                          c=cgmGEN.Callback(self.uiFunc_select,[mObj.mNode for mObj in v[:iii]]),
+                                          olc = d_color['button'],
+                                          scaleIcon=True,
+                                          w=20,h=20,
+                                          )                            
+                        
+                        
+                        
+                        _row.setStretchWidget(_btn)
+                        mUI.MelSpacer(_row,w=5)
+                        _row.layout()
+                        
+                    else:
+                        d_ui['stringsToUi'][_string].append(mUI.MelButton(mModuleUI_inside,label=_stringShort,
+                                                                     ann = "Obj: {} |||  Module: {}".format(mObj.p_nameBase, mModule.p_nameBase),
+                                                                     bgc= _buttonColor,
+                                                                     c=cgmGEN.Callback(self.uiFunc_select,mObj.mNode)))
+                    
+                    _ml.append(mObj)
+                
+                #mUI.MelSeparator(mModuleUI_inside,h=5)
+                
+            
+            
+        self.md_puppetDat = self.d_puppet_uis[_mPuppet]
+        
+        log.info(log_msg(_str_func,"Complete"))
+        
+        
+        #Build the module sections
+    
+    def uiFunc_clear_searchList(self):
+        if self.uiFilterField is not None:
+            self.uiFilterField.clear()        
+        
+    def uiFunc_update_list(self,searchFilter='',matchCase = False):
+        _str_func = 'update_display'
+        log.debug(cgmGEN.logString_start(_str_func))
+        
+        #l_items = self.getSelectedItems()
+        
+        if self.uiFilterField is not None:
+            searchFilter = self.uiFilterField.getValue()
+            
+        if not self.md_puppetDat:
+            return(log.warning("No puppet loaded"))
+        
+            
+        self.md_puppetDat['stringsToUi']
+        
+        if not searchFilter:
+            for mModule in self.ml_modules:
+                self.md_puppetDat[mModule]['ui'](edit=True,vis=True)
+                
+            for string,mList in list( self.md_puppetDat['stringsToUi'].items()):
+                for mUI in mList:
+                    mUI(edit=True,vis=True)
+            return(log.warning("Cleared"))
+        
+        l_to_load = []
+        try:
+            for i,strEntry in enumerate(r9Core.filterListByString(self.md_puppetDat['strings'],
+                                                                  searchFilter,
+                                                                  matchcase=matchCase)):
+
+                l_to_load.append(strEntry)
+
+                
+            for string,mList in list( self.md_puppetDat['stringsToUi'].items()):
+                if string in l_to_load:
+                    for mUI in mList:
+                        mUI(edit=True,vis=True)
+                else:
+                    for mUI in mList:
+                        mUI(edit=True,vis=False)
+                        
+                        
+            for mModule in self.ml_modules:
+                dat = self.md_puppetDat[mModule]
+                
+                b_test = False
+                dat['ui'](edit=True,vis=False)
+
+                for string in dat['uiStrings']:
+                    if b_test:
+                        continue
+                    if string in l_to_load:
+                        dat['ui'](edit=True,vis=True)
+                        b_test = True            
+                    
+            #pprint.pprint(l_to_load)
+
+        except Exception as err:
+            log.error("|{0}| >> err: {1}".format(_str_func, err))  
+            for a in err:
+                log.error(a)
+                
+            
+
+
+    def build_layoutWrapper(self,parent):
+        _str_func = 'build_layoutWrapper[{0}]'.format(self.__class__.TOOLNAME)            
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        
+        def create_iconButton(parent,ann,image,c=None,**kws):
+            return mUI.MelIconButton(parent,
+                                     ann = ann,
+                                     #bgc = cgmUI.guiButtonColor,
+                                     image=image,
+                                     w=kws.get('w',25),
+                                     h=kws.get('h',25),
+                                     c=c)        
+        
+        _MainForm = mUI.MelFormLayout(parent,ut='cgmUITemplate')#mUI.MelColumnLayout(ui_tabs)
+        
+       
+        _top = _MainForm#mUI.MelColumnLayout(_MainForm)
+
+        
+        #>>> Picker Row ---------------------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(_top,ut='cgmUIHeaderTemplate',padding = _spacer)
+        mUI.MelSpacer(_row,w=_spacer)                          
+        create_iconButton(_row,'Rebuild', os.path.join(_path_imageFolder,'rebuild.png'), partial(self.uiLoad_puppet))
+    
+        #mUI.MelLabel(_row,label='Puppet: ')
+        self.uiPuppet_chooser = mUI.MelOptionMenu(_row,bgc=cgmUI.guiHeaderColor, h=25)
+        #self.uiAssetTypeOptions(edit=True, cc=lambda *a: uiAsset_rebuildSub(self))
+        _row.setStretchWidget(self.uiPuppet_chooser)
+        
+        create_iconButton(_row,'Refresh', os.path.join(_path_imageFolder,'refresh.png'), partial(self.uiRebuild_puppetChooser))
+        
+        mUI.MelSpacer(_row,w=_spacer)
+        _row.layout()
+        
+        _row_picker = _row
+        
+        #>>> Search field---------------------------------------------------------------------------------------------------
+        _row = mUI.MelHSingleStretchLayout(_top,ut='cgmUITemplate',padding = _spacer)
+        mUI.MelSpacer(_row,w=_spacer)
+        
+        
+        #Context mode  -------------------------------------------------------------------------------          
+    
+        _rc_contextMode = mUI.MelIconRadioCollection()
+        
+        self._l_selectModes = ['select','add']
+        _d_ann = {'select':'Select Mode: Only',
+                  'add':'Selct Mode: Add to selection'}
+        _d_icons = {'select':os.path.join(_path_imageFolder,'select.png'),
+                    'add':os.path.join(_path_imageFolder,'select_add.png')}
+        
+        #build our sub section options
+        #MelHSingleStretchLayout
+        #mUI.MelLabel(_row_contextModes,l = 'Context:')
+        _on = self.var_selectMode.value
+        for i,item in enumerate(self._l_selectModes):
+            if i == _on:_rb = True
+            else:_rb = False
+            
+            #mc.iconTextRadioButton
+            _rc_contextMode.createButton( _row, st='iconOnly', i1=_d_icons[item], l=item,
+                                          ann = _d_ann[item],
+                                          w=25, h=25,
+                                          sl=_rb,
+                                          onCommand = cgmGEN.Callback(self.var_selectMode.setValue,i))
+            """
+            _rc_contextMode.createButton(_row,
+                                         label=self._l_contextModes[i],sl=_rb,
+                                         ann = _d_ann[item],
+                                         onCommand = cgmGEN.Callback(self.varSelectMode.setValue,i))"""
+            mUI.MelSpacer(_row,w=2)
+        #_rc_contextMode
+        
+        
+        _textField = mUI.MelTextField(_row,
+                                      ann='Filter',
+                                      w=50,
+                                      bgc = [.3,.3,.3],
+                                      en=True,
+                                      text = '')
+        self.uiSearch_puppet = _textField
+        _row.setStretchWidget(self.uiSearch_puppet)
+        
+        b_clear = mUI.MelIconButton(_row,
+                                    ann='Clear the field',
+                                    image=os.path.join(_path_imageFolder,'clear.png') ,
+                                    w=25,h=25)                
+        
+        create_iconButton(_row,'Contract All', os.path.join(_path_imageFolder,'contract.png'), partial(self.uiFunc_toggleSubUI_all,False))
+        create_iconButton(_row,'Expand All', os.path.join(_path_imageFolder,'expand.png'), partial(self.uiFunc_toggleSubUI_all,True))
+               
+        
+        mUI.MelSpacer(_row,w=_spacer)                          
+        
+        _row.layout()
+        
+        b_clear(edit=True, command=partial(self.uiFunc_clear_searchList))
+        
+        _textField(edit=True,
+                 tcc = lambda *a: self.uiFunc_update_list())         
+        self.uiFilterField = _textField
+        
+        #mScrollList.set_filterObj(_textField)
+        
+        
+        #_textField(edit=True,
+        #           tcc = lambda *a: mScrollList.update_display())            
+        
+        _row_search = _row
+
+        #Inside... =================================================================================================================
+        _inside = mUI.MelScrollLayout(_MainForm, ut='cgmUITemplate')
+
+        #mc.setParent(_MainForm)
+        _bottom = mUI.MelColumn(_MainForm)
+        
+        #---------------------------------------------------------------------------------
+        cgmUI.add_cgMonaseryFooter(_bottom)
+        
+        #mUI.MelLabel(_MainForm,
+        #                             vis=True,
+        #                             bgc = SHARED._d_gui_state_colors.get('warning'),
+        #                             label = '...',
+        #                             h=20)        
+        self.uiPB_test=None
+        self.uiPB_test = mc.progressBar(vis=False)
+
+        
+        #Let's gather our attributes...
+        
+        self.uiPuppet_modules = mUI.MelColumn(_inside,
+                                             useTemplate = 'cgmUITemplate')        
+        
+        
+        #_row_cgm = cgmUI.add_cgmFooter(_MainForm)
+        mc.setParent(_MainForm)
+ 
+        
+        #_rowProgressBar = mUI.MelRow(_MainForm)
+        
+        
+        self.uiRebuild_puppetChooser()
+        
+        _MainForm(edit = True,
+                  af = [(_row_picker,"top",0),
+                        (_row_picker,"left",0),
+                        (_row_picker,"right",0),
+                        (_row_search,"left",0),
+                        (_row_search,"right",0),                        
+                        (_inside,"left",0),
+                        (_inside,"right",0),                        
+                        (_bottom,"left",0),
+                        (_bottom,"right",0),
+                        #(self.uiPB_test,"left",0),
+                        #(self.uiPB_test,"right",0),                        
+                        #(_row_cgm,"left",0),
+                        #(_row_cgm,"right",0),
+                        (_bottom,"bottom",0),
+    
+                        ],
+                  ac = [(_row_search,"top",0,_row_picker),
+                        (_inside,"top",0,_row_search),
+                        (_inside,"bottom",0,_bottom),
+                        #(_button,"bottom",0,_row_cgm),
+                        #(self.uiPB_test,"bottom",0,_row_cgm),
+                        ],
+                  attachNone = [(_bottom,"top")])    
+        
+        
+        
+        
+
+

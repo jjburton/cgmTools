@@ -809,6 +809,11 @@ def uiSection_mrsAnim(parent):
                 ann = "Pose Tool | Beta",
                 c=lambda *a:TOOLCALLS.mrsPOSER())
     
+    mc.menuItem(parent = parent,
+                l='mrsPicker',
+                ann = "Picker for MRS | Beta",
+                c=lambda *a:TOOLCALLS.mrsPicker())
+    
     mUI.MelMenuItemDiv(parent,label='Utils')
     
     mc.menuItem(parent = parent,

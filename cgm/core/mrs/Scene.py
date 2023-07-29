@@ -1347,11 +1347,11 @@ example:
         def create_exportButton(parent,ann,image,c=None):
             return mUI.MelIconButton(parent,
                                      ann = ann,
-                                     bgc = cgmUI.guiButtonColor,
+                                     #bgc = cgmUI.guiButtonColor,
                                      image=image,
                                      w=30,
                                      h=30,
-                                     c=c)         
+                                     c=c)
         
         
         _bottomColumn    = mUI.MelColumnLayout(_MainForm,useTemplate = 'cgmUISubTemplate', adjustableColumn=True)#mc.columnLayout(adjustableColumn = True)

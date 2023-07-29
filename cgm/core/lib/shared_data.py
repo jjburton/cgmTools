@@ -358,6 +358,7 @@ _d_gui_direction_colors_use = {}
 for k,color in list(_d_gui_direction_colors.items()):
     _d = {}
     _d_gui_direction_colors_use[k] = _d
+    _d['raw'] = color      
     _d['base'] = [v *.9 for v in color ]
     _d['base2'] = [v *.75 for v in color ]    
     #_d['light'] = [ MATH.Clamp(v*2.0,None,.9) for v in color ]
