@@ -17,14 +17,14 @@ perm = [151,160,137,91,90,15,
 
 perm += perm # Duplicate perm list
 
-def dot(g: list, x: float, y: float) -> float:
+def dot(g= list, x= float, y= float):
     return g[0]*x + g[1]*y
 
 grad3 = [[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],
          [1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],
          [0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]]
 
-def noise(xin: float, yin: float) -> float:
+def noise(xin= float, yin= float):
     n0, n1, n2 = 0, 0, 0 # Noise contributions from the three corners
 
     # Skew the input space to determine which simplex cell we're in
