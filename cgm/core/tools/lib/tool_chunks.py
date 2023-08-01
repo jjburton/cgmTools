@@ -798,7 +798,7 @@ def uiSection_layout(parent):
 def uiSection_mrsAnim(parent):
     _str_func = 'uiSection_layout'  
     
-    mUI.MelMenuItemDiv(parent,label='Anim')
+    mUI.MelMenuItemDiv(parent,label='MRS')
     
     mc.menuItem(parent = parent,
                 l='mrsAnimate',
@@ -912,7 +912,7 @@ def uiSection_mrsTD(parent):
     _str_func = 'uiSection_layout'  
     
     
-    mUI.MelMenuItemDiv(parent,label='TD')
+    mUI.MelMenuItemDiv(parent,label='MRS')
 
     mc.menuItem(parent = parent,
                 l='Builder',
