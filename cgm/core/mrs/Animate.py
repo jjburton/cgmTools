@@ -5330,7 +5330,9 @@ def mmUI_part(self,parent = None):
     #Switch =============================================================================
     _select = mc.menuItem(p=parent,l="Switch",subMenu=True)
     d_modes = {'BlendSnap':'blendsnap'}
-    ml_selection = cgmMeta.asMeta(self._l_sel)
+    ml_selection = []
+    if self._l_sel:
+        ml_selection = cgmMeta.asMeta(self._l_sel)
     
     print("0"*90)
     pprint.pprint(ml_selection)

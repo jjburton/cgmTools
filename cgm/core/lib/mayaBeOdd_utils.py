@@ -37,12 +37,29 @@ import cgm.core.cgmPy.os_Utils as CGMOS
 
 #>>> Utilities
 #===================================================================
-def killRoguePanel(method = ''):
+
+def check_internalStandInShaderWiring():
+    _node = 'internal_standInShader'
+    import cgm.core.lib.attribute_utils as ATTR
+    from cgm.core.cgmPy import validateArgs as VALID
+    if not mc.objExists(_node):
+        return log.error("Node not found: {}".format(_node))
+    
+    _connections = ATTR.get_driver(_node, 'incandescence') or []
+    _connections = VALID.listArg(_connections)
+    if _connections:
+        log.warning("Found wiring on 'incandescence'")
+    for c in _connections:
+        print("Breaking: {} << {}".format("{}.{}".format(_node,'incandescence'), c))
+        ATTR.break_connection("{}.{}".format(_node,'incandescence'))
+
+def  kill_panelCallbacks(method = ''):
     """
     hattip:
     https://forums.autodesk.com/t5/maya-forum/error-cannot-find-procedure-quot-dcf-updateviewportlist-quot/td-p/8342659?fbclid=IwAR3IhCeCqzZvEREmxo5eA7ECQu9n82MEN_vqCFTmdySwNNbsrYREdDcv_QA
     """
-    #['DCF_updateViewportList', 'CgAbBlastPanelOptChangeCallback']
+    if not method:
+        method = ['DCF_updateViewportList', 'CgAbBlastPanelOptChangeCallback']
     EVIL_METHOD_NAMES = cgmValid.listArg(method)
     pprint.pprint(EVIL_METHOD_NAMES)
     capitalEvilMethodNames = [name.upper() for name in EVIL_METHOD_NAMES]

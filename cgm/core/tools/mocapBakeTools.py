@@ -130,6 +130,7 @@ class ui(cgmUI.cgmGUI):
         #>>> Reset Options                           
 
         #mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
+        self.uiMenu_buildDock(self.uiMenu_FirstMenu)
 
         mUI.MelMenuItem( self.uiMenu_FirstMenu, checkBox=self.var_mocap_allow_multiple_targets.value, l="Allow multiple targets",
                  c=lambda *a: self.uiFunc_toggle_multiple_targets(self) )#not mc.optionVar(q='cgm_mocap_allow_multiple_targets')))

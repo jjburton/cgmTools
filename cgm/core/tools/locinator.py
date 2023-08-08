@@ -1040,6 +1040,9 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_options.clear()   
         _menu = self.uiMenu_options
         
+        self.uiMenu_buildDock(self.uiMenu_options)
+        mUI.MelMenuItemDiv(self.uiMenu_options)        
+        
         uiOptionMenu_matchMode(self, _menu)
         
         

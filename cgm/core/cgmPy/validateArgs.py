@@ -1257,7 +1257,7 @@ def filepath(filepath = None, fileMode = 0, fileFilter = 'Config file (*.cfg)', 
             _result = filepath
     return _result
 
-def fileOpen(filepath= None, force = True, ignoreVersion = True):
+def fileOpen(filepath= None, force = True, ignoreVersion = True, executeScriptNodes=False):
     if filepath == None:
         filepath = filepath()
         
@@ -1279,7 +1279,7 @@ def fileOpen(filepath= None, force = True, ignoreVersion = True):
         elif result == "Cancel":
             return log.warning("File open aborted: {0}".format(filepath))
     
-    mc.file(filepath, o=True, f=force, ignoreVersion=ignoreVersion)
+    mc.file(filepath, o=True, f=force, ignoreVersion=ignoreVersion, executeScriptNodes = executeScriptNodes)
     
     
 def fileDirtyCheck():

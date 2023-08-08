@@ -417,6 +417,8 @@ class ui(CGMUI.cgmGUI):
         self.uiMenu_options.clear()   
         _menu = self.uiMenu_options
         
+        self.uiMenu_buildDock(self.uiMenu_options)
+        mUI.MelMenuItemDiv(self.uiMenu_options)
         
         #Dyn mode...
         uiDyn = mc.menuItem(p=_menu, l='ShowBake ', subMenu=True)        

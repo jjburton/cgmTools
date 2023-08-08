@@ -164,6 +164,10 @@ class ui(cgmUI.cgmGUI):
     def buildMenu_context( self, *args):
         self.uiMenu_context.clear()
         
+        self.uiMenu_buildDock(self.uiMenu_context)
+        mUI.MelMenuItemDiv(self.uiMenu_context)        
+        
+        
         uiRC = mc.radioMenuItemCollection(parent = self.uiMenu_context)
         #self.uiOptions_menuMode = []		
         _v = self.var_context.value

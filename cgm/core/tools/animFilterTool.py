@@ -173,7 +173,8 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
 
     def buildMenu_file(self):
-        self.uiMenu_FileMenu.clear()                      
+        self.uiMenu_FileMenu.clear()
+        
 
         #Recent Projects --------------------------------------------------------------------------
         self.mPathList_recent.verify()
@@ -190,6 +191,8 @@ class ui(cgmUI.cgmGUI):
                             c = cgmGEN.Callback(uiFunc_load_actions,self,p)) 
             
         
+        mUI.MelMenuItemDiv(self.uiMenu_FileMenu)
+        self.uiMenu_buildDock(self.uiMenu_FileMenu)
         mUI.MelMenuItemDiv(self.uiMenu_FileMenu)
 
 

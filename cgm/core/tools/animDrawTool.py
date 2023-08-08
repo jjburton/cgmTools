@@ -107,6 +107,7 @@ class ui(cgmUI.cgmGUI):
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options                           
+        self.uiMenu_buildDock(self.uiMenu_FirstMenu)
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu )
 

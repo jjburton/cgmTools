@@ -236,13 +236,20 @@ def uiSection_query(parent = None):
     
     mc.menuItem(parent=uiQuery,
               l = 'Each',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, TRANS.bbSize_get, None,'each', 'Size', **{'shapes':1}),
+              c = cgmGEN.Callback(MMCONTEXT.func_process, TRANS.bbSize_get, None,'each', 'Size', **{'shapes':0}),
               ann = 'Size each')    
     mc.menuItem(parent=uiQuery,
               l = 'All',
-              c = cgmGEN.Callback(MMCONTEXT.func_process, TRANS.bbSize_get, None,'all', 'Size', **{'shapes':1}),
+              c = cgmGEN.Callback(MMCONTEXT.func_process, TRANS.bbSize_get, None,'all', 'Size', **{'shapes':0}),
               ann = 'Size all')
-    
+    mc.menuItem(parent=uiQuery,
+              l = 'Each by Shape',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, TRANS.bbSize_get, None,'each', 'Size', **{'shapes':1}),
+              ann = 'Size each by Shape')    
+    mc.menuItem(parent=uiQuery,
+              l = 'All by Shape',
+              c = cgmGEN.Callback(MMCONTEXT.func_process, TRANS.bbSize_get, None,'all', 'Size', **{'shapes':1}),
+              ann = 'Size all by shape')    
     
     #General...---------------------------------------------------------------
     #_sub = mc.menuItem(p=uiQuery, l='Constraints',
@@ -1184,6 +1191,14 @@ def uiSection_dev(parent):
                 ann = "Some files can turn on a outliner select command that bugs out",
                 c=lambda *a: MAYABEODD.kill_outlinerSelectCommands())
     mc.menuItem(parent = _mayaOdd,
+                l='Kill Panel Callbacks',
+                ann = "Defaults to kill: ['DCF_updateViewportList', 'CgAbBlastPanelOptChangeCallback']",
+                c=lambda *a: MAYABEODD.kill_panelCallbacks())
+    mc.menuItem(parent = _mayaOdd,
+                l='Kill internal_standInShader Incandescence Wire',
+                ann = "Weird maya bug",
+                c=lambda *a: MAYABEODD.check_internalStandInShaderWiring())        
+    mc.menuItem(parent = _mayaOdd,
                 l='Clean Unknowns',
                 ann = "Clean unknown nodes and turtle",
                 c=lambda *a: MAYABEODD.cleanFile())
@@ -1397,15 +1412,15 @@ def uiSection_createFromSel(parent, selection = None):
                                        'mark':True}))               
 
     
-    for m in ['boundingBox','axisBox','castFar','castNear','castCenter','castAllNear','castAllFar']:
+    for m in ['boundingBox','boundingBoxShapes','axisBox','castFar','castNear','castCenter','castAllNear','castAllFar']:
 
             l_use = [v for v in SHARED._l_axis_by_string]
-            if m in ['boundingBox']:
+            if m in ['boundingBox','boundingBoxShapes']:
                 l_use.insert(0,'center')
             elif m in ['castCenter']:
                 l_use = l_use[:3]
                 
-            if m == 'boundingBox':
+            if m in ['boundingBox','boundingBoxShapes']:
                 _selectMode = 'all'
             else:
                 _selectMode = 'each'
