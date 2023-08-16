@@ -6434,7 +6434,6 @@ class ui_picker(cgmUI.cgmGUI):
             #continue
                                     
             if _icon:
-                
                 mUI.MelIconButton(_row,
                                   ann=_type,
                                   style='iconOnly',

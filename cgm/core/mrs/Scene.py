@@ -3969,7 +3969,7 @@ example:
             wantedName = "%s_%s" % (wantedName, self.variationList['scrollList'].getSelectedItem())
             log.debug("Has variant name: {}".format(wantedName))
         
-        if self.subType and self.subType not in ['animation','anim']:
+        if self.subType and self.subType.lower() not in ['animation','anim']:
             wantedName = "%s_%s" % (wantedName, self.subType)
             log.debug("Has subTpe name: {}".format(wantedName))            
             

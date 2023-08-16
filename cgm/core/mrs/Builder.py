@@ -9933,38 +9933,52 @@ class ui_createBlock(CGMUI.cgmGUI):
                                             #highlightColor=[1,1,1],
                                             )
         mUI.MelSpacer(_row_blockTypes, w=5)
+        _rc_contextMode = mUI.MelIconRadioCollection()
         
+        _on = self.var_blockType.value
         _d = copy.copy(self._d_modules)
+        
         for b in sorted(_d[0]):
-            if _d[0][b].__dict__.get('__menuVisible__'):
-                
-                #mUI.MelIconButton(_row_blockTypes,w=50,
-                #                  style = 'iconAndTextVertical', l=b,ann=b)
-                _icon = None
-                try:
-                    _icon = os.path.join(_path_imageFolder,'mrs','{}.png'.format(b))
-                except:pass
-                #mc.iconTextButton( style='iconAndTextVertical', image1='cube.png', label='cube' )
-                #continue
-                if _icon:
-                    #mUI.MelIconButton
-                    mUI.MelIconButton(_row_blockTypes,
-                                      ann=b,
-                                      style='iconAndTextVertical',
-                                      l=b,
-                                      image =_icon ,
-                                      #ua=True,
-                                      #mw=5,
-                                      scaleIcon=False,
-                                      #olc=[float(v) for v in d_state_colors['form']],
-                                      #olb=[float(v) for v in d_state_colors['form']]+[.5],
-                                      w=60,h=60,
-                                      #bgc = [0,0,0],
-                                      c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
-                else:
-                    mUI.MelButton(_row_blockTypes,l=b,ann=b, bgc=d_state_colors['prerig'],
-                                  c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
-                
+            if not _d[0][b].__dict__.get('__menuVisible__'):
+                continue
+            
+            if b == _on:_rb = True
+            else:_rb = False
+            
+            #mUI.MelIconButton(_row_blockTypes,w=50,
+            #                  style = 'iconAndTextVertical', l=b,ann=b)
+            _icon = None
+            try:
+                _icon = os.path.join(_path_imageFolder,'mrs','{}.png'.format(b))
+            except:pass
+            #mc.iconTextButton( style='iconAndTextVertical', image1='cube.png', label='cube' )
+            #continue
+            if _icon:
+                _rc_contextMode.createButton( _row_blockTypes, st='iconOnly',
+                                              i1=_icon,
+                                              l=b,
+                                              ann = b,
+                                              w=60, h=60,
+                                              sl=_rb,
+                                              onCommand = cgmGEN.Callback(self.uiFunc_setBlockType,b))
+                """
+                mUI.MelIconButton(_row_blockTypes,
+                                  ann=b,
+                                  style='iconAndTextVertical',
+                                  l=b,
+                                  image =_icon ,
+                                  #ua=True,
+                                  #mw=5,
+                                  scaleIcon=False,
+                                  #olc=[float(v) for v in d_state_colors['form']],
+                                  #olb=[float(v) for v in d_state_colors['form']]+[.5],
+                                  w=60,h=60,
+                                  #bgc = [0,0,0],
+                                  c=cgmGEN.Callback(self.uiFunc_setBlockType,b))"""
+            else:
+                mUI.MelButton(_row_blockTypes,l=b,ann=b, bgc=d_state_colors['prerig'],
+                              c=cgmGEN.Callback(self.uiFunc_setBlockType,b))
+            
         #_row_blockTypes.layout()
         
         #Option Menus

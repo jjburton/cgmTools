@@ -3680,8 +3680,12 @@ def prerig(self):
                      'jawTopLeft']            
  
             
-                            
-        _crv = CORERIG.create_at(create='curve',l_pos=[md_dHandles[k].p_position for k in l_jaw])
+        l_tmp = []
+        for k in l_jaw:
+            if md_dHandles.get(k):
+                l_tmp.append(md_dHandles.get(k).p_position)
+                
+        _crv = CORERIG.create_at(create='curve',l_pos=l_tmp)
         #md_dCurves['jawLine'].mNode
         
         DIST.offsetShape_byVector(_crv, distance = _offset)

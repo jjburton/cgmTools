@@ -11206,17 +11206,23 @@ def prerig_get_rpBasePos(self,ml_handles = [], markPos = False, forceMidToHandle
         
     dist_min = DIST.get_distance_between_points(ml_use[0].p_position, pos_mid)/2.0
     dist_base = DIST.get_distance_between_points(pos_mid, pos_close)
+    dist_mid = DIST.get_distance_between_points(ml_handles[0].p_position,pos_mid)
     
     #...get new pos
-    dist_use = MATH.Clamp(dist_base, dist_min, None)
+    if self.getMayaAttr('ikRP_pos_mult'):
+        _mult = self.getMayaAttr('ikRP_pos_mult')
+    else:
+        _mult = 1.0
+        
+    dist_use = MATH.Clamp(dist_mid * _mult, dist_min, None)
+    
     log.debug("|{0}| >> Dist min: {1} | dist base: {2} | use: {3}".format(_str_func,
                                                                           dist_min,
                                                                           dist_base,
                                                                           dist_use))
     
     pos_use = DIST.get_pos_by_vec_dist(pos_mid,vec_use,
-                                       DIST.get_distance_between_points(ml_handles[0].p_position,
-                                                                                        pos_mid))
+                                       dist_use)
     #pos_use2 = DIST.get_pos_by_vec_dist(pos_mid,rpVectorY,
     #                                   DIST.get_distance_between_points(ml_handles[0].p_position,
     #                                                                                    pos_mid))
