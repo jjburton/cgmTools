@@ -780,6 +780,7 @@ def spline(self, ml_ikJoints = None,ml_ribbonIkHandles=None,mIKControl=None,
     
 def segment_handles(self, ml_handles = None, ml_handleParents = None, mIKBaseControl=None,
                     mRoot = None, str_ikBase = None, upMode = 'asdf'):
+    pprint.pprint(vars())
     try:
         _str_func = 'segment_handles'
         log_start(_str_func)
@@ -808,9 +809,9 @@ def segment_handles(self, ml_handles = None, ml_handleParents = None, mIKBaseCon
         _out = self.d_orientation['vectorOut']        
     
         if str_ikBase == 'hips':
-            log.debug("|{0}| >> hips setup...".format(_str_func))
+            log.warning("|{0}| >> hips setup...".format(_str_func))
             
-
+        print(str_ikBase)
     
         if len(ml_handles) == 1:
             mHipHandle = ml_handles[0]
@@ -982,7 +983,8 @@ def segment_handles(self, ml_handles = None, ml_handleParents = None, mIKBaseCon
                         mRootDriver.doStore('cgmType','driver')
                         mRootDriver.doName()
                         
-                        mc.orientConstraint([mRoot.mNode], mRootDriver.mNode, maintainOffset = True)
+                        if str_ikBase not in ['hips']:
+                            mc.orientConstraint([mRoot.mNode], mRootDriver.mNode, maintainOffset = True)
                         
                         s_rootTarget = mRootDriver.mNode
                         
@@ -1065,8 +1067,12 @@ def segment_handles(self, ml_handles = None, ml_handleParents = None, mIKBaseCon
 
         for mHandle in ml_handles:
             if mHandle == ml_handles[0]:
-                mHandle.followRoot = 0
-                ATTR.set_default(mHandle.mNode,'followRoot',0)                
+                if str_ikBase in ['hips']:
+                    v = 1.0
+                else:
+                    v = 0
+                mHandle.followRoot = v
+                ATTR.set_default(mHandle.mNode,'followRoot',v)                
             elif mHandle == ml_handles[-1]:
                 mHandle.followRoot = 1
                 ATTR.set_default(mHandle.mNode,'followRoot',1.0)

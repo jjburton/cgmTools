@@ -9854,30 +9854,34 @@ def create_simpleLoftMesh(self, form = 2, degree=None, uSplit = None,vSplit=None
         mCrv = getCurve(uValue,l_newCurves)
         
 def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType='defineCurve'):
-    try:
+    _short = self.p_nameShort
+    _str_func = 'create_defineCurve'
+    log.debug("|{0}| >>...".format(_str_func)+ '-'*80)
+    log.debug(self)
+    
+    md_defineCurves = {}
+    ml_defineCurves =[]
+    
+    if mParentNull == None:
+        mParentNull = self.atUtils('stateNull_verify','define')
         
-        _short = self.p_nameShort
-        _str_func = 'create_defineCurve'
-        log.debug("|{0}| >>...".format(_str_func)+ '-'*80)
-        log.debug(self)
-        
-        md_defineCurves = {}
-        ml_defineCurves =[]
-        
-        if mParentNull == None:
-            mParentNull = self.atUtils('stateNull_verify','define')
+    mHandleFactory = self.asHandleFactory()
+    for k in list(d_definitions.keys()):
+        try:
             
-        mHandleFactory = self.asHandleFactory()
-        for k in list(d_definitions.keys()):
             log.debug("|{0}| >>  curve: {1}...".format(_str_func,k))            
             _dtmp = d_definitions[k]
             
             str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
             _tagOnly = _dtmp.get('tagOnly',False)
             _handleKeys = _dtmp.get('keys')
+            
             if _handleKeys:
                 _handleKeys = LISTS.get_noDuplicates(_handleKeys)
-            
+            if len(_handleKeys) < 2:
+                log.error("{} has {} keys. Need more. | {}".format(k,len(_handleKeys), _handleKeys))
+                continue
+                
             ml_handles = _dtmp.get('ml_handles') or [md_handles[k2] for k2 in _handleKeys]
         
             #l_pos = []
@@ -9926,11 +9930,12 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType
                 mc.rename(_node[1],"{0}_reparamRebuild".format(mCrv.p_nameBase))
                 
             mCrv.dagLock()
-        return {'md_curves':md_defineCurves,
-                'ml_curves':ml_defineCurves}
-    except Exception as err:
-        cgmGEN.func_snapShot(vars())
-        raise
+        except:
+            cgmGEN.func_snapShot(vars())
+            raise
+    return {'md_curves':md_defineCurves,
+            'ml_curves':ml_defineCurves}
+
 
 @cgmGEN.Timer
 def create_define_rotatePlane(self, md_handles,md_vector,mStartParent=None):
