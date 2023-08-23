@@ -181,4 +181,4 @@ def get3dViewFromCamera(camera_shape):
         if temp_camera == camera_path:
             return temp_view
 
-    raise ValueError(f"No 3D view found associated with camera {camera_shape}.")
+    raise ValueError("No 3D view found associated with camera {}.".format(camera_shape))
