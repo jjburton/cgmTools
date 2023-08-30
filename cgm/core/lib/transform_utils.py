@@ -1524,3 +1524,13 @@ def create_vectorCurveFromObj(obj = None, vector = 'z+',distance=1,asEuclid = Fa
     except:_vec= MATH.get_obj_vector(obj,vector,True)
     return DIST.create_vectorCurve(POS.get(obj),_vec,distance, "{0}_{1}_vecLine".format(NAME.get_base(obj),vector))
 
+def areEquivalent(mNode1,mNode2):
+    _str_func = "areEquivalent | 1: {} 2: {} ".format(mNode1.mNode, mNode2.mNode)
+    if not MATH.is_vector_equivalent( mNode1.p_position,mNode2.p_position):
+        mc.warning("{} | Position Failed: {} !~ {}".format(_str_func, mNode1.p_position,mNode2.p_position))
+        return False
+    for vector in 'xyz':
+        if not MATH.is_vector_equivalent( mNode1.getAxisVector("{}+".format(vector)),mNode2.getAxisVector("{}+".format(vector))):
+            mc.warning("{} | Failed: {}".format(_str_func, vector))
+            return False
+    return True

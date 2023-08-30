@@ -10,7 +10,7 @@ Website : https://github.com/jjburton/cgmTools/wiki
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = '23.08.22.01'
+__RELEASE = "23.08.29.01"
 
 __BRANCH = 'MRSDAILY'
 
@@ -48,7 +48,6 @@ _d_KWARG_stopAtStep = {'kw':'stopAtStep',"default":None, 'help':"Step of a cgmFu
 
 #Shared data...
 _l_moduleStates = ['define','size','template','skeleton','rig']
-
 
 _b_py3 = False
 if platform.python_version().startswith('3'):

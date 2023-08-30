@@ -103,6 +103,27 @@ def get_nonintermediate(shape):
         else:
             return shape
     except Exception as err:cgmGEN.cgmExceptCB(Exception,err)
+    
+def get_original(shape):
+    """
+    Get the original shape on a transform
+    
+    :parameters:
+        shape(str): Shape to check
+
+    :returns
+        non intermediate shape(string)
+    """   
+    _str_func = "get_original"
+    connections = mc.listConnections(shape, source=True, destination=False, shapes=True)
+    
+    if connections:
+        for connection in connections:
+            if mc.nodeType(connection) in ["mesh","nurbsSurface"]:
+                return connection
+            elif mc.nodeType(connection) == "transform":
+                return get_original(connection)
+    return None
 
 def get_eligibleMesh():
     _str_func = ''

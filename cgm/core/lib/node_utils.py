@@ -26,6 +26,7 @@ from cgm.core.lib import search_utils as SEARCH
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import shared_data as SHARED
 from cgm.core.lib import attribute_utils as ATTR
+
 #import cgm.core.lib.list_utils as LISTS
 #reload(SHARED)
 
@@ -108,7 +109,7 @@ def create(name = None, nodeType = None):
     
     if name is None:
         name = 'i_should_have_given_a_name'
-    _suffix = SHARED._d_node_to_suffix.get(nodeType,False)
+    _suffix = SHARED._d_node_to_suffix.get(nodeType,nodeType)
     if _suffix == False:
         raise ValueError("Update cgm.core.lib.shared_data._d_node_to_suffix with nodeType: {0}".format(nodeType))
     
@@ -147,6 +148,115 @@ def curveInfo(curve,baseName = 'curveInfo'):
     ATTR.connect((l_shapes[0]+'.worldSpace'),(infoNode+'.inputCurve'))
     return infoNode
     
+#Dup function from Shapes to avoid circle import
+def get_original(shape):
+    """
+    Get the original shape on a transform
+    
+    :parameters:
+        shape(str): Shape to check
+
+    :returns
+        non intermediate shape(string)
+    """   
+    _str_func = "get_original"
+    connections = mc.listConnections(shape, source=True, destination=False, shapes=True)
+    
+    if connections:
+        for connection in connections:
+            if mc.nodeType(connection) in ["mesh","nurbsSurface"]:
+                return connection
+            #elif mc.nodeType(connection) == "transform":
+            #    return get_original(connection)
+    return None
+
+def create_UVPin(targetSurface, pin = None, name = 'uvPin', u=.5,v=.5, normalAxis = 2, tangentAxis = 0, useExising = True) :
+    """
+    Creates named uvPin node on a mesh
+    
+    Keywords
+    mesh -- mesh to attach to
+    name -- base name to use ('follicle' default)
+    
+    Returns
+    [uvPinNode,pin]
+    """
+    _str_func = 'create_UVPin'
+    if SEARCH.is_shape(targetSurface):
+        l_shapes = [targetSurface]
+    else:
+        l_shapes = mc.listRelatives(targetSurface, s=True,fullPath = True)
+    if not l_shapes:
+        raise ValueError("Must have shapes to check.")
+
+
+    _shape = l_shapes[0]
+    
+    _type = VALID.get_mayaType(_shape)    
+    
+    if _type == "mesh":
+        componentPrefix = ".vtx"
+        cAttr = ".inMesh"
+        cAttr2 = ".worldMesh[0]"
+        cAttr3 = ".outMesh"
+    elif _type == "nurbsSurface":
+        componentPrefix = ".cv"
+        cAttr = ".create"
+        cAttr2 = ".worldSpace[0]"
+        cAttr3 = ".local"
+        #if components == [0]:
+        #    components = [[0,0]]
+    else:
+        raise ValueError("{} unknown type: {}".format(_str_func,_type))
+    
+    
+    
+    uvPinNode = ATTR.get_message(_shape, 'uvPinNode')
+    if ATTR.get_message(_shape, 'uvPinNode'):
+        uvPinNode = uvPinNode[0]
+        log.warning(cgmGeneral.logString_msg(_str_func, "Using existing uvPinNode: {}".format(uvPinNode)))
+    
+    else:
+        #Creating new pin node
+        log.debug("_shape: {0}".format(_shape))
+        
+        #objType = search.returnObjectType(mesh)
+        #assert objType in ['mesh','nurbsSurface'],("'%s' isn't a mesh"%mesh)
+            
+        uvPinNode = create((name),'uvPin')
+        
+        #Get original shape
+        _shapeOrig = get_original(_shape) or _shape
+        
+        
+        """ make the closest point node """
+        #closestPointNode = createNamedNode((targetObj+'_to_'+mesh),'closestPointOnMesh')
+        #controlSurface = mc.listRelatives(_shape,shapes=True)[0]
+        #follicleTransform = mc.listRelatives(uvPinNode,p=True,fullPath = True)[0]
+        #pin = mc.rename("uvPin")
+        
+        mc.connectAttr("{0}{1}".format(_shape,cAttr2),"{0}.deformedGeometry".format(uvPinNode))
+        mc.connectAttr("{0}{1}".format(_shapeOrig,cAttr3),"{0}.originalGeometry".format(uvPinNode))
+    
+        ATTR.set_message(_shape, 'uvPinNode', uvPinNode)
+        
+
+        
+    ATTR.set(uvPinNode,'normalAxis',normalAxis)
+    ATTR.set(uvPinNode,'tangentAxis',tangentAxis)
+    
+    
+    _idx = ATTR.get_nextCompoundIndex(uvPinNode,'coordinate')
+    if pin == None:
+        pin = mc.spaceLocator(name = '{}_{}_pin'.format(name,_idx))[0]
+    
+    #Set our coordinate
+    mc.setAttr("{}.coordinate[{}]".format(uvPinNode,_idx), u,v)
+    mc.connectAttr("{}.outputMatrix[{}]".format(uvPinNode,_idx), "{0}.offsetParentMatrix".format(pin))
+    
+    #ATTR.set_standardFlags(follicleTransform)
+    
+    return [uvPinNode,pin,_idx]
 
 def createFollicleOnMesh(targetSurface, name = 'follicle'):
     """

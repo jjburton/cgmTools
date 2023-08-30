@@ -105,7 +105,7 @@ def create_Scene_batchFile(dat = [], batchFile = None, process = True,
     'import cgm.core.mrs.lib.batch_utils as MRSBATCH',
     '']
     
-    if cgmGEN.__mayaVersionInt__ < 2020:
+    if cgmGEN.__mayaVersionInt__ >= 2020:
         l_pre.insert(-2,'mc.loadPlugin("mtoa")',)
     
     l_post = ['except Exception as err:',

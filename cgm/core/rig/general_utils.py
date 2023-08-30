@@ -42,7 +42,7 @@ import cgm.core.lib.position_utils as POS
 from cgm.core.classes import NodeFactory as NODEFAC
 import cgm.core.lib.list_utils as LISTS
 import cgm.core.lib.anim_utils as COREANIM
-
+import cgm.core.lib.node_utils as NODES
 
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import euclid as EUCLID
@@ -603,6 +603,70 @@ def store_and_name(mObj,d):
         log.debug("|{0}| >> {1} | {2}.".format(_str_func,t,v))            
         mObj.doStore(t,v)
     mObj.doName()
+    
+def convertFollicleToPin(follicles = None):
+    _str_func = 'convertFollicleToPin'
+    if not follicles:
+        follicles = mc.ls(sl=1)
+        
+    mFollicles = cgmMeta.validateObjListArg(mc.ls(sl=1),mayaType='follicle')
+    #mShape = mFollicle.getShapes(asMeta=1)[0]
+    
+    for mFollicle in mFollicles:
+        #Get Children
+        
+        mShape = mFollicle.getShapes(asMeta=1)[0]
+        surface = ATTR.get_driver(mShape.mNode, 'inputSurface',getNode=True) or ATTR.get_driver(mShape.mNode, 'inputMesh',getNode=True)
+        if not surface:
+            raise ValueError("{} Must have surface. Follicle: {}".format(_str_func, mFollicle))
+        
+        #Get the Surface
+        ml_children = mFollicle.getChildren(asMeta=1)
+        if ml_children:
+            for mChild in ml_children:
+                mChild.p_parent = False
+
+        pU = mShape.parameterU
+        pV = mShape.parameterV
+        
+        uDriver = ATTR.get_driver(mShape.mNode,'parameterU')
+        vDriver = ATTR.get_driver(mShape.mNode,'parameterV')
+        
+        #cgmGEN.func_snapShot(vars())
+        
+        mFollicle.dagLock(False)#...unlock our dag to reuse
+        mShape.delete()#...remove the follicle shape to we just have the transform
+        
+        uvPinNode,pin, idx = NODES.create_UVPin(surface, None, mFollicle.getNameBase(),pU,pV)
+                        
+        mPin = cgmMeta.asMeta(pin)
+        
+        #We need to test of our created follicle will match our existing one precisely or if we need an extra dag        
+        if TRANS.areEquivalent(mFollicle,mPin):
+            mFollicle.resetAttrs()
+            #Transfer plug
+            mc.connectAttr("{}.outputMatrix[{}]".format(uvPinNode,idx), "{0}.offsetParentMatrix".format(mFollicle.mNode))
+            mPin.delete()#...get rid of it
+        else:#if not equivalent, we'll just parent the original dag under our pin
+            mPin.getShapes(asMeta=True)[0].delete()
+            mPin.p_parent = mFollicle.p_parent
+            mFollicle.p_parent = mPin
+            
+        if uDriver:
+            ATTR.connect(uDriver, "{}.coordinateU[{}].coordinateU".format(uvPinNode,idx))
+        if vDriver:
+            ATTR.connect(uDriver, "{}.coordinateU[{}].coordinateV".format(uvPinNode,idx))
+            
+            
+        
+
+        #Get things contrained to us
+        if ml_children:
+            for mChild in ml_children:
+                mChild.p_parent = mFollicle        
+    
+    pprint.pprint(vars())
+
 
 def plug_insertNewValues(driven = None, drivers = [], replace = False, mode = 'multiply'):
     """
