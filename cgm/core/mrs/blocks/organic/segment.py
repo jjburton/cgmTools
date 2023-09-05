@@ -645,6 +645,7 @@ l_attrsStandard = ['side',
                    'numShapers',
                    'numJoints',
                    'ikOrientToWorld',
+                   'ikDynParentMode',
                    #'buildProfile',
                    'blockProfile',
                    'parentToDriver',
@@ -760,6 +761,7 @@ d_defaultSettings = {'version':__version__,
                      'ribbonAttachEndsToInfluence':'both',
                      'special_swim':'none',
                      'segmentType':'ribbon',
+                     'ikDynParentMode':'space',
                      #'blockProfile':'spine',
                      'scaleSetup':False,
                      'squashSkipAim':True,
@@ -4039,6 +4041,10 @@ def rig_cleanUp(self):
                 else:
                     BUILDUTILS.control_convertToWorldIK(mHandle)
             
+            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
+            mDynGroup.dynMode = mBlock.ikDynParentMode#0
+            
+            
             ml_targetDynParents = ml_baseDynParents + [self.md_dynTargetsParent['attachDriver']] + ml_endDynParents
             
             ml_targetDynParents.append(self.md_dynTargetsParent['world'])
@@ -4047,14 +4053,14 @@ def rig_cleanUp(self):
             if mPivotResultDriver:# and mControlIKBase == mHandle:
                 ml_targetDynParents.insert(0, mPivotResultDriver)                        
         
-            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
-            if mModuleParent:
-                mDynGroup.dynMode = 2
-            #mDynGroup.dynMode = 2
+            #if mModuleParent:
+            #    mDynGroup.dynMode = 2
         
             for mTar in ml_targetDynParents:
                 mDynGroup.addDynParent(mTar)
+                
             mDynGroup.rebuild()
+            
             #mDynGroup.dynFollow.p_parent = self.mConstrainNull
             if mDynGroup.getMessage('dynFollow'):
                 mDynGroup.dynFollow.p_parent = self.mConstrainNull

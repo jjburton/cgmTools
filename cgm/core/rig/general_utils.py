@@ -652,10 +652,10 @@ def convertFollicleToPin(follicles = None):
             mPin.p_parent = mFollicle.p_parent
             mFollicle.p_parent = mPin
             
-        if uDriver:
+        if mc.objExists(uDriver):
             ATTR.connect(uDriver, "{}.coordinateU[{}].coordinateU".format(uvPinNode,idx))
-        if vDriver:
-            ATTR.connect(uDriver, "{}.coordinateU[{}].coordinateV".format(uvPinNode,idx))
+        if mc.objExists(vDriver):
+            ATTR.connect(vDriver, "{}.coordinateU[{}].coordinateV".format(uvPinNode,idx))
             
             
         

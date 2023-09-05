@@ -142,6 +142,7 @@ l_createUI_attrs = ['attachPoint','attachIndex',
                     'ikSetup','segmentStretchBy',
                     'root_dynParentMode',
                     'root_dynParentScaleMode',
+                    'ikDynParentMode',
                     'segmentType',
                     'buildEnd']
 
@@ -882,7 +883,7 @@ l_attrsStandard = ['side',
                    'controlOffsetMult',
                    'root_dynParentMode',
                    'root_dynParentScaleMode',
-                   
+                   'ikDynParentMode',
                    'numSubShapers',#...with limb this is the sub shaper count as you must have one per handle
                    #'buildProfile',
                    'moduleTarget']
@@ -3550,7 +3551,7 @@ def rig_dataBuffer(self):
             
         
         for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','ikOrientEndTo','addLeverBase','addLeverEnd','addToe','segmentType','buildEnd','ikLeverEndLock',
-                  'root_dynParentMode','root_dynParentScaleMode','segmentStretchBy']:
+                  'root_dynParentMode','root_dynParentScaleMode','segmentStretchBy','ikDynParentMode']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
             
         #self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
@@ -8838,9 +8839,12 @@ def rig_cleanUp(self):
             
         for mHandle in ml_ikControls:
             log.debug("|{0}| >>  IK Handle: {1}".format(_str_func,mHandle))
-            
+
             if b_ikOrientToWorld:
                 BUILDUTILS.control_convertToWorldIK(mHandle)
+            
+            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
+            
             
             ml_targetDynParents = copy.copy(ml_baseDynParents)
             if mHandle == mControlIK:
@@ -8849,6 +8853,9 @@ def rig_cleanUp(self):
                     log.debug("|{0}| >>  found parent bank".format(_str_func,mHandle))
                     ml_targetDynParents.insert(0,mParentBank)
                     
+                mDynGroup.dynMode = mBlock.ikDynParentMode#0
+                
+                    
             #if str_rigSetup not in ['digit']:
             ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
             ml_targetDynParents.extend(ml_endDynParents)
@@ -8856,7 +8863,6 @@ def rig_cleanUp(self):
             ml_targetDynParents.append(self.md_dynTargetsParent['world'])
             ml_targetDynParents.extend(mHandle.msgList_get('spacePivots',asMeta = True))
         
-            mDynGroup = cgmRigMeta.cgmDynParentGroup(dynChild=mHandle,dynMode=0)
             #mDynGroup.dynMode = 2
         
             for mTar in ml_targetDynParents:
@@ -8866,10 +8872,14 @@ def rig_cleanUp(self):
             
             
             if mHandle == mControlIK:
-                if self.b_legMode:
+                if self.b_legMode and mHandle.hasAttr('space'):
                     #_idx = ml_targetDynParents.index( self.dynTargets(puppet))
                     ATTR.set_default(mHandle.mNode,'space','puppet')
             
+            
+            if mDynGroup.getMessage('dynFollow'):
+                mDynGroup.dynFollow.parent = mMasterDeformGroup
+                
         log.debug("|{0}| >>  IK targets...".format(_str_func))
         #pprint.pprint(ml_targetDynParents)        
         

@@ -1386,6 +1386,7 @@ example:
                                               c=partial(self.RunExportCommand,4))"""
         
         create_exportButton(_row,'Static...',os.path.join(_path_imageFolder,'export.png'), partial(self.RunExportCommand,4))        
+        create_exportButton(_row,'Bake',os.path.join(_path_imageFolder,'bake.png'), partial(self.RunExportCommand,0))
         
         self.exportButton = create_exportButton(_row,'Anim',os.path.join(_path_imageFolder,'anim_2.png'), partial(self.RunExportCommand,1))        
 
@@ -1395,17 +1396,18 @@ example:
         #mUI.MelButton(_row, ut = 'cgmUITemplate', label="Rig", c=partial(self.RunExportCommand,3), h=self.__itemHeight)
         #mUI.MelButton(_row, ut = 'cgmUITemplate', label="Cutscene", c=partial(self.RunExportCommand,2), h=self.__itemHeight)
         
-        create_exportButton(_row,'Bake',os.path.join(_path_imageFolder,'bake.png'), partial(self.RunExportCommand,0))
+        create_exportButton(_row,'Cutscene',os.path.join(_path_imageFolder,'scene.png'), partial(self.RunExportCommand,2))        
+        mUI.MelSeparator(_row,w=5)        
         create_exportButton(_row,'Rig',os.path.join(_path_imageFolder,'rig_export.png'), partial(self.RunExportCommand,3))
-        create_exportButton(_row,'Cutscene',os.path.join(_path_imageFolder,'scene.png'), partial(self.RunExportCommand,2))
         
         mUI.MelLabel(_row, label="       | ", h=self.__itemHeight, align = 'center')
         
         mUI.MelLabel(_row, label="Add to queue as: ", h=self.__itemHeight, align = 'right')
         
         create_exportButton(_row,'Anim', os.path.join(_path_imageFolder,'anim_2.png'), lambda *a:(self.AddToExportQueue('export')))
-        create_exportButton(_row,'Rig', os.path.join(_path_imageFolder,'rig_export.png'), lambda *a:(self.AddToExportQueue('rig')))
         create_exportButton(_row,'Cutscene', os.path.join(_path_imageFolder,'scene.png'),  lambda *a:(self.AddToExportQueue('cutscene')))
+        mUI.MelSeparator(_row,w=5)
+        create_exportButton(_row,'Rig', os.path.join(_path_imageFolder,'rig_export.png'), lambda *a:(self.AddToExportQueue('rig')))
         
         #mUI.MelButton(_row, ut = 'cgmUITemplate', label="Rig",  c=lambda *a:(self.AddToExportQueue('rig')), h=self.__itemHeight)
         #mUI.MelButton(_row, ut = 'cgmUITemplate', label="Cutscene",  c=lambda *a:(self.AddToExportQueue('cutscene')), h=self.__itemHeight)
@@ -1730,8 +1732,11 @@ example:
 
         if os.path.exists(d_userPaths['content']):
             self.LoadCategoryList(d_userPaths['content'])
-                        
-            self.l_categoriesBase = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
+                    
+            _l = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
+            _l = sorted(_l, key=lambda v: v.upper())
+            
+            self.l_categoriesBase = _l
             self.categoryList = [c for c in self.l_categoriesBase]
             
             for i,f in enumerate(os.listdir(self.directory)):
@@ -4189,6 +4194,7 @@ example:
             
             self.l_categoriesBase = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
             self.categoryList = [c for c in self.l_categoriesBase]
+            self.categoryList  = sorted(self.categoryList , key=lambda v: v.upper())
             
             for i,f in enumerate(os.listdir(self.directory)):
                 if os.path.isfile(os.path.join(self.directory, f)):
