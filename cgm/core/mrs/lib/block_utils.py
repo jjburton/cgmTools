@@ -9874,13 +9874,14 @@ def create_defineCurve(self,d_definitions,md_handles, mParentNull = None,crvType
             
             str_name = _dtmp.get('name') or "{0}_{1}".format(self.blockProfile,k)
             _tagOnly = _dtmp.get('tagOnly',False)
-            _handleKeys = _dtmp.get('keys')
+            #_handleKeys = _dtmp.get('keys',False)
             
-            if _handleKeys:
-                _handleKeys = LISTS.get_noDuplicates(_handleKeys)
-            if len(_handleKeys) < 2:
-                log.error("{} has {} keys. Need more. | {}".format(k,len(_handleKeys), _handleKeys))
-                continue
+            #if _handleKeys:
+            #    _handleKeys = LISTS.get_noDuplicates(_handleKeys)
+                
+            #    if len(_handleKeys) < 2:
+            #        log.error("{} has {} keys. Need more. | {}".format(k,len(_handleKeys), _handleKeys))
+            #        continue
                 
             ml_handles = _dtmp.get('ml_handles') or [md_handles[k2] for k2 in _handleKeys]
         
