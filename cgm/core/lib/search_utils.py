@@ -46,6 +46,21 @@ log_msg = cgmGEN.logString_msg
 log_sub = cgmGEN.logString_sub
 log_start = cgmGEN.logString_start
 
+
+def animLayers_getSelected():
+    layers= []
+    for layer in mc.ls(type='animLayer'):
+        if mc.animLayer(layer,query=True, selected=True):
+            layers.append(layer)
+    if layers:return layers
+    return False
+
+def animLayer_contains(layer_name, obj):
+    for a in mc.animLayer(layer_name, query=True, attribute=True):
+        if a.split('.')[0] == mc.ls(obj,sn=True)[0]:
+            return True
+        
+
 def get_nodeTagInfo(node = None, tag = None):
     """
     Get the info on a given node with a provided tag

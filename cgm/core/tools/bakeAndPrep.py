@@ -8,7 +8,7 @@ from cgm.core import cgm_Meta as cgmMeta
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 def BakeAndPrep(bakeSetName = 'bake_tdSet',
                 deleteSetName = "delete_tdSet",
@@ -62,39 +62,51 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
     bakeSets = []
 
     currentTime = mc.currentTime(q=True)
-    log.debug("{0} ||currentTime: {1}".format(_str_func,currentTime))
+    log.info("{0} ||currentTime: {1}".format(_str_func,currentTime))
 
     for asset in assets:
         #if ':' in assets:
-        log.debug("{0} || asset: {1}".format(_str_func,asset))
+        log.info("{0} || asset: {1}".format(_str_func,asset))
         
         topNodeSN = asset.split(':')[-1]
-
-        # gather data
-        namespaces = asset.split(':')[:-1]
-
-        if len(namespaces) > 0:
-            ns = ':'.join( asset.split(':')[:-1] ) + ':'
+        if topNodeSN:
+            # gather data
+            namespaces = asset.split(':')[:-1]
+    
+            if len(namespaces) > 0:
+                ns = ':'.join( asset.split(':')[:-1] ) + ':'
+            else:
+                ns = "%s_" % asset.split('|')[-1]
+            
+            # bake
+            bakeSet = "%s%s" % (ns, bakeSetName)
+            if mc.objExists(bakeSet):
+                if bakeSet not in bakeSets:
+                    bakeSets.append(bakeSet)
+                    bakeTransforms += mc.sets(bakeSet, q=True)
+            else:
+                bakeTransforms.append(asset)
+                #else:
+                #    bakeTransforms.append(asset)
+                log.info("{0} || bakeSet: {1}".format(_str_func,bakeSet))
         else:
-            ns = "%s_" % asset.split('|')[-1]
-        
-        # bake
-        bakeSet = "%s%s" % (ns, bakeSetName)
-        if mc.objExists(bakeSet):
-            if bakeSet not in bakeSets:
-                bakeSets.append(bakeSet)
-                bakeTransforms += mc.sets(bakeSet, q=True)
-        else:
-            bakeTransforms.append(asset)
-        #else:
-        #    bakeTransforms.append(asset)
-        log.debug("{0} || bakeSet: {1}".format(_str_func,bakeSet))
-
+            if mc.objExists(bakeSetName):
+                if bakeSetName not in bakeSets:
+                    bakeSets.append(bakeSetName)
+                    bakeTransforms += mc.sets(bakeSetName, q=True)
+                    log.info("{0} || bakeSet: {1}".format(_str_func,bakeSetName))                    
+            elif asset not in bakeTransforms:
+                bakeTransforms.append(asset)
+                log.info("{0} || bake: {1}".format(_str_func,asset))
+                
+                #else:
+                #    bakeTransforms.append(asset)
+    #pprint.pprint(vars())
     if len(bakeTransforms) > 0:
-        log.debug("{0} || baking transforms".format(_str_func))
+        log.info("{0} || baking transforms...".format(_str_func))
         
         #pprint.pprint(bakeTransforms)
-        log.debug("{0} || time | start: {1} | end: {2}".format(_str_func,startFrame,endFrame))
+        log.info("{0} || time | start: {1} | end: {2}".format(_str_func,startFrame,endFrame))
         
         mc.bakeResults( bakeTransforms, 
                         simulation=True, 
@@ -117,9 +129,10 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
             for obj in bakeTransforms:
                 if euler:
                     for a in ['rotateX','rotateY','rotateZ']:
-                        try:mc.filterCurve( obj + '_' + a )
-                        except Exception as err:
-                            print(("{0} | {1} | {2}".format(obj,a,err)))
+                        if mc.objExists( obj + '_' + a ):
+                            try:mc.filterCurve( obj + '_' + a )
+                            except Exception as err:
+                                print(("{0} | {1} | {2}".format(obj,a,err)))
                             
                 if tangent:
                     _anim = mc.listConnections(obj, type = 'animCurve')
@@ -173,9 +186,10 @@ def Prep(removeNamespace = False,
 
     namespaces = topNode.mNode.split(':')[:-1]
     
-    log.debug("{0} || topNode: {1}".format(_str_func,format(topNodeSN)))
+    log.info("{0} || mNode: {1}".format(_str_func,topNode.mNode))
+    log.info("{0} || topNode: {1} | namespaces: {2}".format(_str_func,topNodeSN,namespaces))
     
-    log.debug("{0} || ref import".format(_str_func))
+    log.info("{0} || ref import".format(_str_func))
     
     # import reference
     if( mc.referenceQuery(topNode.mNode, isNodeReferenced=True) ):
@@ -190,7 +204,7 @@ def Prep(removeNamespace = False,
 
         mc.file(topRefFile, ir=True)
 
-    log.debug("{0} || namespaces".format(_str_func))
+    log.info("{0} || namespaces".format(_str_func))
     
     if len(namespaces) > 0:
         for space in namespaces[:-1]:
@@ -211,7 +225,7 @@ def Prep(removeNamespace = False,
         
     exportSetObjs = []
     
-    log.debug("{0} || export set: {1}".format(_str_func,exportSet))
+    log.info("{0} || export set: {1}".format(_str_func,exportSet))
     
     
     if mc.objExists(exportSet):
@@ -225,12 +239,12 @@ def Prep(removeNamespace = False,
 
     if exportSetObjs:
         for exportObj in exportSetObjs:
-            log.debug("{0} || exportObj: {1}".format(_str_func,exportObj.mNode))
+            log.info("{0} || exportObj: {1}".format(_str_func,exportObj.mNode))
             mc.delete(mc.listRelatives(exportObj.mNode, ad=True, type='constraint', fullPath = 1))
 
             if zeroRoot and mc.objExists('{0}.cgmTypeModifier'.format(exportObj.mNode)):
                 if mc.getAttr('{0}.cgmTypeModifier'.format(exportObj.mNode)) == 'rootMotion':
-                    log.debug("{0} || Zeroing root: {1}".format(_str_func,exportObj.mNode))
+                    log.info("{0} || Zeroing root: {1}".format(_str_func,exportObj.mNode))
                     mc.cutKey(exportObj.mNode, at=['translate', 'rotate'], clear=True)
                     mc.setAttr('{0}.translate'.format(exportObj.mNode), 0, 0, 0, type='float3')
                     mc.setAttr('{0}.rotate'.format(exportObj.mNode), 0, 0, 0, type='float3')
@@ -255,7 +269,7 @@ def Prep(removeNamespace = False,
     else:
         newTopNode = cgmMeta.asMeta(newTopNode)
             
-    log.debug("{0} || topNode: {1}".format(_str_func,newTopNode.mNode))
+    log.info("{0} || topNode: {1}".format(_str_func,newTopNode.mNode))
             
     
     # revert to old name
@@ -274,7 +288,7 @@ def Prep(removeNamespace = False,
 
     exportObjs = cgmMeta.asMeta(mc.ls(sl=True))
     for obj in exportObjs:
-        log.debug("{0} || parent pass: {1}".format(_str_func,obj))
+        log.info("{0} || parent pass: {1}".format(_str_func,obj))
         
         try:
             mc.parent(obj.mNode, w=True)
@@ -283,7 +297,7 @@ def Prep(removeNamespace = False,
             
             
     # delete garbage       
-    log.debug("{0} || delete set: {1}".format(_str_func,deleteSet))
+    log.info("{0} || delete set: {1}".format(_str_func,deleteSet))
     if(mc.objExists(deleteSet)):
         for o in mc.sets( deleteSet, q=True ) or []:
             try:mc.delete( o )  
@@ -326,5 +340,8 @@ def MakeExportCam(inputCam):
     exportCam, exportCamShape = mc.camera(name='exportCam')
     mc.parentConstraint(inputCam, exportCam, mo=False)
     mc.connectAttr('%s.focalLength' % inputCam, '%s.focalLength' % exportCamShape)
+    
+    mObj = cgmMeta.asMeta(exportCam)
+    mObj.rename('exportCam')
 
-    return exportCam
+    return mObj.mNode

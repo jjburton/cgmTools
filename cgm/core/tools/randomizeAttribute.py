@@ -176,11 +176,22 @@ class ui(FIT.ui):
         #pprint.pprint(vars())
         
         _current_time = mc.currentTime(query=True)
+        _current_layers = SEARCH.animLayers_getSelected() or []
+        
         for a,d in self.d_activeAttrs.items():
             for mObj in _targets:
                 _node = mObj.mNode
                 _value = random.uniform(d['min'],d['max'])
-                print("{} | min: {} | max: {} | mode: {} | blend: {}".format(_value, d['min'], d['max'], _mode, _blend_mode))
+                _combined = "{}.{}".format(_node,a)
+                
+                print("value: {} | min: {} | max: {} | mode: {} | blend: {}".format(_value, d['min'], d['max'], _mode, _blend_mode))
+                
+                _animLayer = False
+                for layer in _current_layers:
+                    if _animLayer or layer == 'BaseAnimation':
+                        continue
+                    if SEARCH.animLayer_contains(layer,mObj.mNode):
+                        _animLayer = True
                 
                 
                 #Do our blend setup stuff ---
@@ -200,19 +211,37 @@ class ui(FIT.ui):
                 
                 #...regular stuff
                 if _mode == 'absolute':
-                    print("{} | min: {} | max: {} | mode: {} | blend: {}".format(_value, d['min'], d['max'], _mode, _blend_mode))                    
+                    print("value: {} | min: {} | max: {} | mode: {} | blend: {}".format(_value, d['min'], d['max'], _mode, _blend_mode))                    
                     #ATTR.set(_node, a, _value)
                 elif _mode == 'nudge':
                     _base = SEARCH.get_anim_value_by_time(_node,[a], _current_time) or ATTR.get(_node, a)
-                    print("{} | base: {} | min: {} | max: {} | mode: {} | blend: {}".format(_value, _base, d['min'], d['max'], _mode, _blend_mode))                    
+                    print("value: {} | base: {} | min: {} | max: {} | mode: {} | blend: {} | animLayer: {}".format(_value, _base, d['min'], d['max'], _mode, _blend_mode, _animLayer))                    
                     
-                    _value = _value + _base
+                    if not _animLayer:
+                        print("Value offset")
+                        _value = _value + _base
+                        
                     #ATTR.set(_node, a, _value + _base)
                 
-                if not SEARCH.get_anim_value_by_time(_node,[a], _current_time):
-                    ATTR.set(_node,a,_value)
+                #if not SEARCH.get_anim_value_by_time(_node,[a], _current_time):
+                #    ATTR.set(_node,a,_value)
+                #else:
+                if _animLayer:
+                    print("AnimLayer...")
+                    if _mode == 'nudge':
+                        print("{} | animlayer nudge value: {}".format(_combined,_value))                        
+                        mc.setKeyframe( _node, t=[_current_time], at=a, v=_value, nr=True)
+                    else:
+                        print("{}| animlayer Set value: {}".format(_combined,_value))
+                        ATTR.set(_node,a,_value)                        
                 else:
-                    mc.setKeyframe( _node, t=[_current_time], at=a, v=_value )
+                    if not SEARCH.get_anim_value_by_time(_node,[a], _current_time):
+                        print("{} | Set value: {}".format(_combined,_value))
+                        ATTR.set(_node,a,_value)
+                    else:
+                        print("{} | Set key value: {}".format(_combined,_value))                        
+                        mc.setKeyframe( _node, t=[_current_time], at=a,v=_value)
+
                 #mc.setKeyframe(_node, at=a)
         
     def uiFunc_attrs_clear(self):

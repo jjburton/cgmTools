@@ -2804,6 +2804,8 @@ def rig_controls(self):
     ml_controlsIK = []
     ml_controlsFK = []
     
+    mRootIKParent = self.mDeformNull
+    
     # Drivers ==========================================================================================    
     if self.mBlock.neckBuild:
         if self.mBlock.neckIK:
