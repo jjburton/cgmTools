@@ -259,18 +259,21 @@ def blockDat_createBlock(self, autoPush = True, promptName = True):
     if _size == 'Fail':
         raise ValueError("No baseSize")
     
-    
-    
-    
     _d = {'blockType':_blockType,
           'autoForm':False,
           'side':_side,
           'baseSize':_size,#mDat['baseSize'],
           'blockProfile':mDat.get('blockProfile'),
           'buildProfile':mDat.get('buildProfile'),
+          'cgmName':_nameOriginal,
           'blockParent': CORESEARCH.find_from_string(mDat.get('blockParent'))}    
     
+    #Position check
+    _position = mDat.get('blockPosition') or mDat.get('cgmPosition') or mDat.get('unknown',{}).get('cgmPosition')
+    if _position:
+        _d['cgmPosition'] = _position
     
+    pprint.pprint(_d)
     #...prompt ------------------------------------------------------------------------------------------------------------------------------------------------
     if promptName:
         _title = 'New name for block'.format(_blockType)

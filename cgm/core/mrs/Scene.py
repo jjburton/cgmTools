@@ -5444,6 +5444,8 @@ def ExportScene(mode = -1,
         _end = None
 
     log.info( log_sub(_str_func,'Bake | start: {0} | end: {1}'.format(_start,_end)) )
+    if _start and _end:
+        mc.playbackOptions(minTime=_start, maxTime=_end)
 
 
     #Bake Check -----------------------------------------------------------------------------------------------

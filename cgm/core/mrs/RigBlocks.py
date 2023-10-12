@@ -213,7 +213,7 @@ class cgmRigBlock(cgmMeta.cgmControl):
         _sel = None
         _size = kws.get('size',None)
         _side =  kws.get('side')
-        _blockPosition = kws.get('cgmPosition')
+        _blockPosition = kws.get('cgmPosition') or kws.get('blockPosition')
         _baseSize = kws.get('baseSize')
         _sizeMode = None
         _postState = None#...for sizeMode call
