@@ -2451,9 +2451,20 @@ def uiCB_contextualAction(self,**kws):
             log.debug("|{0}| >> Mirroring. base: {1}".format(_str_func,mBaseModule))
             
             _l_cBuffer = [mObj.mNode for mObj in _ml_controls]
+            _l_mirrorBuffer = []
+            
+            if _mode == 'mirrorPull':
+                _l_mirrorBuffer = copy.copy(_l_cBuffer)
+            
             for mMirror in self.mDat.d_context['mModulesMirror']:
                 d_mModule = self.mDat.module_get(mMirror)
-                _l_cBuffer.extend([mObj.mNode for mObj in d_mModule['mControls']])
+                _l_tmp = [mObj.mNode for mObj in d_mModule['mControls']]
+                if _mode == 'mirrorPush':
+                    _l_mirrorBuffer.extend(_l_tmp)
+                elif _mode == 'mirrorPull':
+                    for s in _l_tmp:
+                        _l_mirrorBuffer.remove(s)
+                _l_cBuffer.extend(_l_tmp)
                 
             log.debug(cgmGEN._str_subLine)
             
@@ -2489,7 +2500,18 @@ def uiCB_contextualAction(self,**kws):
                 r9Anim.MirrorHierarchy().makeSymmetrical(_l_cBuffer,
                                                          mode = '',
                                                          primeAxis = _primeAxisUse )        
-            self.mDat.key()
+            log.info("hello")
+            #self.mDat.key()
+            
+            if _mode in ['mirrorPull','mirrorPush']:
+                pprint.pprint(_l_mirrorBuffer)
+                for ctrl in _l_mirrorBuffer:
+                    mc.setKeyframe(ctrl)                
+                
+            else:
+                self.mDat.key()
+
+                
             return endCall(self)    
     
     
@@ -6434,6 +6456,7 @@ class ui_picker(cgmUI.cgmGUI):
             #continue
                                     
             if _icon:
+                
                 mUI.MelIconButton(_row,
                                   ann=_type,
                                   style='iconOnly',

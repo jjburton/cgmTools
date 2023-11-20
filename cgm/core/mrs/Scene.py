@@ -3852,6 +3852,11 @@ example:
         log.info(log_msg(_str_func,"Save to: {0}".format(saveLocation)))
 
         saveFile = os.path.normpath(os.path.join(saveLocation,wantedName) ) 
+        
+        #Set our base timeline to not be huge
+        mc.playbackOptions(minTime=0, maxTime=10)
+        mc.playbackOptions(animationStartTime=0, animationEndTime=10)
+        
         log.info( "Saving file: %s" % saveFile )
         mc.file( rename=saveFile )
         mc.file( save=True )
@@ -5451,7 +5456,6 @@ def ExportScene(mode = -1,
     #Bake Check -----------------------------------------------------------------------------------------------
     #if mc.objExists(bakeSetName) and mc.sets(bakeSetName, q=True):
     #    log.info("bake...")        
-
     if not exportStatic:
         bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,sampleBy=sampleBy,
                          euler=euler,tangent=tangent)

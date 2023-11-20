@@ -4374,13 +4374,14 @@ def prerig(self):
             for side in ['left','right']:
                 #Get our position
                 _tag = 'smile'+side.capitalize()
-                mSurf =  self.getMessageAsMeta('uprJoin{0}FormLoft'.format(side.capitalize()))
+                mSurf =  self.getMessageAsMeta('uprJoin{0}FormLoft'.format(side.capitalize())) or self.getMessageAsMeta('jawFormLoft')
                 
                 _handleKey = _tag#'smile'+side
                 log.debug(cgmGEN.logString_msg(_str_func, 'smile | {0}'.format(_tag)))
                 _dTmp = copy.copy(_d_name)
                 _dTmp['cgmDirection'] = side
                 
+                pprint.pprint(d_handleKWS)
                 
                 d_handleKWS = {
                     'mode' : 'handle',
