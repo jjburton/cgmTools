@@ -681,6 +681,20 @@ def buildFrames(self,parent, changeCommand = ''):
                                               )
                 _d[_name].setValue(_dv)
                 self.d_uiTypes[k][_name] = 'bool'
+            elif _type == 'float':
+                _d[_name] =  mUI.MelFloatField(_row,
+                                             ann='{0} settings | {1}'.format(_name,d),
+                                             cc = changeCommand,
+                                              )
+                _d[_name].setValue(_dv)
+                self.d_uiTypes[k][_name] = 'float'
+            elif _type == 'int':
+                _d[_name] =  mUI.MelIntField(_row,
+                                             ann='{0} settings | {1}'.format(_name,d),
+                                             cc = changeCommand,
+                                              )
+                _d[_name].setValue(_dv)
+                self.d_uiTypes[k][_name] = 'int'                
             elif _type == 'color':
                 _d[_name] = mUI.MelButton(_row,bgc= [1,1,1], l = '',
                                           c= cgmGEN.Callback(uiButton_colorSet,self,'colors',_name))
@@ -691,7 +705,7 @@ def buildFrames(self,parent, changeCommand = ''):
                 self.d_uiTypes[k][_name] = 'string'
                 
                 if cgmValid.isListArg(_dv):
-                    log.debug("ListArg: {0} | {1}".format(_name,_dv))
+                    log.info("ListArg: {0} | {1}".format(_name,_dv))
                     if len(_dv)>1:
                         _dv = ','.join([CORESTRINGS.byMode(v,_nameStyle) for v in _dv])
                     else:
@@ -1149,7 +1163,7 @@ class ui(cgmUI.cgmGUI):
         
     def fncMayaSett_query(self):
         
-        _str_func = 'ui.fncMayaSett_do'
+        _str_func = 'ui.fncMayaSett_query'
         log.debug("|{0}| >>...".format(_str_func))
         
         d_settings  = {'world':PU._worldSettings,
@@ -1158,7 +1172,10 @@ class ui(cgmUI.cgmGUI):
             
         d_nameToCheck = {'world':{'worldUp':MAYASET.sceneUp_get,
                                 'linear':MAYASET.distanceUnit_get,
-                                'angular':MAYASET.angularUnit_get},
+                                'angular':MAYASET.angularUnit_get,
+                                'gridLengthAndWidth':MAYASET.grid_LengthAndWidth_get,
+                                'gridLinesEvery':MAYASET.grid_spacing_get,
+                                'gridSubdivisions':MAYASET.grid_subdivisions_get},
                        'anim':{'frameRate':MAYASET.frameRate_get,
                                'defaultInTangent':MAYASET.defaultInTangent_get,
                                'defaultOutTangent':MAYASET.defaultOutTangent_get,
@@ -1184,8 +1201,6 @@ class ui(cgmUI.cgmGUI):
                     
                     if fnc:
                         _current = fnc()
-                        
-
                         
                         if _value != _current:
                             log.warning(cgmGEN.logString_msg(_str_func,"name: {0} | setting: {1} | found :{2}".format(_name,_value,_current)))
@@ -1443,11 +1458,15 @@ def uiProject_new(self):
         _name = mc.promptDialog(query=True, text=True)
         self.mDat = data(_name)
         self.d_tf['general']['name'].setValue(_name)
+        #print("Step 1 -------------------- {}".format(self.mDat.d_project['dirMask']))
+        uiProject_fill(self)
         
         #self.mDat.write()
         uiProject_save(self, duplicateMode=True)
+        #print("Step 2 -------------------- {}".format(self.mDat.d_project['dirMask']))
         #uiProject_load(revert=True)
-        uiProject_fill(self)
+        #uiProject_fill(self)
+        #print("Step 3 -------------------- {}".format(self.mDat.d_project['dirMask']))
         return True
     
     log.error("Project Creation cancelled")
@@ -1608,12 +1627,12 @@ def uiProject_fill(self,fillDir = True):
     
     l_errs = []
     
-    for dType in ['general','anim','pathsProject','colors','exportOptions']:
+    for dType in ['general','anim','pathsProject','colors','exportOptions','world']:
         log.debug(cgmGEN.logString_sub(_str_func,dType))
         
         for k,v in list(self.mDat.__dict__[PU._dataConfigToStored[dType]].items()):
             try:
-                log.debug(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
+                log.info(cgmGEN.logString_msg(_str_func,"{0} | {1}".format(k,v)))
                 try:_type = self.d_uiTypes[dType][k]
                 except:_type = None
                     
@@ -1683,7 +1702,8 @@ def uiProject_fill(self,fillDir = True):
         l_errs.append("Paths failed: {0}".format(','.join(l_pathsMissing)))
     
                 
-    self.uiLabel_file(edit=True, label = CORESTRINGS.short(self.mDat.str_filepath,30,10))
+    if self.mDat.str_filepath:
+        self.uiLabel_file(edit=True, label = CORESTRINGS.short(self.mDat.str_filepath,30,10))
     
     #Project image
     log.debug(cgmGEN.logString_sub(_str_func,"Image..."))        
@@ -2199,7 +2219,7 @@ class data(object):
         
     def fillDefaults(self,overwrite=False):
         _str_func = 'data.fillDefaults'
-        log.debug("|{0}| >>...".format(_str_func))
+        print("|{0}| >>...".format(_str_func))
         
         for k,d in list(PU._dataConfigToStored.items()):
             log.debug("checking: {0}".format(k))
@@ -2209,6 +2229,7 @@ class data(object):
                 log.debug("set: {0}".format(d2))
                 if mD.get(d2['n']) is None or overwrite:
                     mD[d2['n']] = d2.get('dv')
+                    print("fillDefaults -- [{1}] | [{0}] | {2}".format(d2['n'],k,d2.get('dv')))
                     
         if not self.assetDat:
             for k in 'character','environment','prop':

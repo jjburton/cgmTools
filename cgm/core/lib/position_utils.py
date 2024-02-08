@@ -539,14 +539,20 @@ def get_info(target = None, boundingBox = False):
     return _d
 
 
-def layout_byColumn(objList = None,columns=3,startPos = [0,0,0]):
+def layout_byColumn(objList = None,columns=3,startPos = [0,0,0], mode = 'z', offsetMode = 'mult', offsetMult = 1.5, offsetBuffer = 10):
     """
     Get a uv position in world space. UV should be normalized.
     
     :parameters:
         objList(list) | list of objects to arrange
-        uValue(float) | uValue  
-        vValue(float) | vValue 
+        column(int) | how many columns
+        startPos(vector) | start point 
+        mode(string)
+           z
+           y
+        offsetMode(string)
+           mult
+           fixed
 
     :returns
         pos(double3)
@@ -562,36 +568,50 @@ def layout_byColumn(objList = None,columns=3,startPos = [0,0,0]):
     
     _l_x = []
     _l_y = []
+    _l_z = []
     
     for obj in objList:
-        _bfr = get_bb_size(obj)
-        log.debug("|{0}| >> obj: {1} | size: {2}'".format(_str_func,obj,_bfr))
+        _bfr = get_bb_size(obj,True)
+        log.info("|{0}| >> obj: {1} | size: {2}'".format(_str_func,obj,_bfr))
         _l_x.append(_bfr[0])
         _l_y.append(_bfr[1])
+        _l_z.append(_bfr[2])
+        
 
     for obj in objList:
         mc.move(0,0,0,obj,a=True)
 
-    sizeX = max(_l_x) * 1.75
-    sizeY = max(_l_y) * 1.75
+    
+    if offsetMode == 'mult':
+        sizeX = max(_l_x) * offsetMult
+        sizeY = max(_l_y) * offsetMult
+        sizeZ = max(_l_z) * offsetMult
+    else:
+        sizeX = max(_l_x) + offsetBuffer 
+        sizeY = max(_l_y) + offsetBuffer 
+        sizeZ = max(_l_z) + offsetBuffer    
+        
 
     startX = startPos[0]
     startY = startPos[1]
     startZ = startPos[2]
 
-    col=1
-    objectCnt = 0
     #sort the list
     
     _l_sorted = LISTS.get_chunks(objList,columns)
     
     bufferY = startY
+    bufferZ = startZ
     for row in _l_sorted:
         bufferX = startX
         for obj in row:
-            mc.xform(obj,os=True,t=[bufferX,bufferY,startZ])
+            if mode == 'z':
+                mc.xform(obj,os=True,t=[bufferX,startY,bufferZ])
+            else:
+                mc.xform(obj,os=True,t=[bufferX,bufferY,startZ])
             bufferX += sizeX
-        bufferY -= sizeY    
+        bufferY += sizeY
+        bufferZ += sizeZ
     
 def get_midPointDict(sourceList,forceBBCenter = False):
     _str_func = 'get_midPointDict'    

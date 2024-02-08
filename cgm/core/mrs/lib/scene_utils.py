@@ -44,6 +44,7 @@ import cgm.core.lib.mayaSettings_utils as MAYASET
 import cgm.core.tools.lib.project_utils as PU
 import cgm.core.lib.mayaBeOdd_utils as MAYABEODD
 
+cgmGEN._reloadMod(MAYASET)
 
 """
 # From cgm ==============================================================
@@ -124,11 +125,13 @@ def buildMenu_utils(self, mMenu):
 
     mUI.MelMenuItemDiv( mMenu, label='Global Settings..' )
     mUI.MelMenuItem( mMenu, l="World Match",
-                     c = lambda *a:fncMayaSett_do(self,True,False))
+                     c = lambda *a:fncMayaSett_do(self,True,False,False))
     mUI.MelMenuItem( mMenu, l="Anim Match",
-                     c = lambda *a:fncMayaSett_do(self,False,True))
+                     c = lambda *a:fncMayaSett_do(self,False,True,False))
+    mUI.MelMenuItem( mMenu, l="Grid Match",
+                     c = lambda *a:fncMayaSett_do(self,False,False,True))    
     mUI.MelMenuItem( mMenu, l="All Match",
-                     c = lambda *a:fncMayaSett_do(self,True,True))
+                     c = lambda *a:fncMayaSett_do(self,True,True,True))
     
     #mUI.MelMenuItemDiv( mMenu,)
     
@@ -172,21 +175,26 @@ def buildMenu_utils(self, mMenu):
 d_nameToKey = {'world':'d_world',
                'anim':'d_animSettings'}
 
-def fncMayaSett_do(self,world=False,anim=False):
+def fncMayaSett_do(self,world=False,anim=False,grid=False):
     _str_func = 'ui.fncMayaSett_do'
     log.debug("|{0}| >>...".format(_str_func))
     
     d_settings  = {'world':PU._worldSettings,
+                   'grid':PU._worldSettings,
                    'anim':PU._animSettings}
     d_toDo = {}
-    if world:
+    if world or grid:
         d_toDo['world'] = d_settings['world']
     if anim:
         d_toDo['anim'] = d_settings['anim']
         
+        
     d_nameToSet = {'world':{'worldUp':MAYASET.sceneUp_set,
                             'linear':MAYASET.distanceUnit_set,
-                            'angular':MAYASET.angularUnit_set},
+                            'angular':MAYASET.angularUnit_set,
+                            'gridLengthAndWidth':MAYASET.grid_LengthAndWidth_set,
+                            'gridLinesEvery':MAYASET.grid_spacing_set,
+                            'gridSubdivisions':MAYASET.grid_subdivisions_set},
                    'anim':{'frameRate':MAYASET.frameRate_set,
                            'defaultInTangent':MAYASET.defaultInTangent_set,
                            'defaultOutTangent':MAYASET.defaultOutTangent_set,
@@ -207,12 +215,16 @@ def fncMayaSett_do(self,world=False,anim=False):
                 _dv = d.get('dv')
                 _name = d.get('n')
                 
-                _value = _d[_name]#_d[_name].getValue()
+                if grid:
+                    if not _name.startswith('grid'):
+                        continue
                 
+                _value = _d.get(_name)#_d[_name].getValue()
+            
                 fnc = d_nameToSet.get(k,{}).get(_name)
                 log.debug(cgmGEN.logString_msg(_str_func,"name: {0} | value: {1}".format(_name,_value)))
                 
-                if fnc:
+                if fnc and _value:
                     fnc(_value)
                 else:
                     log.warning("No function found for {0} | {1}".format(k,_name))
@@ -228,7 +240,10 @@ def fncMayaSett_query(self):
 
     d_nameToCheck = {'world':{'worldUp':MAYASET.sceneUp_get,
                             'linear':MAYASET.distanceUnit_get,
-                            'angular':MAYASET.angularUnit_get},
+                            'angular':MAYASET.angularUnit_get,
+                            'gridLengthAndWidth':MAYASET.grid_LengthAndWidth_get,
+                            'gridLinesEvery':MAYASET.grid_spacing_get,
+                            'gridSubdivisions':MAYASET.grid_subdivisions_get},
                    'anim':{'frameRate':MAYASET.frameRate_get,
                            'defaultInTangent':MAYASET.defaultInTangent_get,
                            'defaultOutTangent':MAYASET.defaultOutTangent_get,
@@ -236,7 +251,7 @@ def fncMayaSett_query(self):
 
     #pprint.pprint(d_toDo)
     for k,l in list(d_settings.items()):#d_toDo.iteritems():
-        log.debug(cgmGEN.logString_sub(_str_func,k))
+        log.info(cgmGEN.logString_sub(_str_func,k))
         
         _d = self.mDat.__dict__.get(d_nameToKey.get(k))
         

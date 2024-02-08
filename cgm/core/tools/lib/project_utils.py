@@ -129,9 +129,9 @@ _dataConfigToStored = {'general':'d_project',
                        'world':'d_world'}
 
 l_projectPathModes = ['art','content','root']
-l_projectDat = ['name','type','nameStyle','mayaVersion','mayaVersionCheck','mayaFilePref','lock']
+l_projectDat = ['name','type','nameStyle','mayaVersion','mayaVersionCheck','mayaFilePref','dirMask','lock']
 l_nameConventions = ['none','lower','capital','upper','camelCase','capFirst']
-l_mayaVersions = ['2016','2017','2018','2019','2020','2022','2023','2024','2025']
+l_mayaVersions = ['2016','2017','2018','2019','2020','2022','2023','2024','2025','2026','2027','2028']
 l_userMode = ['general','master']
 l_projectTypes = ['unity','unreal','commercial']
 l_projectPaths = ['root','content','export','image','scriptUI','poses','scripts']
@@ -156,6 +156,7 @@ _projSettings = [{'n':'name','t':'text','dv':'Name me'},
                  {'n':'mayaFilePref','t':l_mayaFileType,'dv':'mb'},
                  #{'n':'projectPathMode','t':l_projectPathModes,'dv':'art'},
                  {'n':'nameStyle','t':l_nameConventions,'dv':'none'},
+                 {'n':'dirMask','t':'text','dv':""},
                  ]
                  
 _animSettings = [{'n':'frameRate','t':_fpsStrings,'dv':'24fps'},
@@ -167,7 +168,12 @@ _animSettings = [{'n':'frameRate','t':_fpsStrings,'dv':'24fps'},
 _worldSettings = [{'n':'worldUp','t':['y','z'],'dv':'y'},
                   {'n':'linear','t':['milimeter','centimeter','meter',
                                      'inch','foot','yard'],'dv':'centimeter'},
-                  {'n':'angular','t':['degrees','radians'],'dv':'degrees'},                   
+                  {'n':'angular','t':['degrees','radians'],'dv':'degrees'},
+                  {'n':'gridLengthAndWidth','t':'float','dv':1600},
+                  {'n':'gridLinesEvery','t':'float','dv':400},
+                  {'n':'gridSubdivisions','t':'int','dv':16},
+                  
+                  
                    ]
 
 _colorSettings = [{'n':'project','t':'color','dv':[.6,.3,.3]},

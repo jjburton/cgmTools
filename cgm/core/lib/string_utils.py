@@ -154,3 +154,18 @@ def stripWhiteSpaceStart(arg = None):
     while arg.startswith( ' ' ):
         arg = arg[ 1: ]    
     return arg
+
+def parseCommaString(input_string):
+    """
+    Parse the input string into a list of comma-separated values, ignoring spaces.
+
+    Args:
+    input_string (str): The string to parse.
+
+    Returns:
+    list: A list of the parsed values.
+    """
+
+    # Split the string by comma and use strip to remove leading and trailing spaces
+    return [value.strip() for value in input_string.split(',')]
+

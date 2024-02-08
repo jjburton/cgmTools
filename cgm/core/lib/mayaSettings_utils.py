@@ -199,3 +199,18 @@ def weightedTangets_set(arg):
     log.debug(cgmGEN.logString_start(_str_func))
     
     mc.keyTangent(edit = 1, g = 1, wt = bool(arg))
+    
+    
+def grid_LengthAndWidth_set(arg):
+    mc.grid(size=arg)
+def grid_spacing_set(arg):
+    mc.grid(spacing=arg)
+def grid_subdivisions_set(arg):
+    mc.grid(divisions=arg)
+    
+def grid_LengthAndWidth_get():
+    return mc.grid(q=True,size=1)
+def grid_spacing_get():
+    return mc.grid(q=True,spacing=1)
+def grid_subdivisions_get():
+    return mc.grid(q=True,divisions=1)

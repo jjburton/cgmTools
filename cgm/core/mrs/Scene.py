@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import json
 import datetime
+import copy
 
 from shutil import copyfile
 #import fnmatch
@@ -218,7 +219,8 @@ example:
         self.d_labels = {}        
         self.d_userPaths = {}
         self.mExportDat = None
-
+        self.l_dirMask = []
+        
         global UI
         UI = self
 
@@ -340,11 +342,15 @@ example:
         try:return os.path.normpath(os.path.join( self.path_dir_category, self.assetList['scrollList'].getSelectedItem() )) if self.assetList['scrollList'].getSelectedItem() else None
         except Exception as err:
             log.debug(err)
-            return False        
+            return False
+        
     @property
     def selectedSet(self):
-        return self.subTypeSearchList['scrollList'].getSelectedItem()	
-
+        _path = self.path_set
+        if PATHS.Path(_path).isDir():
+            return self.subTypeSearchList['scrollList'].getSelectedItem()	
+        return False
+    
     @property
     def path_subType(self):
         try:
@@ -481,8 +487,8 @@ example:
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
         _dirs = CGMOS.get_lsFromPath(_path,'dir')        
 
-        for d in _l_directoryMask:
-            if d in _dirs:
+        for d in _dirs:
+            if d.lower() in self.l_dirMask:
                 _dirs.remove(d)
 
         if _dirs:
@@ -515,14 +521,15 @@ example:
         log.debug(log_msg(_str_func, self.subType))
 
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        _dirs = CGMOS.get_lsFromPath(_path,'dir')
-
-        for d in _l_directoryMask:
-            if d in _dirs:
-                _dirs.remove(d)
+        _dirsRaw = CGMOS.get_lsFromPath(_path,'dir')
+        _dirs = []
+        for d in _dirsRaw:
+            if d.lower() not in self.l_dirMask:
+                _dirs.append(d)
 
             #return False
-
+        #log.info("hasSubTypes...")
+        #pprint.pprint(_dirs)
         if _dirs:
             _res = True
 
@@ -542,11 +549,14 @@ example:
         log.debug(log_msg(_str_func, self.subType))
 
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        _dirs = CGMOS.get_lsFromPath(_path,'dir')
-
-        for d in _l_directoryMask:
-            if d in _dirs:
-                _dirs.remove(d)
+        _dirsRaw = CGMOS.get_lsFromPath(_path,'dir')
+        _dirs = []
+        for d in _dirsRaw:
+            if d.lower() not in self.l_dirMask:
+                _dirs.append(d)
+                
+        #log.info("hasNested...")
+        #pprint.pprint(_dirs)        
 
         if _dirs:
             _res = True
@@ -559,6 +569,7 @@ example:
         _str_func = 'hasVariant'
         _res = False
         _dirs = []
+        _dirsRaw = []
         try:
             _path_set= self.path_set
             log.debug(log_msg(_str_func, _path_set))
@@ -569,12 +580,14 @@ example:
         log.debug(log_start(_str_func))
         log.debug(log_msg(_str_func, "path_set | {}".format(_path_set)))        
         if _path_set and os.path.isdir(_path_set):
-            _dirs = CGMOS.get_lsFromPath(_path_set,'dir')        
+            _dirsRaw = CGMOS.get_lsFromPath(_path_set,'dir')
 
-
-        for d in _l_directoryMask:
-            if d in _dirs:
-                _dirs.remove(d)
+        for d in _dirsRaw:
+            if d.lower() not in self.l_dirMask:
+                _dirs.append(d)
+                
+        #log.info("hasVariant...")
+        #pprint.pprint(_dirs)             
 
         if _dirs:
             _res = True
@@ -1674,6 +1687,20 @@ example:
 
     def uiProject_refreshDisplay(self):
         #self.uiFunc_displayProject(self.displayProject)
+        
+        #DirMask -------------------------------------------------------
+        self.l_dirMask = copy.copy(_l_directoryMask)
+        
+        if self.mDat.d_project.get('dirMask'):
+            _l_mask = CORESTRING.parseCommaString(self.mDat.d_project.get('dirMask'))
+            self.l_dirMask.extend(_l_mask)
+        
+            if self.l_dirMask:
+                self.l_dirMask = [n.lower() for n in self.l_dirMask]
+        #----------------------------------------------------------------
+        
+        log.info("DirMask:")
+        pprint.pprint(self.l_dirMask)
 
         _bgColor = self.v_bgc
         self.d_userPaths = {}
@@ -1714,7 +1741,7 @@ example:
         if not d_userPaths.get('content'):
             log.error("No Content path found")
             self.reload_headerImage()            
-            return False
+            #return False
 
         if not d_userPaths.get('export'):
             log.error("No Export path found")
@@ -1727,8 +1754,8 @@ example:
             self.uiScrollList_dirExport.mDat = self.mDat        
             self.uiScrollList_dirExport.rebuild( self.exportDirectory)            
 
-
-        if os.path.exists(d_userPaths['content']):
+        _path_content = d_userPaths.get('content')
+        if _path_content and os.path.exists(_path_content):
             self.LoadCategoryList(d_userPaths['content'])
 
             _l = self.mDat.assetTypes_get() if self.mDat.assetTypes_get() else self.mDat.d_structure.get('assetTypes', [])
@@ -1762,8 +1789,10 @@ example:
 
             self.assetList['scrollList'].clearSelection()
         else:
-            mel.eval('error "Project path does not exist"')
+            log.error('error "Project content path does not exist')
             self.reload_headerImage()
+            
+            #HERE JOSH 
 
         self.uiScrollList_dirContent.mDat = self.mDat
         self.uiScrollList_dirContent.rebuild( self.directory)
@@ -1774,6 +1803,11 @@ example:
             self.var_posePathLocal.value = d_userPaths['poses']
 
         self.rebuild_scriptUI()
+        
+        
+        self.LoadPreviousSelection()
+        
+        
 
         """
         log.debug( "+"*100)
@@ -3097,6 +3131,8 @@ example:
                 #	if os.path.splitext(f)[-1].lower() == ".%s" % ext :
                 if d[0] == '_' or d[0] == '.':
                     continue
+                if d.lower() in self.l_dirMask:
+                    continue
 
                 charDir = os.path.normpath(os.path.join(categoryDirectory, d))
                 if os.path.isdir(charDir):
@@ -3179,7 +3215,7 @@ example:
                     #    continue
                     animDir = os.path.normpath(os.path.join(charDir, d))
                     if self.showAllFiles:
-                        if d in _l_directoryMask:
+                        if d.lower() in self.l_dirMask:
                             continue
                         for chk in ['MRSbatch']:
                             _break = False
@@ -3251,7 +3287,7 @@ example:
                     #	if os.path.splitext(f)[-1].lower() == ".%s" % ext :
                     if d[0] == '_' or d[0] == '.':
                         continue
-                    if d in _l_directoryMask:
+                    if d.lower() in self.l_dirMask:
                         continue
 
 
@@ -3406,6 +3442,18 @@ example:
                     import maya.mel as MEL
                     MEL.eval(_before)
 
+    def uiFuncTF_update(self,tf,datDict, datKey, refreshDisplay = False):
+        _str_func = 'uiFuncTF_update'
+        log.debug(log_start(_str_func))
+        #log.info(tf)
+        #log.info(datDict)
+        #log.info(datKey)
+        #log.info(tf.getValue())
+        datDict[datKey] = tf.getValue()
+        
+        if refreshDisplay:
+            self.uiProject_refreshDisplay()
+        
     def uiFunc_getOpenFileDict(self,*args):
 
         _str_func = 'uiFunc_selectOpenFile'
@@ -4001,7 +4049,7 @@ example:
             if not os.path.exists(currentFile):
                 #If the open file hasn't been saved
                 log.debug("Doesn't exist: {}".format(currentFile))
-                baseFile = self.versionList['scrollList'].getSelectedItem()
+                baseFile = versionList['scrollList'].getSelectedItem()
                 baseName, ext = baseFile.split('.')
 
                 if not wantedBasename in baseName:
@@ -4057,10 +4105,11 @@ example:
 
 
         saveLocation = os.path.join(self.path_asset, self.subType)
-        if self.hasSub:
-            saveLocation = self.path_set
-        if self.hasSub and self.hasVariant:
-            saveLocation = self.path_variationDirectory
+        if self.hasNested:                
+            if self.hasSub:
+                saveLocation = self.path_set
+            if self.hasSub and self.hasVariant:
+                saveLocation = self.path_variationDirectory
 
         saveFile = os.path.normpath(os.path.join(saveLocation, wantedName) ) 
         log.info( "Saving file: %s" % saveFile )
@@ -4081,14 +4130,23 @@ example:
         else:
             log.warning("Path not found - {0}".format(path))
 
+        
     def LoadProject(self, path, *args):
         if not os.path.exists(path):
             mel.eval('warning "No Project Set"')
             return
 
-
+        #Clear our previous data...
+        for mSet in [self.assetList,self.subTypeSearchList,self.variationList,self.versionList]:
+            mSet['scrollList'].clear()
+        self.pathProject = None
+        self.directory = ''
+        self.path_current = ''
+        self.exportDirectory = ''
+        #----------------------------------------------------
+        
+        
         mDat = Project.data(filepath=path)
-
 
 
         #We want to check our project version at open
@@ -4110,17 +4168,33 @@ example:
                     return log.warning("Project load aborted: {0}".format(path))
 
 
-
+        
         self.b_loadState = True
         self.report_lastSelection()        
-
+    
         self.mDat = mDat
-
+    
         #print"{}...".format('projectload')                
         PROJECT.uiProject_load(self, path=path)
         #self.report_lastSelection()
-
+    
         self.var_lastProject.setValue( path )
+        
+        self.uiProject_refreshDisplay()
+        
+        self.uiFunc_projectDirtyState(False)
+        
+        
+        self.b_loadState = False
+        self.path_current = os.path.normpath(path)
+        self.mPathList_recent.append_recent(path)
+        
+        self.d_tf['general']['dirMask'](edit=True, cc = cgmGEN.Callback(self.uiFuncTF_update,self.d_tf['general']['dirMask'], self.mDat.d_project, 'dirMask', refreshDisplay=True))
+        
+        return
+    
+        #Moving this stuff...
+        
 
         #print"{}...".format('refresh')        
         self.uiProject_refreshDisplay()
@@ -4131,7 +4205,7 @@ example:
         #self.report_lastSelection()
 
         #print"{}...".format('previous')                
-        self.LoadPreviousSelection()
+        #self.LoadPreviousSelection()
         #self.report_lastSelection()
 
         self.b_loadState = False
