@@ -33,6 +33,7 @@ from cgm.core.lib import snap_utils as SNAP
 from cgm.core.lib import attribute_utils as ATTR
 import cgm.core.lib.transform_utils as TRANS
 import cgm.core.tools.lib.snap_calls as SNAPCALLS
+import cgm.core.lib.distance_utils as DIST
 #reload(ATTR)
 import cgm.core.mrs.lib.ModuleControlFactory as MODULECONTROL
 import cgm.core.classes.NodeFactory as NODEFACTORY
@@ -125,7 +126,11 @@ def uiBuilderMenu(self,parent = None):
     
     mc.menuItem(ann = '[{0}] Recreate the base shape and push values to baseSize attr'.format(_short),
                 c = cgmGEN.Callback(resize_masterShape,self,**{'resize':1}),
-                label = "Resize")            
+                label = "Resize")
+    
+    mc.menuItem(ann = '[{0}] Rebuild prerig text name curve'.format(_short),
+                c = cgmGEN.Callback(prerig_rebuildNameCurves,self,**{}),
+                label = "Prerig | rebuild name shapes")                
     
 #=============================================================================================================
 #>> Define
@@ -408,7 +413,169 @@ def prerig(self):
             mMotionJoint = BLOCKSHAPES.rootMotionHelper(self,size=_sizeHandle)
             mMotionJoint.p_parent = mPrerigNull
             
-    except Exception as err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
+        #>>> ==============================================================================================================
+        #Adding in base controller shape stuff ============================================================================
+        _str_func = 'master.prerig'
+        _short = self.mNode
+        log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
+        
+        mMasterHelper = self.doCreateAt()
+        mMasterHelper.p_parent = mPrerigNull
+        mMasterHelper.rename("MasterHelper")
+        mPrerigNull.connectChildNode(mMasterHelper.mNode,'masterHelper')
+        
+        #>>> Figure out the control size 	
+        #font = kws.get('font',None)
+        
+        size = self.baseSize#get_callSize(kws.get('size',[10,10,10]))
+        
+        #if self.getMessage('puppet'):
+            #if self.puppet.getMessage('rigBlock'):
+                #log.info("|{0}| >> Finding size from rigBlock...".format(_str_func))                    
+                #mBlock = self.puppet.rigBlock
+                #size = DIST.get_bb_size(mBlock.getShapes(),True)
+                #size = self.puppet.rigBlock.baseSize
+        
+                
+        log.debug("|{0}| >> size: {1}".format(_str_func,size))
+        
+        _average = MATH.average([size[0],size[2]])
+        _offsetSize = _average * .1
+        
+        #>>> Figure out font------------------------------------------------------------------
+        #if font == None:#
+            #if kws and 'font' in list(kws.keys()):font = kws.get('font')		
+            #else:font = 'arial'
+        font = 'arial'
+            
+        #>>> Main shape ----------------------------------------------------------------------
+        _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1, baseSize=1.0)    
+        TRANS.scale_to_boundingBox(_crv, [size[0],None,size[2]])
+    
+        mHandleFactory.color(_crv,'center','sub',transparent = False)
+    
+        mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
+        l_offsetCrvs = []
+        for shape in mCrv.getShapes():
+            offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
+            mHandleFactory.color(offsetShape,'center','main',transparent = False)
+            l_offsetCrvs.append(offsetShape)
+    
+        CORERIG.combineShapes(l_offsetCrvs + [_crv], False)
+        SNAP.go(_crv,self.mNode)    
+        CORERIG.shapeParent_in_place(mMasterHelper.mNode,_crv,False)
+        
+        
+        #>>> Name Curve ----------------------------------------------------------------------
+        prerig_rebuildNameCurves(self)
+        
+        #if self.hasAttr('cgmName'):
+            #mTextHelper = self.doCreateAt()
+            #mTextHelper.p_parent = mPrerigNull            
+            #mTextHelper.rename("TextHelper")
+            
+            #log.debug("|{0}| >> Making name curve...".format(_str_func))                
+            #nameSize = size[0]
+            #try:
+                #_textCurve = CURVES.create_text(self.cgmName, size = nameSize * .7, font = font)
+                            
+                #ATTR.set(_textCurve,'rx',-90)
+                #mHandleFactory.color(_textCurve,'center','main',transparent = False)
+                
+                #CORERIG.shapeParent_in_place(mTextHelper.mNode,_textCurve,keepSource=False)
+            #except:pass
+        
+        #>> Helpers -----------------------------------------------------------------------------
+        #======================
+        _d = {'controlVis':['eye','x-','visControl'],
+              'controlSettings':['gear','x+','settingsControl']}
+        
+        _subSize = _offsetSize * 2
+        
+        pos_zForward = self.getPositionByAxisDistance('z+',(size[2]*.5) + (_offsetSize * 2.5))
+        vec_xNeg = self.getAxisVector('x-')
+        
+        #cgmGEN.func_snapShot(vars())
+        
+        for k in list(_d.keys()):
+            #Make our node ------------------------------------------
+            mHelper = self.getMessageAsMeta(k)
+            newShape = CURVES.create_fromName(_d[k][0],_subSize,'y+')
+
+            if not mHelper:
+                log.debug("|{0}| >> Creating: {1}".format(_str_func,k))
+                mHelper = cgmMeta.createMetaNode('cgmObject')
+                mHelper.p_parent = mMasterHelper.mNode
+                mHelper.rename(_d[k][2])
+                
+                #ATTR.connect("{0}.{1}".format(mMasterHelper.mNode,_d[k][2]),"{0}.v".format(mHelper.mNode))
+                
+                mPrerigNull.connectChildNode(mHelper.mNode,k)
+
+                #if k == 'controlVis':
+            
+                    #self.controlVis = mHelper.mNode
+            
+                #elif k == 'controlSettings':
+                    #self.controlSettings = mHelper.mNode                    
+
+                
+            SNAP.go(newShape,mHelper.mNode)
+            CORERIG.shapeParent_in_place(mHelper.mNode,newShape,keepSource=False)
+            
+            mHelper.setAttrFlags(attrs=['t'],lock=False)
+            mHandleFactory.color(mHelper.mNode,'center','sub',transparent = False)
+            
+            vec_use = self.getAxisVector(_d[k][1])
+            pos = DIST.get_pos_by_vec_dist(pos_zForward,vec_use, size[0]*.5)
+            
+            mHelper.p_position = pos
+            #mHelper.setAttrFlags(attrs=['t','r','s','v'],lock=True,visible=False)
+        
+        for mShape in self.getShapes(asMeta=True):
+            mShape.doName()
+        return True        
+        
+            
+    except Exception as err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())
+    
+def prerig_rebuildNameCurves(self):
+    _str_func = 'prerig_rebuildNameCurves'
+    mPrerigNull = self.getMessageAsMeta('prerigNull')
+    
+    if not mPrerigNull:
+        return log.warning("Must be in prerig state or above: {}".format(self.getEnumValueString('blockState')))
+
+    
+    #>>> Name Curve ----------------------------------------------------------------------
+    if self.hasAttr('cgmName'):
+        mHandleFactory = self.asHandleFactory(self.mNode)
+        font = 'arial'
+        
+        mTextHelper = mPrerigNull.getMessageAsMeta('textNameHelper')
+        if mTextHelper:
+            mc.delete(mTextHelper.getShapes())
+        else:
+            mTextHelper = self.doCreateAt()
+            mTextHelper.p_parent = mPrerigNull               
+            mTextHelper.rename("TextHelper")
+        
+        log.info("|{0}| >> Making name curve...".format(_str_func))
+        size = self.baseSize#get_callSize(kws.get('size',[10,10,10]))
+        nameSize = size[0]
+        
+        mCurve = cgmMeta.asMeta( CURVES.create_text(self.cgmName, size = nameSize * .7, font = font) )
+        mCurve.p_parent = mTextHelper
+        mCurve.resetAttrs()
+        mCurve.rx = -90
+        #ATTR.set(_textCurve,'rx',-90)
+        mHandleFactory.color(mCurve.mNode,'center','main',transparent = False)
+        
+        CORERIG.shapeParent_in_place(mTextHelper.mNode,mCurve.mNode,keepSource=False)
+            
+        mPrerigNull.connectChildNode(mTextHelper.mNode,'textNameHelper')
+            
+    
 
 def prerigDelete(self):
     self.atBlockUtils('prerig_delete',formHandles=True)

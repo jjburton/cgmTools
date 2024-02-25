@@ -4537,6 +4537,7 @@ class cgmRigMaster(cgmMeta.cgmObject):
             font = kws.get('font',None)
             
             size = get_callSize(kws.get('size',[10,10,10]))
+            mPrerigNull = False
             
             if self.getMessage('puppet'):
                 if self.puppet.getMessage('rigBlock'):
@@ -4544,167 +4545,141 @@ class cgmRigMaster(cgmMeta.cgmObject):
                     mBlock = self.puppet.rigBlock
                     size = DIST.get_bb_size(mBlock.getShapes(),True)
                     #size = self.puppet.rigBlock.baseSize
-            
-                    
-            log.debug("|{0}| >> size: {1}".format(_str_func,size))
-            
-            _average = MATH.average([size[0],size[2]])
-            _size = _average * 1.5
-            _offsetSize = _average * .1
+                    mPrerigNull = mBlock.prerigNull
             
             mc.delete(l_shapes)
             
-            mHandleFactory = BLOCKSHAPES.handleFactory(node = _short)
-            
-                    
-            #>>> Figure out font------------------------------------------------------------------
-            if font == None:#
-                if kws and 'font' in list(kws.keys()):font = kws.get('font')		
-                else:font = 'arial'
+            if mPrerigNull:
+                log.info("|{0}| >> from prerigNull".format(_str_func))
                 
-            #>>> Main shape ----------------------------------------------------------------------
-            _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1, baseSize=1.0)    
-            TRANS.scale_to_boundingBox(_crv, [size[0],None,size[2]])
-        
-            mHandleFactory.color(_crv,'center','sub',transparent = False)
-        
-            mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
-            l_offsetCrvs = []
-            for shape in mCrv.getShapes():
-                offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
-                mHandleFactory.color(offsetShape,'center','main',transparent = False)
-                l_offsetCrvs.append(offsetShape)
-        
-            CORERIG.combineShapes(l_offsetCrvs + [_crv], False)
-            SNAP.go(_crv,self.mNode)    
-            CORERIG.shapeParent_in_place(self.mNode,_crv,False)
-            
-            #>>> Name Curve ----------------------------------------------------------------------
-            if self.hasAttr('cgmName'):
-                log.debug("|{0}| >> Making name curve...".format(_str_func))                
-                nameSize = size[0]
-                try:
-                    _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .7, font = font)
-                                
-                    ATTR.set(_textCurve,'rx',-90)
-                    mHandleFactory.color(_textCurve,'center','main',transparent = False)
-                    
-                    CORERIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
-                except:pass
-            
-            #>> Helpers -----------------------------------------------------------------------------
-            #======================
-            _d = {'controlVis':['eye','x-','visControl'],
-                  'controlSettings':['gear','x+','settingsControl']}
-            
-            _subSize = _offsetSize * 2
-            
-            pos_zForward = self.getPositionByAxisDistance('z+',(size[2]*.5) + (_offsetSize * 2.5))
-            vec_xNeg = self.getAxisVector('x-')
-            
-            #cgmGEN.func_snapShot(vars())
-            
-            for k in list(_d.keys()):
-                #Make our node ------------------------------------------
-                mHelper = self.getMessageAsMeta(k)
-                newShape = CURVES.create_fromName(_d[k][0],_subSize,'y+')
+                for k in ['masterHelper', 'textNameHelper']:
+                    mHelper = mPrerigNull.getMessageAsMeta(k)
+                    if mHelper:
+                        CORERIG.shapeParent_in_place(self.mNode,mHelper.mNode,True)
+                        
+                #helpers
+                _d = {'controlVis':['eye','x-','visControl'],
+                      'controlSettings':['gear','x+','settingsControl']}
+                
+                
+                for k in list(_d.keys()):
+                    #Make our node ------------------------------------------
+                    mHelperBase = mPrerigNull.getMessageAsMeta(k)
 
-                if not mHelper:
+    
                     log.debug("|{0}| >> Creating: {1}".format(_str_func,k))
-                    mHelper = cgmMeta.createMetaNode('cgmObject')
+                    mHelper = mHelperBase.doDuplicate(po=False)
                     mHelper.p_parent = self.mNode
                     mHelper.rename(_d[k][2])
-                    
+                        
                     ATTR.connect("{0}.{1}".format(self.mNode,_d[k][2]),"{0}.v".format(mHelper.mNode))
                     
-                    if k == 'controlVis':
-                        #mHelper.addAttr('controls',attrType = 'bool',keyable = False, initialValue = 1)
-                        #mHelper.addAttr('subControls',attrType = 'bool',keyable = False, initialValue = 1)
-                
-                        self.controlVis = mHelper.mNode
-                
-                    elif k == 'controlSettings':
-                        self.controlSettings = mHelper.mNode                    
-                
-                else:
-                    log.debug("|{0}| >> Recreating shapes: {1}".format(_str_func,k))
-                    mc.delete(mHelper.getShapes())
+                    ATTR.set_message(self.mNode,k,mHelper.mNode)
                     
-                SNAP.go(newShape,mHelper.mNode)
-                CORERIG.shapeParent_in_place(mHelper.mNode,newShape,keepSource=False)
+                    mHelper.setAttrFlags(attrs=['t','r','s','v'],lock=True,visible=False)
                 
-                mHelper.setAttrFlags(attrs=['t'],lock=False)
-                mHandleFactory.color(mHelper.mNode,'center','sub',transparent = False)
                 
-                vec_use = self.getAxisVector(_d[k][1])
-                pos = DIST.get_pos_by_vec_dist(pos_zForward,vec_use, size[0]*.5)
+            else:
+                    
+                log.debug("|{0}| >> size: {1}".format(_str_func,size))
                 
-                mHelper.p_position = pos
-                mHelper.setAttrFlags(attrs=['t','r','s','v'],lock=True,visible=False)
+                _average = MATH.average([size[0],size[2]])
+                _size = _average * 1.5
+                _offsetSize = _average * .1
+                
+                
+                mHandleFactory = BLOCKSHAPES.handleFactory(node = _short)
+                
+                        
+                #>>> Figure out font------------------------------------------------------------------
+                if font == None:#
+                    if kws and 'font' in list(kws.keys()):font = kws.get('font')		
+                    else:font = 'arial'
+                    
+                #>>> Main shape ----------------------------------------------------------------------
+                _crv = CURVES.create_fromName(name='squareOpen',direction = 'y+', size = 1, baseSize=1.0)    
+                TRANS.scale_to_boundingBox(_crv, [size[0],None,size[2]])
             
-            for mShape in self.getShapes(asMeta=True):
-                mShape.doName()
+                mHandleFactory.color(_crv,'center','sub',transparent = False)
+            
+                mCrv = cgmMeta.validateObjArg(_crv,'cgmObject')
+                l_offsetCrvs = []
+                for shape in mCrv.getShapes():
+                    offsetShape = mc.offsetCurve(shape, distance = -_offsetSize, ch=False )[0]
+                    mHandleFactory.color(offsetShape,'center','main',transparent = False)
+                    l_offsetCrvs.append(offsetShape)
+            
+                CORERIG.combineShapes(l_offsetCrvs + [_crv], False)
+                SNAP.go(_crv,self.mNode)    
+                CORERIG.shapeParent_in_place(self.mNode,_crv,False)
+                
+                #>>> Name Curve ----------------------------------------------------------------------
+                if self.hasAttr('cgmName'):
+                    log.debug("|{0}| >> Making name curve...".format(_str_func))                
+                    nameSize = size[0]
+                    try:
+                        _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .7, font = font)
+                                    
+                        ATTR.set(_textCurve,'rx',-90)
+                        mHandleFactory.color(_textCurve,'center','main',transparent = False)
+                        
+                        CORERIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
+                    except:pass
+                
+                #>> Helpers -----------------------------------------------------------------------------
+                #======================
+                _d = {'controlVis':['eye','x-','visControl'],
+                      'controlSettings':['gear','x+','settingsControl']}
+                
+                _subSize = _offsetSize * 2
+                
+                pos_zForward = self.getPositionByAxisDistance('z+',(size[2]*.5) + (_offsetSize * 2.5))
+                vec_xNeg = self.getAxisVector('x-')
+                
+                #cgmGEN.func_snapShot(vars())
+                
+                for k in list(_d.keys()):
+                    #Make our node ------------------------------------------
+                    mHelper = self.getMessageAsMeta(k)
+                    newShape = CURVES.create_fromName(_d[k][0],_subSize,'y+')
+    
+                    if not mHelper:
+                        log.debug("|{0}| >> Creating: {1}".format(_str_func,k))
+                        mHelper = cgmMeta.createMetaNode('cgmObject')
+                        mHelper.p_parent = self.mNode
+                        mHelper.rename(_d[k][2])
+                        
+                        ATTR.connect("{0}.{1}".format(self.mNode,_d[k][2]),"{0}.v".format(mHelper.mNode))
+                        
+                        if k == 'controlVis':
+                            #mHelper.addAttr('controls',attrType = 'bool',keyable = False, initialValue = 1)
+                            #mHelper.addAttr('subControls',attrType = 'bool',keyable = False, initialValue = 1)
+                    
+                            self.controlVis = mHelper.mNode
+                    
+                        elif k == 'controlSettings':
+                            self.controlSettings = mHelper.mNode                    
+                    
+                    else:
+                        log.debug("|{0}| >> Recreating shapes: {1}".format(_str_func,k))
+                        mc.delete(mHelper.getShapes())
+                        
+                    SNAP.go(newShape,mHelper.mNode)
+                    CORERIG.shapeParent_in_place(mHelper.mNode,newShape,keepSource=False)
+                    
+                    mHelper.setAttrFlags(attrs=['t'],lock=False)
+                    mHandleFactory.color(mHelper.mNode,'center','sub',transparent = False)
+                    
+                    vec_use = self.getAxisVector(_d[k][1])
+                    pos = DIST.get_pos_by_vec_dist(pos_zForward,vec_use, size[0]*.5)
+                    
+                    mHelper.p_position = pos
+                    mHelper.setAttrFlags(attrs=['t','r','s','v'],lock=True,visible=False)
+                
+                for mShape in self.getShapes(asMeta=True):
+                    mShape.doName()
             return True
         
-        except Exception as err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
-        
-    def rebuildControlCurveBAK(self,**kws):
-        """
-        Rebuild the master control curve
-        """
-        try:
-            _str_func = 'cgmRigMaster.rebuildControlCurve'
-            _short = self.mNode
-            log.debug("|{0}| >> ...".format(_str_func)+ '-'*80)
-            
-            l_shapes = self.getShapes()
-            #self.color =  modules.returnSettingsData('colorMaster',True)
-            
-            #>>> Figure out the control size 	
-            size = kws.get('size',None)
-            font = kws.get('font',None)
-            if size == None:#
-                if l_shapes:
-                    size = DIST.get_bb_size(self.mNode,True,True)
-                else:
-                    size = [10,10,10]
-                    
-            log.debug("|{0}| >> size: {1}".format(_str_func,size))
-            
-            
-                    
-            #>>> Figure out font	
-            if font == None:#
-                if kws and 'font' in list(kws.keys()):font = kws.get('font')		
-                else:font = 'arial'
-                
-            #>>> Delete shapes
-            if l_shapes:
-                mc.delete(l_shapes)
-    
-            #>>> Build the new
-            mCrv = cgmMeta.validateObjArg(CURVES.create_fromName('masterAnim',[size[0],None,size[2]],'z+'),'cgmObject',setClass=True)
-            CORERIG.shapeParent_in_place(self.mNode,mCrv.mNode,keepSource=False)       
-            l_shapes = self.getShapes(fullPath=True)
-            CORERIG.override_color(l_shapes[0],'yellow')
-            CORERIG.override_color(l_shapes[1],'white')        
-            
-            #i_o = cgmMeta.cgmObject( curves.createControlCurve('masterAnim',size))#Create and initialize
-            #curves.setCurveColorByName( i_o.mNode,self.color[0] )
-            #curves.setCurveColorByName( i_o.getShapes()[1],self.color[1] )
-    
-            #>>> Build the text curve if cgmName exists
-            if self.hasAttr('cgmName'):
-                nameSize = DIST.get_bb_size(l_shapes[1],True,True)
-                log.info(l_shapes[1])
-                log.info(nameSize)
-                _textCurve = CURVES.create_text(self.cgmName, size = nameSize * .8, font = font)
-                ATTR.set(_textCurve,'rx',-90)
-                CORERIG.override_color(_textCurve,'yellow')
-                CORERIG.shapeParent_in_place(self.mNode,_textCurve,keepSource=False)
-    
-    
-            self.doName()    
         except Exception as err:cgmGEN.cgmExceptCB(Exception,err,msg=vars())
         
     def getBlockModule(self,update = False):

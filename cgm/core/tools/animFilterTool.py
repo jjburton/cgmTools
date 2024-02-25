@@ -472,6 +472,11 @@ def uiBuild_ActionsColumn(self):
         mUI.MelSpacer(_row,w=_padding)
     
         _subColumn = mUI.MelColumnLayout(_row,bgc = _header)#useTemplate = 'cgmUIHeaderTemplate')
+        mUI.MelButton(_row,w=30,label='Run',bgc = _header,#ut=_ut,
+                      command=cgmGEN.Callback(uiFunc_run_action,self,i)
+                      )
+        mUI.MelSpacer(_row,w=5)
+        
         mUI.MelButton(_row,w=15,label='x',bgc = _header,#ut=_ut,
                       command=cgmGEN.Callback(uiFunc_remove_action,self,i)
                       )
