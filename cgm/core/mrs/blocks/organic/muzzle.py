@@ -5550,6 +5550,9 @@ def rig_prechecks(self):
     log.debug(cgmGEN.logString_start(_str_func))
 
     mBlock = self.mBlock
+
+    if mBlock.lipMidSealSetup and (mBlock.numJointsLipLwr <= 3 or mBlock.numJointsLipUpr <= 3):
+        self.l_precheckErrors.append("Need more than 3 lip joints for midSeal")
     
     str_faceType = mBlock.getEnumValueString('faceType')
     if str_faceType not in ['default']:
