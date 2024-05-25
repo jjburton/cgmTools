@@ -2567,9 +2567,9 @@ class cgmObjectSet(cgmNode):
         buffer = mc.ls(info,shortNames=True)   
         info = buffer[0]
 
-        if not self.doesContain(info):
-            log.debug("'%s' isn't already stored '%s'"%(info,self.mNode))    
-            return
+        # if not self.doesContain(info):
+        #     log.debug("'%s' isn't already stored '%s'"%(info,self.mNode))    
+        #     return
         try:
             mc.sets(info,rm = self.mNode)    
             log.debug("'%s' removed from '%s'!"%(info,self.mNode))  

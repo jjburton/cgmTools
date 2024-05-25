@@ -245,7 +245,7 @@ example:
 
     def rebuild_scriptUI(self):
         _str_func = 'rebuild_scriptUI'
-        log.debug(log_start(_str_func))
+        log.info(log_start(_str_func))
         self.uiMenu_projectUtils(edit=True, vis=False)
 
         _path = self.d_userPaths.get('scriptUI')
@@ -264,8 +264,15 @@ example:
                 if os.path.exists(_pyc):
                     os.remove(_pyc)
             module = imp.load_source('tmp',_path)
+        else:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location('tmp', _path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
 
         if not module:
+            log.warning("Unknown scriptUI module: {}".format(_path))
             return
         self.uiMenu_projectUtils(edit=True, vis=True)
 
@@ -274,6 +281,8 @@ example:
         if module.__dict__.get('uiMenu'):
             log.info(log_msg(_str_func, "trying to load..."))
             module.uiMenu(self, self.uiMenu_projectUtils)
+        else:
+            log.warning(cgmGEN.logString_msg(_str_func, "No uiMenu function found on : {}".format(_path)))
 
 
 
@@ -5295,6 +5304,7 @@ def ExportScene(mode = -1,
                 euler = False,
                 sampleBy = 1.0,
                 tangent = False,
+                deleteMesh = False,
                 ):
 
     if workspace:
@@ -5356,7 +5366,7 @@ def ExportScene(mode = -1,
         for s in mc.ls('*%s' % exportSetName, r=True):
             _lenColon = len(s.split(':'))
             if _lenColon == 2:
-                print(2)
+                # print(2)
                 ns = s.split(':')[0]
                 for p in mc.ls(mc.sets(s,q=True)[0], l=True)[0].split('|'):
                     print(p)
@@ -5366,7 +5376,7 @@ def ExportScene(mode = -1,
                         
 
             if _lenColon == 1:
-                print(1)
+                # print(1)
                 for p in mc.sets(s,q=True):
                     print(p)
                     if mc.objExists(p) and p not in exportObjs:
@@ -5430,6 +5440,7 @@ def ExportScene(mode = -1,
         log.info("mode 2 | Anim...")        
         addNamespaceSuffix = True
         exportAsCutscene = True
+        deleteMesh = True
     if mode == 3:
         log.info("mode 3 | Rig...")                
         exportAsRig = True
@@ -5539,6 +5550,7 @@ def ExportScene(mode = -1,
 
 
     mc.loadPlugin("fbxmaya")
+    
 
     for obj in exportObjs:			
         log.info( log_sub(_str_func,'On: {0}'.format(obj)) )
@@ -5569,6 +5581,23 @@ def ExportScene(mode = -1,
                     log.info("making export dir... {0}".format(exportDir))
                     os.makedirs(exportDir)
 
+                # log.info('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
+                # mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
+
+                if animList:
+                    mel.eval('FBXExportSplitAnimationIntoTakes -c')
+
+                    # if obj not in cameras:#...cameras we don't want in takes
+                    for shot in animList.shotList:
+                        log.info( log_msg(_str_func, "shot..."))
+                        log.info(shot)
+                        mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
+
+                    exportDir = os.path.split(exportFile)[0]
+                    if not os.path.exists(exportDir):
+                        log.info("making export dir... {0}".format(exportDir))
+                        os.makedirs(exportDir)
+
                 log.info('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
                 mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
 
@@ -5581,6 +5610,17 @@ def ExportScene(mode = -1,
                 if _constraints:mc.delete(_constraints)
                 mc.select(cl=True)
                 exportTransforms = obj
+
+            mObjs = cgmMeta.asMeta(exportTransforms)
+
+            if deleteMesh:
+                for mObj in mObjs:
+                    for mMeshShape in mObj.getAllChildren(type='mesh',asMeta=1):
+                        log.info("Deleting: {}".format(mMeshShape))
+                        try:
+                            mc.delete(mMeshShape.getTransform())
+                        except:
+                            log.error("failure: {}".format(mMeshShape.mNode))
 
             mc.select(exportTransforms, hi=True)		
 
@@ -5613,6 +5653,7 @@ def ExportScene(mode = -1,
                         mc.delete(exportTransforms)
                     except:
                         pass
+                
 
     return True
 

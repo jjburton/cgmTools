@@ -96,10 +96,12 @@ def get_nonintermediate(shape):
             for s in _shapes:
                 if not ATTR.get(s,'intermediateObject'):
                     _l_matches.append(s)
+            if not (_l_matches):
+                return shape
             if len(_l_matches) == 1:
                 return _l_matches[0]
             else:
-                raise ValueError("Not sure what to do with this many intermediate shapes: {0}".format(_l_matches))
+                raise ValueError("Shape: {0}. Not sure what to do with this many intermediate shapes: {1}".format(shape, _l_matches))
         else:
             return shape
     except Exception as err:cgmGEN.cgmExceptCB(Exception,err)
