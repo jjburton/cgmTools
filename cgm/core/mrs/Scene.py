@@ -1,3 +1,4 @@
+from ast import mod
 import maya.cmds as mc
 import maya.mel as mel
 import pprint
@@ -8,6 +9,7 @@ from datetime import datetime
 import json
 import datetime
 import copy
+import sys
 
 from shutil import copyfile
 #import fnmatch
@@ -265,11 +267,17 @@ example:
                     os.remove(_pyc)
             module = imp.load_source('tmp',_path)
         else:
-            import importlib.util
-            spec = importlib.util.spec_from_file_location('tmp', _path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+            module_name = os.path.splitext(os.path.basename(_path))[0]
+            module = __import__(module_name, globals(), locals(), ['*'])
+            cgmGEN._reloadMod(module) 
 
+            # import importlib.util
+            # spec = importlib.util.spec_from_file_location('tmp', _path)
+            # module = importlib.util.module_from_spec(spec)
+            # spec.loader.exec_module(module)
+            
+            # sys.modules['tmp'] = module
+            # importlib.reload(module.__path__)
 
         if not module:
             log.warning("Unknown scriptUI module: {}".format(_path))
@@ -281,6 +289,13 @@ example:
         if module.__dict__.get('uiMenu'):
             log.info(log_msg(_str_func, "trying to load..."))
             module.uiMenu(self, self.uiMenu_projectUtils)
+
+            mUI.MelMenuItemDiv(self.uiMenu_projectUtils)
+            mUI.MelMenuItemDiv(self.uiMenu_projectUtils)
+
+            mUI.MelMenuItem(self.uiMenu_projectUtils,
+                    l = 'Reload Menu',
+                    c = lambda *a: self.rebuild_scriptUI())
         else:
             log.warning(cgmGEN.logString_msg(_str_func, "No uiMenu function found on : {}".format(_path)))
 
@@ -494,13 +509,13 @@ example:
         log.debug(log_msg(_str_func, _path))
 
         #path_set= os.path.normpath(os.path.join( self.path_dir_category, self.category ))
-        _dirs = CGMOS.get_lsFromPath(_path,'dir')        
-
+        _dirs = CGMOS.get_lsFromPath(_path,'dir')
+        _dirsUse = []      
         for d in _dirs:
-            if d.lower() in self.l_dirMask:
-                _dirs.remove(d)
+            if d.lower() not in self.l_dirMask:
+                _dirsUse.append(d)
 
-        if _dirs:
+        if _dirsUse:
             _res = True
 
         #log.debug(log_start(_str_func))    
@@ -533,6 +548,7 @@ example:
         _dirsRaw = CGMOS.get_lsFromPath(_path,'dir')
         _dirs = []
         for d in _dirsRaw:
+            log.info(d)
             if d.lower() not in self.l_dirMask:
                 _dirs.append(d)
 
@@ -562,6 +578,7 @@ example:
         _dirs = []
         for d in _dirsRaw:
             if d.lower() not in self.l_dirMask:
+                print(log_msg(_str_func, "{} | {}".format(self.subType,d )))
                 _dirs.append(d)
                 
         #log.info("hasNested...")
