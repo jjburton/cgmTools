@@ -17,9 +17,11 @@ def BakeAndPrep(bakeSetName = 'bake_tdSet',
                 endFrame = None,
                 sampleBy=1.0,                
                 euler = True,
-                tangent = 'auto'):
+                tangent = 'auto',
+                simplify = False,
+                reducer = True):
     
-    baked = Bake(bakeSetName,startFrame = startFrame,endFrame=endFrame, sampleBy=sampleBy,euler=euler, tangent=tangent)
+    baked = Bake(bakeSetName,startFrame = startFrame,endFrame=endFrame, sampleBy=sampleBy,euler=euler, tangent=tangent, simplify=simplify, reducer=reducer)
     if baked:
         prepped = Prep(deleteSetName,
                        exportSetName)
@@ -36,7 +38,10 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
          endFrame = None,
          sampleBy=1.0,
          euler = True,
-         tangent = 'auto'):
+         tangent = 'auto',
+         simplify = False,
+         reducer = True):
+    
     _str_func = 'Bake'
     
     if startFrame is None:
@@ -83,7 +88,9 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
             if mc.objExists(bakeSet):
                 if bakeSet not in bakeSets:
                     bakeSets.append(bakeSet)
-                    bakeTransforms += mc.sets(bakeSet, q=True)
+                    _stuff = mc.sets(bakeSet, q=True)
+                    if _stuff:
+                        bakeTransforms += _stuff
             else:
                 bakeTransforms.append(asset)
                 #else:
@@ -93,7 +100,9 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
             if mc.objExists(bakeSetName):
                 if bakeSetName not in bakeSets:
                     bakeSets.append(bakeSetName)
-                    bakeTransforms += mc.sets(bakeSetName, q=True)
+                    _stuff = mc.sets(bakeSetName, q=True)
+                    if _stuff:
+                        bakeTransforms += _stuff
                     log.info("{0} || bakeSet: {1}".format(_str_func,bakeSetName))                    
             elif asset not in bakeTransforms:
                 bakeTransforms.append(asset)
@@ -102,6 +111,7 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
                 #else:
                 #    bakeTransforms.append(asset)
     #pprint.pprint(vars())
+    log.info("Shall we bake...")
     if len(bakeTransforms) > 0:
         log.info("{0} || baking transforms...".format(_str_func))
         
@@ -120,12 +130,16 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
                         bakeOnOverrideLayer = False, 
                         minimizeRotation = True, 
                         controlPoints = False, 
+                        # smart= True,
+                        # sparseAnimCurveBake = .00001,
                         shape = True )
 
         mc.setInfinity(bakeTransforms, pri='constant', poi='constant')
+
+        #Simplify
         
         #Filter euler
-        if euler or tangent:
+        if euler or tangent or reducer or simplify:
             for obj in bakeTransforms:
                 if euler:
                     for a in ['rotateX','rotateY','rotateZ']:
@@ -142,7 +156,19 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
                         else:
                             mc.keyTangent(_anim, e=1, itt=tangent,ott=tangent,animation='keysOrObjects')            
             
-            
+                if simplify:
+                    _anim = mc.listConnections(obj, type = 'animCurve')
+                    if _anim:
+                        mc.simplify(_anim, time=":", float=":", timeTolerance=0.05, valueTolerance=0.00001)
+
+                if reducer:
+                    _anim = mc.listConnections(obj, type = 'animCurve')
+                    if _anim:
+                        mc.filterCurve(_anim, 
+                                        filter="keyReducer", 
+                                        precisionMode=1, 
+                                        precision=0.1, 
+                                        preserveKeyTangent="auto")
 
         baked = True
     else:
@@ -168,7 +194,6 @@ def Prep(removeNamespace = False,
     
     prepped = True
     
-    
     #if(mc.optionVar(exists='cgm_delete_set')):
     #    deleteSetName = mc.optionVar(q='cgm_delete_set')
     #if(mc.optionVar(exists='cgm_export_set')):
@@ -188,7 +213,6 @@ def Prep(removeNamespace = False,
     
     log.info("{0} || mNode: {1}".format(_str_func,topNode.mNode))
     log.info("{0} || topNode: {1} | namespaces: {2}".format(_str_func,topNodeSN,namespaces))
-    
     log.info("{0} || ref import".format(_str_func))
     
     # import reference
@@ -209,8 +233,6 @@ def Prep(removeNamespace = False,
     if len(namespaces) > 0:
         for space in namespaces[:-1]:
             mc.namespace( removeNamespace = space, mergeNamespaceWithRoot = True)
-
-
         ns = '%s:' % namespaces[-1].replace('|', '')
     else:
         ns = None
@@ -234,7 +256,6 @@ def Prep(removeNamespace = False,
         exportSetObjs = [topNode]
 
 
-    
 
 
     if exportSetObjs:
@@ -289,11 +310,12 @@ def Prep(removeNamespace = False,
     exportObjs = cgmMeta.asMeta(mc.ls(sl=True))
     for obj in exportObjs:
         log.info("{0} || parent pass: {1}".format(_str_func,obj))
-        
-        try:
-            mc.parent(obj.mNode, w=True)
-        except:
-            print(("%s already a child of 'world'" % obj))
+        if obj.p_parent:
+            obj.p_parent = False
+        #try:
+        #    mc.parent(obj.mNode, w=True)
+        #except:
+        #    print(("%s already a child of 'world'" % obj))
             
             
     # delete garbage       

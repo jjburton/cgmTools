@@ -817,8 +817,10 @@ def print_heirarchy_dict(arg = None, tag = None, counter = 0):
     
    
         counter +=1
-            
-        l_keys.sort()
+        
+        try:l_keys.sort()
+        except:pass
+
         for k in l_keys:
             try:str_key = k.p_nameShort
             except:str_key = k

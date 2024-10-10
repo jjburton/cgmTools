@@ -2,7 +2,7 @@ from ast import mod
 import maya.cmds as mc
 import maya.mel as mel
 import pprint
-from functools import partial
+from functools import partial, reduce
 import os
 import time
 from datetime import datetime
@@ -4967,6 +4967,8 @@ example:
                       'euler':self.d_tf['exportOptions']['postEuler'].getValue(),
                       'tangent':self.d_tf['exportOptions']['postTangent'].getValue(),
                       'sampleBy':self.d_tf['exportOptions']['sampleBy'].getValue(),
+                      'simplify':self.d_tf['exportOptions']['simplify'].getValue(),
+                      'reducer':self.d_tf['exportOptions']['reducer'].getValue(),
 
                       }
 
@@ -5156,6 +5158,10 @@ example:
         postEuler = self.d_tf['exportOptions']['postEuler'].getValue()
         postTangent = self.d_tf['exportOptions']['postTangent'].getValue()
         sampleBy = self.d_tf['exportOptions']['sampleBy'].getValue()
+        reducer = self.d_tf['exportOptions']['reducer'].getValue()
+        simplify = self.d_tf['exportOptions']['simplify'].getValue()
+
+        pprint.pprint(vars())
 
         if postTangent == 'none':
             postTangent = False
@@ -5188,10 +5194,10 @@ example:
                 'sampleBy':sampleBy,
                 'tangent':postTangent,
                 'euler':postEuler,
-                'workspace':d_userPaths['content']
+                'workspace':d_userPaths['content'],
+                'simplify':simplify,
+                'reducer':reducer,
             }
-
-            #pprint.pprint(d)
 
             BATCH.create_Scene_batchFile([d])
             return
@@ -5211,7 +5217,9 @@ example:
                     tangent=postTangent,
                     euler=postEuler,                            
                     sampleBy=sampleBy,
-                    workspace=d_userPaths['content']
+                    workspace=d_userPaths['content'],
+                    simplify=simplify,
+                    reducer=reducer,
                     )        
 
         return True
@@ -5256,6 +5264,10 @@ def BatchExport(dataList = []):
             _euler =  fileDat.get('euler', "0")        
             _d['euler'] = False if _euler == '0' else True
             _d['tangent'] = fileDat.get('tangent')
+
+            _d['reducer'] = False if fileDat.get('reducer',"False") == "False" else True
+            
+            _d['simplify'] = False if fileDat.get('simplify',"False") == "False" else True
 
             _d['sampleBy'] = float(fileDat.get('sampleBy',1.0))
 
@@ -5322,12 +5334,15 @@ def ExportScene(mode = -1,
                 sampleBy = 1.0,
                 tangent = False,
                 deleteMesh = False,
+                reducer = False,
+                simplify = True,
                 ):
 
     if workspace:
         mc.workspace( workspace, openWorkspace=True )
 
     #pprint.pprint(vars())
+    
 
     #exec(self.exportCommand)
     import cgm.core.tools.bakeAndPrep as bakeAndPrep
@@ -5335,8 +5350,6 @@ def ExportScene(mode = -1,
     import cgm.core.mrs.Shots as SHOTS
     _str_func = 'ExportScene'
     log.info(log_start(_str_func))
-
-
 
     if updateRigs and updateRigs != '0':
         log.info(log_sub(_str_func,'Rig update'))
@@ -5391,15 +5404,12 @@ def ExportScene(mode = -1,
                         exportObjs.append(p)
                         break#...this is to get rid of stuff being 
                         
-
             if _lenColon == 1:
                 # print(1)
                 for p in mc.sets(s,q=True):
                     print(p)
                     if mc.objExists(p) and p not in exportObjs:
                         exportObjs.append(p)
-                        
-
 
     #...cam check...
     for obj in exportObjs:
@@ -5560,7 +5570,7 @@ def ExportScene(mode = -1,
     #    log.info("bake...")        
     if not exportStatic:
         bakeAndPrep.Bake(exportObjs,bakeSetName,startFrame= _start, endFrame= _end,sampleBy=sampleBy,
-                         euler=euler,tangent=tangent)
+                         euler=euler,tangent=tangent, reducer=reducer, simplify=simplify)
     #else:
     #    log.info("bake skip...")
 

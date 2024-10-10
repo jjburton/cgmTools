@@ -9,6 +9,8 @@ Website : https://github.com/jjburton/cgmTools/wiki
 
 ================================================================
 """
+__MAYALOCAL = 'MRSPOST'
+
 # From Python =============================================================
 import copy
 import re
