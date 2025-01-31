@@ -3315,8 +3315,10 @@ def rig_shapes(self):
                                                                 absoluteSize=False),'cgmObject',setClass=True)
             mIKControl.doSnapTo(mBlock.mNode)
             pos = RIGGEN.get_planeIntersect(self.mEyeLook, mIKEye)
-            #pos = mBlock.getPositionByAxisDistance('z+',
-            #                                       self.f_sizeAvg * 4)
+
+            if not pos:
+                pos = mBlock.getPositionByAxisDistance('z+',
+                                                       self.f_sizeAvg * 4)
         
             mIKControl.p_position = pos
             mIKControl.p_orient = self.mEyeLook.p_orient

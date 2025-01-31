@@ -131,7 +131,7 @@ d_attrStateMask = {'define':['baseSizeX','baseSizeY','baseSizeZ'],
                    'skeleton':['numJoints'],
                    'squashStretch':['squashSkipAim','segmentStretchBy'],
                    'space':['ikMidDynParentMode','ikMidDynScaleMode'],
-                   'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikMidSetup','ikMidControlNum','ikSplineTwistAxis',
+                   'rig':['segmentType','special_swim','ikEndShape','ikSplineAimEnd','ikSplineTwistEndConnect','ikSplineExtendEnd','ikSplineParentSegEnd','ikMidSetup','ikMidControlNum','ikSplineTwistAxis',
                           'ribbonExtendEnds','ribbonAttachEndsToInfluence','reverseSetup',
                           'ikBaseExtend','ikEndExtend','ikEndLever',]}
 
@@ -704,6 +704,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikSplineTwistEndConnect':'bool',
                  'ikSplineExtendEnd':'bool',                 
                  'ikSplineAimEnd':'bool',
+                 'ikSplineParentSegEnd':'bool',
                  'ikSplineTwistAxis':'x:y:z',
                  'ikEndShape':'cast:locator:cube',
                  'ikEndLever':'bool',
@@ -762,6 +763,7 @@ d_defaultSettings = {'version':__version__,
                      'special_swim':'none',
                      'segmentType':'ribbon',
                      'ikDynParentMode':'space',
+                     'ikSplineParentSegEnd':False,
                      #'blockProfile':'spine',
                      'scaleSetup':False,
                      'squashSkipAim':True,
@@ -1007,7 +1009,7 @@ def form(self):
         self.baseSize = [_size_width,_size_height,_size_length]
             
         _size_handle = _size_width * 1.25
-        _size_loft = MATH.get_greatest(_size_width,_size_height)
+        _size_loft = MATH.smartMax(_size_width,_size_height)
     
         _l_basePos.append(_end)
         log.debug("|{0}| >> baseSize: {1}".format(_str_func, self.baseSize))
@@ -3158,7 +3160,7 @@ def rig_segments(self):
             
             mIKSplineEnd.p_parent = ml_segJoints[-1].p_parent
             
-            ml_segJoints[-1].p_parent =  ml_handleJoints[-1]#...to get free orient
+            # ml_segJoints[-1].p_parent =  ml_handleJoints[-1]#...to get free orient
             
             pprint.pprint(ml_segJoints)
             RIGFRAME.spline(self,ml_ikUse, None, ml_handleJoints[-1], ml_handleJoints[0],
@@ -3502,7 +3504,8 @@ def rig_frame(self):
                     
                     mIKSplineEnd.p_parent = ml_ikJoints[-1].p_parent
                     
-                    ml_ikJoints[-1].p_parent = mIKControl#...to get free orient
+                    if mBlock.ikSplineParentSegEnd:
+                        ml_ikJoints[-1].p_parent = mIKControl#...to get free orient
                     
                     #pprint.pprint(ml_ikJoints)
                     RIGFRAME.spline(self,ml_ikUse,

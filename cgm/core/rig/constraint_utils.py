@@ -47,6 +47,115 @@ import cgm.core.lib.node_utils as NODES
 import cgm.core.lib.list_utils as LISTS
 from cgm.core.lib import rigging_utils as CORERIG
 from cgm.core.lib import math_utils as MATHUTILS
+import cgm.core.lib.math_utils as MATH
+import cgm.core.lib.curve_Utils as CURVES
+
+def attach_toCurveTrack(mHandle,mCrv, mTrackTarget = None, mShape = None,parentTo=None,pct = None, blend = True, mUpTarget = None):
+    if not mHandle.getMessage('trackGroup'):
+        mHandle.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+        
+    if not mTrackTarget:
+        raise ValueError("Must have track group")
+    
+    for mConst in mTrackTarget.getConstraintsTo(asMeta=1):
+        mConst.delete()
+
+    if not pct:
+        
+        param = CURVES.getUParamOnCurve(mHandle.mNode, mCrv.mNode)
+        
+        if not mShape:
+            mShape = mCrv.getShapes(asMeta=1)[0]
+        _minU = mShape.minValue
+        _maxU = mShape.maxValue
+        pct = MATH.get_normalized_parameter(_minU,_maxU,param)        
+
+    mPointOnCurve = cgmMeta.asMeta(CURVES.create_pointOnInfoNode(mCrv.mNode,turnOnPercentage=1))
+    
+    
+    if blend:
+        mPlug = cgmMeta.cgmAttr(mHandle.mNode, 'param', attrType = 'float',
+                                minValue = 0.0, maxValue = 1.0,#len(ml_jointHelpers)-1, 
+                                #defaultValue = .5, initialValue = .5,
+                                keyable = True, hidden = False)
+        mPlug.value = pct
+        mPlug.p_defaultValue = pct
+                
+        mPointOnCurve.doConnectIn('parameter',mPlug.p_combinedName)
+    else:
+        mPointOnCurve.parameter = pct
+        
+    mTrackLoc = mHandle.doLoc()
+    mPointOnCurve.doConnectOut('position',"{0}.translate".format(mTrackLoc.mNode))
+
+    mTrackLoc.p_parent = parentTo
+    mTrackLoc.v=False
+    mc.pointConstraint(mTrackLoc.mNode,mTrackTarget.mNode,maintainOffset = False)
+
+    #/// ---------------------------------------------------------------------------------------
+    if mUpTarget:
+        # Create pointOnCurveInfo nodes for current and offset points
+        curve = mCrv.mNode
+        point_on_curve_info_main = mPointOnCurve.mNode
+        point_on_curve_info_offset = mc.createNode('pointOnCurveInfo', name='pointOnCurveInfo_offset')
+
+        # Connect the curve's world space to the pointOnCurveInfo nodes
+        mc.connectAttr("{}.worldSpace[0]".format(curve), "{}.inputCurve".format(point_on_curve_info_offset), force=True)
+
+        # Turn on percentage mode for the pointOnCurveInfo nodes
+        mc.setAttr("{}.turnOnPercentage".format(point_on_curve_info_offset), True)
+
+        # Connect the control's param attribute to the main pointOnCurveInfo node
+
+        # Create a plusMinusAverage node to calculate a slightly offset parameter (addition)
+        offset_node = mc.createNode('plusMinusAverage', name='paramOffset')
+        mc.setAttr("{}.operation".format(offset_node), 1)  # Sum operation (add)
+        mc.setAttr("{}.input1D[0]".format(offset_node), 0.05)  # Adjust the offset as needed (as a percentage)
+
+        # Connect the control's param to the input1D[1] to create an offset
+        mc.connectAttr("{}.param".format(mHandle.mNode), "{}.input1D[1]".format(offset_node))
+
+        # Connect the result to the offset pointOnCurveInfo node's parameter
+        mc.connectAttr("{}.output1D".format(offset_node), "{}.parameter".format(point_on_curve_info_offset))
+
+        # Create locators for the current and offset points on the curve
+        offset_point_loc = mc.spaceLocator(name='offset_point_loc')[0]
+
+        # Position the locators based on the pointOnCurveInfo nodes
+        mc.connectAttr("{}.position".format(point_on_curve_info_offset), "{}.translate".format(offset_point_loc))
+
+        # Create a vector product node for calculating the up vector using cross product
+        up_vector_product = mc.createNode('vectorProduct', name='upVector_cross')
+        mc.setAttr("{}.operation".format(up_vector_product), 2)  # Cross product
+        mc.setAttr("{}.normalizeOutput".format(up_vector_product), 1)
+
+        # Connect tangent from main point as input1 and offset tangent as input2
+        mc.connectAttr("{}.tangentX".format(point_on_curve_info_main), "{}.input1X".format(up_vector_product))
+        mc.connectAttr("{}.tangentY".format(point_on_curve_info_main), "{}.input1Y".format(up_vector_product))
+        mc.connectAttr("{}.tangentZ".format(point_on_curve_info_main), "{}.input1Z".format(up_vector_product))
+
+        mc.connectAttr("{}.tangentX".format(point_on_curve_info_offset), "{}.input2X".format(up_vector_product))
+        mc.connectAttr("{}.tangentY".format(point_on_curve_info_offset), "{}.input2Y".format(up_vector_product))
+        mc.connectAttr("{}.tangentZ".format(point_on_curve_info_offset), "{}.input2Z".format(up_vector_product))
+
+        # Create a locator to act as a stable world up object
+        world_up_loc = mc.spaceLocator(name='world_up_loc')[0]
+
+        # Connect the calculated up vector to the world up locator's translate
+        mc.connectAttr("{}.outputX".format(up_vector_product), "{}.translateX".format(world_up_loc))
+        mc.connectAttr("{}.outputY".format(up_vector_product), "{}.translateY".format(world_up_loc))
+        mc.connectAttr("{}.outputZ".format(up_vector_product), "{}.translateZ".format(world_up_loc))
+
+        # Apply an aim constraint with the up vector from the locator
+        mc.aimConstraint(
+            offset_point_loc,  # Target object to aim at
+            mTrackTarget.mNode,   # Object being constrained
+            maintainOffset=False,
+            aimVector=(1, 0, 0),  # Adjust based on your object's local axis
+            upVector=(0, 1, 0),   # Default up vector
+            worldUpType="object",
+            worldUpObject=world_up_loc
+        )
 
 def attach_toShape(obj = None, targetShape = None, connectBy = 'parent', driver = None, parentTo = None, floating = False):
     """

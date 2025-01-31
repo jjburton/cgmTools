@@ -859,9 +859,11 @@ def average(*args):
         l=args[0]
     else:
         l = [a for a in args]
-    return sum(l)/len(l)
 
-def get_greatest(*args):
+    filtered_values = [v for v in l if v is not None]
+    return sum(filtered_values)/len(filtered_values)
+
+def smartMax(*args):
     """ 
     """
     if VALID.isListArg(args[0]):
@@ -869,7 +871,8 @@ def get_greatest(*args):
     else:
         l = [a for a in args]
 
-    return max(l)
+    filtered_values = [v for v in l if v is not None]
+    return max(filtered_values)
 
 def median(*args):
     """ 

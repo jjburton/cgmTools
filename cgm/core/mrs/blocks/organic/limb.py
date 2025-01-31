@@ -143,6 +143,7 @@ l_createUI_attrs = ['attachPoint','attachIndex',
                     'root_dynParentMode',
                     'root_dynParentScaleMode',
                     'ikDynParentMode',
+                    'fkDynParentMode',
                     'segmentType',
                     'buildEnd']
 
@@ -884,6 +885,8 @@ l_attrsStandard = ['side',
                    'root_dynParentMode',
                    'root_dynParentScaleMode',
                    'ikDynParentMode',
+                   'fkDynParentMode',
+                   'fkDynParentSetup',
                    'numSubShapers',#...with limb this is the sub shaper count as you must have one per handle
                    #'buildProfile',
                    'moduleTarget']
@@ -892,18 +895,13 @@ d_attrsToMake = {'visMeasure':'bool',
                  'followParentBank':'bool',                 
                  'proxyShape':'cube:sphere:cylinder',
                  'ikRollSetup':'attribute:control',
-                 
-
-                 'buildEnd':'dag:joint',
-                 
+                 'buildEnd':'dag:joint',                
                  'addBall':'none:dag:joint',
                  'addToe':'none:dag:joint',
                  'addLeverBase':'none:dag:joint',
                  'addLeverEnd':'none:dag:joint',
                  'proxyLoft':'default:toEnd:toStart:toBoth',
-                 'proxyEnd':'default:foot',
-
-                 
+                 'proxyEnd':'default:foot',      
                  'ikExtendSetup':'aim:rpFull:spingFull',
                  'mainRotAxis':'up:out',
                  'settingsPlace':'start:end',
@@ -946,7 +944,9 @@ d_defaultSettings = {'version':__version__,
                      'nameLever':'clav',
                      'nameBall':'ball',
                      'nameToe':'toe',
-                     'followParentBank':True,                     
+                     'followParentBank':True,  
+                     'fkDynParentMode':'orient',
+                     'fkDynParentSetup':True,                
                      'ikEnd':'tipEnd',
                      'ikRPAim':'default',
                      'visJointHandle':1,
@@ -3551,7 +3551,7 @@ def rig_dataBuffer(self):
             
         
         for k in ['rigSetup','ikRollSetup','ikExtendSetup','addBall','ikOrientEndTo','addLeverBase','addLeverEnd','addToe','segmentType','buildEnd','ikLeverEndLock',
-                  'root_dynParentMode','root_dynParentScaleMode','segmentStretchBy','ikDynParentMode']:
+                  'root_dynParentMode','root_dynParentScaleMode','segmentStretchBy','ikDynParentMode','fkDynParentMode']:
             self.__dict__['str_{0}'.format(k)] = ATTR.get_enumValueString(mBlock.mNode,k)
             
         #self.str_rigSetup = ATTR.get_enumValueString(mBlock.mNode,'rigSetup')
@@ -8976,8 +8976,9 @@ def rig_cleanUp(self):
         ml_fkJoints = self.mRigNull.msgList_get('fkJoints')
         
         for i,mObj in enumerate(ml_fkJoints):
-            if i:
+            if i and not mBlock.fkDynParentSetup:
                 break
+            
             log.debug("|{0}| >>  FK: {1}".format(_str_func,mObj))                        
             ml_targetDynParents = copy.copy(ml_baseDynParents)
             ml_targetDynParents.append(self.md_dynTargetsParent['attachDriver'])
@@ -8991,7 +8992,7 @@ def rig_cleanUp(self):
                 _mode = 2            
             else:
                 ml_targetDynParents.insert(0,mParent)
-                _mode = 1
+                _mode = mBlock.fkDynParentMode#1
                 
             mParentBank = False
             if i == 0:

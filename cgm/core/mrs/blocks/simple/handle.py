@@ -773,7 +773,7 @@ def form(self):
                                                                                          _v_range))
         _end = DIST.get_pos_by_vec_dist(_l_basePos[0], _mVectorAim, _v_range)
         _size_handle = _size_width * 1.25
-        _size_loft = MATH.get_greatest(_size_width,_size_height)
+        _size_loft = MATH.smartMax(_size_width,_size_height)
     
         #self.baseSize = [_size_width,_size_height,_size_length]
         _l_basePos.append(_end)
