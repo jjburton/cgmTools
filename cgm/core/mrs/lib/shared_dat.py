@@ -29,6 +29,10 @@ d_colors_side_sub  = {}
 for k,l in list(d_colors_side.items()):
     d_colors_side_sub[k] = [v * .8 for v in l]
 
+l_dynParentModes = ('space','orient','follow','point')
+arg_dynParentModes = ":".join(l_dynParentModes)
+arg_scaleDynParentModes = 'off:link:space'
+
 d_defaultAttrs= {'version':'string',#Attributes to be initialzed for any module
                 'blockType':'string',
                 #'moduleTarget':'messageSimple',
@@ -119,8 +123,8 @@ d_uiAttrDict = {'name':['nameList','cgmName','nameIter'],
                        'controlOffsetMult',
                        'offsetMode','proxyDirect','parentToDriver','rigSetup'],
                 'space':['numSpacePivots','spaceSwitch_fk','spaceSwitch_direct',
-                         'dynParentMode','dynParentScaleMode','ikDynParentMode','fk_dynParentMode',
-                         'root_dynParentMode','root_dynParentScaleMode',],
+                         'dynParentMode','dynParentScaleMode','ikDynParentMode','fkDynParentMode','fkDynParentSetup',
+                         'root_dynParentMode','root_dynParentScaleMode'],
                 'advanced':['baseDat'],
                 'squashStretch':['scaleSetup','squash','squashExtraControl','squashFactorMin','squashFactorMax',
                                  'squashMeasure','squashFactorMode'],
@@ -203,13 +207,13 @@ _d_attrsTo_make = {'side':'none:left:right:center',
                    
                    'ribbonParam': 'fixed:floating:blend',
                    
-                   'dynParentMode':'space:orient:follow:point',
-                   'dynParentScaleMode':'off:link:space',
-                   'ikDynParentMode':'space:orient:follow:point',
-                   'fk_dynParentMode':'space:orient:follow:point',
-                   
-                   'root_dynParentMode':'space:orient:follow:point',
-                   'root_dynParentScaleMode':'off:link:space',
+                   'dynParentMode':arg_dynParentModes,
+                   'dynParentScaleMode':arg_scaleDynParentModes,
+                   'ikDynParentMode':arg_dynParentModes,
+                   'fkDynParentMode':arg_dynParentModes,
+                   'fkDynParentSetup':'bool',
+                   'root_dynParentMode':arg_dynParentModes,
+                   'root_dynParentScaleMode':arg_scaleDynParentModes,
                    'proxyHardenEdge':'bool',
                    'shapeDirection':":".join(CORESHARE._l_axis_by_string),
                    'segmentMidIKControl':'bool',
