@@ -10,7 +10,7 @@ Website : https://github.com/jjburton/cgmTools/wiki
 """
 __MAYALOCAL = 'cgmGEN'
 
-__RELEASE = "25.01.30.01"
+__RELEASE = "25.01.30.01.fix.1"
 
 __BRANCH = 'MRSDAILY'
 
