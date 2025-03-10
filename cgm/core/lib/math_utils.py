@@ -909,6 +909,12 @@ def angleBetween(p1, p2, p3):
 #    return [average(a,b) for a,b in zip(v1,v2)]
     #return sum((a*b) for a, b in zip(v1, v2))
 
+def get_greatest(a,b):
+    return max(a,b)
+
+def get_least(a,b):
+    return min(a,b)
+
 def average_vector_args(vectors): 
     # Initialize the sum of the vector values 
     sum_vector = [0, 0, 0] 
