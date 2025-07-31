@@ -6038,7 +6038,7 @@ def create_simpleMesh(self,  deleteHistory = True, cap=True, skin = True, **kws)
                     _color = 'sub'
                     _d_create['ssw'] = 0
                     _d_create['esw'] = 180
-                    _d_create['r'] = _baseSize[0]/2 * .8                    
+                    _d_create['r'] = _baseSize[0]/2 * .9                    
         
                 _sphere = mc.sphere(**_d_create)
                 mShapeSource = RIGCREATE.get_meshFromNurbs(_sphere[0],
@@ -6513,7 +6513,7 @@ def build_proxyMesh(self, forceNew = True, skin = False, puppetMeshMode = False)
                     _color = 'sub'
                     _d_create['ssw'] = 0
                     _d_create['esw'] = 180
-                    _d_create['r'] = _baseSize[0]/2 * .8                    
+                    _d_create['r'] = _baseSize[0]/2 * .9                    
                     
                 _sphere = mc.sphere(**_d_create)
                 mShapeSource = cgmMeta.asMeta(_sphere[0])

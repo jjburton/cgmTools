@@ -2167,10 +2167,15 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         ml_geo = self.msgList_get('proxyMeshGeo')
         ml_proxy = []
         str_setup = self.getEnumValueString('proxyShape')
-        if str_setup == 'geoOnly' and not ml_geo:
+        str_proxyType = self.getEnumValueString('proxyType')
+        
+
+            
+        if str_proxyType == 'geoOnly' and not ml_geo:
             raise ValueError("No geo found and proxyShape is 'geoOnly'.")
         
-        if str_setup == 'shapers':# and not ml_geo:
+        if str_proxyType in ['shapers','comboMesh']:# and not ml_geo:
+            log.info("|{0}| >> creating shaper proxy mesh...".format(_str_func))
             mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5,cap= self.proxyGeoCap)[0]
             ml_proxy = [mMesh]
             
@@ -2199,6 +2204,7 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
             CORERIG.color_mesh(mGeo.mNode)
         
         if len(ml_proxy) > 1:
+            log.info("|{0}| >> uniting proxy meshes...".format(_str_func,ml_proxy))
             _mesh = mc.polyUnite([mObj.mNode for mObj in ml_proxy], ch=False )[0]
             mMesh = cgmMeta.asMeta(_mesh)
             for mObj in ml_proxy[1:]:
@@ -2209,6 +2215,8 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
         for i,mMesh in enumerate(ml_proxy):
             if parent and skin:
                 mMesh.p_parent=parent
+            else:
+                mMesh.p_parent = False
             
             if skin:
                 mc.skinCluster ([mJnt.mNode for mJnt in ml_moduleJoints],
@@ -2287,7 +2295,8 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
     ml_proxy = []
     ml_rigJoints = mRigNull.msgList_get('rigJoints')
     str_setup = self.getEnumValueString('proxyShape')
-    
+    str_proxyType = self.getEnumValueString('proxyType')
+
     #Mesh build logic...
     _buildMesh = True
     if puppetMeshMode and ml_proxyExisting:
@@ -2297,10 +2306,10 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
     if _buildMesh:
         log.warning("|{0}| >> building mesh...".format(_str_func))            
         
-        if str_setup == 'geoOnly' and not ml_geo:
+        if str_proxyType == 'geoOnly' and not ml_geo:
             raise ValueError("No geo found and proxyShape is 'geoOnly'.")
         
-        if str_setup == 'shapers':# and not ml_geo:
+        if str_proxyType in ['shapers','comboMesh']:# and not ml_geo:
             d_kws = {}
             mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5, cap= self.proxyGeoCap)[0]
             ml_proxy = [mMesh]
@@ -2310,12 +2319,13 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
                 #if mGeo == mMeshCheck:
                 #    continue
                 log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
-                if mGeo.getMayaType() == 'nurbsSurface':
+                if mGeo.getMayaType() == 'nurbsSurface' and str_setup != 'geoOnly':
                     mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
                                                         mode = 'general',
                                                         uNumber = mBlock.loftSplit,
                                                         vNumber=mBlock.loftSides)
                 else:
+                    log.info("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
                     mMesh = mGeo.doDuplicate(po=False)
                     #mMesh.p_parent = False
                     #mDup = mBlock.proxyHelper.doDuplicate(po=False)

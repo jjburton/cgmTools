@@ -1321,13 +1321,11 @@ def getControlShader(direction = 'center', controlType = 'main',
                 _color = SHARED._d_side_colors[direction][controlType]
                 _rgb = SHARED._d_colors_to_RGB[_color]
 
-            if proxy and controlType not in ['pupil']:
-                #_rgb = [v * .75 for v in _rgb]
-                _hsv = [v for v in get_HSV_fromRGB(_rgb[0],_rgb[1],_rgb[2])]
-                _hsv[1] = .6
-                _hsv[2] = .8                
-                #_hsv = [v * .5]
-                _rgb = get_RGB_fromHSV(_hsv[0],_hsv[1],_hsv[2])
+            if proxy:# and controlType not in ['pupil']:
+                # Add gray component to mute colors consistently
+                # This preserves hue while making colors less saturated
+                gray_component = 0.3  # Amount of gray to add
+                _rgb = [v * (1 - gray_component) + gray_component for v in _rgb]
                 ATTR.set(_node,'diffuse',.8)
             else:
                 ATTR.set(_node,'diffuse',.497)
@@ -1374,30 +1372,52 @@ def getControlShader(direction = 'center', controlType = 'main',
         
     return _node, _set
     
-def get_HSV_fromRGB(rValue = 0, gValue = 0, bValue = 0, getNode = False):
-    _node = mc.createNode('rgbToHsv')
-    ATTR.set(_node,'inRgbR',COREMATH.Clamp(float(rValue),0,1.0))
-    ATTR.set(_node,'inRgbG',COREMATH.Clamp(float(gValue),0,1.0))
-    ATTR.set(_node,'inRgbB',COREMATH.Clamp(float(bValue),0,1.0))
-    res = ATTR.get(_node,'outHsv')[0]
-    
+def get_HSV_fromRGB(rValue=0, gValue=0, bValue=0, getNode=False):
+    """
+    Convert RGB to HSV. Uses colorsys for direct conversion instead of Maya nodes.
+    Returns HSV values in the same scale as Maya (H: 0-360, S: 0-1, V: 0-1).
+    """
+    import colorsys
+    r = COREMATH.Clamp(float(rValue), 0, 1.0)
+    g = COREMATH.Clamp(float(gValue), 0, 1.0)
+    b = COREMATH.Clamp(float(bValue), 0, 1.0)
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    # Maya's rgbToHsv node outputs H in 0-360, colorsys gives 0-1
+    h = h * 360.0
+    res = (h, s, v)
     if getNode:
-        return _node,res
-    
-    mc.delete(_node)
+        # Previous way: use Maya's rgbToHsv node if getNode is True
+        _node = mc.createNode('rgbToHsv')
+        ATTR.set(_node, 'inRgbR', r)
+        ATTR.set(_node, 'inRgbG', g)
+        ATTR.set(_node, 'inRgbB', b)
+        res = ATTR.get(_node, 'outHsv')[0]
+        # Maya's rgbToHsv node outputs H in 0-360, S and V in 0-1
+        return _node, res
     return res
     
-def get_RGB_fromHSV(rValue = 0, gValue = 0, bValue = 0, getNode = False):
-    _node = mc.createNode('hsvToRgb')
-    ATTR.set(_node,'inHsvB',COREMATH.Clamp(float(bValue),0.0001,1.0))
-    ATTR.set(_node,'inHsvG',COREMATH.Clamp(float(gValue),0.0001,1.0))
-    ATTR.set(_node,'inHsvR',COREMATH.Clamp(float(rValue),0.000001,360.0))
-    res = ATTR.get(_node,'outRgb')[0]
-    
+def get_RGB_fromHSV(hValue=0, sValue=0, vValue=0, getNode=False):
+    """
+    Convert HSV to RGB. Uses colorsys for direct conversion instead of Maya nodes.
+    hValue: Hue (0-360)
+    sValue: Saturation (0-1)
+    vValue: Value (0-1)
+    """
+    import colorsys
+    # Clamp values to expected ranges
+    h = COREMATH.Clamp(float(hValue), 0.0, 360.0) / 360.0  # colorsys expects 0-1
+    s = COREMATH.Clamp(float(sValue), 0.0, 1.0)
+    v = COREMATH.Clamp(float(vValue), 0.0, 1.0)
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    res = (r, g, b)
     if getNode:
+        # Use Maya's hsvToRgb node if getNode is True
+        _node = mc.createNode('hsvToRgb')
+        ATTR.set(_node, 'inHsvR', COREMATH.Clamp(float(hValue), 0.000001, 360.0))  # H
+        ATTR.set(_node, 'inHsvG', COREMATH.Clamp(float(sValue), 0.0001, 1.0))      # S
+        ATTR.set(_node, 'inHsvB', COREMATH.Clamp(float(vValue), 0.0001, 1.0))      # V
+        res = ATTR.get(_node, 'outRgb')[0]
         return _node, res
-    
-    mc.delete(_node)
     return res
     
 def colorControl(target = None, direction = 'center', controlType = 'main', pushToShapes = True,

@@ -1074,10 +1074,7 @@ class BlockConfig(BaseDat):
     '''    
     _ext = 'cgmBlockConfig'
     _startDir = ['cgmDat','mrs']
-    _cleanDat = {'blockList':[],
-                 'config':{},
-                 'uiStrings':[],
-                 'indices':[]}
+    _cleanDat = {'blockEntries': []}
     
     def __init__(self, ml_context = None, filepath = None, **kws):
         """
@@ -1086,13 +1083,11 @@ class BlockConfig(BaseDat):
         _str_func = 'BlockConfig.__buffer__'
         log.debug(log_start(_str_func))
         self.str_filepath = None
-        self.dat = {}
+        self.dat = {'blockEntries': []}
         self.mBlockDat = []
                 
         super(BlockConfig, self).__init__(filepath, **kws)
         
-        
-
         if not filepath:
             if not ml_context and ml_context is not None:
                 ml_context = BLOCKGEN.block_getFromSelected(True)
@@ -1102,13 +1097,13 @@ class BlockConfig(BaseDat):
                 
             if ml_context:
                 self.get(ml_context)
-        
+    
     def clear(self):
         _str_func = 'BlockConfig.clear'
         log.debug(log_start(_str_func))
         self.dat = copy.copy(BlockConfig._cleanDat)
         self.mBlockDat = []        
-        
+    
     def get(self, ml_context = []):
         _str_func = 'BlockConfig.get'
         log.debug(log_start(_str_func))
@@ -1116,14 +1111,12 @@ class BlockConfig(BaseDat):
         self.dat = config_get(ml_context)
         self.mBlockDat = []
         
-        for i,block in enumerate(self.dat['blockList']):
-            #log.info(block)
-            self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))
-            
+        for entry in self.dat['blockEntries']:
+            self.mBlockDat.append(BlockDat(dat=entry['config']))
+    
     def append(self, ml_context = []):
         _str_func = 'BlockConfig.append'
         log.debug(log_start(_str_func))        
-        
         
         if not ml_context and ml_context is not None:
             ml_context = BLOCKGEN.block_getFromSelected(True)
@@ -1132,25 +1125,19 @@ class BlockConfig(BaseDat):
         
         _newDat = config_get(ml_context)
         
-        
-        _oldIndices = self.dat.get('indices',[])
-        if _oldIndices:
-            _start = max(_oldIndices) + 1
+        # Find the next index
+        if self.dat['blockEntries']:
+            _start = max(e['index'] for e in self.dat['blockEntries']) + 1
         else:
             _start = 0
-            
-        for i,k in enumerate(_newDat['indices']):
-            self.dat['blockList'].append(_newDat['blockList'][i])
-            self.dat['config'][str(k+_start)] = _newDat['config'][str(k)]
-            self.dat['uiStrings'].append(_newDat['uiStrings'][k])
-            self.dat['indices'].append(k+_start)
-
-
-            self.mBlockDat.append( BlockDat(dat= _newDat['config'][str(k)] ))
-
-        return True
-        #Get the current open list
         
+        for entry in _newDat['blockEntries']:
+            entry_copy = entry.copy()
+            entry_copy['index'] += _start
+            self.dat['blockEntries'].append(entry_copy)
+            self.mBlockDat.append(BlockDat(dat=entry_copy['config']))
+        return True
+    
     def remove(self, idx = None, ml_context = []):
         _str_func = 'BlockConfig.remove'
         log.debug(log_start(_str_func))
@@ -1158,68 +1145,49 @@ class BlockConfig(BaseDat):
         if idx is None:
             raise ValueError("{} | Must have an index".format(_str_func))
         
-
-        if idx not in self.dat['indices']:
-            raise ValueError("{} | Invalid idx - {} | {}".format(_str_func, idx, self.dat['indices']))
-        
-
-        #try:self.mBlockDat.pop(idx)
-        #except:
-        #    raise ValueError,"{} | Invalid idx - {} | {}".format(_str_func, idx, self.dat['indices'])
         self.mBlockDat = []
-        
-        _baseDat = copy.deepcopy(self.dat)
-        
-        _newDat = copy.deepcopy(BlockConfig._cleanDat)
-        pprint.pprint(_newDat)
-        _i = 0
-        
-        for i,k in enumerate(_baseDat['indices']):
-            if k == idx:
-                continue
-            
-            _newDat['blockList'].append(_baseDat['blockList'][i])
-            _newDat['config'][str(_i)] = _baseDat['config'][str(k)]
-            _newDat['uiStrings'].append(_baseDat['uiStrings'][i])
-            
-            self.mBlockDat.append( BlockDat(dat= _baseDat['config'][str(k)] ))
-            
-            #self.dat['blockList'].append(_newDat['blockList'][i])
-            #self.dat['config'][str(k+_start)] = _newDat['config'][str(k)]
-            #self.dat['uiStrings'].append(_newDat['uiStrings'][k])
-            #self.dat['indices'].append(k+_start)
-            _i+=1
-
-        _newDat['indices'] = list(range(len(_newDat['blockList'])))        
-
-        self.dat = _newDat
+        # Remove the entry with the given index
+        self.dat['blockEntries'] = [e for e in self.dat['blockEntries'] if e['index'] != idx]
+        # Reindex
+        for i, entry in enumerate(self.dat['blockEntries']):
+            entry['index'] = i
+            self.mBlockDat.append(BlockDat(dat=entry['config']))
         return True
-        
+    
     def set(self, mBlock = None):
         _str_func = 'BlockConfig.set'
         log.debug(log_start(_str_func))
     
-
     def read(self, filepath = None, *arg,**kws):
         BaseDat.read(self, filepath, *arg,**kws)
-        
-        self.mBlockDat = []
-        
-        for i,block in enumerate(self.dat['blockList']):
-            #log.info(block)
-            self.mBlockDat.append( BlockDat(dat= self.dat['config'][str(i)] ))
-            
-        if not self.dat.get('indices'):
-            self.dat['indices'] = list(range(len(self.dat['blockList'])))        
-        
-        #self.str_filepath = filepath
-        return True    
-        
-    
-        
-        
-        
-        
+        # Backward compatibility: convert old format to new if needed
+        if 'blockEntries' in self.dat:
+            # Already new format
+            self.mBlockDat = []
+            for entry in self.dat['blockEntries']:
+                self.mBlockDat.append(BlockDat(dat=entry['config']))
+        elif 'blockList' in self.dat and 'config' in self.dat:
+            # Old format: convert
+            blockEntries = []
+            blockList = self.dat['blockList']
+            configDict = self.dat['config']
+            names = self.dat.get('uiStrings', blockList)
+            indices = self.dat.get('indices', list(range(len(blockList))))
+            for i, idx in enumerate(indices):
+                blockEntries.append({
+                    'block': None,  # Can't reconstruct block reference
+                    'name': names[i] if i < len(names) else str(blockList[i]),
+                    'config': configDict.get(str(idx), {}),
+                    'index': i
+                })
+            self.dat = {'blockEntries': blockEntries}
+            self.mBlockDat = []
+            for entry in self.dat['blockEntries']:
+                self.mBlockDat.append(BlockDat(dat=entry['config']))
+        else:
+            # Unknown format, fallback
+            self.mBlockDat = []
+        return True
 
 def config_get(ml_context = [], report = True):
     _str_func = 'config_get'        
@@ -1238,25 +1206,23 @@ def config_get(ml_context = [], report = True):
     if log.level == 10:
         pprint.pprint(ml_context)
         
-    _res = {'blockList':[],
-            'config':{},
-            'uiStrings':[],
-            'indices':[]}
+    _res = {'blockEntries': []}
     
-    ml,strings = BLOCKGEN.get_uiScollList_dat(showState=False,showProfile=False)
-    
+    ml, strings = BLOCKGEN.get_uiScollList_dat(showState=False, showProfile=False)
     d_order = {}
     #...want to get our list in order as we want
-    for i,mBlock in enumerate(ml_context):
+    for i, mBlock in enumerate(ml_context):
         _idx = ml.index(mBlock)
         d_order[_idx] = mBlock
-        
+    
     _keys = sorted(d_order)
-    for i,k in enumerate(_keys):
-        _res['blockList'].append(d_order[k].p_nameBase)
-        _res['config'][str(i)] = blockDat_get(d_order[k],False)    
-        _res['uiStrings'].append(strings[k])
-        _res['indices'].append(i)
+    for i, k in enumerate(_keys):
+        _res['blockEntries'].append({
+            "block": d_order[k],
+            "name": strings[k],
+            "config": blockDat_get(d_order[k], False),
+            "index": i
+        })
     
     if log.level == 10:
         pprint.pprint(_res)
@@ -1277,13 +1243,11 @@ def blockConfig_create(self, idx = None, autoPush = True, promptName = False):
 
     if idx is not None:
         return blockDat_createBlock(self.mBlockDat[idx], autoPush, promptName)
-        
+    
     ml = []
-    for i,block in enumerate(self.dat['blockList']):
-        log.debug(cgmGEN.logString_sub(_str_func,block))
-        
-        ml.append( blockDat_createBlock(self.mBlockDat[i], autoPush, promptName) )
-        
+    for entry in self.dat['blockEntries']:
+        log.debug(cgmGEN.logString_sub(_str_func, entry['name']))
+        ml.append(blockDat_createBlock(self.mBlockDat[entry['index']], autoPush, promptName))
     return ml
 
 
@@ -1839,10 +1803,13 @@ class uiBlockConfigDat(ui):
     def uiFunc_removeData(self,idx=None):
         _str_func = 'uiFunc_removeData[{0}]'.format(self.__class__.TOOLNAME)
         log.debug(log_start(_str_func))
-        try:_block = self.uiDat.dat['blockList'][idx]
+        try:
+            # Find the entry by index
+            entry = next(e for e in self.uiDat.dat['blockEntries'] if e['index'] == idx)
+            _block = entry['name']
         except:
             raise ValueError("{} | invalid idx: {}".format(_str_func,idx))
-            
+        
         result = mc.confirmDialog(title="Removing Dat| Dat {}".format(_block),
                                   message= "Remove: {}".format(_block),
                                   button=['OK','Cancel'],
@@ -1859,9 +1826,9 @@ class uiBlockConfigDat(ui):
             self.uiUpdate_data()            
             return
         
-        ml_process = copy.deepcopy(self.uiDat.dat['blockList'])
-        
-        for i,a in enumerate(ml_process):
+        # Remove all checked blocks
+        ml_process = [e['index'] for e in self.uiDat.dat['blockEntries']]
+        for i in ml_process:
             if self._dCB_blocks[i].getValue():
                 self.uiDat.remove(i)
         self.uiUpdate_data()
@@ -1976,9 +1943,9 @@ class uiBlockConfigDat(ui):
         if idx is not None:
             blockConfig_create(self.uiDat, idx)
             return
-        for i,a in enumerate(self.uiDat.dat['blockList']):
-            if self._dCB_blocks[i].getValue():
-                blockConfig_create(self.uiDat, i)
+        for entry in self.uiDat.dat['blockEntries']:
+            if self._dCB_blocks[entry['index']].getValue():
+                blockConfig_create(self.uiDat, entry['index'])
                 
     def uiFunc_setToggles(self,arg):
         for i,mCB in list(self._dCB_blocks.items()):
@@ -2098,21 +2065,18 @@ class uiBlockConfigDat(ui):
         _row.layout()
         
         
-        for i,a in enumerate(self.uiDat.dat['blockList']):
+        for entry in self.uiDat.dat['blockEntries']:
             try:
-                
-                #...make our block list
-                mDat = self.uiDat.mBlockDat[i]
+                mDat = BlockDat(dat=entry['config'])
                 _type = mDat.dat['blockType']
                 _side = mDat.dat.get('side','center')
                 if _side in ['none','None']:
                     _side = 'center'
                 if _side in [False,'none',None]:
                     _side = 'center'
-                    
                 cgmGEN._reloadMod(CORESHARE)
                 d_color = CORESHARE._d_gui_direction_colors_use[_side]
-                if MATH.is_even(i):
+                if MATH.is_even(entry['index']):
                     _ut = 'cgmUITemplate'
                     _header = d_color['base']
                 else:
@@ -2131,7 +2095,7 @@ class uiBlockConfigDat(ui):
                 
                 
                 #mUI.MelIconCheckBox(self.uiFrame_data,)
-                _label = CORESTRINGS.stripWhiteSpaceStart(self.uiDat.dat['uiStrings'][i])#blockDat_getString(self.uiDat.mBlockDat[i])
+                _label = CORESTRINGS.stripWhiteSpaceStart(entry['name'])#blockDat_getString(self.uiDat.mBlockDat[i])
                 
                 #Row...
                 _row = mUI.MelHSingleStretchLayout(self.uiFrame_data, h=30, bgc=_header)            
@@ -2170,7 +2134,7 @@ class uiBlockConfigDat(ui):
                                       #olc=[float(v) for v in d_state_colors['form']],
                                       #olb=[float(v) for v in d_state_colors['form']]+[.5],
                                       #w=20,h=20)"""
-                mUI.MelLabel(_row,label = "[{}]".format(i))
+                mUI.MelLabel(_row,label = "[{}]".format(entry['index']))
                 
                 _lenParents = mDat.dat['lenParents'] 
                 if _lenParents:
@@ -2180,24 +2144,24 @@ class uiBlockConfigDat(ui):
                 _cb = mUI.MelCheckBox(_row,l=_label,
                                      #annotation = d_dat.get('ann',k),
                                      value = 1)
-                self._dCB_blocks[i] = _cb
+                self._dCB_blocks[entry['index']] = _cb
                 _row.setStretchWidget(_cb)
                 
                 mDat = mDat.dat.get('shape')
     
                 mUI.MelButton(_row, bgc=d_color['button'], label = 'BlockDat',
-                              c = cgmGEN.Callback(self.get_blockDatUI,i))
+                              c = cgmGEN.Callback(self.get_blockDatUI,entry['index']))
                 #mUI.MelButton(_row, bgc=_colorDark, label = 'Log',
                 #              c = cgmGEN.Callback(self.log_blockDat,i))                
                 mUI.MelButton(_row, bgc=d_color['button'], label = 'ShapeDat',en =bool(mDat),
-                              c = cgmGEN.Callback(self.get_shapeDatUI,i))            
+                              c = cgmGEN.Callback(self.get_shapeDatUI,entry['index']))            
                 mUI.MelButton(_row, bgc=d_color['button'], label = 'Create',
-                              c = cgmGEN.Callback(self.uiFunc_create,i))
+                              c = cgmGEN.Callback(self.uiFunc_create,entry['index']))
                 mUI.MelButton(_row, bgc=d_color['button'], label = 'Update',
-                              c = cgmGEN.Callback(self.uiFunc_update,i))
+                              c = cgmGEN.Callback(self.uiFunc_update,entry['index']))
                 mUI.MelButton(_row, bgc=d_color['button'], label = 'Remove',
                               ann="Remove this BlockDat",
-                              c = cgmGEN.Callback(self.uiFunc_removeData,i))            
+                              c = cgmGEN.Callback(self.uiFunc_removeData,entry['index']))            
                 mUI.MelSpacer(_row,w=10)
                 
                 _row.layout()

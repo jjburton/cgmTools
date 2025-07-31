@@ -19,6 +19,7 @@ import pprint
 import maya.cmds as mc
 import maya.mel as mel
 import copy
+import re
 
 # From Red9 =============================================================
 
@@ -1156,6 +1157,26 @@ getTransform = get_transform
         return buffer[0]
     return False"""
 
+def sanitize_filepath(filepath):
+    """
+    Sanitize file paths for Maya and cross-platform compatibility.
+    - Replaces backslashes with forward slashes.
+    - Removes leading/trailing whitespace.
+    - Collapses multiple slashes.
+    - Removes accidental tab/newline characters.
+    """
+    if not filepath:
+        return filepath
+    # Remove leading/trailing whitespace
+    filepath = filepath.strip()
+    # Replace backslashes with forward slashes
+    filepath = filepath.replace('\\', '/')
+    # Remove accidental tab/newline characters
+    filepath = filepath.replace('\t', '').replace('\n', '')
+    # Collapse multiple slashes to a single slash
+    filepath = re.sub(r'/+', '/', filepath)
+    return filepath
+
 def MeshDict(mesh = None, pointCounts = True, calledFrom = None):
     """
     Validates a mesh and returns a dict of data.
@@ -1263,6 +1284,14 @@ def fileOpen(filepath= None, force = True, ignoreVersion = True, executeScriptNo
         
     if not filepath:
         raise ValueError("No filepath")
+    
+    filepath = sanitize_filepath(filepath)
+
+    if not os.path.exists(filepath):
+        raise RuntimeError("File does not exist: {}".format(filepath))
+    if not (filepath.endswith('.ma') or filepath.endswith('.mb')):
+        raise RuntimeError("File is not a Maya file: {}".format(filepath))
+    log.info("Opening file: {}".format(filepath))
     
     _current = mc.file(q=True, sn=True)
     if mc.file(_current, q=1, modified = 1):
