@@ -65,7 +65,7 @@ class Test_MetaRig():
                                           compareDict='skeletonDict',
                                           ignoreAttrs=['jointOrientX', 'jointOrientY', 'jointOrientZ'])
         assert not compareData.status
-        assert compareData.fails['failedAttrs'].keys() == ['Character1_LeftArm', 'Character1_LeftHand']
+        assert list(compareData.fails['failedAttrs'].keys()) == ['Character1_LeftArm', 'Character1_LeftHand']
         assert str(compareData.fails['failedAttrs']) == "{u'Character1_LeftArm': {'attrMismatch': ['rotateX', 'rotateY', 'rotateZ']}, u'Character1_LeftHand': {'attrMismatch': ['rotateX', 'rotateY', 'rotateZ']}}"
 
     def test_poseCacheStoreAttr(self):
@@ -163,8 +163,8 @@ class Test_PoseDataMeta():
                                relativePose=True,
                                relativeRots='projected',
                                relativeTrans='projected')
-        print '\n\n\n##########   MAYA UP AXIS : ###################', r9Setup.mayaUpAxis()
-        print 'status : ', self.mRig.poseCompare(requiredPose, compareDict='poseDict', supressWarning=False).status
+        print('\n\n\n##########   MAYA UP AXIS : ###################', r9Setup.mayaUpAxis())
+        print('status : ', self.mRig.poseCompare(requiredPose, compareDict='poseDict', supressWarning=False).status)
         assert self.mRig.poseCompare(requiredPose, compareDict='poseDict', supressWarning=False).status  # using the mRig internal wrap
 
         self.mRig.poseCacheStore()  # build an internal poseObj on the mRig now that we've loaded in relative space
@@ -261,7 +261,7 @@ class Test_PoseData_loaders():
                                relativePose=True,
                                relativeRots='projected',
                                relativeTrans='projected')
-        print '\n\n\n##########   MAYA UP AXIS : ###################', r9Setup.mayaUpAxis()
+        print('\n\n\n##########   MAYA UP AXIS : ###################', r9Setup.mayaUpAxis())
 
         # the pose is no longer in the same space due to the relative code,
         # we need up update the internal pose before comparing
@@ -284,7 +284,7 @@ class Test_PoseData_loaders():
                                relativePose=True,
                                relativeRots='projected',
                                relativeTrans='projected')
-        print '\n\n\n##########   MAYA UP AXIS : ###################', r9Setup.mayaUpAxis()
+        print('\n\n\n##########   MAYA UP AXIS : ###################', r9Setup.mayaUpAxis())
 
         # the pose is no longer in the same space due to the relative code,
         # we need up update the internal pose before comparing

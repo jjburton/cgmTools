@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -112,10 +123,7 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#Red9.pro_pack.core.general.PlayblastTask" title="Red9.pro_pack.core.general.PlayblastTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PlayblastTask</span></code></a>(*args,&nbsp;**kws)</td>
-<td>class to handler for playblast calls</td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#Red9.pro_pack.core.general.BatchLogger" title="Red9.pro_pack.core.general.BatchLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BatchLogger</span></code></a>([batch_files,&nbsp;func,&nbsp;log_name,&nbsp;…])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#Red9.pro_pack.core.general.BatchLogger" title="Red9.pro_pack.core.general.BatchLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BatchLogger</span></code></a>([batch_files,&nbsp;func,&nbsp;log_name,&nbsp;…])</td>
 <td>Logging class for batch processes</td>
 </tr>
 </tbody>
@@ -138,7 +146,7 @@ this was originally added to manage non-valid ascii characters in filepaths</p>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.general.attr_cache_create">
-<code class="descname">attr_cache_create</code><span class="sig-paren">(</span><em>node</em>, <em>attrs=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.attr_cache_create" title="Permalink to this definition">¶</a></dt>
+<code class="descname">attr_cache_create</code><span class="sig-paren">(</span><em>node</em>, <em>attrs=[]</em>, <em>userdef=True</em>, <em>source=True</em>, <em>dest=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.attr_cache_create" title="Permalink to this definition">¶</a></dt>
 <dd><p>from a given object cache all it’s user defined attrs, or just those attrs passed in.
 The cache returns a dict with all the current states of all attrs, including the
 general setup of the attr (type, hidden, lock, keyable, value) but also all the
@@ -161,7 +169,7 @@ or build the same attrs with the same plugs and connections on other objects.</p
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.general.attr_cache_rebuild">
-<code class="descname">attr_cache_rebuild</code><span class="sig-paren">(</span><em>node</em>, <em>attrs=[]</em>, <em>rebuild=True</em>, <em>addonly=False</em>, <em>data={}</em>, <em>cast_connections=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.attr_cache_rebuild" title="Permalink to this definition">¶</a></dt>
+<code class="descname">attr_cache_rebuild</code><span class="sig-paren">(</span><em>node</em>, <em>attrs=[]</em>, <em>rebuild=True</em>, <em>addonly=False</em>, <em>data={}</em>, <em>cast_connections=True</em>, <em>load_values=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.attr_cache_rebuild" title="Permalink to this definition">¶</a></dt>
 <dd><p>&lt;&lt; reorder attrs &gt;&gt;</p>
 <p>for a given object rebuild the given attrs from the data cache if given,
 else we internally cache all attrs on the node and rebuild then against the
@@ -173,10 +181,11 @@ given attrs[] list order, effectively re-ordering them</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>node</strong> – node we’re going to build the attrs onto</li>
 <li><strong>attrs</strong> – list of attr names thats used to order the process</li>
-<li><strong>data</strong> – a cache of attrs using the cache_attrdata() func above</li>
-<li><strong>rebuild</strong> – if True we force delete the attr and recreate, forcing cb orders to be updated</li>
+<li><strong>data</strong> – a cache of attrs using the attr_cache_create() func above</li>
+<li><strong>rebuild</strong> – if True we force delete the attr and recreate, forcing channelBox orders to be updated</li>
 <li><strong>addonly</strong> – If True we only add in new attrs that aren’t on the node given. Only valid if we’re passing in a data{} object</li>
-<li><strong>cast_connections</strong> – if True we allow the attrs cached to be pushed over to the new object including all connections</li>
+<li><strong>load_values</strong> – if True we allow the attrs cached to be pushed over to the new object including, reloading all of the values from the data</li>
+<li><strong>cast_connections</strong> – if True we allow the plugs cached to be pushed over to the new object rebuilding the plug connections</li>
 </ul>
 </td>
 </tr>
@@ -221,8 +230,17 @@ and return as a dict for easy use</p>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.general.get_soft_selection_weights">
-<code class="descname">get_soft_selection_weights</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.get_soft_selection_weights" title="Permalink to this definition">¶</a></dt>
-<dd><p>return a list of soft selection data as a dict {vertID: weight, ….}</p>
+<code class="descname">get_soft_selection_weights</code><span class="sig-paren">(</span><em>vertpath=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.get_soft_selection_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the current soft selection data as a dict, either {vertID: weight, ….}
+or if the vertpath is True we also include the dagpath in the vtx {‘<a href="#id1"><span class="problematic" id="id2">|</span></a>dagpath.vtx[vertID]’: weight, ….}</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vertpath</strong> – if True we return the vtx as full path (‘<a href="#id3"><span class="problematic" id="id4">|</span></a>dagpath.vtx[vertID]’), else we just return the id / index</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -238,6 +256,7 @@ between the scriptEditor or the OutputWindow</p>
 <em class="property">class </em><code class="descname">PlayblastTask</code><span class="sig-paren">(</span><em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.general.PlayblastTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>class to handler for playblast calls</p>
+<p>&lt;&lt; DEPRICATED : BEING MOVED TO A CAPTURE MODULE TO DEAL WITH ANYTHING THAT GRABS THE SCREEN &gt;&gt;</p>
 <p>Main Playblast call within Red9.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -294,7 +313,7 @@ Python object that pulls data form the r9settings file here: <em>“C:/Users/xxx
 
 <dl class="attribute">
 <dt id="Red9.pro_pack.core.general.PlayblastTask.FORMATS">
-<code class="descname">FORMATS</code><em class="property"> = {'avi': {'comp': 'none', 'ext': '.avi'}, 'qt': {'comp': 'H.264', 'ext': '.mov'}}</em><a class="headerlink" href="#Red9.pro_pack.core.general.PlayblastTask.FORMATS" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FORMATS</code><em class="property"> = {'avi': {'comp': 'none', 'ext': '.avi'}, 'image': {'comp': 'jpg', 'ext': '.jpg'}, 'qt': {'comp': 'H.264', 'ext': '.mov'}, 'webm': {'comp': 'vp8', 'ext': '.webm'}}</em><a class="headerlink" href="#Red9.pro_pack.core.general.PlayblastTask.FORMATS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -379,7 +398,7 @@ Python object that pulls data form the r9settings file here: <em>“C:/Users/xxx
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>file_path</strong> – string file path that has been process if not set it will use self.current_file_path</li>
-<li><strong>data</strong> – <a href="#id1"><span class="problematic" id="id2">**</span></a>kwrds to be added to the log EX. info=’extra information about the file’, process_time=5.345</li>
+<li><strong>data</strong> – <a href="#id5"><span class="problematic" id="id6">**</span></a>kwrds to be added to the log EX. info=’extra information about the file’, process_time=5.345</li>
 </ul>
 </td>
 </tr>
@@ -400,7 +419,7 @@ Python object that pulls data form the r9settings file here: <em>“C:/Users/xxx
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>file_path</strong> – string file path that has been process if not set it will use self.current_file_path</li>
-<li><strong>data</strong> – <a href="#id3"><span class="problematic" id="id4">**</span></a>kwrds to be added to the log EX. info=’extra information about the file’, process_time=5.345</li>
+<li><strong>data</strong> – <a href="#id7"><span class="problematic" id="id8">**</span></a>kwrds to be added to the log EX. info=’extra information about the file’, process_time=5.345</li>
 </ul>
 </td>
 </tr>

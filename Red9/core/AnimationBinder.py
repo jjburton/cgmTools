@@ -32,14 +32,15 @@
 ########################################################################
 '''
 
-from __future__ import print_function
+
 
 import maya.cmds as cmds
 import pymel.core as pm
-import Red9_AnimationUtils as r9Anim
-import Red9_CoreUtils as r9Core
+
 import Red9.startup.setup as r9Setup
-import Red9.core.Red9_General as r9General
+from . import Red9_AnimationUtils as r9Anim
+from . import Red9_CoreUtils as r9Core
+from . import Red9_General as r9General
 
 
 import logging
@@ -145,7 +146,7 @@ class BindNodeBase(object):
 
         if settings:
             if not issubclass(type(settings), Bindsettings):
-                raise StandardError('settingsObj arg must be a Bindsettings Object')
+                raise Exception('settingsObj arg must be a Bindsettings Object')
             else:
                 self.settings = settings
         else:
@@ -556,7 +557,7 @@ def get_bind_nodes(rootNode=None):
     Note we're not casting to PyNodes here for speed here
     '''
     if not rootNode:
-        raise StandardError('Please Select a node to search from:')
+        raise Exception('Please Select a node to search from:')
     return [node for node in cmds.listRelatives(rootNode, ad=True, f=True)
             if cmds.attributeQuery(BNDNODE_MARKER, exists=True, node=node)]
 
@@ -566,7 +567,7 @@ def get_bound_controls(rootNode=None):
     Note we're not casting to PyNodes here for speed here
     '''
     if not rootNode:
-        raise StandardError('Please Select a node to search from:')
+        raise Exception('Please Select a node to search from:')
     return [node for node in cmds.listRelatives(rootNode, ad=True, f=True)
              if cmds.attributeQuery(BAKE_MARKER, exists=True, node=node)]
 
@@ -608,20 +609,20 @@ def bake_binder_data(rootNode=None, debugView=False, runFilter=True, ignoreInFil
                 # Remove the BindMarker from the baked node
                 try:
                     cmds.deleteAttr('%s.%s' % (node, BAKE_MARKER))
-                except StandardError, error:
+                except Exception as error:
                     log.info(error)
             if ignoreInFilter:
                 BoundCtrls = [node for node in BoundCtrls if node.split('|')[-1].split(':')[-1] not in ignoreInFilter]
             if runFilter:
                 cmds.filterCurve(BoundCtrls)
             cmds.delete(BoundCtrls, sc=True)  # static channels
-        except StandardError, error:
-            raise StandardError(error)
+        except Exception as error:
+            raise Exception(error)
         finally:
             cmds.refresh(su=False)
             cmds.refresh(f=True)
     else:
-        raise StandardError("Couldn't find any BinderMarkers in given hierarchy")
+        raise Exception("Couldn't find any BinderMarkers in given hierarchy")
     return True
 
 def match_given_hierarchys(source, dest):

@@ -1095,7 +1095,7 @@ def prerig(self):
                                                              None,
                                                              side,
                                                              nameDict=_dUse,
-                                                             mStateNull=mStateNull,
+                                                             mParent=mStateNull,
                                                              size= _size_sub/2)                    
                     md_anchors[section][side][tag] = mAnchor
         

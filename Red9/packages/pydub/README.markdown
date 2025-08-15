@@ -1,10 +1,12 @@
-# Pydub [![Build Status](https://travis-ci.org/jiaaro/pydub.svg?branch=master)](https://travis-ci.org/jiaaro/pydub)
+# Pydub [![Build Status](https://travis-ci.org/jiaaro/pydub.svg?branch=master)](https://travis-ci.org/jiaaro/pydub) [![Build status](https://ci.appveyor.com/api/projects/status/gy1ucp9o5khq7fqi/branch/master?svg=true)](https://ci.appveyor.com/project/jiaaro/pydub/branch/master)
+
 Pydub lets you do stuff to audio in a way that isn't stupid.
 
 **Stuff you might be looking for**:
  - [Installing Pydub](https://github.com/jiaaro/pydub#installation)
  - [API Documentation](https://github.com/jiaaro/pydub/blob/master/API.markdown)
  - [Dependencies](https://github.com/jiaaro/pydub#dependencies)
+ - [Playback](https://github.com/jiaaro/pydub#playback)
  - [Setting up ffmpeg](https://github.com/jiaaro/pydub#getting-ffmpeg-set-up)
  - [Questions/Bugs](https://github.com/jiaaro/pydub#bugs--questions)
  
@@ -183,6 +185,23 @@ You can open and save WAV files with pure python. For opening and saving non-wav
 files – like mp3 – you'll need [ffmpeg](http://www.ffmpeg.org/) or 
 [libav](http://libav.org/).
 
+### Playback
+
+You can play audio if you have one of these installed (simpleaudio _strongly_ recommended, even if you are installing ffmpeg/libav):
+
+ - [simpleaudio](https://simpleaudio.readthedocs.io/en/latest/)
+ - [pyaudio](https://people.csail.mit.edu/hubert/pyaudio/docs/#)
+ - ffplay (usually bundled with ffmpeg, see the next section)
+ - avplay (usually bundled with libav, see the next section)
+ 
+```python
+from pydub import AudioSegment
+from pydub.playback import play
+
+sound = AudioSegment.from_file("mysound.wav", format="wav")
+play(sound)
+```
+
 ## Getting ffmpeg set up
 
 You may use **libav or ffmpeg**.
@@ -191,29 +210,31 @@ Mac (using [homebrew](http://brew.sh)):
 
 ```bash
 # libav
-brew install libav --with-libvorbis --with-sdl --with-theora
+brew install libav
 
 ####    OR    #####
 
 # ffmpeg
-brew install ffmpeg --with-libvorbis --with-ffplay --with-theora
+brew install ffmpeg
 ```
 
 Linux (using aptitude):
 
 ```bash
 # libav
-apt-get install libav-tools libavcodec-extra-53
+apt-get install libav-tools libavcodec-extra
 
 ####    OR    #####
 
 # ffmpeg
-apt-get install ffmpeg libavcodec-extra-53
+apt-get install ffmpeg libavcodec-extra
 ```
 
 Windows:
 
-Sorry, I don't know how to set up windows. libav [appears to provide binarys](https://libav.org/download.html) you can install on windows.
+1. Download and extract libav from [Windows binaries provided here](http://builds.libav.org/windows/).
+2. Add the libav `/bin` folder to your PATH envvar
+3. `pip install pydub`
 
 ## Important Notes
 
@@ -228,7 +249,7 @@ some of a number of potential codecs (see page 3 of the rfc) that can be used fo
 encapsulated data.
 
 When no codec is specified exporting to `ogg` will _default_ to using `vorbis`
-as a convinence. That is:
+as a convenience. That is:
 
 ```python
 from pydub import AudioSegment
@@ -283,9 +304,8 @@ playlist = playlist.fade_out(30)
 playlist_length = len(playlist) / (1000*60)
 
 # lets save it!
-out_f = open("%s_minute_playlist.mp3" % playlist_length, 'wb')
-
-playlist.export(out_f, format='mp3')
+with open("%s_minute_playlist.mp3" % playlist_length, 'wb') as out_f:
+    playlist.export(out_f, format='mp3')
 ```
 
 ## License ([MIT License](http://opensource.org/licenses/mit-license.php))

@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -164,13 +175,13 @@ See the documentation on the r9Core.MatchedNodeInputs for more detail.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_AnimationUtils.getChannelBoxSelection" title="Red9.core.Red9_AnimationUtils.getChannelBoxSelection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getChannelBoxSelection</span></code></a>([longNames])</td>
 <td>return a list of attributes selected in the ChannelBox</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_AnimationUtils.getChannelBoxAttrs" title="Red9.core.Red9_AnimationUtils.getChannelBoxAttrs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getChannelBoxAttrs</span></code></a>([node,&nbsp;asDict,&nbsp;incLocked])</td>
+<tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_AnimationUtils.getChannelBoxAttrs" title="Red9.core.Red9_AnimationUtils.getChannelBoxAttrs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getChannelBoxAttrs</span></code></a>([node,&nbsp;asDict,&nbsp;…])</td>
 <td>return the status of all attrs on the given node, either as a flat list or a dict.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_AnimationUtils.getNodeAttrStatus" title="Red9.core.Red9_AnimationUtils.getNodeAttrStatus"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getNodeAttrStatus</span></code></a>([node,&nbsp;asDict,&nbsp;incLocked])</td>
 <td>stub function/ wrapper of getChannelBoxAttrs as the name is a little misleading and not really what the function is doing in hindsight.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_AnimationUtils.getSettableChannels" title="Red9.core.Red9_AnimationUtils.getSettableChannels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getSettableChannels</span></code></a>([node,&nbsp;incStatics])</td>
+<tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_AnimationUtils.getSettableChannels" title="Red9.core.Red9_AnimationUtils.getSettableChannels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getSettableChannels</span></code></a>([node,&nbsp;incStatics,&nbsp;…])</td>
 <td>return a list of settable attributes on a given node.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_AnimationUtils.getAnimLayersFromGivenNodes" title="Red9.core.Red9_AnimationUtils.getAnimLayersFromGivenNodes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getAnimLayersFromGivenNodes</span></code></a>(nodes)</td>
@@ -284,8 +295,23 @@ little misleading and not really what the function is doing in hindsight.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.core.Red9_AnimationUtils.is_compound_attr">
+<code class="descname">is_compound_attr</code><span class="sig-paren">(</span><em>node</em>, <em>attr</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.is_compound_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>return True is a given attr is a compound attr. This has a catch in it to prevent errors
+in the code below when listAttr returns attrs that arne’t technically legal when being queried
+ie, listAttr(node) where node is a parentConstraint and you get .target.targetWeight which can’t be queried
+without some prior work</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.core.Red9_AnimationUtils.plug_is_driven">
+<code class="descname">plug_is_driven</code><span class="sig-paren">(</span><em>node</em>, <em>attr</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.plug_is_driven" title="Permalink to this definition">¶</a></dt>
+<dd><p>return True is a given attr plug has incoming connections.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.core.Red9_AnimationUtils.getChannelBoxAttrs">
-<code class="descname">getChannelBoxAttrs</code><span class="sig-paren">(</span><em>node=None</em>, <em>asDict=True</em>, <em>incLocked=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.getChannelBoxAttrs" title="Permalink to this definition">¶</a></dt>
+<code class="descname">getChannelBoxAttrs</code><span class="sig-paren">(</span><em>node=None</em>, <em>asDict=True</em>, <em>incLocked=True</em>, <em>skipcompound=False</em>, <em>nodeOrder=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.getChannelBoxAttrs" title="Permalink to this definition">¶</a></dt>
 <dd><p>return the status of all attrs on the given node, either as a flat list or
 a dict. As dict it contains all data which controls the lock, keyable, hidden states etc</p>
 <p>statusDict={‘keyable’:attrs, ‘nonKeyable’:attrs, ‘locked’:attrs}</p>
@@ -298,6 +324,9 @@ a dict. As dict it contains all data which controls the lock, keyable, hidden st
 <li><strong>asDict</strong> – True returns a dict with keys ‘keyable’,’locked’,’nonKeyable’ of attrs
 False returns a list (non ordered) of all attr states.</li>
 <li><strong>incLocked</strong> – True by default - whether to include locked channels in the return (only valid if not asDict)</li>
+<li><strong>skipcompound</strong> – if True we remove the compound parent attrs from any return (ie double3 or float3 which
+prevents unlocked compounds like “rotate”, “translate”, “scale” from getting into the return</li>
+<li><strong>nodeOrder</strong> – True by default if not returning in asDict then return the attrs in the original attr order of the node, else alphabetically</li>
 </ul>
 </td>
 </tr>
@@ -307,7 +336,7 @@ False returns a list (non ordered) of all attr states.</li>
 
 <dl class="function">
 <dt id="Red9.core.Red9_AnimationUtils.getSettableChannels">
-<code class="descname">getSettableChannels</code><span class="sig-paren">(</span><em>node=None</em>, <em>incStatics=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.getSettableChannels" title="Permalink to this definition">¶</a></dt>
+<code class="descname">getSettableChannels</code><span class="sig-paren">(</span><em>node=None</em>, <em>incStatics=True</em>, <em>skipcompound=False</em>, <em>skip_driven=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.getSettableChannels" title="Permalink to this definition">¶</a></dt>
 <dd><p>return a list of settable attributes on a given node.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -316,6 +345,10 @@ False returns a list (non ordered) of all attr states.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>node</strong> – node to inspect.</li>
 <li><strong>incStatics</strong> – whether to include non-keyable static channels (On by default).</li>
+<li><strong>skipcompound</strong> – if True we remove the compound parent attrs from any return (double3 or float3 at the moment
+this prevents unlocked compounds like “rotate”, “translate”, “scale” from getting into the return</li>
+<li><strong>skip_driven</strong> – if True we check if the attributes about to be returns have incoming plugs and if so, 
+we remove them from the return</li>
 </ul>
 </td>
 </tr>
@@ -324,7 +357,7 @@ False returns a list (non ordered) of all attr states.</li>
 <p>FIXME: BUG some Compound attrs such as constraints return invalid data for some of the
 base functions using this as they can’t be simply set. Do we strip them here?
 ie: pointConstraint.target.targetWeight</p>
-<p>#TODO: need to check the blendshape channels are settable also!</p>
+<p># TODO: need to check the blendshape channels are settable also!</p>
 </dd></dl>
 
 <dl class="function">
@@ -345,6 +378,7 @@ constraints made in the main scene.</td>
 </tr>
 </tbody>
 </table>
+<p>#TODO: expand this to cater for OPM connections</p>
 </dd></dl>
 
 <dl class="function">
@@ -406,9 +440,28 @@ constraints made in the main scene.</td>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.core.Red9_AnimationUtils.selectAnimLayers">
+<code class="descname">selectAnimLayers</code><span class="sig-paren">(</span><em>layers=[]</em>, <em>root=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.selectAnimLayers" title="Permalink to this definition">¶</a></dt>
+<dd><p>select the given animLayers</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>layers</strong> – layer to select by name</li>
+<li><strong>root</strong> – if True we select the root animLayer by flag rather than name (usually BaseAnimation)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.core.Red9_AnimationUtils.mergeAnimLayers">
 <code class="descname">mergeAnimLayers</code><span class="sig-paren">(</span><em>nodes</em>, <em>deleteBaked=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.mergeAnimLayers" title="Permalink to this definition">¶</a></dt>
 <dd><p>from the given nodes find, merge and remove any animLayers found</p>
+<p># TODO: Replace this with the r9Anim LayerMerge code for speed when ProPack is available</p>
 </dd></dl>
 
 <dl class="function">
@@ -764,7 +817,8 @@ animLayer to extract a compiled version of the animData from. This gets deleted 
 </tr>
 </tbody>
 </table>
-<p>TODO: this needs to support ‘skipAttrs’ param like the copyAttrs does - needed for the snapTransforms calls</p>
+<p>TODO: this needs to support ‘skipAttrs’ param like the copyAttrs does - needed for the snapTransforms calls
+TODO: need to filter out setDriven data as that doesn’t get correctly handled by Maya copyKeys</p>
 </dd></dl>
 
 <dl class="method">
@@ -805,7 +859,7 @@ used if an attributes list is passed</li>
 
 <dl class="method">
 <dt id="Red9.core.Red9_AnimationUtils.AnimFunctions.snapTransform">
-<code class="descname">snapTransform</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>time=()</em>, <em>step=1</em>, <em>preCopyKeys=1</em>, <em>preCopyAttrs=1</em>, <em>filterSettings=None</em>, <em>iterations=1</em>, <em>matchMethod=None</em>, <em>prioritySnapOnly=False</em>, <em>snapRotates=True</em>, <em>snapTranslates=True</em>, <em>snapScales=False</em>, <em>additionalCalls=[]</em>, <em>cutkeys=False</em>, <em>smartbake=False</em>, <em>smartBakeRef=[]</em>, <em>additionalCalls_pre=[]</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.snapTransform" title="Permalink to this definition">¶</a></dt>
+<code class="descname">snapTransform</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>time=()</em>, <em>step=1</em>, <em>preCopyKeys=1</em>, <em>preCopyAttrs=1</em>, <em>filterSettings=None</em>, <em>iterations=1</em>, <em>matchMethod=None</em>, <em>prioritySnapOnly=False</em>, <em>snapRotates=True</em>, <em>snapTranslates=True</em>, <em>snapScales=False</em>, <em>additionalCalls=[]</em>, <em>cutkeys=False</em>, <em>smartbake=False</em>, <em>smartBakeRef=[]</em>, <em>additionalCalls_pre=[]</em>, <em>tangentType=None</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.snapTransform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Snap objects over a timeRange. This wraps the default hierarchy filters
 so it’s capable of multiple hierarchy filtering and matching methods.
 The resulting node lists are snapped over time and keyed.
@@ -847,6 +901,8 @@ to add in specific matching calls to a SnapTransforms run whilst having the time
 are then respected during the process</li>
 <li><strong>smartBakeRef</strong> – smartbake=True if given, used as reference nodes to extract keytimes from, else we look at all nodes about to be
 processed which isn’t always what we want. If we still find no keytimes we revert to base range times with step given</li>
+<li><strong>tangentType</strong> – if given then we use this for both itt and ott key tangent values, else we use the current global tangent types 
+valid entries : “auto”, “clamped”, “fast”, “flat”, “linear”, “plateau”, “slow”, “spline”, “step”, and “stepnext”</li>
 </ul>
 </td>
 </tr>
@@ -898,7 +954,7 @@ of the snapTransforms cmd</p>
 
 <dl class="staticmethod">
 <dt id="Red9.core.Red9_AnimationUtils.AnimFunctions.stabilizer">
-<em class="property">static </em><code class="descname">stabilizer</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>time=()</em>, <em>step=1</em>, <em>trans=True</em>, <em>rots=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.stabilizer" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">stabilizer</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>time=()</em>, <em>step=1</em>, <em>trans=True</em>, <em>rots=True</em>, <em>all_attrs=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.stabilizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is designed with 2 specific functionalities:
 If you have a single node selected it will stabilize it regardless
 of it’s inputs or parent hierarchy animations
@@ -916,6 +972,8 @@ nodes to this poly’s normal</p>
 <li><strong>step</strong> – int value for frame advance between process runs</li>
 <li><strong>trans</strong> – track translates</li>
 <li><strong>rots</strong> – track rotates</li>
+<li><strong>all_attrs</strong> – if True we cache and lock all secondary attrs on the node, designed for things like the
+foot setups when you might need to also hold toe_tap etc</li>
 </ul>
 </td>
 </tr>
@@ -925,7 +983,7 @@ nodes to this poly’s normal</p>
 
 <dl class="method">
 <dt id="Red9.core.Red9_AnimationUtils.AnimFunctions.bindNodes">
-<code class="descname">bindNodes</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>attributes=None</em>, <em>attributes_all_settable=False</em>, <em>filterSettings=None</em>, <em>bindMethod='connect'</em>, <em>matchMethod=None</em>, <em>manage_scales=False</em>, <em>unlock=False</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.bindNodes" title="Permalink to this definition">¶</a></dt>
+<code class="descname">bindNodes</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>attributes=None</em>, <em>attributes_all_settable=False</em>, <em>filterSettings=None</em>, <em>bindMethod='connect'</em>, <em>matchMethod=None</em>, <em>manage_scales=False</em>, <em>unlock=False</em>, <em>skip_driven=False</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.bindNodes" title="Permalink to this definition">¶</a></dt>
 <dd><p>bindNodes is a Hi-Level wrapper function to bind animation data between
 filtered nodes, either in hierarchies or just selected pairs. This has been uplifted to sync
 to the ProPack bind call for clarity</p>
@@ -948,6 +1006,7 @@ we use this classes instance of filterSettings cls.settings</li>
 <li><strong>manage_scales</strong> – bool, do we also look at binding jnt scales where applicable, this only runs
 if the source jnt has incoming scale connections which would then be propagated via a scaleConstrain</li>
 <li><strong>unlock</strong> – if True force unlock the required transform attrs on the destination skeleton first</li>
+<li><strong>skip_driven</strong> – if True, and bindMethod=’connect’, we skip any plugs that already have incoming connections, else we force connect</li>
 </ul>
 </td>
 </tr>
@@ -958,19 +1017,19 @@ if the source jnt has incoming scale connections which would then be propagated 
 
 <dl class="staticmethod">
 <dt id="Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAnimChannels">
-<em class="property">static </em><code class="descname">inverseAnimChannels</code><span class="sig-paren">(</span><em>node</em>, <em>channels</em>, <em>time=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAnimChannels" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">inverseAnimChannels</code><span class="sig-paren">(</span><em>node</em>, <em>channels=[]</em>, <em>time=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAnimChannels" title="Permalink to this definition">¶</a></dt>
 <dd><p>really basic method used in the Mirror calls</p>
 </dd></dl>
 
 <dl class="staticmethod">
 <dt id="Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAttributes">
-<em class="property">static </em><code class="descname">inverseAttributes</code><span class="sig-paren">(</span><em>node</em>, <em>channels</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAttributes" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">inverseAttributes</code><span class="sig-paren">(</span><em>node</em>, <em>channels</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAttributes" title="Permalink to this definition">¶</a></dt>
 <dd><p>really basic method used in the Mirror calls</p>
 </dd></dl>
 
 <dl class="staticmethod">
 <dt id="Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAnimCurves">
-<em class="property">static </em><code class="descname">inverseAnimCurves</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>curves=[]</em>, <em>time=()</em>, <em>timePivot=None</em>, <em>mode='object'</em>, <em>mRigs=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAnimCurves" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">inverseAnimCurves</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>curves=[]</em>, <em>time=()</em>, <em>timePivot=None</em>, <em>mode='object'</em>, <em>mRigs=False</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.AnimFunctions.inverseAnimCurves" title="Permalink to this definition">¶</a></dt>
 <dd><p>really basic method to inverse anim curves for a given time, or for the current playback timerange</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1175,7 +1234,7 @@ pack, using a filterSettings node thats passed into the __init__</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>node</strong> – nodes to take the attrs</li>
-<li><strong>side</strong> – valid values are ‘Centre’,’Left’ or ‘Right’ or 0, 1, 2</li>
+<li><strong>side</strong> – valid values are ‘Centre’,’Left’, ‘Right’ or 0, 1, 2 or ‘C’, ‘L’, ‘R’</li>
 <li><strong>slot</strong> – bool Mainly used to pair up left and right paired controllers</li>
 <li><strong>axis</strong> – eg ‘translateX,rotateY,rotateZ’ simple comma separated string
 If this is set then it overrides the default mirror axis.
@@ -1289,9 +1348,12 @@ call from the initial nodes passed to the class</td>
 
 <dl class="method">
 <dt id="Red9.core.Red9_AnimationUtils.MirrorHierarchy.switchPairData">
-<code class="descname">switchPairData</code><span class="sig-paren">(</span><em>objA</em>, <em>objB</em>, <em>mode='Anim'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.MirrorHierarchy.switchPairData" title="Permalink to this definition">¶</a></dt>
+<code class="descname">switchPairData</code><span class="sig-paren">(</span><em>objA</em>, <em>objB</em>, <em>mode='Anim'</em>, <em>time=()</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.MirrorHierarchy.switchPairData" title="Permalink to this definition">¶</a></dt>
 <dd><p>take the left and right matched pairs and exchange the animData
-or poseData across between them</p>
+or poseData across between them. If time is passed in then we
+also manage a cutKey on the range as the key paste method gets switched
+under the hood from ‘replaceCompletely’ to ‘merge’ so we have to punch
+a hole in the curves</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1309,7 +1371,7 @@ or poseData across between them</p>
 
 <dl class="method">
 <dt id="Red9.core.Red9_AnimationUtils.MirrorHierarchy.makeSymmetrical">
-<code class="descname">makeSymmetrical</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>mode='Anim'</em>, <em>primeAxis='Left'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.MirrorHierarchy.makeSymmetrical" title="Permalink to this definition">¶</a></dt>
+<code class="descname">makeSymmetrical</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>mode='Anim'</em>, <em>primeAxis='Left'</em>, <em>time=()</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.MirrorHierarchy.makeSymmetrical" title="Permalink to this definition">¶</a></dt>
 <dd><p>similar to the mirrorData except this is designed to take the data from an object in
 one side of the mirrorDict and pass that data to the opposite matching node, thus
 making the anim/pose symmetrical according to the mirror setups.
@@ -1319,10 +1381,11 @@ Really useful for facial setups!</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>nodes</strong> – optional specific listy of nodes to process, else we run the filterSetting code
+<li><strong>nodes</strong> – optional specific list of nodes to process, else we run the filterSetting code
 on the initial nodes past to the class</li>
 <li><strong>mode</strong> – ‘Anim’ ot ‘Pose’ process as a single pose or an animation</li>
 <li><strong>primeAxis</strong> – ‘Left’ or ‘Right’ whether to take the data from the left or right side of the setup</li>
+<li><strong>time</strong> – if given this allows us to just make a selected timerange chunk symmetrical</li>
 </ul>
 </td>
 </tr>
@@ -1332,7 +1395,7 @@ on the initial nodes past to the class</li>
 
 <dl class="method">
 <dt id="Red9.core.Red9_AnimationUtils.MirrorHierarchy.mirrorData">
-<code class="descname">mirrorData</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>mode='Anim'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.MirrorHierarchy.mirrorData" title="Permalink to this definition">¶</a></dt>
+<code class="descname">mirrorData</code><span class="sig-paren">(</span><em>nodes=None</em>, <em>mode='Anim'</em>, <em>time=()</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_AnimationUtils.MirrorHierarchy.mirrorData" title="Permalink to this definition">¶</a></dt>
 <dd><p>Using the FilterSettings obj find all nodes in the return that have
 the mirrorSide attr, then process the lists into Side and Index slots
 before Mirroring the animation data. Swapping left for right and
@@ -1345,6 +1408,7 @@ inversing the required animCurves</p>
 <li><strong>nodes</strong> – optional specific list of nodes to process, else we run the filterSetting code
 on the initial nodes past to the class</li>
 <li><strong>mode</strong> – ‘Anim’ or ‘Pose’ process as a single pose or an animation</li>
+<li><strong>time</strong> – if given this allows us to just mirror a selected timerange chunk</li>
 </ul>
 </td>
 </tr>

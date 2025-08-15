@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pro_Pack : tools : anim_trails &mdash; Red9 3.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Pro_Pack : tools : deformer_tools" href="Red9_Pro_deformer_tools.html" />
+    <link rel="prev" title="Pro_Pack : tools : anim_tools" href="Red9_Pro_anim_tools.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Red9<img src="../../_static/Red9_ProPack_logo.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                3.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_AnimationUtils.html">Red9_AnimationUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Audio.html">Red9_Audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Core.html">Red9_CoreUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_General.html">Red9_General</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Meta.html">Red9_Meta</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_PoseSaver.html">Red9_PoseSaver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Setup.html">Red9_Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Tools.html">Red9_Tools</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_animation.html">Pro_Pack : animation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_export.html">Pro_Pack : exporter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_general.html">Pro_Pack : general</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_project.html">Pro_Pack : project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Red9</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Pro_Pack : tools : anim_trails</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/red9pro_templates/tools/Red9_Pro_anim_trails.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="pro-pack-tools-anim-trails">
+<h1>Pro_Pack : tools : anim_trails<a class="headerlink" href="#pro-pack-tools-anim-trails" title="Permalink to this headline">¶</a></h1>
+<p>ProPack anim_tools module deals with the more generic animation functions,
+primarily UI wrapping for some of the base rig inetractions setups.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># import statement for the module via the r9pro decompiler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="k">import</span> <span class="n">r9pro</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r9anim_trail</span> <span class="o">=</span> <span class="n">r9pro</span><span class="o">.</span><span class="n">r9import</span><span class="p">(</span><span class="s1">&#39;r9anim_trail&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<span class="target" id="module-Red9.pro_pack.tools.anim_trails"></span><p>Base Animation Tools with little or no other code benefits other than UI based system calls</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+</tbody>
+</table>
+<dl class="function">
+<dt id="Red9.pro_pack.tools.anim_trails.get_mTrails">
+<code class="descname">get_mTrails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.get_mTrails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.tools.anim_trails.build_trail_nodes">
+<code class="descname">build_trail_nodes</code><span class="sig-paren">(</span><em>scale=1</em>, <em>trail_name='Trails'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.build_trail_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>base build call to make the actual setup before we hook it to the UI and rigs</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.tools.anim_trails.delete_trail">
+<code class="descname">delete_trail</code><span class="sig-paren">(</span><em>mTrail=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.delete_trail" title="Permalink to this definition">¶</a></dt>
+<dd><p>custom delete to clean the nodes and the expression that gets left behind</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.tools.anim_trails.trail_shader_add_ramp">
+<code class="descname">trail_shader_add_ramp</code><span class="sig-paren">(</span><em>trail=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.trail_shader_add_ramp" title="Permalink to this definition">¶</a></dt>
+<dd><p>add in a simple shader ramp</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.tools.anim_trails.create_tracked_path">
+<code class="descname">create_tracked_path</code><span class="sig-paren">(</span><em>time=()</em>, <em>track_pnt=None</em>, <em>step=10</em>, <em>name=''</em>, <em>rebuild=True</em>, <em>spans=10</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.create_tracked_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>create the visual path reference which we also use for the wire deformer</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>time</strong> – the time we’re going to cover (start, end)</li>
+<li><strong>track_pnt</strong> – the node we’re going to track to create the curve</li>
+<li><strong>step</strong> – the frame step between knots, only if rebuild=False</li>
+<li><strong>name</strong> – name of the curve we’re going to create</li>
+<li><strong>rebuild</strong> – if True we create the curve with a linear knot per frame, then we reduce the 
+curve using the rebuild codebase in Maya. If False then we create the curve uniformly with 
+a knot at each frm as governed by the frame “step” input</li>
+<li><strong>spans</strong> – the target span count if using the rebuild method</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager">
+<em class="property">class </em><code class="descname">Anim_TrailsManager</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_MainWindow</span></code></p>
+<p>ProPack replacement for the interactive curve filter</p>
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.get_mtrails">
+<code class="descname">get_mtrails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.get_mtrails" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.combo_selection_changed">
+<code class="descname">combo_selection_changed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.combo_selection_changed" title="Permalink to this definition">¶</a></dt>
+<dd><p>signal called when the combo is MANUALLY changed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.refresh_mTrails">
+<code class="descname">refresh_mTrails</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.refresh_mTrails" title="Permalink to this definition">¶</a></dt>
+<dd><p>refresh the mTrails list and update the combo list</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.setup">
+<code class="descname">setup</code><span class="sig-paren">(</span><em>trail=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>use the mNode wiring to setup previous nodes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.select">
+<code class="descname">select</code><span class="sig-paren">(</span><em>node</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.select" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.scale">
+<code class="descname">scale</code><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.scale" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.build_trail">
+<code class="descname">build_trail</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.build_trail" title="Permalink to this definition">¶</a></dt>
+<dd><p>build the base setup</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.set_state">
+<code class="descname">set_state</code><span class="sig-paren">(</span><em>trail=None</em>, <em>val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.set_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.get_state">
+<code class="descname">get_state</code><span class="sig-paren">(</span><em>trail=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.get_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.set_attachment">
+<code class="descname">set_attachment</code><span class="sig-paren">(</span><em>pnt</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.set_attachment" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the attachment pnt constraint</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.clear_attachment">
+<code class="descname">clear_attachment</code><span class="sig-paren">(</span><em>pnt</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.clear_attachment" title="Permalink to this definition">¶</a></dt>
+<dd><p>clear one of the attachment pnts, disconnect from meta and delete any constraint</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.set_live">
+<code class="descname">set_live</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.set_live" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.cache_drivers">
+<code class="descname">cache_drivers</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.cache_drivers" title="Permalink to this definition">¶</a></dt>
+<dd><p>run cached, we kill the constraints first as these really slow the bake down</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.delete_system">
+<code class="descname">delete_system</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.delete_system" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.create_wire_deformer">
+<code class="descname">create_wire_deformer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.create_wire_deformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>make the path and setup the wire deformer here</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.delete_wire_deformer">
+<code class="descname">delete_wire_deformer</code><span class="sig-paren">(</span><em>verbose=True</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.delete_wire_deformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>delete the wire deformer nodes cleanly</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.make_cluster_controls">
+<code class="descname">make_cluster_controls</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.make_cluster_controls" title="Permalink to this definition">¶</a></dt>
+<dd><p>if we’ve built the motionPath then this will add implicitSphere’s as
+controllers per cv rather than animators having to drop to
+component mode to edit the path cv’s directly</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.trail_shader_select">
+<code class="descname">trail_shader_select</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.trail_shader_select" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.trail_shader_add">
+<code class="descname">trail_shader_add</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.trail_shader_add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.scale_ctrls">
+<code class="descname">scale_ctrls</code><span class="sig-paren">(</span><em>scale</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.scale_ctrls" title="Permalink to this definition">¶</a></dt>
+<dd><p>scale the ctrls uniformly</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.staticMetaObject">
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide2.QtCore.QMetaObject object&gt;</em><a class="headerlink" href="#Red9.pro_pack.tools.anim_trails.Anim_TrailsManager.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Red9_Pro_anim_tools.html" class="btn btn-neutral float-left" title="Pro_Pack : tools : anim_tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Red9_Pro_deformer_tools.html" class="btn btn-neutral float-right" title="Pro_Pack : tools : deformer_tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Red9 Consultancy Limited.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

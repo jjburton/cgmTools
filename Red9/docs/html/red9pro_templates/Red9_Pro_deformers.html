@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pro_Pack : deformers &mdash; Red9 3.0 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Pro_Pack : exporter" href="Red9_Pro_export.html" />
+    <link rel="prev" title="Pro_Pack : capture" href="Red9_Pro_capture.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Red9<img src="../_static/Red9_ProPack_logo.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                3.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_AnimationUtils.html">Red9_AnimationUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Audio.html">Red9_Audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Core.html">Red9_CoreUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_General.html">Red9_General</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Meta.html">Red9_Meta</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_PoseSaver.html">Red9_PoseSaver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Setup.html">Red9_Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Tools.html">Red9_Tools</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_animation.html">Pro_Pack : animation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : deformers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_export.html">Pro_Pack : exporter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_general.html">Pro_Pack : general</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Red9</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Pro_Pack : deformers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/red9pro_templates/Red9_Pro_deformers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="pro-pack-deformers">
+<h1>Pro_Pack : deformers<a class="headerlink" href="#pro-pack-deformers" title="Permalink to this headline">¶</a></h1>
+<p>ProPack deformers module is a set of core tools for managing deformer nodes in Maya</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># import statement for the module via the r9pro decompiler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="k">import</span> <span class="n">r9pro</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r9deformers</span> <span class="o">=</span> <span class="n">r9pro</span><span class="o">.</span><span class="n">r9import</span><span class="p">(</span><span class="s1">&#39;r9deformers&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<span class="target" id="module-Red9.pro_pack.core.deformers"></span><p class="rubric">Main Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#Red9.pro_pack.core.deformers.BlendShape" title="Red9.pro_pack.core.deformers.BlendShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BlendShape</span></code></a>(blend_shape_name)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.softmod_setup_build">
+<code class="descname">softmod_setup_build</code><span class="sig-paren">(</span><em>geo=None</em>, <em>prefix=''</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.softmod_setup_build" title="Permalink to this definition">¶</a></dt>
+<dd><p>add in a softMod control setup for the selected or given mesh,
+or components of a mesh</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>geo</strong> – the geo we’re going to deform</li>
+<li><strong>prefix</strong> – the prefix used for all the nodes created</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.core.deformers.SoftMod_UI">
+<em class="property">class </em><code class="descname">SoftMod_UI</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.SoftMod_UI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_MainWindow</span></code></p>
+<p>Simple UI wrap for the softMod setup</p>
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.SoftMod_UI.build">
+<code class="descname">build</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.SoftMod_UI.build" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.SoftMod_UI.staticMetaObject">
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide2.QtCore.QMetaObject object&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.deformers.SoftMod_UI.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.original_geometry">
+<code class="descname">original_geometry</code><span class="sig-paren">(</span><em>meshes</em>, <em>select=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.original_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the original geo of the given meshes</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.original_geo_update_with_new_shape">
+<code class="descname">original_geo_update_with_new_shape</code><span class="sig-paren">(</span><em>original</em>, <em>newgeo</em>, <em>sync_uvsets=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.original_geo_update_with_new_shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>&lt;&lt;&lt; USE WITH CAUTION! &gt;&gt;&gt;</p>
+<p>replace the originalGeo cache in the “current” deformation stack, with the “newgeo” mesh shape.
+This has the effect of completely replacing the original mesh shape with the new shape 
+whilst retaining all of the deformation stack. This is useful when clients send you updated meshes
+that need to replace master assets already rigged.</p>
+<dl class="docutils">
+<dt>This transfers:</dt>
+<dd><ul class="first last simple">
+<li>vertex positions</li>
+<li>edge and face data</li>
+<li>UVsets (we sync both uvset channels and the vtx data)</li>
+<li>normals</li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">if the target mesh has different vertex indexes / counts, then the deformation of 
+the source setup will be broken after running this and will need correcting.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>original</strong> – the input mesh we’re going to update the target shape with</li>
+<li><strong>newgeo</strong> – the mesh who’s deformation stack we’re looking to update</li>
+<li><strong>sync_uvsets</strong> – True by default as we update the pointCache and that updates the UV data
+BUT the actually set membership doesn’t get updated by that process so we also need to 
+create/ sync any missing uv sets</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.create_duplicate_original_mesh">
+<code class="descname">create_duplicate_original_mesh</code><span class="sig-paren">(</span><em>mesh</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.create_duplicate_original_mesh" title="Permalink to this definition">¶</a></dt>
+<dd><p>create a duplicate version of the given mesh but from its undeformed originalMesh object.
+This removes all deformer inputs giving you back a duplicate of the original undeformed mesh</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">make sure you check the material assignments after this process has run as if
+you have vtx differences things may need updating</p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.delete_softmod">
+<code class="descname">delete_softmod</code><span class="sig-paren">(</span><em>deformer</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.delete_softmod" title="Permalink to this definition">¶</a></dt>
+<dd><p>why, well if we’ve transferred a softMod from one mesh to another then the connections of all of
+the driver data, including the handle, will also be cast. With the softModHandle wired into multiple softMods
+it means that if you delete one of those softMods, both will get deleted in Maya, when the softMod code cleans
+up nodes.</p>
+<p>This first checks if the softModHandle is wired to multiple softMod deformer nodes, and if so, it
+disconnect the handle from this deformer before then calling the standard delete</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.delete_deformers">
+<code class="descname">delete_deformers</code><span class="sig-paren">(</span><em>deformers=[]</em>, <em>mesh=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.delete_deformers" title="Permalink to this definition">¶</a></dt>
+<dd><p>safe delete of deformers which manages softMod handles being wired to multiple inputs
+as per the transfer code in deformation_tools</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>deformers</strong> – the deformers to delete. If blank, and mesh, we find all deformers on the mesh</li>
+<li><strong>mesh</strong> – if deformers aren’t passed in this is used to grab all deformers on this mesh to delete</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.shape_node">
+<code class="descname">shape_node</code><span class="sig-paren">(</span><em>node, fullpath=True, nodeTypes=['mesh', 'nurbsCurve', 'nurbsSurface']</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.shape_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple wrapper to return the shape of a transform, or pass through 
+the shape if it was already passed in.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>node</strong> – the node we’re inspecting</li>
+<li><strong>fullpath</strong> – either return the longpath or shortname of the shape</li>
+<li><strong>nodeTypes</strong> – if given then we compare the shapes found against this nodeType list</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.deformers_affects">
+<code class="descname">deformers_affects</code><span class="sig-paren">(</span><em>deformer</em>, <em>mesh</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.deformers_affects" title="Permalink to this definition">¶</a></dt>
+<dd><p>return True if this deformer affects the given mesh. Sometimes when you cmds.listHistory(mesh)
+on a mesh, deformers can be returned that actually have no affect on the deformation,
+but are in the history because they’re connected, maybe one blendshape driving the 
+inputs of another.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>deformer</strong> – the deformer we’re checking</li>
+<li><strong>mesh</strong> – the mesh we’re testing against (shape or transform)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.get_current_deformers">
+<code class="descname">get_current_deformers</code><span class="sig-paren">(</span><em>mesh</em>, <em>deformer_types=[]</em>, <em>which_deform=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.get_current_deformers" title="Permalink to this definition">¶</a></dt>
+<dd><p>return all deformers for this mesh</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>mesh</strong> – the mesh in question (shape or transform)</li>
+<li><strong>deformer_types</strong> – if given this is a list of specific deformers to filter for</li>
+<li><strong>which_deform</strong> – if True we test the deformers in the history of the mesh and only return
+those which actually deform the mesh. Note that we could have the output weights of one blendshape
+plugged into, and driving the inputs of a blendshape on this mesh. That driving blendshape would 
+show in the history as a deformer even though it’s nothing to do with the deformation stack</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.get_selected_vertices">
+<code class="descname">get_selected_vertices</code><span class="sig-paren">(</span><em>mesh</em>, <em>soft_select=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.get_selected_vertices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert mesh component selection to vertices</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return []:</th><td class="field-body">list of string with the full pat of each vertex in the selection</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.get_selected_faces">
+<code class="descname">get_selected_faces</code><span class="sig-paren">(</span><em>mesh</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.get_selected_faces" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert mesh component selection to faces</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return []:</th><td class="field-body">list of string with the full pat of each face in the selection</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.connect_blendshape_inputs">
+<code class="descname">connect_blendshape_inputs</code><span class="sig-paren">(</span><em>source_bs</em>, <em>destination</em>, <em>targets=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.connect_blendshape_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>connect the inputs driving the source blendshape to the inputs of the 
+destination so it’s driven by the same logic</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>source</strong> – (str) the source blendShape node</li>
+<li><strong>destination</strong> – (str) the destination blendShape node</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.compare_blendshape_targets">
+<code class="descname">compare_blendshape_targets</code><span class="sig-paren">(</span><em>source</em>, <em>destination</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.compare_blendshape_targets" title="Permalink to this definition">¶</a></dt>
+<dd><p>compare the target names and indexes of the 2 blendshapes given, source blendshape
+is assumed as the master that we’re testing destination blendshape too</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>source</strong> – the master blendshape we’re comparing against</li>
+<li><strong>destination</strong> – the destination blendShape we’re comparing to the source</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">{} failed data</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.copy_blendshape_targets">
+<code class="descname">copy_blendshape_targets</code><span class="sig-paren">(</span><em>source_blnd</em>, <em>destination_blnd</em>, <em>targets=[]</em>, <em>connect=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.copy_blendshape_targets" title="Permalink to this definition">¶</a></dt>
+<dd><p>copy target from source blendShape to target bendShape</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>source_blnd</strong> – (str) the source blendShape that we’re copying the target deltas from</li>
+<li><strong>destination_blnd</strong> – (str) the target blendShape we’re copying them too</li>
+<li><strong>targets</strong> – [] list of target names to transfer, if [] then we copy all targets over</li>
+<li><strong>connect</strong> – if True we connect the source target inputs (if found) to the newly created targets so they’re driven correctly</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.deformers.merge_bendshapes">
+<code class="descname">merge_bendshapes</code><span class="sig-paren">(</span><em>source_blnd</em>, <em>destination_blnd</em>, <em>delete=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.merge_bendshapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>copy all target data from the source to the target blendshape, connect any driving attrs, then if required, delete the target blend</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.core.deformers.BlendShape">
+<em class="property">class </em><code class="descname">BlendShape</code><span class="sig-paren">(</span><em>blend_shape_name</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="class">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.input_target_attrs">
+<em class="property">class </em><code class="descname">input_target_attrs</code><span class="sig-paren">(</span><em>index</em>, <em>points_target</em>, <em>components_target</em>, <em>geom_target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.input_target_attrs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<p>Create new instance of input_target_attrs(index, points_target, components_target, geom_target)</p>
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.input_target_attrs.components_target">
+<code class="descname">components_target</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.input_target_attrs.components_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.input_target_attrs.geom_target">
+<code class="descname">geom_target</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.input_target_attrs.geom_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.input_target_attrs.index">
+<code class="descname">index</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.input_target_attrs.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.input_target_attrs.points_target">
+<code class="descname">points_target</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.input_target_attrs.points_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_data">
+<em class="property">class </em><code class="descname">target_data</code><span class="sig-paren">(</span><em>index</em>, <em>name</em>, <em>points_target</em>, <em>components_target</em>, <em>geom_target</em>, <em>static</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<p>Create new instance of target_data(index, name, points_target, components_target, geom_target, static)</p>
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_data.components_target">
+<code class="descname">components_target</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_data.components_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_data.geom_target">
+<code class="descname">geom_target</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_data.geom_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_data.index">
+<code class="descname">index</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_data.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_data.name">
+<code class="descname">name</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_data.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_data.points_target">
+<code class="descname">points_target</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_data.points_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_data.static">
+<code class="descname">static</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_data.static" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.blend_shape_data">
+<em class="property">class </em><code class="descname">blend_shape_data</code><span class="sig-paren">(</span><em>name</em>, <em>geometry</em>, <em>vertex_count</em>, <em>weight_count</em>, <em>target_names</em>, <em>targets_data</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.blend_shape_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<p>Create new instance of blend_shape_data(name, geometry, vertex_count, weight_count, target_names, targets_data)</p>
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.geometry">
+<code class="descname">geometry</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.name">
+<code class="descname">name</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.target_names">
+<code class="descname">target_names</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.target_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.targets_data">
+<code class="descname">targets_data</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.targets_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.vertex_count">
+<code class="descname">vertex_count</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.vertex_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.weight_count">
+<code class="descname">weight_count</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.blend_shape_data.weight_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.blend_shape_name">
+<code class="descname">blend_shape_name</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.blend_shape_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.weight">
+<code class="descname">weight</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.weight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_selected_vertices">
+<code class="descname">get_selected_vertices</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_selected_vertices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert mesh component selection to vertices</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of string with the full pat of each vertex in the selection</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_selected_vertices_soft">
+<code class="descname">get_selected_vertices_soft</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_selected_vertices_soft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert mesh component selection to vertices</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of string with the full pat of each vertex in the selection</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_all_vertices">
+<code class="descname">get_all_vertices</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_all_vertices" title="Permalink to this definition">¶</a></dt>
+<dd><p>return ALL vtx for the mesh</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.geometry">
+<code class="descname">geometry</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.geometry" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_geometry_index">
+<code class="descname">get_geometry_index</code><span class="sig-paren">(</span><em>geometry_name</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_geometry_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve inputTarget index of given geometry</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>geometry_name</strong> – string geometry shape name</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.vertex_count">
+<code class="descname">vertex_count</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.vertex_count" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">int number of vertex in shape</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.original_geometry">
+<code class="descname">original_geometry</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.original_geometry" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.weight_count">
+<code class="descname">weight_count</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.weight_count" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">int, the number of targets on blendShape</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.last_index">
+<code class="descname">last_index</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.last_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>unlike the weight count, this returns the last index actually used as
+there may be 50 targets and that would be returned as the weight_count, however
+that last target maybe be hooked to index 75 when you query the blendshape aliases</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.empty_indexes">
+<code class="descname">empty_indexes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.empty_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">[int, int ..]</td>
+</tr>
+</tbody>
+</table>
+<p>return indexes that have no blendshape target data at all. This is different
+from a blendtarget with no deltas, this is an index with no blendtarget at all, ie: deleted target</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_names">
+<code class="descname">target_names</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_names" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of str with names of blendShape targets</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_indexes">
+<code class="descname">target_indexes</code><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of int with weight index of blendShape targets</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_names_from_shapeditor">
+<code class="descname">target_names_from_shapeditor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_names_from_shapeditor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the blendshape target order as it’s seem in the ShapeEditor UI.</p>
+<p>We query the <cite>childIndices</cite> attribute of the blendShape node’s <cite>targetDirectory</cite>
+to retrieve the target order as seem in the ShapeEditor UI.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return [str]:</th><td class="field-body">target names as they appear in the ShapeEditor UI.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_target_name">
+<code class="descname">get_target_name</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_target_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper function to get name of a target</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – int or string, index value of the target or name of the target</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">str name of the target</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_target_index">
+<code class="descname">get_target_index</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_target_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper function to get index of a target</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – int or string, index value of the target or name of the target</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.rename_target">
+<code class="descname">rename_target</code><span class="sig-paren">(</span><em>target</em>, <em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.rename_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reaname given target</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>target</strong> – int or string, index value of the target or name of the target</li>
+<li><strong>name</strong> – str name used to rename target</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">str target new name</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.add_new_target">
+<code class="descname">add_new_target</code><span class="sig-paren">(</span><em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.add_new_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an empty target</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – str name of the new target</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">int target index</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.add_new_target_from_mesh">
+<code class="descname">add_new_target_from_mesh</code><span class="sig-paren">(</span><em>mesh</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.add_new_target_from_mesh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new target from the given mesh, adding that new mesh as a standard delta target</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – str name of the new target</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">int target index</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.delete_target">
+<code class="descname">delete_target</code><span class="sig-paren">(</span><em>target</em>, <em>delete_target_geo=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.delete_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete given target from blendShape Node</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>target</strong> – int or string, index value of the target or name of the target</li>
+<li><strong>delete_target_geo</strong> – if True (default) we delete the targetGeo as well as the blendshape target data</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_input_target_attributes">
+<code class="descname">get_input_target_attributes</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_input_target_attributes" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – int or string, index value of the target or name of the target</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">string formatted attribute</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_target_geometry">
+<code class="descname">get_target_geometry</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_target_geometry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve target mesh if exist in the scene</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – int or string, index value of the target or name of the target</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of str names of transform nodes</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_target_data">
+<code class="descname">get_target_data</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_target_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get target delta data, components and vertex position</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – int or string, index value of the target or name of the target</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># returns the blendshape delta&#39;s for this target in the format:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;target_name&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span> <span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span> <span class="s1">&#39;components&#39;</span><span class="p">:</span> <span class="p">[</span><span class="sa">u</span><span class="s1">&#39;vtx[index]&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;vtx[index:index]&#39;</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span> <span class="s1">&#39;vectors&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">pz</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="p">(</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">pz</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)],</span>
+<span class="gp">&gt;&gt;&gt; </span> <span class="s1">&#39;static&#39;</span><span class="p">:</span> <span class="n">static</span> <span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.set_target_data">
+<code class="descname">set_target_data</code><span class="sig-paren">(</span><em>data</em>, <em>target=None</em>, <em>rename=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.set_target_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the delta values of given target</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data</strong> – correctly formatted data, see get_target_data</li>
+<li><strong>target</strong> – int or string, index or name of the target to load the data to</li>
+<li><strong>rename</strong> – bool default True rename target with data[‘name’]</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.get_blend_shape_data">
+<code class="descname">get_blend_shape_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.get_blend_shape_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.set_blend_shape_data">
+<code class="descname">set_blend_shape_data</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.set_blend_shape_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.reset_target_delta">
+<code class="descname">reset_target_delta</code><span class="sig-paren">(</span><em>target</em>, <em>input_indexes=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.reset_target_delta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.prune_blend_shape_selected_components">
+<code class="descname">prune_blend_shape_selected_components</code><span class="sig-paren">(</span><em>percentage=None</em>, <em>all_vtx=False</em>, <em>auto=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.prune_blend_shape_selected_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>This acts on ALL targets in the blendshape
+Prune selected vertices from having any effect on ANY targets for this blendshape. The selection 
+can be vertex, faces, edges, etc. Basically we remove those selected components from each target delta,
+and therefore from having any effect in the blendshape</p>
+<p>If percentage and softSelect is on then we prune selected vertices with percent relative to the softSelect
+If percentage and softSelect is off then we prune selected vertices with percent on selected verts only
+If not percentage we prune the selected verts from the target shape completely so they have no effect. This doesn’t then consider softSelect at all</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>percentage</strong> – if not None (default) then we mix down the deltas for the given vertices by 
+this percentage, with 100% having no effect and 0% removing the delta all together</li>
+<li><strong>all_vtx</strong> – if True we prune / process ALL vtx in the given object</li>
+<li><strong>auto</strong> – if True then we automatically switch the all_vtx flag when we don’t have any vertices actually selected.
+This is primarily for UI integration</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.prune_target_selected_components">
+<code class="descname">prune_target_selected_components</code><span class="sig-paren">(</span><em>target</em>, <em>percentage=None</em>, <em>all_vtx=False</em>, <em>auto=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.prune_target_selected_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>This acts only on the given target in this blendshape
+Prune selected vertices from having any effect on a specific target of this blendshape.
+The selection can be vertex, faces, edges, etc.</p>
+<p>If percentage and softSelect is on then we prune selected vertices with percent relative to the softSelect.
+If percentage and softSelect is off then we prune selected vertices with percent on selected verts only.
+If not percentage we prune the selected verts from the target shape completely so they have no effect. This doesn’t then consider softSelect at all</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>target</strong> – int or string, index value of the target or name of the target</li>
+<li><strong>percentage</strong> – if not None (default) then we mix down the deltas for the given vertices by 
+this percentage, with 100% having no effect and 0% removing the delta all together</li>
+<li><strong>all_vtx</strong> – if True we prune / process ALL vtx in the given object</li>
+<li><strong>auto</strong> – if True then we automatically switch the all_vtx flag when we don’t have any vertices actually selected.
+This is primarily for UI integration</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># to remove the selected vertices from the target &#39;mytarget01&#39; on &#39;blendShape1&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blend</span> <span class="o">=</span> <span class="n">r9deformer</span><span class="o">.</span><span class="n">BlendShape</span><span class="p">(</span><span class="s1">&#39;blendShape1&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blend</span><span class="o">.</span><span class="n">prune_target_selected_components</span><span class="p">(</span><span class="s1">&#39;mytarget01&#39;</span><span class="p">,</span> <span class="n">all_vtx</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># to mix down just the selected vertices effect on the given target to 85% of their current</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blend</span> <span class="o">=</span> <span class="n">r9deformer</span><span class="o">.</span><span class="n">BlendShape</span><span class="p">(</span><span class="s1">&#39;blendShape1&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blend</span><span class="o">.</span><span class="n">prune_target_selected_components</span><span class="p">(</span><span class="s1">&#39;mytarget01&#39;</span><span class="p">,</span> <span class="n">percentage</span><span class="o">=</span><span class="mi">85</span><span class="p">,</span> <span class="n">all_vtx</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># to mix down the full targets effect to 85% of it&#39;s current</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blend</span> <span class="o">=</span> <span class="n">r9deformer</span><span class="o">.</span><span class="n">BlendShape</span><span class="p">(</span><span class="s1">&#39;blendShape1&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">blend</span><span class="o">.</span><span class="n">prune_target_selected_components</span><span class="p">(</span><span class="s1">&#39;mytarget01&#39;</span><span class="p">,</span> <span class="n">percentage</span><span class="o">=</span><span class="mi">85</span><span class="p">,</span> <span class="n">all_vtx</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.prune_target_components">
+<code class="descname">prune_target_components</code><span class="sig-paren">(</span><em>target</em>, <em>vertices=[]</em>, <em>vtx_percentages={}</em>, <em>percentage=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.prune_target_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prune given vertex deltas for a given target in the blendshape. This is wrapped by 
+the other prune functions. If percentage is given then we use the vtx_percentages arg,
+else we use the vertices list.</p>
+<p>If percentage and softSelect then we prune with percent relative to the softSelect (using vtx_percentages arg: found from the self.get_selected_vertices_soft()).
+If percentage and not softSelect we prune with percent on selected verts only (using vertices arg: found from the self.get_selected_vertices()).
+If not percentage we prune the given verts from the target shape completely so they have no effect. This doesn’t then consider softSelect at all.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>target</strong> – int or string, index value of the target or name of the target</li>
+<li><strong>vertices</strong> – [] list of strings of vertex ids on full including mesh name eg: [‘geo.vtx[1]’, ‘geo.vtx[21]’, ‘geo.vtx[10]’]</li>
+<li><strong>vtx_percentages</strong> – {} dict of soft selection data where the key is the vtx and the value is the percentage of weight (0-1.0) 
+eg: {‘pSphere.vtx[1]’:0.1, ‘pSphere.vtx[2]’:1.0, ‘pSphere.vtx[2]’:0.1}. Only valid if percentage is passed in</li>
+<li><strong>percentage</strong> – if not None (default) then we mix down the deltas for the given vertices by this percentage, 
+with 100% having no effect and 0% removing the delta all together</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.pad_optimise_deltas">
+<code class="descname">pad_optimise_deltas</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.pad_optimise_deltas" title="Permalink to this definition">¶</a></dt>
+<dd><p>&lt;&lt; TESTING ONLY &gt;&gt;</p>
+<p>pad the given target so that ALL vtx are in the delta’s, those without data will be zero delta</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – the blendshape target we’re going to optimise</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">count of vtx have been padded</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.optimise_deltas">
+<code class="descname">optimise_deltas</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.optimise_deltas" title="Permalink to this definition">¶</a></dt>
+<dd><p>optimise out any static deltas from the blendshape</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – the blendshape target we’re going to optimise</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">[] list of vtx that have been removed from the targets components</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">whilst this doesn’t necessarily speed up evaluation at runtime, it does however 
+massively speed up the tools when dealing with copying blendshape data between
+meshes as we’re then processing only vtx with deltas.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.optimise_blendshape_deltas">
+<code class="descname">optimise_blendshape_deltas</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.optimise_blendshape_deltas" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrap for the optimise_deltas function so that we can optimise all
+blendshape targets in one go</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.debug_print_blendshape">
+<code class="descname">debug_print_blendshape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.debug_print_blendshape" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple debug printout for the blendshape data “index : value : target”</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_muted_set">
+<code class="descname">target_muted_set</code><span class="sig-paren">(</span><em>target</em>, <em>state</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_muted_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the target to be muted in the shapeEditor and therefore NOT evaluated</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>target</strong> – either the target name of index</li>
+<li><strong>state</strong> – True or False (on or off)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.target_muted_state">
+<code class="descname">target_muted_state</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.target_muted_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>get the current muted state of the given target</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – either the target name of index</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.set_target_edit_on">
+<code class="descname">set_target_edit_on</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.set_target_edit_on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set state of the target to editable</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – int or string, index value of the target or name of the target</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.set_target_edit_off">
+<code class="descname">set_target_edit_off</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.set_target_edit_off" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set state of the target to not editable</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> – int or string, index value of the target or name of the target</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.regenerate_target">
+<code class="descname">regenerate_target</code><span class="sig-paren">(</span><em>target</em>, <em>search_replace=None</em>, <em>disconnect=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.regenerate_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Regenerate target geometry</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>target</strong> – int or string, index value of the target or name of the target</li>
+<li><strong>search_replace</strong> – tuple of strings to replace text on the target name, first element is the text to be
+search second element this the text to be replace with (‘search_this_text’, ‘replace_with_this_text’)</li>
+<li><strong>disconnect</strong> – bool default False, if True, disconnect the rebuilt targets from the blensdShape so the new
+geometry has no effect on current blendShape</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of strings with newly regenerated mesh transforms</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.regenerate_targets">
+<code class="descname">regenerate_targets</code><span class="sig-paren">(</span><em>search_replace=None</em>, <em>disconnect=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.regenerate_targets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Regenerate all targets geometry of the blendShape</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>search_replace</strong> – tuple of strings to replace text on the target name, first element is the text to be
+search second element this the text to be replace with (‘search_this_text’, ‘replace_with_this_text’)</li>
+<li><strong>disconnect</strong> – bool default False, if True, disconnect the rebuild targets from the blensdShape so the new
+geometry has no effect on current blendShape</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of strings with newly regenerated mesh transforms</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.rebuild_blend_shape">
+<code class="descname">rebuild_blend_shape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.rebuild_blend_shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rebuild blend shape node</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.deformers.BlendShape.connect_targets_to_driver_blend">
+<code class="descname">connect_targets_to_driver_blend</code><span class="sig-paren">(</span><em>source_blend</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.deformers.BlendShape.connect_targets_to_driver_blend" title="Permalink to this definition">¶</a></dt>
+<dd><p>from a given source blendshape connect it’s input plugs to this blendshape so it’s driven
+as per the source, assuming that channels of matching names exist on the blendnode</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Red9_Pro_capture.html" class="btn btn-neutral float-left" title="Pro_Pack : capture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Red9_Pro_export.html" class="btn btn-neutral float-right" title="Pro_Pack : exporter" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Red9 Consultancy Limited.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

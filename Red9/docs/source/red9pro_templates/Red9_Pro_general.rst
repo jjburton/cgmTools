@@ -13,7 +13,6 @@ ProPack general module for non-specific classes / functions
 
    .. autosummary::
    	  
-      PlayblastTask
 	  BatchLogger
 
 

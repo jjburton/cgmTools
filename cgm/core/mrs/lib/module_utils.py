@@ -875,7 +875,7 @@ def controls_getDat(self, keys = None,
         
     for key in l_useKeys:
         l_options = d_controlLinksUse.get(key,[key])
-        log.debug("|{0}| >>  {1}:{2}".format(_str_func,key,l_options))
+        log.debug("|{0}| >> Keys: {1} | Options: {2}".format(_str_func,key,l_options))
         md_controls[key] = []
         _ml = md_controls[key]
         for o in l_options:

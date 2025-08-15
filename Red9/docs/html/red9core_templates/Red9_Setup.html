@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -124,8 +135,8 @@ Built to allow users to tailor and use these Maya boot calls in their own pipeli
 <tr class="row-even"><td><a class="reference internal" href="#Red9.startup.setup.maya_screen_mapping" title="Red9.startup.setup.maya_screen_mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">maya_screen_mapping</span></code></a>()</td>
 <td>return the maya applications screen size mapping data.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#Red9.startup.setup.mayaVersion" title="Red9.startup.setup.mayaVersion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mayaVersion</span></code></a>()</td>
-<td>get the application version back, this doesn’t track service packs or extensions</td>
+<tr class="row-odd"><td><a class="reference internal" href="#Red9.startup.setup.mayaVersion" title="Red9.startup.setup.mayaVersion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mayaVersion</span></code></a>([minor])</td>
+<td>get the application version back as a float.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.startup.setup.mayaInstallDir" title="Red9.startup.setup.mayaInstallDir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mayaInstallDir</span></code></a>()</td>
 <td>This is more for future reference, we read the key from the win registry and return the MAYA_INSTALL_LOCATION</td>
@@ -151,7 +162,7 @@ Built to allow users to tailor and use these Maya boot calls in their own pipeli
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.startup.setup.sourceMelFolderContents" title="Red9.startup.setup.sourceMelFolderContents"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sourceMelFolderContents</span></code></a>(path)</td>
 <td>source all mel files in a given folder</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#Red9.startup.setup.load_shelf" title="Red9.startup.setup.load_shelf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_shelf</span></code></a>(shelf_path)</td>
+<tr class="row-even"><td><a class="reference internal" href="#Red9.startup.setup.load_shelf" title="Red9.startup.setup.load_shelf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_shelf</span></code></a>(shelf_path[,&nbsp;retain_last])</td>
 <td>load Maya shelf</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.startup.setup.start" title="Red9.startup.setup.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>([Menu,&nbsp;MayaUIHooks,&nbsp;MayaOverloads,&nbsp;…])</td>
@@ -188,9 +199,25 @@ Built to allow users to tailor and use these Maya boot calls in their own pipeli
 2019          .  2019  .  201900  .  2.7.11 2     5.6.1  .  2019     . 2019-01-15
 2020          .  2020  .  202000  .  2.7.11 2     5.12.5 .  2020     . 2019-12-10
 2022          .  2022  .  202200  .  3.7.7  2     5.15.2 .  2022     . 2021-03-29
-2023          .  2023  .  202300  .  3.9.7  2     5.15.2 .  2023     . 2022-14-15</p>
+2023          .  2023  .  202300  .  3.9.7  2     5.15.2 .  2023     . 2022-03-15
+2024          .  2024  .  202400  .  3.10.8 2     5.15.2 .  2024     . 2023-03
+2025          .  2025  .  202500  .  3.11.4 6     6.5.3  .  2025     . 2024-04
+2026          .  2026  .  202600  .  3.11.9 6     6.5.3  .  2026     . 2025-04</p>
 </div></blockquote>
 </div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.startup.setup.formatPath">
+<code class="descname">formatPath</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.formatPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>take a path and format it to forward slashes with catches for the exceptions so that paths
+are always Pythonized not OS based</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.startup.setup.formatPath_join">
+<code class="descname">formatPath_join</code><span class="sig-paren">(</span><em>path</em>, <em>*paths</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.formatPath_join" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrapper over os.path.join and formatPath so it’s always returned as a valid Python Path</p>
 </dd></dl>
 
 <dl class="function">
@@ -264,9 +291,16 @@ so we can consistently scale icon widgets as expected.</p>
 
 <dl class="function">
 <dt id="Red9.startup.setup.mayaVersion">
-<code class="descname">mayaVersion</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.mayaVersion" title="Permalink to this definition">¶</a></dt>
-<dd><p>get the application version back, this doesn’t track service packs or extensions</p>
-<p>TODO: need to manage this better and use the API version, eg: 2013.5 returns 2013</p>
+<code class="descname">mayaVersion</code><span class="sig-paren">(</span><em>minor=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.mayaVersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>get the application version back as a float.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>minor</strong> – if True we include the service pack version in the return</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -292,7 +326,7 @@ but we use the api build id to be specific</p>
 
 <dl class="function">
 <dt id="Red9.startup.setup.mayaVersionQT">
-<code class="descname">mayaVersionQT</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.mayaVersionQT" title="Permalink to this definition">¶</a></dt>
+<code class="descname">mayaVersionQT</code><span class="sig-paren">(</span><em>asFloat=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.mayaVersionQT" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -552,7 +586,7 @@ implement that in a more in-depth help search UI</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>video</strong> – the key for the video</li>
-<li><strong>chapter</strong> – the index of the chapter</li>
+<li><strong>chapter</strong> – int - the index of the chapter</li>
 </ul>
 </td>
 </tr>
@@ -714,7 +748,7 @@ will be stored</p>
 
 <dl class="function">
 <dt id="Red9.startup.setup.load_shelf">
-<code class="descname">load_shelf</code><span class="sig-paren">(</span><em>shelf_path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.load_shelf" title="Permalink to this definition">¶</a></dt>
+<code class="descname">load_shelf</code><span class="sig-paren">(</span><em>shelf_path</em>, <em>retain_last=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.load_shelf" title="Permalink to this definition">¶</a></dt>
 <dd><p>load Maya shelf</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -727,13 +761,22 @@ will be stored</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.startup.setup.insert_python_security_optvars">
+<code class="descname">insert_python_security_optvars</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.insert_python_security_optvars" title="Permalink to this definition">¶</a></dt>
+<dd><p>&lt;&lt;&lt; Testing Only &gt;&gt;&gt;
+insert Red9 module imports into the safety setups for Maya Python. We’re
+still a little unsure what triggers the prompts as they seem very sporadic,
+if they were consistent it would be a little easier to track down!</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.startup.setup.pro_pack_path">
 <code class="descname">pro_pack_path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.pro_pack_path" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="Red9.startup.setup.has_pro_pack">
-<code class="descname">has_pro_pack</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.has_pro_pack" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_pro_pack</code><span class="sig-paren">(</span><em>folder_exists=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.startup.setup.has_pro_pack" title="Permalink to this definition">¶</a></dt>
 <dd><p>Red9 Pro_Pack is available and activated as user</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />

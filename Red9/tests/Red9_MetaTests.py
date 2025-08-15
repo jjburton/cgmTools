@@ -48,14 +48,14 @@ class Test_MetaRegistryCalls():
 
         # register transforms to the NodeTypes
         r9Meta.registerMClassNodeMapping(nodeTypes='transform')
-        print r9Meta.getMClassNodeTypes()
+        print(r9Meta.getMClassNodeTypes())
         assert r9Meta.getMClassNodeTypes() == sorted(['network', 'objectSet', 'transform'])
         new = r9Meta.MetaClass(name='newTransformMetaNode', nodeType='transform')
         assert [cmds.nodeType(n.mNode) for n in r9Meta.getMetaNodes()] == ['network', 'transform']
 
         # reset the NodeTypes
         r9Meta.resetMClassNodeTypes()
-        print r9Meta.getMClassNodeTypes()
+        print(r9Meta.getMClassNodeTypes())
         assert r9Meta.getMClassNodeTypes() == ['network', 'objectSet']  # ,'HIKCharacterNode']
         assert [cmds.nodeType(n.mNode) for n in r9Meta.getMetaNodes()] == ['network']
 
@@ -103,7 +103,7 @@ class Test_MetaCache():
         assert not dup == a.mNode
         nodes = r9Meta.getMetaNodes()
         assert len(nodes) == 2
-        assert len(r9Meta.RED9_META_NODECACHE.keys()) == 2
+        assert len(list(r9Meta.RED9_META_NODECACHE.keys())) == 2
         assert r9Meta.RED9_META_NODECACHE[UUID] == a
         assert r9Meta.MetaClass(a.mNode).getUUID() == UUID
 
@@ -169,7 +169,7 @@ class Test_MetaClass():
         # new handler will bail if you try and create with an unRegistered nodeType
         try:
             r9Meta.MetaClass(name='new', nodeType='transform')
-            print 'Failed - generated new node with unregistered nodeType!'
+            print('Failed - generated new node with unregistered nodeType!')
             assert False
         except:
             assert True
@@ -384,11 +384,11 @@ class Test_MetaClass():
 
         # connect something else to Singluar - cleanCurrent=True by default so unhook cube1
         self.MClass.connectChild(cube2, 'Singluar')
-        print self.MClass.Singluar, '  : mclass.Singular'
+        print(self.MClass.Singluar, '  : mclass.Singular')
         assert self.MClass.Singluar == [cube2]
         assert not cmds.attributeQuery('MetaClassTest', node=cube1, exists=True)  # cleaned up after ourselves?
         self.MClass.connectChildren([cube3, cube4], 'Singluar')
-        print sorted(self.MClass.Singluar), [cube2, cube3, cube4]
+        print(sorted(self.MClass.Singluar), [cube2, cube3, cube4])
         assert sorted(self.MClass.Singluar) == sorted([cube2, cube3, cube4])
 
         # setAttr has cleanCurrent and force set to true so remove all current connections to this attr
@@ -789,7 +789,7 @@ class Test_MetaClass():
         node.msgMultiTest = [cube5, cube6]
         assert sorted(node.msgMultiTest) == [cube5, cube6]
         assert not cmds.attributeQuery('MetaClass_Test', node=cube1, exists=True)  # disconnect should delete the old connection attr
-        print cmds.listConnections('%s.msgMultiTest' % node.mNode, c=True, p=True)
+        print(cmds.listConnections('%s.msgMultiTest' % node.mNode, c=True, p=True))
         assert cmds.listConnections('%s.msgMultiTest' % node.mNode, c=True, p=True) == ['MetaClass_Test.msgMultiTest[0]',
                                                                  'pCube5.MetaClass_Test[0]',
                                                                  'MetaClass_Test.msgMultiTest[1]',
@@ -836,7 +836,7 @@ class Test_MetaClass():
         assert mLambert.color == (0.5, 0.5, 0.5)
         assert cmds.getAttr('lambert1.color') == [(0.5, 0.5, 0.5)]
         mLambert.color = (1.0, 0.0, 0.5)
-        print mLambert.color
+        print(mLambert.color)
         assert mLambert.color == (1.0, 0.0, 0.5)
         assert cmds.getAttr('lambert1.color') == [(1.0, 0.0, 0.5)]
 
@@ -1149,7 +1149,7 @@ class Test_MetaRig():
                                                      '|World_Ctrl|COG__Ctrl|Chest_Ctrl|R_Clav_Ctrl']
 
     def test_getNodeConnectionMetaDataMap(self):
-        assert self.mRig.getNodeConnectionMetaDataMap('|World_Ctrl|L_Foot_grp|L_Foot_Ctrl') == {'metaAttr': u'CTRL_L_Foot', 'metaNodeID': u'L_LegSystem'}
+        assert self.mRig.getNodeConnectionMetaDataMap('|World_Ctrl|L_Foot_grp|L_Foot_Ctrl') == {'metaAttr': 'CTRL_L_Foot', 'metaNodeID': 'L_LegSystem'}
 
     def test_getNodeConnectionMetaDataMap_mTypes(self):
         # TODO: Fill Test
@@ -1275,22 +1275,22 @@ class Test_SpeedTesting():
 
         now = time.clock()
         c = [r9Meta.MetaClass(p, autofill=False) for p in cubes]
-        print 'SPEED: Standard Wrapped Nodes : autofill=False: %s' % str(time.clock() - now)
-        print 'Timer 05/01/17 should be around 2.48 secs on the Beast'
-        print 'Timer should be around 2.28 secs on the Beast'
+        print('SPEED: Standard Wrapped Nodes : autofill=False: %s' % str(time.clock() - now))
+        print('Timer 05/01/17 should be around 2.48 secs on the Beast')
+        print('Timer should be around 2.28 secs on the Beast')
 
         # verify against pymel, I know we're still a lot slower
         now = time.clock()
         c = pm.ls(cubes)
-        print 'Timer Pymel Reference : ', time.clock() - now
-        print '\n'
+        print('Timer Pymel Reference : ', time.clock() - now)
+        print('\n')
         r9Meta.resetCache()
 
         now = time.clock()
         c = [r9Meta.MetaClass(p, autofill='all') for p in cubes]
-        print 'SPEED: Standard Wrapped Nodes : autofill=all : %s' % str(time.clock() - now)
-        print 'Timer 05/01/17 should be around 5.27 secs on the Beast'
-        print 'Timer should be around 9.04 secs on the Beast'
+        print('SPEED: Standard Wrapped Nodes : autofill=all : %s' % str(time.clock() - now))
+        print('Timer 05/01/17 should be around 5.27 secs on the Beast')
+        print('Timer should be around 9.04 secs on the Beast')
 
         assert False
 
@@ -1301,24 +1301,24 @@ class Test_SpeedTesting():
         r9Meta.resetCache()
         now = time.clock()
         c = [r9Meta.MetaClass(p, autofill='all') for p in nodes]
-        print 'SPEED: Meta Nodes : autofill=all : %s' % str(time.clock() - now)
-        print 'Timer 05/01/17 should be around 6.25 secs on the Beast'
-        print 'Timer should be around 8.5 secs on the Beast'
-        print '\n'
+        print('SPEED: Meta Nodes : autofill=all : %s' % str(time.clock() - now))
+        print('Timer 05/01/17 should be around 6.25 secs on the Beast')
+        print('Timer should be around 8.5 secs on the Beast')
+        print('\n')
 
         now = time.clock()
         c = [r9Meta.MetaClass(p, autofill='all') for p in nodes]
-        print 'SPEED: Meta Nodes from Cache :  %s' % str(time.clock() - now)
-        print 'Timer 05/01/17 should be around 2.93 secs on the Beast'
-        print 'Timer should be around 3.25 secs on the Beast'
-        print '\n'
+        print('SPEED: Meta Nodes from Cache :  %s' % str(time.clock() - now))
+        print('Timer 05/01/17 should be around 2.93 secs on the Beast')
+        print('Timer should be around 3.25 secs on the Beast')
+        print('\n')
 
         r9Meta.resetCache()
 
         c = [r9Meta.MetaClass(p, autofill=False) for p in nodes]
-        print 'SPEED: Meta Nodes : autofill=False : %s' % str(time.clock() - now)
-        print 'Timer 05/01/17 should be around 7.39 secs on the Beast'
-        print 'Timer should be around 8.5 secs on the Beast'
+        print('SPEED: Meta Nodes : autofill=False : %s' % str(time.clock() - now))
+        print('Timer 05/01/17 should be around 7.39 secs on the Beast')
+        print('Timer should be around 8.5 secs on the Beast')
         assert False
 
 

@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -159,6 +170,43 @@ requires the StudioPack codebase to run</p>
 <code class="descname">playback_performance</code><span class="sig-paren">(</span><em>iteration=3</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.playback_performance" title="Permalink to this definition">¶</a></dt>
 <dd><p>a simple performance checker to test actual framerate rather than
 using the frameRate HUD with isn’t accurate</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.animation.playback_slow_mo_reset">
+<code class="descname">playback_slow_mo_reset</code><span class="sig-paren">(</span><em>*arg</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.playback_slow_mo_reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>separated mainly for the callback to reset on file save</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.animation.playback_slow_mo">
+<code class="descname">playback_slow_mo</code><span class="sig-paren">(</span><em>speed=1.0</em>, <em>base_fps=None</em>, <em>reset=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.playback_slow_mo" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple function to run Maya in slow-mo by controlling
+both the fps and the playback speed. Note that we control
+BOTH the fps and playback speed, ramping up the fps if we’re playing
+in slow motion so we maintain smoothness. This could cause glitches
+if you’re anim won’t correctly scale up due to gimble in sub-frames etc</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>base_fps</strong> – the desired base working fps we’ll go back to if speed is 1.0</li>
+<li><strong>speed</strong> – the playback speed desired (0.25, 0.5, 0.75 etc)</li>
+<li><strong>reset</strong> – reset back to the original base for the scene, stored in the scene when you first
+trigger the slow-mo function so we can always reset back.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>this is reset via callbacks on scene save and scene export to ensure that we don’t
+save this into the files base timeline data. These are sourced at the foot of this module</p>
+<p class="last">OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeSave, playback_slow_mo_reset)
+OpenMaya.MSceneMessage.addCallback(OpenMaya.MSceneMessage.kBeforeExport, playback_slow_mo_reset)</p>
+</div>
 </dd></dl>
 
 <dl class="function">
@@ -285,6 +333,33 @@ where basewire is the arg passed in, default is ‘blendTargetWeight’</li>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.pro_pack.core.animation.manage_attr_boundaries">
+<code class="descname">manage_attr_boundaries</code><span class="sig-paren">(</span><em>switch_ctrl</em>, <em>switch_attr</em>, <em>switch_value</em>, <em>timerange=()</em>, <em>keyswitch=True</em>, <em>buffers=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.manage_attr_boundaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>a simple management block to add / manage switched holding keys for given node attr at a given value.
+This is used in the ikfk switch calls to manage / set the buffer keys for the switch attr itself.
+If timerange then we first set keys on switch_ctrl.switch+_attr at timerange[0]-1 and timerange[0]+1
+to hold current values, then cut all keys between the timerange before finally setting keys on the
+actual two timerange frames at the switch_value given.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>switch_ctrl</strong> – controller</li>
+<li><strong>switch_attr</strong> – the attr we’re managing</li>
+<li><strong>switch_value</strong> – the value we want to switch too within the time given</li>
+<li><strong>timerange</strong> – the timerange boundaries we’ll be switching + and - 1 frm, 
+else we key simple holding keys at [currentTime - 1, currentTime]</li>
+<li><strong>keyswitch</strong> – do we just set, or key the boundaries</li>
+<li><strong>buffers</strong> – if timerange and buffers=True (default) then we set the timerange[0]-1 and timerange[1]+1 frames</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.pro_pack.core.animation.hik_source_code">
 <code class="descname">hik_source_code</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.hik_source_code" title="Permalink to this definition">¶</a></dt>
 <dd><p>ensure that HIK is loaded and the core code sourced</p>
@@ -394,7 +469,7 @@ where basewire is the arg passed in, default is ‘blendTargetWeight’</li>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.animation.r9anim_browser_actions">
-<code class="descname">r9anim_browser_actions</code><span class="sig-paren">(</span><em>r9anims</em>, <em>open=True</em>, <em>importToCurrent=False</em>, <em>mayafile=False</em>, <em>export=False</em>, <em>playblast=False</em>, <em>_logger=None</em>, <em>clean_current=False</em>, <em>respect_framerate=True</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.r9anim_browser_actions" title="Permalink to this definition">¶</a></dt>
+<code class="descname">r9anim_browser_actions</code><span class="sig-paren">(</span><em>r9anims</em>, <em>open=True</em>, <em>importToCurrent=False</em>, <em>mayafile=False</em>, <em>export=False</em>, <em>playblast=False</em>, <em>_logger=None</em>, <em>clean_current=False</em>, <em>respect_framerate=True</em>, <em>loadFromFrm=None</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.r9anim_browser_actions" title="Permalink to this definition">¶</a></dt>
 <dd><p>main wrapper to manage the file browser functionality so we have 1 place to maintain things</p>
 <p>The key to this is the r9Anim file must have been generate by a reference rig.
 This information is stored in the file and if found we restore the reference and
@@ -415,6 +490,8 @@ This is ideally assuming a single mRig in the current scene</li>
 <li><strong>playblast</strong> – restore the r9anim and create a Playblast from it</li>
 <li><strong>clean_current</strong> – if True we delete all audio and export nodes between files (importCurrent only)
 This is ideally assuming a single mRig in the current scene</li>
+<li><strong>loadFromFrm</strong> – None by default, if this is an int() then the r9Anim will be loaded to start at this
+given frame else it’s loaded as it was stored</li>
 </ul>
 </td>
 </tr>
@@ -520,6 +597,7 @@ hook directly into the renderMeshes variable to find the Geo for reference</p>
 <li>self.step=1                     : frame step between compensation keys</li>
 <li>self.smartbake=False            : sparse keyed based on the keys currently on nodes being cached</li>
 <li>self.smartbake_ref=[]           : optional separate nodes to use for the smartBake key extraction process</li>
+<li>self.cached_attrs=[]            : internal caching of given attrs [‘node.attr’, ….] builds up self.cached_data</li>
 </ul>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -542,6 +620,11 @@ hook directly into the renderMeshes variable to find the Geo for reference</p>
 <dd><p>Overloaded from DataMap
 upgrade the sync call to include anim specific data</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.AnimPointCloud.manage_mrig_ctrls_vis">
+<code class="descname">manage_mrig_ctrls_vis</code><span class="sig-paren">(</span><em>state=1</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimPointCloud.manage_mrig_ctrls_vis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.AnimPointCloud.makeClusterControls">
@@ -602,6 +685,30 @@ cluster control setup</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="Red9.pro_pack.core.animation.AnimPointCloud.set_uValue_tracking">
+<code class="descname">set_uValue_tracking</code><span class="sig-paren">(</span><em>rootReference</em>, <em>time</em>, <em>step</em>, <em>samples=1000</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimPointCloud.set_uValue_tracking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Only called if we’re using the AnimPPT as a re-director and creating the path guides.
+This iterates over the curve uValues to set the motion track positions
+on the motiontrack_parent node. This ensures that the pivot for the system
+now follows the original rootReference as closely as possible without having to 
+manually edit the uValues on the motionPath node itself.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>rootReference</strong> – the node that we’re comparing the path positions against</li>
+<li><strong>time</strong> – the timerange we’re going to process</li>
+<li><strong>step</strong> – the key step between the matched keys we’ll process</li>
+<li><strong>samples</strong> – the fidelity of the match, larger numbers, the more samples we take on the curve to compare against</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="Red9.pro_pack.core.animation.AnimPointCloud.generateAnimationReference">
 <code class="descname">generateAnimationReference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimPointCloud.generateAnimationReference" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is the main call to generate the reference spline track to represent the
@@ -619,7 +726,7 @@ modified reference building code to deal with the animation setup</p>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.AnimPointCloud.snapPosePntstoNodes">
-<code class="descname">snapPosePntstoNodes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimPointCloud.snapPosePntstoNodes" title="Permalink to this definition">¶</a></dt>
+<code class="descname">snapPosePntstoNodes</code><span class="sig-paren">(</span><em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.AnimPointCloud.snapPosePntstoNodes" title="Permalink to this definition">¶</a></dt>
 <dd><p>&lt;&lt; Time enabled function &gt;&gt;
 snap each pntCloud point to their respective Maya nodes over time.
 This call is used in the UI to ‘ReSync’ the anim cloud if you’ve
@@ -681,7 +788,8 @@ making the re-direct live but generating pairblends</p>
 <dl class="function">
 <dt id="Red9.pro_pack.core.animation.get_new_mrigs">
 <code class="descname">get_new_mrigs</code><span class="sig-paren">(</span><em>old_list</em>, <em>new_list</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.get_new_mrigs" title="Permalink to this definition">¶</a></dt>
-<dd><p>substract old_tag_list items from new_tag_list and return the difference</p>
+<dd><p>substract old_tag_list items from new_tag_list and return the difference
+only used in the importbinder code</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -701,6 +809,7 @@ making the re-direct live but generating pairblends</p>
 <em class="property">class </em><code class="descname">Anim_Transfer</code><span class="sig-paren">(</span><em>mrig=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Main Animation Transfer class for bouncing data too and from FBX to the Red9 Rig</p>
+<p>HIK remapping properties : <a class="reference external" href="https://help.autodesk.com/view/MAYAUL/2024/ENU/?guid=GUID-EB6801E1-1DA2-4E47-8C45-F7159AA452F1">https://help.autodesk.com/view/MAYAUL/2024/ENU/?guid=GUID-EB6801E1-1DA2-4E47-8C45-F7159AA452F1</a></p>
 <dl class="attribute">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.mrig">
 <code class="descname">mrig</code><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.mrig" title="Permalink to this definition">¶</a></dt>
@@ -741,6 +850,15 @@ making the re-direct live but generating pairblends</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Anim_Transfer.get_fbx_ref_root">
+<code class="descname">get_fbx_ref_root</code><span class="sig-paren">(</span><em>skeletal_hint=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.get_fbx_ref_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrapper to return the root joint within the referenced fbx that we want to 
+use in the transfer. This is only currently valid for the connect_hik+load</p>
+<blockquote>
+<div>but really should be tested for the reference_copy calls too!</div></blockquote>
 </dd></dl>
 
 <dl class="method">
@@ -855,80 +973,6 @@ the internal start and end frames setup during the transfer</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Anim_Transfer.rigs_to_fbx">
-<code class="descname">rigs_to_fbx</code><span class="sig-paren">(</span><em>mayafiles</em>, <em>prefix=''</em>, <em>bindscales=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.rigs_to_fbx" title="Permalink to this definition">¶</a></dt>
-<dd><p>&lt;&lt; Deprecated : base call now moved into the ExportBase mClass for better control &gt;&gt;</p>
-<p>wrap over multiple files for processing, also allows us to subclass
-this and wrap in any further management required at the client level.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>mayafiles</strong> – maya files to convert to fbx</li>
-<li><strong>prefix</strong> – simple prefix added to the scenename on output</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">;param bindscales:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first last">do we bind scales during the process or ignore them?</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="Red9.pro_pack.core.animation.Anim_Transfer.rig_to_fbx">
-<code class="descname">rig_to_fbx</code><span class="sig-paren">(</span><em>startFrame=None</em>, <em>endFrame=None</em>, <em>filepath=None</em>, <em>prefix=''</em>, <em>export=True</em>, <em>debug=False</em>, <em>bindscales=True</em>, <em>bindtransforms=True</em>, <em>method='connect'</em>, <em>export_skl=None</em>, <em>blend_map=False</em>, <em>blend_maprange=1</em>, <em>respect_attrlocks=True</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.rig_to_fbx" title="Permalink to this definition">¶</a></dt>
-<dd><p>&lt;&lt; Deprecated : base call now moved into the ExportBase mClass for better control &gt;&gt;</p>
-<p>from a given SINGLE Red9 Puppet Rig output a clean FBX skeleton anim via a bound duplicated skeleton method</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>startFrame</strong> – IF export=True, start frame of the fbx output</li>
-<li><strong>endFrame</strong> – IF export=True, end frame of the fbx output</li>
-<li><strong>filepath</strong> – IF export=True, filepath to write fbx output too</li>
-<li><strong>prefix</strong> – IF export=True, simple prefix added to the scenename on fbx output</li>
-<li><strong>export</strong> – the main export call to fbx, if this is False then we just prep the file for export, without calling the FBX output</li>
-<li><strong>debug</strong> – IF export=True, run all the binding process but not the fbx exporter or the cleanups : IF export=True</li>
-<li><strong>bindscales</strong> – do we bind scales during the process or ignore them?</li>
-<li><strong>bindtranforms</strong> – True by default, bind the duplicated skeleton’s rot / trans for the driver data</li>
-<li><strong>method</strong> – method used to bind the base skeletons together : ‘connect’ or ‘constrain’</li>
-<li><strong>export_skl</strong> – if given this is the root of the skeleton to process, else we use the self.mrig.exportSkeletonRoot wire</li>
-<li><strong>blend_map</strong> – if True we create a mapper joint, named ‘blendTarget_***’ (name of each blendShape found in the history of
-mrig.renderMeshes). Each target attr on these blends gets mapped to a new attr on the created joint and is connected and
-driven by the blend data. This is so we can extract blend anim data direct to mapped joints for easy, clean fbx outputs</li>
-<li><strong>blend_maprange</strong> – default=1, if range is more than 1 then we add in a multiplyDivide node between the connection
-so that the jnt attr is mapped to a larger range. This is to try and avoid compression in engine of fine facial data outputs</li>
-<li><strong>respect_attrlocks</strong> – if False we force unlock all transforms prior to the bind, else we maintain the lock status of joints form the original skeleton</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="Red9.pro_pack.core.animation.Anim_Transfer.bake_hi">
-<code class="descname">bake_hi</code><span class="sig-paren">(</span><em>root</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.bake_hi" title="Permalink to this definition">¶</a></dt>
-<dd><p>&lt;&lt; Deprecated : base call now moved into the ExportBase mClass for better control &gt;&gt;</p>
-<p>simple bake hierarchy from a given root node, used to bake the data to the clean
-skeleton hierarchy that we ultimately output to FBX. This code also runs a filterCurve
-call on the baked data to reduce it’s footprint</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>root</strong> – string: root node of the hierarchy</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.clean_joint_hi">
 <code class="descname">clean_joint_hi</code><span class="sig-paren">(</span><em>root</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.clean_joint_hi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delete everything that is not a joint from a hierarchy and
@@ -947,7 +991,7 @@ set display attrs of the joints to default values</p>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.fbx_to_binder">
-<code class="descname">fbx_to_binder</code><span class="sig-paren">(</span><em>fbxfiles</em>, <em>binderfile=None</em>, <em>usecurrentscene=False</em>, <em>bake=False</em>, <em>runFilter=True</em>, <em>useTakeData=True</em>, <em>fbx_mode='update_anim'</em>, <em>mayafile=True</em>, <em>r9anim=False</em>, <em>import_bnd=False</em>, <em>hikmapping=None</em>, <em>fbx_take=1</em>, <em>spine_fit=False</em>, <em>locomotion_track=False</em>, <em>whole_frame=False</em>, <em>maintain_fps=False</em>, <em>force_start_frm=None</em>, <em>set_timeline=True</em>, <em>hik_process_yup=True</em>, <em>tpose_load=False</em>, <em>tpose_path=''</em>, <em>tpose_frm=0</em>, <em>tpose_forcelock=False</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.fbx_to_binder" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fbx_to_binder</code><span class="sig-paren">(</span><em>fbxfiles</em>, <em>binderfile=None</em>, <em>usecurrentscene=False</em>, <em>bake=False</em>, <em>runFilter=True</em>, <em>useTakeData=True</em>, <em>fbx_mode='update_anim'</em>, <em>mayafile=True</em>, <em>r9anim=False</em>, <em>import_bnd=False</em>, <em>hikmapping=None</em>, <em>fbx_take=1</em>, <em>spine_fit=False</em>, <em>locomotion_track=False</em>, <em>whole_frame=False</em>, <em>maintain_fps=False</em>, <em>force_start_frm=None</em>, <em>set_timeline=True</em>, <em>hik_process_yup=True</em>, <em>tpose_load=False</em>, <em>tpose_path=''</em>, <em>tpose_frm=0</em>, <em>tpose_forcelock=False</em>, <em>tpose_skip_translates=False</em>, <em>skeletal_hint=''</em>, <em>run_func=[]</em>, <em>custom_timeranges=()</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.fbx_to_binder" title="Permalink to this definition">¶</a></dt>
 <dd><ul class="simple">
 <li>Multiple FBX &gt;&gt;&gt; Binder &gt;&gt;&gt; r9Anim / Maya files / Playblast</li>
 </ul>
@@ -973,7 +1017,7 @@ base level only, generating the files as per the fbx filepath.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>fbxfiles</strong> – list of fbx files to transfer. Note that we generally run this on singular file basis and let
 the Pro_to_BND deal with the file outputs at the client level, allows us to modify the export management
 on a case by case basis and overload as required</li>
@@ -1013,11 +1057,21 @@ on a skeleton with a valid HIK characterization, and saved as a skeleton pose</l
 <li><strong>tpose_frm</strong> – if fbx_mode = ‘+ load_hik’ &amp; tpose_load=False, this is the frame in the incoming fbx file that we expect the skeleton to be at t-pose.
 systems like XSENS allow you to export with TPose at frame 0 by default and this system was initially setup for that data</li>
 <li><strong>tpose_forcelock</strong> – if fbx_mode = ‘+ load_hik’ when creating the HIK definition this by-passes the checkcharacterization, locking the HIK node regardless of errors in it’s status</li>
+<li><strong>tpose_skip_translate</strong> – if True we skip the loading of translate data during the application of the T-Pose loading</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Paran skeletal_hint:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first last">if given this is a string which we pass into the search code to help ID the correct skeletal root from the FBX, helps if the FBX contains multiple characters</p>
 </td>
 </tr>
 </tbody>
 </table>
+<dl class="docutils">
+<dt>:param run_func:[] additional callable function list that can be called during the process just before any bake function is called, allowing you to ingest</dt>
+<dd>custom processes into the systems. Note that this function is passed as func(self) so it has full access to the transfer object if needed. 
+Also by passing self in you can add to it’s internal cleanup arguments such as self.nodes_to_delete</dd>
+</dl>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">the spine_fit and locomotion_track args both require a Full Red9 PuppetRig or at least a fully setup Pro_MetaRig system. Please contact us for more details!</p>
@@ -1026,7 +1080,7 @@ systems like XSENS allow you to export with TPose at frame 0 by default and this
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.rig_to_binder">
-<code class="descname">rig_to_binder</code><span class="sig-paren">(</span><em>animfiles</em>, <em>binderfile=None</em>, <em>usecurrentscene=False</em>, <em>output_dir=None</em>, <em>bake=False</em>, <em>runFilter=True</em>, <em>xfer_mode='connect_hik'</em>, <em>run_func=None</em>, <em>mayafile=True</em>, <em>r9anim=False</em>, <em>import_bnd=False</em>, <em>hikmapping=None</em>, <em>spine_fit=False</em>, <em>locomotion_track=False</em>, <em>maintain_fps=False</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.rig_to_binder" title="Permalink to this definition">¶</a></dt>
+<code class="descname">rig_to_binder</code><span class="sig-paren">(</span><em>animfiles</em>, <em>binderfile=None</em>, <em>usecurrentscene=False</em>, <em>output_dir=None</em>, <em>bake=False</em>, <em>runFilter=True</em>, <em>xfer_mode='connect_hik'</em>, <em>run_func=[]</em>, <em>mayafile=True</em>, <em>r9anim=False</em>, <em>import_bnd=False</em>, <em>hikmapping=None</em>, <em>spine_fit=False</em>, <em>locomotion_track=False</em>, <em>maintain_fps=False</em>, <em>matchMethod='metaData'</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.rig_to_binder" title="Permalink to this definition">¶</a></dt>
 <dd><ul class="simple">
 <li>Multiple MayaFiles : PuppetRig &gt;&gt;&gt; Binder  &gt;&gt;&gt; r9Anim / Maya files / Playblast</li>
 </ul>
@@ -1064,13 +1118,30 @@ to stop the process over-writing the input files. if not given we append the sce
 <li><strong>connect_hik_hybrid</strong> : on top of the ‘connect_hik’ method this also copies all animation from all mRig controllers NOT currently bound</li>
 </ul>
 </li>
-<li><strong>run_func</strong> – callable, if given we run this function after the bind is done and before the bake is hit, allowing for specific modifications if required,
-note that the func is passed the instance of the Transfer class object run_func(self)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>:param run_func:[] additional callable function list that can be called during the process just before any bake function is called, allowing you to inject</dt>
+<dd>custom processes into the systems. Note that this function is passed as func(self) so it has full access to the transfer object if needed. 
+Also by passing self in you can add to it’s internal cleanup arguements such as self.nodes_to_delete</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>mayafile</strong> – save the resulting Maya files out. This is a flag so that if this func is being called as part of another process
 we can choose if we want the Maya file or Not, in the ProToBnd the maya file is managed by the exporter wrap directly and this is not called</li>
 <li><strong>r9anim</strong> – export r9Anim filed out. In the ProToBnd the r9Anim file is managed by the exporter wrap directly and this is not called</li>
 <li><strong>hikmapping</strong> – IF the fbx_mode==’connect_hik’ then this is an additional file that can be passed in to change the HIK properties on the
 fly, allowing us to use the same binder file but with different HIK remapping characteristics</li>
+<li><strong>maintain_fps</strong> – maintain the incoming BND files framerate regardless of the incoming Maya files framerate</li>
+<li><strong>spine_fit</strong> – Red9 PuppetRiig internal spine re-fitting process for better spine integrity</li>
+<li><strong>locomotion_track</strong> – PuppetRig process for auto tracking the locomotion root ctrl</li>
+<li><strong>matchMethod</strong> – node matching method used only during the “+hybrid” copy process between the source mRig and the bound destination mRig ctrls</li>
 </ul>
 </td>
 </tr>
@@ -1079,8 +1150,14 @@ fly, allowing us to use the same binder file but with different HIK remapping ch
 </dd></dl>
 
 <dl class="method">
+<dt id="Red9.pro_pack.core.animation.Anim_Transfer.spine_fit_wrap">
+<code class="descname">spine_fit_wrap</code><span class="sig-paren">(</span><em>timerange</em>, <em>mode=1</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.spine_fit_wrap" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrap for the spine fit call to keep things clean</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="Red9.pro_pack.core.animation.Anim_Transfer.bakebinder">
-<code class="descname">bakebinder</code><span class="sig-paren">(</span><em>runFilter=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.bakebinder" title="Permalink to this definition">¶</a></dt>
+<code class="descname">bakebinder</code><span class="sig-paren">(</span><em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Anim_Transfer.bakebinder" title="Permalink to this definition">¶</a></dt>
 <dd><p>generic call to bake the binder data down to the rig and clean-up</p>
 </dd></dl>
 
@@ -1113,9 +1190,10 @@ the initial BND file reload for each fbx processed</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_mw_fbx_to_bnd</span></code></p>
 <p>Pro_to_BND  :  Main UI for animation transfer from FBX/ MayaRig to a Red9 binder rig</p>
 <dl class="method">
-<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.closeEvent">
-<code class="descname">closeEvent</code><span class="sig-paren">(</span><em>event</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.closeEvent" title="Permalink to this definition">¶</a></dt>
-<dd><p>close event to push the sizes to the settings object</p>
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.build_mocap_presets">
+<code class="descname">build_mocap_presets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.build_mocap_presets" title="Permalink to this definition">¶</a></dt>
+<dd><p>populate the system mocap presets so users can set the load flags
+up against known data types</p>
 </dd></dl>
 
 <dl class="method">
@@ -1155,14 +1233,25 @@ the initial BND file reload for each fbx processed</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.set_mocap_system_specifics">
+<code class="descname">set_mocap_system_specifics</code><span class="sig-paren">(</span><em>system=None</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.set_mocap_system_specifics" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the UI up for specific mocap system requirements</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.set_tpose">
-<code class="descname">set_tpose</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.set_tpose" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_tpose</code><span class="sig-paren">(</span><em>binder=''</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.set_tpose" title="Permalink to this definition">¶</a></dt>
 <dd><p>set the new TPose management filepath</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.open_binder_ui">
 <code class="descname">open_binder_ui</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.open_binder_ui" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.open_output_folder">
+<code class="descname">open_output_folder</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.open_output_folder" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1216,6 +1305,11 @@ Closes it every time, because the batch can kill maya outright.</p>
 <code class="descname">transfer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.transfer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main transfer wrap from the UI, including the export call</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.closeEvent">
+<code class="descname">closeEvent</code><span class="sig-paren">(</span><em>event</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Pro_To_Bnd_UI.closeEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="Red9.pro_pack.core.animation.Pro_To_Bnd_UI.staticMetaObject">
@@ -1776,14 +1870,14 @@ Closes it every time, because the batch can kill maya outright.</p>
 <code class="descname">setdirection</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Keyerui.setdirection" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="Red9.pro_pack.core.animation.Keyerui.setamples">
-<code class="descname">setamples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Keyerui.setamples" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="attribute">
 <dt id="Red9.pro_pack.core.animation.Keyerui.staticMetaObject">
 <code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide2.QtCore.QMetaObject object&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.animation.Keyerui.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.animation.Keyerui.setamples">
+<code class="descname">setamples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.animation.Keyerui.setamples" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

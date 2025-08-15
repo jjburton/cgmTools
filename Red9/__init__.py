@@ -56,9 +56,9 @@
 
 
 import maya.cmds as cmds
-import startup.setup as setup
+from .startup import setup as setup
 
-def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindow', batchclients=None):
+def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindow', batchclients=[]):
     '''
     <<<< Red9 Boot Entry call >>>>
 

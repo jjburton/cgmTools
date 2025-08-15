@@ -23,11 +23,14 @@ import maya.cmds as cmds
 import maya.mel as mel
 from functools import partial
 
+# Red9 language support for StudioPack
+from .language_packs import language_english as LANGUAGE_MAP
+# LANGUAGE_MAP = language_packs.language_english
+
 import logging
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
 
 __author__ = 'Mark Jackson'
 __buildVersionID__ = 4.0
@@ -68,10 +71,22 @@ installedVersion = False
   2019          .  2019  .  201900  .  2.7.11 2     5.6.1  .  2019     . 2019-01-15
   2020          .  2020  .  202000  .  2.7.11 2     5.12.5 .  2020     . 2019-12-10
   2022          .  2022  .  202200  .  3.7.7  2     5.15.2 .  2022     . 2021-03-29
-  2023          .  2023  .  202300  .  3.9.7  2     5.15.2 .  2023     . 2022-14-15
-
+  2023          .  2023  .  202300  .  3.9.7  2     5.15.2 .  2023     . 2022-03-15
+  2024          .  2024  .  202400  .  3.10.8 2     5.15.2 .  2024     . 2023-03
+  2025          .  2025  .  202500  .  3.11.4 6     6.5.3  .  2025     . 2024-04
+  2026          .  2026  .  202600  .  3.11.9 6     6.5.3  .  2026     . 2025-04
+    
 ------------------------------------------------------------------------------------------
 '''
+
+# OS map dir base on sys.platform returns
+__OS_MAP = {
+    'win32': 'windows',
+    'darwin': 'mac',
+    'linux': 'linux'
+}
+# Get OS based on sys.platform, defaulting to 'linux' if not in the mapping
+OS = __OS_MAP.get(sys.platform, 'linux')
 
 
 # TODO check if there's a current Autodesk Exchange Build so we don't have clashing modules!
@@ -81,23 +96,20 @@ installedVersion = False
 # LANGUAGE MAPPING -----------------------------------------------------------------------
 # =========================================================================================
 
-# these are duplicates of the r9General call that should be used outside of this module!!
-def __formatPath(path):
+# these are duplicates of the r9General call that should not be used outside of this module!!
+def formatPath(path):
     '''
     take a path and format it to forward slashes with catches for the exceptions so that paths
     are always Pythonized not OS based
     '''
     return os.path.normpath(path).replace('\\', '/').replace('\t', '/t').replace('\n', '/n').replace('\a', '/a')
 
-def __formatPath_join(path, *paths):
+def formatPath_join(path, *paths):
     '''
     wrapper over os.path.join and formatPath so it's always returned as a valid Python Path
     '''
-    return __formatPath(os.path.join(path, *paths))
+    return formatPath(os.path.join(path, *paths))
 
-
-import language_packs.language_english
-LANGUAGE_MAP = language_packs.language_english
 
 def get_language_maps():
     '''
@@ -105,7 +117,7 @@ def get_language_maps():
     from English to other languages, we just need somebody to translate the standard file! :)
     '''
     languages = []
-    language_path = __formatPath_join(os.path.dirname(__file__), 'language_packs')
+    language_path = formatPath_join(os.path.dirname(__file__), 'language_packs')
     packs = os.listdir(language_path)
     for p in packs:
         if p.startswith('language_') and p.endswith('.py'):
@@ -117,11 +129,11 @@ def set_language(language='language_english', *args):
     set the language pack, default 'language_english'
     '''
     global LANGUAGE_MAP
-    language_path = __formatPath_join(os.path.dirname(__file__), 'language_packs')
+    language_path = formatPath_join(os.path.dirname(__file__), 'language_packs')
     packs = get_language_maps()
     if language in packs:
-        print 'Red9 : Importing Language Map : %s' % language
-        LANGUAGE_MAP = imp.load_source('language', __formatPath_join(language_path, language + '.py'))
+        print('Red9 : Importing Language Map : %s' % language)
+        LANGUAGE_MAP = imp.load_source('language', formatPath_join(language_path, language + '.py'))
 
 set_language()
 
@@ -138,14 +150,14 @@ def mayaIsBatch():
 
 def mayaFullSpecs():
     ''' return standard Maya build info '''
-    print 'Maya version : ', mayaVersion()
-    print 'Maya API version: ', mayaVersionRelease()
-    print 'Maya Release: ', cmds.about(v=True)
-    print 'QT build: ', mayaVersionQT()
-    print 'Prefs folder: ', mayaPrefs()
-    print 'OS build: ', osBuild()
+    print('Maya version : ', mayaVersion())
+    print('Maya API version: ', mayaVersionRelease())
+    print('Maya Release: ', cmds.about(v=True))
+    print('QT build: ', mayaVersionQT())
+    print('Prefs folder: ', mayaPrefs())
+    print('OS build: ', osBuild())
 
-    print MAYA_INTERNAL_DATA
+    print(MAYA_INTERNAL_DATA)
 
 def maya_QT_mainWindow():
     '''
@@ -157,11 +169,11 @@ def maya_QT_mainWindow():
         try:
             from PySide2 import QtWidgets
             import shiboken2
-            return shiboken2.wrapInstance(long(mayaWindow), QtWidgets.QWidget)
+            return shiboken2.wrapInstance(int(mayaWindow), QtWidgets.QWidget)
         except:
-            from PySide import QtGui
-            import shiboken
-            return shiboken.wrapInstance(long(mayaWindow), QtGui.QWidget)
+            from PySide6 import QtWidgets
+            import shiboken6
+            return shiboken6.wrapInstance(int(mayaWindow), QtWidgets.QWidget)
     except:
         log.warning('failed to return Maya main QT Widget')
 
@@ -173,8 +185,8 @@ def maya_QT_QApplication():
         from PySide2 import QtWidgets
         return QtWidgets.QApplication.instance()
     except:
-        from PySide import QtGui
-        return QtGui.QApplication.instance()
+        from PySide6 import QtWidgets
+        return QtWidgets.QApplication.instance()
 
 def maya_appplication_size():
     '''
@@ -240,17 +252,24 @@ def maya_dpi_scaling_factor():
     except:
         pass
 
-def mayaVersion():
+def mayaVersion(minor=False):
     '''
-    get the application version back, this doesn't track service packs or extensions
-
-    TODO: need to manage this better and use the API version, eg: 2013.5 returns 2013
+    get the application version back as a float.
+    
+    :param minor: if True we include the service pack version in the return
     '''
-    if 'version' in MAYA_INTERNAL_DATA and MAYA_INTERNAL_DATA['version']:
+    if not minor and 'version' in MAYA_INTERNAL_DATA and MAYA_INTERNAL_DATA['version']:
         return MAYA_INTERNAL_DATA['version']
+    elif minor and 'version_minor' in MAYA_INTERNAL_DATA and MAYA_INTERNAL_DATA['version_minor']:
+        return MAYA_INTERNAL_DATA['version_minor']
     else:
-        MAYA_INTERNAL_DATA['version'] = mel.eval('getApplicationVersionAsFloat')
-        return MAYA_INTERNAL_DATA['version']
+        if minor:
+            version = '%s.%s' % (cmds.about(majorVersion=True), cmds.about(minorVersion=True))
+            MAYA_INTERNAL_DATA['version_minor'] = version
+            return MAYA_INTERNAL_DATA['version_minor']
+        else:
+            MAYA_INTERNAL_DATA['version'] = mel.eval('getApplicationVersionAsFloat')
+            return MAYA_INTERNAL_DATA['version']
 
 def mayaInstallDir():
     '''
@@ -291,12 +310,16 @@ def mayaRelease():
         return base
     return base
 
-def mayaVersionQT():
+def mayaVersionQT(asFloat=False):
     try:
         if 'qt' in MAYA_INTERNAL_DATA and MAYA_INTERNAL_DATA['qt']:
             return MAYA_INTERNAL_DATA['qt']
         else:
-            MAYA_INTERNAL_DATA['qt'] = cmds.about(qt=True)
+            if not asFloat:
+                MAYA_INTERNAL_DATA['qt'] = cmds.about(qt=True)
+            else: 
+                main,sub, point = cmds.about(qt=True).split('.')
+                MAYA_INTERNAL_DATA['qt'] = float('{}.{}{}'.format(main, sub, point))
             return MAYA_INTERNAL_DATA['qt']
     except:
         pass
@@ -336,7 +359,7 @@ def osBuild():
     if build == 'win64':
         return 64
     elif build == 'win32':
-        return 32   
+        return 32
 
 def framerate_mapping(value=None, asAPI=False, truncate_float=False):
     '''
@@ -401,7 +424,7 @@ def framerate_mapping(value=None, asAPI=False, truncate_float=False):
 
     # now in a try loop so that when the API bails due to MTime differences
     # between Maya versions we're still ok
-    for fps, data in _bases.items():
+    for fps, data in list(_bases.items()):
         try:
             api = getattr(OpenMaya.MTime, data[1])
             if not truncate_float:
@@ -416,12 +439,12 @@ def framerate_mapping(value=None, asAPI=False, truncate_float=False):
 
     # value comparison and conversion
     if type(value) in [int, float]:
-        for k, v in fpsDict.items():
+        for k, v in list(fpsDict.items()):
             if abs(float(v[0]) - float(value)) < 0.001:
                 if not asAPI:
                     return k
                 return v[1]
-    elif type(value) in [str, unicode]:
+    elif type(value) in [str, str]:
         if not asAPI:
             return fpsDict[value][0]
         return fpsDict[value][1]
@@ -440,7 +463,7 @@ def getCurrentFPS(return_full_map=False):
     else:
         # why remap? this is purely for consistency on older calls
         data = {}
-        for k, v in framerate_mapping().items():
+        for k, v in list(framerate_mapping().items()):
             data[k] = v[0]
         return data
 
@@ -461,7 +484,7 @@ def menuSetup(parent='MayaWindow'):
     # parent is an existing window with an existing menuBar?
     if cmds.window(parent, exists=True):
         if not cmds.window(parent, q=True, menuBar=True):
-            raise StandardError('given parent for Red9 Menu has no menuBarlayout %s' % parent)
+            raise Exception('given parent for Red9 Menu has no menuBarlayout %s' % parent)
         else:
             cmds.menu('redNineMenuItemRoot', l="RedNine", p=parent, tearOff=True, allowOptionBoxes=True)
             log.info('New Red9 Menu added to current window : %s' % parent)
@@ -474,7 +497,7 @@ def menuSetup(parent='MayaWindow'):
         cmds.menuItem('redNineMenuItemRoot', l='RedNine', sm=True, p=parent)
         log.info('new Red9 subMenu added to current Menu : %s' % parent)
     else:
-        raise StandardError('given parent for Red9 Menu is invalid %s' % parent)
+        raise Exception('given parent for Red9 Menu is invalid %s' % parent)
     try:
         cmds.menuItem('redNineProRootItem',
                       l='PRO : PACK', sm=True, p='redNineMenuItemRoot', tearOff=True, i='red9.png')
@@ -500,12 +523,12 @@ def menuSetup(parent='MayaWindow'):
         cmds.menuItem('redNineSnapItem',
                       l=LANGUAGE_MAP._MainMenus_.simple_snap,
                       ann=LANGUAGE_MAP._MainMenus_.simple_snap_ann,
-                      p='redNineMenuItemRoot', echoCommand=True, i='locationon_30.png',
+                      p='redNineMenuItemRoot', echoCommand=True, i='snap.png',
                       c="import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.AnimFunctions.snap()")
         cmds.menuItem('redNineSearchItem',
                       l=LANGUAGE_MAP._MainMenus_.searchui,
                       ann=LANGUAGE_MAP._MainMenus_.searchui_ann,
-                      p='redNineMenuItemRoot', echoCommand=True, i='search_30.png',
+                      p='redNineMenuItemRoot', echoCommand=True, i='search_nodes.png',
                       c="import Red9.core.Red9_CoreUtils as r9Core;r9Core.FilterNode_UI.show()")
         cmds.menuItem('redNineLockChnsItem',
                       l=LANGUAGE_MAP._MainMenus_.lockchannels,
@@ -688,7 +711,7 @@ def menuSetup(parent='MayaWindow'):
         for language in get_language_maps():
             cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.language + " : %s" % language, c=partial(set_language, language), p='redNineDebuggerItem')
     except:
-        raise StandardError('Unable to parent Red9 Menu to given parent %s' % parent)
+        raise Exception('Unable to parent Red9 Menu to given parent %s' % parent)
 
 def addToMayaMenus():
     '''
@@ -719,13 +742,13 @@ def addToMayaMenus():
                 cmds.menuItem('redNineSaver9AnimItem',
                               l=LANGUAGE_MAP._MainMenus_.save_r9anim,
                               ann=LANGUAGE_MAP._MainMenus_.save_r9anim_ann,
-                              p=mainFileMenu,
+                              p=mainFileMenu, i='red9.png',
                               echoCommand=True,
                               c="from Red9.pro_pack import Pro_MenuStubs;Pro_MenuStubs.run('r9anim_save_complete')")
                 cmds.menuItem('redNineOpenr9AnimItem',
                               l=LANGUAGE_MAP._MainMenus_.open_r9anim,
                               ann=LANGUAGE_MAP._MainMenus_.open_r9anim_ann,
-                              p=mainFileMenu,
+                              p=mainFileMenu, i='red9.png',
                               echoCommand=True,
                               c="from Red9.pro_pack import Pro_MenuStubs;Pro_MenuStubs.run('r9anim_open_direct')")
                 cmds.menuItem(c="from Red9.pro_pack import Pro_MenuStubs;Pro_MenuStubs.run('r9anim_open_direct_verbose')",
@@ -733,7 +756,7 @@ def addToMayaMenus():
                 cmds.menuItem('redNineImportr9AnimItem',
                               l=LANGUAGE_MAP._MainMenus_.import_r9anim,
                               ann=LANGUAGE_MAP._MainMenus_.import_r9anim_ann,
-                              p=mainFileMenu,
+                              p=mainFileMenu, i='red9.png',
                               echoCommand=True,
                               c="from Red9.pro_pack import Pro_MenuStubs;Pro_MenuStubs.run('r9anim_import_direct')")
                 cmds.menuItem(c="from Red9.pro_pack import Pro_MenuStubs;Pro_MenuStubs.run('r9anim_import_direct_verbose')",
@@ -752,7 +775,7 @@ def addToMayaMenus():
                           ann=LANGUAGE_MAP._MainMenus_.selectkeys_timerange_ann,
                           c='import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.selectKeysByRange()')
             cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.setrangetoo,
-                          ann=LANGUAGE_MAP._MainMenus_.setrangetoo_ann,
+                          ann=LANGUAGE_MAP._MainMenus_.setrangetoo_ann, 
                           c='import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.setTimeRangeToo(bounds_only=True)')
             cmds.menuItem(label=LANGUAGE_MAP._MainMenus_.setrangetoo_internal,
                           ann=LANGUAGE_MAP._MainMenus_.setrangetoo_internal_ann,
@@ -795,6 +818,23 @@ def addToMayaMenus():
                           ann='reset the Internal Maya Production timecode mapping',
                           c="from Red9.pro_pack import r9pro;r9pro.r9import('r9paudio');import r9paudio;r9paudio.timecode_maya_set_production(reset=True)")
 
+                # cmds.menuItem(divider=True, p=TimeSliderMenu)
+                cmds.menuItem(subMenu=True, label='Red9 PRO: Slow-Mo Playback', p=TimeSliderMenu, i='red9.png')
+                cmds.menuItem(label='PRO: Reset', i='red9.png',
+                          ann='Reset the playback rates to original, removing the slow motion mapping',
+                          c="from Red9.pro_pack import r9pro;r9pro.r9import('r9panim');import r9panim;r9panim.playback_slow_mo_reset()")
+                cmds.menuItem(label='PRO: SlowMotion @ 75% fps', i='red9.png',
+                          ann='Toggle the playback rates for slow motion @ 75%',
+                          c="from Red9.pro_pack import r9pro;r9pro.r9import('r9panim');import r9panim;r9panim.playback_slow_mo(speed=0.75)")
+                cmds.menuItem(label='PRO: SlowMotion @ 50% fps', i='red9.png',
+                          ann='Toggle the playback rates for slow motion @ 55%',
+                          c="from Red9.pro_pack import r9pro;r9pro.r9import('r9panim');import r9panim;r9panim.playback_slow_mo(speed=0.50)")
+                cmds.menuItem(label='PRO: SlowMotion @ 25% fps', i='red9.png',
+                          ann='Toggle the playback rates for slow motion @ 25%',
+                          c="from Red9.pro_pack import r9pro;r9pro.r9import('r9panim');import r9panim;r9panim.playback_slow_mo(speed=0.25)")
+                cmds.menuItem(label='PRO: SlowMotion @ 10% fps', i='red9.png',
+                          ann='Toggle the playback rates for slow motion @ 25%',
+                          c="from Red9.pro_pack import r9pro;r9pro.r9import('r9panim');import r9panim;r9panim.playback_slow_mo(speed=0.10)")
         else:
             log.debug('Red9 Timeslider menus already built')
     except:
@@ -808,15 +848,15 @@ def addAudioMenu(parent=None, rootMenu='redNineTraxRoot', prefix=''):
     :param parent: parent UI to add the items too
     :param rootMenu: name of the new rootMenu built
     '''
-    print 'AudioMenu: given parent : ', parent
+    print('AudioMenu: given parent : ', parent)
     if not parent:
         cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, tearOff=True, allowOptionBoxes=True)
-        print 'New r9Sound Menu added - no specific parent given so adding to whatever menu is currently being built!'
+        print('New r9Sound Menu added - no specific parent given so adding to whatever menu is currently being built!')
     else:
         # parent is a window containing a menuBar?
         if cmds.window(parent, exists=True):
             if not cmds.window(parent, q=True, menuBar=True):
-                raise StandardError('given parent for Red9 Sound Menu has no menuBarlayout %s' % parent)
+                raise Exception('given parent for Red9 Sound Menu has no menuBarlayout %s' % parent)
             else:
                 cmds.menu(rootMenu, l=LANGUAGE_MAP._MainMenus_.sound_red9_sound, p=parent, tearOff=True, allowOptionBoxes=True)
                 log.info('New Red9 Sound Menu added to current windows menuBar : %s' % parent)
@@ -830,7 +870,7 @@ def addAudioMenu(parent=None, rootMenu='redNineTraxRoot', prefix=''):
                           allowOptionBoxes=True, tearOff=True, i='sound_30.png')
             log.info('New Red9 Sound subMenu added to current Menu : %s' % parent)
         else:
-            raise StandardError('given parent for Red9 Sound Menu is invalid %s' % parent)
+            raise Exception('given parent for Red9 Sound Menu is invalid %s' % parent)
 
     cmds.menuItem(l=LANGUAGE_MAP._MainMenus_.sound_offset_manager, p=rootMenu,
                   ann=LANGUAGE_MAP._MainMenus_.sound_offset_manager_ann,
@@ -916,6 +956,10 @@ def red9ButtonBGC(colour, qt=False, widget=None, opacity=None):
         rgb = [0.25, 0.25, 0.25]
     elif colour == 9 or colour == 'darkred':
         rgb = [0.6, 0.1, 0.1]
+    elif colour == 9 or colour == 'aquablue':
+        rgb = [0.25, 0.65, 0.65]
+    elif colour == 10 or colour == 'orange':
+        rgb = [0.7, 0.5, 0.0]
     else:
         return None
     if qt or widget:
@@ -988,7 +1032,7 @@ def red9Presets():
     '''
     get the default presets dir for all filterSettings.cfg files
     '''
-    return __formatPath_join(red9ModulePath(), 'presets')
+    return formatPath_join(red9ModulePath(), 'presets')
 
 def red9Presets_get():
     '''
@@ -1007,7 +1051,7 @@ def red9PoseHandlers():
     get the default dir for all custom posehandlers in the presets, used to 
     overload the behaviour of the poseSaver setups
     '''
-    return __formatPath_join(red9Presets(), 'posehandlers')
+    return formatPath_join(red9Presets(), 'posehandlers')
 
 def red9PoseHandlers_get():
     '''
@@ -1025,11 +1069,11 @@ def red9PoseHandlers_get():
 
 def red9EntryPoint():
     '''  Return the root folder, one up from the ModulePath below  '''
-    return __formatPath(os.path.dirname(red9ModulePath()))
+    return formatPath(os.path.dirname(red9ModulePath()))
 
 def red9ModulePath():
     '''  Returns the Main path to the Red9 root module folder '''
-    return __formatPath(os.path.dirname(os.path.dirname(__file__)))
+    return formatPath(os.path.dirname(os.path.dirname(__file__)))
     # return os.path.join(os.path.dirname(os.path.dirname(__file__)), '')
 
 def red9MayaNativePath():
@@ -1037,8 +1081,8 @@ def red9MayaNativePath():
     Returns the MayaVersioned Hacked script path if valid and found
     '''
     _version = mayaRelease()  # switched to manage ext builds that divert to a .5 release (2016.5)
-    basepath = __formatPath_join(red9ModulePath(), 'startup', 'maya_native', 'maya_%s' % str(int(_version)))
-    path = __formatPath_join(red9ModulePath(), 'startup', 'maya_native', 'maya_%s' % str(_version))
+    basepath = formatPath_join(red9ModulePath(), 'startup', 'maya_native', 'maya_%s' % str(int(_version)))
+    path = formatPath_join(red9ModulePath(), 'startup', 'maya_native', 'maya_%s' % str(_version))
 
     if os.path.exists(path):
         # version including .5 handler
@@ -1052,13 +1096,13 @@ def red9MayaNativePath():
 def red9_help(*args):
     ''' open up the Red9 help docs '''
     import Red9.core.Red9_General as r9General  # lazy load
-    helpFile = __formatPath_join(red9ModulePath(), 'docs', r'Red9-StudioTools Help.pdf')
+    helpFile = formatPath_join(red9ModulePath(), 'docs', r'Red9-StudioTools Help.pdf')
     r9General.os_OpenFile(helpFile)
 
 def red9_pro_docs_path(*args):
     ''' path to the red9 ProPack docs docs '''
     import Red9.core.Red9_General as r9General  # lazy load
-    return  __formatPath_join(red9ModulePath(), 'docs', 'Red9 ProPack_release_notes')
+    return  formatPath_join(red9ModulePath(), 'docs', 'Red9 ProPack_release_notes')
 
 def red9_blog(*args):
     ''' open up the Red9 Blog '''
@@ -1094,7 +1138,7 @@ def red9_youtube(*args):
 def red9_apidocs(*args):
     ''' open up the Red9 API docs '''
     import Red9.core.Red9_General as r9General  # lazy load
-    apidocs = __formatPath_join(red9ModulePath(), 'docs', 'html', 'index.html')
+    apidocs = formatPath_join(red9ModulePath(), 'docs', 'html', 'index.html')
     r9General.os_OpenFile(apidocs)
 
 def red9_getVersion():
@@ -1176,7 +1220,7 @@ class Red9_Video_Mappings(object):
                 try:
                     cls.data = json.load(name)
                     return cls.data  # json.load(name)
-                except ValueError, err:
+                except ValueError as err:
                     log.warning('Failed to read JSON file %s' % video_db)
                     raise ValueError(err)
 
@@ -1186,7 +1230,7 @@ class Red9_Video_Mappings(object):
         get a given video's url
         
         :param video: the key for the video
-        :param chapter: the index of the chapter
+        :param chapter: int - the index of the chapter
         '''
         data = cls.read_video_db()
         if video in data:
@@ -1258,7 +1302,7 @@ class Red9_Video_Mappings(object):
         keys = {}
         urls = []
 
-        for video, val in cls.read_video_db().items():
+        for video, val in list(cls.read_video_db().items()):
 #             for tag in tags:
 #                 if 'tags' in val:
 #                     for t in val['tags']:
@@ -1344,7 +1388,7 @@ def addScriptsPath(path):
     :param path: path to the folder you want to add to the 'MAYA_SCRIPT_PATH'
     '''
     scriptsPath = os.environ.get('MAYA_SCRIPT_PATH')
-    path = __formatPath(path)
+    path = formatPath(path)
     if os.path.exists(path):
         if path not in scriptsPath:
             log.info('Adding To Script Paths : %s' % path)
@@ -1362,9 +1406,9 @@ def addPluginPath(path=None):
     :param path: path to the folder you want to add to the 'MAYA_PLUG_IN_PATH'
     '''
     if not path:
-        path = __formatPath_join(red9ModulePath(), 'plug-ins')
+        path = formatPath_join(red9ModulePath(), 'plug-ins')
     else:
-        path = __formatPath(path)
+        path = formatPath(path)
     plugPaths = os.environ.get('MAYA_PLUG_IN_PATH')
     if os.path.exists(path) and path not in plugPaths:
         log.info('Adding Red9 Plug-ins to Plug-in Paths : %s' % path)
@@ -1380,9 +1424,9 @@ def addIconsPath(path=None):
     :param path: path to the folder you want to add to the 'XBMLANGPATH'
     '''
     if not path:
-        path = __formatPath_join(red9ModulePath(), 'icons')
+        path = formatPath_join(red9ModulePath(), 'icons')
     else:
-        path = __formatPath(path)
+        path = formatPath(path)
     iconsPath = os.environ.get('XBMLANGPATH')
 
     if os.path.exists(path) and path not in iconsPath:
@@ -1391,12 +1435,16 @@ def addIconsPath(path=None):
     else:
         log.info('Red9 Icons Path already setup')
 
+# # note, to extract all Maya icons you have to use the resourceManager
+# for item in cmds.resourceManager(nf='*png'):
+#     cmds.resourceManager(s=(item, "X:/maya_icons_internal/{0}".format(item)))
+    
 def addPythonPackages():
     '''
     Add the packages folder which is where any external modules
     will be stored
     '''
-    red9Packages = __formatPath_join(red9ModulePath(), 'packages')
+    red9Packages = formatPath_join(red9ModulePath(), 'packages')
 
     if red9Packages not in sys.path:
         log.info('Adding Red9.packages To Python Paths : %s' % red9Packages)
@@ -1405,38 +1453,43 @@ def addPythonPackages():
         log.info('Red9.packages Path already setup : %s' % red9Packages)
 
     # PySide Management for pre 2014 x64 builds
-    if mayaVersion() < 2014.0 and os.path.exists(__formatPath_join(red9Packages, 'PySide')):
-        pysidePath = __formatPath_join(red9Packages, 'PySide')
+    if mayaVersion() < 2014.0 and os.path.exists(formatPath_join(red9Packages, 'PySide')):
+        pysidePath = formatPath_join(red9Packages, 'PySide')
         if mayaVersion() == 2012.0:
-            pysidePath = __formatPath_join(pysidePath, 'PySide_2012_x64')
+            pysidePath = formatPath_join(pysidePath, 'PySide_2012_x64')
         elif mayaVersion() == 2013.0:
-            pysidePath = __formatPath_join(pysidePath, 'PySide_2013_x64')
+            pysidePath = formatPath_join(pysidePath, 'PySide_2013_x64')
         if os.path.exists(pysidePath) and pysidePath not in sys.path:
             sys.path.append(pysidePath)
             log.info('Adding Red9.packages:PySide To Python Paths : %s' % pysidePath)
 
 #     # Python compiled folders, if they exists
-#     if mayaVersion() <= 2014 and os.path.exists(__formatPath_join(red9Packages, 'python2.6')):
-#         sys.path.append(__formatPath_join(red9Packages, 'python2.6'))
-#     if mayaVersion() >= 2015 and os.path.exists(__formatPath_join(red9Packages, 'python2.7')):
-#         sys.path.append(__formatPath_join(red9Packages, 'python2.7'))
+#     if mayaVersion() <= 2014 and os.path.exists(formatPath_join(red9Packages, 'python2.6')):
+#         sys.path.append(formatPath_join(red9Packages, 'python2.6'))
+#     if mayaVersion() >= 2015 and os.path.exists(formatPath_join(red9Packages, 'python2.7')):
+#         sys.path.append(formatPath_join(red9Packages, 'python2.7'))
 
     # Python version specific compiled folders, if they exists
     _version = sys.version_info
-    if _version.major == 2:
-        if _version.minor == 6 and os.path.exists(__formatPath_join(red9Packages, 'python_26')):
-            sys.path.append(__formatPath_join(red9Packages, 'python_26'))
-            log.info('Adding Red9.packages.python_26 : To Python Paths')
-        elif _version.minor == 7 and os.path.exists(__formatPath_join(red9Packages, 'python_27')):
-            sys.path.append(__formatPath_join(red9Packages, 'python_27'))
-            log.info('Adding Red9.packages.python_27 : To Python Paths')
-    elif _version.major == 3:      
-        if _version.minor == 7 and os.path.exists(__formatPath_join(red9Packages, 'python_37')):
-            sys.path.append(__formatPath_join(red9Packages, 'python_37'))
-            log.info('Adding Red9.packages.python_37 : To Python Paths')
-        elif _version.minor == 9 and os.path.exists(__formatPath_join(red9Packages, 'python_39')):
-            sys.path.append(__formatPath_join(red9Packages, 'python_39'))
-            log.info('Adding Red9.packages.python_39 : To Python Paths')
+    folder = 'python_%i%i' % (_version.major, _version.minor)
+    if os.path.exists(formatPath_join(red9Packages, folder)):
+        sys.path.append(formatPath_join(red9Packages, folder))
+        log.info('Adding Red9.packages.%s : To Python Paths' % folder)
+
+    # if _version.major == 2:
+    #     if _version.minor == 6 and os.path.exists(formatPath_join(red9Packages, 'python_26')):
+    #         sys.path.append(formatPath_join(red9Packages, 'python_26'))
+    #         log.info('Adding Red9.packages.python_26 : To Python Paths')
+    #     elif _version.minor == 7 and os.path.exists(formatPath_join(red9Packages, 'python_27')):
+    #         sys.path.append(formatPath_join(red9Packages, 'python_27'))
+    #         log.info('Adding Red9.packages.python_27 : To Python Paths')
+    # elif _version.major == 3:      
+    #     if _version.minor == 7 and os.path.exists(formatPath_join(red9Packages, 'python_37')):
+    #         sys.path.append(formatPath_join(red9Packages, 'python_37'))
+    #         log.info('Adding Red9.packages.python_37 : To Python Paths')
+    #     elif _version.minor == 9 and os.path.exists(formatPath_join(red9Packages, 'python_39')):
+    #         sys.path.append(formatPath_join(red9Packages, 'python_39'))
+    #         log.info('Adding Red9.packages.python_39 : To Python Paths')
 
 def sourceMelFolderContents(path):
     '''
@@ -1444,7 +1497,7 @@ def sourceMelFolderContents(path):
 
     :param path: path of the folder containing mel scripts you want to source
     '''
-    path = __formatPath(path)
+    path = formatPath(path)
     for script in [f for f in os.listdir(path) if f.lower().endswith('.mel')]:
         log.info('Sourcing mel script : %s' % script)
         mel.eval('source %s' % script)
@@ -1483,15 +1536,15 @@ def delete_shelf(shelf_name):
         cmds.optionVar(iv=("numShelves", shelfs - 1))
 
         cmds.deleteUI(shelf_name, layout=True)
-        pref_file = __formatPath_join(mayaPrefs(), 'prefs', 'shelves', 'shelf_%s.mel.deleted' % shelf_name)
+        pref_file = formatPath_join(mayaPrefs(), 'prefs', 'shelves', 'shelf_%s.mel.deleted' % shelf_name)
         if os.path.exists(pref_file):
             os.remove(pref_file)
         mel.eval("shelfTabChange")
         log.info('Shelf deleted: % s' % shelf_name)
-    except StandardError, err:
+    except Exception as err:
         log.warning('shelf management failed : %s' % err)
 
-def load_shelf(shelf_path):
+def load_shelf(shelf_path, retain_last=False):
     '''
     load Maya shelf
 
@@ -1499,25 +1552,47 @@ def load_shelf(shelf_path):
     '''
     if mayaIsBatch():
         return
-    shelf_path = __formatPath(shelf_path)
+
+    shelf_path = formatPath(shelf_path)
+    shelf_name = os.path.basename(shelf_path).replace('.mel', '').replace('shelf_', '')
 
     # get current top shelf
-    gShelfTopLevel = mel.eval("string $shelf_ly=$gShelfTopLevel")
-    top = cmds.shelfTabLayout(gShelfTopLevel, q=True, st=True)
+    # gShelfTopLevel = mel.eval("string $shelf_ly=$gShelfTopLevel")
+    # cmds.shelfTabLayout(gShelfTopLevel, q=True, st=True)
+    selectTabIndex = cmds.optionVar(q='selectedShelf')
+    last_shelf = cmds.optionVar(q='shelfName%s' % selectTabIndex)
+    # top = mel.eval('shelfTabLayout -q -st $gShelfTopLevel')
 
     if os.path.exists(shelf_path):
-        # print shelf_path
-        delete_shelf(shelf_path)
+        delete_shelf(shelf_name)
         mel.eval('source "%s"' % shelf_path)
         mel.eval('loadNewShelf("%s")' % shelf_path)
         log.info('Shelf loaded: % s' % shelf_path)
-        return True
+        # return True
     else:
-        log.error('Cant load shelf, file doesnt exist: %s' % shelf_path)
+        log.error("Can't load shelf: file doesn't exist: %s" % shelf_path)
 
     # restore users top shelf
-    cmds.shelfTabLayout(gShelfTopLevel, e=True, st=top)
+    # cmds.shelfTabLayout(gShelfTopLevel, e=True, st=top)
+    if retain_last:
+        log.info('Shelf Users Last Active Restored: %s' % last_shelf)
+        mel.eval('shelfTabLayout -e -st "%s" $gShelfTopLevel' % last_shelf)     
 
+def insert_python_security_optvars():
+    '''
+    <<< Testing Only >>>
+    insert Red9 module imports into the safety setups for Maya Python. We're
+    still a little unsure what triggers the prompts as they seem very sporadic,
+    if they were consistent it would be a little easier to track down!
+    '''
+    safeimports = cmds.optionVar(q='SafeModeImportModulesList')
+    red9_modules = ['Red9.core',
+                    'Red9.pro_pack',
+                    'Red9.packages']
+    
+    for mod in red9_modules:
+        if mod not in safe:
+            cmds.optionVar(sva=('SafeModeImportModulesList', mod))
 
 # -----------------------------------------------------------------------------------------
 # PRO PACK ---
@@ -1527,29 +1602,32 @@ PRO_PACK_STUBS = None
 
 
 def pro_pack_path():
-    return __formatPath_join(red9ModulePath(), 'pro_pack')
+    return formatPath_join(red9ModulePath(), 'pro_pack')
 
-def has_pro_pack():
+def has_pro_pack(folder_exists=False):
     '''
     Red9 Pro_Pack is available and activated as user
     
     :rtype: bool
     '''
     if os.path.exists(pro_pack_path()):
+        if folder_exists:
+            return True
+
         # Red 9 pro is not boot yet,
         # better not call if before boot is finish
         try:
+            # THIS IS ALL WRONG!!!! the fact that we call r9pro actually runs Propack base install
             from Red9.pro_pack import r9pro
-
             if not r9pro.activate_window():
                 return True
             else:
                 return False
-        except StandardError, err:
-#             import traceback
+        except Exception as err:
+            import traceback
+            print((traceback.format_exc()))
             # we have the pro-pack folder so assume we're running legacy build
             log.info('r9Pro : checkr9User : failed validation! : %s' % err)
-#             print traceback.format_exc()
             return True
     else:
         return False
@@ -1583,7 +1661,7 @@ def get_pro_pack_user_dir():
     '''
     :return: string with Red9pro user directory path, this directory is mainly use to store Red9 pro pack user files
     '''
-    path = __formatPath_join(os.path.dirname(mayaPrefs()), 'R9_PRO')
+    path = formatPath_join(os.path.dirname(mayaPrefs()), 'R9_PRO')
     if not os.path.exists(path):
         os.mkdir(path)
     if os.path.exists(path):
@@ -1593,7 +1671,7 @@ def get_pro_pack_prefs():
     '''
     :return: string with Red9pro prefs directory path, this directory is mainly use to storing user setting files
     '''
-    path = __formatPath_join(get_pro_pack_user_dir(), 'prefs')
+    path = formatPath_join(get_pro_pack_user_dir(), 'prefs')
     if not os.path.exists(path):
         os.mkdir(path)
     if os.path.exists(path):
@@ -1613,7 +1691,7 @@ def has_internal_systems():
 
 
 def internal_module_path():
-    return __formatPath_join(os.path.dirname(red9ModulePath()), 'Red9_Internals')
+    return formatPath_join(os.path.dirname(red9ModulePath()), 'Red9_Internals')
 
 
 def red9ProPackVersion():
@@ -1624,7 +1702,7 @@ def red9ProPackVersion():
     '''
 
     # Get it from r9pro_version in ProPack
-    probuild_version = __formatPath_join(pro_pack_path(), 'r9pro_version')
+    probuild_version = formatPath_join(pro_pack_path(), 'r9pro_version')
     if os.path.exists(probuild_version):
         with open(probuild_version, 'r') as data:
             return data.read().split(' ')[1]
@@ -1637,7 +1715,7 @@ def red9ProPackInfo(*args):
     if not has_pro_pack():
         raise ProPack_Error
 
-    releasenotes = __formatPath_join(red9ModulePath(), 'docs', 'Red9 ProPack_release_notes')
+    releasenotes = formatPath_join(red9ModulePath(), 'docs', 'Red9 ProPack_release_notes')
 
     probuild = red9ProPackVersion()
     if not probuild:
@@ -1685,8 +1763,15 @@ def client_core_path():
     have a blank __init__.py file in it to make it a valid Python module setup
     '''
     if client_core_env_path():
-        return __formatPath_join(client_core_env_path())
-    return __formatPath_join(os.path.dirname(red9ModulePath()), 'Red9_ClientCore')
+        return formatPath_join(client_core_env_path())
+
+    # if we're in compiled py3 builds we have multiple subfolders, walk over these
+    if os.path.basename(os.path.dirname(red9ModulePath())) in ['python_39', 'python_37', 'python_310', 'python_311']:
+        # return formatPath_join(os.path.dirname(os.path.dirname(red9ModulePath()), 'Red9_ClientCore'))
+        sys.path.append(os.path.dirname(os.path.dirname(red9ModulePath())))
+        return formatPath_join(os.path.dirname(os.path.dirname(red9ModulePath())), 'Red9_ClientCore')
+
+    return formatPath_join(os.path.dirname(red9ModulePath()), 'Red9_ClientCore')
 
 def client_core_env_path():
     '''
@@ -1718,7 +1803,7 @@ def get_client_modules():
     clients = []
     if has_client_modules():
         for f in os.listdir(client_core_path()):
-            if os.path.isdir(__formatPath_join(client_core_path(), f)):
+            if os.path.isdir(formatPath_join(client_core_path(), f)):
                 if not f.startswith('.') and not f.startswith('_'):
                     clients.append(f)
     return sorted(clients)
@@ -1840,7 +1925,7 @@ def boot_client_projects(batchclients=None, clientsToBoot=[]):
 
             cm=Client_Manager()
             cmds.layoutDialog(ui=cm.show)
-            print('clients booting : ', cm.returned)
+            print(('clients booting : ', cm.returned))
             clientsToBoot = cm.returned
 
 #             options = ['ALL', 'NONE']
@@ -1864,13 +1949,13 @@ def boot_client_projects(batchclients=None, clientsToBoot=[]):
     for client in clientsToBoot:
         log.info('Client Boot : ClientCore folder path : "%s"' % _clientcore_path)
         # manage default project folders
-        if os.path.exists(__formatPath_join(_clientcore_path, client, 'icons')):
-            addIconsPath(__formatPath_join(_clientcore_path, client, 'icons'))
+        if os.path.exists(formatPath_join(_clientcore_path, client, 'icons')):
+            addIconsPath(formatPath_join(_clientcore_path, client, 'icons'))
         # added 25/02/20
-        if os.path.exists(__formatPath_join(_clientcore_path, client, 'plug-ins', str(int(mayaVersion())))):
-            addPluginPath(__formatPath_join(_clientcore_path, client, 'plug-ins', str(int(mayaVersion()))))
-        elif os.path.exists(__formatPath_join(_clientcore_path, client, 'plug-ins')):
-            addPluginPath(__formatPath_join(_clientcore_path, client, 'plug-ins'))
+        if os.path.exists(formatPath_join(_clientcore_path, client, 'plug-ins', str(int(mayaVersion())))):
+            addPluginPath(formatPath_join(_clientcore_path, client, 'plug-ins', str(int(mayaVersion()))))
+        elif os.path.exists(formatPath_join(_clientcore_path, client, 'plug-ins')):
+            addPluginPath(formatPath_join(_clientcore_path, client, 'plug-ins'))
 
         if not _import_as_name_only:
             cmds.evalDeferred("import %s.%s" % (os.path.basename(_clientcore_path), client), lp=True)  # Unresolved Import
@@ -1908,7 +1993,7 @@ def __reload_clients__():
             cmds.evalDeferred("import %s;%s._reload()" % (client, client), lp=True)  # Unresolved Import
             log.info('Reloaded Client : "%s"' % client)
         except:
-            log.info('Client : "%s" : does not have a _reload func internally' % path)
+            log.info('Client : "%s" : does not have a _reload func internally' % client)
 
 
 # -----------------------------------------------------------------------------------------
@@ -1926,21 +2011,6 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
     log.info('Red9 StudioPack v%s : author: %s' % (red9_getVersion(), red9_getAuthor()))
     log.info('Red9 StudioPack Setup Calls :: Booting from >> %s' % red9ModulePath())
 
-    # check for current builds
-#    currentBuild=False
-#    try:
-#        currentBuild = mel.eval('$temp=$buildInstalled')
-#    except:
-#        print 'Red9 : version not found'
-#
-#    if currentBuild:
-#        print 'Red9 : StudioPack already found : v', currentBuild
-#        if currentBuild<=red9_getVersion():
-#            print 'Red9 StudioPack Start Aborted : v%f is already installed' % currentBuild
-#            return
-#    else:
-#        print 'Red9 : no version currently loaded'
-
     # StudioPack boot loader
     # ======================
 
@@ -1949,7 +2019,7 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
     addPluginPath()
 
     # need to add a Mel Folder to the scripts path
-    addScriptsPath(__formatPath_join(red9ModulePath(), 'core'))
+    addScriptsPath(formatPath_join(red9ModulePath(), 'core'))
 
     # add the Packages folder
     addPythonPackages()
@@ -1965,12 +2035,13 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
             # source Maya Hacked Mel files
             hacked = red9MayaNativePath()
             if hacked and MayaOverloads:
-                addScriptsPath(__formatPath_join(red9ModulePath(), 'startup', 'maya_native'))
+                addScriptsPath(formatPath_join(red9ModulePath(), 'startup', 'maya_native'))
                 addScriptsPath(hacked)
                 try:
                     mel.eval('source Red9_MelCore')
+                    mel.eval('source red9MayaHacks')
                     sourceMelFolderContents(hacked)
-                except StandardError, error:
+                except Exception as error:
                     log.info(error)
 
             # Add custom items to standard built Maya menus
@@ -2010,10 +2081,10 @@ def start(Menu=True, MayaUIHooks=True, MayaOverloads=True, parentMenu='MayaWindo
         if not mayaIsBatch():
             cmds.evalDeferred("from Red9.pro_pack import set_r9pupdate_btn;set_r9pupdate_btn()", lp=True)  # set the Red9 Update Icon in the ToolBox up
             cmds.evalDeferred("from Red9.pro_pack import load_ui_settings;load_ui_settings()", lp=True)
-        
-        # import to globals
-        global_base_module_imports()
-        print('Red Boot Complete')
+
+    # import to globals
+    global_base_module_imports()
+    print('Red Boot Complete')
 
 def global_base_module_imports():
     '''
@@ -2044,20 +2115,20 @@ def reload_Red9(*args):
     Red9.core._reload()
 
     if has_pro_pack():
-        print '\nReloading ProPack Systems (INTERNAL USE)'
-        print '=' * 40
+        print('\nReloading ProPack Systems (INTERNAL USE)')
+        print('=' * 40)
         import Red9.pro_pack.core
         Red9.pro_pack.core._reload()
 
     if has_internal_systems():
-        print '\nReloading Internal Codebase'
-        print '=' * 40
+        print('\nReloading Internal Codebase')
+        print('=' * 40)
         import Red9_Internals
         Red9_Internals._reload()
 
     if has_client_modules():
-        print '\nReloading Client Codebase'
-        print '=' * 40
+        print('\nReloading Client Codebase')
+        print('=' * 40)
         __reload_clients__()
 
 

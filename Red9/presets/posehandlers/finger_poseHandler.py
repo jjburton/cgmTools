@@ -53,12 +53,12 @@ def getNodesOverload(poseObj, nodes, *args):
         # appropriate subMetaSystem
 
         if cmds.getAttr('%s.mirrorSide' % currentSelection[0]) == 1:
-            print '\nFinger : PoseOverload Handler : %s >> side: Left' % metaNode
+            print('\nFinger : PoseOverload Handler : %s >> side: Left' % metaNode)
             filteredNodes = metaNode.L_ArmSystem.L_FingerSystem.getChildren()
             [filteredNodes.append(node) for node in cmds.listRelatives(filteredNodes, type='joint', ad=True, f=True)]
 
         elif cmds.getAttr('%s.mirrorSide' % currentSelection[0]) == 2:
-            print '\nFinger : PoseOverload Handler : %s >> side: Right' % metaNode
+            print('\nFinger : PoseOverload Handler : %s >> side: Right' % metaNode)
             filteredNodes = metaNode.R_ArmSystem.R_FingerSystem.getChildren()
             [filteredNodes.append(node) for node in cmds.listRelatives(filteredNodes, type='joint', ad=True, f=True)]
     else:

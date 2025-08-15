@@ -781,7 +781,18 @@ d_skeletonSetup = {'mode':'curveCast',
 
 #d_preferredAngles = {'head':[0,-10, 10]}#In terms of aim up out for orientation relative values, stored left, if right, it will invert
 #d_rotationOrders = {'head':'yxz'}
-
+d_controlDat_links = {
+    'fk' : ['leverFK','fkJoints','controlsFK','controlFK','fkReverseControls'],
+    'ik' : ['leverFK',
+            'controlIKBase',
+            'controlIKMid',
+            'controlIKEnd','controlIK',
+            'controlBallRotation','leverIK',
+            'controlIKBallHinge','controlIKBall','controlIKToe',
+            'controlIKMid','leverIK','eyeLookAt','lookAt',
+            'ikBase'],
+    'root' : ['cog','rigRoot','scaleRoot'],
+}
 
 #=================================================================================================
 #>> Define

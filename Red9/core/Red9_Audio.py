@@ -16,7 +16,7 @@ This is the Audio library of utils used throughout the modules
 
 '''
 
-from __future__ import print_function
+
 
 import maya.cmds as cmds
 import maya.mel as mel
@@ -26,11 +26,10 @@ import os
 # import math
 # import re
 
-import Red9_General as r9General
 import Red9.startup.setup as r9Setup
-import Red9_Meta as r9Meta
-import Red9_CoreUtils as r9Core
-
+from . import Red9_General as r9General
+from . import Red9_Meta as r9Meta
+from . import Red9_CoreUtils as r9Core
 
 import wave
 import contextlib
@@ -59,7 +58,7 @@ def bind_pro_audio():
     if r9Setup.has_pro_pack():
         try:
             import Red9.pro_pack.core.audio as r9paudio  # dev mode only ;)
-        except StandardError, err:
+        except Exception as err:
             from Red9.pro_pack import r9pro
             r9paudio = r9pro.r9import('r9paudio')
         return r9paudio
@@ -161,7 +160,7 @@ def inspect_wav(multi=False, audioNodes=[]):
             audioNodes = [audio[0]]
 
     if not audioNodes:
-        raise StandardError('Please select the soundNode you want to inspect - no Sound nodes selected')
+        raise Exception('Please select the soundNode you want to inspect - no Sound nodes selected')
 
     winOffset = 0
     for audio in audioNodes:
@@ -171,11 +170,11 @@ def inspect_wav(multi=False, audioNodes=[]):
             audio = AudioNode(filepath=audio)
         formatData = ''
         data = audio.gatherInfo()
-        for key, val in data.items():
+        for key, val in sorted(data.items()):
             if not key == 'bwav':
                 formatData += '{:<15}: {:}\n'.format(key, val)
         bWavData = ''
-        if 'bwav' in data.keys():
+        if 'bwav' in list(data.keys()):
             bWavData += 'TimecodeFormatted : %s\n' % data['bwav']['TimecodeFormatted']
             bWavData += 'TimecodeReference : %i\n\n' % data['bwav']['TimecodeReference']
             for key, value in sorted(data['bwav'].items()):
@@ -225,13 +224,13 @@ class AudioHandler(object):
     @property
     def audioNodes(self):
         if not self._audioNodes:
-            raise StandardError('No AudioNodes selected or given to process')
+            raise Exception('No AudioNodes selected or given to process')
         return self._audioNodes
 
     @audioNodes.setter
     def audioNodes(self, val):
         if not val:
-            raise StandardError('No AudioNodes selected or given to process')
+            raise Exception('No AudioNodes selected or given to process')
         if not type(val) == list:
             val = [val]
         for a in val:
@@ -407,7 +406,7 @@ class AudioHandler(object):
         else:
             relativeNode = AudioNode(relativeToo)
             if not relativeNode.isBwav():
-                raise StandardError('Given Reference audio node is NOT  a Bwav!!')
+                raise Exception('Given Reference audio node is NOT  a Bwav!!')
 
             # calculate the frame difference to use as an offset
             relativeTC = self.pro_audio.milliseconds_to_frame(relativeNode.bwav_timecodeMS())
@@ -527,7 +526,7 @@ class AudioHandler(object):
         compiled.startFrame = neg_adjustment
 
         if not status:
-            raise StandardError('combine completed with errors: see script Editor for details')
+            raise Exception('combine completed with errors: see script Editor for details')
 
 
 class AudioNode(object):
@@ -789,6 +788,10 @@ class AudioNode(object):
         audioseg = audioseg.set_channels(1)
         audioseg.export(output, format="wav")
 
+        # mono_audios = audioseg.split_to_mono()
+        # mono_audios[0].export(output, format="wav")
+
+
     # ---------------------------------------------------------------------------------
     # PRO_PACK : BWAV support ---
     # ---------------------------------------------------------------------------------
@@ -937,7 +940,8 @@ class AudioNode(object):
         '''
         if not self.isLoaded:
             a = cmds.ls(type='audio')
-            cmds.file(self.path, i=True, type='audio', options='o=0')
+            # cmds.file(self.path, i=True, type='audio', options='o=0')
+            cmds.sound(file=self.path, name=r9Core.nodeNameStrip(os.path.splitext(os.path.basename(self.path))[0]))
             b = cmds.ls(type='audio')
 
             if not a == b:
@@ -952,6 +956,7 @@ class AudioNode(object):
             self.isLoaded = True
         else:
             log.info('given Audio Path is already loaded in the Maya Scene')
+
         if active:
             self.setActive()
 
@@ -960,6 +965,7 @@ class AudioNode(object):
         Set the sound node as active on the timeSlider
         '''
         if self.isLoaded:
+
             gPlayBackSlider = mel.eval("string $temp=$gPlayBackSlider")
             cmds.timeControl(gPlayBackSlider, e=True, ds=1, sound=self.audioNode)
 
@@ -1002,7 +1008,8 @@ class AudioNode(object):
         rename the AudioNode so it ties to the wav name
         '''
         try:
-            cmds.rename(self.audioNode, r9Core.nodeNameStrip(os.path.splitext(os.path.basename(self.path))[0]))
+            # cmds.rename(self.audioNode, r9Core.nodeNameStrip(os.path.splitext(os.path.basename(self.path))[0]))
+            self.audioNode = cmds.rename(self.audioNode, r9Core.nodeNameStrip(os.path.splitext(os.path.basename(self.path))[0]))
         except:
             if cmds.referenceQuery(self.audioNode, inr=True):
                 log.info('failed to Rename Referenced Audio Node : %s' % self.audioNode)

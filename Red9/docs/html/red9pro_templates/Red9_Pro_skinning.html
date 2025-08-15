@@ -18,7 +18,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Pro_Pack : uibase" href="Red9_Pro_uibase.html" />
-    <link rel="prev" title="Pro_Pack : skining" href="Red9_Pro_skining.html" /> 
+    <link rel="prev" title="Pro_Pack : shaders" href="Red9_Pro_shaders.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -117,9 +128,9 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get skin meshes in the scene</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">skin_meshes</span> <span class="o">=</span> <span class="n">get_skin_meshes</span><span class="p">(</span><span class="n">selection</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># convert a mesh to Skn object</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">r9skn</span> <span class="o">=</span> <span class="n">Skn</span><span class="p">(</span><span class="n">skin_meshes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">base_r9skn</span> <span class="o">=</span> <span class="n">Skn</span><span class="p">(</span><span class="n">skin_meshes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># collect skin data</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">skin_data</span> <span class="o">=</span> <span class="n">r9skn</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">skin_data</span> <span class="o">=</span> <span class="n">base_r9skn</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># duplicate the mesh</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">new_mesh</span> <span class="o">=</span> <span class="n">cmds</span><span class="o">.</span><span class="n">listRelatives</span><span class="p">(</span><span class="n">cmds</span><span class="o">.</span><span class="n">duplicate</span><span class="p">(</span><span class="n">r9skn</span><span class="o">.</span><span class="n">transform</span><span class="p">),</span> <span class="n">ad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="n">ni</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create a new Skn object with duplicated mesh</span>
@@ -169,6 +180,18 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load on selected mesh or component</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cmds</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">mesh</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">skn_file</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">selection</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>** finding and remaping rename or reparented geometries</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create a Skn_file object</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">skn_file</span> <span class="o">=</span> <span class="n">Skn_file</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># reload skin data from file</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">skn_file</span><span class="o">.</span><span class="n">read_skin_file</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">all_skins</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Remap mesh shapes using vertex count and short names on</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># all meshes in the scene against the data in all_skins</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">skn_file</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">skn_file</span><span class="o">.</span><span class="n">find_shapes</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># load skins on matches found</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">skn_info</span> <span class="o">=</span> <span class="n">skn_file</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">selection</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 <p class="rubric">Main Classes</p>
@@ -308,6 +331,219 @@ If selection is define on creation the class instance selection is muted and wil
 </table>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.core.skinning.HiMirrorUtilitys">
+<em class="property">class </em><code class="descname">HiMirrorUtilitys</code><span class="sig-paren">(</span><em>root</em>, <em>pair=None</em>, <em>node_type='joint'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.HiMirrorUtilitys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="Red9.pro_pack.core.skinning.HiMirrorUtilitys.get_left_nodes">
+<code class="descname">get_left_nodes</code><span class="sig-paren">(</span><em>threshold=0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.HiMirrorUtilitys.get_left_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve left-side nodes based on world-space X translation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>threshold</strong> – float
+Minimum X translation value to consider a node as left (default is 0.001).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list
+List of nodes (and their mirrors) with an X translation &gt;= threshold.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.skinning.HiMirrorUtilitys.get_right_nodes">
+<code class="descname">get_right_nodes</code><span class="sig-paren">(</span><em>threshold=-0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.HiMirrorUtilitys.get_right_nodes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.skinning.HiMirrorUtilitys.get_mirror">
+<code class="descname">get_mirror</code><span class="sig-paren">(</span><em>node_name=None</em>, <em>long_name=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.HiMirrorUtilitys.get_mirror" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves the mirror node for a given node.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>node_name</strong> – (str) The name for which to find its mirror node.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">(str or None) The mirror node’s full name if found; otherwise, None.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.skinning.HiMirrorUtilitys.select_mirror_node">
+<code class="descname">select_mirror_node</code><span class="sig-paren">(</span><em>node_name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.HiMirrorUtilitys.select_mirror_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.skinning.HiMirrorUtilitys.common_prefix">
+<code class="descname">common_prefix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.HiMirrorUtilitys.common_prefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analyzes each node’s leaf name (after the last ‘|’) for a directional prefix
+(e.g. <a href="#id13"><span class="problematic" id="id14">L_</span></a>, <a href="#id15"><span class="problematic" id="id16">R_</span></a>, <a href="#id17"><span class="problematic" id="id18">l_</span></a>, <a href="#id19"><span class="problematic" id="id20">r_</span></a>). Returns either a single marker if all matches are the same,
+or a list of unique markers if there is variation. If no such marker is found,
+returns an empty string.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.skinning.HiMirrorUtilitys.common_suffix">
+<code class="descname">common_suffix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.HiMirrorUtilitys.common_suffix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analyzes each node’s leaf name (after the last ‘|’) for an ending directional marker
+(e.g. _l, _r) and returns either a single marker if all are the same
+or a list of unique markers if there is variation. If none found, returns an empty string.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.skinning.HiMirrorUtilitys.find_mirror_nodes">
+<code class="descname">find_mirror_nodes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.HiMirrorUtilitys.find_mirror_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds mirror node pairs from self.short_names by flipping their directional
+markers (prefix and/or suffix) based on the common markers. Only pairs where the
+flipped name exists in self.short_names are recorded.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>dict: A mapping of each node to its mirror node.</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.assign_vertex_weight_to_shell">
+<code class="descname">assign_vertex_weight_to_shell</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.assign_vertex_weight_to_shell" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.assign_vertex_weight_to_loop">
+<code class="descname">assign_vertex_weight_to_loop</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.assign_vertex_weight_to_loop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy skin weight from one vertex and assign it to a loop of vertices defined by vertex pairs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>mesh</strong> – string name of the mesh. If None, it will use the current selected mesh.</li>
+<li><strong>vertex</strong> – list of vertex component strings. If None, will use ordered vertex selection.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.remove_joint_weights">
+<code class="descname">remove_joint_weights</code><span class="sig-paren">(</span><em>joints=None</em>, <em>mesh=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.remove_joint_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.assign_exclusive_joint_weight">
+<code class="descname">assign_exclusive_joint_weight</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.assign_exclusive_joint_weight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign 100% skin weight to a joint on selected vertices and remove its influence from the rest.</p>
+<ul class="simple">
+<li>Selected vertices will get 100% influence from the specified joint.</li>
+<li>The rest of the mesh will have that joint’s weight set to 0%.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>joint</strong> – (str) Optional joint name. If None, uses selected joint.</li>
+<li><strong>mesh</strong> – (str) Optional mesh name. If None, uses selected mesh.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.get_selected_vertex">
+<code class="descname">get_selected_vertex</code><span class="sig-paren">(</span><em>shape</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.get_selected_vertex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert mesh component selection to vertices</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of string with the full pat of each vertex in the selection</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.find_shared_edge_between_vertices">
+<code class="descname">find_shared_edge_between_vertices</code><span class="sig-paren">(</span><em>mesh=None</em>, <em>vertex=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.find_shared_edge_between_vertices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the edge index that connects two vertices on a mesh.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>mesh</strong> – string name of the mesh shape. If None, will use current selection.</li>
+<li><strong>vertex</strong> – list of two vertex component names. If None, will use selected vertices.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">int or None, edge index connecting the two vertices (if found)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.find_all_edges_between_vertices">
+<code class="descname">find_all_edges_between_vertices</code><span class="sig-paren">(</span><em>vertex_pair</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.find_all_edges_between_vertices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and return the shortest contiguous edge path between two vertices using Bidirectional Breadth-First Search.</p>
+<p>This version expands search from both the start and end vertices simultaneously,
+improving performance by reducing the number of nodes visited.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vertex_pair</strong> – list of two vertex component names</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of edge component names forming the shortest path between both vertices</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.get_selected_vertex_shelf">
+<code class="descname">get_selected_vertex_shelf</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.get_selected_vertex_shelf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all vertices in the mesh shell connected to the currently selected component.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mesh</strong> – list of string names of mesh nodes to search. If None, it will use the current selection to determine the mesh.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of strings, vertex component names representing every vertex in the selected mesh shell</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.skinning.get_skin_cluster_on_mesh">
+<code class="descname">get_skin_cluster_on_mesh</code><span class="sig-paren">(</span><em>mesh</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.get_skin_cluster_on_mesh" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mesh</strong> – string name of shape or transform node</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of strings, names of skinCluster nodes attach to mesh</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -2015,6 +2251,24 @@ selected meshes or components  in given meshes</li>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="Red9.pro_pack.core.skinning.Skn_file.find_shapes">
+<code class="descname">find_shapes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.skinning.Skn_file.find_shapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and map shapes in the scene based on vertex count and optionally by short names.</p>
+<p>This method compares the shapes in <cite>self.data</cite> with meshes in the scene. Shapes are matched
+by vertex count and further refined by their short names if multiple matches exist.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">dict or None
+A dictionary containing matched shapes as keys and their associated data as values.
+Returns None if no matches are found or if <cite>self.data</cite> is empty.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -2023,7 +2277,7 @@ selected meshes or components  in given meshes</li>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Red9_Pro_skining.html" class="btn btn-neutral float-left" title="Pro_Pack : skining" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Red9_Pro_shaders.html" class="btn btn-neutral float-left" title="Pro_Pack : shaders" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="Red9_Pro_uibase.html" class="btn btn-neutral float-right" title="Pro_Pack : uibase" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

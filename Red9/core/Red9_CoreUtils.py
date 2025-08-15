@@ -16,7 +16,7 @@
     Setup : Follow the Install instructions in the Modules package
 '''
 
-from __future__ import print_function
+
 
 import maya.cmds as cmds
 import maya.OpenMaya as OpenMaya
@@ -30,10 +30,10 @@ import os
 import Red9.packages.configobj as configobj
 import Red9.startup.setup as r9Setup
 
-import Red9_General as r9General
-import Red9_Audio as r9Audio
-import Red9_AnimationUtils as r9Anim
-import Red9_Meta as r9Meta
+from . import Red9_General as r9General
+from . import Red9_Audio as r9Audio
+from . import Red9_AnimationUtils as r9Anim
+from . import Red9_Meta as r9Meta
 
 import logging
 logging.basicConfig()
@@ -270,7 +270,7 @@ def decodeString(val):
         except:
             log.debug('failed to convert configObj section %s' % val)
 
-        if not issubclass(type(val), str) and not type(val) == unicode:
+        if not issubclass(type(val), str) and not type(val) == str:
             # log.debug('Val : %s : is not a string / unicode' % val)
             # log.debug('ValType : %s > left undecoded' % type(val))
             return val
@@ -296,15 +296,13 @@ def decodeString(val):
             # log.debug('Decoded as type(dict)')
             return eval(val)
         try:
-            encoded = int(val)
             # log.debug('Decoded as type(int)')
-            return encoded
+            return int(val)
         except:
             pass
         try:
-            encoded = float(val)
             # log.debug('Decoded as type(float)')
-            return encoded
+            return float(val)
         except:
             pass
     except:
@@ -313,19 +311,23 @@ def decodeString(val):
     return val
 
 
-def validateString(strText, fix=False, illegals=['-', '#', '!', ' ', '@']):
+def validateString(strText, fix=False, illegals=['-', '#', '!', ' ', '@'], mayanode=False):
     '''
     Function to validate that a string has no illegal characters
 
     :param strText: text to validate
     :param fix: if True then we replace illegals with '_'
     :param illegals: now allow you to pass in what you consider illegals, default=['-', '#', '!', ' ', '@']
+    :param mayanode: if True we assume we're processing a string name for a Maya node and add in '.' to the list. 
+        this is ommitted by default as generally we're processing filenames
     '''
     # numerics=['1','2','3','4','5','6','7','8','9','0']
     # illegals=['-', '#', '!', ' ']
     base = strText
     # if strText[0] in numerics:
     #    raise ValueError('Strings must NOT start with a numeric! >> %s' % strText)
+    if mayanode:
+        illegals.append('.')
     illegal = [i for i in illegals if i in strText]
     if illegal:
         if not fix:
@@ -335,6 +337,61 @@ def validateString(strText, fix=False, illegals=['-', '#', '!', ' ', '@']):
                 strText = strText.replace(i, '_')
             log.info('%s : reformatted string to valid string : %s' % (base, strText))
     return strText
+
+def filterListByString_ratiobased(input_list, filter_string, matchcase=False, threshold=0.8, return_simple=True, adjustedlen=False):
+    '''
+    Generic way to filter a list of strings by a given string input. Unlike the base filterListByString
+    function, this uses difflib and has a threshold of match certainty, allowing typo's to still be matched.
+    However, unlike the other function this won't handle  long matches or clamps etc. Best currently used
+    for simple string list inputs
+
+    :param iniput_list: list of strings to be filtered
+    :param filter_string: string to use in the filter
+    :param matchcase: whether to match or ignore case sensitivity
+    :param threshold: the certainty ratio in the match that comes back from difflib.SequenceMatcher
+    :param return_simple: if True we return just a list of matches, else we return the matches and their match ratios
+    
+    TODO: look at RapidFuzz as an alternative library for better "Fuzzy" matching if needed based on Levenshtein distance
+    
+    >>> input_list = ['attack','atack','attck','attak','tack','tick']
+    >>> filter_string = 'attck'
+    >>> filterListByString_ratiobased(input_list, filter_string threshold=0.9)
+    >>> # returns : ['attack', 'attck']
+    
+    '''
+    import difflib
+    matches = []
+    highest_ratio = 0
+
+    # if r9General.is_basestring(input_list):
+    #     input_list = [f for f in input_list.rstrip(',').split(',') if f]
+    filter_length = len(filter_string)
+    
+    for item in input_list:
+        # difflib.SequenceMatcher for the ration of match here
+        if matchcase:
+            matcher = difflib.SequenceMatcher(None, filter_string, item)
+        else:
+            matcher = difflib.SequenceMatcher(None, filter_string.lower(), item.lower())
+        ratio = matcher.ratio()
+        
+        # test, should we alter the threshold based on the length of the item against the original filter?
+        adjusted_threshold = threshold
+        if adjustedlen and len(item) > filter_length:
+            adjusted_threshold = threshold * (len(filter_string) / len(item))   
+                    
+        # test the confidence of the match against the thershold
+        if ratio >= adjusted_threshold:
+            matches.append((item, ratio))
+            print('matched : %s > %s' % (item, ratio))
+            if ratio > highest_ratio:
+                best_match = item
+                highest_ratio = ratio
+
+    if return_simple:
+        return [m[0] for m in matches]
+    else:
+        return matches
 
 
 def filterListByString(input_list, filter_string, matchcase=False, os_basename=False):
@@ -368,9 +425,10 @@ def filterListByString(input_list, filter_string, matchcase=False, os_basename=F
 #         filter_string = filter_string.upper()
 
     filteredList = []
-
-    filterBy = [f for f in filter_string.rstrip(',').split(',') if f]
     pattern = []
+        
+    filterBy = [f for f in filter_string.rstrip(',').split(',') if f]
+
     for n in filterBy:
         if ' ' in n:
             pattern.append('(%s)' % n.replace(' ', ')+.*('))
@@ -384,7 +442,7 @@ def filterListByString(input_list, filter_string, matchcase=False, os_basename=F
 
     log.debug('new search pattern : %s' % filterPattern)
 
-    regexFilter = re.compile('(' + filterPattern + ')')  # convert into a regularExpression
+    # regexFilter = re.compile('(' + filterPattern + ')')  # convert into a regularExpression
 
     for item in input_list:
         if os_basename:
@@ -393,7 +451,8 @@ def filterListByString(input_list, filter_string, matchcase=False, os_basename=F
             data = item
 #         if not matchcase:
 #             data = data.upper()
-        if regexFilter.search(data):
+        # if regexFilter.search(data):
+        if re.search(filterPattern, data):
 #             print(data,item,filterPattern)
             if item not in filteredList:
                 filteredList.append(item)
@@ -463,7 +522,7 @@ def parent(children, parent=None, *args, **kws):
 
     :param children: [] children to parent / check parenting
     :param parent: parent to move the child under
-    :rtype: the newly parented full dag path
+    :rtype: the newly parented full dag path, always a list as we're passing in children also as a list
     '''
     _rpaths = []
     if r9General.is_basestring(children):
@@ -633,7 +692,7 @@ class FilterNode_Settings(object):
             this is a new function allowing a dict of data to be passed into the
             object from a config file or mNode directly
         '''
-        for key, val in data.items():
+        for key, val in list(data.items()):
             try:
                 self.__dict__[key] = decodeString(val)
             except:
@@ -667,7 +726,7 @@ class FilterNode_Settings(object):
             if os.path.exists(os.path.join(r9Setup.red9Presets(), filepath)):
                 filepath = os.path.join(r9Setup.red9Presets(), filepath)
 
-        for key, val in configobj.ConfigObj(filepath)['filterNode_settings'].items():
+        for key, val in list(configobj.ConfigObj(filepath)['filterNode_settings'].items()):
             # because config is built from string data
             # we need to deal with specific types here
             try:
@@ -695,10 +754,11 @@ class FilterNode_UI(object):
         if cmds.window(self.win, exists=True):
             cmds.deleteUI(self.win, window=True)
 
+    @r9General.windows_qt_wrap
     def _showUI(self):
         self.close()
 
-        window = cmds.window(self.win, title=LANGUAGE_MAP._SearchNodeUI_.title)  # , widthHeight=(400, 400))
+        window = cmds.window(self.win, title=LANGUAGE_MAP._SearchNodeUI_.title)  #, iconName='red9.xpm')  # , widthHeight=(400, 400))
         cmds.menuBarLayout()
         cmds.menu(l=LANGUAGE_MAP._Generic_.vimeo_menu)
         cmds.menuItem(l=LANGUAGE_MAP._Generic_.vimeo_help,
@@ -741,9 +801,15 @@ class FilterNode_UI(object):
         cmds.checkBox(l=LANGUAGE_MAP._Generic_.parent_constraint, v=False,
                         onc=lambda x: self.cbNodeTypes.append('parentConstraint'),
                         ofc=lambda x: self.cbNodeTypes.remove('parentConstraint'))
+        cmds.checkBox(l=LANGUAGE_MAP._Generic_.aim_constraint, v=False,
+                        onc=lambda x: self.cbNodeTypes.append('aimConstraint'),
+                        ofc=lambda x: self.cbNodeTypes.remove('aimConstraint'))
         cmds.checkBox(l=LANGUAGE_MAP._Generic_.ik_handles, v=False,
                         onc=lambda x: self.cbNodeTypes.append('ikHandle'),
                         ofc=lambda x: self.cbNodeTypes.remove('ikHandle'))
+        cmds.checkBox(l=LANGUAGE_MAP._Generic_.clusters, v=False,
+                        onc=lambda x: self.cbNodeTypes.append('cluster'),
+                        ofc=lambda x: self.cbNodeTypes.remove('cluster'))
         cmds.checkBox(l=LANGUAGE_MAP._Generic_.transforms, v=False,
                         onc=lambda x: self.cbNodeTypes.append('transform'),
                         ofc=lambda x: self.cbNodeTypes.remove('transform'))
@@ -819,7 +885,7 @@ class FilterNode_UI(object):
             if cmds.checkBox(self.uiCbFromSelected, q=True, v=True):
                 self._filterNode.rootNodes = cmds.ls(sl=True, l=True)
                 if not self._filterNode.rootNodes:
-                    raise StandardError('No Root Nodes Given for Filtering')
+                    raise Exception('No Root Nodes Given for Filtering')
             else:
                 self._filterNode.rootNodes = None
                 self._filterNode.processMode = 'Scene'
@@ -830,7 +896,7 @@ class FilterNode_UI(object):
         elif mode == 'FullHierarchy':
             self._filterNode.rootNodes = cmds.ls(sl=True, l=True)
             if not self._filterNode.rootNodes:
-                raise StandardError('No Root Objects selected to process')
+                raise Exception('No Root Objects selected to process')
             nodes = self._filterNode.lsHierarchy(self._filterNode.settings.incRoots)
 
         log.info('RootNodes : %s', self._filterNode.rootNodes)
@@ -886,7 +952,7 @@ class FilterNode(object):
             if issubclass(type(filterSettings), FilterNode_Settings):
                 self.settings = filterSettings
             else:
-                raise StandardError('filterSettings param requires an r9Core.FilterNode_Settings object')
+                raise Exception('filterSettings param requires an r9Core.FilterNode_Settings object')
         else:
             self.settings = FilterNode_Settings()
 
@@ -945,9 +1011,19 @@ class FilterNode(object):
         mrig = None
         if not self.settings.metaRig:
             return
+        # if len(self._rootNodes) == 1:
+        #     if r9Meta.isMetaNode(self._rootNodes[0]) and issubclass(type(self._rootNodes[0]), r9Meta.MetaRig):
+        #         mrig = r9Meta.MetaClass(self._rootNodes[0])
+        #     else:
+        #         print 
+        #         mrig = r9Meta.getConnectedMetaSystemRoot(self._rootNodes[0], mInstances=r9Meta.MetaRig)
+
         if len(self._rootNodes) == 1:
-            if r9Meta.isMetaNode(self._rootNodes[0]) and issubclass(type(self._rootNodes[0]), r9Meta.MetaRig):
-                mrig = r9Meta.MetaClass(self._rootNodes[0])
+            if r9Meta.isMetaNode(self._rootNodes[0]):
+                if issubclass(type(self._rootNodes[0]), r9Meta.MetaRig):
+                    mrig = self._rootNodes[0]
+                elif r9Meta.isMetaNodeInherited(self._rootNodes[0], mInstances=r9Meta.MetaRig):
+                    mrig = r9Meta.MetaClass(self._rootNodes[0])
             else:
                 mrig = r9Meta.getConnectedMetaSystemRoot(self._rootNodes[0], mInstances=r9Meta.MetaRig)
             if mrig:
@@ -962,9 +1038,9 @@ class FilterNode(object):
                             self.settings.rigData['snapPriority'] = mrig.settings.rigData['snapPriority']
                         else:
                             self.settings.rigData['snapPriority'] = True
-                        self.settings.printSettings()
+#                         self.settings.printSettings()
                         # log.info('==============================================================')
-                    except StandardError, err:
+                    except Exception as err:
                         log.info('mRig has FilterSettings data but is NOT a Pro_MetaRig - settings aborted')
                         log.info(err)
                 else:
@@ -1046,7 +1122,7 @@ class FilterNode(object):
                         self.hierarchy.extend(cmds.listRelatives(node, ad=True, f=True, type='transform') or [])
             return self.hierarchy
         else:
-            raise StandardError('rootNodes not given to class - processing at SceneLevel Only - lsHierarchy is therefore invalid')
+            raise Exception('rootNodes not given to class - processing at SceneLevel Only - lsHierarchy is therefore invalid')
 
     # Node Management Block
     # ---------------------------------------------------------------------------------
@@ -1131,7 +1207,7 @@ class FilterNode(object):
                                 blendShapes = [node for node in cmds.listHistory(mesh) if cmds.nodeType(node) == 'blendShape']
                                 if blendShapes:
                                     typeMatched.extend(blendShapes)
-            except StandardError, error:
+            except Exception as error:
                 log.debug(error)
                 log.warning('UnknownDataType Given in sublist : %s', nodeTypes)
 
@@ -1179,6 +1255,15 @@ class FilterNode(object):
         '''
         return self.lsSearchNodeTypes('mesh')
 
+    def lsMeshes_transforms(self):
+        '''
+        Filter for Meshes : from a start node find all mesh nodes in the hierarchy
+        but return the mesh parent transforms rather than the shape nodes
+        '''
+        meshes = self.lsSearchNodeTypes('mesh')
+        data = [cmds.listRelatives(m, p=True, f=True)[0] for m in meshes]
+        return list(set(data))
+    
     def lsTransforms(self):
         '''
         Filter for Transforms : from a start node find all transform nodes in the hierarchy
@@ -1251,7 +1336,7 @@ class FilterNode(object):
         :param allow_ref: if False and "safe" we remove all references animCurves, else we leave them in the return
         '''
         animCurves = []
-        treeDepth = 2
+        treeDepth = 3
         if not nodes:
             animCurves = cmds.ls(type='animCurve', r=True)
         else:
@@ -1290,7 +1375,7 @@ class FilterNode(object):
                 if cmds.nodeType(cmds.listConnections(animCurve)) == 'clipLibrary':
                     safeCurves.remove(animCurve)
                     continue
-                # ignore curve if FUCKING animlayer it's a member of is locked!
+                # ignore curve if animlayer it's a member of is locked!
                 if cmds.getAttr("%s.ktv" % animCurve, l=True):
                     safeCurves.remove(animCurve)
                     continue
@@ -1355,8 +1440,8 @@ class FilterNode(object):
                 includeAttrs[attr] = val
 
         if logging_is_debug():
-            log.debug('includes : %s' % includeAttrs.items())
-            log.debug('excludes : %s' % excludeAttrs.items())
+            log.debug('includes : %s' % list(includeAttrs.items()))
+            log.debug('excludes : %s' % list(excludeAttrs.items()))
 
         # Node block
         if not nodes:
@@ -1365,7 +1450,7 @@ class FilterNode(object):
             else:
                 nodes = self.lsHierarchy(incRoots=incRoots)
             if not nodes:
-                raise StandardError('No nodes found to process')
+                raise Exception('No nodes found to process')
 
         # Search block
         for node in nodes:
@@ -1377,7 +1462,7 @@ class FilterNode(object):
                 add = True
 
             # Main test block, does the node get through the filter?
-            for attr, val in includeAttrs.items():  # INCLUDE TESTS
+            for attr, val in list(includeAttrs.items()):  # INCLUDE TESTS
                 if cmds.attributeQuery(attr, exists=True, node=node):
                     if val[0]:  # value test
                         if not type(val[1]) == float:
@@ -1409,7 +1494,7 @@ class FilterNode(object):
                         log.debug('attr Include : Value Mismatch found : <BREAKOUT>')
                         break
 
-            for attr, val in excludeAttrs.items():  # EXCLUDE TESTS ('NOT:' operator)
+            for attr, val in list(excludeAttrs.items()):  # EXCLUDE TESTS ('NOT:' operator)
                 if cmds.attributeQuery(attr, exists=True, node=node):
                     if val[0]:  # value Test
                         if not type(val[1]) == float:
@@ -1495,7 +1580,7 @@ class FilterNode(object):
             else:
                 nodes = self.lsHierarchy(incRoots=incRoots)
             if not nodes:
-                raise StandardError('No nodes found to process')
+                raise Exception('No nodes found to process')
 
         # Actual Search calls
         if exclude:
@@ -1531,13 +1616,13 @@ class FilterNode(object):
                 # Test the full hierarchy for characterSet memberships
                 hierarchy = self.lsHierarchy(incRoots=True)
                 if not hierarchy:
-                    raise StandardError('Roots have no children to process')
+                    raise Exception('Roots have no children to process')
                 for f in hierarchy:
                     linked = cmds.listConnections(f, type='character')
                     if linked:
                         [cSets.append(cSet) for cSet in linked if cSet not in cSets]
         else:
-            raise StandardError('rootNodes not given to class - processing at SceneLevel Only')
+            raise Exception('rootNodes not given to class - processing at SceneLevel Only')
         return cSets
 
     def lsCharacterMembers(self):
@@ -1563,7 +1648,7 @@ class FilterNode(object):
 
             return cmds.ls(self.characterSetMembers, l=True)
 
-    def lsMetaRigControllers(self, walk=True, incMain=True):
+    def lsMetaRigControllers(self, walk=True, incMain=True, incOffset=True):
         '''
         very light wrapper to handle MetaData in the FilterSystems. This is hard coded
         to find CTRL markered attrs and give back the attached nodes
@@ -1572,6 +1657,9 @@ class FilterNode(object):
         :param incMain: Like the other filters we allow the given top
             node in the hierarchy to be removed from processing. In a MetaRig
             this is the CTRL_Main controller which should be Top World Space
+        :param incOffset: Like the other filters we allow the secondary root node 
+            (OffsetCtrl) in the hierarchy to be removed from processing. In a MetaRig
+            this is the CTRL_Offset controller which should be secondary parent under the Main_Ctrl
         '''
         rigCtrls = []
         metaNodes = []
@@ -1602,9 +1690,13 @@ class FilterNode(object):
                 if ctrls and not incMain:
                     if meta.ctrl_main in ctrls:
                         ctrls.remove(meta.ctrl_main)
-#                     # 08/10/2021 added the ctrl_offset to this call so we now ignore the CTRL_Offset
-#                     if meta.ctrl_offset  in ctrls:
-#                         ctrls.remove(meta.ctrl_offset)
+                if ctrls and not incOffset:
+                    try:
+                        # 08/10/2021 added the ctrl_offset to this call so we now ignore the CTRL_Offset
+                        if meta.ctrl_offset  in ctrls:
+                            ctrls.remove(meta.ctrl_offset)
+                    except:
+                        log.debug('Failed to remove OffsetCtrl from stack')
                 rigCtrls.extend(ctrls)
         return rigCtrls
 
@@ -1652,7 +1744,7 @@ class FilterNode(object):
                     self.intersectionData = []
 
             # If FilterSettings have no effect then just return the rootNodes
-            if not self.settings.filterIsActive:
+            if not self.settings.filterIsActive():
                 return self.rootNodes
 
             # Straight Hierarchy Filter ----------------------
@@ -1731,7 +1823,7 @@ def getBlendTargetsFromMesh(node, asList=True, returnAll=False, levels=4, indexe
             weights = cmds.aliasAttr(blend, q=True)
             # print weights
             if weights:
-                data = zip(weights[1::2], weights[0::2])
+                data = list(zip(weights[1::2], weights[0::2]))
                 weightKey = lambda x: int(x[0].replace('weight[', '').replace(']', ''))
                 weightSorted = sorted(data, key=weightKey)
                 if asList:
@@ -1832,11 +1924,11 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix', returnfails=
         _B_prefix = '^%s' %_B_prefix.upper()
 
     if matchMethod == 'index':
-        matchedData = zip(nodeListA, nodeListB)
+        matchedData = list(zip(nodeListA, nodeListB))
     elif matchMethod == 'indexReversed':
         nodeListA.reverse()
         nodeListB.reverse()
-        matchedData = zip(nodeListA, nodeListB)
+        matchedData = list(zip(nodeListA, nodeListB))
     else:
         for nodeA in nodeListA:
             if matchMethod == 'mirrorIndex':
@@ -1928,7 +2020,7 @@ def matchNodeLists(nodeListA, nodeListB, matchMethod='stripPrefix', returnfails=
 
                     # straight metaData wire compare
                     elif matchMethod == 'metaData':
-                        if nodeB not in metaDictB.keys():
+                        if nodeB not in list(metaDictB.keys()):
                             metaDictB[nodeB] = getMetaDict(nodeB)
                         if metaDictA and metaDictA == metaDictB[nodeB]:  # getMetaDict(nodeB):
                             if logging_is_debug():
@@ -1996,7 +2088,7 @@ def processMatchedNodes(nodes=None, filterSettings=None, toMany=False, matchMeth
         nodeList.MatchedPairs = [(nodes[0], node) for node in nodes]
 
     if not nodeList.MatchedPairs:
-        raise StandardError('ProcessNodes returned no Nodes to process')
+        raise Exception('ProcessNodes returned no Nodes to process')
 
     return nodeList
 
@@ -2040,7 +2132,7 @@ class MatchedNodeInputs(object):
             if issubclass(type(filterSettings), FilterNode_Settings):
                 self.settings = filterSettings
             else:
-                raise StandardError('settings param requires an FilterNode_Settings object')
+                raise Exception('settings param requires an FilterNode_Settings object')
         else:
             self.settings = FilterNode_Settings()
 
@@ -2056,7 +2148,7 @@ class MatchedNodeInputs(object):
         '''
         if self.settings.filterIsActive():
             if not len(self.roots) == 2:
-                raise StandardError('Please select ONLY 2 base objects for hierarchy comparison')
+                raise Exception('Please select ONLY 2 base objects for hierarchy comparison')
 
             # take a single instance of a FilterNode and process both root hierarchies
             filterNode = FilterNode(filterSettings=self.settings)
@@ -2087,7 +2179,7 @@ class MatchedNodeInputs(object):
                     self.unmatched = [node for node in rematched if node in self.unmatched]
         else:
             if not len(self.roots) >= 2:
-                raise StandardError('Please select 2 or more matching base objects')
+                raise Exception('Please select 2 or more matching base objects')
             if len(self.roots) == 2 and type(self.roots[0]) == list and type(self.roots[1]) == list:
                 log.debug('<<2 lists passed in as roots - Assuming these are 2 hierarchies to process>>')
                 self.MatchedPairs = matchNodeLists(self.roots[0], self.roots[1],
@@ -2097,7 +2189,7 @@ class MatchedNodeInputs(object):
             else:
                 # No matching, just take roots as selected and substring them with step
                 # so that (roots[0],roots[1])(roots[2],roots[3])
-                self.MatchedPairs = zip(self.roots[0::2], self.roots[1::2])
+                self.MatchedPairs = list(zip(self.roots[0::2], self.roots[1::2]))
                 for a, b in self.MatchedPairs:
                     log.debug('Blind Selection Matched  : %s == %s' % (a, b))
 
@@ -2128,6 +2220,7 @@ class LockChannels(object):
             if cmds.window(self.win, exists=True):
                 cmds.deleteUI(self.win, window=True)
 
+        @r9General.windows_qt_wrap
         def _showUI(self):
             self.close()
             window = cmds.window(self.win, title=LANGUAGE_MAP._LockChannelsUI_.title, s=True)  # widthHeight=(260, 410))
@@ -2300,11 +2393,11 @@ class LockChannels(object):
             nodes = cmds.ls(sl=True, l=True)
 
             if hierarchy and not nodes:
-                raise StandardError('No Root of hierarchy selected to Process')
+                raise Exception('No Root of hierarchy selected to Process')
             if hierarchy and nodes and r9Meta.isMetaNode(nodes[0]):
-                raise StandardError('MetaData node can not be the Root for hierarchy processing')
+                raise Exception('MetaData node can not be the Root for hierarchy processing')
             if not hierarchy and not nodes:
-                raise StandardError('No nodes selected to Process')
+                raise Exception('No nodes selected to Process')
 
             if not cmds.checkBox('serializeToNode', q=True, v=True):
                 if mode == 'load':
@@ -2316,7 +2409,7 @@ class LockChannels(object):
             else:
                 serializerNode = cmds.textFieldButtonGrp('uitfbg_serializeNode', q=True, text=True)
                 if not cmds.objExists(serializerNode):
-                    raise StandardError('No VALID MayaNode given to save/load the attrMaps to/From')
+                    raise Exception('No VALID MayaNode given to save/load the attrMaps to/From')
                 if mode == 'load':
                     LockChannels().loadChannelMap(filepath=None, nodes=nodes, hierarchy=hierarchy, serializeNode=serializerNode)
                 elif mode == 'save':
@@ -2386,9 +2479,9 @@ class LockChannels(object):
             try:
                 node.attrSetLocked('attrMap', True)
                 # cmds.setAttr('%s.attrMap' % serializeNode, l=True)
-            except StandardError, error:
+            except Exception as error:
                 # referenced attrs, even though we've just added it, can't be locked!
-                raise StandardError(error)
+                raise Exception(error)
         log.info('<< AttrMap Processed >>')
 
     def loadChannelMap(self, filepath=None, nodes=None, hierarchy=True, serializeNode=None):
@@ -2420,7 +2513,7 @@ class LockChannels(object):
                 self.statusDict = serializeNode.attrMap
                 # print type(self.statusDict), self.statusDict
             else:
-                raise StandardError('attrMap not found on given node')
+                raise Exception('attrMap not found on given node')
 
         for node in nodes:
             key = nodeNameStrip(node)
@@ -2434,7 +2527,7 @@ class LockChannels(object):
                         if not attr in ['rotate', 'translate', 'scale']:
                             cmds.setAttr('%s.%s' % (node, attr), keyable=False, lock=True, channelBox=False)
                     except:
-                        log.info('%s : failed to set initial state' % attr)
+                        log.debug('%s.%s : failed to set initial state' % (node, attr))
 
                 # NOTE: this looks a slow way of processing but an Attr will
                 # only ever appear in one of these lists so not really an overhead
@@ -2501,7 +2594,6 @@ class LockChannels(object):
         elif attrs == 'transforms_complete':
             _attrs = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz", "rotate", "transform", "scale"]
 
-#         if not hasattr(_attrs, '__iter__'):
         if r9General.is_basestring(_attrs):
             _attrs = set([_attrs])
         if not type(_attrs) == set:
@@ -2565,7 +2657,7 @@ class LockChannels(object):
                         else:
                             cmds.setAttr(attrString, **attrKws)
 
-                except StandardError, error:
+                except Exception as error:
                     log.info(error)
 
 #                 try:
@@ -2651,7 +2743,8 @@ def timeOffset_collapse(scene=False, timerange=None, mRigs=False):
         timerange = r9Anim.timeLineRangeGet(always=True)
     nodes = None
     if not timerange:
-        raise StandardError('No timeRange selected to Compress')
+        raise Exception('No timeRange selected to Compress')
+    log.info('Collapsing timerange: %f>>%f' % (timerange[0], timerange[1]))
     offset = -(timerange[1] - timerange[0])
     if not scene:
         nodes = cmds.ls(sl=True, l=True)
@@ -2670,6 +2763,12 @@ def timeOffset_collapseUI():
                                        float(cmds.textField('end', q=True, tx=True))),
                             mRigs=mrigs)
 
+    def __uicb_set(*args):
+        timeRange = r9Anim.timeLineRangeGet(always=True)
+        cmds.textField('start', e=True, tx=timeRange[0])
+        cmds.textField('end', e=True, tx=timeRange[1])
+
+        
     timeRange = r9Anim.timeLineRangeGet(always=True)
 
     win = 'CollapseTime_UI'
@@ -2680,11 +2779,13 @@ def timeOffset_collapseUI():
     cmds.separator(h=10, style='none')
     cmds.text(label=LANGUAGE_MAP._MainMenus_.collapse_time)
     cmds.separator(h=15, style='in')
-    cmds.rowColumnLayout(nc=4, cw=((1, 60), (2, 80), (3, 60), (4, 80)))
+    cmds.rowColumnLayout(nc=5, cw=((1, 50), (2, 60), (3, 50), (4, 60), (5,40)), cs=((1, 10), (3, 10), (5,10)))
     cmds.text(label='Start Frm: ')
     cmds.textField('start', tx=timeRange[0], w=40)
     cmds.text(label='End Frm: ')
     cmds.textField('end', tx=timeRange[1], w=40)
+    cmds.button(label=LANGUAGE_MAP._Generic_.set,
+                command=__uicb_set)
     cmds.setParent('..')
     cmds.separator(h=10, style='none')
     cmds.rowColumnLayout(nc=2, cw=((1, 150), (2, 150)))
@@ -2753,7 +2854,7 @@ class TimeOffset(object):
         if timerange and startfrm:
             offset = offset - timerange[0]
 
-        log.debug('TimeOffset Scene : offset=%s, timelines=%s' %
+        log.info('TimeOffset Scene : offset=%s, timelines=%s' %
                   (offset, str(timelines)))
         cls._processed = {}  # clear the cache
 
@@ -2803,7 +2904,7 @@ class TimeOffset(object):
         if startfrm:
             if timerange:
                 offset = offset - timerange[0]
-                log.info('New Offset calculated based on given Start Frm and timerange : %s' % offset)
+                log.info('New Offset calculated based on given Start Frm and timerange (%s:%s) : OFFSET: %s' % (timerange[0], timerange[1], offset))
             else:
                 log.warning('"startfrm" argument requires the "timeRange" argument to also be passed in, using offset as is was passed in! : %s' % offset)
         if logging_is_debug():
@@ -2813,7 +2914,6 @@ class TimeOffset(object):
         if not nodes:
             basenodes = cmds.ls(sl=True, l=True)
         else:
-#             if not hasattr(nodes, '__iter__'):
             if r9General.is_basestring(nodes):
                 basenodes = [nodes]
             else:
@@ -2860,7 +2960,6 @@ class TimeOffset(object):
             filtered = basenodes
 
         if filtered:
-#             with r9General.undoContext():
             with r9General.AnimationContext(eval_mode='anim', time=False, undo=True):
                 if flocking or randomize:
                     cachedOffset = 0  # Cached last flocking value
@@ -2900,7 +2999,7 @@ class TimeOffset(object):
 
                 return cls._processed
         else:
-            raise StandardError('Nothing selected or returned from the Hierarchy filter to offset')
+            raise Exception('Nothing selected or returned from the Hierarchy filter to offset')
 
     @classmethod
     def animCurves(cls, offset, nodes=None, timerange=None, ripple=True, safe=True, allow_ref=False):
@@ -2959,7 +3058,7 @@ class TimeOffset(object):
                         cmds.keyframe(curve, edit=True, r=True, timeChange=offset)
                     log.debug('offsetting: %s' % curve)
                     curves_moved.append(curve)
-                except StandardError, err:
+                except Exception as err:
                     log.info('Failed to offset curves fully : %s' % curve)
                     log.debug(err)
             log.info('%i : AnimCurves were offset' % len(curves_moved))
@@ -3243,14 +3342,215 @@ def timeIsInRange(baseRange=(), testRange=(), start_inRange=True, end_inRange=Tr
             return end
     return all([start, end])
 
-
 def distanceBetween(nodeA, nodeB):
     '''
-    simple calculation to return the distance between 2 objects
+    simple calculation to return the distance between 2 objects, also works on components
+
+    .. note::
+        this will also work at the Component level
     '''
-    x1, y1, z1, _, _, _ = cmds.xform(nodeA, q=True, ws=True, piv=True)
-    x2, y2, z2, _, _, _ = cmds.xform(nodeB, q=True, ws=True, piv=True)
+    if 'transform' in cmds.nodeType(nodeA):
+        x1, y1, z1, _, _, _ = cmds.xform(nodeA, q=True, ws=True, piv=True)
+    else:
+        x1, y1, z1 = cmds.xform(nodeA, q=True, ws=True, t=True)
+    if 'transform' in cmds.nodeType(nodeB):
+        x2, y2, z2, _, _, _ = cmds.xform(nodeB, q=True, ws=True, piv=True)
+    else:
+        x2, y2, z2 = cmds.xform(nodeB, q=True, ws=True, t=True)
     return math.sqrt(math.pow((x1 - x2), 2) + math.pow((y1 - y2), 2) + math.pow((z1 - z2), 2))
+
+def getClosestNode(target, nodelist, select=False, return_type=0):
+    '''
+    From a list of transforms find the node that is closest to the target node and return
+
+    .. note::
+        this will also work at the Component level
+    
+    :param target: the node we're trying to find the closest match too
+    :param nodelist: list of nodes we're going to test against
+    :param select: if True we select the matching node
+    '''
+    distances = {}
+    for node in nodelist:
+        distances[distanceBetween(node, target)] = node
+    if select:
+        cmds.select(distances[sorted(distances)[0]])
+    return distances[sorted(distances)[0]]
+
+def sortByDistance(source, targets):
+    """
+    sort target objects by the distance to source object
+
+    :param source: string or list, string object name, use as start position to calculate distances to target objects
+    or list world space position use as start position to calculate distances to target objects
+    :param targets: list of strings, object names
+
+    :return: list of string, names of targets objects sorted by distances from closest to farther
+    """
+
+    if r9General.is_basestring(source):
+        source_xform = cmds.xform(source, q=True, ws=True, t=True)
+
+    if type(source) == list:
+        source_xform = source
+
+    distances = {}
+    for target in targets:
+        target_x, target_y, target_z = cmds.xform(target, q=True, ws=True, t=True)
+        distance = math.sqrt(math.pow((target_x - source_xform[0]), 2) +
+                             math.pow((target_y - source_xform[1]), 2) +
+                             math.pow((target_z - source_xform[2]), 2))
+        distances[distance] = target
+    return [distances[x] for x in sorted(distances)]
+
+def findByDistance(source, targets, index=0):
+    """
+    Find a target object base on the distance to source object, use index value to define the distance 0 for closest
+    -1 farther, default is 0
+
+    :param source: string or list, string object name, use as start position to calculate distances to target objects
+    list world space position use as start position to calculate distances to target objects
+    :param targets: list of strings, object names
+    :param index: int index of target objects sorted from closest to farther 0 been the closest target object -1
+    the farther default is 0
+    :return: string target object name
+    """
+
+    return sortByDistance(source, targets)[index]
+
+def getMirrorVertex(vertex=None, mirror_axis='x', selection_radius=1, select=True):
+
+    currentSelection = cmds.ls(sl=True)
+
+    # Get the selected vertex
+    if not vertex:
+        sel = cmds.ls(sl=True, fl=True)
+        if sel and cmds.nodeType(sel[0]) == 'mesh':
+            vertex = sel[0]
+
+    if not vertex:
+        return []
+
+    # Get the transform node containing the vertex
+    object_name = vertex.split('.')[0]
+
+    # Get the object's world space matrix
+    world_matrix = cmds.xform(object_name, q=True, ws=True, matrix=True)
+    world_matrix_mfn = OpenMaya.MMatrix()
+    OpenMaya.MScriptUtil.createMatrixFromList(world_matrix, world_matrix_mfn)
+
+    # Get the inverse of the object's world space matrix
+    inverse_matrix = world_matrix_mfn.inverse()
+
+    # Get the vertex position in world space
+    position = cmds.pointPosition(vertex)
+    position_mv = OpenMaya.MVector(position[0], position[1], position[2])
+
+    # Get the object's translation values
+    translation = cmds.xform(object_name, q=True, t=True, ws=True)
+    translation_mv = OpenMaya.MVector(translation[0], translation[1], translation[2])
+
+    # Transform the vertex position into object space
+    position_mv = (position_mv - translation_mv) * inverse_matrix
+
+    # Mirror the position along the specified axis
+    if mirror_axis == "x":
+        position_mv.x = -position_mv.x
+    elif mirror_axis == "y":
+        position_mv.y = -position_mv.y
+    elif mirror_axis == "z":
+        position_mv.z = -position_mv.z
+
+    # Transform the mirrored position back into world space
+    position_mv = position_mv * world_matrix_mfn + translation_mv
+
+    # Get the closest vertex to the mirrored position in world space
+    cmds.select(object_name)
+    cmds.polySelectConstraint(m=3, t=1, d=1, db=(0, selection_radius), dp=[position_mv.x, position_mv.y, position_mv.z])
+    mirror_vertex = cmds.ls(sl=True, fl=True)
+    cmds.polySelectConstraint(d=0)
+
+    if not mirror_vertex:
+        return []
+
+    if len(mirror_vertex) > 1:
+        mirror = findByDistance([position_mv.x, position_mv.y, position_mv.z], mirror_vertex)
+    else:
+        mirror = mirror_vertex[0]
+
+    if select:
+        cmds.select(cl=True)
+        cmds.select(mirror)
+    else:
+        cmds.select(cl=True)
+        cmds.select(currentSelection)
+
+    # Return the mirror vertex and wold space position
+    return (mirror, position_mv)
+
+
+# def getMirrorVertex(vertex=None, axis='x', selection_radius=1, select=True):
+#
+#     if not vertex:
+#         sel = cmds.ls(sl=True)
+#         if sel and cmds.nodeType(sel[0]) == 'mesh':
+#             vertex = sel[0]
+#
+#     if vertex:
+#         mesh = vertex.split('.')[0]
+#         pos = cmds.xform(vertex, q=True, os=True, t=True)
+#
+#         m_pos = [0 - pos[0] if axis == 'x' else pos[0],
+#                  0 - pos[1] if axis == 'y' else pos[1],
+#                  0 - pos[2] if axis == 'z' else pos[2]]
+#
+#         cmds.select(mesh)
+#         cmds.polySelectConstraint(m=3, t=1, d=1, db=(0, selection_radius), dp=m_pos)
+#         mirror_vertex = cmds.ls(sl=True, fl=True)
+#         cmds.polySelectConstraint(d=0)
+#
+#         if len(mirror_vertex) > 1:
+#             mirror = findByDistance(m_pos, cmds.ls(sl=True, fl=True))
+#         else:
+#             mirror = mirror_vertex[0]
+#
+#         if select:
+#             cmds.select(cl=True)
+#             cmds.select(mirror)
+#
+#         return mirror
+
+def snapToClosest(target_vtxs, input_vtxs, index=0):
+    '''
+    component snap, given a list of target_vtxs (on any mesh) snap the input_vtxs
+    to the closest matching world positions in the target list. Note that these 2
+    lists need to be flattened vtx lists ie:
+
+    >>> # select target vtx we're matching too
+    >>> target_vtxs = cmds.ls(sl=True, fl=True)
+    >>> # select vtx on the input mesh
+    >>> input_vtxs = cmds.ls(sl=True, fl=True)
+    >>> # run the matching
+    >>> r9Core.snapToClosest(target_vtxs, input_vtxs)
+
+    :param target_vtxs: list of source components, used to match too
+    :param input_vtxs: list of components we're going to be snapping
+    :param index: the index of tolerance. This is the order within the sorted list of closest distances in the match that we use. 0 is the closet, 1 is the second closest etc
+    '''
+    target_ws = {}
+    # cache the world space positions of the input vtx
+    for t_vtx in target_vtxs:
+        target_ws[t_vtx] =  cmds.xform(t_vtx, q=True, ws=True, t=True)
+
+    for i_vtx in input_vtxs:
+        x1, y1, z1 = cmds.xform(i_vtx, q=True, ws=True, t=True)
+        distances = {}
+        # find the closest target vtx
+        for t_vtx, ws in list(target_ws.items()):
+            distances[math.sqrt(math.pow((x1 - ws[0]), 2) + math.pow((y1 - ws[1]), 2) + math.pow((z1 - ws[2]), 2))] = t_vtx
+        closest_vtx = target_ws[distances[sorted(distances)[index]]]
+        # snap into place
+        cmds.xform(i_vtx, ws=True, t=(closest_vtx[0], closest_vtx[1], closest_vtx[2]))
 
 def convertUnits_internalToUI(value, unit):
     '''

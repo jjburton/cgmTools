@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9pro_templates/puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -116,7 +127,7 @@ This includes most of the context managers and decorators.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_General.getCurrentFPS" title="Red9.core.Red9_General.getCurrentFPS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getCurrentFPS</span></code></a>()</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">getCurrentFPS</span></code>([return_full_map])</td>
 <td>returns the current frames per second as a number, rather than a useless string</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_General.getModifier" title="Red9.core.Red9_General.getModifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">getModifier</span></code></a>()</td>
@@ -135,15 +146,15 @@ This includes most of the context managers and decorators.</p>
 <td>this is a hack to bypass an issue with getting the data back from the ScriptEditorHistory scroll.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_General.thumbNailScreen" title="Red9.core.Red9_General.thumbNailScreen"><code class="xref py py-obj docutils literal notranslate"><span class="pre">thumbNailScreen</span></code></a>(filepath,&nbsp;width,&nbsp;height[,&nbsp;…])</td>
-<td></td>
+<td>wrapper over the thumbnail calls</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_General.thumbnailFromPlayBlast" title="Red9.core.Red9_General.thumbnailFromPlayBlast"><code class="xref py py-obj docutils literal notranslate"><span class="pre">thumbnailFromPlayBlast</span></code></a>(filepath,&nbsp;width,&nbsp;height)</td>
-<td>Generate a ThumbNail of the screen Note: ‘cf’ flag is broken in 2012</td>
+<td>Generate a ThumbNail of the screen</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_General.thumbnailApiFromView" title="Red9.core.Red9_General.thumbnailApiFromView"><code class="xref py py-obj docutils literal notranslate"><span class="pre">thumbnailApiFromView</span></code></a>(filename,&nbsp;width,&nbsp;height)</td>
 <td>grab the thumbnail direct from the buffer.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_General.os_OpenFileDirectory" title="Red9.core.Red9_General.os_OpenFileDirectory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">os_OpenFileDirectory</span></code></a>(path)</td>
+<tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_General.os_OpenFileDirectory" title="Red9.core.Red9_General.os_OpenFileDirectory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">os_OpenFileDirectory</span></code></a>(path[,&nbsp;select])</td>
 <td>open the given folder in the default OS browser</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_General.os_OpenFile" title="Red9.core.Red9_General.os_OpenFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">os_OpenFile</span></code></a>(filePath,&nbsp;*args)</td>
@@ -162,7 +173,7 @@ This includes most of the context managers and decorators.</p>
 <td>write json file to disk</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_General.readJson" title="Red9.core.Red9_General.readJson"><code class="xref py py-obj docutils literal notranslate"><span class="pre">readJson</span></code></a>([filepath])</td>
-<td>file pat to drive where to read the file</td>
+<td>file path to drive where to read the file</td>
 </tr>
 </tbody>
 </table>
@@ -185,7 +196,7 @@ This includes most of the context managers and decorators.</p>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_General.HIKContext" title="Red9.core.Red9_General.HIKContext"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HIKContext</span></code></a>(NodeList)</td>
 <td>CONTEXT MANAGER : Simple Context Manager for restoring HIK Animation settings and managing HIK callbacks</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_General.SceneRestoreContext" title="Red9.core.Red9_General.SceneRestoreContext"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SceneRestoreContext</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#Red9.core.Red9_General.SceneRestoreContext" title="Red9.core.Red9_General.SceneRestoreContext"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SceneRestoreContext</span></code></a>([timeline,&nbsp;units,&nbsp;…])</td>
 <td>CONTEXT MANAGER : Simple Context Manager for restoring Scene Global settings</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#Red9.core.Red9_General.Timer" title="Red9.core.Red9_General.Timer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Timer</span></code></a>(func)</td>
@@ -196,12 +207,6 @@ This includes most of the context managers and decorators.</p>
 </tr>
 </tbody>
 </table>
-<dl class="function">
-<dt id="Red9.core.Red9_General.getCurrentFPS">
-<code class="descname">getCurrentFPS</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.getCurrentFPS" title="Permalink to this definition">¶</a></dt>
-<dd><p>returns the current frames per second as a number, rather than a useless string</p>
-</dd></dl>
-
 <dl class="function">
 <dt id="Red9.core.Red9_General.forceToString">
 <code class="descname">forceToString</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.forceToString" title="Permalink to this definition">¶</a></dt>
@@ -233,6 +238,23 @@ this will be threaded into all future calls, particularly ProPack exporter manag
 <dt id="Red9.core.Red9_General.scenePath">
 <code class="descname">scenePath</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.scenePath" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the directory that the current Maya scene is saved too</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.core.Red9_General.namespace_resolve_to_unique">
+<code class="descname">namespace_resolve_to_unique</code><span class="sig-paren">(</span><em>namespace</em>, <em>debug=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.namespace_resolve_to_unique" title="Permalink to this definition">¶</a></dt>
+<dd><p>resolve the given namespace and increment if required
+returning a non-clashing namespace</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>namespace</strong> – the namespace we want to make sure if unique</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the namespace given + _0x if clashes were found with others in the Maya scene</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -309,6 +331,13 @@ python 2 we have str and unicode both instances of basestring</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.core.Red9_General.is_iterable_not_str">
+<code class="descname">is_iterable_not_str</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.is_iterable_not_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>return True if the arg is iterable but crucially NOT a string or bytes, this skips strings and wraps
+python2 / 3.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.core.Red9_General.is_callable">
 <code class="descname">is_callable</code><span class="sig-paren">(</span><em>func</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.is_callable" title="Permalink to this definition">¶</a></dt>
 <dd><p>wrapper to check if a variable is callable, wrapping Python 2 &amp; 3</p>
@@ -332,6 +361,14 @@ python 2 we have str and unicode both instances of basestring</p>
 <dt id="Red9.core.Red9_General.playback_suspend">
 <code class="descname">playback_suspend</code><span class="sig-paren">(</span><em>func</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.playback_suspend" title="Permalink to this definition">¶</a></dt>
 <dd><p>DECORATOR : Suspend current playback and resume after the func</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.core.Red9_General.windows_qt_wrap">
+<code class="descname">windows_qt_wrap</code><span class="sig-paren">(</span><em>func</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.windows_qt_wrap" title="Permalink to this definition">¶</a></dt>
+<dd><p>DECORATOR : ProPack only : replace the Maya icon with the Red9 icon</p>
+<p>this creates a QT Wrap instance of the cmds UI so we can edit it directly
+with the propack calls</p>
 </dd></dl>
 
 <dl class="function">
@@ -450,12 +487,12 @@ This will internally set : evalmanage=False, cached_eval=False, evale_idle=True<
 
 <dl class="class">
 <dt id="Red9.core.Red9_General.undoContext">
-<em class="property">class </em><code class="descname">undoContext</code><span class="sig-paren">(</span><em>initialUndo=False</em>, <em>undoFuncCache=[]</em>, <em>undoDepth=1</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.undoContext" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descname">undoContext</code><span class="sig-paren">(</span><em>initialUndo=False</em>, <em>undoFuncCache=[]</em>, <em>undoDepth=1</em>, <em>chunkName=''</em>, <em>exitUndo=False</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.undoContext" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>CONTEXT MANAGER : Simple Context Manager for chunking the undoState</p>
 <p>If initialUndo is True then the context manager will manage what to do on entry with
 the undoStack. The idea is that if True the code will look at the last functions in the
-undoQueue and if any of those mantch those in the undoFuncCache, it’ll undo them to the
+undoQueue and if any of those match those in the undoFuncCache, it’ll undo them to the
 depth given.</p>
 <p>WHY?????? This is specifically designed for things like floatFliders where you’ve
 set a function to act on the ‘dc’ flag, (drag command) by passing that func through this
@@ -469,6 +506,7 @@ and return to the initial state, pre ALL drags, in one chunk.</p>
 <li><strong>initialUndo</strong> – on first process whether undo on entry to the context manager</li>
 <li><strong>undoFuncCache</strong> – only if initialUndo = True : functions to catch in the undo stack</li>
 <li><strong>undoDepth</strong> – only if initialUndo = True : depth of the undo stack to go to</li>
+<li><strong>exitUndo</strong> – if True we run undo on the chunk on exit</li>
 </ul>
 </td>
 </tr>
@@ -580,7 +618,7 @@ to do it</p>
 
 <dl class="class">
 <dt id="Red9.core.Red9_General.SceneRestoreContext">
-<em class="property">class </em><code class="descname">SceneRestoreContext</code><a class="headerlink" href="#Red9.core.Red9_General.SceneRestoreContext" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descname">SceneRestoreContext</code><span class="sig-paren">(</span><em>timeline=True</em>, <em>units=True</em>, <em>panels=True</em>, <em>cameras=True</em>, <em>sounds=True</em>, <em>colours=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.SceneRestoreContext" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>CONTEXT MANAGER : Simple Context Manager for restoring Scene Global settings</p>
 <p>Basically we store the state of all the modelPanels and timeLine
@@ -622,14 +660,14 @@ the UI to the previous state. Maybe this could be a tool in it’s own write?</p
 
 <dl class="function">
 <dt id="Red9.core.Red9_General.thumbNailScreen">
-<code class="descname">thumbNailScreen</code><span class="sig-paren">(</span><em>filepath</em>, <em>width</em>, <em>height</em>, <em>mode='api'</em>, <em>modelPanel=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.thumbNailScreen" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">thumbNailScreen</code><span class="sig-paren">(</span><em>filepath</em>, <em>width</em>, <em>height</em>, <em>mode='api'</em>, <em>modelPanel=None</em>, <em>compression='bmp'</em>, <em>force=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.thumbNailScreen" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrapper over the thumbnail calls</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="Red9.core.Red9_General.thumbnailFromPlayBlast">
-<code class="descname">thumbnailFromPlayBlast</code><span class="sig-paren">(</span><em>filepath</em>, <em>width</em>, <em>height</em>, <em>modelPanel=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.thumbnailFromPlayBlast" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate a ThumbNail of the screen
-Note: ‘cf’ flag is broken in 2012</p>
+<code class="descname">thumbnailFromPlayBlast</code><span class="sig-paren">(</span><em>filepath</em>, <em>width</em>, <em>height</em>, <em>modelPanel=None</em>, <em>compression='bmp'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.thumbnailFromPlayBlast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a ThumbNail of the screen</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -639,6 +677,7 @@ Note: ‘cf’ flag is broken in 2012</p>
 <li><strong>width</strong> – width of capture</li>
 <li><strong>height</strong> – height of capture</li>
 <li><strong>modePanel</strong> – modelPanel to grab the image from, default=None, works it out internally</li>
+<li><strong>compression</strong> – the image format we’re going to write (‘bmp’,’png’ … etc)</li>
 </ul>
 </td>
 </tr>
@@ -697,8 +736,21 @@ CURRENTLY NOT BEING CALLED - switched to pyperclip.py module</p>
 
 <dl class="function">
 <dt id="Red9.core.Red9_General.os_OpenFileDirectory">
-<code class="descname">os_OpenFileDirectory</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.os_OpenFileDirectory" title="Permalink to this definition">¶</a></dt>
+<code class="descname">os_OpenFileDirectory</code><span class="sig-paren">(</span><em>path</em>, <em>select=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.os_OpenFileDirectory" title="Permalink to this definition">¶</a></dt>
 <dd><p>open the given folder in the default OS browser</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> – the path to open</li>
+<li><strong>select</strong> – Win only, if True and the path is a file, not a folder, then we open up the folder and select the file
+else we open up the path and select the folder</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -789,7 +841,7 @@ Once downloaded drop it here Red9/pakcages/diffMerge.exe</p>
 <dl class="function">
 <dt id="Red9.core.Red9_General.readJson">
 <code class="descname">readJson</code><span class="sig-paren">(</span><em>filepath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.core.Red9_General.readJson" title="Permalink to this definition">¶</a></dt>
-<dd><p>file pat to drive where to read the file</p>
+<dd><p>file path to drive where to read the file</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

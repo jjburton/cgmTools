@@ -252,7 +252,7 @@ class Test_FilterNode():
         assert self.filterNode.ProcessFilter() == ['|World_Root|joint4|joint5_AttrMarked',
                                                  '|World_Root|Spine_Ctrl|L_Foot_MarkerAttr_Ctrl',
                                                  '|World_Root|Spine_Ctrl|R_Wrist_Ctrl|R_Pole_AttrMarked_Ctrl',
-                                                 '|World_Root|camera2', u'|World_Root|pCube4_AttrMarked']
+                                                 '|World_Root|camera2', '|World_Root|pCube4_AttrMarked']
 
 
     def test_ComplexMixedFilter(self):
@@ -333,7 +333,7 @@ class Test_FilterNode():
         # FAILS: as the lsCharacterMembers when run in the tests doesn't return a consistent
         # order, yet in practice in Maya it does????
         for n in self.filterNode.ProcessFilter():
-            print n
+            print(n)
         assert sorted(self.filterNode.ProcessFilter()) == sorted(['|World_Root2_chSet|nurbsCircle1',
                                                  '|World_Root2_chSet|Spine_Ctrl',
                                                   '|World_Root2_chSet|Spine_Ctrl|L_Foot_MarkerAttr_Ctrl',
@@ -458,6 +458,10 @@ class Test_baseFunctions():
         assert r9Core.filterListByString(testlist, 'Ff', matchcase=True) == []
         assert r9Core.filterListByString(testlist, 'big,ff', matchcase=False) == ['big', 'fluffy', 'redbigfat']
         assert r9Core.filterListByString(testlist, 'Big,ff', matchcase=True) == ['fluffy']
+        assert r9Core.filterListByString(testlist, 're+fa', matchcase=False) == ['redbigfat']
+        assert r9Core.filterListByString(testlist, 'fa+re', matchcase=False) == ['redbigfat']
+        assert r9Core.filterListByString(testlist, 're fa', matchcase=False) == ['redbigfat']
+        assert r9Core.filterListByString(testlist, 'fa re', matchcase=False) == []
 
     def test_floatIsEqual(self):
         assert not r9Core.floatIsEqual(1, 0.5, tolerance=0.5, allowGimbal=True)

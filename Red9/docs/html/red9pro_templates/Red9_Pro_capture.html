@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pro_Pack : capture &mdash; Red9 3.0 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Pro_Pack : deformers" href="Red9_Pro_deformers.html" />
+    <link rel="prev" title="Pro_Pack : audio" href="Red9_Pro_audio.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Red9<img src="../_static/Red9_ProPack_logo.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                3.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_AnimationUtils.html">Red9_AnimationUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Audio.html">Red9_Audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Core.html">Red9_CoreUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_General.html">Red9_General</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Meta.html">Red9_Meta</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_PoseSaver.html">Red9_PoseSaver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Setup.html">Red9_Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Tools.html">Red9_Tools</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_animation.html">Pro_Pack : animation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_export.html">Pro_Pack : exporter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_general.html">Pro_Pack : general</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Red9</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Pro_Pack : capture</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/red9pro_templates/Red9_Pro_capture.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="pro-pack-capture">
+<h1>Pro_Pack : capture<a class="headerlink" href="#pro-pack-capture" title="Permalink to this headline">¶</a></h1>
+<p>ProPack capture is a new module for anything we do with playblasting or screen capture.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># import statement for the module via the r9pro decompiler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="k">import</span> <span class="n">r9pro</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r9capture</span> <span class="o">=</span> <span class="n">r9pro</span><span class="o">.</span><span class="n">r9import</span><span class="p">(</span><span class="s1">&#39;r9capture&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<span class="target" id="module-Red9.pro_pack.core.capture"></span><p class="rubric">Main Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#Red9.pro_pack.core.capture.PlayblastTask" title="Red9.pro_pack.core.capture.PlayblastTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PlayblastTask</span></code></a>(*args,&nbsp;**kws)</td>
+<td>class handler for playblast calls in the export codebase.</td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="Red9.pro_pack.core.capture.playblast_wrap">
+<code class="descname">playblast_wrap</code><span class="sig-paren">(</span><em>filepath=None</em>, <em>view=True</em>, <em>open=False</em>, <em>settings=None</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.capture.playblast_wrap" title="Permalink to this definition">¶</a></dt>
+<dd><p>separate wrap over the main Playblast task so it can easily be run from a shelf button
+for consistency. The filepath is built automatically from the current scene but
+can also be passed in if needed. The settings for the playblast are taken directly 
+from the Exporter Playblast settings, again, for consistency</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filepath</strong> – optional filepath else we playblast the scene and save next to the Maya file</li>
+<li><strong>view</strong> – if True we open up the file generated in the native os supported media player</li>
+<li><strong>open</strong> – if True we open up the OS file location for the created movie</li>
+<li><strong>settings</strong> – allows you to pass in settings directly rather than always binding to the r9exp.EXPORTED_SETTINGS</li>
+<li><strong>verbose</strong> – prompt the user on how they want to deal with the file, warps the open and view args</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.core.capture.PlayblastTask">
+<em class="property">class </em><code class="descname">PlayblastTask</code><span class="sig-paren">(</span><em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.capture.PlayblastTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>class handler for playblast calls in the export codebase. Moved here so we have a single
+module responsible for all image capture, playblast generation, thumbnail calls etc</p>
+<p>Main Playblast call within Red9.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">that this class is called by the main Exporter systems and those in turn propagate an instance of this 
+and fill in all of the variables directly from the <strong>global r9exp.EXPORTER_SETTINGS</strong> which is a global
+Python object that pulls data form the r9settings file here: <em>“C:/Users/xxxx/Documents/maya/R9_PRO/prefs/exporter.r9settings”</em></p>
+</div>
+<p><strong>internal vars:</strong></p>
+<ul class="simple">
+<li>self.filepath : the output path for the movie</li>
+<li>self.batchMode : True by default: render the movie offscreen and turn off the player</li>
+</ul>
+<p><strong>camera management settings</strong></p>
+<ul class="simple">
+<li>self.playblast_settings__cam : camera shape to render from if given else we resolve it</li>
+<li>self.playblast_settings__cam_mrig : do we track an individual mrig (class object) or the scene in general?</li>
+<li>self.playblast_settings__cam_mrig_view : if mrig preview cam, allows us to pass in the required view ‘front’, ‘left’, ‘right’, ‘back’, ‘top’, ‘bottom’</li>
+<li>self.playblast_settings__cam_track : do we auto-track the scene contents from the resolved camera</li>
+<li>self.playblast_settings__cam_track_panning : if we’re tracking do we use a fixed panning camera or a full track</li>
+<li>self.playblast_settings__cam_frame_all : static frame all of the scene</li>
+<li>self.playblast_settings__compile_audio : compile all audio into a single temporary file to ensure all audio is rendered</li>
+<li>self.playblast_settings__cam_specific : try and resolve the camera hint to a current scene camera and if matched, use that</li>
+<li>self.playblast_settings__cam_specific_hint: camera name hint we use if camer_specific is True</li>
+</ul>
+<p><strong>movie output settings</strong></p>
+<ul class="simple">
+<li>self.playblast_settings__respect_current : use the standard Maya playblast settings rather than any of the below</li>
+<li>self.playblast_settings__width : movie width</li>
+<li>self.playblast_settings__height : movie height</li>
+<li>self.playblast_settings__format : movie format, ‘qt’ or ‘avi’, default=’qt’</li>
+<li>self.playblast_settings__compression : compression used, default=’H.264’</li>
+<li>self.playblast_settings__quality : render quality</li>
+</ul>
+<p><strong>visual settings</strong></p>
+<ul class="simple">
+<li>self.playblast_settings__show_polys : show polys</li>
+<li>self.playblast_settings__show_nurbscurves show nurbsCurves</li>
+<li>self.playblast_settings__show_imagePlane : show imageplanes</li>
+<li>self.playblast_settings__isolate : isolate mRig renderMeshes if given</li>
+</ul>
+<p><strong>render settings</strong></p>
+<ul class="simple">
+<li>self.playblast_settings__displayTextures = True</li>
+<li>self.playblast_settings__displayAppearance = ‘smoothShaded’</li>
+<li>self.playblast_settings__xray = False</li>
+<li>self.playblast_settings__jointXray = False</li>
+<li>self.playblast_settings__wireframeOnShaded = True</li>
+<li>self.playblast_settings__anti_aliasing = True</li>
+<li>self.playblast_settings__ssao = False</li>
+<li>self.playblast_settings__frame_counter = False</li>
+</ul>
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.capture.PlayblastTask.FRAME_SIZES">
+<code class="descname">FRAME_SIZES</code><em class="property"> = [[640, 480], [1024, 768], [1280, 720], [1280, 1024], [1920, 1080]]</em><a class="headerlink" href="#Red9.pro_pack.core.capture.PlayblastTask.FRAME_SIZES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.capture.PlayblastTask.FORMATS">
+<code class="descname">FORMATS</code><em class="property"> = {'avi': {'comp': 'none', 'ext': '.avi'}, 'image': {'comp': 'jpg', 'ext': '.jpg'}, 'qt': {'comp': 'H.264', 'ext': '.mov'}, 'webm': {'comp': 'vp8', 'ext': '.webm'}}</em><a class="headerlink" href="#Red9.pro_pack.core.capture.PlayblastTask.FORMATS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.capture.PlayblastTask.run_task">
+<code class="descname">run_task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.capture.PlayblastTask.run_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>main run func</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.capture.make_square_pixmap">
+<code class="descname">make_square_pixmap</code><span class="sig-paren">(</span><em>img_source</em>, <em>size=500</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.capture.make_square_pixmap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a square QPixmap of dimensions size x size, centering the source image
+(keeping its aspect ratio) and filling any empty border area with black.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>img_source</strong> – QPixmap, QImage or str
+If QPixmap or QImage, uses it directly.  If str, treats as a filesystem
+path and loads via QPixmap(path).</li>
+<li><strong>size</strong> – int or QSize
+The width and height of the square output.  If QSize, its width() is used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">QPixmap A size x size pixmap with the image centered and black border.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.capture.create_square_icon">
+<code class="descname">create_square_icon</code><span class="sig-paren">(</span><em>path</em>, <em>size=500</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.capture.create_square_icon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a QIcon object from a given path</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> – path to an image</li>
+<li><strong>target_size</strong> – if given this will scale the pixMap used in the icon so that it’s consistent with the given size,
+without scaling like this icons will only scale to the maximum size of the original png, this by-passes that limitation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">custom QIcon object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.capture.capture_icon">
+<code class="descname">capture_icon</code><span class="sig-paren">(</span><em>size=500</em>, <em>modelPanel=None</em>, <em>format='bmp'</em>, <em>nodes=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.capture.capture_icon" title="Permalink to this definition">¶</a></dt>
+<dd><p>capture a square format QIcon using the capture_screen code below but then forcing
+that into a square format and converting it to a QIcon</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.capture.capture_screen">
+<code class="descname">capture_screen</code><span class="sig-paren">(</span><em>filepath=None</em>, <em>modelPanel=None</em>, <em>width=500</em>, <em>height=500</em>, <em>nodes=[]</em>, <em>camera_frame=False</em>, <em>isolate=False</em>, <em>format='bmp'</em>, <em>modelEditor_flags={}</em>, <em>bkg_colours={}</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.capture.capture_screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>updated wrapper to capture thumbnails in a more controllable way. This allows
+for isolation of given nodes, camera framing, and turning on specific node types in the viewport</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filepath</strong> – the filepath we’re going to store</li>
+<li><strong>modelPanel</strong> – the Maya modelPanel we’re going to capture. If not given then we use the currently active modelPanel view</li>
+<li><strong>width</strong> – the width of the capture</li>
+<li><strong>height</strong> – the height of the capture</li>
+<li><strong>camera_frame_nodes</strong> – [] if given we try and camera frame fit the given nodes</li>
+<li><strong>modelEditor_flags</strong> – {} allows us to pass in specific flags to the modelPanel prior to capture. 
+These are any of the default cmds.modelEditor_flags() flags
+ie: {‘polymeshes’:True, ‘wireframeOnShaded’:True, ‘hud’:True} 
+which will only display polys, wireshaded, and leave any current hud’s on.</li>
+<li><strong>nodes</strong> – [] if given these are passed to the camera_frame and isolate flags</li>
+<li><strong>camera_frame</strong> – if True and nodes were given then we camera frame those nodes in the scene, 
+if no nodes were passed we run a standard viewFit regardless</li>
+<li><strong>isolate</strong> – if True and nodes were passed in then this will isolate just those nodes in the view</li>
+<li><strong>format</strong> – the output compression of the image generated</li>
+<li><strong>bkg_colours</strong> – {‘top’:[1.0,1.0,1.0], ‘bottom’:[0.1,0.1,0.1]} dict with top and bottom keys as RBG values which
+relate to the colour of the gradient top and bottom that we’ll draw in the bkg, else we leave the BKG alone</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If any modelEditor_flags are passed in then we first turn OFF allObjects in the viewport, as well as the hud, 
+grid and manipulators as we’re expecting that we’ll be isolating specific node types. If you have rig controllers
+tagged as ‘controllers’ then you will need to include ‘controllers’ in the flags if you want those turned back on
+as well as their nodeType. ie, if the rig ctrls are nurbsCurves you will need top pass {‘nurbsCurves’:True,’controllers’:True}</p>
+</div>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Red9_Pro_audio.html" class="btn btn-neutral float-left" title="Pro_Pack : audio" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Red9_Pro_deformers.html" class="btn btn-neutral float-right" title="Pro_Pack : deformers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Red9 Consultancy Limited.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

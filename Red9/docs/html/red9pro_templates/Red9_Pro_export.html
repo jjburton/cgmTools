@@ -18,7 +18,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Pro_Pack : general" href="Red9_Pro_general.html" />
-    <link rel="prev" title="Pro_Pack : audio" href="Red9_Pro_audio.html" /> 
+    <link rel="prev" title="Pro_Pack : deformers" href="Red9_Pro_deformers.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -250,6 +261,41 @@ Designed to allow us to have custom markers in the LoopName that change how the 
 </dd></dl>
 
 <dl class="class">
+<dt id="Red9.pro_pack.core.exporter.ExportTaskUI">
+<em class="property">class </em><code class="descname">ExportTaskUI</code><span class="sig-paren">(</span><em>loops=None</em>, <em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportTaskUI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_MainWindow</span></code></p>
+<p>Simple UI to filter the hierarchy from Skeletonroot and present a text scroll
+with all joints so the user can select one</p>
+<dl class="method">
+<dt id="Red9.pro_pack.core.exporter.ExportTaskUI.pulldata">
+<code class="descname">pulldata</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportTaskUI.pulldata" title="Permalink to this definition">¶</a></dt>
+<dd><p>try and sync the task checks from the loops</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.exporter.ExportTaskUI.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportTaskUI.clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.exporter.ExportTaskUI.set">
+<code class="descname">set</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportTaskUI.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the data to the selected loops</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.exporter.ExportTaskUI.closeEvent">
+<code class="descname">closeEvent</code><span class="sig-paren">(</span><em>event</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportTaskUI.closeEvent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.exporter.ExportTaskUI.staticMetaObject">
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide2.QtCore.QMetaObject object&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportTaskUI.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="Red9.pro_pack.core.exporter.JntSel">
 <em class="property">class </em><code class="descname">JntSel</code><span class="sig-paren">(</span><em>tag</em>, <em>loop=None</em>, <em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.JntSel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_mw_aditive_joint_selector</span></code></p>
@@ -355,8 +401,23 @@ so that we can tailor the view to different engine targets.</p>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.exporter.ExportLoop_Widget.set_loopname">
-<code class="descname">set_loopname</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportLoop_Widget.set_loopname" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_loopname</code><span class="sig-paren">(</span><em>select=True</em>, <em>set_widget=True</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportLoop_Widget.set_loopname" title="Permalink to this definition">¶</a></dt>
 <dd><p>set the loopname via the checks</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>select</strong> – select the widget after setting</li>
+<li><strong>set_widget</strong> – set the text on the widget itself. This is an option as when we’re in self.textChanged 
+signal in the txt widget itself we don’t want to be setting the data as that would shift the cursor 
+to the end of the txt everytime you typed something. That behaviour will still be seen if you try typing 
+invalid characters as the fix method for that is to set the txt in the widget after validating it</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -373,6 +434,12 @@ so that we can tailor the view to different engine targets.</p>
 <dl class="method">
 <dt id="Red9.pro_pack.core.exporter.ExportLoop_Widget.edittag_ui_show">
 <code class="descname">edittag_ui_show</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportLoop_Widget.edittag_ui_show" title="Permalink to this definition">¶</a></dt>
+<dd><p>open the Tag edit UI for more specific editing</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.exporter.ExportLoop_Widget.edittasks_ui_show">
+<code class="descname">edittasks_ui_show</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportLoop_Widget.edittasks_ui_show" title="Permalink to this definition">¶</a></dt>
 <dd><p>open the Tag edit UI for more specific editing</p>
 </dd></dl>
 
@@ -422,6 +489,9 @@ so that we can tailor the view to different engine targets.</p>
 <em class="property">class </em><code class="descname">Export_Playblast_options</code><span class="sig-paren">(</span><em>parent=None</em>, <em>*args</em>, <em>**kwgs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.Export_Playblast_options" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_MainWindow</span></code></p>
 <p>Simple UI to edit the exporter.r9settings for Playblast export options</p>
+<p># for codecs on Windows we’d recommend installing QuickTime which shows up in Maya encode options,
+or x264vfw from here: <a class="reference external" href="https://www.videohelp.com/software/x264-VFW">https://www.videohelp.com/software/x264-VFW</a> ( you need to reboot after in order
+for Windows to pick the codec changes up )</p>
 <dl class="method">
 <dt id="Red9.pro_pack.core.exporter.Export_Playblast_options.pushdata">
 <code class="descname">pushdata</code><span class="sig-paren">(</span><em>close=True</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.Export_Playblast_options.pushdata" title="Permalink to this definition">¶</a></dt>
@@ -456,6 +526,11 @@ so that we can tailor the view to different engine targets.</p>
 <em class="property">class </em><code class="descname">ExportUI</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportUI" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_MainWindow</span></code></p>
 <p>Main Export UI class that manages all the export calls, loops and functions</p>
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.exporter.ExportUI.respect_custom_tasks">
+<code class="descname">respect_custom_tasks</code><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportUI.respect_custom_tasks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="attribute">
 <dt id="Red9.pro_pack.core.exporter.ExportUI.selected_exptags">
 <code class="descname">selected_exptags</code><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportUI.selected_exptags" title="Permalink to this definition">¶</a></dt>
@@ -536,7 +611,7 @@ to refresh and redraw the UI lists</p>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.exporter.ExportUI.add_export_tag">
-<code class="descname">add_export_tag</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportUI.add_export_tag" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_export_tag</code><span class="sig-paren">(</span><em>tag_type=None</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportUI.add_export_tag" title="Permalink to this definition">¶</a></dt>
 <dd><p>simple launch of the RigManager</p>
 </dd></dl>
 
@@ -659,6 +734,7 @@ Red9 MetaData systems so all rigs must be correctly setup in the RigManager befo
 <p>There are a few key class variables that dictate what output processes the
 run() and run_files functions call:</p>
 <ul class="simple">
+<li><strong>self.output_abc</strong> : optional export to Alembic</li>
 <li><strong>self.output_fbx</strong>     : export fbx using the “selective” mode, soon to be merged so we only have one call for FBX</li>
 <li><strong>self.output_r9anim</strong>  : save an r9Anim file</li>
 <li><strong>self.output_export</strong> : main export call for FBX / Unreal / Unity animation data</li>
@@ -667,7 +743,6 @@ run() and run_files functions call:</p>
 <li><strong>self.output_mayaloops</strong> : save a Maya file per export Loop named as per the loop data</li>
 <li><strong>self.export_tag*</strong> : optional specific ExportTags (mNodes) for processing, if not set we process all ExportTags found in the scene</li>
 <li><strong>self.export_loops</strong> : optional specific ExportLoops (mNodes) for processing, if not set we process all ExportLoops found in the scene</li>
-<li><strong>self.output_abc</strong> : optional export to Alembic</li>
 </ul>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -704,15 +779,42 @@ This allows you to specifically output just a given character from a list iof sc
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.exporter.ExportManager.export_main">
-<code class="descname">export_main</code><span class="sig-paren">(</span><em>runSceneRoot=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_main" title="Permalink to this definition">¶</a></dt>
+<code class="descname">export_main</code><span class="sig-paren">(</span><em>runSceneRoot=False</em>, <em>loops=[]</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_main" title="Permalink to this definition">¶</a></dt>
 <dd><p>stub for custom overloading at the client level, at base level this is
 the skeleton fbx export process, assuming targte engines Unity / Unreal and anim sequence</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="Red9.pro_pack.core.exporter.ExportManager.export_custom_aux1">
+<code class="descname">export_custom_aux1</code><span class="sig-paren">(</span><em>loops=[]</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_custom_aux1" title="Permalink to this definition">¶</a></dt>
+<dd><p>stub wrap to allow custom hooks for client overloading</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.exporter.ExportManager.export_custom_aux2">
+<code class="descname">export_custom_aux2</code><span class="sig-paren">(</span><em>loops=[]</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_custom_aux2" title="Permalink to this definition">¶</a></dt>
+<dd><p>stub wrap to allow custom hooks for client overloading</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.exporter.ExportManager.export_custom_aux3">
+<code class="descname">export_custom_aux3</code><span class="sig-paren">(</span><em>loops=[]</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_custom_aux3" title="Permalink to this definition">¶</a></dt>
+<dd><p>stub wrap to allow custom hooks for client overloading</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="Red9.pro_pack.core.exporter.ExportManager.export_r9Anim">
-<code class="descname">export_r9Anim</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_r9Anim" title="Permalink to this definition">¶</a></dt>
+<code class="descname">export_r9Anim</code><span class="sig-paren">(</span><em>loops=[]</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_r9Anim" title="Permalink to this definition">¶</a></dt>
 <dd><p>export the mRig data to r9Anim format files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>loops</strong> – this exportLoop mNodes to process. If left empty then we process all current loops in
+the self.exportLoops list which is built up from the selected in the UI</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -723,7 +825,12 @@ the skeleton fbx export process, assuming targte engines Unity / Unreal and anim
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>runSceneRoot</strong> – run the sceneRoot process during the export, default = False</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>runSceneRoot</strong> – run the sceneRoot process during the export, default = False</li>
+<li><strong>loops</strong> – this exportLoop mNodes to process. If left empty then we process all current loops in
+the self.exportLoops list which is built up from the selected in the UI</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -750,6 +857,8 @@ the skeleton fbx export process, assuming targte engines Unity / Unreal and anim
 <li><strong>geoflags</strong> – default=False, if True we also include EmbeddedTextures, SmoothingGroups, Tangents in the fbx data else we assume
 that the fbx data is aimed at animation data only</li>
 <li><strong>bakeanim</strong> – True by default, use the bakeanim flag in the fbx output</li>
+<li><strong>loops</strong> – this exportLoop mNodes to process. If left empty then we process all current loops in
+the self.exportLoops list which is built up from the selected in the UI</li>
 </ul>
 </td>
 </tr>
@@ -759,21 +868,44 @@ that the fbx data is aimed at animation data only</li>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.exporter.ExportManager.export_playblast">
-<code class="descname">export_playblast</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_playblast" title="Permalink to this definition">¶</a></dt>
+<code class="descname">export_playblast</code><span class="sig-paren">(</span><em>loops=[]</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_playblast" title="Permalink to this definition">¶</a></dt>
 <dd><p>export the mRig data to r9Anim format files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>loops</strong> – this exportLoop mNodes to process. If left empty then we process all current loops in
+the self.exportLoops list which is built up from the selected in the UI</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The playblast task when dealing with images will NOT work with the P4 hooks yet</p>
+</div>
 </dd></dl>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.exporter.ExportManager.export_mayafiles">
-<code class="descname">export_mayafiles</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_mayafiles" title="Permalink to this definition">¶</a></dt>
+<code class="descname">export_mayafiles</code><span class="sig-paren">(</span><em>loops=[]</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.export_mayafiles" title="Permalink to this definition">¶</a></dt>
 <dd><p>export each loop to it’s own Maya file
 Note that this will save all animation currently on the rig even if it is out of the export loop boundaries</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>loops</strong> – this exportLoop mNodes to process. If left empty then we process all current loops in
+the self.exportLoops list which is built up from the selected in the UI</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="Red9.pro_pack.core.exporter.ExportManager.save_mayafile">
 <code class="descname">save_mayafile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.exporter.ExportManager.save_mayafile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checkout and Save the MayaFile so that during the export we ensure the Maya file is checked out and saved</p>
+<dd><p>Checkout and Save the MayaFile so that during the export we ensure the Maya file is checked out and saved
+This is a scene level save and not exportLoop level, it basically triggers a Maya save over the current sceneName</p>
 </dd></dl>
 
 <dl class="method">
@@ -797,7 +929,7 @@ managing the progressBarQT escape and file loading</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Red9_Pro_audio.html" class="btn btn-neutral float-left" title="Pro_Pack : audio" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Red9_Pro_deformers.html" class="btn btn-neutral float-left" title="Pro_Pack : deformers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="Red9_Pro_general.html" class="btn btn-neutral float-right" title="Pro_Pack : general" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

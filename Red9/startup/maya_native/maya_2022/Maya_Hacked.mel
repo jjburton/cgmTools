@@ -665,3 +665,287 @@ global proc buildClipEditorMenu(string $editor, string $parent,
 	red9HackTraxMenu;
 	//HACK END ================================================================
 }
+
+
+
+//===================================================
+//HACKED FROM: scripts/startup/layerEditor.mel
+//===================================================
+
+global proc layerEditorBuildAnimLayerMenu(string $parent, string $toolName)
+{
+	setParent -menu $parent;
+
+	string $rootLayer = `animLayer -q -root`;
+	string $selectedAnimLayers[]=getSelectedAnimLayer($toolName); 	
+		
+	int $foundRootLayer = 0;
+	for ($layer in $selectedAnimLayers)
+	{
+		if($layer == $rootLayer)
+			$foundRootLayer = 1;
+	}
+
+	string $layerString = "{";
+	for ($layer in $selectedAnimLayers)
+	{
+		$layerString+="\""+$layer+"\",";
+	}
+	$layerString=(substring ($layerString,1,(size($layerString) - 1)));  // get rid of trailing ","
+	
+	$layerString+="}";
+
+	global string $gAddObjectsMenuItemForAnimLayers;
+	global string $gAddObjectsOptionsMenuItemForAnimLayers;
+	global string $gRemoveObjectsMenuItemForAnimLayers;
+	global string $gSelectObjectsMenuItemForAnimLayers;
+	global string $gSelectBranchMenuItemForAnimLayers;
+	global string $gSelectLayerNodeMenuItemForAnimLayers;
+	global string $gExportLayerMenuItemForAnimLayers;
+	global string $gExportBranchMenuItemForAnimLayers;
+	global string $gMememberShipMenuItemForAnimLayers;
+	global string $gAttributeEditorMenuItemForAnimLayers;
+	global string $gDeleteSelectedLayerMenuItemForAnimLayers;
+	global string $gDeleteEmptyLayersMenuItemForAnimLayers;
+	global string $gDeleteMenuItemForAnimLayers;
+	global string $gLayerModeMenuItemForAnimLayers;
+	global string $gLayerRotationAccMenuItemForAnimLayers;
+	global string $gLayerScaleAccMenuItemForAnimLayers;
+	global string $gNewEmptyMenuItemForAnimLayers;
+	global string $gNewFromSelectedMenuItemForAnimLayers;
+	global string $gNewEmptyOverrideMenuItemForAnimLayers;
+	global string $gNewOverrideFromSelectedMenuItemForAnimLayers;
+	global string $gDuplicateLayerMenuItemForAnimLayers;
+	global string $gDuplicateLayerNoAnimMenuItemForAnimLayers;
+	
+	int $layerAvailable = layerAvailable();
+	if( `menu -q -ni $parent` != 0 ) {
+		//
+		//  Menu is built already 
+		//
+		menuItem -edit -enable (!$foundRootLayer) $gAddObjectsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gAddObjectsOptionsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gRemoveObjectsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gSelectObjectsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gSelectBranchMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gSelectLayerNodeMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gExportLayerMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gExportBranchMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gMememberShipMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gAttributeEditorMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gDeleteSelectedLayerMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gDeleteEmptyLayersMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gDeleteMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gLayerModeMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gLayerRotationAccMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gLayerScaleAccMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gNewEmptyMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gNewFromSelectedMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gNewEmptyOverrideMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gNewOverrideFromSelectedMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gDuplicateLayerMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gDuplicateLayerNoAnimMenuItemForAnimLayers;
+		return;
+	}
+
+	string $createEmptyLayer		  = uiRes("m_layerEditor.kCreateEmptyAnimLayer");
+	string $createLayer			   = uiRes("m_layerEditor.kCreateAnimLayer");
+	string $createEmptyOverrideLayer  = (uiRes("m_layerEditor.kCreateEmptyOverrideAnimLayer"));
+	string $createOverrideLayer	   = (uiRes("m_layerEditor.kCreateOverrideAnimLayer"));
+	string $createLayerOptionsMenuStr = (uiRes("m_layerEditor.kCreateLayerOptions"));
+	string $addSelectedObjects		= (uiRes("m_layerEditor.kAddSelectedObjectsAnimLayer"));
+	string $removeSelectedObjects	 = (uiRes("m_layerEditor.kRemoveSelectedObjectsAnimLayer"));
+	string $selectObjects			 = (uiRes("m_layerEditor.kSelectObjectsAnimLayer"));
+	string $deleteSelectedLayers	  = (uiRes("m_layerEditor.kDeleteAnimLayer"));
+	string $packageAnimLayerObjects   = (uiRes("m_layerEditor.kPackageAnimLayerObjects"));
+
+	int $passthroughMode = `optionVar -exists animLayerDefaultPassthroughMode` ? `optionVar -query animLayerDefaultPassthroughMode` : 1;
+	int $rotationMode = `optionVar -exists animLayerDefaultRotationMode` ? `optionVar -query animLayerDefaultRotationMode` : 0;
+	int $scaleMode = `optionVar -exists animLayerDefaultScaleMode` ? `optionVar -query animLayerDefaultScaleMode` : 1;
+	
+	string $lLayerListCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); ";
+	string $lSelectionCommand = "string $lSelection[]=`ls -selection`;";
+
+	$gNewEmptyMenuItemForAnimLayers = `menuItem -label $createEmptyLayer`;
+	$gNewFromSelectedMenuItemForAnimLayers = `menuItem -label $createLayer`;
+	$gNewEmptyOverrideMenuItemForAnimLayers = `menuItem -label $createEmptyOverrideLayer`;
+	$gNewOverrideFromSelectedMenuItemForAnimLayers = `menuItem -label $createOverrideLayer`;
+	menuItem -label $createLayerOptionsMenuStr -subMenu true -tearOff true;
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerPassthrough"))
+			 -checkBox $passthroughMode
+			 -command ("optionVar -intValue animLayerDefaultPassthroughMode #1");
+		menuItem -divider true;
+		radioMenuItemCollection;
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerEulerRotation"))
+			 -radioButton ($rotationMode == 0)
+			 -command ("optionVar -intValue animLayerDefaultRotationMode 0");
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerQuaternionRotation"))
+			 -radioButton ($rotationMode== 1)
+			 -command ("optionVar -intValue animLayerDefaultRotationMode 1");
+		radioMenuItemCollection;
+		menuItem -divider true;
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerScaleMultiply"))
+			 -radioButton ($scaleMode == 1)
+			 -command ("optionVar -intValue animLayerDefaultScaleMode 1");
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerScaleAdditive"))
+			 -radioButton ($scaleMode == 0)
+			 -command ("optionVar -intValue animLayerDefaultScaleMode 0");
+	setParent -m ..;
+
+	menuItem -divider true;
+	
+	$gAddObjectsMenuItemForAnimLayers = `menuItem -label $addSelectedObjects`;
+	$gAddObjectsOptionsMenuItemForAnimLayers = `menuItem -optionBox true -annotation (uiRes("m_layerEditor.kAnimLayerAddSelectedObjectsOptions"))`;
+	$gRemoveObjectsMenuItemForAnimLayers = `menuItem -label $removeSelectedObjects`;
+	menuItem -label (uiRes("m_layerEditor.kExtractSelectedObjectsAnimLayerRC2"))
+				 -command ($lLayerListCommand+$lSelectionCommand+"layerEditorExtractObjectsAnimLayer($lSelection, $lLayers )");
+	$gSelectObjectsMenuItemForAnimLayers = `menuItem -label $selectObjects`;
+	menuItem -divider true;
+	
+	$gDuplicateLayerMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kDuplicateAnimLayer"))`;
+	$gDuplicateLayerNoAnimMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kDuplicateAnimLayerNoAnim"))`;
+	menuItem -label (uiRes("m_layerEditor.kMergeSelectedAnimLayerRC2"))
+			 -command ($lLayerListCommand+"layerEditorMergeAnimLayer( $lLayers, 0 )");
+  	menuItem -optionBox true
+				 -command ($lLayerListCommand+"layerEditorMergeAnimLayer( $lLayers, 1 )");
+	menuItem -divider true;
+
+	$extractBaseLayerSelectedMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kExtractBaseLayerSelected"))`;
+	$extractBaseLayerAllMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kExtractBaseLayerAll"))`;
+
+	menuItem -divider true;
+	menuItem -label (uiRes("m_layerEditor.kSelectAllAnimLayers"))
+		-command ("setSelectedForAllLayers(1)");
+	
+		
+	$gSelectBranchMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kSelectBranchAnimLayers"))
+		-enable (!$foundRootLayer)
+		-command ($lLayerListCommand + "for ($target in $lLayers){setSelectedLayerRecursive($target, 1, 0 );}")`;
+	
+	string $lSelectLayerNodeCommand = $lLayerListCommand + "string $lCmd = \"select -replace -noExpand \"; for ($target in $lLayers){ $lCmd+= $target + \" \"; }; evalEcho( $lCmd ); ";
+
+	$gSelectLayerNodeMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kSelectAnimLayer2"))
+				 -enable (!$foundRootLayer)
+				 -command ($lSelectLayerNodeCommand)`;
+
+	
+	menuItem -divider true;
+
+	$gExportLayerMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kAnimLayersExport"))
+			 -enable (!$foundRootLayer)
+			 -command ($lLayerListCommand+"animLayersExport($lLayers,0)")`;
+	
+	$gExportBranchMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kAnimLayersExportBranch2"))
+			 -enable (!$foundRootLayer)
+			 -command ($lLayerListCommand+"animLayersExport($lLayers,1)")`;
+			 
+	menuItem -divider true;
+	
+
+	$gMememberShipMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kRelationshipAnimLayer"))
+			 -enable (!$foundRootLayer)
+			 -command ($lLayerListCommand+"relationshipEditor( \"animLayers\", $lLayers, {} );")`;
+
+	$gAttributeEditorMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kAttributeEditorAnimLayer"))
+			 -enable (!$foundRootLayer)
+			 -command ($lLayerListCommand+"select -replace -noExpand $lLayers; editSelected();")`;
+
+	menuItem -divider true;
+
+	$gDeleteMenuItemForAnimLayers = `menuItem -label $deleteSelectedLayers`;
+
+	$gDeleteSelectedLayerMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kEmptyAnimLayers2"))
+				-enable (!$foundRootLayer)
+				-command ($lLayerListCommand+" for ($layer in $lLayers) evalEcho( \"animLayer -edit -removeAllAttributes \"+$layer );")`;
+	$gDeleteEmptyLayersMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kDeleteEmptyAnimLayers2"))
+				-enable (!$foundRootLayer)
+				-command ("deleteEmptyAnimLayers()")`;
+		
+		
+	menuItem -divider true;
+
+	string $layerModeLabel=(uiRes("m_layerEditor.kLayerModeAnimLayer2"));
+	$gLayerModeMenuItemForAnimLayers =`menuItem -label $layerModeLabel -subMenu true`;
+	setParent -menu ..;
+	
+	string $layerRotationAccLabel = (uiRes("m_layerEditor.kLayerRotationAccAnimLayer2"));
+	string $layerScaleAccLabel = (uiRes("m_layerEditor.kLayerScalingAccAnimLayer2"));
+	$gLayerRotationAccMenuItemForAnimLayers = `menuItem -label $layerRotationAccLabel -subMenu true`; 
+	setParent -menu ..;
+	$gLayerScaleAccMenuItemForAnimLayers = `menuItem -label $layerScaleAccLabel -subMenu true`; 	
+	setParent -menu ..;
+
+	
+	menuItem -edit -pmc ("layerModeSubMenu(\""+$gLayerModeMenuItemForAnimLayers+"\",\""+$toolName+"\")") -enable (!$foundRootLayer) $gLayerModeMenuItemForAnimLayers;
+	
+	menuItem -edit -pmc ("layerRotationAccSubMenu(\""+$gLayerRotationAccMenuItemForAnimLayers+"\",\""+$toolName+"\")") -enable (!$foundRootLayer) $gLayerRotationAccMenuItemForAnimLayers;
+	menuItem -edit -pmc ("layerScaleAccSubMenu(\""+$gLayerScaleAccMenuItemForAnimLayers+"\",\""+$toolName+"\")") -enable (!$foundRootLayer) $gLayerScaleAccMenuItemForAnimLayers;
+
+
+
+		
+	menuItem -divider true;
+	menuItem -label $packageAnimLayerObjects -command ("packageAnimLayerObjects") ;
+	
+	menuItem -divider true;
+
+	
+	
+	string $lEmptyOverrideLayerCommand =  "string $lLayer = layerEditorCreateAnimLayer( false, true);";		 
+
+	string $lSelectedOverrideLayerCommand =  "string $lLayer = layerEditorCreateAnimLayer( true, true);";			
+
+
+	string $lSelectObjectCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+									layerEditorSelectObjectAnimLayer($lLayers)";
+
+	string $lDuplicateLayerCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+								 layerEditorCopyAnimLayer($lLayers)";
+
+	string $lDuplicateLayerNoAnimCommand =	"string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+										layerEditorCopyAnimLayerNoAnim($lLayers)";
+
+	string $lExtractBaseLayerSelectedCommand = "string $lSelection[]=`ls -selection`; \
+												layerEditorExtractObjectsSingleAnimLayer($lSelection, \"\")";
+
+	string $lExtractBaseLayerAllCommand = "string $lSelection[]=`ls`; \
+										   layerEditorExtractObjectsSingleAnimLayer($lSelection, \"\")";
+
+	string $lAddSelectedCommand = "string $lSelection[]=`ls -selection`; \
+								   string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+								   layerEditorAddObjectsAnimLayer($lSelection, $lLayers,0)";
+
+	string $lAddSelectedOptionsCommand = "string $lSelection[]=`ls -selection`; \
+								   string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+								   layerEditorAddObjectsAnimLayer($lSelection, $lLayers,1)";	   
+
+	string $lRemoveSelectedCommand = "string $lSelection[]=`ls -selection`; \
+									  string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+									  layerEditorRemoveObjectsAnimLayer($lSelection, $lLayers)";
+
+	string $lDeleteLayerCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+								   deselectAnimLayers(\""+$toolName+"\", $lLayers); \
+								   layerEditorDeleteAnimLayer($lLayers)";
+
+	menuItem -edit -enable $layerAvailable -command ("EmptyAnimLayer") $gNewEmptyMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ("SelectedAnimLayer") $gNewFromSelectedMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ($lEmptyOverrideLayerCommand) $gNewEmptyOverrideMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ($lSelectedOverrideLayerCommand) $gNewOverrideFromSelectedMenuItemForAnimLayers;
+
+	menuItem -edit -command ($lSelectObjectCommand) -enable (!$foundRootLayer) $gSelectObjectsMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ($lDuplicateLayerCommand) $gDuplicateLayerMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ($lDuplicateLayerNoAnimCommand) $gDuplicateLayerNoAnimMenuItemForAnimLayers;
+	menuItem -edit -command ($lExtractBaseLayerSelectedCommand) $extractBaseLayerSelectedMenuItemForAnimLayers;
+	menuItem -edit -command ($lExtractBaseLayerAllCommand) $extractBaseLayerAllMenuItemForAnimLayers;
+
+	menuItem -edit -command ($lAddSelectedCommand) -enable (!$foundRootLayer) $gAddObjectsMenuItemForAnimLayers;
+	menuItem -edit -command ($lAddSelectedOptionsCommand) -enable (!$foundRootLayer) $gAddObjectsOptionsMenuItemForAnimLayers;
+	menuItem -edit -command ($lRemoveSelectedCommand) -enable (!$foundRootLayer) $gRemoveObjectsMenuItemForAnimLayers;
+	menuItem -edit -command ($lDeleteLayerCommand) -enable (!$foundRootLayer) $gDeleteMenuItemForAnimLayers;
+	
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackAnimLayerMenu $parent;
+	//HACK END ================================================================
+}
+

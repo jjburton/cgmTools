@@ -17,8 +17,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Pro_Pack : skining" href="Red9_Pro_skining.html" />
-    <link rel="prev" title="Pro_Pack : r9Data" href="Red9_Pro_r9data.html" /> 
+    <link rel="next" title="Pro_Pack : shaders" href="Red9_Pro_shaders.html" />
+    <link rel="prev" title="Pro_Pack : r9file" href="Red9_Pro_r9file.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -117,7 +128,7 @@ and skeletal data for the ProPack systems.</p>
 </table>
 <dl class="function">
 <dt id="Red9.pro_pack.core.rigutils.swapshapes">
-<code class="descname">swapshapes</code><span class="sig-paren">(</span><em>source</em>, <em>target</em>, <em>replace=True</em>, <em>worldspace=True</em>, <em>delete_source=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.swapshapes" title="Permalink to this definition">¶</a></dt>
+<code class="descname">swapshapes</code><span class="sig-paren">(</span><em>source</em>, <em>target</em>, <em>replace=True</em>, <em>worldspace=True</em>, <em>delete_source=True</em>, <em>rename_shapes=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.swapshapes" title="Permalink to this definition">¶</a></dt>
 <dd><p>from a source transform parent all shapes under the target transform.
 If replace is True we delete all current shapes under the target.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -130,6 +141,8 @@ If replace is True we delete all current shapes under the target.</p>
 <li><strong>replace</strong> – True by default, do we remove all current shapes from the target before we re-parent the new ones?</li>
 <li><strong>worldspace</strong> – if True we maintain the shapes current world positions else we use default Maya relative shape parenting</li>
 <li><strong>delete_source</strong> – delete the source after the process is complete</li>
+<li><strong>rename_shapes</strong> – if True we numerically rename all shapes in the form ‘nodename_Shape%i’ where %i is incremented
+per shape, the numeric however is only added if there’s more than 1 child shape</li>
 </ul>
 </td>
 </tr>
@@ -183,7 +196,7 @@ leaving you with the node in place with zerp transforms</li>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.rigutils.opm_freeze_transforms_to_composition_chns">
-<code class="descname">opm_freeze_transforms_to_composition_chns</code><span class="sig-paren">(</span><em>node=None</em>, <em>compensate=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.opm_freeze_transforms_to_composition_chns" title="Permalink to this definition">¶</a></dt>
+<code class="descname">opm_freeze_transforms_to_composition_chns</code><span class="sig-paren">(</span><em>nodes=[]</em>, <em>compensate=True</em>, <em>force=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.opm_freeze_transforms_to_composition_chns" title="Permalink to this definition">¶</a></dt>
 <dd><p>offsetParentMatrix handlers: simple proc that copies the current transform data over to the composition channels
 and resets the xforms. This results in zero xforms but the node in the same space. We compensate for any existing
 matrix data in the composition channels during the process.</p>
@@ -192,9 +205,10 @@ matrix data in the composition channels during the process.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>node</strong> – the node to process, if not given we use the currently selected object</li>
+<li><strong>nodes</strong> – the nodes to process, if not given we use the currently selected objects</li>
 <li><strong>compensate</strong> – if True (default), we compensate for any current matrix data in the composition before
 we push the current transform matrix over to those channels.</li>
+<li><strong>force</strong> – if True (default) and the current transforms are locked then we force unlock and re-lock after we’ve reset them</li>
 </ul>
 </td>
 </tr>
@@ -208,8 +222,19 @@ so we only process the transform data and reset the rotation data regardless</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.opm_delete_and_reset">
+<code class="descname">opm_delete_and_reset</code><span class="sig-paren">(</span><em>nodes=[]</em>, <em>compensate=True</em>, <em>inherit_managed=False</em>, <em>inherits_transform=True</em>, <em>reset_rotate_axis=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.opm_delete_and_reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>examine the given nodes and if thei’re connected via opm, remove that link and reset the opm matrix
+:param compensate: if True (default), we compensate for any change in the nodes xforms that would result from simply resetting the composition matrix data
+:param inherit_managed: if True we manage the state of the inheritTransform flag on the nodes and set it’s value to the inherits_transform flag
+:param inherits_transform: usd in conjunction with the inherit_managed flag, set the state of the inheritTransform on the nodes during the reset process.</p>
+<blockquote>
+<div>With OPM we often turn off the inheritTransforms of nodes for them to act correctly</div></blockquote>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.pro_pack.core.rigutils.opm_reset_composition_to_transform_chns">
-<code class="descname">opm_reset_composition_to_transform_chns</code><span class="sig-paren">(</span><em>node=None</em>, <em>compensate=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.opm_reset_composition_to_transform_chns" title="Permalink to this definition">¶</a></dt>
+<code class="descname">opm_reset_composition_to_transform_chns</code><span class="sig-paren">(</span><em>nodes=[]</em>, <em>compensate=True</em>, <em>inherit_managed=False</em>, <em>inherits_transform=True</em>, <em>reset_rotate_axis=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.opm_reset_composition_to_transform_chns" title="Permalink to this definition">¶</a></dt>
 <dd><p>offsetParentMatrix handlers: simple proc that resets the matrix in the composition channels
 and pushes that to the nodes xforms, re-compensating for any other transforms in those channels at the same time</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -217,8 +242,11 @@ and pushes that to the nodes xforms, re-compensating for any other transforms in
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>node</strong> – the node to process, if not given we use the currently selected object</li>
+<li><strong>nodes</strong> – the nodes to process, if not given we use the currently selected objects</li>
 <li><strong>compensate</strong> – if True (default), we compensate for any change in the nodes xforms that would result from simply resetting the composition matrix data</li>
+<li><strong>inherit_managed</strong> – if True we manage the state of the inheritTransform flag on the nodes and set it’s value to the inherits_transform flag</li>
+<li><strong>inherits_transform</strong> – usd in conjunction with the inherit_managed flag, set the state of the inheritTransform on the nodes during the reset process.
+With OPM we often turn off the inheritTransforms of nodes for them to act correctly</li>
 </ul>
 </td>
 </tr>
@@ -228,6 +256,54 @@ and pushes that to the nodes xforms, re-compensating for any other transforms in
 <p class="first admonition-title">Note</p>
 <p class="last">joints cause issues with this process because of the extra matrix from the joint orients which we don’t currently deal with</p>
 </div>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.opm_get_matrix">
+<code class="descname">opm_get_matrix</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.opm_get_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple extraction of the opm matrix</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.get_lod_groups">
+<code class="descname">get_lod_groups</code><span class="sig-paren">(</span><em>lodroot</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.get_lod_groups" title="Permalink to this definition">¶</a></dt>
+<dd><p>from a root lodGroup node return the child LOD connections as a dict.
+If the given isn’t of type lodGroup then we inspect the child grps for name
+based extraction, searching for “LOD” (case doesn’t matter), then use the trailing int
+somename_LOD_1, somename_LOD1, somename_lod_1_grp all will return as lod 1</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>lodroot</strong> – the upper parent root of the lods</td>
+</tr>
+</tbody>
+</table>
+<p>return: {0:LOD_0_grp, 1:LOD_01_grp … }</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.get_missing_parents_from_hierarchy">
+<code class="descname">get_missing_parents_from_hierarchy</code><span class="sig-paren">(</span><em>nodes</em>, <em>select=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.get_missing_parents_from_hierarchy" title="Permalink to this definition">¶</a></dt>
+<dd><p>from a given list of nodes, full dag_paths, find any nodes within the hierarchy
+that aren’t actually in the node list and return. These would usually be parents
+and groups at the top of a hierarchy.</p>
+<p>for example: 
+&gt;&gt;&gt; nodes = [‘MASTER_NODE|skeleton|root’,’MASTER_NODE|skeleton|root|pelvis’]
+&gt;&gt;&gt; get_missing_nodes_from_hierarchy(dag_paths)
+&gt;&gt;&gt; # return # [‘<a href="#id1"><span class="problematic" id="id2">|</span></a>MASTER_NODE’, ‘<a href="#id3"><span class="problematic" id="id4">|</span></a>MASTER_NODE|skeleton’]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>nodes</strong> – list of full dag paths to inspect</li>
+<li><strong>select</strong> – if True we select the nodes returned</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -306,7 +382,7 @@ in the skeleton, hence the check! also see specific HealthTest: “r9popt.export
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.rigutils.skeleton_pose_load">
-<code class="descname">skeleton_pose_load</code><span class="sig-paren">(</span><em>rootjnt, attr=None, filepath=None, skip_translates=False, skip_scales=True, specific_jnts=[], skip_attrs=['radius', 'visibility', 'jointOrientX', 'jointOrientY', 'jointOrientZ'], custom_root=None, suppress=True, nodetypes=['joint'], matchMethod='base'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.skeleton_pose_load" title="Permalink to this definition">¶</a></dt>
+<code class="descname">skeleton_pose_load</code><span class="sig-paren">(</span><em>rootjnt, attr=None, filepath=None, skip_translates=False, skip_scales=True, specific_jnts=[], skip_attrs=['radius', 'visibility', 'scaleX', 'scaleY', 'scaleZ', 'jointOrientX', 'jointOrientY', 'jointOrientZ', 'segmentScaleCompensate'], custom_root=None, suppress=True, nodetypes=['joint'], matchMethod='base'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.skeleton_pose_load" title="Permalink to this definition">¶</a></dt>
 <dd><p>restore the characters skeleton to the original pose stored on the attr given, or from the filepath.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -355,7 +431,7 @@ then there is a chance that duplicated joint may carry a previous bpose / tpose!
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>rootjnt</strong> – the root joint of the skeleton we want to get the Pose data from</li>
-<li><strong>attr</strong> – the attr we’re going to pull the pose from (if given)</li>
+<li><strong>attr</strong> – the attr we’re going to pull the pose from (if given) we generally use ‘bpose’ or ‘tpose’</li>
 <li><strong>filepath</strong> – filepath to a stored pose</li>
 <li><strong>skip_translates</strong> – only load the rotate data if True. Aimed at loading T &amp; B Poses</li>
 <li><strong>suppress</strong> – by default we warn if the same pose attr is found on multiple joints in the skeleton hierarchy,
@@ -500,10 +576,31 @@ are the same and bind appropriately</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.skeleton_from_skinned_mesh">
+<code class="descname">skeleton_from_skinned_mesh</code><span class="sig-paren">(</span><em>mesh</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.skeleton_from_skinned_mesh" title="Permalink to this definition">¶</a></dt>
+<dd><p>from a list of skinned meshes return the root skeleton. This assumes that these are all skinned to the same base root skeleton</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mesh</strong> – list of nodes we’re wanting to inspect</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.joint_duplicate_fresh">
+<code class="descname">joint_duplicate_fresh</code><span class="sig-paren">(</span><em>joint</em>, <em>newname</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.joint_duplicate_fresh" title="Permalink to this definition">¶</a></dt>
+<dd><p>duplicate the joint from fresh so there’s no legacy to any current
+custom attrs or data</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.pro_pack.core.rigutils.hik_characternode_from_joint">
 <code class="descname">hik_characternode_from_joint</code><span class="sig-paren">(</span><em>joint</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.hik_characternode_from_joint" title="Permalink to this definition">¶</a></dt>
 <dd><p>from a given joint we look for a connected HIKCharacterNode, we scan from the given joint,
-up to that skeletons rootJnt th=en cscan back down in case the given joint isn’t part of the definitions</p>
+up to that skeletons rootJnt then scan back down in case the given joint isn’t part of the definitions</p>
 <p>:return MetaHIKCharacterNode class directly</p>
 </dd></dl>
 
@@ -516,7 +613,7 @@ that holds the hik definition connection data</p>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.rigutils.hik_characterize_from_tpose">
-<code class="descname">hik_characterize_from_tpose</code><span class="sig-paren">(</span><em>rootjnt=None</em>, <em>filepath=None</em>, <em>name=None</em>, <em>load_tpose=True</em>, <em>matchMethod='base'</em>, <em>hikdict=None</em>, <em>openui=True</em>, <em>force_lock=False</em>, <em>remove_current=True</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.hik_characterize_from_tpose" title="Permalink to this definition">¶</a></dt>
+<code class="descname">hik_characterize_from_tpose</code><span class="sig-paren">(</span><em>rootjnt=None</em>, <em>filepath=None</em>, <em>name=None</em>, <em>load_tpose=True</em>, <em>matchMethod='base'</em>, <em>hikdict=None</em>, <em>openui=True</em>, <em>force_lock=False</em>, <em>remove_current=True</em>, <em>disable_evaluation=False</em>, <em>skip_attrs=[]</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.hik_characterize_from_tpose" title="Permalink to this definition">¶</a></dt>
 <dd><p>from a stored out tpose rebuild the HIK characterization. This creates the HIK node (name),
 reconnects all of the plugs then loads the tpose up before locking the HIKCharacterization.
 If the pose of HIK is invalid you’ll get a warning at the end of the procedure.
@@ -539,18 +636,90 @@ created by the RigManager to build this data from</p>
 <li><strong>hikdict</strong> – if given this is a correctly formatted dict with the hikdata already build, used for passing data between skeletons when needed</li>
 <li><strong>openui</strong> – open up the HIK window a the end of the proc so you can check the characterization manually</li>
 <li><strong>force_lock</strong> – if True we ignore the checkcharacterization() results and lock regardless. This may cause issues if the skeleton isn’t in correct alignment</li>
+<li><strong>remove_current</strong> – if True and name is set then we force delete any current connected HIKNode before making the new one</li>
+<li><strong>disable_evaluation</strong> – if True we disable the evaluation of deformers when we load up the data so that the skeleton can reach the required T-Pose from the stored data.</li>
+<li><strong>skip_attrs</strong> – [] added so you could by-pass the loading of specific attrs if needed, ie [‘translateX’,’translateY’,translateZ’] to skip the loading of the</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Parma remove_current:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">if True and name is set then we force delete any current connected HIKNode before making the new one</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">1 if created and valid, 0 if created but invalid or failed to create, -1 if created and found as invalid characterization</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">1 if created and valid, 0 if created but invalid or failed to create, -1 if created and found as invalid characterization</p>
 </td>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.hik_get_non_connected_leaf_jnts">
+<code class="descname">hik_get_non_connected_leaf_jnts</code><span class="sig-paren">(</span><em>rootjnt</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.hik_get_non_connected_leaf_jnts" title="Permalink to this definition">¶</a></dt>
+<dd><p>from a given skeleton root, return all child joints that aren’t connect to 
+a HIKCharacterNode.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rootjnt</strong> – the skeleton root we’re going to process</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.hik_rename_skeleton_from_pose">
+<code class="descname">hik_rename_skeleton_from_pose</code><span class="sig-paren">(</span><em>rootjnt</em>, <em>posefile</em>, <em>replace=[]</em>, <em>rename=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.hik_rename_skeleton_from_pose" title="Permalink to this definition">¶</a></dt>
+<dd><p>rename a given skeleton based on the hik_plug dict in a given pose file. For this we
+cross reference the skeletons current hik mapping and then rename connected joints by 
+pulling the mapping names from the pose file hik_data block.</p>
+<p>This is used primarily internally to quickly rename skeletons and verify names from a
+given master pose file, using the hik_plugs as the mapping</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>rootjnt</strong> – the skeleton root of the skeleton we’re going to rename</li>
+<li><strong>posefile</strong> – the pose file we’re going to use to extract the naming from</li>
+<li><strong>replace</strong> – [str, str] a simple replacement call in the renamer to allow you to
+do srt.replace function in the rename, replace=[‘_drv’, ‘’] will strip the ‘_drv’
+suffix from the renamed metahuman skeleton</li>
+<li><strong>rename</strong> – if not True we only generate the return name mapping and don’t actually run the rename call itself</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>:return [(oldname, newname),..]  returns a list or pairs so this data can be used elsewhere (shortnames)</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">we use the shortname of the joint as the key in the .pose file mapping dict so the source skeleton 
+data can’t have duplicate named joints in it. The destination skeleton is dealt with slightly 
+differently so duplicate joint names aren’t an issue there.</p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.add_sparator_attr">
+<code class="descname">add_sparator_attr</code><span class="sig-paren">(</span><em>node</em>, <em>info=''</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.add_sparator_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maya has no way of adding a separator attr to the channelBox so this manages the next best thing.
+This uses a managed “_breaker_0x” attr but we use a consistent “niceName” so the breakers shows as 
+the same length for all consistently regardless if you add 5 of them to the same node</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>node</strong> – the node we’re adding a new separator too</li>
+<li><strong>info</strong> – if given this is shown as the enum text, else we use “__________”</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">if the last attr on the node is a previous separator then one won’tbe added. Also if “info” 
+is passed in and a separator exists with that info then again, the code will return without creating a new one</p>
+</div>
 </dd></dl>
 
 <dl class="function">
@@ -574,6 +743,36 @@ setup mRig and mExportTag system in a clean scene</p>
 <li><strong>pose_folder</strong> – if given this builds the poses list up from all found .pose files in the given directory</li>
 </ul>
 </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.add_unreal_ik_hand_feet_jnts">
+<code class="descname">add_unreal_ik_hand_feet_jnts</code><span class="sig-paren">(</span><em>rootjnt</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.add_unreal_ik_hand_feet_jnts" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple proc to insert the standard ik_foot / ik_hand root jnts to a given skeleton.
+This uses the HIK plugs to id the wrists and feet, creates the joints, then binds them 
+as per the standard Unreal Mannequin setup. We ID the hand and foot joints by either
+checking the hik plugs (recommended) or we use simply use the standard Mannequin joint names</p>
+<p>this builds and validates:</p>
+<dl class="docutils">
+<dt>ik_hand_root&gt;</dt>
+<dd><dl class="first last docutils">
+<dt>&gt; ik_hand_gun</dt>
+<dd>&gt; ik_hand_l
+&gt; ik_hand_r</dd>
+</dl>
+</dd>
+<dt>ik_foot_root</dt>
+<dd>&gt; ik_foot_l
+&gt; ik_foot_r</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rootjnt</strong> – the root joint of the skeleton we’re going to add / setup the joints under</td>
 </tr>
 </tbody>
 </table>
@@ -636,14 +835,49 @@ This is in testing</p>
 </table>
 </dd></dl>
 
+<dl class="function">
+<dt id="Red9.pro_pack.core.rigutils.sin_driver_expression">
+<code class="descname">sin_driver_expression</code><span class="sig-paren">(</span><em>driver_attr</em>, <em>driven_attrs</em>, <em>sin_length</em>, <em>start_driver_value=0.0</em>, <em>end_driver_value=1.0</em>, <em>output_value=10.0</em>, <em>dynamic=True</em>, <em>name='sin_driver_expression'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.rigutils.sin_driver_expression" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple expression setup to drive things like bendshapes on/off via a sine ease-in/out
+this has a single input attr, then drives x number of attrs through 0-output_value-0 staggered
+such that the last transition ends at the end_value</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>driver_attr</strong> – the attribute thats going to drive the expression input</li>
+<li><strong>driven_attrs</strong> – the attributes we’re going to drive</li>
+<li><strong>sin_length</strong> – the duration of each transition complete from 0-1-0</li>
+<li><strong>end_driver_value</strong> – the value of the driver_attr that will complete the transitions</li>
+<li><strong>output_value</strong> – the value we’ll drive each attribute too</li>
+<li><strong>dynamic</strong> – if True then the expression is left such that the inputs could be modified easily,
+else the values are written into the expression itself</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return peaks:</th><td class="field-body"><p class="first last">the  values of the driver_attr where the driven_attrs are at their peak</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>the driver for the effect is the line here, if we treat the driver_attr as units of time then:</p>
+<p>float $weight1 = sin((clamp(A, B, $driven_attr) - A) * 3.14159 / C);</p>
+<p>where we clamp in input of the sin to the start and end time for this object such that:
+A is the start time for this nodes transition
+B is the end time for this nodes transition
+C is the duration of the transition, ie the time it takes for the sin to go through 0-1-0
+$driven_attr is the attribute (value) we’re driving</p>
+</dd></dl>
+
 </div>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="Red9_Pro_r9data.html" class="btn btn-neutral float-left" title="Pro_Pack : r9Data" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Red9_Pro_skining.html" class="btn btn-neutral float-right" title="Pro_Pack : skining" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Red9_Pro_r9file.html" class="btn btn-neutral float-left" title="Pro_Pack : r9file" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Red9_Pro_shaders.html" class="btn btn-neutral float-right" title="Pro_Pack : shaders" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

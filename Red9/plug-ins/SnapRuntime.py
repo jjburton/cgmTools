@@ -33,10 +33,8 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
     kSourceLongFlag = "-source"
     kDestinationFlag = "-d"
     kDestinationLongFlag = "-destination" 
-    kTimeEnabledFlag = "-te"
-    kTimeEnabledLongFlag = "-timeEnabled" 
-    kTimeFlag = "-t"
-    kTimeLongFlag = "-time" 
+    kTimeFlag = "-te"
+    kTimeLongFlag = "-timeEnabled" 
     kTransFlag = "-st"
     kTransLongFlag = "-snapTranslates" 
     kRotsFlag = "-sr"
@@ -50,8 +48,7 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
         self.origTrans=None # store the original Trans for the UndoQueue
         self.origRots=None  # store the original Rots for the UndoQueue
         self.origScales=None  # store the original Scales for the UndoQueue
-        self.TimeEnabled=False  # enable time, uses the current frame
-        self.atFrame=None  # specific frame to snap
+        self.TimeEnabled=False 
         self.MFntSource=None
         self.MFntDestin=None
         self.snapTranslation=True
@@ -98,16 +95,14 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
             Source=argData.flagArgumentString(self.kSourceFlag, 0)
         if argData.isFlagSet(self.kDestinationFlag):
             Destin=argData.flagArgumentString(self.kDestinationFlag, 0)
-        if argData.isFlagSet(self.kTimeEnabledFlag):
-            self.TimeEnabled=argData.flagArgumentBool(self.kTimeEnabledFlag, 0)
-        if argData.isFlagSet(self.kTransFlag):
-            self.snapTranslation=argData.flagArgumentBool(self.kTransFlag, 0)
-        if argData.isFlagSet(self.kRotsFlag):
-            self.snapRotation=argData.flagArgumentBool(self.kRotsFlag, 0)
-        if argData.isFlagSet(self.kScalesFlag):
-            self.snapScales=argData.flagArgumentBool(self.kScalesFlag, 0)
         if argData.isFlagSet(self.kTimeFlag):
-            self.atFrame=argData.flagArgumentDouble(self.kTimeFlag, 0)
+            self.TimeEnabled=argData.flagArgumentBool(self.kTimeFlag, 0)  
+        if argData.isFlagSet(self.kTransFlag):
+            self.snapTranslation=argData.flagArgumentBool(self.kTransFlag, 0)  
+        if argData.isFlagSet(self.kRotsFlag):
+            self.snapRotation=argData.flagArgumentBool(self.kRotsFlag, 0)  
+        if argData.isFlagSet(self.kScalesFlag):
+            self.snapScales=argData.flagArgumentBool(self.kScalesFlag, 0)  
 
         # Make the api.MFnTransorm Nodes
         self.MFntSource=self.__MFnTransformNode(Source)
@@ -120,10 +115,6 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
             # already at the correct frame
             self.origTime = apiAnim.MAnimControl().currentTime()
             apiAnim.MAnimControl.setCurrentTime(self.origTime)
-
-        if argData.isFlagSet(self.kTimeFlag):  # and not self.atFrame == None:
-            self.origTime = OpenMaya.MTime(self.atFrame, OpenMaya.MTime.uiUnit())
-            apiAnim.MAnimControl.setCurrentTime(OpenMaya.MTime(self.atFrame, OpenMaya.MTime.uiUnit()))
 
         if self.snapTranslation:
             # --------------------------
@@ -205,11 +196,10 @@ class SnapTransforms(OpenMayaMPx.MPxCommand):
         syntax = OpenMaya.MSyntax()
         syntax.addFlag(cls.kSourceFlag, cls.kSourceLongFlag, OpenMaya.MSyntax.kString)
         syntax.addFlag(cls.kDestinationFlag, cls.kDestinationLongFlag, OpenMaya.MSyntax.kString)
-        syntax.addFlag(cls.kTimeEnabledFlag, cls.kTimeEnabledLongFlag, OpenMaya.MSyntax.kBoolean)
+        syntax.addFlag(cls.kTimeFlag, cls.kTimeLongFlag, OpenMaya.MSyntax.kBoolean)
         syntax.addFlag(cls.kTransFlag, cls.kTransLongFlag, OpenMaya.MSyntax.kBoolean)
         syntax.addFlag(cls.kRotsFlag, cls.kRotsLongFlag, OpenMaya.MSyntax.kBoolean)
         syntax.addFlag(cls.kScalesFlag, cls.kScalesLongFlag, OpenMaya.MSyntax.kBoolean)
-        syntax.addFlag(cls.kTimeFlag, cls.kTimeLongFlag, OpenMaya.MSyntax.kDouble)
         return syntax
 
 # Initialize the plug-in 

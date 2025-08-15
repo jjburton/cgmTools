@@ -53,6 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
@@ -60,17 +61,25 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : optimiser</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -694,6 +703,8 @@ Maya environment and many of the internal systems for clients</p>
 </table>
 <p>checks for:</p>
 <ul class="simple">
+<li>nodeTypes ‘audio’ : removes if found</li>
+<li>controller tag nodes validated for actual connections, if found to be inValid we delete them</li>
 <li>invalid references</li>
 <li>unused display layers</li>
 <li>constraint interpTypes (expects 2 = average)</li>
@@ -702,6 +713,7 @@ Maya environment and many of the internal systems for clients</p>
 <li>SRC rig controllers have keys</li>
 <li>SRC skeleton hasKeys</li>
 <li>SRC skeleton rotate tolerances</li>
+<li>valid HIK node structures (nodes are connected ultimately to a joint)</li>
 </ul>
 </dd></dl>
 
@@ -725,9 +737,9 @@ find the first instance of a “Pro_MetaRig_SRC” mNode</td>
 <p>checks to ensure:</p>
 <ul class="simple">
 <li>no audio nodes</li>
-<li>file is referenced</li>
+<li>file is not referenced</li>
 <li>invalid references</li>
-<li>unused display layers</li>
+<li>no display layers present</li>
 <li>removes ALL namespaces</li>
 <li>invalid MetaData</li>
 <li>SRC skeleton has no keys</li>
@@ -735,6 +747,11 @@ find the first instance of a “Pro_MetaRig_SRC” mNode</td>
 <li>SRC skeleton has no incoming connections to any attr</li>
 <li>Export Skeleton is parented to world</li>
 <li>meshes connected to renderMeshes and renderMeshes_head are parented under ‘<a href="#id5"><span class="problematic" id="id6">|</span></a>models’</li>
+<li>meshes have all draw overrides reset</li>
+<li>skeleton has all draw overrides reset</li>
+<li>skeleton is parented under root space</li>
+<li>skeleton is a bindpOse as per the “bpose” attr from Red9</li>
+<li>blendshape attrs are cast to the root jnt as channels</li>
 <li>blend target channels have no incoming connections</li>
 </ul>
 </dd></dl>
@@ -756,9 +773,11 @@ skeleton to process, unless passed directly in of course</p>
 <li>Skeleton hierarchy has no Non-Joint nodes in it</li>
 <li>Skeleton has no incoming connections to any attr</li>
 <li>Skeleton has all the draw options reset</li>
-<li>Skeleton has invereScale wires correct</li>
+<li>Skeleton has inverseScale wires correctly hooked</li>
 <li>Skeleton is at zero rotate on all jnts</li>
 <li>Skeleton is at BPose (internal BPose from Red9 Systems)</li>
+<li>Skeleton check joints that should be planar (requires HIK definition to process)</li>
+<li>Skeleton joints are all uniquely named</li>
 </ul>
 </dd></dl>
 
@@ -827,7 +846,7 @@ in the wiring of an external mRig system</p>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.optimiser.get_metaRigs">
-<code class="descname">get_metaRigs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.get_metaRigs" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_metaRigs</code><span class="sig-paren">(</span><em>valid=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.get_metaRigs" title="Permalink to this definition">¶</a></dt>
 <dd><p>generic mrig call for all base tests</p>
 </dd></dl>
 
@@ -1411,7 +1430,7 @@ prevents us running this on older rigs that haven’t been tested against this</
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.optimiser.mRigs_geo_display_attr_test">
-<code class="descname">mRigs_geo_display_attr_test</code><span class="sig-paren">(</span><em>expected=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.mRigs_geo_display_attr_test" title="Permalink to this definition">¶</a></dt>
+<code class="descname">mRigs_geo_display_attr_test</code><span class="sig-paren">(</span><em>expected=None</em>, <em>meshes=[]</em>, <em>mRigs=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.mRigs_geo_display_attr_test" title="Permalink to this definition">¶</a></dt>
 <dd><p>test to see if main control has geo_display attr and check that render meshes overrideDisplayType are
 connected to main control.geo_display</p>
 </dd></dl>
@@ -1420,6 +1439,21 @@ connected to main control.geo_display</p>
 <dt id="Red9.pro_pack.core.optimiser.mRigs_geo_display_attr_fix">
 <code class="descname">mRigs_geo_display_attr_fix</code><span class="sig-paren">(</span><em>HealthObject</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.mRigs_geo_display_attr_fix" title="Permalink to this definition">¶</a></dt>
 <dd><p>add geo_display Att to main ctrl if do not exist and connect render meshes to control.geo_display attr</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.mRigs_ctrl_name_match_test">
+<code class="descname">mRigs_ctrl_name_match_test</code><span class="sig-paren">(</span><em>expected=True</em>, <em>mRigs=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.mRigs_ctrl_name_match_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>given 2 mRigs first do a full connection mapping then compare the names of 
+ctrls based on their wiring to the mRig networks. First rig given (or found)
+is the master rig, second rig given (or found) is the rig we’re testing</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.mRigs_ctrl_name_match_fix">
+<code class="descname">mRigs_ctrl_name_match_fix</code><span class="sig-paren">(</span><em>HealthObject</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.mRigs_ctrl_name_match_fix" title="Permalink to this definition">¶</a></dt>
+<dd><p>fix for ctrl name errors, fixes use the actual mAttr wire back to the ctrls parent mSubSystem
+for consistency</p>
 </dd></dl>
 
 <dl class="function">
@@ -1674,7 +1708,7 @@ Outliner Error : Cannot find procedure “pass”</p>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.optimiser.skin_maximum_influences_test">
-<code class="descname">skin_maximum_influences_test</code><span class="sig-paren">(</span><em>shapes=[]</em>, <em>ui=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skin_maximum_influences_test" title="Permalink to this definition">¶</a></dt>
+<code class="descname">skin_maximum_influences_test</code><span class="sig-paren">(</span><em>shapes=[]</em>, <em>ui=None</em>, <em>maximum_influences=None</em>, <em>detailed_log=True</em>, <em>progress_bar=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skin_maximum_influences_test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test the maximum skin joints influence on mesh or meshes, it uses the skinCluster.maxInfluences attribute to
 determinate how many joints are allow to influence each vertex in the mesh</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1684,6 +1718,9 @@ determinate how many joints are allow to influence each vertex in the mesh</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>shapes</strong> – list of shape string names or list of tuples if require to test specific vertex on a shape</li>
 <li><strong>ui</strong> – object of type R9sknUI</li>
+<li><strong>maximum_influences</strong> – None by default as we use the skinClusters own maxInfluences value, this by-passes that</li>
+<li><strong>detailed_log</strong> – True by default, this catches and print logs every failed vert + it’s influence count,
+with this set False the code runs much faster on large meshes, but will only print log the overall max influence found</li>
 </ul>
 </td>
 </tr>
@@ -1697,7 +1734,7 @@ determinate how many joints are allow to influence each vertex in the mesh</p>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.optimiser.skin_maximum_influences_fix">
-<code class="descname">skin_maximum_influences_fix</code><span class="sig-paren">(</span><em>HealthObject</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skin_maximum_influences_fix" title="Permalink to this definition">¶</a></dt>
+<code class="descname">skin_maximum_influences_fix</code><span class="sig-paren">(</span><em>HealthObject</em>, <em>progress_bar=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skin_maximum_influences_fix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fix function bound to skin_maximum_influences_test function</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1757,7 +1794,7 @@ This ONLY tests skinClusters attached to mesh objects</p>
 
 <dl class="function">
 <dt id="Red9.pro_pack.core.optimiser.skin_method_test">
-<code class="descname">skin_method_test</code><span class="sig-paren">(</span><em>expected='dq'</em>, <em>skins=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skin_method_test" title="Permalink to this definition">¶</a></dt>
+<code class="descname">skin_method_test</code><span class="sig-paren">(</span><em>expected='linear'</em>, <em>skins=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skin_method_test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test to check the skinMethod used by all skinClusters matches the expected
 either dq or linear. This ONLY tests skinClusters attached to mesh objects</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2074,7 +2111,7 @@ all bindPose nodes and all associated skeleton hierarchies, and test them all fo
 <dt id="Red9.pro_pack.core.optimiser.skeletal_inverseScales_hooked_test">
 <code class="descname">skeletal_inverseScales_hooked_test</code><span class="sig-paren">(</span><em>rootJnt=None</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skeletal_inverseScales_hooked_test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if all joints have the required wire from their parent jnt into
-inversaeScale for some reason in production this wire was getting culled</p>
+inverseScale. For some reason in production this wire was getting culled</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2089,6 +2126,22 @@ inversaeScale for some reason in production this wire was getting culled</p>
 <dt id="Red9.pro_pack.core.optimiser.skeletal_inverseScales_hooked_fix">
 <code class="descname">skeletal_inverseScales_hooked_fix</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skeletal_inverseScales_hooked_fix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reconnect the wire from parentJnt.scale to childJnt.inverseScale</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.skeletal_planar_jnts_test">
+<code class="descname">skeletal_planar_jnts_test</code><span class="sig-paren">(</span><em>rootJnt=None</em>, <em>tolerance=0.001</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.skeletal_planar_jnts_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if specific joints within a skeleton hierarchy, setup with HIK, are planar. We use the hik wires
+to navigate through the skeleton to fine joints that we know should be planar. If not, we add them to the fail lists</p>
+<p>we check:</p>
+<ul class="simple">
+<li>spine jnts</li>
+<li>neck jnts</li>
+<li>elbows</li>
+<li>knees</li>
+</ul>
+<p>which for the solvers should be in planar, having only a single jointOrient value setup.
+If we find multiple values in the jointOrients then the joint is non-planar</p>
 </dd></dl>
 
 <dl class="function">
@@ -2250,6 +2303,19 @@ Once downloaded drop it here Red9/packages/diffMerge.exe</p>
 <dt id="Red9.pro_pack.core.optimiser.mesh_frozen_xforms_fix">
 <code class="descname">mesh_frozen_xforms_fix</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.mesh_frozen_xforms_fix" title="Permalink to this definition">¶</a></dt>
 <dd><p>fix method : freeze the failed meshes transforms</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.mesh_lock_normals_test">
+<code class="descname">mesh_lock_normals_test</code><span class="sig-paren">(</span><em>root=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.mesh_lock_normals_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if meshes have nolrmals lock</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.mesh_lock_normals_fix">
+<code class="descname">mesh_lock_normals_fix</code><span class="sig-paren">(</span><em>HealthObject</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.mesh_lock_normals_fix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fix method to unlock normals
+:return: list of meshes that have normals unlocked</p>
 </dd></dl>
 
 <dl class="function">
@@ -2461,6 +2527,18 @@ or a chset_bkg attrs pickled onto the mRig, both must have been generated by cha
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.controller_tag_validation_test">
+<code class="descname">controller_tag_validation_test</code><span class="sig-paren">(</span><em>expected=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.controller_tag_validation_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>test all controller nodes in the scene for actual transform controller hooks,
+if the controller tag has no connection then it’s redundant</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.controller_tag_validation_fix">
+<code class="descname">controller_tag_validation_fix</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.controller_tag_validation_fix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="Red9.pro_pack.core.optimiser.nodeTypes_present_test">
 <code class="descname">nodeTypes_present_test</code><span class="sig-paren">(</span><em>expected=0</em>, <em>nodeType='audio'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.nodeTypes_present_test" title="Permalink to this definition">¶</a></dt>
 <dd><p>test for the presence of a specific nodeType in the scene</p>
@@ -2471,7 +2549,7 @@ or a chset_bkg attrs pickled onto the mRig, both must have been generated by cha
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>expected</strong> – int=0, number of nodes of this nodeType in the scene
 that’s acceptable</li>
-<li><strong>nodeType</strong> – Maya nodeTyoe to scan for, default=audio</li>
+<li><strong>nodeType</strong> – Now takes a list but still supports a single string nodeType entry, Maya nodeTypes to scan for, default=[audio]</li>
 </ul>
 </td>
 </tr>
@@ -2719,9 +2797,27 @@ user prompt so we’re hooking to that</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.hik_validation_test">
+<code class="descname">hik_validation_test</code><span class="sig-paren">(</span><em>expected=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.hik_validation_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>test to find all invalid HIK nodes in the scene and remove them in the fix method</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.hik_validation_fix">
+<code class="descname">hik_validation_fix</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.hik_validation_fix" title="Permalink to this definition">¶</a></dt>
+<dd><p>fix method : delete all invalid HIK nodes</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="Red9.pro_pack.core.optimiser.hik_nodes_valid_get">
 <code class="descname">hik_nodes_valid_get</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.hik_nodes_valid_get" title="Permalink to this definition">¶</a></dt>
-<dd><p>return any HIK nodes in the scene</p>
+<dd><p>return VALID HIK nodes in the scene, these are nodes that have a connection to at least 1 jnt in their network</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.optimiser.controller_nodes_valid_get">
+<code class="descname">controller_nodes_valid_get</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.optimiser.controller_nodes_valid_get" title="Permalink to this definition">¶</a></dt>
+<dd><p>return valid controllerTag nodes, ie, ones that have valid children</p>
 </dd></dl>
 
 </div>

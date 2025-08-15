@@ -14,8 +14,8 @@ def poseGetNodesLoad(poseObj, nodes, *args):
 
     Why load in relative space????????????
     '''
-    print 'OVERLOADED FACIAL HANDLERS'
-    cmds.select(poseObj.metaRig.FACE_Neck)
+    print('OVERLOADED FACIAL HANDLERS')
+    #cmds.select(poseObj.metaRig.FACE_Neck)
     return getNodesOverload(poseObj, nodes, *args)
 
 def poseGetNodesSave(poseObj, nodes, *args):
@@ -24,7 +24,7 @@ def poseGetNodesSave(poseObj, nodes, *args):
     push the SDK data back to the controls so that the pose can
     be stored correctly
     '''
-    print 'OVERLOADED FACIAL HANDLERS'
+    print('OVERLOADED FACIAL HANDLERS')
     poseName = os.path.basename(poseObj.filepath).split('.pose')[0].split('_neg')[0]
     # print 'poseObject metaRig already set?????? ', poseObj.metaRig
 
@@ -32,7 +32,7 @@ def poseGetNodesSave(poseObj, nodes, *args):
         # print 'filter not active : finding FacialCore'
         nodes = poseObj.metaRig.get_sdk_target_current_ctrls(poseName)
     else:
-        print 'filter active : rootNode should be the FacialCore:'
+        print('filter active : rootNode should be the FacialCore:')
 
     if poseObj.metaRig.hasAttr(poseName) and poseName in poseObj.metaRig.coreControlChans:
         poseObj.metaRig.copy_xforms_sdk_grp_to_ctrl(poseName, accumulated=False)
@@ -53,6 +53,6 @@ def pushPoseFromLib(poseUIObj):
     mFacial = r9Meta.getMetaNodes(mTypes='Red9_MetaFacialCore')[0]
     posepath = poseUIObj.getPoseDir()
     poseName = os.path.basename(poseUIObj.getPoseSelected())
-    print 'posepath', posepath
-    print 'poseName', poseName
+    print('posepath', posepath)
+    print('poseName', poseName)
     mFacial.poses_pull_from_library(posepath, poseName)

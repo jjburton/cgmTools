@@ -78,8 +78,8 @@ class Test_AudioNode(object):
         assert self.audioNode.sampleRate == 44100
         assert self.audioNode.sample_bits == 16
         assert self.audioNode.channels == 1
-        print self.audioNode.dBFS
-        print self.audioNode.max_dBFS
+        print(self.audioNode.dBFS)
+        print(self.audioNode.max_dBFS)
         assert True  # self.audioNode.dBFS
 
 
@@ -118,7 +118,7 @@ class Test_BwavHandler(object):
         # print self.audioNode.bwav_timecodeFormatted()
         cmds.currentUnit(time='ntscf')
         assert r9General.getCurrentFPS() == 60
-        print 'ntscf' , self.audioNode.bwav_timecodeFormatted()
+        print('ntscf' , self.audioNode.bwav_timecodeFormatted())
         assert self.audioNode.bwav_timecodeFormatted() == '01:26:04:11'
         cmds.currentUnit(time='pal')
         assert r9General.getCurrentFPS() == 25
@@ -164,27 +164,27 @@ class Test_timecode_converts(object):
         timecode = '00:10:13:22'
 
         a = r9Audio.timecode_to_milliseconds(timecode, smpte=True, framerate=framerate)
-        print a
+        print(a)
         assert r9Core.floatIsEqual(a, 613733, 0.0001)
 
         b = r9Audio.milliseconds_to_frame(a, framerate=framerate)
-        print b
+        print(b)
         assert r9Core.floatIsEqual(b, 18412.0 , 0.0001)
 
         c = r9Audio.frame_to_milliseconds(b, framerate=framerate)
-        print c
+        print(c)
         assert r9Core.floatIsEqual(c, 613733.0, 0.0001)
 
         d = r9Audio.milliseconds_to_Timecode(c, smpte=False, framerate=framerate)
-        print d
+        print(d)
         assert d == '00:10:13:733'  # note converted to non-smpte
 
         e = r9Audio.timecode_to_frame(d, smpte=False, framerate=framerate)
-        print e
+        print(e)
         assert r9Core.floatIsEqual(e, 18412.0, 0.0001)
 
         f = r9Audio.frame_to_timecode(e, smpte=True, framerate=framerate)
-        print e
+        print(e)
         assert f == '00:10:13:22'
 
         assert f == timecode

@@ -9732,7 +9732,15 @@ def get_handleIndices(self):
 
 
 d_controlDat_links = {
-    'fk' : ['leverFK','fkJoints','controlsFK','controlFK'],
+    'fk' : ['leverFK','fkJoints','controlsFK','controlFK','controlFKReverse'],
+    'ik' : ['leverFK',
+            'controlIKBase',
+            'controlIKMid',
+            'controlIKEnd','controlIK',
+            'controlBallRotation','leverIK',
+            'controlIKBallHinge','controlIKBall','controlIKToe',
+            'controlIKMid','leverIK','eyeLookAt','lookAt',
+            'ikBase'],
     'root' : ['cog','rigRoot','limbRoot'],
 }
 

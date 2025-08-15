@@ -17,7 +17,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Pro_Pack : tools : health_manager" href="Red9_Pro_health_manager.html" />
+    <link rel="next" title="Pro_Pack : tools : anim_trails" href="Red9_Pro_anim_trails.html" />
     <link rel="prev" title="Pro_Pack : tools : anim_binder" href="Red9_Pro_anim_binder.html" /> 
 </head>
 
@@ -53,24 +53,35 @@
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -159,6 +170,11 @@ primarily UI wrapping for some of the base rig inetractions setups.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_MainWindow</span></code></p>
 <p>Basic UI for the FK/IK matching used by metaData</p>
 <dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.refresh">
+<code class="descname">refresh</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.refresh" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.closeEvent">
 <code class="descname">closeEvent</code><span class="sig-paren">(</span><em>event</em>, <em>*args</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.closeEvent" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -173,6 +189,55 @@ primarily UI wrapping for some of the base rig inetractions setups.</p>
 <dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.match_ik_fk">
 <code class="descname">match_ik_fk</code><span class="sig-paren">(</span><em>cached_solution=False</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.match_ik_fk" title="Permalink to this definition">¶</a></dt>
 <dd><p>switch to FK mode</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.mode">
+<code class="descname">mode</code><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.switch_mode">
+<code class="descname">switch_mode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.switch_mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.set_switch_ctrl">
+<code class="descname">set_switch_ctrl</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.set_switch_ctrl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.set_subsystem_data">
+<code class="descname">set_subsystem_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.set_subsystem_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the system level mapdata</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.add_matchpnt">
+<code class="descname">add_matchpnt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.add_matchpnt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.delete_mpt">
+<code class="descname">delete_mpt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.delete_mpt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.delete_system_mpts">
+<code class="descname">delete_system_mpts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.delete_system_mpts" title="Permalink to this definition">¶</a></dt>
+<dd><p>delete all matchpnts for this current mSystem</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.delete_mrig_mpt">
+<code class="descname">delete_mrig_mpt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.delete_mrig_mpt" title="Permalink to this definition">¶</a></dt>
+<dd><p>delete all mrig matchpnts in one go</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.mpnt_index_move">
+<code class="descname">mpnt_index_move</code><span class="sig-paren">(</span><em>direction='up'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.IK_FK_MatchingUI.mpnt_index_move" title="Permalink to this definition">¶</a></dt>
+<dd><p>shift the selected mpnt indexes up or down</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -224,8 +289,15 @@ in turn has expanded the scope to all controllers such as the Prop and WristLock
 </dd></dl>
 
 <dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.build_intermediate">
+<code class="descname">build_intermediate</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.build_intermediate" title="Permalink to this definition">¶</a></dt>
+<dd><p>new call to build an intermediate object for the wristlock to track rather 
+than a direct constraint to the driver object</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.set_space">
-<code class="descname">set_space</code><span class="sig-paren">(</span><em>side</em>, <em>aux_slot</em>, <em>newspace=None</em>, <em>align_mode='verbose'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.set_space" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_space</code><span class="sig-paren">(</span><em>side</em>, <em>aux_slot</em>, <em>newspace=None</em>, <em>align_mode='verbose'</em>, <em>connect_mode='direct'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.set_space" title="Permalink to this definition">¶</a></dt>
 <dd><p>set the aux_space for the wristlock and deal with transform changes</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -260,13 +332,29 @@ in turn has expanded the scope to all controllers such as the Prop and WristLock
 
 <dl class="method">
 <dt id="Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.delete_space">
-<code class="descname">delete_space</code><span class="sig-paren">(</span><em>side</em>, <em>slot</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.delete_space" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">delete_space</code><span class="sig-paren">(</span><em>side</em>, <em>slot</em>, <em>verbose=False</em>, <em>delete_intermediate=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.delete_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>delete the given aux slot connections for the side</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>side</strong> – ‘L’ or ‘R’ dictates the Arm mSystem we’re dealing with</li>
+<li><strong>slot</strong> – 1-3, the aux slot we’re going to be deleting</li>
+<li><strong>verbose</strong> – throw the confirmDialogs to the user</li>
+<li><strong>delete_intermediate</strong> – True by default, this will also delete the intermediated 
+locator ctl if it was made by the system when the space was set in the first place</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.bake_down">
 <code class="descname">bake_down</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.bake_down" title="Permalink to this definition">¶</a></dt>
-<dd><p>bake the selected mSytsm wristlocks back to the wrist controller</p>
+<dd><p>bake the selected mSystem wristlocks back to the wrist controller</p>
 </dd></dl>
 
 <dl class="method">
@@ -299,6 +387,10 @@ processed which isn’t always what we want. If we still find no keytimes we rev
 <code class="descname">rebuild_wrist_locks</code><span class="sig-paren">(</span><em>wristlock_data</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.WristLock_Spaces_UI.rebuild_wrist_locks" title="Permalink to this definition">¶</a></dt>
 <dd><p>from an mrig.gatherInfo block generated within r9Anim.indoDict data, rebuild, or attempt to
 rebuild the wristlock networks. Used by the r9Anim code for data integrity</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">TODO: this needs work due to the implementation of the intermediate ctrl setup</p>
+</div>
 </dd></dl>
 
 <dl class="attribute">
@@ -350,11 +442,11 @@ The run func is run by the Browser to allow for bulk processing of FBX files</p>
 by-pass to this. If you connect any node to a message wire called mrig.locomotion_track_pnt
 then that will by-pass the search for the COG and use that as the Locomotion track pnt instead.</p>
 <div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mrig</span> <span class="o">=</span> <span class="n">r9Meta</span><span class="o">.</span><span class="n">getMetaRigs</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mrig</span><span class="o">.</span><span class="n">addAttr</span><span class="p">(</span><span class="s1">&#39;locomotion_track_pntr&#39;</span><span class="p">,</span> <span class="n">attrType</span><span class="o">=</span><span class="s1">&#39;messageSimple&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s1">&#39;locator1&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mrig</span><span class="o">.</span><span class="n">addAttr</span><span class="p">(</span><span class="s1">&#39;locomotion_track_pnt&#39;</span><span class="p">,</span> <span class="n">attrType</span><span class="o">=</span><span class="s1">&#39;messageSimple&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s1">&#39;locator1&#39;</span><span class="p">)</span>
 <span class="go">&gt;&gt;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># OR add the attr then use the connection handling to plug it</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mrig</span><span class="o">.</span><span class="n">addAttr</span><span class="p">(</span><span class="s1">&#39;locomotion_track_pntr&#39;</span><span class="p">,</span> <span class="n">attrType</span><span class="o">=</span><span class="s1">&#39;messageSimple&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mrig</span><span class="o">.</span><span class="n">locomotion_track_pntr</span> <span class="o">=</span> <span class="s1">&#39;locator1&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mrig</span><span class="o">.</span><span class="n">addAttr</span><span class="p">(</span><span class="s1">&#39;locomotion_track_pnt&#39;</span><span class="p">,</span> <span class="n">attrType</span><span class="o">=</span><span class="s1">&#39;messageSimple&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mrig</span><span class="o">.</span><span class="n">locomotion_track_pnt</span> <span class="o">=</span> <span class="s1">&#39;locator1&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -438,6 +530,77 @@ offset between COG and locomotion ctrl</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="Red9.pro_pack.tools.anim_tools.Anim_Treadmill">
+<em class="property">class </em><code class="descname">Anim_Treadmill</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.Anim_Treadmill" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_MainWindow</span></code></p>
+<p>Basic UI for the management of the Treadmill</p>
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.Anim_Treadmill.ctrl_main_motion_remove">
+<code class="descname">ctrl_main_motion_remove</code><span class="sig-paren">(</span><em>mrig</em>, <em>timerange=()</em>, <em>step=1</em>, <em>smartbake=False</em>, <em>smartbake_ref=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.Anim_Treadmill.ctrl_main_motion_remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>remove keyed data from the ctrl_main and re-calculate the rest of the rig to compensate.
+The situation would be that the Main Ctrl has been used to do the bulk of the characters
+motion, think walk on the spot then using the Main to do the transforms in world space.
+We want to remove those Main transformations, reset the Main ctrl and recalculate the
+rest of the rig accordingly.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>mrig</strong> – the mrig we’re working with</li>
+<li><strong>timerange</strong> – timerange to use, else we process the current timerange as per all Red9 funcs</li>
+<li><strong>step</strong> – the bake step used IF not smartbake</li>
+<li><strong>smartbake</strong> – if True we use the smartbake systems when extracting key data</li>
+<li><strong>smartbake_ref</strong> – additional node used when extracting the smartbake key times</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.anim_tools.Anim_Treadmill.ctrl_main_motion_extract">
+<code class="descname">ctrl_main_motion_extract</code><span class="sig-paren">(</span><em>mrig</em>, <em>refnode</em>, <em>timerange=()</em>, <em>smartbake=False</em>, <em>smartbake_ref=[]</em>, <em>step=1</em>, <em>trans=True</em>, <em>rots=True</em>, <em>projected=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.Anim_Treadmill.ctrl_main_motion_extract" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>mrig</strong> – the mrig we’re working with</li>
+<li><strong>refnode</strong> – the node used to extract the new motion for the Main Ctrl from</li>
+<li><strong>time</strong> – time range to use, else we process the current timerange as per all Red9 funcs</li>
+<li><strong>smartbake</strong> – if True we use the smartbake systems when extracting key data</li>
+<li><strong>smartbake_ref</strong> – additional node used when extracting the smartbake key times</li>
+<li><strong>step</strong> – the bake step used IF not smartbake</li>
+<li><strong>trans</strong> – match the translate data of the refnode</li>
+<li><strong>rots</strong> – match the rotate data of the refnode</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>track the Main Ctrl to the given refnode and re-calculate all of rig to compensate.
+Animation is maintained but the Main Ctrl gets tracked. This is ideal for extracting
+forward motion from a walk and pushing that to the Main so it can me isolated, think
+automated treadmill. The refnode doens’t have to be part of the rig, any scene node
+can be used.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">this relies on the self.settings data in the mRig and specifically the filterPriority list
+which can be setup in the RigManager&gt;Tab2. This priority order is used throughout the 
+codebase to denote the process order of the main rig nodes.</p>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.tools.anim_tools.Anim_Treadmill.staticMetaObject">
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide2.QtCore.QMetaObject object&gt;</em><a class="headerlink" href="#Red9.pro_pack.tools.anim_tools.Anim_Treadmill.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 
 
@@ -445,7 +608,7 @@ offset between COG and locomotion ctrl</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="Red9_Pro_anim_binder.html" class="btn btn-neutral float-left" title="Pro_Pack : tools : anim_binder" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Red9_Pro_health_manager.html" class="btn btn-neutral float-right" title="Pro_Pack : tools : health_manager" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Red9_Pro_anim_trails.html" class="btn btn-neutral float-right" title="Pro_Pack : tools : anim_trails" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

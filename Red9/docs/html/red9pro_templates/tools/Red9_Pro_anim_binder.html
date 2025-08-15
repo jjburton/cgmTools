@@ -50,25 +50,38 @@
 <li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Tools.html">Red9_Tools</a></li>
 </ul>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
 </ul>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -101,7 +114,7 @@
 module which was done back in 2011 for the Autodesk MasterClass support files.
 This deals with creating the BND binder files themselves.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># import statement for the module via the r9pro decompiler</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="kn">import</span> <span class="n">r9pro</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="k">import</span> <span class="n">r9pro</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">r9anim_binder</span> <span class="o">=</span> <span class="n">r9pro</span><span class="o">.</span><span class="n">r9import</span><span class="p">(</span><span class="s1">&#39;r9anim_binder&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -125,8 +138,7 @@ produced for the Autodesk MasterClass</p>
 <dl class="function">
 <dt id="Red9.pro_pack.tools.anim_binder.get_bind_nodes">
 <code class="descname">get_bind_nodes</code><span class="sig-paren">(</span><em>rootNode=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_binder.get_bind_nodes" title="Permalink to this definition">¶</a></dt>
-<dd><p>From selected root find all BindNodes via the marker attribute ‘BindNode’
-Note we’re not casting to PyNodes here for speed here</p>
+<dd><p>From selected root find all BindNodes via the marker attribute ‘BindNode’</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -140,8 +152,7 @@ Note we’re not casting to PyNodes here for speed here</p>
 <dl class="function">
 <dt id="Red9.pro_pack.tools.anim_binder.get_bound_controls">
 <code class="descname">get_bound_controls</code><span class="sig-paren">(</span><em>rootNode=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_binder.get_bound_controls" title="Permalink to this definition">¶</a></dt>
-<dd><p>From selected root find all BoundControllers via the marker attribute ‘BoundCtr’
-Note we’re not casting to PyNodes here for speed here</p>
+<dd><p>From selected root find all BoundControllers via the marker attribute ‘BoundCtr’</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -194,7 +205,7 @@ Those found are then baked out and the marker attribute is deleted</p>
 
 <dl class="function">
 <dt id="Red9.pro_pack.tools.anim_binder.bind_skeletons">
-<code class="descname">bind_skeletons</code><span class="sig-paren">(</span><em>source</em>, <em>dest</em>, <em>method='connect'</em>, <em>manage_scales=False</em>, <em>verbose=False</em>, <em>unlock=False</em>, <em>bindroot=True</em>, <em>bindroot_inc=False</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_binder.bind_skeletons" title="Permalink to this definition">¶</a></dt>
+<code class="descname">bind_skeletons</code><span class="sig-paren">(</span><em>source</em>, <em>dest</em>, <em>method='connect'</em>, <em>manage_scales=False</em>, <em>verbose=False</em>, <em>unlock=False</em>, <em>bindroot=True</em>, <em>bindroot_inc=False</em>, <em>connect_shears=False</em>, <em>**kws</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.anim_binder.bind_skeletons" title="Permalink to this definition">¶</a></dt>
 <dd><p>From 2 given root joints search through each hierarchy for child joints, match
 them based on node name, then connect their transform channels trans/rots directly, or
 parentConstrain them depending on the method flag.</p>

@@ -26,31 +26,38 @@ global proc red9HackChannelBox(string $parent)
 	 menuItem -label ("Red9 : HUD")
 	 	-subMenu true 
 	 	-tearOff true
+		-i "red9.png"	
 	 	-p $parent red9HUDsubmenu;
 	 menuItem -label ("HUD: Monitor CB selection") 
 		-p red9HUDsubmenu
+		-i "red9.png"	
 		-ann "Add the selected ChannelBox attrs to the HUD node for monitoring"
 		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDaddCBAttrs()\")" red9HUDaddStaticItem;
 	 menuItem -label ("HUD: Remove CB selection") 
 		-p red9HUDsubmenu
+		-i "red9.png"	
 		-ann "Remove the selected ChannelBox attrs from the HUD"
 		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDremoveCBAttrs()\")" red9HUDremoveItem;
 	 menuItem -divider true -p red9HUDsubmenu;
 	 menuItem -label ("HUD: Show as HeadsUp") 
 		-p red9HUDsubmenu
+		-i "red9.png"	
 		-ann "switch to standard Heads up data"
 		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDManagement('refreshHeadsUp')\")" red9HUDrefreshHeadsUpItem;	
 	 menuItem -label ("HUD: Show as Sliders") 
 		-p red9HUDsubmenu
+		-i "red9.png"	
 		-ann "switch the HUD mode to sliders"
 		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDManagement('refreshSliders')\")" red9HUDrefreshSlidersItem;		 
 	 menuItem -label ("HUD: Show Off") 
 		-p red9HUDsubmenu
+		-i "red9.png"	
 		-ann "turn off the HUD but leave the attrs wired to it"
 		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDManagement('kill')\")" red9HUDkillItem;	
 	 menuItem -divider true -p red9HUDsubmenu;
 	 menuItem -label ("HUD: Delete") 
 		-p red9HUDsubmenu
+		-i "red9.png"	
 		-ann "destroy the HUD itself and cleanup"
 		-c "python(\"import Red9.core.Red9_Meta as r9Meta;r9Meta.monitorHUDManagement('delete')\")" red9HUDdeleteItem;
 
@@ -58,21 +65,26 @@ global proc red9HackChannelBox(string $parent)
 	 menuItem -label ("Red9 : CopyPaste Xforms")
 	 	-subMenu true 
 	 	-tearOff true
+		-i "red9.png"	
 	 	-p $parent red9Clipboardsubmenu;
 	 menuItem -label ("Red9: Copy Node Attrs") 
 		-p red9Clipboardsubmenu
+		-i "red9.png"	
 		-ann "Add the selected objects transform data to the clipboard"
 		-c "python(\"import Red9.core.Red9_PoseSaver as r9Pose;r9Pose.store_nodepose_to_clipboard()\")" red9CBCopyItem;
 	 menuItem -label ("Red9: Paste Node Attrs - All Attrs") 
 		-p red9Clipboardsubmenu
+		-i "red9.png"	
 		-ann "Paste the transform clipboard data to the selected object / selected channels"
 		-c "python(\"import Red9.core.Red9_PoseSaver as r9Pose;r9Pose.apply_nodepose_from_clipboad(cb_selection=False, world_space=False)\")" red9CBPasteLocalItem;
 	 menuItem -label ("Red9: Paste Node Attrs - All Attrs - WorldSpace") 
 		-p red9Clipboardsubmenu
+		-i "red9.png"	
 		-ann "Paste the transform clipboard data to the selected object / selected channels, transoform data is in WorldSpace"
 		-c "python(\"import Red9.core.Red9_PoseSaver as r9Pose;r9Pose.apply_nodepose_from_clipboad(cb_selection=False, world_space=True)\")" red9CBPasteWorldItem;
 	 menuItem -label ("Red9: Paste Node Attrs - Selected CBox") 
 		-p red9Clipboardsubmenu
+		-i "red9.png"	
 		-ann "Paste the transform clipboard data to the selected object + selected channels"
 		-c "python(\"import Red9.core.Red9_PoseSaver as r9Pose;r9Pose.apply_nodepose_from_clipboad(cb_selection=True)\")" red9CBPaste2Item;
 
@@ -85,24 +97,28 @@ global proc red9HackGraphCurveMenu(string $parent)
 	 menuItem -d true;
 	 menuItem -label "Red9: Randomizer"
 		-annotation "Add Noise to Curves"	
-		-p $parent			
+		-p $parent	
+		-i "red9.png"		
 		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys().curveMenuFunc()\")"
 		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys().curveMenuFunc()\")"
 		noiseItem;
 	 menuItem -optionBox true
 		-annotation "Noise Settings" 
 		-p $parent
+		-i "red9.png"	
 		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()\")"
 		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.RandomizeKeys.showOptions()\")"
 		noiseOptionsItem;
 	 menuItem -label "Red9: Interactive Simplify"
 		-annotation "Interactively simplify and filter animCurves"	
-		-p $parent			
+		-p $parent
+		-i "red9.png"			
 		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.FilterCurves.show()\")"
 		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.FilterCurves.show()\")";
 	 menuItem -label "Red9: Inverse Key Times"
 		-annotation "Inverse the Selected key times around the centre pivot of those selected"	
-		-p $parent			
+		-p $parent
+		-i "red9.png"			
 		-c "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.AnimFunctions.inverseAnimCurves(nodes=[], time=(), mode='keys')\")"
 		-dragMenuCommand "python(\"import Red9.core.Red9_AnimationUtils as r9Anim;r9Anim.AnimFunctions.inverseAnimCurves(nodes=[], time=(), mode='keys')\")";
 }
@@ -112,8 +128,9 @@ global proc red9HackScriptEditorPopup(string $parent)
 {
 	 //hack the ScriptEditor marking menu
 	 
-	 menuItem -radialPosition "SW" 
+	 menuItem -radialPosition "NE"
 		 -parent $parent 
+		 -i "red9.png"
 	 	 -label "Red9: InspectFunction"
 	 	 -command "handleScriptEditorAction \"copy\";red9_InspectCode";
 }
@@ -130,3 +147,17 @@ global proc red9HackTraxMenu()
 //	//hack Red9_Sound to the Trax Editor menuBar
 //	python("import Red9.startup.setup as r9Setup;r9Setup.addAudioMenu(parent='sequenceEditorPanel1', rootMenu='redNineSequencerRoot')");
 //}
+
+global proc red9HackAnimLayerMenu(string $parent)
+{	
+	if (python("r9Setup.has_pro_pack()"))
+	{
+		//hack Red9 Merge animLayers to the AnimLayer menuBar
+		 menuItem -label "Red9: Fast AnimLayer Merge"
+			-annotation "r9Anim enabled animation layer merge call, up to 5* faster than Maya's internal call"	
+			-p $parent	
+			-i "red9.png"
+			-c "python(\"from Red9.pro_pack import r9pro;r9panim = r9pro.r9import('r9panim');r9panim.merge_all_anim_layers(timeline_only=True, verbose=True)\")"
+			-dragMenuCommand "python(\"from Red9.pro_pack import r9pro;r9panim = r9pro.r9import('r9panim');r9panim.merge_all_anim_layers(timeline_only=True, verbose=True)\")";
+	}
+}

@@ -1101,8 +1101,10 @@ class BlockConfig(BaseDat):
     def clear(self):
         _str_func = 'BlockConfig.clear'
         log.debug(log_start(_str_func))
-        self.dat = copy.copy(BlockConfig._cleanDat)
-        self.mBlockDat = []        
+        log.info("|{}| >> Before clear: self.dat = {}".format(_str_func, self.dat))
+        self.dat = {'blockEntries': []}  # Create fresh dict instead of copying
+        self.mBlockDat = []
+        log.info("|{}| >> After clear: self.dat = {}".format(_str_func, self.dat))        
     
     def get(self, ml_context = []):
         _str_func = 'BlockConfig.get'
@@ -1796,7 +1798,22 @@ class uiBlockConfigDat(ui):
             log.error("|{}| >> Cancelled.".format(_str_func))
             return False        
         
+        log.info("|{}| >> Before clear: {} entries".format(_str_func, len(self.uiDat.dat.get('blockEntries', []))))
+        
+        # Debug: Check what type of entries we have
+        for i, entry in enumerate(self.uiDat.dat.get('blockEntries', [])):
+            log.info("|{}| >> Entry {}: index={}, block={}, name='{}'".format(
+                _str_func, i, entry.get('index'), 
+                type(entry.get('block')).__name__ if entry.get('block') else 'None',
+                entry.get('name', 'Unknown')[:20]
+            ))
+        
         self.uiDat.clear()
+        log.info("|{}| >> After clear: {} entries".format(_str_func, len(self.uiDat.dat.get('blockEntries', []))))
+        
+        # Clear UI state
+        self._dCB_blocks = {}
+        
         self.uiUpdate_data()
         
             
@@ -2005,12 +2022,22 @@ class uiBlockConfigDat(ui):
         return
     
     def log_blockDat(self,idx = None):
-        _d = self.uiDat.dat['config'][str(idx)]
+        # Find the entry by index in the new blockEntries structure
+        entry = next((e for e in self.uiDat.dat['blockEntries'] if e['index'] == idx), None)
+        if not entry:
+            return log.error("No entry found for index {}".format(idx))
+        
+        _d = entry['config']
         pprint.pprint(list(_d.keys()))
         
     def get_blockDatUI(self,idx=None):
         mUI = uiBlockDat()
-        _dSource = self.uiDat.dat['config'][str(idx)]
+        # Find the entry by index in the new blockEntries structure
+        entry = next((e for e in self.uiDat.dat['blockEntries'] if e['index'] == idx), None)
+        if not entry:
+            return log.error("No entry found for index {}".format(idx))
+        
+        _dSource = entry['config']
         _d = {k:_dSource[k] for k in list(_dSource.keys())}
         
         mDat = BlockDat(dat = _d)
@@ -2019,7 +2046,12 @@ class uiBlockConfigDat(ui):
         mUI.uiStatus_refresh(  )
         
     def get_shapeDatUI(self,idx=None):
-        mDat = self.uiDat.dat['config'][str(idx)].get('shape')
+        # Find the entry by index in the new blockEntries structure
+        entry = next((e for e in self.uiDat.dat['blockEntries'] if e['index'] == idx), None)
+        if not entry:
+            return log.error("No entry found for index {}".format(idx))
+        
+        mDat = entry['config'].get('shape')
         if not mDat:
             return log.error("No shapeDat found")
         
@@ -2034,6 +2066,10 @@ class uiBlockConfigDat(ui):
         self.uiFrame_data.clear()
         
         if not self.uiDat:
+            return
+        
+        # Check if blockEntries exists and is valid
+        if not self.uiDat.dat or 'blockEntries' not in self.uiDat.dat:
             return
         
         """

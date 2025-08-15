@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pro_Pack : r9file &mdash; Red9 3.0 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Pro_Pack : rigutils" href="Red9_Pro_rigutils.html" />
+    <link rel="prev" title="Pro_Pack : r9Data" href="Red9_Pro_r9data.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Red9<img src="../_static/Red9_ProPack_logo.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                3.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_AnimationUtils.html">Red9_AnimationUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Audio.html">Red9_Audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Core.html">Red9_CoreUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_General.html">Red9_General</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Meta.html">Red9_Meta</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_PoseSaver.html">Red9_PoseSaver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Setup.html">Red9_Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../red9core_templates/Red9_Tools.html">Red9_Tools</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_animation.html">Pro_Pack : animation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_capture.html">Pro_Pack : capture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_export.html">Pro_Pack : exporter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_general.html">Pro_Pack : general</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_perforce.html">Pro_Pack : perforce</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project.html">Pro_Pack : project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : r9file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Red9</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Pro_Pack : r9file</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/red9pro_templates/Red9_Pro_r9file.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="pro-pack-r9file">
+<h1>Pro_Pack : r9file<a class="headerlink" href="#pro-pack-r9file" title="Permalink to this headline">¶</a></h1>
+<p>ProPack r9file module if our main file handler.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># import statement for the module via the r9pro decompiler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="k">import</span> <span class="n">r9pro</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r9rigutils</span> <span class="o">=</span> <span class="n">r9pro</span><span class="o">.</span><span class="n">r9import</span><span class="p">(</span><span class="s1">&#39;r9rigutils&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<span class="target" id="module-Red9.pro_pack.core.r9file"></span><table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+</tbody>
+</table>
+<dl class="function">
+<dt id="Red9.pro_pack.core.r9file.u">
+<code class="descname">u</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.u" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="Red9.pro_pack.core.r9file.resolve_path">
+<code class="descname">resolve_path</code><span class="sig-paren">(</span><em>path</em>, <em>path_hints=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.resolve_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>from a given path make sure it exists, if it doesn’t, relax the rules and
+try and find it in the project structure or in the same folder as the current Maya scene</p>
+<p>order of resolve:</p>
+<p>1: file exists as given
+2: path_hint param inspected for filename existence
+3: file found in Maya workspace mounts, currently support scenes, images, sounds, movies
+4: file found in the same folder as the current Maya scene</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.core.r9file.r9File">
+<em class="property">class </em><code class="descname">r9File</code><span class="sig-paren">(</span><em>path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Red9 file handler system, bound to OS calls directly to the class instance.</p>
+<p>This also binds Perforce to the class is Perforce was found on your system,
+exposing and binding all perforce commands directly to this file object</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="k">import</span> <span class="n">r9pro</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r9ie</span> <span class="o">=</span> <span class="n">r9pro</span><span class="o">.</span><span class="n">r9import</span><span class="p">(</span><span class="s1">&#39;r9ie&#39;</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myfile</span><span class="o">=</span><span class="n">r9ie</span><span class="o">.</span><span class="n">r9File</span><span class="p">(</span><span class="n">myfilepath</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myfile</span><span class="o">.</span><span class="n">sourcecontrol</span><span class="o">.</span><span class="n">fstat</span><span class="p">()</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># because we bind &quot;os&quot; we can also directly run os/path calls</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myfile</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myfile</span><span class="o">.</span><span class="n">splitext</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">when dealing with P4 the P4_SourceControl class is bound to self as
+self.sourcecontrol, exposing all the calls directly.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> – Only takes one args and that’s the filepath to convert to a file object</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.module">
+<code class="descname">module</code><em class="property"> = &lt;module 'ntpath' from 'C:\Program Files\Autodesk\Maya2018\bin\python27.zip\ntpath.py'&gt;</em><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.module" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.path">
+<code class="descname">path</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.formatPath">
+<code class="descname">formatPath</code><span class="sig-paren">(</span><em>path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.formatPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>take the given path and format it for Maya path ‘/’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.abspath">
+<code class="descname">abspath</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.abspath" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.abspath’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.normcase">
+<code class="descname">normcase</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.normcase" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.normcase’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.normpath">
+<code class="descname">normpath</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.normpath" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.normpath’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.realpath">
+<code class="descname">realpath</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.realpath" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.realpath’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.expanduser">
+<code class="descname">expanduser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.expanduser" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.expanduser’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.expandvars">
+<code class="descname">expandvars</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.expandvars" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.expandvars’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.dirname">
+<code class="descname">dirname</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.dirname" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.dirname’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.basename">
+<code class="descname">basename</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.basename" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.basename’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.namebase">
+<code class="descname">namebase</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.namebase" title="Permalink to this definition">¶</a></dt>
+<dd><p>The file name but with the extension removed.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.ext">
+<code class="descname">ext</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.ext" title="Permalink to this definition">¶</a></dt>
+<dd><p>The file extension, equivalent to ‘os.path.splitext()[1]’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.drive">
+<code class="descname">drive</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.drive" title="Permalink to this definition">¶</a></dt>
+<dd><p>The drive letter for the path, for example ‘C:’,
+equivalent to ‘os.path.splitdrive()[0]’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.parent">
+<code class="descname">parent</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.parent" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : os.path.dirname</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.name">
+<code class="descname">name</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of this file or directory without the full path.</p>
+<p>For example,
+‘C:/assets/animation/myfile.ma’).name == ‘myfile.ma’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.splitpath">
+<code class="descname">splitpath</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.splitpath" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.split’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.splitdrive">
+<code class="descname">splitdrive</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.splitdrive" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.splitdrive’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.splitext">
+<code class="descname">splitext</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Return ``(p.stripext(), p.ext)``.<a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.splitext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split the filename extension from this path and return
+the two parts.  Either part may be empty.</p>
+<p>The extension is everything from <code class="docutils literal notranslate"><span class="pre">'.'</span></code> to the end of the
+last path segment.  This has the property that if
+<code class="docutils literal notranslate"><span class="pre">(a,</span> <span class="pre">b)</span> <span class="pre">==</span> <span class="pre">p.splitext()</span></code>, then <code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">+</span> <span class="pre">b</span> <span class="pre">==</span> <span class="pre">p</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.stripext">
+<code class="descname">stripext</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.stripext" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.splitext()[0]’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.splitunc">
+<code class="descname">splitunc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.splitunc" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.splitunc’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.listdir">
+<code class="descname">listdir</code><span class="sig-paren">(</span><em>filters=[]</em>, <em>byDate=False</em>, <em>fullPath=False</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.listdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple os wrap to list a dir with filters for file type and sort byDate</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filters</strong> – list of file extensions to filter for</li>
+<li><strong>byData</strong> – sort the list by modified date, newest first!</li>
+<li><strong>fullPath</strong> – return either the fully matched path or just the files that match</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.isabs">
+<code class="descname">isabs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.isabs" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.isabs’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.exists">
+<code class="descname">exists</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.exists’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.isdir">
+<code class="descname">isdir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.isdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.isdir’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.isfile">
+<code class="descname">isfile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.isfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.isfile’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.islink">
+<code class="descname">islink</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.islink" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.islink’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.ismount">
+<code class="descname">ismount</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.ismount" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.ismount’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.samefile">
+<code class="descname">samefile</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.samefile" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.samefile’</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.getatime">
+<code class="descname">getatime</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.getatime" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.getatime’
+returns the last access time for the given path</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.atime">
+<code class="descname">atime</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.atime" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getatime</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.atime_as_string">
+<code class="descname">atime_as_string</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.atime_as_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getatime converted to a time string ‘Tue Feb 23 14:45:40 2021’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.atime_as_struct">
+<code class="descname">atime_as_struct</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.atime_as_struct" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getatime converted to a struct_time object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.getmtime">
+<code class="descname">getmtime</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.getmtime" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.getmtime’
+returns the modified time for the given path</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.mtime">
+<code class="descname">mtime</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.mtime" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getmtime</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.mtime_as_string">
+<code class="descname">mtime_as_string</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.mtime_as_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getmtime converted to a time string ‘Tue Feb 23 14:45:40 2021’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.mtime_as_struct">
+<code class="descname">mtime_as_struct</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.mtime_as_struct" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getmtime converted to a struct_time object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.getctime">
+<code class="descname">getctime</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.getctime" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.getctime’
+returns the create time for the given path</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.ctime">
+<code class="descname">ctime</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.ctime" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getctime</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.ctime_as_string">
+<code class="descname">ctime_as_string</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.ctime_as_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getctime converted to a time string ‘Tue Feb 23 14:45:40 2021’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.ctime_as_struct">
+<code class="descname">ctime_as_struct</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.ctime_as_struct" title="Permalink to this definition">¶</a></dt>
+<dd><p>property representing getctime converted to a struct_time object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.getsize">
+<code class="descname">getsize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.getsize" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.getsize’</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.core.r9file.r9File.size">
+<code class="descname">size</code><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>size of the file, in bytes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.access">
+<code class="descname">access</code><span class="sig-paren">(</span><em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.access" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return true if current user has access to this path.</p>
+<p>mode - One of the constants <code class="xref py py-data docutils literal notranslate"><span class="pre">os.F_OK</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">os.R_OK</span></code>,
+<code class="xref py py-data docutils literal notranslate"><span class="pre">os.W_OK</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">os.X_OK</span></code></p>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.access()</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.stat">
+<code class="descname">stat</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.stat" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates a <code class="docutils literal notranslate"><span class="pre">stat()</span></code> system call on this path.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.lstat">
+<code class="descname">lstat</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.lstat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like <a class="reference internal" href="#Red9.pro_pack.core.r9file.r9File.stat" title="Red9.pro_pack.core.r9file.r9File.stat"><code class="xref py py-meth docutils literal notranslate"><span class="pre">stat()</span></code></a>, but do not follow symbolic links.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.stat_mode">
+<code class="descname">stat_mode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.stat_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>covert the stat.st_mode into a readable “mode” / permissions</p>
+<p>base permissions: rwx
+r (read) = 4
+w (write) = 2
+x (execute) = 1
+no permissions = 0</p>
+<p>when accumulated:
+0 (0+0+0) - No permission.
+1 (0+0+1) - Only execute permission.
+2 (0+2+0) - Only write permission.
+3 (0+2+1) - Write and execute permission.
+4 (4+0+0) - Only read permission.
+5 (4+0+1) - Read and execute permission.
+6 (4+2+0) - Read and write permission.
+7 (4+2+1) - Read, write, and execute permission.</p>
+<dl class="docutils">
+<dt>mode: 0755 <span class="classifier-delimiter">:</span> <span class="classifier"></span></dt>
+<dd>owner : rwx = 4+2+1 = 7
+group : r-x = 4+0+1 = 5
+others: r-x = 4+0+1 = 5</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.is_writable">
+<code class="descname">is_writable</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.is_writable" title="Permalink to this definition">¶</a></dt>
+<dd><p>return is the path is writable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.chmod">
+<code class="descname">chmod</code><span class="sig-paren">(</span><em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.chmod" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : <cite>os.chmod</cite></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.copyfile">
+<code class="descname">copyfile</code><span class="sig-paren">(</span><em>dest_path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.copyfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates shutil.copyfile
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.copymode">
+<code class="descname">copymode</code><span class="sig-paren">(</span><em>dest_path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.copymode" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates shutil.copymode
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.copystat">
+<code class="descname">copystat</code><span class="sig-paren">(</span><em>dest_path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.copystat" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates shutil.copystat
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.copy">
+<code class="descname">copy</code><span class="sig-paren">(</span><em>dest_path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates shutil.copy
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.copy2">
+<code class="descname">copy2</code><span class="sig-paren">(</span><em>dest_path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.copy2" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates shutil.copy2
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.copytree">
+<code class="descname">copytree</code><span class="sig-paren">(</span><em>dest_path</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.copytree" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates shutil.copytree
+recursively copy an entire directory structure to the dest_path
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.move">
+<code class="descname">move</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.move" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates shutil.move</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.rmtree">
+<code class="descname">rmtree</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.rmtree" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates shutil.rmtree
+where path to remove is self.path. Unlike rmdir or removedirs this doesn’t
+error if the path isn’t empty</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.rename">
+<code class="descname">rename</code><span class="sig-paren">(</span><em>new</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.rename" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.rename’
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.renames">
+<code class="descname">renames</code><span class="sig-paren">(</span><em>new</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.renames" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.renames’
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.join">
+<code class="descname">join</code><span class="sig-paren">(</span><em>first</em>, <em>*others</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.path.join’, returns the new path
+expects this current path to be a dir not a file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.joinpath">
+<code class="descname">joinpath</code><span class="sig-paren">(</span><em>first</em>, <em>*others</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.joinpath" title="Permalink to this definition">¶</a></dt>
+<dd><p>override of join to return a Python format path not an OS path (‘/’ not ‘’)
+expects this current path to be a dir not a file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.mkdir">
+<code class="descname">mkdir</code><span class="sig-paren">(</span><em>new_path=None</em>, <em>mode=493</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.mkdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.mkdir’: returns the new path created.
+:param new_path: if given we pass in this path to create, else we create self.path
+:param mode:
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.makedirs">
+<code class="descname">makedirs</code><span class="sig-paren">(</span><em>new_path=None</em>, <em>mode=493</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.makedirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.makedirs’ : returns the new path created.
+:param new_path: if given we pass in this path to create, else we create self.path
+:param mode:
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.force_makedirs">
+<code class="descname">force_makedirs</code><span class="sig-paren">(</span><em>new_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.force_makedirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>for the internal path ensure that the folder structure exists
+if not create it
+:param new_path: if given we pass in this path to create, else we create self.path
+:return: fresh r9File object bound to the new path</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.rmdir">
+<code class="descname">rmdir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.rmdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.rmdir’, returns the path removed</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.removedirs">
+<code class="descname">removedirs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.removedirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.removedirs’, returns the path removed</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.remove">
+<code class="descname">remove</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>replicates : ‘os.remove’, returns the path removed</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.copy_makedirs">
+<code class="descname">copy_makedirs</code><span class="sig-paren">(</span><em>dest</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.copy_makedirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>copy a file to a folder and if that folder, or folder structure does
+not exist, recursively create it with makedirs before the file copy</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dest</strong> – destination path to copy the data too</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">fresh r9File object bound to the new path</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>the dest can be either a folder or a full path, if it’s just a folder the file
+will be copied with the same name, if it’s a full path then the file copy will
+rename the file accordingly</p>
+<p class="last">makedirs uses id:0755 in folder creation</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.copy_to_sourcecontrol">
+<code class="descname">copy_to_sourcecontrol</code><span class="sig-paren">(</span><em>dest</em>, <em>changelist=None</em>, <em>ignore_deleted=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.copy_to_sourcecontrol" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a wrap over the sourcecontrol/Perforce handler, designed to
+allow you, in one go, to push a file into the repository.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>src</strong> – source file path</li>
+<li><strong>dest</strong> – destination filepath</li>
+<li><strong>changelist</strong> – optional changelist to add it too</li>
+<li><strong>changelist_txt</strong> – text for the changelist</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>ignore_deleted: if the file was previously marked for delete or deleted ignore it</p>
+<dl class="docutils">
+<dt>It will:</dt>
+<dd><ul class="first last simple">
+<li>locally create all folder structures as required</li>
+<li>sync the dest file if it exists in the repository and isn’t in your workspace</li>
+<li>check the dest file out</li>
+<li>copy the src file to the given dest path</li>
+<li>if the file is not in the repository it will mark it for add</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.legalize_filename">
+<code class="descname">legalize_filename</code><span class="sig-paren">(</span><em>fix=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.legalize_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>remove illegal characters from the filename and rename it accordingly
+this will replace all special characters, allowing only alphanumeric and the
+following base chars   .  _     anything else will be replaced with _</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">this will NOT process the path, just the file name itself</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.explore">
+<code class="descname">explore</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.explore" title="Permalink to this definition">¶</a></dt>
+<dd><p>open up the native OS directory to explore with the file selected</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.open_os_native">
+<code class="descname">open_os_native</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.open_os_native" title="Permalink to this definition">¶</a></dt>
+<dd><p>open the file in the native OS application</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.open_mayafile">
+<code class="descname">open_mayafile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.open_mayafile" title="Permalink to this definition">¶</a></dt>
+<dd><p>open maya file files.i n batch mode opens in current maya session, not in batch mode
+it prompt a message box to choose between open in current session or in a new maya session</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.read_text">
+<code class="descname">read_text</code><span class="sig-paren">(</span><em>encoding=None</em>, <em>errors='strict'</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.read_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>simple ‘open.read()’ wrap to return the internal data using open + .read</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Params encoding:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">optional encoding to be used in the open call (utf-8)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params errors:</th><td class="field-body">unicode error handler</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.core.r9file.r9File.read_lines">
+<code class="descname">read_lines</code><span class="sig-paren">(</span><em>encoding=None</em>, <em>errors='strict'</em>, <em>retain=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.core.r9file.r9File.read_lines" title="Permalink to this definition">¶</a></dt>
+<dd><p>open.readlines() wrapper</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Params encoding:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">optional encoding to be used in the open call (utf-8)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params errors:</th><td class="field-body">unicode error handler</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>retain</strong> – if False we remove standard newline characters</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Red9_Pro_r9data.html" class="btn btn-neutral float-left" title="Pro_Pack : r9Data" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Red9_Pro_rigutils.html" class="btn btn-neutral float-right" title="Pro_Pack : rigutils" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Red9 Consultancy Limited.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

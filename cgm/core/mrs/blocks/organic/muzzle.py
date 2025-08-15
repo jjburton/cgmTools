@@ -3981,14 +3981,22 @@ def prerig(self):
                    'cgmType':'jointHelper'}
         
         
-        pMuzzleBase = md_dHandles['bridge'].p_position
-        pMuzzleBase = DIST.get_pos_by_vec_dist(pMuzzleBase, 
-                                               vec_selfUp,
-                                               _offset*2)
+        try:
+            pMuzzleBase = md_dHandles['bridge'].p_position
+            pMuzzleBase = DIST.get_pos_by_vec_dist(pMuzzleBase, 
+                                        vec_selfUp,
+                                        _offset*2)
+        except:
+            # Fallback position if bridge handle not found
+            pMuzzleBase = DIST.get_pos_by_vec_dist(self.p_position,
+                                                  vec_selfUp,
+                                                  _offset*3)
+            
+
         
         p = DIST.get_pos_by_vec_dist(pMuzzleBase, 
-                                                      vec_self,
-                                                      -_offset*4)
+                                    vec_self,
+                                    -_offset*4)
         
         mShape = cgmMeta.asMeta(CURVES.create_fromName('pyramid',size = _muzzleSize, direction = 'z+'))
         mShape,mDag = BLOCKSHAPES.create_face_handle(self, p,'muzzle',None,'center',
@@ -4603,7 +4611,7 @@ def prerig(self):
                                                              None,
                                                              side,
                                                              nameDict=_dUse,
-                                                             mStateNull=mStateNull,
+                                                             mParent=mStateNull,
                                                              size= _size_anchorLips)
                     
                     #mAnchor.rotate = 0,0,0

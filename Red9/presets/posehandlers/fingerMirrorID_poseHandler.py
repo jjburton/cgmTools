@@ -91,7 +91,7 @@ def getNodesOverload(poseObj, nodes, *args):
         if not fingersystem or not fingersystem.systemType.lower() in ['fingers', 'toes']:
             raise IOError('no finger / toe metaSubSystems found from the selected node')
 
-        print '\nFinger : PoseOverload Handler : %s >> subSystem: %s' % (metaNode, fingersystem)
+        print('\nFinger : PoseOverload Handler : %s >> subSystem: %s' % (metaNode, fingersystem))
 
 
 #         if cmds.getAttr('%s.mirrorSide' % currentSelection[0]) == 1:

@@ -1,0 +1,983 @@
+
+/*
+Hacked popup menu for the Script Editor. Added the Red9_Inspect item
+original source file scriptEditorPanel.mel from C:\Program...\scripts\startup\
+*/
+
+//==================================================
+//HACKED FROM: scripts/startup/scriptEditorPanel.mel
+//==================================================
+
+global proc buildScriptEditorCondensedPopupMenus(string $parent, int $isHistoryPopup)
+//
+// Builds all the necessary menus under the specified menubar/popup
+//
+{		
+	// build the default marking menus
+	menuItem -radialPosition "N" 
+			 -parent $parent 
+			 -label (uiRes("m_scriptEditorPanel.kNewExecuterTab"))
+			 -command "handleScriptEditorAction \"addExecuterTab\"";
+	menuItem -radialPosition "W" 
+			 -parent $parent 
+			 -label (uiRes("m_scriptEditorPanel.kSelectPreviousTab"))
+			 -command "handleScriptEditorAction \"selectPreviousExecuterTab\"";	 
+	menuItem -radialPosition "E" 
+			 -parent $parent 
+			 -label (uiRes("m_scriptEditorPanel.kSelectNextTab"))
+			 -command "handleScriptEditorAction \"selectNextExecuterTab\"";	 
+    menuItem -radialPosition "S" 
+			 -parent $parent 
+			 -label (uiRes("m_scriptEditorPanel.kRenameCurrentTab"))
+			 -command "handleScriptEditorAction \"renameCurrentExecuterTab\"";
+    menuItem -radialPosition "SW" 
+			 -parent $parent 
+			 -label (uiRes("m_scriptEditorPanel.kSaveAllTabs"))
+			 -command "handleScriptEditorAction \"saveScriptEditorTabs\"";
+
+	$deleteSM = `menuItem -radialPosition "SE" 
+			 -parent $parent 
+			 -subMenu true
+			 -label (uiRes("m_scriptEditorPanel.kCloseMMLabel"))`;
+		menuItem -parent $deleteSM
+ 				 -radialPosition "E"
+				 -label (uiRes("m_scriptEditorPanel.kCloseCurrentMMLabel"))
+				 -command "handleScriptEditorAction \"removeCurrentExecuterTab\"";	 
+		menuItem -parent $deleteSM
+				 -radialPosition "W"
+				 -label (uiRes("m_scriptEditorPanel.kCloseOthersMMLabel"))
+				 -command "handleScriptEditorAction \"removeOtherExecuterTabs\"";	 
+		setParent -m ..;
+					
+	if (!$isHistoryPopup) {
+		// build the default short rmb menus
+		menuItem -label (uiRes("m_scriptEditorPanel.kExecute")) 
+				 -parent $parent
+				 -command "handleScriptEditorAction \"execute\"";		
+		menuItem -label (uiRes("m_scriptEditorPanel.kQuickHelp")) 
+				 -parent $parent
+				 -command "handleScriptEditorAction \"showSelectedCmdQuickHelp\"";	
+		menuItem -label (uiRes("m_scriptEditorPanel.kShowCommandHelp"))
+				 -parent $parent
+				 -command "handleScriptEditorAction showSelectedCmdHelp";	
+
+		menuItem -divider on;			
+		menuItem -label (uiRes("m_scriptEditorPanel.kUndo")) 
+				 -parent $parent
+				 -command "handleScriptEditorAction \"undo\"";		
+		menuItem -label (uiRes("m_scriptEditorPanel.kRedo")) 
+				 -parent $parent
+				 -command "handleScriptEditorAction \"redo\"";		
+		menuItem -divider on;		
+		
+		menuItem -label (uiRes("m_scriptEditorPanel.kCut")) 
+					-parent $parent
+					-command "handleScriptEditorAction \"cut\"";		
+		menuItem -label (uiRes("m_scriptEditorPanel.kCopy")) 
+					-parent $parent
+					-command "handleScriptEditorAction \"copy\"";		
+		menuItem -label (uiRes("m_scriptEditorPanel.kPaste")) 
+					-parent $parent
+					-command "handleScriptEditorAction \"paste\"";		
+		menuItem -divider on;
+	
+		menuItem -label (uiRes("m_scriptEditorPanel.kSelectAll"))
+				 -parent $parent
+				 -command "handleScriptEditorAction \"selectAll\"";		
+		menuItem -divider on;
+		menuItem -label (uiRes("m_scriptEditorPanel.kClearInput"))
+				 -parent $parent
+				 -command "handleScriptEditorAction \"clearInput\"";		
+		menuItem -label (uiRes("m_scriptEditorPanel.kClearAll")) 
+				 -parent $parent
+				 -command "handleScriptEditorAction \"clearAll\"";				
+	}else {
+		menuItem -label (uiRes("m_scriptEditorPanel.kCopy")) 
+		 		 -parent $parent
+				 -command "handleScriptEditorAction \"copy\"";				
+	
+		menuItem -label (uiRes("m_scriptEditorPanel.kSelectAll"))
+				 -parent $parent
+				 -command "handleScriptEditorAction \"selectAll\"";		
+		menuItem -divider on;
+		menuItem -label (uiRes("m_scriptEditorPanel.kClearHistory"))
+				 -parent $parent
+				 -command "handleScriptEditorAction \"clearHistory\"";		
+		menuItem -label (uiRes("m_scriptEditorPanel.kClearAll")) 
+				 -parent $parent
+				 -command "handleScriptEditorAction \"clearAll\"";						
+	}
+
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackScriptEditorPopup $parent;	
+	//HACK END ================================================================
+}
+
+
+
+
+
+
+
+//===================================================
+//HACKED FROM: scripts/others/loadAnimMenuLibrary.mel
+//===================================================
+
+global proc
+buildCurvesMenu (string $editor, string $animEditor, string $parentMenu, string $options, string $buildMenuCommand) 
+//
+//  Procedure Name:
+//      buildCurvesMenu
+//
+//  Description:
+//		Creates the menu entries that control
+//		curve editing within an animation editor.
+//
+//  Input Arguments:
+//		string $options			Options for this proc
+//								Option words are specified within the
+//								the string, with each option seperated
+//								by a space (e.g. "bufferCurve otherOption")
+//			Current options:
+//				noOptions		A nice "do nothing" string to pass
+//				bufferCurve		Issue commands to (possibly) create buffer curves
+//				useSmoothness	Add a "Curve Smoothness" entry
+//				usePin			Add "Pin channels" and "Unpin channels" entries
+//
+//  Return Value:
+//      None.
+//
+{
+	setParent -menu $parentMenu;
+	if (`menu -query -numberOfItems $parentMenu` != 0) {
+		// Update radio button checks for curve smoothness
+		//
+		if (match ("useSmoothness", $options) == "useSmoothness") {
+			string $curveSmoothness = `animCurveEditor -query -smoothness $animEditor`;
+			menuItem -edit
+				-radioButton ($curveSmoothness == "coarse")
+				coarseCurveItem;
+			menuItem -edit
+				-radioButton ($curveSmoothness == "rough")
+				roughCurveItem;
+			menuItem -edit
+				-radioButton ($curveSmoothness == "medium")
+				mediumCurveItem;
+			menuItem -edit
+				-radioButton ($curveSmoothness == "fine")
+				fineCurveItem;
+		}
+
+		global string $gUnisolatedCurves[];
+		menuItem -edit -cb (size($gUnisolatedCurves) > 0) isolateCurveItem;
+		
+		return;
+	}
+
+	string $selectionConnection = `editor -query -selectionConnection $editor`;
+	string $realSelectionConnection = $selectionConnection;
+
+	// Check for the bufferCurve option
+	//
+	int $performBase = 0;
+	if (match ("bufferCurve", $options) == "bufferCurve") {
+		$selectionConnection = $animEditor;
+		$performBase = 3;
+	}
+
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kPreInfinity"))  -subMenu true -to true preInfinityHierItem;
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kCycle")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kCycleBeforeAnnot")) 
+			-command ("doSetInfinity \"-pri cycle\" " + $selectionConnection + " " + "\"" + $options + "\"");
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kCycleOffset")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kCycleOffsetBeforeAnnot")) 
+			-command ("doSetInfinity \"-pri cycleRelative\" " + $selectionConnection + " " + "\"" + $options + "\"");
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kOscillate")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kOscillateBeforeAnnot")) 
+			-command ("doSetInfinity \"-pri oscillate\" " + $selectionConnection + " " + "\"" + $options + "\"");
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kMakeLinear")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kMakeLinearBeforeAnnot")) 
+			-command ("doSetInfinity \"-pri linear\" " + $selectionConnection + " " + "\"" + $options + "\"");
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kConstant")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kConstantBeforeAnnot"))
+			-command ("doSetInfinity \"-pri constant\" " + $selectionConnection + " " + "\"" + $options + "\"");
+	setParent -m ..; 
+
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kPostInfinity"))  -subMenu true -to true postInfinityHierItem;
+		menuItem -label `uiRes( "m_loadAnimMenuLibrary.kCycle" )`
+			-annotation (uiRes("m_loadAnimMenuLibrary.kCycleAfterAnnot")) 
+			-command ("doSetInfinity \"-poi cycle\" " + $selectionConnection + " " + "\"" + $options + "\"");
+		menuItem -label `uiRes( "m_loadAnimMenuLibrary.kCycleOffset" )`
+			-annotation (uiRes("m_loadAnimMenuLibrary.kCycleOffsetAfterAnnot")) 
+			-command ("doSetInfinity \"-poi cycleRelative\" " + $selectionConnection + " " + "\"" + $options + "\"");
+		menuItem -label `uiRes( "m_loadAnimMenuLibrary.kOscillate" )`
+			-annotation (uiRes("m_loadAnimMenuLibrary.kOscillateAfterAnnot")) 
+			-command ("doSetInfinity \"-poi oscillate\" " + $selectionConnection + " " + "\"" + $options + "\"");
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kLinear"))
+			-annotation (uiRes("m_loadAnimMenuLibrary.kLinearAfterAnnot"))
+			-command ("doSetInfinity \"-poi linear\" " + $selectionConnection + " " + "\"" + $options + "\"");
+		menuItem -label `uiRes( "m_loadAnimMenuLibrary.kConstant" )`
+			-annotation (uiRes("m_loadAnimMenuLibrary.kConstantAfterAnnot"))
+			-command ("doSetInfinity \"-poi constant\" " + $selectionConnection + " " + "\"" + $options + "\"");
+	setParent -m ..; 
+
+	menuItem -divider true;
+
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kIsolateCurve"))
+		-cb false
+		-annotation (uiRes("m_loadAnimMenuLibrary.kIsolateCurveAnnot"))
+		-command ("isolateAnimCurve #1 "+$realSelectionConnection+" "+$animEditor)
+		isolateCurveItem;
+
+	if (match ("useSmoothness", $options) == "useSmoothness") {
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kCurveSmoothness"))  -subMenu true -tearOff true curveSmoothHierItem;
+			//	Create a collection to keep the rb's in proper
+			//	sync (IE: only one on at any one time. )
+			//
+			radioMenuItemCollection;
+			menuItem -label (uiRes("m_loadAnimMenuLibrary.kCoarse")) 
+				-radioButton true
+				-annotation (uiRes("m_loadAnimMenuLibrary.kCoarseAnnot")) 
+				-command ("animCurveEditor -edit -smoothness coarse " + $animEditor) coarseCurveItem;
+			menuItem -label (uiRes("m_loadAnimMenuLibrary.kRough")) 
+				-radioButton false
+				-annotation (uiRes("m_loadAnimMenuLibrary.kRoughAnnot")) 
+				-command ("animCurveEditor -edit -smoothness rough " + $animEditor) roughCurveItem;
+			menuItem -label (uiRes("m_loadAnimMenuLibrary.kMedium")) 
+				-radioButton false
+				-annotation (uiRes("m_loadAnimMenuLibrary.kMediumAnnot")) 
+				-command ("animCurveEditor -edit -smoothness medium " + $animEditor) mediumCurveItem;
+			menuItem -label (uiRes("m_loadAnimMenuLibrary.kFine")) 
+				-radioButton false
+				-annotation (uiRes("m_loadAnimMenuLibrary.kFineAnnot")) 
+				-command ("animCurveEditor -edit -smoothness fine " + $animEditor) fineCurveItem;
+		setParent -m ..;
+	}
+
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kBakeChannel")) 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kBakeChannelAnnot")) 
+		-c ("performBakeResults " + $performBase + " " + $selectionConnection) 
+		-dragMenuCommand( "performBakeResults " + ($performBase + 2) + " \"" + 
+						  $selectionConnection + "\"")
+		bakeResultsItem;
+		menuItem -optionBox true 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kBakeChannelOptions"))
+		-c ("performBakeResults " + ($performBase + 1) + " " + $selectionConnection) bakeResultsOptionsItem;
+
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kMuteChannel")) 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kMuteChannelAnnot")) 
+        -command ("doMuteChannel "+ $realSelectionConnection + " -true")
+		muteChannelItem;
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kUnmuteChannel")) 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kUnmuteChannelAnnot")) 
+        -command ("doMuteChannel "+ $realSelectionConnection + " -false")
+        unmuteChannelItem;
+        
+    //
+    // Create the Lock Channel / Template channel based on witch GE is used
+    //
+    if( isModernGraphEditor() )
+    {
+        menuItem -label (uiRes("m_loadAnimMenuLibrary.kLockChannel")) 
+            -annotation (uiRes("m_loadAnimMenuLibrary.kLockChannelAnnot")) 
+            -command ("GraphEditorLockChannel")   // Runtime command
+            templateChannelItem;
+        menuItem -label (uiRes("m_loadAnimMenuLibrary.kUnLockChannel")) 
+            -annotation (uiRes("m_loadAnimMenuLibrary.kUnLockChannelAnnot")) 
+            -command ("GraphEditorUnlockChannel") // Runtime command
+            untemplateChannelItem;    
+    }
+    else
+    {
+        menuItem -label (uiRes("m_loadAnimMenuLibrary.kTemplateChannel")) 
+            -annotation (uiRes("m_loadAnimMenuLibrary.kTemplateChannelAnnot")) 
+            -command ("doTemplateChannel "+ $realSelectionConnection + " 1")
+            templateChannelItem;
+        menuItem -label (uiRes("m_loadAnimMenuLibrary.kUntemplateChannel")) 
+            -annotation (uiRes("m_loadAnimMenuLibrary.kUntemplateChannelAnnot")) 
+            -command ("doTemplateChannel "+ $realSelectionConnection + " 0")
+            untemplateChannelItem;    
+    }
+
+	if (match ("usePin", $options) == "usePin") {
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kPinChannel")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kPinChannelAnnot")) 
+	        -command ("doPinChannel " + $editor + " " + $realSelectionConnection + " 1")
+			pinChannelItem;
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kUnpinChannel")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kUnpinChannelAnnot")) 
+	        -command ("doPinChannel " + $editor + " " + $realSelectionConnection + " 0")
+	        unpinChannelItem;
+	}
+
+	menuItem -divider true -dividerLabel (uiRes("m_loadAnimMenuLibrary.kCurveFilters"));
+
+	// Butterworth Filter
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kButterworthFilter"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kButterworthFilterAnnot"))
+		-c ("performButterworth " + $performBase + " " + $selectionConnection)
+		-dragMenuCommand( "performButterworth " + ($performBase + 2) + " \"" +
+						  $selectionConnection + "\"")
+		butterworthFilterItem;
+
+	menuItem -optionBox true
+		-annotation (uiRes("m_loadAnimMenuLibrary.kButterworthFilterOptions"))
+		-c ("performButterworth " + ($performBase + 1) + " " + $selectionConnection)
+		butterworthFilterOptionsItem;
+
+	// Euler Filter
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kEulerFilter")) 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kEulerFilterAnnot"))
+		-c ("performEulerFilter " + $realSelectionConnection)
+		eulerFilterItem;
+
+	// Key Reducer Filter
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kKeyReducerFilter"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kKeyReducerFilterAnnot"))
+		-c ("performKeyReducer " + $performBase + " " + $selectionConnection)
+		-dragMenuCommand( "performKeyReducer " + ($performBase + 2) + " \"" +
+						  $selectionConnection + "\"")
+		keyReducerFilterItem;
+
+	menuItem -optionBox true
+		-annotation (uiRes("m_loadAnimMenuLibrary.kKeyReducerFilterOptions"))
+		-c ("performKeyReducer " + ($performBase + 1) + " " + $selectionConnection)
+		keyReducerFilterOptionsItem;
+
+	// Smooth Filter (Gaussian)
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kGaussianSmoothFilter"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kGaussianSmoothFilterAnnot"))
+		-version "2022"
+		-command ("pythonRunTimeCommandWithArgs gaussiansmooth.cmd_create 0 \"forceNoPreview=True\"")
+		gaussianSmoothFilterItem;
+
+	menuItem -optionBox true
+		-annotation (uiRes("m_loadAnimMenuLibrary.kGaussianSmoothFilterOptions"))
+		-command ("pythonRunTimeCommand gaussiansmooth.cmd_create 1")
+		gaussianSmoothFilterOptionsItem;
+
+	// Peak Removal Filter
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kPeakRemoverFilter"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kPeakRemoverFilterAnnot"))
+		-version "2022"
+		-c ("performPeakRemover " + $performBase + " " + $selectionConnection)
+		-dragMenuCommand( "performPeakRemover " + ($performBase + 2) + " \"" +
+						  $selectionConnection + "\"")
+		peakRemoverFilterItem;
+
+	menuItem -optionBox true
+		-annotation (uiRes("m_loadAnimMenuLibrary.kPeakRemoverFilterOptions"))
+		-c ("performPeakRemover " + ($performBase + 1) + " " + $selectionConnection)
+		peakRemoverFilterOptionsItem;
+
+	// Key Sync Filter
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kKeySyncFilter"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kKeySyncFilterAnnot"))
+		-c ("performKeySync " + $performBase + " " + $selectionConnection)
+		-dragMenuCommand( "performKeySync " + ($performBase + 2) + " \"" +
+						  $selectionConnection + "\"")
+		keySyncFilterItem;
+
+	menuItem -optionBox true
+		-annotation (uiRes("m_loadAnimMenuLibrary.kKeySyncFilterOptions"))
+		-c ("performKeySync " + ($performBase + 1) + " " + $selectionConnection)
+		keySyncFilterOptionsItem;
+
+	// Resample Curve
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kResampleCurve")) 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kResampleCurveAnnot"))	
+		-c ("performResample " + $performBase + " " + $selectionConnection)
+		-dragMenuCommand( "performResample " + ($performBase + 2) + " \"" +
+						   $selectionConnection + "\"")
+		resampleItem;
+	menuItem -optionBox true
+		-annotation (uiRes("m_loadAnimMenuLibrary.kResampleCurveOptions")) 
+		-c ("performResample " + ($performBase + 1) + " " + $selectionConnection)
+		resampleOptionsItem;
+
+	// Simplify Curve
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kSimplifyCurve")) 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kSimplifyCurveAnnot")) 
+		-c ("performSimplify " + $performBase + " " + $selectionConnection) 
+		-dragMenuCommand( "performSimplify " + ($performBase + 2) + " \"" + 
+						  $selectionConnection + "\"")
+		simplifyItem;
+	menuItem -optionBox true 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kSimplifyCurveOptions")) 
+		-c ("performSimplify " + ($performBase + 1) + " " + $selectionConnection) 
+		simplifyOptionsItem;
+
+	// Clamp Curves
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kClampCurves"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kClampCurvesAnnot"))
+		-version "2024"
+		-command ("pythonRunTimeCommand animcurve_tools.cmd.clampcurves 0")
+		clampCurvesItem;
+
+	menuItem -optionBox true
+		-annotation (uiRes("m_loadAnimMenuLibrary.kClampCurvesOptions"))
+		-command ("pythonRunTimeCommand animcurve_tools.cmd.clampcurves 1")
+		clampCurvesOptionsItem;
+
+	// Offset Curves
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kOffsetCurves"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kOffsetCurvesAnnot"))
+		-version "2024"
+		-command ("pythonRunTimeCommand animcurve_tools.cmd.offsetcurves 0")
+		offsetCurvesItem;
+
+	menuItem -optionBox true
+		-annotation (uiRes("m_loadAnimMenuLibrary.kOffsetCurvesOptions"))
+		-command ("pythonRunTimeCommand animcurve_tools.cmd.offsetcurves 1")
+		offsetCurvesOptionsItem;
+
+	menuItem -divider true;
+
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kChangeRotInterp"))  -subMenu true -tearOff true rotationInterpolationHierItem;
+		//
+		//	These are not radio buttons because we cannot show the type
+		//	of the current selection: there could be many curves currently
+		//	selected.
+		//
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kIndEuler")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kIndEulerAnnot")) 
+				-c ("performRotationInterpolation none " + $realSelectionConnection);
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kSyncEuler")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kSyncEulerAnnot")) 
+				-c ("performRotationInterpolation euler " + $realSelectionConnection);		
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kSyncQuatSlerp")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kSyncQuatSlerpAnnot")) 
+				-c ("performRotationInterpolation quaternionSlerp " + $realSelectionConnection);
+	    menuItem -label (uiRes("m_loadAnimMenuLibrary.kSyncQuatSquad")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kSyncQuatSquadAnnot")) 
+				-c ("performRotationInterpolation quaternionSquad " + $realSelectionConnection);
+        menuItem -label (uiRes("m_loadAnimMenuLibrary.kSyncQuat")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kSyncQuatAnnot")) 
+				-c ("performRotationInterpolation quaternion " + $realSelectionConnection);				
+	setParent -m ..;
+
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kSpreadsheet")) 
+		-annotation (uiRes("m_loadAnimMenuLibrary.kSpreadsheetAnnot")) 
+		-command ("OpenAnimSpreadsheet " + $realSelectionConnection)
+		spreadSheetItem;
+
+	// Check for the bufferCurve option
+	//
+	if (match ("bufferCurve", $options) == "bufferCurve") {
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kBufferCurve")) -subMenu true bufferCurveMenuItem;
+			//	Create a collection to keep the rb's in proper
+			//	sync (IE: only one on at any one time. )
+			//
+			menuItem -label (uiRes("m_loadAnimMenuLibrary.kBufferCurveSnapshot")) 
+				-annotation (uiRes("m_loadAnimMenuLibrary.kBufferCurveSnapshotAnnot")) 
+				-command ("animCurveEditor -e -showBufferCurves 1 " + $animEditor + "; bufferCurve -animation \"keys\" -overwrite true")
+				bufferSnapItem;
+			menuItem -label (uiRes("m_loadAnimMenuLibrary.kBufferCurveReference")) 
+				-annotation (uiRes("m_loadAnimMenuLibrary.kBufferCurveReferenceAnnot")) 
+				-command ("makeReferenceBufferCurve " + $animEditor )
+				bufferReferenceItem;
+			setParent -m ..;
+		menuItem -label (uiRes("m_loadAnimMenuLibrary.kSwapBufferCurve")) 
+			-annotation (uiRes("m_loadAnimMenuLibrary.kSwapBufferCurveAnnot"))
+			-command "bufferCurve -animation \"keys\" -swap"
+			bufferSwapItem;
+	}
+
+	menuItem -divider true;
+
+    menuItem -label (uiRes("m_loadAnimMenuLibrary.kDefaultWeightingTangent")) -subMenu true -version "2020"
+                -postMenuCommand ( "updatePreferencesWeighting") graphEdDefaultTangentWeightsItem;
+        radioMenuItemCollection;
+        menuItem -label (uiRes("m_loadAnimMenuLibrary.kNonWeightTangents"))
+            -command ("keyTangent -edit -global -weightedTangents 0") -echoCommand 1 -radioButton 0
+            -annotation (uiRes("m_loadAnimMenuLibrary.kDefaultNonWeightTangentsAnnot"))
+            nonWeighted;
+        menuItem -label (uiRes("m_loadAnimMenuLibrary.kWeightTangents"))
+            -command ("keyTangent -edit -global -weightedTangents 1") -echoCommand 1 -radioButton 1
+            -annotation (uiRes("m_loadAnimMenuLibrary.kDefaultWeightTangentsAnnot"))
+             weighted;
+        setParent -m ..;
+
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kNonWeightTangents"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kNonWeightTangentsAnnot"))
+		-command ("doKeyTangent \"-edit -weightedTangents false\" " + $selectionConnection + " " + "\"" + $options + "\"");
+	menuItem -label (uiRes("m_loadAnimMenuLibrary.kWeightTangents"))
+		-annotation (uiRes("m_loadAnimMenuLibrary.kWeightTangentsAnnot"))
+		-command ("doKeyTangent \"-edit -weightedTangents true\" " + $selectionConnection + " " + "\"" + $options + "\"");
+
+	if ($buildMenuCommand != "") {
+		eval (($buildMenuCommand + " " + $editor + " " + $animEditor + " " + $parentMenu));
+	}
+			
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackGraphCurveMenu $parentMenu;
+	//HACK END ================================================================
+	
+}
+
+
+
+
+
+//===================================================
+//HACKED FROM: scripts/startup/generateChannelMenu.mel
+//===================================================
+
+global proc generateChannelMenu( string $parent, int $popupMenu )
+//
+// Generates the menu on both the menubar and on
+// the RMB, when the user asks for either of these.
+//
+{
+	setParent -m $parent;
+
+	if( 0 != `menu -q -ni $parent` ) {
+		//
+		// The menu already exists - just set the
+		// enable/disable state for
+		// each of the menuItems that operation on
+		// selected channels.
+		//
+		enableDisableChannelMenu $parent;
+
+	} else {
+		//
+		// The menu doesn't exist yet - build it
+		//
+		if( $popupMenu ) {
+			//
+			//	A popup menu is being generated - attach
+			//	a label to the top of the popup
+			//
+			menuItem -label (uiRes("m_generateChannelMenu.kChannels"));
+			menuItem -d true;
+			menuItem -d true;
+		}
+		menuItem -label (uiRes("m_generateChannelMenu.kKeySelected")) -c "channelBoxCommand -key" keyItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kKeyAll")) -c "channelBoxCommand -keyall" keyAllItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kBreakDownSelected")) -c "channelBoxCommand -breakdown" breakdownItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kBreakDownAll")) -c "channelBoxCommand -breakdownall" breakdownAllItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kMuteSelected")) -c "channelBoxCommand -mute" muteItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kMuteAll")) -c "channelBoxCommand -muteall" muteAllItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kUnmuteSelected")) -c "channelBoxCommand -unmute" unmuteItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kUnmuteAll")) -c "channelBoxCommand -unmuteall" unmuteAllItem;
+
+		menuItem -divider true;
+		
+		menuItem -label (uiRes("m_generateChannelMenu.kSyncGraphEditor"))
+			-cb `optionVar -query keyUseChannelBox`
+			-annotation (uiRes("m_generateChannelMenu.kSyncGraphEditorAnnot"))
+			-c "toggleChannelBoxGraphEdSync #1" cbGraphEdSyncMenu;
+
+		int $tcDisplay = `timeControl -q -showKeysCombined timeControl1`;
+		menuItem -label (uiRes("m_generateChannelMenu.kSyncTimeline"))
+			-cb $tcDisplay -c "toggleChannelBoxTimelineSync #1"
+			-annotation (uiRes("m_generateChannelMenu.kSyncTimelineAnnot"))
+			cbTimelineSyncMenu;
+
+		menuItem -divider true;
+
+		menuItem -label (uiRes("m_generateChannelMenu.kCutSelected")) -c "channelBoxCommand -cut" cutItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kCopySelected")) -c "channelBoxCommand -copy" copyItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kPasteSelected")) -c "channelBoxCommand -paste" pasteItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kDeleteSelected")) -c "channelBoxCommand -delete" deleteItem;
+
+		menuItem -d true;
+		
+		menuItem -label (uiRes("m_generateChannelMenu.kDuplicateValues")) -c "copyAttrValues" duplicateAttrValueItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kFreeze")) -subMenu true;
+			menuItem -label (uiRes("m_generateChannelMenu.kTranslate")) -c "channelBoxCommand -freezeTranslate" freezeTranslateItem;
+			menuItem -label (uiRes("m_generateChannelMenu.kRotate")) -c "channelBoxCommand -freezeRotate" freezeRotateItem;
+			menuItem -label (uiRes("m_generateChannelMenu.kScale")) -c "channelBoxCommand -freezeScale" freezeScaleItem;
+			menuItem -label (uiRes("m_generateChannelMenu.kAll")) -c "channelBoxCommand -freezeAll" freezeAllItem;
+		setParent -m ..;
+		
+		menuItem -d true;
+
+		menuItem -label (uiRes("m_generateChannelMenu.kBreakConnections")) -c "channelBoxCommand -break" breakItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kSelectConnection")) -c "channelBoxCommand -selectConnection" selectConnectionItem;
+
+		menuItem -d true;
+
+		menuItem -label (uiRes("m_generateChannelMenu.kLockSelected")) -c "channelBoxCommand -lock" lockItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kUnlockSelected")) -c "channelBoxCommand -unlock" unlockItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kHideSelected")) -c "channelBoxCommand -unkeyable" unkeyableItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kLockHideSelected")) -c "channelBoxCommand -lockUnkeyable" lockUnkeyableItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kMakeSelectedNonkeyable")) -c "channelBoxCommand -unkeyableDisplayed" unkeyableDisplayedItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kMakeSelectedKeyable")) -c "channelBoxCommand -keyable" keyableItem;		
+		
+		menuItem -d true;
+		
+		menuItem -label (uiRes("m_generateChannelMenu.kAddToSelectedLayers")) -c "channelBoxCommand -addToLayers" addToLayersItem;
+		menuItem -label (uiRes("m_generateChannelMenu.kRemoveFromSelectedLayers")) -c "channelBoxCommand -removeFromLayers" removeFromLayersItem;
+		
+		
+		//ADD HACKS ===============================================================
+		source red9MayaHacks;
+		red9HackChannelBox $parent;
+		//HACK END ================================================================
+		
+		enableDisableChannelMenu $parent;
+	}
+}
+
+
+
+
+
+//===================================================
+//HACKED FROM: scripts/other/ClipEdMenu.mel
+//===================================================
+
+global proc buildClipEditorMenu(string $editor, string $parent, 
+								string $collectionName)
+{
+	string $menu = `menu -label (uiRes("m_ClipEdMenu.kFileMenu"))  -tearOff true
+		-familyImage "menuIconEdit.png"
+		-allowOptionBoxes true`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorFileMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	$menu = `menu -label (uiRes("m_ClipEdMenu.kEditMenu"))   -tearOff true
+		-familyImage "menuIconEdit.png"
+		-allowOptionBoxes true`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorEditMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	$menu = `menu -label (uiRes("m_ClipEdMenu.kViewMenu"))   -tearOff true
+		-allowOptionBoxes true
+		-familyImage "menuIconEdit.png"`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorViewMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	$menu = `menu -label (uiRes("m_ClipEdMenu.kModifyMenu"))   -tearOff true
+		-allowOptionBoxes true
+		-familyImage "menuIconEdit.png"`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorClipMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	$menu = `menu -label (uiRes("m_ClipEdMenu.kCreateMenu"))   -tearOff true
+		-allowOptionBoxes true
+		-familyImage "menuIconEdit.png"`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorCreateMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	$menu = `menu -label (uiRes("m_ClipEdMenu.kLibraryMenu"))   -tearOff true
+		-familyImage "menuIconEdit.png"
+		-allowOptionBoxes true`;
+
+	menu -edit -postMenuCommand 
+		("buildClipEditorLibraryMenu " + $editor + " " + $menu) $menu;
+	setParent -menu ..;
+
+	$menuItem = `menu -label (uiRes("m_ClipEdMenu.kListMenu"))  
+			-tearOff true
+			-familyImage "menuIconOptions.png"`;
+		defineListMenu "useCharacters" $editor $editor $menuItem "";
+	setParent -menu ..;
+	
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackTraxMenu;
+	//HACK END ================================================================
+}
+
+
+
+//===================================================
+//HACKED FROM: scripts/startup/layerEditor.mel
+//===================================================
+
+global proc layerEditorBuildAnimLayerMenu(string $parent, string $toolName)
+{
+	setParent -menu $parent;
+
+	string $rootLayer = `animLayer -q -root`;
+	string $selectedAnimLayers[]=getSelectedAnimLayer($toolName); 	
+		
+	int $foundRootLayer = 0;
+	for ($layer in $selectedAnimLayers)
+	{
+		if($layer == $rootLayer)
+			$foundRootLayer = 1;
+	}
+
+	string $layerString = "{";
+	for ($layer in $selectedAnimLayers)
+	{
+		$layerString+="\""+$layer+"\",";
+	}
+	$layerString=(substring ($layerString,1,(size($layerString) - 1)));  // get rid of trailing ","
+	
+	$layerString+="}";
+
+	global string $gAddObjectsMenuItemForAnimLayers;
+	global string $gAddObjectsOptionsMenuItemForAnimLayers;
+	global string $gRemoveObjectsMenuItemForAnimLayers;
+	global string $gRemoveObjectsOptionsMenuItemForAnimLayers;
+	global string $gSelectObjectsMenuItemForAnimLayers;
+	global string $gSelectBranchMenuItemForAnimLayers;
+	global string $gSelectLayerNodeMenuItemForAnimLayers;
+	global string $gExportLayerMenuItemForAnimLayers;
+	global string $gExportBranchMenuItemForAnimLayers;
+	global string $gMememberShipMenuItemForAnimLayers;
+	global string $gAttributeEditorMenuItemForAnimLayers;
+	global string $gDeleteSelectedLayerMenuItemForAnimLayers;
+	global string $gDeleteEmptyLayersMenuItemForAnimLayers;
+	global string $gDeleteMenuItemForAnimLayers;
+	global string $gLayerModeMenuItemForAnimLayers;
+	global string $gLayerRotationAccMenuItemForAnimLayers;
+	global string $gLayerScaleAccMenuItemForAnimLayers;
+	global string $gNewEmptyMenuItemForAnimLayers;
+	global string $gNewFromSelectedMenuItemForAnimLayers;
+	global string $gNewEmptyOverrideMenuItemForAnimLayers;
+	global string $gNewOverrideFromSelectedMenuItemForAnimLayers;
+	global string $gDuplicateLayerMenuItemForAnimLayers;
+	global string $gDuplicateLayerNoAnimMenuItemForAnimLayers;
+	
+	int $layerAvailable = layerAvailable();
+	if( `menu -q -ni $parent` != 0 ) {
+		//
+		//  Menu is built already 
+		//
+		menuItem -edit -enable (!$foundRootLayer) $gAddObjectsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gAddObjectsOptionsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gRemoveObjectsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gRemoveObjectsOptionsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gSelectObjectsMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gSelectBranchMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gSelectLayerNodeMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gExportLayerMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gExportBranchMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gMememberShipMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gAttributeEditorMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gDeleteSelectedLayerMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gDeleteEmptyLayersMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gDeleteMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gLayerModeMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gLayerRotationAccMenuItemForAnimLayers;
+		menuItem -edit -enable (!$foundRootLayer) $gLayerScaleAccMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gNewEmptyMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gNewFromSelectedMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gNewEmptyOverrideMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gNewOverrideFromSelectedMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gDuplicateLayerMenuItemForAnimLayers;
+		menuItem -edit -enable $layerAvailable $gDuplicateLayerNoAnimMenuItemForAnimLayers;
+		return;
+	}
+
+	string $createEmptyLayer		  = uiRes("m_layerEditor.kCreateEmptyAnimLayer");
+	string $createLayer			   = uiRes("m_layerEditor.kCreateAnimLayer");
+	string $createEmptyOverrideLayer  = (uiRes("m_layerEditor.kCreateEmptyOverrideAnimLayer"));
+	string $createOverrideLayer	   = (uiRes("m_layerEditor.kCreateOverrideAnimLayer"));
+	string $createLayerOptionsMenuStr = (uiRes("m_layerEditor.kCreateLayerOptions"));
+	string $addSelectedObjects		= (uiRes("m_layerEditor.kAddSelectedObjectsAnimLayer"));
+	string $removeSelectedObjects	 = (uiRes("m_layerEditor.kRemoveSelectedObjectsAnimLayer"));
+	string $selectObjects			 = (uiRes("m_layerEditor.kSelectObjectsAnimLayer"));
+	string $deleteSelectedLayers	  = (uiRes("m_layerEditor.kDeleteAnimLayer"));
+	string $packageAnimLayerObjects   = (uiRes("m_layerEditor.kPackageAnimLayerObjects"));
+
+	int $passthroughMode = `optionVar -exists animLayerDefaultPassthroughMode` ? `optionVar -query animLayerDefaultPassthroughMode` : 1;
+	int $rotationMode = `optionVar -exists animLayerDefaultRotationMode` ? `optionVar -query animLayerDefaultRotationMode` : 0;
+	int $scaleMode = `optionVar -exists animLayerDefaultScaleMode` ? `optionVar -query animLayerDefaultScaleMode` : 1;
+	
+	string $lLayerListCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); ";
+	string $lSelectionCommand = "string $lSelection[]=`ls -selection`;";
+
+	$gNewEmptyMenuItemForAnimLayers = `menuItem -label $createEmptyLayer`;
+	$gNewFromSelectedMenuItemForAnimLayers = `menuItem -label $createLayer`;
+	$gNewEmptyOverrideMenuItemForAnimLayers = `menuItem -label $createEmptyOverrideLayer`;
+	$gNewOverrideFromSelectedMenuItemForAnimLayers = `menuItem -label $createOverrideLayer`;
+	menuItem -label $createLayerOptionsMenuStr -subMenu true -tearOff true;
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerPassthrough"))
+			 -checkBox $passthroughMode
+			 -command ("optionVar -intValue animLayerDefaultPassthroughMode #1");
+		menuItem -divider true;
+		radioMenuItemCollection;
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerEulerRotation"))
+			 -radioButton ($rotationMode == 0)
+			 -command ("optionVar -intValue animLayerDefaultRotationMode 0");
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerQuaternionRotation"))
+			 -radioButton ($rotationMode== 1)
+			 -command ("optionVar -intValue animLayerDefaultRotationMode 1");
+		radioMenuItemCollection;
+		menuItem -divider true;
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerScaleMultiply"))
+			 -radioButton ($scaleMode == 1)
+			 -command ("optionVar -intValue animLayerDefaultScaleMode 1");
+		menuItem -label (uiRes("m_layerEditor.kAnimLayerCreateLayerScaleAdditive"))
+			 -radioButton ($scaleMode == 0)
+			 -command ("optionVar -intValue animLayerDefaultScaleMode 0");
+	setParent -m ..;
+
+	menuItem -divider true;
+	
+	$gAddObjectsMenuItemForAnimLayers = `menuItem -label $addSelectedObjects`;
+	$gAddObjectsOptionsMenuItemForAnimLayers = `menuItem -optionBox true -annotation (uiRes("m_layerEditor.kAnimLayerAddSelectedObjectsOptions"))`;
+	$gRemoveObjectsMenuItemForAnimLayers = `menuItem -label $removeSelectedObjects`;
+	$gRemoveObjectsOptionsMenuItemForAnimLayers = `menuItem -optionBox true -annotation (uiRes("m_layerEditor.kAnimLayerRemoveSelectedObjectsOptions"))`;
+	menuItem -label (uiRes("m_layerEditor.kExtractSelectedObjectsAnimLayerRC2"))
+				 -command ($lLayerListCommand+$lSelectionCommand+"layerEditorExtractObjectsAnimLayer($lSelection, $lLayers )");
+	$gSelectObjectsMenuItemForAnimLayers = `menuItem -label $selectObjects`;
+	menuItem -divider true;
+	
+	$gDuplicateLayerMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kDuplicateAnimLayer"))`;
+	$gDuplicateLayerNoAnimMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kDuplicateAnimLayerNoAnim"))`;
+	menuItem -label (uiRes("m_layerEditor.kMergeSelectedAnimLayerRC2"))
+			 -command ($lLayerListCommand+"layerEditorMergeAnimLayer( $lLayers, 0 )");
+  	menuItem -optionBox true
+				 -command ($lLayerListCommand+"layerEditorMergeAnimLayer( $lLayers, 1 )");
+	menuItem -divider true;
+
+	$extractBaseLayerSelectedMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kExtractBaseLayerSelected"))`;
+	$extractBaseLayerAllMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kExtractBaseLayerAll"))`;
+
+	menuItem -divider true;
+	menuItem -label (uiRes("m_layerEditor.kSelectAllAnimLayers"))
+		-command ("setSelectedForAllLayers(1)");
+	
+		
+	$gSelectBranchMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kSelectBranchAnimLayers"))
+		-enable (!$foundRootLayer)
+		-command ($lLayerListCommand + "for ($target in $lLayers){setSelectedLayerRecursive($target, 1, 0 );}")`;
+	
+	string $lSelectLayerNodeCommand = $lLayerListCommand + "string $lCmd = \"select -replace -noExpand \"; for ($target in $lLayers){ $lCmd+= $target + \" \"; }; evalEcho( $lCmd ); ";
+
+	$gSelectLayerNodeMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kSelectAnimLayer2"))
+				 -enable (!$foundRootLayer)
+				 -command ($lSelectLayerNodeCommand)`;
+
+	
+	menuItem -divider true;
+
+	$gExportLayerMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kAnimLayersExport"))
+			 -enable (!$foundRootLayer)
+			 -command ($lLayerListCommand+"animLayersExport($lLayers,0)")`;
+	
+	$gExportBranchMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kAnimLayersExportBranch2"))
+			 -enable (!$foundRootLayer)
+			 -command ($lLayerListCommand+"animLayersExport($lLayers,1)")`;
+			 
+	menuItem -divider true;
+	
+
+	$gMememberShipMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kRelationshipAnimLayer"))
+			 -enable (!$foundRootLayer)
+			 -command ($lLayerListCommand+"relationshipEditor( \"animLayers\", $lLayers, {} );")`;
+
+	$gAttributeEditorMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kAttributeEditorAnimLayer"))
+			 -enable (!$foundRootLayer)
+			 -command ($lLayerListCommand+"select -replace -noExpand $lLayers; editSelected();")`;
+
+	menuItem -divider true;
+
+	$gDeleteMenuItemForAnimLayers = `menuItem -label $deleteSelectedLayers`;
+
+	$gDeleteSelectedLayerMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kEmptyAnimLayers2"))
+				-enable (!$foundRootLayer)
+				-command ($lLayerListCommand+" for ($layer in $lLayers) evalEcho( \"animLayer -edit -removeAllAttributes \"+$layer );")`;
+	$gDeleteEmptyLayersMenuItemForAnimLayers = `menuItem -label (uiRes("m_layerEditor.kDeleteEmptyAnimLayers2"))
+				-enable (!$foundRootLayer)
+				-command ("deleteEmptyAnimLayers()")`;
+		
+		
+	menuItem -divider true;
+
+	string $layerModeLabel=(uiRes("m_layerEditor.kLayerModeAnimLayer2"));
+	$gLayerModeMenuItemForAnimLayers =`menuItem -label $layerModeLabel -subMenu true`;
+	setParent -menu ..;
+	
+	string $layerRotationAccLabel = (uiRes("m_layerEditor.kLayerRotationAccAnimLayer2"));
+	string $layerScaleAccLabel = (uiRes("m_layerEditor.kLayerScalingAccAnimLayer2"));
+	$gLayerRotationAccMenuItemForAnimLayers = `menuItem -label $layerRotationAccLabel -subMenu true`; 
+	setParent -menu ..;
+	$gLayerScaleAccMenuItemForAnimLayers = `menuItem -label $layerScaleAccLabel -subMenu true`; 	
+	setParent -menu ..;
+
+	
+	menuItem -edit -pmc ("layerModeSubMenu(\""+$gLayerModeMenuItemForAnimLayers+"\",\""+$toolName+"\")") -enable (!$foundRootLayer) $gLayerModeMenuItemForAnimLayers;
+	
+	menuItem -edit -pmc ("layerRotationAccSubMenu(\""+$gLayerRotationAccMenuItemForAnimLayers+"\",\""+$toolName+"\")") -enable (!$foundRootLayer) $gLayerRotationAccMenuItemForAnimLayers;
+	menuItem -edit -pmc ("layerScaleAccSubMenu(\""+$gLayerScaleAccMenuItemForAnimLayers+"\",\""+$toolName+"\")") -enable (!$foundRootLayer) $gLayerScaleAccMenuItemForAnimLayers;
+
+
+
+		
+	menuItem -divider true;
+	menuItem -label $packageAnimLayerObjects -command ("packageAnimLayerObjects") ;
+	
+	menuItem -divider true;
+
+	string $lEmptyOverrideLayerCommand =  "string $lLayer = layerEditorCreateAnimLayer( false, true);";		 
+
+	string $lSelectedOverrideLayerCommand =  "string $lLayer = layerEditorCreateAnimLayer( true, true);";			
+
+
+	string $lSelectObjectCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+									layerEditorSelectObjectAnimLayer($lLayers)";
+
+	string $lDuplicateLayerCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+								 layerEditorCopyAnimLayer($lLayers)";
+
+	string $lDuplicateLayerNoAnimCommand =	"string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+										layerEditorCopyAnimLayerNoAnim($lLayers)";
+
+	string $lExtractBaseLayerSelectedCommand = "string $lSelection[]=`ls -selection`; \
+												layerEditorExtractObjectsSingleAnimLayer($lSelection, \"\")";
+
+	string $lExtractBaseLayerAllCommand = "string $lSelection[]=`ls`; \
+										   layerEditorExtractObjectsSingleAnimLayer($lSelection, \"\")";
+
+	string $lAddSelectedCommand = "string $lSelection[]=`ls -selection`; \
+								   string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+								   layerEditorAddObjectsAnimLayer($lSelection, $lLayers,0)";
+
+	string $lAddSelectedOptionsCommand = "string $lSelection[]=`ls -selection`; \
+								   string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+								   layerEditorAddObjectsAnimLayer($lSelection, $lLayers,1)";	   
+
+	string $lRemoveSelectedCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+									  layerEditorRemoveObjectsAnimLayer($lLayers)";
+
+	string $lRemoveSelectedOptionsCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+									  layerEditorRemoveObjectsAnimLayerOptions($lLayers)";
+
+	string $lDeleteLayerCommand = "string $lLayers[]=getSelectedAnimLayer(\""+$toolName+"\"); \
+								   deselectAnimLayers(\""+$toolName+"\", $lLayers); \
+								   layerEditorDeleteAnimLayer($lLayers)";
+
+	menuItem -edit -enable $layerAvailable -command ("EmptyAnimLayer") $gNewEmptyMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ("SelectedAnimLayer") $gNewFromSelectedMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ($lEmptyOverrideLayerCommand) $gNewEmptyOverrideMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ($lSelectedOverrideLayerCommand) $gNewOverrideFromSelectedMenuItemForAnimLayers;
+
+	menuItem -edit -command ($lSelectObjectCommand) -enable (!$foundRootLayer) $gSelectObjectsMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ($lDuplicateLayerCommand) $gDuplicateLayerMenuItemForAnimLayers;
+	menuItem -edit -enable $layerAvailable -command ($lDuplicateLayerNoAnimCommand) $gDuplicateLayerNoAnimMenuItemForAnimLayers;
+	menuItem -edit -command ($lExtractBaseLayerSelectedCommand) $extractBaseLayerSelectedMenuItemForAnimLayers;
+	menuItem -edit -command ($lExtractBaseLayerAllCommand) $extractBaseLayerAllMenuItemForAnimLayers;
+
+	menuItem -edit -command ($lAddSelectedCommand) -enable (!$foundRootLayer) $gAddObjectsMenuItemForAnimLayers;
+	menuItem -edit -command ($lAddSelectedOptionsCommand) -enable (!$foundRootLayer) $gAddObjectsOptionsMenuItemForAnimLayers;
+	menuItem -edit -command ($lRemoveSelectedCommand) -enable (!$foundRootLayer) $gRemoveObjectsMenuItemForAnimLayers;
+	menuItem -edit -command ($lRemoveSelectedOptionsCommand) -enable (!$foundRootLayer) $gRemoveObjectsOptionsMenuItemForAnimLayers;
+	menuItem -edit -command ($lDeleteLayerCommand) -enable (!$foundRootLayer) $gDeleteMenuItemForAnimLayers;
+	
+	//ADD HACKS ===============================================================
+	source red9MayaHacks;
+	red9HackAnimLayerMenu $parent;
+	//HACK END ================================================================
+}
+

@@ -98,15 +98,42 @@ class ui(cgmUI.cgmGUI):
         
         self.ml_objectSets = []
         self.d_activeStateCBs = {}
-        
-        self.d_itemScrollLists = {}
-        self.d_itemLists = {}
-        
         self.l_objectSets = []
         self.d_refSets = {}
         self.d_typeSets = {}
         self.l_setModes = ['<<< All Loaded Sets >>>','<<< Active Sets >>>']
         self.setMode = 0
+        
+        # Add scene change callback to handle scene reloads
+        self.setSceneChangeCB(self.on_sceneChange)
+        
+    def on_sceneChange(self):
+        """
+        Handle scene changes - re-initialize object sets after scene reloads
+        """
+        _str_func = 'on_sceneChange'
+        log.info("|{0}| >> Scene changed, re-initializing object sets...".format(_str_func))
+        
+        try:
+            # Clear existing object set instances
+            self.ml_objectSets = []
+            self.d_activeStateCBs = {}
+            self.d_refSets = {}
+            self.d_typeSets = {}
+            
+            # Re-initialize the UI
+            mc.evalDeferred(self.uiUpdate_objectSets, lp=True)
+            
+        except Exception as err:
+            log.error("|{0}| >> Failed to re-initialize object sets: {1}".format(_str_func, err))
+            # Show user-friendly message
+            mc.warning("Object sets need to be re-initialized after scene reload. Please refresh the Set Tools window.")
+        
+        self.ml_objectSets = []
+        self.d_activeStateCBs = {}
+        
+        self.d_itemScrollLists = {}
+        self.d_itemLists = {}
         
         #self.uiPopUpMenu_createShape = None
         #self.uiPopUpMenu_color = None
@@ -128,7 +155,11 @@ class ui(cgmUI.cgmGUI):
         self.uiMenu_FirstMenu.clear()
         #>>> Reset Options		                     
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Force Update",
-                         c = lambda *a:self.uiUpdate_objectSets())  
+                         c = lambda *a:self.uiUpdate_objectSets())
+        
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Refresh Object Sets",
+                         c = lambda *a:self.uiFunc_refreshObjectSets(),
+                         ann="Refresh object sets after scene reloads")
         
         #Modes -------------------------------------------------------------------------------------        
         _build = mc.menuItem(parent = self.uiMenu_FirstMenu, subMenu = True,
@@ -329,13 +360,17 @@ class ui(cgmUI.cgmGUI):
                     
         if _d_sets['referenced']:
             activePrefixes = self.var_ActiveSetRefs.value
+            # If no specific reference prefixes are active, load all references by default
+            loadAllRefs = not activePrefixes or (len(activePrefixes) == 1 and activePrefixes[0] == '')
+            
             for k,l in list(_d_sets['referenced'].items()):
                 if k =='From Scene':
                     continue
                 if k not in list(self.d_refSets.keys()):
                     #self.var_ActiveSetRefs.append(k)
                     self.d_refSets[k] = []                
-                if k not in activePrefixes:
+                # Only filter out references if specific prefixes are active and this one isn't in the list
+                if not loadAllRefs and k not in activePrefixes:
                     for s in l:
                         if s in l_running:
                             log.debug("|{0}| >> refCull: {1} | {2}".format(_str_func, k, s))
@@ -362,13 +397,24 @@ class ui(cgmUI.cgmGUI):
         
         _len = len(l_running)
         
+        failed_sets = []
         for oSet in l_running:
             try:
                 uiBuild_objectSetRow(self,self.uiScrollList_objectSets, oSet)
                 self.var_LoadedSets.append(oSet)
             except Exception as err:
                 log.error("|{0}| >> Build row failed: {1} | err: {2}".format(_str_func,oSet, err))
+                failed_sets.append(oSet)
             finally:pass
+            
+        # Report any failed sets to the user
+        if failed_sets:
+            log.warning("|{0}| >> Failed to load {1} object sets: {2}".format(_str_func, len(failed_sets), failed_sets))
+            if len(failed_sets) > 3:
+                mc.warning("Failed to load {0} object sets after scene reload. Use the refresh button (⟳) to retry.".format(len(failed_sets)))
+            else:
+                mc.warning("Failed to load object sets: {0}. Use the refresh button (⟳) to retry.".format(", ".join(failed_sets)))
+        
         return
         
         
@@ -523,9 +569,35 @@ class ui(cgmUI.cgmGUI):
     def uiFunc_copy(self,mObjectSet = None):
         _str_func = 'uiFunc_copy'  
         mCopy = mObjectSet.copy()
-        mc.evalDeferred(self.uiUpdate_objectSets,lp=True) 
+        mc.evalDeferred(self.uiUpdate_objectSets,lp=True)
         
+    def uiFunc_refreshObjectSets(self):
+        """
+        Manually refresh object sets - useful after scene reloads when sets become instanced
+        """
+        _str_func = 'uiFunc_refreshObjectSets'
+        log.info("|{0}| >> Refreshing object sets...".format(_str_func))
         
+        try:
+            # Clear existing object set instances
+            self.ml_objectSets = []
+            self.d_activeStateCBs = {}
+            self.d_refSets = {}
+            self.d_typeSets = {}
+            
+            # Re-initialize the UI
+            self.uiUpdate_objectSets()
+            
+            log.info("|{0}| >> Object sets refreshed successfully".format(_str_func))
+            mc.confirmDialog(title="Refresh Complete", 
+                           message="Object sets have been refreshed successfully.", 
+                           button=['OK'], 
+                           defaultButton='OK')
+            
+        except Exception as err:
+            log.error("|{0}| >> Failed to refresh object sets: {1}".format(_str_func, err))
+            mc.warning("Failed to refresh object sets. Please check the script editor for details.")
+            
             
 def uiFunc_modeSet( self, item ):
     i =  self.setModes.index(item)
@@ -1209,11 +1281,27 @@ def uiBuild_objectSetRow(self, parent = None, objectSet = None):
     
     try:
         #Get our data --------------------------------------------------------------------------
-        try:mObjectSet = cgmMeta.validateObjArg(objectSet,'cgmObjectSet')
+        try:
+            mObjectSet = cgmMeta.validateObjArg(objectSet,'cgmObjectSet')
         except Exception as err:
             log.error("|{0}| >> Failed to validate objectSet: {1}".format(_str_func,objectSet))
             log.error(err)
-            return False
+            
+            # Check if this is an instanced object set issue
+            if mc.objExists(objectSet):
+                log.warning("|{0}| >> Object set '{1}' appears to be instanced after scene reload. Attempting to re-initialize...".format(_str_func, objectSet))
+                try:
+                    # Try to create a new cgmObjectSet instance
+                    mObjectSet = cgmMeta.cgmObjectSet(objectSet)
+                    log.info("|{0}| >> Successfully re-initialized object set: {1}".format(_str_func, objectSet))
+                except Exception as reinit_err:
+                    log.error("|{0}| >> Failed to re-initialize object set '{1}': {2}".format(_str_func, objectSet, reinit_err))
+                    # Show user-friendly message
+                    mc.warning("Object set '{0}' is not functioning properly after scene reload. Please refresh the Set Tools window or recreate the set.".format(objectSet))
+                    return False
+            else:
+                log.error("|{0}| >> Object set '{1}' does not exist".format(_str_func, objectSet))
+                return False
         
         
         if mObjectSet not in self.ml_objectSets:

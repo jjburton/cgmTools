@@ -19,7 +19,7 @@
 
 '''
 
-from __future__ import print_function
+
 
 from functools import wraps
 import maya.cmds as cmds
@@ -36,7 +36,7 @@ import traceback
 import datetime
 
 # Only valid Red9 import
-import Red9.startup.setup as r9Setup
+from Red9.startup.setup import getCurrentFPS, red9ModulePath, mayaVersion, mayaIsBatch
 
 import logging
 logging.basicConfig()
@@ -52,13 +52,13 @@ RED9_ANIM_CONTEXT_ACTIVE = None
 # Generic Utility Functions ---
 # ---------------------------------------------------------------------------------
 
-def getCurrentFPS():
-    '''
-    returns the current frames per second as a number, rather than a useless string
-    '''
-    return r9Setup.getCurrentFPS()
-#     fpsDict = {"game": 15.0, "film": 24.0, "pal": 25.0, "ntsc": 30.0, "show": 48.0, "palf": 50.0, "ntscf": 60.0}
-#     return fpsDict[cmds.currentUnit(q=True, fullName=True, time=True)]
+# def getCurrentFPS():
+#     '''
+#     returns the current frames per second as a number, rather than a useless string
+#     '''
+#     return getCurrentFPS()
+# #     fpsDict = {"game": 15.0, "film": 24.0, "pal": 25.0, "ntsc": 30.0, "show": 48.0, "palf": 50.0, "ntscf": 60.0}
+# #     return fpsDict[cmds.currentUnit(q=True, fullName=True, time=True)]
 
 
 def forceToString(text):
@@ -103,6 +103,26 @@ def scenePath():
     '''
     return os.path.dirname(sceneName())
 
+def namespace_resolve_to_unique(namespace, debug=True):
+    '''
+    resolve the given namespace and increment if required
+    returning a non-clashing namespace
+    
+    :param namespace: the namespace we want to make sure if unique
+    :return: the namespace given + _0x if clashes were found with others in the Maya scene
+    '''
+    count = 1
+    namespace_base = namespace
+    namespace = namespace + "_0" + str(count)
+    namespaces = sorted(cmds.namespaceInfo(lon=True))
+    while namespace in namespaces:
+        namespace = namespace_base + "_0" + str(count)
+        count += 1
+
+    if debug:
+        log.info("namespace resolved From  : %s : To : %s" % (namespace_base, namespace))
+    return namespace
+
 def itersubclasses(cls, _seen=None):
     """
     itersubclasses(cls)
@@ -144,7 +164,7 @@ def inspectFunctionSource(value):
         elif path == "Command":
             cmds.warning('%s : is a Command not a script' % value)
             return False
-    except StandardError, error:
+    except Exception as error:
         log.info(error)
     # Inspect for Python
     if not path or not os.path.exists(path):
@@ -162,7 +182,7 @@ def inspectFunctionSource(value):
             if path:
                 # sourceType='python'
                 log.info('path : %s' % path)
-        except StandardError, error:
+        except Exception as error:
             log.exception(error)
 
     # Open the file with the default editor
@@ -182,6 +202,8 @@ def getScriptEditorSelection():
         ScriptEditorHistory scroll. We need to copy the selected text to the
         clipboard then pull it back afterwards.
         '''
+        # cmds.cmdFileOutput(o=outPath.log)  # alternative?
+
         import Red9.packages.pyperclip as pyperclip
         control = mel.eval("$v=$gLastFocusedCommandControl")
         executer = mel.eval("$v=$gLastFocusedCommandExecuter")
@@ -235,10 +257,25 @@ def is_basestring(value):
     if isinstance(value, str):
         return True
     if sys.version_info[0] == 2:
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             return True
     return False
 
+def is_iterable_not_str(value):
+    '''
+    return True if the arg is iterable but crucially NOT a string or bytes, this skips strings and wraps
+    python2 / 3. 
+    '''
+    if sys.version_info[0] == 2:
+        from collections import Iterable
+        if isinstance(value, Iterable) and not isinstance(value, str):
+            return True
+    else:
+        from collections.abc import Iterable
+        if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+            return True
+    return False
+    
 def is_callable(func):
     '''
     wrapper to check if a variable is callable, wrapping Python 2 & 3
@@ -296,13 +333,45 @@ def playback_suspend(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         playing = False
-        res=None
         if cmds.play(q=True, state=True):
             playing = True
             cmds.play(state=False)
         res = func(*args, **kwargs)
         if playing:
             cmds.play(forward=True)
+        return res
+    return wrapper
+
+def windows_qt_wrap(func):
+    '''
+    DECORATOR : ProPack only : replace the Maya icon with the Red9 icon
+    
+    this creates a QT Wrap instance of the cmds UI so we can edit it directly
+    with the propack calls
+    '''
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        res = func(*args, **kwargs)
+        try:
+            # use the proPack management for QT so we deal with qt versions
+            from Red9.pro_pack import r9pro
+            r9qt = r9pro.r9import('r9qt')
+            import maya.OpenMayaUI as OpenMayaUI
+            
+            # find the string id for the window
+            cmds_window = args[0].win
+
+            # wrap QT instance using the ProPack wraps
+            maya_main_window_ptr = OpenMayaUI.MQtUtil.findWindow(cmds_window)
+            qt_window = r9qt.shiboken.wrapInstance(int(maya_main_window_ptr), r9qt.QtWidgets.QWidget)
+
+            # set the icon
+            red9_icon = formatPath_join(red9ModulePath(), 'icons', 'red9.png')
+            icon = r9qt.QtGui.QIcon(red9_icon)
+            qt_window.setWindowIcon(icon)
+        except:
+            log.debug('ProPack wrap failed')
         return res
     return wrapper
 
@@ -315,7 +384,7 @@ def gpu_toggle(func):
         res = func(*args, **kwargs)
         try:
             mel.eval('toggleOpenCLEvaluator')
-        except StandardError, err:
+        except Exception as err:
             log.debug(err)
         return res
     return wrapper
@@ -366,7 +435,7 @@ def evalManager_DG(func):
         try:
             evalmode = None
             res = None
-            if r9Setup.mayaVersion() >= 2016:
+            if mayaVersion() >= 2016:
                 evalmode = cmds.evaluationManager(mode=True, q=True)[0]
                 if evalmode == 'parallel':
                     evalManagerState(mode='off')
@@ -398,7 +467,7 @@ def evalManager_idleAction(func):
         evalmode = None
         res = None
         try:
-            if r9Setup.mayaVersion() >= 2019.0:
+            if mayaVersion() >= 2019.0:
                 evalmode = cmds.evaluationManager(q=True, idleAction=True)
                 if not evalmode == 1:
                     cmds.evaluationManager(idleAction=1)
@@ -416,7 +485,7 @@ def evalManagerState(mode='off'):
     wrapper function for the evalManager so that it's switching is recorded in
     the undo stack via the Red9.evalManager_switch plugin
     '''
-    if r9Setup.mayaVersion() >= 2016:
+    if mayaVersion() >= 2016:
         if not cmds.pluginInfo('evalManager_switch', q=True, loaded=True):
             try:
                 cmds.loadPlugin('evalManager_switch')
@@ -488,7 +557,7 @@ def suppressScriptEditor(func):
             cmds.scriptEditorInfo(suppressInfo=True)
             cmds.scriptEditorInfo(suppressResults=True)
             res = func(*args, **kwargs)
-        except StandardError, err:
+        except Exception as err:
             log.exception(err)
             log.info('Failed on SuppressScriptEditor decorator')
         finally:
@@ -554,14 +623,14 @@ class AnimationContext(object):
             self.manage_time = False        # don't manage time!
 
         # differences between build handling
-        if r9Setup.mayaVersion() < 2019.0:
+        if mayaVersion() < 2019.0:
             self.manage_cache = False
             self.manage_eval_idle = False
-        if r9Setup.mayaVersion() < 2016.0:
+        if mayaVersion() < 2016.0:
             self.manage_em = False        
 
         # TESTING!!!!! 
-        if r9Setup.mayaVersion() >= 2022.0:
+        if mayaVersion() >= 2022.0:
 #             self.manage_em = False      # Really Slow in 2022 switch from parallel
             self.manage_cache = True      # flush the cache on exit
             self.manage_eval_idle = False
@@ -601,7 +670,7 @@ class AnimationContext(object):
                 self.cachemode = CachePreferenceEnabled().get_value()
 
                 # TESTING: Turn caching OFF
-                if r9Setup.mayaVersion() >= 2022.0:
+                if mayaVersion() >= 2022.0:
                     log.info('AnimContext : CacheEnabled = False')
                     if self.cachemode:
                         CachePreferenceEnabled().set_value(False)
@@ -665,7 +734,7 @@ class AnimationContext(object):
                         log.debug('AnimContext : EXIT : CacheEvaluator flushed')
 
                     # TESTING Turn Caching back on
-                    if r9Setup.mayaVersion() >= 2022.0:
+                    if mayaVersion() >= 2022.0:
                         from maya.plugin.evaluator.cache_preferences import CachePreferenceEnabled
                         CachePreferenceEnabled().set_value(self.cachemode)
             except:
@@ -689,11 +758,11 @@ class undoContext(object):
     """
     CONTEXT MANAGER : Simple Context Manager for chunking the undoState
     """
-    def __init__(self, initialUndo=False, undoFuncCache=[], undoDepth=1):
+    def __init__(self, initialUndo=False, undoFuncCache=[], undoDepth=1, chunkName='', exitUndo=False, *args):
         '''
         If initialUndo is True then the context manager will manage what to do on entry with
         the undoStack. The idea is that if True the code will look at the last functions in the
-        undoQueue and if any of those mantch those in the undoFuncCache, it'll undo them to the
+        undoQueue and if any of those match those in the undoFuncCache, it'll undo them to the
         depth given. 
 
         WHY?????? This is specifically designed for things like floatFliders where you've
@@ -704,6 +773,7 @@ class undoContext(object):
         :param initialUndo: on first process whether undo on entry to the context manager
         :param undoFuncCache: only if initialUndo = True : functions to catch in the undo stack
         :param undoDepth: only if initialUndo = True : depth of the undo stack to go to
+        :param exitUndo: if True we run undo on the chunk on exit
 
         .. note::
             When adding funcs to this you CAN'T call the 'dc' command on any slider with a lambda func,
@@ -713,6 +783,9 @@ class undoContext(object):
         self.initialUndo = initialUndo
         self.undoFuncCache = undoFuncCache
         self.undoDepth = undoDepth
+        self.undoChunk = chunkName
+        self.exitUndo = exitUndo
+        self.initialState = cmds.undoInfo(q=True, state=True)
 
     def undoCall(self):
         for _ in range(1, self.undoDepth + 1):
@@ -721,12 +794,26 @@ class undoContext(object):
                 cmds.undo()
 
     def __enter__(self):
+        # if the undo queue is off, turn it on
+        if not self.initialState:
+            cmds.undoInfo(state=True)
+
+        # run the initial undo if needed
         if self.initialUndo:
             self.undoCall()
-        cmds.undoInfo(openChunk=True)
+
+        cmds.undoInfo(openChunk=True, chunkName=self.undoChunk)
 
     def __exit__(self, exc_type, exc_value, traceback):
         cmds.undoInfo(closeChunk=True)
+
+        if self.exitUndo:
+            print('undo called on context exit')
+            cmds.undo()
+
+        # return the initial state
+        cmds.undoInfo(state=self.initialState)
+
         if exc_type:
             log.exception('%s : %s' % (exc_type, exc_value))
         # If this was false, it would re-raise the exception when complete
@@ -759,7 +846,7 @@ class ProgressBarContext(object):
     def __init__(self, maxValue=100, interruptable=True, step=1, ismain=True, title=''):
         self.disable = False
         self.ismain = ismain
-        if r9Setup.mayaIsBatch():
+        if mayaIsBatch():
             self.disable = True
             return
 
@@ -926,9 +1013,15 @@ class SceneRestoreContext(object):
     >>> # out of the context manager the scene will be restored as it was
     >>> # before the code entered the context. (with sceneStore:)
     """
-    def __init__(self):
+    def __init__(self, timeline=True, units=True, panels=True, cameras=True, sounds=True, colours=True):
         self.gPlayBackSlider = mel.eval("string $temp=$gPlayBackSlider")
         self.dataStore = {}
+        self.restore_timelines = timeline
+        self.restore_units = units
+        self.restore_panels = panels
+        self.restore_cameras = cameras
+        self.restore_sounds = sounds
+        self.restore_colours = colours
 
     def __enter__(self):
         self.storeSettings()
@@ -961,9 +1054,14 @@ class SceneRestoreContext(object):
 
         # viewport colors
         self.dataStore['displayGradient'] = cmds.displayPref(q=True, displayGradient=True)
+        self.dataStore['displaypref_rgbbkg'] = cmds.displayRGBColor('background', q=True)
+        self.dataStore['displaypref_rgbbkgTop'] = cmds.displayRGBColor('backgroundTop', q=True)
+        self.dataStore['displaypref_rgbbkgBottom'] = cmds.displayRGBColor('backgroundBottom', q=True)
+
 
         # objects colors
         self.dataStore['curvecolor'] = cmds.displayColor("curve", q=True, dormant=True)
+        
 
         # panel management
         self.dataStore['panelStore'] = {}
@@ -998,82 +1096,100 @@ class SceneRestoreContext(object):
         '''
         cmds.autoKeyframe(state=self.dataStore['autoKey'])
 
+        # unit management first!
+        if self.restore_units:
+            cmds.currentUnit(time=self.dataStore['timeUnit'])
+            cmds.currentUnit(linear=self.dataStore['sceneUnits'])
+            if not cmds.upAxis(axis=True, q=True) == self.dataStore['upAxis']:
+                cmds.upAxis(axis=self.dataStore['upAxis'])
+                log.debug('Restored Units')
+                
         # timeline management
-        cmds.currentTime(self.dataStore['currentTime'])
-        cmds.playbackOptions(min=self.dataStore['minTime'])
-        cmds.playbackOptions(max=self.dataStore['maxTime'])
-        cmds.playbackOptions(ast=self.dataStore['startTime'])
-        cmds.playbackOptions(aet=self.dataStore['endTime'])
-        cmds.playbackOptions(ps=self.dataStore['playSpeed'])
-        cmds.playbackOptions(loop=self.dataStore['playLoop'])
-
-        # unit management
-        cmds.currentUnit(time=self.dataStore['timeUnit'])
-        cmds.currentUnit(linear=self.dataStore['sceneUnits'])
-        if not cmds.upAxis(axis=True, q=True) == self.dataStore['upAxis']:
-            cmds.upAxis(axis=self.dataStore['upAxis'])
-
-        log.debug('Restored PlayBack / Timeline setup')
+        if self.restore_timelines:
+            cmds.currentTime(self.dataStore['currentTime'])
+            cmds.playbackOptions(min=self.dataStore['minTime'])
+            cmds.playbackOptions(max=self.dataStore['maxTime'])
+            cmds.playbackOptions(ast=self.dataStore['startTime'])
+            cmds.playbackOptions(aet=self.dataStore['endTime'])
+            cmds.playbackOptions(ps=self.dataStore['playSpeed'])
+            cmds.playbackOptions(loop=self.dataStore['playLoop'])
+            log.debug('Restored PlayBack / Timeline setup')
 
         # viewport colors
-        cmds.displayPref(displayGradient=self.dataStore['displayGradient'])
-        cmds.displayRGBColor(resetToSaved=True)
+        if self.restore_colours:
+            cmds.displayPref(displayGradient=self.dataStore['displayGradient'])
+            cmds.displayRGBColor(resetToSaved=True)
+            cmds.displayRGBColor('background', *self.dataStore['displaypref_rgbbkg'])
+            cmds.displayRGBColor('backgroundTop', *self.dataStore['displaypref_rgbbkgTop'])
+            cmds.displayRGBColor('backgroundBottom', *self.dataStore['displaypref_rgbbkgBottom'])
 
-        # objects colors
-        cmds.displayColor("curve", self.dataStore['curvecolor'], dormant=True)
+            # objects colors
+            cmds.displayColor("curve", self.dataStore['curvecolor'], dormant=True)
+            log.debug('Restored display colour base settings')
 
         # panel management
-        for panel, data in self.dataStore['panelStore'].items():
-            try:
-                cmdString = data['settings'].replace('$editorName', panel)
-                mel.eval(cmdString)
-                log.debug("Restored Panel Settings Data >> %s" % panel)
-                mel.eval('lookThroughModelPanel("%s","%s")' % (data['activeCam'], panel))
-                log.debug("Restored Panel Active Camera Data >> %s >> cam : %s" % (panel, data['activeCam']))
-            except:
-                log.debug("Failed to fully Restore ActiveCamera Data >> %s >> cam : %s" % (panel, data['activeCam']))
+        if self.restore_panels:
+            for panel, data in list(self.dataStore['panelStore'].items()):
+                try:
+                    cmdString = data['settings'].replace('$editorName', panel)
+                    mel.eval(cmdString)
+                    log.debug("Restored Panel Settings Data >> %s" % panel)
+                    mel.eval('lookThroughModelPanel("%s","%s")' % (data['activeCam'], panel))
+                    log.debug("Restored Panel Active Camera Data >> %s >> cam : %s" % (panel, data['activeCam']))
+                except:
+                    log.debug("Failed to fully Restore ActiveCamera Data >> %s >> cam : %s" % (panel, data['activeCam']))
 
         # camera management
-        for cam, settings in self.dataStore['cameraTransforms'].items():
-            try:
-                cmds.setAttr('%s.translate' % cam, settings[0][0][0], settings[0][0][1], settings[0][0][2])
-                cmds.setAttr('%s.rotate' % cam, settings[1][0][0], settings[1][0][1], settings[1][0][2])
-                cmds.setAttr('%s.scale' % cam, settings[2][0][0], settings[2][0][1], settings[2][0][2])
-                log.debug('Restored Default Camera Transform Data : % s' % cam)
-            except:
-                log.debug("Failed to fully Restore Default Camera Transform Data : % s" % cam)
+        if self.restore_cameras:
+            for cam, settings in list(self.dataStore['cameraTransforms'].items()):
+                try:
+                    cmds.setAttr('%s.translate' % cam, settings[0][0][0], settings[0][0][1], settings[0][0][2])
+                    cmds.setAttr('%s.rotate' % cam, settings[1][0][0], settings[1][0][1], settings[1][0][2])
+                    cmds.setAttr('%s.scale' % cam, settings[2][0][0], settings[2][0][1], settings[2][0][2])
+                    log.debug('Restored Default Camera Transform Data : % s' % cam)
+                except:
+                    log.debug("Failed to fully Restore Default Camera Transform Data : % s" % cam)
 
         # sound management
-        if self.dataStore['displaySound']:
-            cmds.timeControl(self.gPlayBackSlider, e=True, ds=1, sound=self.dataStore['activeSound'])
-            log.debug('Restored Audio setup')
-        else:
-            cmds.timeControl(self.gPlayBackSlider, e=True, ds=0)
-        log.debug('Scene Restored fully')
+        if self.restore_sounds:
+            if self.dataStore['displaySound']:
+                cmds.timeControl(self.gPlayBackSlider, e=True, ds=1, sound=self.dataStore['activeSound'])
+                log.debug('Restored Audio setup')
+            else:
+                cmds.timeControl(self.gPlayBackSlider, e=True, ds=0)
+            log.debug('Scene Restored fully')
         return True
 
 # ---------------------------------------------------------------------------------
 # General ---
 # ---------------------------------------------------------------------------------
 
-def thumbNailScreen(filepath, width, height, mode='api', modelPanel=None):
-    path = '%s.bmp' % os.path.splitext(filepath)[0]
+def thumbNailScreen(filepath, width, height, mode='api', modelPanel=None, compression='bmp', force=True):
+    '''
+    wrapper over the thumbnail calls
+    '''
+    # deal with the path and delete if it exists and force is True
+    path = '%s.%s' % (os.path.splitext(filepath)[0], compression)
+    if os.path.exists(path) and force:
+        os.remove(path)
+
     if mode == 'api':
-        thumbnailApiFromView(path, width, height, modelPanel=modelPanel)
+        thumbnailApiFromView(path, width, height, modelPanel=modelPanel, compression=compression)
         log.debug('API Thumb > path : %s' % path)
     else:
-        thumbnailFromPlayBlast(path, width, height, modelPanel=modelPanel)
+        thumbnailFromPlayBlast(path, width, height, modelPanel=modelPanel, compression=compression)
         log.debug('Playblast Thumb > path : %s' % path)
+    return path
 
-def thumbnailFromPlayBlast(filepath, width, height, modelPanel=None):
+def thumbnailFromPlayBlast(filepath, width, height, modelPanel=None, compression='bmp'):
     '''
     Generate a ThumbNail of the screen
-    Note: 'cf' flag is broken in 2012
 
     :param filepath: path to Thumbnail
     :param width: width of capture
     :param height: height of capture
     :param modePanel: modelPanel to grab the image from, default=None, works it out internally
+    :param compression: the image format we're going to write ('bmp','png' ... etc)
     '''
     filepath = os.path.splitext(filepath)[0]
     filename = os.path.basename(filepath)
@@ -1093,8 +1209,7 @@ def thumbnailFromPlayBlast(filepath, width, height, modelPanel=None):
     cmds.setAttr('defaultRenderGlobals.imageFormat', 20)
     cmds.setAttr('%s.filmFit' % cam, 2)  # set to Vertical so we don't get so much overscan
 
-    cmds.playblast(frame=cmds.currentTime(q=True),  # startTime=cmds.currentTime(q=True),
-                          # endTime=cmds.currentTime(q=True),
+    cmds.playblast(frame=cmds.currentTime(q=True),
                           format="image",
                           filename=filepath,
                           width=width,
@@ -1103,9 +1218,11 @@ def thumbnailFromPlayBlast(filepath, width, height, modelPanel=None):
                           quality=90,
                           forceOverwrite=True,
                           framePadding=0,
+                          offScreen=True,
                           showOrnaments=False,
-                          compression="BMP",
+                          compression=compression.upper(),
                           viewer=False)
+
     cmds.setAttr('defaultRenderGlobals.imageFormat', storedformat)
     cmds.setAttr('%s.filmFit' % cam, storedResolutionGate)
     # Why do this rename? In Maya2012 the 'cf' flag fails which means you have to use
@@ -1113,11 +1230,11 @@ def thumbnailFromPlayBlast(filepath, width, height, modelPanel=None):
     # the file after it's made.
     try:
         newfile = [f for f in os.listdir(filedir)
-                 if f.split('.bmp')[0].split('.')[0] == filename and '.pose' not in f]
+                if f.split('.%s' % compression)[0].split('.')[0] == filename and '.pose' not in f]
         log.debug('Original Playblast file : %s' % newfile)
-        os.rename(os.path.join(filedir, newfile[0]), '%s.bmp' % filepath)
-        log.debug('Thumbnail Renamed : %s' % ('%s.bmp' % filepath))
-        return '%s.bmp' % filepath
+        os.rename(os.path.join(filedir, newfile[0]), '%s.%s' % (filepath, compression))
+        log.debug('Thumbnail Renamed : %s' % ('%s.%s' % (filepath, compression)))
+        return '%s.%s' % (filepath, compression)
     except:
         pass
 
@@ -1166,12 +1283,83 @@ def thumbnailApiFromView(filename, width, height, modelPanel=None, compression='
         image.convertPixelFormat(OpenMaya.MImage.kByte)
     else:
         view.readColorBuffer(image, True)
-    image.resize(width, height, True)
+    image.resize(width, height, True)  # maintain aspect so we scale against the width
+    # cropped_image  = crop_center(image, width, height)
     try:
         image.writeToFile(filename, compression)
-    except StandardError, err:
+    except Exception as err:
         log.debug(err)
     log.info('API Thumbnail call path : %s' % filename)
+
+
+# def crop_image_in_place_api2(image, target_width, target_height):
+#     import maya.api.OpenMaya as api2
+#     import maya.OpenMayaUI as omui
+#
+#     # Get the current size of the image
+#     width = image.width
+#     height = image.height
+#
+#     bpp = 4  # RGBA format (bytes per pixel)
+#     row_size = width * bpp
+#
+#     # Calculate offsets for cropping (centered crop)
+#     x_offset = (width - target_width) // 2
+#     y_offset = (height - target_height) // 2
+#
+#     # Read the pixels of the image
+#     raw = image.pixels()
+#
+#     # Prepare the cropped pixel data
+#     cropped_data = []
+#     for y in range(y_offset, y_offset + target_height):
+#         start = y * row_size + x_offset * bpp
+#         end = start + target_width * bpp
+#         cropped_data.extend(raw[start:end])
+#
+#     # Create a new image with the target size
+#     cropped_image = api2.MImage()
+#     cropped_image.create(target_width, target_height, 4, api2.MImage.kByte)
+#
+#     # Set the pixel data for the new image
+#     cropped_image.setPixels(cropped_data)
+#
+#     return cropped_image
+
+# def get_active_3d_view(modelPanel=None):
+#     import maya.api.OpenMayaUI as omui
+#
+#     view = None
+#     if modelPanel is None:
+#         view = omui.M3dView.active3dView()
+#     else:
+#         try:
+#             view = omui.M3dView()
+#             omui.M3dView.getM3dViewFromModelEditor(modelPanel, view)
+#         except:
+#             view = omui.M3dView.active3dView()
+#     view.refresh(False, True)
+#     return view
+#
+# def grab_viewport_image(view, target_width, target_height):
+#     import maya.api.OpenMaya as api2
+#     # Grab the image from the viewport
+#     image = api2.MImage()
+#     if view:
+#         view.readColorBuffer(image, True)
+#         image.resize(target_width, target_height, True)
+#         return image
+#     return None
+#
+# def thumbnailApiFromView(filename, width, height, modelPanel=None, compression='bmp'):
+#     # Example usage
+#     view = get_active_3d_view()  # Get the active 3D view
+#     if view:
+#         image = grab_viewport_image(view, width, height)  # Grab the image with desired size
+#         if image:
+#             # Now you can crop the image, save it, or further process it
+#             cropped_image = crop_image_in_place_api2(image, width, height)  # Example crop
+#             cropped_image.writeToFile(filename)  # Save the image
 
 
 def getModifier():
@@ -1245,7 +1433,7 @@ class Clipboard:
         import ctypes
         if not value:
             raise IOError('No text passed to the clipboard')
-        if isinstance(value, unicode):
+        if isinstance(value, str):
             value = str(value)
         if not isinstance(value, str):
             raise TypeError('value should be of str type')
@@ -1276,15 +1464,25 @@ class Clipboard:
             return True
 
 
-def os_OpenFileDirectory(path):
+def os_OpenFileDirectory(path, select=True):
     '''
     open the given folder in the default OS browser
+
+    :param path: the path to open
+    :param select: Win only, if True and the path is a file, not a folder, then we open up the folder and select the file
+        else we open up the path and select the folder
     '''
     path = os.path.abspath(path)
     if sys.platform == 'win32':
-        subprocess.Popen('explorer /select, "%s"' % path)
+        if select:
+            # open up the folder and select it. If the path is a folder it will 
+            # open a folder above and leave the given folder selected
+            subprocess.Popen('explorer /select, "%s"' % path)
+        else:
+            # open he actual path folder itself
+            subprocess.Popen('explorer "%s"' % path)
     elif sys.platform == 'darwin':  # macOS
-        subprocess.Popen(['open', path])
+        subprocess.Popen(['open', '-R', path])
     else:  # linux
         try:
             subprocess.Popen(['xdg-open', path])
@@ -1299,7 +1497,7 @@ def os_OpenFile(filePath, *args):
     # filePath=os.path.abspath(filePath)
     # log.debug('abspath : %s' % filePath)
     if sys.platform == 'win32':
-        os.startfile(filePath)
+        os.startfile(os.path.normpath(filePath))
     elif sys.platform == 'darwin':  # macOS
         subprocess.Popen(['open', filePath])
     else:  # linux
@@ -1326,7 +1524,6 @@ def os_listFiles(folder, filters=[], byDate=False, fullPath=False, filter_string
     from Red9.core.Red9_CoreUtils import filterListByString
     if not os.path.isdir(folder):
         folder = os.path.dirname(folder)
-#     if not hasattr(filters, '__iter__'):
     if is_basestring(filters):
         filters = [filters]
     files = os.listdir(folder)
@@ -1372,9 +1569,9 @@ def os_fileCompare(file1, file2, openDiff=False):
         Once downloaded drop it here Red9/pakcages/diffMerge.exe
     '''
     outputDir = tempfile.gettempdir()
-    diffmerge = os.path.join(r9Setup.red9ModulePath(), 'packages', 'diffMerge.exe')
+    diffmerge = os.path.join(red9ModulePath(), 'packages', 'diffMerge.exe')
     if not os.path.exists(diffmerge):
-        diffmerge = os.path.join(r9Setup.red9ModulePath(), 'packages', 'DiffMerge', 'sgdm.exe')
+        diffmerge = os.path.join(red9ModulePath(), 'packages', 'DiffMerge', 'sgdm.exe')
     if os.path.exists(diffmerge):
         process = subprocess.Popen([diffmerge, '-d', os.path.join(outputDir, 'diffmergeOutput.diff'), file1, file2],
                                  stdout=subprocess.PIPE,
@@ -1416,7 +1613,7 @@ def writeJson(filepath=None, content=None):
 
 def readJson(filepath=None):
     '''
-    file pat to drive where to read the file
+    file path to drive where to read the file
 
     :param filepath:
     :return:
@@ -1425,7 +1622,7 @@ def readJson(filepath=None):
         name = open(filepath, 'r')
         try:
             return json.load(name)
-        except ValueError, err:
+        except ValueError as err:
             log.warning('Failed to read JSON file %s' % filepath)
             raise ValueError(err)
 
@@ -1449,13 +1646,13 @@ class abcIndex(object):
         self.__iter += 1
         self.__iterator = itertools.permutations(self.__abc, self.__iter)
 
-    def next(self):
+    def __next__(self):
         '''
         Return and Alphabetic index
         '''
         try:
-            temp = ''.join([x for x in self.__iterator.next()])
+            temp = ''.join([x for x in next(self.__iterator)])
         except StopIteration:
             self.__Iterate()
-            temp = ''.join([x for x in self.__iterator.next()])
+            temp = ''.join([x for x in next(self.__iterator)])
         return '%s' % temp

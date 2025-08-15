@@ -1,7 +1,15 @@
-import __builtin__
+try:
+    from __builtin__ import max as builtin_max
+    from __builtin__ import min as builtin_min
+except ImportError:
+    from builtins import max as builtin_max
+    from builtins import min as builtin_min
 import math
 import struct
-from fractions import gcd
+try:
+    from fractions import gcd
+except ImportError:  # Python 3.9+
+    from math import gcd
 from ctypes import create_string_buffer
 
 
@@ -79,7 +87,7 @@ def _get_minval(size, signed=True):
 def _get_clipfn(size, signed=True):
     maxval = _get_maxval(size, signed)
     minval = _get_minval(size, signed)
-    return lambda val: __builtin__.max(min(val, maxval), minval)
+    return lambda val: builtin_max(min(val, maxval), minval)
 
 
 def _overflow(val, size, signed=True):
@@ -109,7 +117,7 @@ def max(cp, size):
     if len(cp) == 0:
         return 0
 
-    return __builtin__.max(abs(sample) for sample in _get_samples(cp, size))
+    return builtin_max(abs(sample) for sample in _get_samples(cp, size))
 
 
 def minmax(cp, size):
@@ -117,8 +125,8 @@ def minmax(cp, size):
 
     max_sample, min_sample = 0, 0
     for sample in _get_samples(cp, size):
-        max_sample = __builtin__.max(sample, max_sample)
-        min_sample = __builtin__.min(sample, min_sample)
+        max_sample = builtin_max(sample, max_sample)
+        min_sample = builtin_min(sample, min_sample)
 
     return min_sample, max_sample
 
@@ -518,7 +526,7 @@ def ratecv(cp, size, nchannels, inrate, outrate, state, weightA=1, weightB=0):
                 )
                 _put_sample(result, size, out_i, _overflow(cur_o, size))
                 out_i += 1
-                d -= inrate
+            d -= inrate
 
 
 def lin2ulaw(cp, size):

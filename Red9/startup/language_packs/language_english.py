@@ -192,9 +192,11 @@ class _Generic_(object):
     orient_constraint = 'OrientConstraint'
     point_constraint = 'PointConstraint'
     parent_constraint = 'ParentConstraint'
+    aim_constraint = 'AimConstraint'
     ik_handles = 'IKHandles'
     transforms = 'Transforms'
-
+    clusters = 'Clusters'
+    
     right = 'Right'
     left = 'Left'
     centre = 'Centre'
@@ -214,7 +216,7 @@ class _Generic_(object):
 
 
 class _LockChannelsUI_(object):
-    title = 'LockChannels'
+    title = 'Red9 LockChannels'
     user_defined = 'All User Defined Attrs'
     user_defined_ann = 'These are non-standard attributes added to the nodes. These are considered per node'
     all_attrs = 'ALL Attrs'
@@ -228,16 +230,16 @@ class _LockChannelsUI_(object):
     store_attrmap = 'Store attrMap'
     store_attrmap_ann = 'This saves the current "lock,keyable,hidden" status of all attributes in the channelBox to an attrMap file'
     load_attrmap = 'Load from attrMap'
-    load_attrmap_ann = 'This restores the "lock,keyable,hidden" status of all attributes from the attrMap file'
+    load_attrmap_ann = 'This restores the "lock, keyable, hidden" status of all attributes from the attrMap file'
     serialize_attrmap_to_node = 'Serialized attrMap to node'
-    serialize_attrmap_to_node_ann = 'rather than saving the data to a file, serialize it to a given node so its stored internally in your systems'
+    serialize_attrmap_to_node_ann = 'rather than saving the data to a file, serialise it to a given node so its stored internally in your systems'
     set_ann = 'Node for serializing the attrMap directly onto'
 
 class _SearchNodeUI_(object):
     '''
     Main node Search UI, this is inherited by the AnimUI as they share the same filter options
     '''
-    title = "Node Searcher"
+    title = "Red9 Node Searcher"
     complex_node_search = 'Complex Node Search'
     complex_node_search_ann = 'nodeTypeSelectors'
 
@@ -286,20 +288,23 @@ class _AnimationUI_(_SearchNodeUI_):
     step = 'Step'
 
     copy_attrs_hierarchy_ann = 'Copy Attributes Hierarchy : Filter Hierarchies for transforms & joints then Match NodeNames'
-    copy_attrs = 'Copy Attributes'
-    copy_attrs_ann = '''CopyAttributes : Modes: -------------------
-Default > Selected Object Pairs (Obj2 to Obj1), (Obj3 to Obj4)
-Hierarchy > Uses Selection Filters on Hierarchy Tab
-CopyToMany > Copy data from First selected to all Subsequent nodes
+    copy_attrs = 'Copy / Paste Attributes'  # 'Copy Attributes'
+    copy_attrs_ann = '''Copy Paste Attributes between objects:
+----------------------------------------------
+* Hierarchy OFF > Selected Object Pairs (Obj2 to Obj1), (Obj3 to Obj4)
+* Hierarchy ON   > Uses Selection Filters on Hierarchy Tab
+* CopyToMany > Copy data from First selected to all Subsequent Nodes / Hierarchies or mRigs
+
 Note: This also handles CharacterSets and SelectionSets if selected, processing all members'''
     copy_attrs_to_many_ann = 'Copy Matching Attributes from First selected to all Subsequently selected nodes'
+    copy_keys_hierarchy_ann = 'Copy Keys Hierarchy: Filter Hierarchies for transforms & joints then Match NodeNames'
+    copy_keys = 'Copy / Paste Keys'  # 'Copy Keys'
+    copy_keys_ann = '''Copy Paste Keys between objects:
+----------------------------------------
+* Hierarchy OFF > Selected Object Pairs (Obj2 to Obj1), (Obj3 to Obj4)
+* Hierarchy ON   > Uses Selection Filters on Hierarchy Tab
+* CopyToMany > Copy data from First selected to all Subsequent Nodes / Hierarchies or mRigs
 
-    copy_keys_hierarchy_ann = 'Copy Keys Hierarchy : Filter Hierarchies for transforms & joints then Match NodeNames'
-    copy_keys = 'Copy Keys'
-    copy_keys_ann = '''CopyKeys : Modes: -------------------------
-Default > Selected Object Pairs (Obj2 to Obj1), (Obj3 to Obj4)
-Hierarchy > Uses Selection Filters on Hierarchy Tab
-CopyToMany > Copy data from First selected to all Subsequent nodes
 Note: This also handles CharacterSets and SelectionSets if selected, processing all members'''
     copy_keys_to_many_ann = 'Copy Animation from First selected to all Subsequently selected nodes'
     copy_keys_timerange_ann = 'ONLY Copy Keys over PlaybackTimeRange or Selected TimeRange (highlighted in Red on the timeline)'
@@ -308,7 +313,12 @@ Note: This also handles CharacterSets and SelectionSets if selected, processing 
     paste_method_ann = 'Paste Method Used: Default = "replace", paste method used by the copy code internally'
 
     snaptransforms = 'Snap Transforms'
-    snaptransforms_ann = '''Snap Selected Object Pairs (Obj2 to Obj1), (Obj4 to Obj3) or Snap Filtered Hierarchies\nNote: This also handles CharacterSets if selected, processing all members'''
+    snaptransforms_ann = '''Snap Objects Together
+----------------------------------------------
+* Hierarchy OFF > Snap Selected Object Pairs (Obj2 to Obj1), (Obj3 to Obj4)
+* Hierarchy ON   > Uses Selection Filters on Hierarchy Tab to match entire Rig structures in world space
+
+Note: This also handles CharacterSets and SelectionSets if selected, processing all members'''
     snaptransforms_timerange_ann = 'Process over PlaybackTimeRange or Selected TimeRange (in Red on the timeline)'
     snaptransforms_hierarchy_ann = 'Filter Hierarchies with given args - then Snap Transforms for matched nodes'
     trans = 'Trans'
@@ -326,10 +336,15 @@ Note: This also handles CharacterSets and SelectionSets if selected, processing 
 
     step = 'Step'
     step_ann = 'Frames to advance the timeline between Processing - accepts negative values'
-    tracknstabilize = 'Track or Stabilize'
+    all_attrs = 'UserAttrs'
+    all_attrs_ann = 'Satibilise all user defined attrs exposed in the ChannelBox for the given node'
+    tracknstabilize = 'Track or Stabilise'
     track_process_back = '<< Process Back <<'
-    track_process_ann = '''Stabilize Mode : Select a SINGLE Object - this will stabilize it in place over time
-Track Object Mode : Select TWO Objects - first is source, second will track with offset
+    track_process_ann = '''Track or Stabilise
+----------------------------------------------
+* 1 Object Selected :  Stabilise Mode: this will stabilise a single object in world space over time
+* 2 Objects Selected :  Track Object Mode : first objects is source, second will track with offset
+
 Track Component Mode :  Select a Component (poly,vert,edge) then an Object - second will track the component with offset'''
     track_process_forward = '>>  Process Fwd  >>'
 
@@ -499,7 +514,7 @@ checkBoxes will process all children of the roots'''
 
 class _Mirror_Setup_(object):
 
-    title = "MirrorSetup"
+    title = "Red9 MirrorSetup"
     side = 'MirrorSide:'
     index = 'MirrorIndex:'
     axis = 'MirrorAxis:'
@@ -525,7 +540,7 @@ class _Mirror_Setup_(object):
 
 class _CameraTracker_(object):
 
-    title = 'CameraTracker'
+    title = 'Red9 CameraTracker'
     tracker_step = 'Tracker Step : '
     frames = 'frames'
     maintain_frame = 'Maintain Current Framing'
@@ -535,7 +550,7 @@ class _CameraTracker_(object):
 
 class _CurveFilters_(object):
 
-    title = 'interactiveCurveFilter'
+    title = 'Red9 interactiveCurveFilter'
     vimeo_randomize_ann = 'simple demo showing the functionality of Simplify curve and Randomizer'
     curve_resampler = 'Curve Resampler'
     resample = 'Resample'
@@ -553,7 +568,7 @@ class _CurveFilters_(object):
 
 class _Randomizer_(object):
 
-    title = 'KeyRandomizer'
+    title = 'Red9 KeyRandomizer'
     vimeo_randomizer_ann = 'simple demo showing the functionality of Simplify curve and Randomizer'
     strength_value = 'strength : value'
     frame_step = 'frameStep'
@@ -643,7 +658,7 @@ class _MetaNodeUI_(object):
 
 class _SceneReviewerUI_(object):
 
-    title = 'SceneReviewTracker'
+    title = 'Red9 SceneReviewTracker'
     author = 'Author'
     date = 'Date'
     scene_name = 'SceneName'

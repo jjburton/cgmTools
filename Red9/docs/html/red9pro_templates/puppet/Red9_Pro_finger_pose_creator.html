@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pro_Pack : puppet : finger_pose_creator &mdash; Red9 3.0 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Pro_Pack : puppet : ikfk_match" href="Red9_Pro_ikfk_match.html" />
+    <link rel="prev" title="Pro_Pack : tools : rig_manager" href="../tools/Red9_Pro_rig_manager.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> Red9<img src="../../_static/Red9_ProPack_logo.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                3.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_AnimationUtils.html">Red9_AnimationUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Audio.html">Red9_Audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Core.html">Red9_CoreUtils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_General.html">Red9_General</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Meta.html">Red9_Meta</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_PoseSaver.html">Red9_PoseSaver</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Setup.html">Red9_Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../red9core_templates/Red9_Tools.html">Red9_Tools</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_animation.html">Pro_Pack : animation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_export.html">Pro_Pack : exporter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_general.html">Pro_Pack : general</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_metadata_pro.html">Pro_Pack : metadata_pro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_project.html">Pro_Pack : project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_skining.html">Pro_Pack : skining</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/Red9_Pro_rig_manager.html">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Red9</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Pro_Pack : puppet : finger_pose_creator</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/red9pro_templates/puppet/Red9_Pro_finger_pose_creator.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="pro-pack-puppet-finger-pose-creator">
+<h1>Pro_Pack : puppet : finger_pose_creator<a class="headerlink" href="#pro-pack-puppet-finger-pose-creator" title="Permalink to this headline">¶</a></h1>
+<p>ProPack puppet call to push a library of finger poses over to an existing PuppetRig system as
+finger sliders. The poses must be made using the “FINGERMIRRORED” pose handler in the Red9 PoseUI.
+There’s currently no UI support for this so please read carefully</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># import statement for the module via the r9pro decompiler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="k">import</span> <span class="n">r9pro</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r9puppet_fingerposes</span> <span class="o">=</span> <span class="n">r9pro</span><span class="o">.</span><span class="n">r9import</span><span class="p">(</span><span class="s1">&#39;r9puppet_fingerposes&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<span class="target" id="module-Red9.pro_pack.puppet.finger_pose_creator"></span><p>Specific Module to manage the creation of embedded finger poses on slider attrs for a given finger system.</p>
+<p>This expects the finger mSystems to be properly setup as per the Red9 Puppet (see demo asset) and is used in our 
+publishing systems. It’s exposed here to allow clients to update the internal poses we bake down to client PuppetRigs</p>
+<p class="rubric">Main Classes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+</tbody>
+</table>
+<dl class="function">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.toggle_finger_vis">
+<code class="descname">toggle_finger_vis</code><span class="sig-paren">(</span><em>mSystem</em>, <em>state=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.toggle_finger_vis" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the visibility state attr of the finger to the state required. This is reliant on
+there being a “fingers” attr on the CTRL_Switch wire control in the ArmSystem</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses">
+<em class="property">class </em><code class="descname">CreateFingerPoses</code><span class="sig-paren">(</span><em>filepath</em>, <em>mSystem=None</em>, <em>handposes=[]</em>, <em>fingerposes=[]</em>, <em>chnrange=10</em>, <em>searchreplace=[]</em>, <em>build_finger_ctrl=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This will add a new joint above each of the finger joints named SDK_grp which will
+take all the loaded pose information and bind that to the specified driver controller 
+as a 0-100% channel. The poses given are r9Poses generated in a folder tagged with
+the FINGERMIRRORID handler.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>filepath</strong> – filepath for the finger library</li>
+<li><strong>mSystem</strong> – the finger / toe mSystem nodemNode we’re processing, this gets bound to self.fingerSys which can be set after the class instance is taken but before the apply call if needed</li>
+<li><strong>handposes</strong> – FULL HAND poses : specific list of FULL HAND poses to apply in order</li>
+<li><strong>fingerposes</strong> – SPLIT FINGER poses : to be split and bound to EACH FINGER, this is a set of filter strings to run against the filepath</li>
+<li><strong>chnrange</strong> – range of the pose attrs added</li>
+<li><strong>searchreplace</strong> – if given this is used as a searchreplace call when generating the poseAttr from the pose file names
+allowing you to strip off specific parts of the name, ie ‘Mark_spread’ becomes an attr ‘spread’ with arg [‘Mark, ‘’]</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">if the poses being loaded have transform data then that will be invalid as the new structure removes the
+initial transform values from each joint, leaving them with zero transforms at bind pose</p>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># import the module</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">Red9.pro_pack</span> <span class="k">import</span> <span class="n">r9pro</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">r9puppet_fingerposes</span> <span class="o">=</span> <span class="n">r9pro</span><span class="o">.</span><span class="n">r9import</span><span class="p">(</span><span class="s1">&#39;r9puppet_fingerposes&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># setup the variables</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filepath</span> <span class="o">=</span><span class="s1">&#39;Q:/Demos/Poses/Red_Fingers&#39;</span>    
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handposes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bend_max&#39;</span><span class="p">,</span> <span class="s1">&#39;bend_min&#39;</span><span class="p">,</span> <span class="s1">&#39;spread_max&#39;</span><span class="p">,</span> <span class="s1">&#39;spread_min&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fingerposes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bend_max&#39;</span><span class="p">,</span> <span class="s1">&#39;bend_min&#39;</span><span class="p">,</span> <span class="s1">&#39;spread_max&#39;</span><span class="p">,</span> <span class="s1">&#39;spread_min&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># create, or update a finger pose ctrl using the poses defined above</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mrig</span> <span class="o">=</span> <span class="n">r9Meta</span><span class="o">.</span><span class="n">getMetaRigs</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># build left fingers</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">creator</span> <span class="o">=</span> <span class="n">r9puppet_fingerposes</span><span class="o">.</span><span class="n">CreateFingerPoses</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">mSystem</span><span class="o">=</span><span class="n">mrig</span><span class="o">.</span><span class="n">L_ArmSystem</span><span class="o">.</span><span class="n">L_FingerSystem</span><span class="p">,</span> <span class="n">handposes</span><span class="o">=</span><span class="n">handposes</span><span class="p">,</span> <span class="n">fingerposes</span><span class="o">=</span><span class="n">fingerposes</span><span class="p">,</span> <span class="n">chnrange</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">creator</span><span class="o">.</span><span class="n">apply_to_system</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># build right fingers</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">creator</span> <span class="o">=</span> <span class="n">r9puppet_fingerposes</span><span class="o">.</span><span class="n">CreateFingerPoses</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">mSystem</span><span class="o">=</span><span class="n">mrig</span><span class="o">.</span><span class="n">R_ArmSystem</span><span class="o">.</span><span class="n">R_FingerSystem</span><span class="p">,</span> <span class="n">handposes</span><span class="o">=</span><span class="n">handposes</span><span class="p">,</span> <span class="n">fingerposes</span><span class="o">=</span><span class="n">fingerposes</span><span class="p">,</span> <span class="n">chnrange</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">creator</span><span class="o">.</span><span class="n">apply_to_system</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.setSystem">
+<code class="descname">setSystem</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.setSystem" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the systems up</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.manage_scales">
+<code class="descname">manage_scales</code><span class="sig-paren">(</span><em>sdk_node</em>, <em>ctrl</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.manage_scales" title="Permalink to this definition">¶</a></dt>
+<dd><p>manage the sdk node for scales</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.createSDKgrps">
+<code class="descname">createSDKgrps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.createSDKgrps" title="Permalink to this definition">¶</a></dt>
+<dd><p>create the additional SDK grp nodes for each finger joint</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.get_finger_ctrls">
+<code class="descname">get_finger_ctrls</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.get_finger_ctrls" title="Permalink to this definition">¶</a></dt>
+<dd><p>wrap so that we can deal with Props ion a single place</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">the poseHandler now has support for an additional function, poseHandler.getAdditionalCtrls
+run here if found. This allows us to modify, on the fly, the behaviour of the data being pushed by this code</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.pushpose">
+<code class="descname">pushpose</code><span class="sig-paren">(</span><em>posefile</em>, <em>poseAttr</em>, <em>isNeg=False</em>, <em>finger=''</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.pushpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>push the pose in the posefile to the poseAttr given</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>posefile</strong> – pose file to apply</li>
+<li><strong>poseAttr</strong> – attribute we’re binding the pose upto</li>
+<li><strong>isNeg</strong> – is this a positive or negative range pose</li>
+<li><strong>finger</strong> – do we set the data to a single finger and single finger driver chan, or the whole hand</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.resolve_posefile">
+<code class="descname">resolve_posefile</code><span class="sig-paren">(</span><em>pose</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.resolve_posefile" title="Permalink to this definition">¶</a></dt>
+<dd><ul class="simple">
+<li>build base poseAttr up</li>
+<li>resolve pose is negative or positive</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">pose attrs used are ALWAYS .lower() regardless of the filename</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.order_attrs">
+<code class="descname">order_attrs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.order_attrs" title="Permalink to this definition">¶</a></dt>
+<dd><p>reorder the attrs to maintain the hand / finger ordering. This is based on the ‘finger_poses_integrated’
+dict added to the ctrl at create time. We order the hand_poses first, then the finger_poses.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">the breakers are also managed in this process even though they don’t get stored in the finger_poses_integrated data</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.apply_to_system">
+<code class="descname">apply_to_system</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.CreateFingerPoses.apply_to_system" title="Permalink to this definition">¶</a></dt>
+<dd><p>actually run and build the poses up on the finger mSystems</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>side</strong> – id to switch the systems over to the correct FingerSystem mNodes</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator">
+<em class="property">class </em><code class="descname">Finger_Pose_Integrator</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">PySide2.QtWidgets.QMainWindow</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Ui_MainWindow</span></code></p>
+<p>Simple UI that matches the main pro_to_bnd but just manages the Add HIK from tpose flags.
+The run func is run by the Browser to allow for bulk processing of FBX files</p>
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.set_msystem">
+<code class="descname">set_msystem</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.set_msystem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.set_feedback">
+<code class="descname">set_feedback</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.set_feedback" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.set_path">
+<code class="descname">set_path</code><span class="sig-paren">(</span><em>browse=True</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.set_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.staticMetaObject">
+<code class="descname">staticMetaObject</code><em class="property"> = &lt;PySide2.QtCore.QMetaObject object&gt;</em><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.staticMetaObject" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.build">
+<code class="descname">build</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.puppet.finger_pose_creator.Finger_Pose_Integrator.build" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build / update the give poses</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../tools/Red9_Pro_rig_manager.html" class="btn btn-neutral float-left" title="Pro_Pack : tools : rig_manager" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Red9_Pro_ikfk_match.html" class="btn btn-neutral float-right" title="Pro_Pack : puppet : ikfk_match" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Red9 Consultancy Limited.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

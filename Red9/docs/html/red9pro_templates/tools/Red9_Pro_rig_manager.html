@@ -17,6 +17,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Pro_Pack : puppet : finger_pose_creator" href="../puppet/Red9_Pro_finger_pose_creator.html" />
     <link rel="prev" title="Pro_Pack : tools : project_manager" href="Red9_Pro_project_manager.html" /> 
 </head>
 
@@ -52,6 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_anim_map.html">Pro_Pack : anim_map</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_animation.html">Pro_Pack : animation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_audio.html">Pro_Pack : audio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_deformers.html">Pro_Pack : deformers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_export.html">Pro_Pack : exporter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_general.html">Pro_Pack : general</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_importexport.html">Pro_Pack : importexport</a></li>
@@ -59,7 +61,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_optimiser.html">Pro_Pack : optimiser</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_project.html">Pro_Pack : project</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9data.html">Pro_Pack : r9Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_r9file.html">Pro_Pack : r9file</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_rigutils.html">Pro_Pack : rigutils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_shaders.html">Pro_Pack : shaders</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_skining.html">Pro_Pack : skining</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_skinning.html">Pro_Pack : skinning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Red9_Pro_uibase.html">Pro_Pack : uibase</a></li>
@@ -67,9 +71,16 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_binder.html">Pro_Pack : tools : anim_binder</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_tools.html">Pro_Pack : tools : anim_tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_anim_trails.html">Pro_Pack : tools : anim_trails</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_deformer_tools.html">Pro_Pack : tools : deformer_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_health_manager.html">Pro_Pack : tools : health_manager</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Red9_Pro_metahuman_tools.html">Pro_Pack : tools : metahuman_tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Red9_Pro_project_manager.html">Pro_Pack : tools : project_manager</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pro_Pack : tools : rig_manager</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../puppet/Red9_Pro_finger_pose_creator.html">Pro_Pack : puppet : finger_pose_creator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../puppet/Red9_Pro_ikfk_match.html">Pro_Pack : puppet : ikfk_match</a></li>
 </ul>
 
         </div>
@@ -293,8 +304,25 @@ more generic hooks to the rig to help client manage some of the base systems.</p
 </dd></dl>
 
 <dl class="method">
+<dt id="Red9.pro_pack.tools.rig_manager.PuppetRig_Manager.set_parent_space_attr">
+<code class="descname">set_parent_space_attr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.rig_manager.PuppetRig_Manager.set_parent_space_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>overload the default parent space attr behaviour</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.rig_manager.PuppetRig_Manager.reset_parent_space_attr">
+<code class="descname">reset_parent_space_attr</code><span class="sig-paren">(</span><em>verbose=True</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.rig_manager.PuppetRig_Manager.reset_parent_space_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>overload the default parent space attr behaviour</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="Red9.pro_pack.tools.rig_manager.PuppetRig_Manager.reset_darw_overrides">
 <code class="descname">reset_darw_overrides</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.rig_manager.PuppetRig_Manager.reset_darw_overrides" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="Red9.pro_pack.tools.rig_manager.PuppetRig_Manager.finger_pose_integrator">
+<code class="descname">finger_pose_integrator</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Red9.pro_pack.tools.rig_manager.PuppetRig_Manager.finger_pose_integrator" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -519,6 +547,7 @@ to the either the stored BPose or the bindpose for the skin data</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="Red9_Pro_project_manager.html" class="btn btn-neutral float-left" title="Pro_Pack : tools : project_manager" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../puppet/Red9_Pro_finger_pose_creator.html" class="btn btn-neutral float-right" title="Pro_Pack : puppet : finger_pose_creator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
