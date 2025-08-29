@@ -1,7 +1,7 @@
 """
 ------------------------------------------
 baseTool: cgm.core.tools
-Author: David Bokser
+Author: David Bokser & Josh Burton
 email: dbokser@cgmonks.com
 
 Website : https://github.com/jjburton/cgmTools/wiki
@@ -300,6 +300,89 @@ def buildColumn_main(self,parent, asScroll = False):
     uiFunc_build_post_process_column(self,_inside)
     
     return _inside
+
+def uiFunc_convert_filter(self, idx, new_filter_type):
+    _str_func = 'uiFunc_convert_filter[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >> Converting filter {1} to {2}...".format(_str_func, idx, new_filter_type))
+    
+    # Ensure we have the current action
+    if idx >= len(self._actionList):
+        log.error("|{0}| >> Invalid action index: {1}".format(_str_func, idx))
+        return
+        
+    current_action = self._actionList[idx]
+    log.info("|{0}| >> Current action type: {1}".format(_str_func, current_action.filterType))
+    
+    # Update the current action's dictionary to get latest values
+    log.info("|{0}| >> Updating current action's _optionDict...".format(_str_func, idx))
+    current_action.update_dict()
+    
+    # Collect data to preserve
+    preserved_data = {}
+    
+    # Basic data
+    preserved_data['name'] = current_action._optionDict.get('name', 'Converted Filter')
+    preserved_data['objs'] = current_action._optionDict.get('objs', [])
+    preserved_data['size'] = current_action._optionDict.get('size', 1.0)
+    preserved_data['aimFwd'] = current_action._optionDict.get('aimFwd', 'z+')
+    preserved_data['aimUp'] = current_action._optionDict.get('aimUp', 'y+')
+    preserved_data['translate'] = current_action._optionDict.get('translate', True)
+    preserved_data['rotate'] = current_action._optionDict.get('rotate', True)
+    
+    # Limits data
+    log.info("|{0}| >> Checking limit attributes on current_action...".format(_str_func))
+    limit_attrs = [
+        'translateMinXLimitUse', 'translateMinXLimit', 'translateMaxXLimitUse', 'translateMaxXLimit',
+        'translateMinYLimitUse', 'translateMinYLimit', 'translateMaxYLimitUse', 'translateMaxYLimit',
+        'translateMinZLimitUse', 'translateMinZLimit', 'translateMaxZLimitUse', 'translateMaxZLimit',
+        'rotateMinXLimitUse', 'rotateMinXLimit', 'rotateMaxXLimitUse', 'rotateMaxXLimit',
+        'rotateMinYLimitUse', 'rotateMinYLimit', 'rotateMaxYLimitUse', 'rotateMaxYLimit',
+        'rotateMinZLimitUse', 'rotateMinZLimit', 'rotateMaxZLimitUse', 'rotateMaxZLimit'
+    ]
+    
+    for attr in limit_attrs:
+        if attr in current_action._optionDict:
+            preserved_data[attr] = current_action._optionDict[attr]
+            log.info("|{0}| >> Preserving {1}: {2}".format(_str_func, attr, preserved_data[attr]))
+        else:
+            log.info("|{0}| >> Missing limit attr {1}".format(_str_func, attr))
+    
+    # Common parameters (preserved across all filter types)
+    preserved_data['objectScale'] = current_action._optionDict.get('objectScale', 10.0)
+    log.info("|{0}| >> Preserving objectScale: {1}".format(_str_func, preserved_data['objectScale']))
+    
+    # Filter-specific parameters
+    if current_action.filterType == 'dragger':
+        preserved_data['damp'] = current_action._optionDict.get('damp', 0.5)
+        preserved_data['angularDamp'] = current_action._optionDict.get('angularDamp', 0.5)
+        log.info("|{0}| >> Preserving dragger params: damp={1}, angularDamp={2}".format(_str_func, preserved_data['damp'], preserved_data['angularDamp']))
+    elif current_action.filterType == 'spring':
+        preserved_data['damp'] = current_action._optionDict.get('damp', 0.5)
+        preserved_data['springForce'] = current_action._optionDict.get('springForce', 5.0)
+        preserved_data['angularDamp'] = current_action._optionDict.get('angularDamp', 0.5)
+        preserved_data['angularSpringForce'] = current_action._optionDict.get('angularSpringForce', 5.0)
+        log.info("|{0}| >> Preserving spring params: damp={1}, springForce={2}, angularDamp={3}, angularSpringForce={4}".format(_str_func, preserved_data['damp'], preserved_data['springForce'], preserved_data['angularDamp'], preserved_data['angularSpringForce']))
+    elif current_action.filterType == 'designer_spring':
+        preserved_data['damp'] = current_action._optionDict.get('damp', 1.0)
+        preserved_data['springForce'] = current_action._optionDict.get('springForce', 1.5)
+        preserved_data['angularDamp'] = current_action._optionDict.get('angularDamp', 1.0)
+        preserved_data['angularSpringForce'] = current_action._optionDict.get('angularSpringForce', 1.5)
+        preserved_data['angularUpDamp'] = current_action._optionDict.get('angularUpDamp', 1.0)
+        preserved_data['angularUpSpringForce'] = current_action._optionDict.get('angularUpSpringForce', 1.5)
+        log.info("|{0}| >> Preserving designer spring params: damp={1}, springForce={2}, angularDamp={3}, angularSpringForce={4}, angularUpDamp={5}, angularUpSpringForce={6}".format(_str_func, preserved_data['damp'], preserved_data['springForce'], preserved_data['angularDamp'], preserved_data['angularSpringForce'], preserved_data['angularUpDamp'], preserved_data['angularUpSpringForce']))
+    
+    # Create new action
+    log.info("|{0}| >> Creating new {1} action with preserved data...".format(_str_func, new_filter_type))
+    new_action = action_class[new_filter_type](preserved_data)
+    
+    # Replace the old action with the new one
+    self._actionList[idx] = new_action
+    
+    # Rebuild the UI to reflect the changes
+    mc.evalDeferred( cgmGEN.Callback(uiBuild_ActionsColumn,self) )
+    
+    log.info("|{0}| >> Successfully converted filter from {1} to {2}".format(_str_func, current_action.filterType, new_filter_type))
+
     
 def uiFunc_clear_loaded(self):
     _str_func = 'uiFunc_clear_loaded'
@@ -434,107 +517,8 @@ def uiFunc_build_post_process_column(self, parentColumn):
     
     #uiFunc_setPostAction(self)
 
-def uiBuild_ActionsColumn(self):
-    _str_func = 'uiBuild_ActionsColumn[{0}]'.format(self.__class__.TOOLNAME)            
-    log.info("|{0}| >>...".format(_str_func)) 
-
-    self._actionsColumn.clear()
-    self._actionFrames = []
-    self._dCB_actions = {}
-    
-    for i,action in enumerate(self._actionList):
-        if not action.name:
-            action.name = "{}_{}".format(action.filterType,i)
-        
-        mc.setParent(self._actionsColumn)
-        cgmUI.add_LineSubBreak()
-        
-        d_color = d_uiActionUIColors[action.filterType]
-        
-        action._colors = d_color
-        if MATH.is_even(i):
-            _ut = 'cgmUITemplate'
-            _header = d_color['button']
-        else:
-            _ut = 'cgmUIHeaderTemplate'
-            _header = d_color['header']
-        _bgc = d_color['bgc']
-            
-        _row = mUI.MelHSingleStretchLayout(self._actionsColumn, bgc = _header, padding = _padding)        
-        
-        _cb = mUI.MelCheckBox(_row,
-                              #w=30,
-                             #annotation = d_dat.get('ann',k),
-                             value = 1)
-        self._dCB_actions[i] = _cb
-        
-    
-        mUI.MelSpacer(_row,w=_padding)
-    
-        _subColumn = mUI.MelColumnLayout(_row,bgc = _header)#useTemplate = 'cgmUIHeaderTemplate')
-        mUI.MelButton(_row,w=30,label='Run',bgc = _header,#ut=_ut,
-                      command=cgmGEN.Callback(uiFunc_run_action,self,i)
-                      )
-        mUI.MelSpacer(_row,w=5)
-        
-        mUI.MelButton(_row,w=15,label='x',bgc = _header,#ut=_ut,
-                      command=cgmGEN.Callback(uiFunc_remove_action,self,i)
-                      )
-        
-        _label = action.filterType if action.name == None else "{0}  [{1} ]".format(action.name, action.filterType)
-        _frame = mUI.MelFrameLayout(_subColumn,
-                                    label="{} | {}".format(i,_label),
-                                    collapsable=True, collapse=True,bgc = _header)#useTemplate = _ut)
-        
-        pum = mUI.MelPopupMenu(_frame)
-        mUI.MelMenuItem(pum, label="Rename", command=cgmGEN.Callback(uiFunc_rename_action,self,i) )
-        mUI.MelMenuItem(pum, label="Copy", command=cgmGEN.Callback(uiFunc_copy_action,self,i) )
-        mUI.MelMenuItem(pum, label="Paste", command=cgmGEN.Callback(uiFunc_paste_action,self,i) )
-        mUI.MelMenuItem(pum, label="Duplicate", command=cgmGEN.Callback(uiFunc_duplicate_action,self,i) )
-        mUI.MelMenuItem(pum, divider=True )
-        mUI.MelMenuItem(pum, label="Move Up", command=cgmGEN.Callback(uiFunc_move_action,self,i,'up') )
-        mUI.MelMenuItem(pum, label="Move Down", command=cgmGEN.Callback(uiFunc_move_action,self,i,'down') )
-        mUI.MelMenuItem(pum, label="Move to Top", command=cgmGEN.Callback(uiFunc_move_action,self,i,'top') )
-        mUI.MelMenuItem(pum, label="Move to Bottom", command=cgmGEN.Callback(uiFunc_move_action,self,i,'bottom') )
-        mUI.MelMenuItem(pum, divider=True )
-        mUI.MelMenuItem( pum, l="Log Self",
-                         command=cgmGEN.Callback(uiFunc_logself_action,self,i))        
-        mUI.MelMenuItem(pum, label="Delete", command=cgmGEN.Callback(uiFunc_remove_action,self,i) )
-        mUI.MelMenuItem(pum, divider=True )
-        mUI.MelMenuItem(pum, label="Run", command=cgmGEN.Callback(uiFunc_run_action,self,i) )
-        
 
 
-        _dataColumn = mUI.MelColumnLayout(_frame,bgc=d_color['bgc'])#useTemplate = _ut) 
-        
-        self._actionFrames.append(_frame)
-
-        action.build_column(_dataColumn) 
-        
-        _row.setStretchWidget(_subColumn)
-        
-        mUI.MelSpacer(_row,w=_padding)
-    
-        _row.layout()         
-    
-    mc.setParent(self._actionsColumn)
-    cgmUI.add_LineSubBreak()      
-    """
-    _row = mUI.MelHSingleStretchLayout(self._actionsColumn,ut='cgmUISubTemplate',padding = 5)
-    
-    mUI.MelSpacer(_row,w=_padding)
-    
-    _row.setStretchWidget( cgmUI.add_Button(_row,'Run',
-        cgmGEN.Callback(uiFunc_run,self),                         
-        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
-        'Run',h=30) ) 
-    
-    mUI.MelSpacer(_row,w=_padding)
-
-    _row.layout() """   
-    
-    mc.setParent(self._actionsColumn)
-    cgmUI.add_LineSubBreak()  
 
 def uiFunc_run(self):
     _str_func = 'uiFunc_run[{0}]'.format(self.__class__.TOOLNAME)            
@@ -741,15 +725,108 @@ def uiFunc_rename_action(self, idx):
     result = mc.promptDialog(
             title='Rename Action',
             message='Enter Name:',
-            button=['OK', 'Cancel'],
+            text=self._actionList[idx].name,
+            button=['OK', 'Guess','Cancel'],
             defaultButton='OK',
             cancelButton='Cancel',
             dismissString='Cancel')
 
+    text = False
     if result == 'OK':
         text = mc.promptDialog(query=True, text=True)
-        self._actionList[idx].name = text
-        self._actionFrames[idx](edit=True, label="{0} - {1}".format(text, self._actionList[idx].filterType)) 
+        
+    elif result == 'Guess':
+        # Generate a suggested name
+        text = _generate_suggested_name(self, idx)
+        
+    if result == 'Cancel' or not text:
+        return
+    
+    # Get the old name before updating
+    old_name = self._actionList[idx].name
+
+    # Update the action name
+    self._actionList[idx].name = text
+    self._actionFrames[idx](edit=True, label="{0} - {1}".format(text, self._actionList[idx].filterType)) 
+
+    # Rename the corresponding animation layer if it exists
+    if old_name:
+        old_layer_name = CORESTRINGS.stripInvalidChars(old_name)
+        if mc.objExists(old_layer_name) and SEARCH.get_mayaType(old_layer_name) == 'animLayer':
+            log.info("|{0}| >> Renaming animLayer from '{1}' to '{2}'".format(_str_func, old_layer_name, text))
+            try:
+                mc.rename(old_layer_name, text)
+                log.info("|{0}| >> Successfully renamed animLayer".format(_str_func))
+            except Exception as e:
+                log.warning("|{0}| >> Failed to rename animLayer: {1}".format(_str_func, e))
+
+
+def _generate_suggested_name(self, idx):
+    """Generate a suggested name based on filter type and objects"""
+    _str_func = '_generate_suggested_name[{0}]'.format(self.__class__.TOOLNAME)
+    
+    if idx >= len(self._actionList):
+        return "Action_{0}".format(idx)
+    
+    action = self._actionList[idx]
+    action.update_dict()  # Ensure we have latest data
+    
+    filter_type = action.filterType
+    objects = action._optionDict.get('objs', [])
+    translate = action._optionDict.get('translate', False)
+    rotate = action._optionDict.get('rotate', False)
+
+    mObjs = cgmMeta.asMeta(objects)
+    
+    # Build the base name based on filter type
+    if filter_type == 'dragger':
+        base_name = 'D'
+    elif filter_type == 'spring':
+        base_name = 'S'
+    elif filter_type == 'designer spring':
+        base_name = 'D'
+    elif filter_type == 'trajectory aim':
+        base_name = 'TA'
+    elif filter_type == 'keyframe to motion curve':
+        base_name = 'KTM'
+    else:
+        base_name = filter_type
+    
+    # Add mode indicators
+    mode_parts = []
+    if translate and not rotate:
+        mode_parts.append('T')
+    elif rotate and not translate:
+        mode_parts.append('R')
+    
+    # Build object part
+    if not objects:
+        object_part = 'NoObj'
+    elif len(mObjs) == 1:
+        object_part = mObjs[0].p_nameBase
+    else:
+        # Multiple objects - try to find common pattern
+        short_names = [mObj.p_nameBase for mObj in mObjs]
+        
+        # Look for common prefixes or suffixes
+        common_prefix = CORESTRINGS.findCommonParts(short_names)
+        if common_prefix:
+            object_part = common_prefix
+        else:
+            # Use first object's short name with count
+            first_short = short_names[0] if short_names else 'Multi'
+            object_part = "{0}_{1}Obj".format(first_short, len(objects))
+    
+    # Combine parts
+    if mode_parts:
+        suggested_name = "{0}_{1}_{2}".format(base_name, ''.join(mode_parts), object_part)
+    else:
+        suggested_name = "{0}_{1}".format(base_name, object_part)
+    
+    log.info("|{0}| >> Generated suggested name: {1}".format(_str_func, suggested_name))
+    pprint.pprint(vars())
+    return suggested_name
+
 
 def uiFunc_move_action(self, idx, direction):
     _str_func = 'uiFunc_move_action[{0}]'.format(self.__class__.TOOLNAME)            
@@ -801,27 +878,13 @@ def uiFunc_add_action(self):
     uiFunc_updateActionDicts(self) 
     if hasattr(action,'uiTF_objects'):action.uiFunc_setObjects()
 
-# def uiFunc_setPostAction(self):
-#     _str_func = 'uiFunc_setPostAction[{0}]'.format(self.__class__.TOOLNAME)            
-#     log.info("|{0}| >>...".format(_str_func)) 
-
-#     postAction = self.post_actionMenu.getValue()
-
-#     if postAction == 'Dragger':
-#         uiFunc_build_post_dragger_column(self)
-#     elif postAction == 'Spring':
-#         uiFunc_build_post_spring_column(self)
-#     elif postAction == 'Trajectory Aim':
-#         uiFunc_build_post_trajectory_aim_column(self)
-#     elif postAction == 'Keys to Motion Curve':
-#         uiFunc_build_post_keyframe_to_motion_curve_column(self)
-
 def uiFunc_updateActionDicts(self):
     _str_func = 'uiFunc_updateActionDicts[{0}]'.format(self.__class__.TOOLNAME)            
     log.info("|{0}| >>...".format(_str_func))
 
     for action in self._actionList:
         action.update_dict()
+
 
 class ui_post_filter(object):
     filterType = 'undefined'
@@ -936,7 +999,7 @@ class ui_post_filter(object):
         
         #mc.setParent(parentColumn)
         #cgmUI.add_Header('Limits')
-        mUI.MelLabel(parentColumn, l='LIMITS', al = 'center', bgc=self._colors['header'])
+        mUI.MelLabel(parentColumn, l='{} LIMITS'.format(mode.upper()), al = 'center', bgc=self._colors['header'])
         
         for attr in 'XYZ':
             _row = mUI.MelHSingleStretchLayout(parentColumn,padding = 5)
@@ -1096,6 +1159,22 @@ pad_sep = 5
 class ui_post_dragger_column(ui_post_filter):
     filterType = 'dragger'
 
+    def __init__(self, optionDict = {
+            'aimFwd' : 'z+',
+            'aimUp' : 'y+',
+            'translate' : True,
+            'rotate' : True
+        }):
+        super(ui_post_dragger_column, self).__init__(optionDict)
+        
+        # Define dragger presets
+        self._dragger_presets = {
+            'Heavy': {'damp': 2.0, 'angularDamp': 2.0, 'angularUpDamp': 2.0},
+            'Medium': {'damp': 8.0, 'angularDamp': 8.0, 'angularUpDamp': 8.0},
+            'Light': {'damp': 18.0, 'angularDamp': 18.0, 'angularUpDamp': 18.0},
+            'Slight': {'damp': 28.0, 'angularDamp': 28.0, 'angularUpDamp': 28.0}
+        }
+
     def build_column(self, parentColumn):
         self._parentColumn = parentColumn
 
@@ -1105,7 +1184,6 @@ class ui_post_dragger_column(ui_post_filter):
         # Objects
         #
         self.add_objectsRow(parentColumn)
-        
         
         #
         # End Objects
@@ -1120,6 +1198,16 @@ class ui_post_dragger_column(ui_post_filter):
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
         self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('translate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_translate))
+
+        mUI.MelSpacer(_row,w=_padding)
+        
+        # Add Translate Preset Menu for Dragger
+        mUI.MelLabel(_row,l='Presets:')
+        self.uiOM_dragger_translate_presets = mUI.MelOptionMenu(_row, bgc=self._colors['button'], 
+                                                               changeCommand=cgmGEN.Callback(self.uiFunc_apply_dragger_translate_preset))
+        self.uiOM_dragger_translate_presets.append('Presets...')
+        for preset_name in self._dragger_presets.keys():
+            self.uiOM_dragger_translate_presets.append(preset_name)
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -1167,6 +1255,16 @@ class ui_post_dragger_column(ui_post_filter):
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
         self.uiFF_rotate = mUI.MelCheckBox(_row, v=self._optionDict.get('rotate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_rotate))
+
+        mUI.MelSpacer(_row,w=_padding)
+        
+        # Add Rotate Preset Menu for Dragger
+        mUI.MelLabel(_row,l='Presets:')
+        self.uiOM_dragger_rotate_presets = mUI.MelOptionMenu(_row, bgc=self._colors['button'], 
+                                                            changeCommand=cgmGEN.Callback(self.uiFunc_apply_dragger_rotate_preset))
+        self.uiOM_dragger_rotate_presets.append('Presets...')
+        for preset_name in self._dragger_presets.keys():
+            self.uiOM_dragger_rotate_presets.append(preset_name)
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -1433,9 +1531,140 @@ class ui_post_dragger_column(ui_post_filter):
                               endTime= self.uiIF_endFrame.getValue() if self.uiCB_endFrame.getValue() else None,
                               )
 
+    def uiFunc_apply_dragger_translate_preset(self):
+        """Apply selected dragger translate preset to UI fields"""
+        selected_preset = self.uiOM_dragger_translate_presets.getValue()
+        
+        if selected_preset == 'Presets...':
+            return
+            
+        if selected_preset in self._dragger_presets:
+            preset_data = self._dragger_presets[selected_preset]
+            
+            # Turn on translate section if it's currently off
+            if not self.uiFF_translate.getValue():
+                self.uiFF_translate.setValue(True)
+                self.uiFunc_set_translate()
+            
+            # Apply preset values to translate UI fields only
+            if 'damp' in preset_data:
+                self.uiFF_post_damp.setValue(preset_data['damp'])
+            
+            # Reset the menu to show "Presets..."
+            self.uiOM_dragger_translate_presets.setValue('Presets...')
+            
+            log.info("Applied Dragger translate preset: {}".format(selected_preset))
+
+    def uiFunc_apply_dragger_rotate_preset(self):
+        """Apply selected dragger rotate preset to UI fields"""
+        selected_preset = self.uiOM_dragger_rotate_presets.getValue()
+        
+        if selected_preset == 'Presets...':
+            return
+            
+        if selected_preset in self._dragger_presets:
+            preset_data = self._dragger_presets[selected_preset]
+            
+            # Turn on rotate section if it's currently off
+            if not self.uiFF_rotate.getValue():
+                self.uiFF_rotate.setValue(True)
+                self.uiFunc_set_rotate()
+            
+            # Apply preset values to rotate UI fields only
+            if 'angularDamp' in preset_data:
+                self.uiFF_post_angular_damp.setValue(preset_data['angularDamp'])
+            if 'angularUpDamp' in preset_data:
+                self.uiFF_post_angular_up_damp.setValue(preset_data['angularUpDamp'])
+            
+            # Reset the menu to show "Presets..."
+            self.uiOM_dragger_rotate_presets.setValue('Presets...')
+            
+            log.info("Applied Dragger rotate preset: {}".format(selected_preset))
+
 
 class ui_post_spring_column(ui_post_filter):
     filterType = 'spring'
+
+    def __init__(self, optionDict = {}):
+        super(ui_post_spring_column, self).__init__(optionDict)
+        
+        # Spring presets
+        self._spring_presets = {
+            'Light': {
+                'damp': 0.1,
+                'springForce': 3.0,
+                'angularDamp': 0.1,
+                'angularSpringForce': 3.0,
+                'angularUpDamp': 0.1,
+                'angularUpSpringForce': 3.0
+            },
+            'Medium': {
+                'damp': 0.3,
+                'springForce': 6.0,
+                'angularDamp': 0.3,
+                'angularSpringForce': 6.0,
+                'angularUpDamp': 0.3,
+                'angularUpSpringForce': 6.0
+            },
+            'Heavy': {
+                'damp': 0.5,
+                'springForce': 9.0,
+                'angularDamp': 0.5,
+                'angularSpringForce': 9.0,
+                'angularUpDamp': 0.5,
+                'angularUpSpringForce': 9.0
+            },
+            'Bouncy': {
+                'damp': 0.05,
+                'springForce': 8.0,
+                'angularDamp': 0.05,
+                'angularSpringForce': 8.0,
+                'angularUpDamp': 0.05,
+                'angularUpSpringForce': 8.0
+            },
+            'Stiff': {
+                'damp': 0.8,
+                'springForce': 12.0,
+                'angularDamp': 0.8,
+                'angularSpringForce': 12.0,
+                'angularUpDamp': 0.8,
+                'angularUpSpringForce': 12.0
+            }
+        }
+
+    def uiFunc_apply_spring_translate_preset(self, *args):
+        selected_preset = self.uiOM_spring_translate_presets.getValue()
+        if selected_preset in self._spring_presets:
+            preset_data = self._spring_presets[selected_preset]
+            
+            # Apply translate-specific presets
+            self.uiFF_post_spring.setValue(preset_data['springForce'])
+            self.uiFF_post_damp.setValue(preset_data['damp'])
+            
+            # Turn on translate if it's off
+            if not self.uiFF_translate.getValue():
+                self.uiFF_translate.setValue(True)
+                self.uiFunc_set_translate()
+            
+            log.info("Applied Spring translate preset: {}".format(selected_preset))
+
+    def uiFunc_apply_spring_rotate_preset(self, *args):
+        selected_preset = self.uiOM_spring_rotate_presets.getValue()
+        if selected_preset in self._spring_presets:
+            preset_data = self._spring_presets[selected_preset]
+            
+            # Apply rotate-specific presets
+            self.uiFF_post_angular_spring.setValue(preset_data['angularSpringForce'])
+            self.uiFF_post_angular_damp.setValue(preset_data['angularDamp'])
+            self.uiFF_post_angular_up_spring.setValue(preset_data['angularUpSpringForce'])
+            self.uiFF_post_angular_up_damp.setValue(preset_data['angularUpDamp'])
+            
+            # Turn on rotate if it's off
+            if not self.uiFF_rotate.getValue():
+                self.uiFF_rotate.setValue(True)
+                self.uiFunc_set_rotate()
+            
+            log.info("Applied Spring rotate preset: {}".format(selected_preset))
 
     def build_column(self, parentColumn):
         self._parentColumn = parentColumn
@@ -1464,6 +1693,13 @@ class ui_post_spring_column(ui_post_filter):
         self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('translate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_translate))
 
         mUI.MelSpacer(_row,w=_padding)
+
+        # Add translate presets menu
+        mUI.MelLabel(_row, l='Presets:')
+        self.uiOM_spring_translate_presets = mUI.MelOptionMenu(_row, bgc=self._colors['button'], changeCommand=cgmGEN.Callback(self.uiFunc_apply_spring_translate_preset))
+        for preset_name in self._spring_presets.keys():
+            self.uiOM_spring_translate_presets.append(preset_name)
+        self.uiOM_spring_translate_presets.setValue('Medium')
 
         _row.layout()
         
@@ -1528,6 +1764,13 @@ class ui_post_spring_column(ui_post_filter):
         self.uiFF_rotate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('rotate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_rotate))
 
         mUI.MelSpacer(_row,w=_padding)
+
+        # Add rotate presets menu
+        mUI.MelLabel(_row, l='Presets:')
+        self.uiOM_spring_rotate_presets = mUI.MelOptionMenu(_row, bgc=self._colors['button'], changeCommand=cgmGEN.Callback(self.uiFunc_apply_spring_rotate_preset))
+        for preset_name in self._spring_presets.keys():
+            self.uiOM_spring_rotate_presets.append(preset_name)
+        self.uiOM_spring_rotate_presets.setValue('Medium')
 
         _row.layout()
         
@@ -1723,6 +1966,7 @@ class ui_post_spring_column(ui_post_filter):
         self.uiCL_rotate(e=True, vis=self._optionDict['rotate'])
 
 
+
     def get_data(self):
         self.update_dict()
 
@@ -1875,7 +2119,7 @@ class ui_post_trajectory_aim_column(ui_post_filter):
 
         mUI.MelLabel(_row,l='Fwd:') 
 
-        self.post_fwdMenu = mUI.MelOptionMenu(_row,bgc=self._colors['button'], changeCommand=cgmGEN.Callback(self.uiFunc_setPostAim))
+        self.post_fwdMenu = mUI.MelOptionMenu(_row, bgc=self._colors['button'], changeCommand=cgmGEN.Callback(self.uiFunc_setPostAim))
         for dir in directions:
             self.post_fwdMenu.append(dir)
         
@@ -2096,6 +2340,24 @@ def uiFunc_guessObjScale(self):
 class ui_post_designer_spring_column(ui_post_filter):
     filterType = 'designer spring'
 
+    def __init__(self, optionDict = {
+            'aimFwd' : 'z+',
+            'aimUp' : 'y+',
+            'translate' : True,
+            'rotate' : True
+        }):
+        super(ui_post_designer_spring_column, self).__init__(optionDict)
+
+                    # Define designer spring presets
+        self._designer_spring_presets = {
+            'Snappy': {'springForce': 0.08, 'damp': 12.0, 'angularSpringForce': 0.08, 'angularDamp': 12.0, 'angularUpSpringForce': 0.08, 'angularUpDamp': 12.0},
+            'Responsive': {'springForce': 0.15, 'damp': 5.0, 'angularSpringForce': 0.15, 'angularDamp': 5.0, 'angularUpSpringForce': 0.15, 'angularUpDamp': 5.0},
+            'Smooth': {'springForce': 0.25, 'damp': 3.0, 'angularSpringForce': 0.25, 'angularDamp': 3.0, 'angularUpSpringForce': 0.25, 'angularUpDamp': 3.0},
+            'Gentle': {'springForce': 0.6, 'damp': 1.5, 'angularSpringForce': 0.6, 'angularDamp': 1.5, 'angularUpSpringForce': 0.6, 'angularUpDamp': 1.5}
+        }
+        
+
+
     def build_column(self, parentColumn):
         self._parentColumn = parentColumn
 
@@ -2121,6 +2383,16 @@ class ui_post_designer_spring_column(ui_post_filter):
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
         self.uiFF_translate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('translate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_translate))
+
+        mUI.MelSpacer(_row,w=_padding)
+        
+        # Add Translate Preset Menu for Designer Spring
+        mUI.MelLabel(_row,l='Presets:')
+        self.uiOM_designer_spring_translate_presets = mUI.MelOptionMenu(_row, bgc=self._colors['button'], 
+                                                                       changeCommand=cgmGEN.Callback(self.uiFunc_apply_designer_spring_translate_preset))
+        self.uiOM_designer_spring_translate_presets.append('Presets...')
+        for preset_name in self._designer_spring_presets.keys():
+            self.uiOM_designer_spring_translate_presets.append(preset_name)
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -2185,6 +2457,16 @@ class ui_post_designer_spring_column(ui_post_filter):
         _row.setStretchWidget( mUI.MelSeparator(_row) )
 
         self.uiFF_rotate = mUI.MelCheckBox(_row, ut='cgmUISubTemplate', v=self._optionDict.get('rotate', True), changeCommand=cgmGEN.Callback(self.uiFunc_set_rotate))
+
+        mUI.MelSpacer(_row,w=_padding)
+        
+        # Add Rotate Preset Menu for Designer Spring
+        mUI.MelLabel(_row,l='Presets:')
+        self.uiOM_designer_spring_rotate_presets = mUI.MelOptionMenu(_row, bgc=self._colors['button'], 
+                                                                    changeCommand=cgmGEN.Callback(self.uiFunc_apply_designer_spring_rotate_preset))
+        self.uiOM_designer_spring_rotate_presets.append('Presets...')
+        for preset_name in self._designer_spring_presets.keys():
+            self.uiOM_designer_spring_rotate_presets.append(preset_name)
 
         mUI.MelSpacer(_row,w=_padding)
 
@@ -2498,6 +2780,207 @@ class ui_post_designer_spring_column(ui_post_filter):
             postInstance.bake(startTime=self.uiIF_startFrame.getValue() if self.uiCB_startFrame.getValue() else None,
                               endTime= self.uiIF_endFrame.getValue() if self.uiCB_endFrame.getValue() else None)
             
+    def uiFunc_apply_designer_spring_preset(self):
+        """Apply selected designer spring preset to the UI fields"""
+        selected_preset = self.uiOM_designer_spring_presets.getValue()
+        
+        if selected_preset == 'Presets...':
+            return
+            
+        if selected_preset in self._designer_spring_presets:
+            preset_data = self._designer_spring_presets[selected_preset]
+            
+            # Apply preset values to UI fields
+            if 'springForce' in preset_data:
+                self.uiFF_post_spring.setValue(preset_data['springForce'])
+            if 'damp' in preset_data:
+                self.uiFF_post_damp.setValue(preset_data['damp'])
+            if 'angularSpringForce' in preset_data:
+                self.uiFF_post_angular_spring.setValue(preset_data['angularSpringForce'])
+            if 'angularDamp' in preset_data:
+                self.uiFF_post_angular_damp.setValue(preset_data['angularDamp'])
+            if 'angularUpSpringForce' in preset_data:
+                self.uiFF_post_angular_up_spring.setValue(preset_data['angularUpSpringForce'])
+            if 'angularUpDamp' in preset_data:
+                self.uiFF_post_angular_up_damp.setValue(preset_data['angularUpDamp'])
+            
+            # Reset the menu to show "Presets..."
+            self.uiOM_designer_spring_presets.setValue('Presets...')
+            
+            log.info("Applied Designer Spring preset: {}".format(selected_preset))
+
+    def uiFunc_apply_designer_spring_translate_preset(self):
+        """Apply selected designer spring translate preset to UI fields"""
+        selected_preset = self.uiOM_designer_spring_translate_presets.getValue()
+        
+        if selected_preset == 'Presets...':
+            return
+            
+        if selected_preset in self._designer_spring_presets:
+            preset_data = self._designer_spring_presets[selected_preset]
+            
+            # Turn on translate section if it's currently off
+            if not self.uiFF_translate.getValue():
+                self.uiFF_translate.setValue(True)
+                self.uiFunc_set_translate()
+            
+            # Apply preset values to translate UI fields only
+            if 'springForce' in preset_data:
+                self.uiFF_post_spring.setValue(preset_data['springForce'])
+            if 'damp' in preset_data:
+                self.uiFF_post_damp.setValue(preset_data['damp'])
+            
+            # Reset the menu to show "Presets..."
+            self.uiOM_designer_spring_translate_presets.setValue('Presets...')
+            
+            log.info("Applied Designer Spring translate preset: {}".format(selected_preset))
+
+    def uiFunc_apply_designer_spring_rotate_preset(self):
+        """Apply selected designer spring rotate preset to UI fields"""
+        selected_preset = self.uiOM_designer_spring_rotate_presets.getValue()
+        
+        if selected_preset == 'Presets...':
+            return
+            
+        if selected_preset in self._designer_spring_presets:
+            preset_data = self._designer_spring_presets[selected_preset]
+            
+            # Turn on rotate section if it's currently off
+            if not self.uiFF_rotate.getValue():
+                self.uiFF_rotate.setValue(True)
+                self.uiFunc_set_rotate()
+            
+            # Apply preset values to rotate UI fields only
+            if 'angularSpringForce' in preset_data:
+                self.uiFF_post_angular_spring.setValue(preset_data['angularSpringForce'])
+            if 'angularDamp' in preset_data:
+                self.uiFF_post_angular_damp.setValue(preset_data['angularDamp'])
+            if 'angularUpSpringForce' in preset_data:
+                self.uiFF_post_angular_up_spring.setValue(preset_data['angularUpSpringForce'])
+            if 'angularUpDamp' in preset_data:
+                self.uiFF_post_angular_up_damp.setValue(preset_data['angularUpDamp'])
+            
+            # Reset the menu to show "Presets..."
+            self.uiOM_designer_spring_rotate_presets.setValue('Presets...')
+            
+            log.info("Applied Designer Spring rotate preset: {}".format(selected_preset))
+
+def uiBuild_ActionsColumn(self):
+    _str_func = 'uiBuild_ActionsColumn[{0}]'.format(self.__class__.TOOLNAME)            
+    log.info("|{0}| >>...".format(_str_func)) 
+
+    self._actionsColumn.clear()
+    self._actionFrames = []
+    self._dCB_actions = {}
+    
+    for i,action in enumerate(self._actionList):
+        if not action.name:
+            action.name = "{}_{}".format(action.filterType,i)
+        
+        mc.setParent(self._actionsColumn)
+        cgmUI.add_LineSubBreak()
+        
+        d_color = d_uiActionUIColors[action.filterType]
+        
+        action._colors = d_color
+        if MATH.is_even(i):
+            _ut = 'cgmUITemplate'
+            _header = d_color['button']
+        else:
+            _ut = 'cgmUIHeaderTemplate'
+            _header = d_color['header']
+        _bgc = d_color['bgc']
+            
+        _row = mUI.MelHSingleStretchLayout(self._actionsColumn, bgc = _header, padding = _padding)        
+        
+        _cb = mUI.MelCheckBox(_row,
+                              #w=30,
+                             #annotation = d_dat.get('ann',k),
+                             value = 1)
+        self._dCB_actions[i] = _cb
+        
+    
+        mUI.MelSpacer(_row,w=_padding)
+    
+        _subColumn = mUI.MelColumnLayout(_row,bgc = _header)#useTemplate = 'cgmUIHeaderTemplate')
+        mUI.MelButton(_row,w=30,label='Run',bgc = _header,#ut=_ut,
+                      command=cgmGEN.Callback(uiFunc_run_action,self,i)
+                      )
+        mUI.MelSpacer(_row,w=5)
+        
+        mUI.MelButton(_row,w=15,label='x',bgc = _header,#ut=_ut,
+                      command=cgmGEN.Callback(uiFunc_remove_action,self,i)
+                      )
+        
+        _label = action.filterType if action.name == None else "{0}  [{1} ]".format(action.name, action.filterType)
+        _frame = mUI.MelFrameLayout(_subColumn,
+                                    label="{} | {}".format(i,_label),
+                                    collapsable=True, collapse=True,bgc = _header)#useTemplate = _ut)
+        
+        pum = mUI.MelPopupMenu(_frame)
+        mUI.MelMenuItem(pum, label="Rename", command=cgmGEN.Callback(uiFunc_rename_action,self,i) )
+        mUI.MelMenuItem(pum, label="Copy", command=cgmGEN.Callback(uiFunc_copy_action,self,i) )
+        mUI.MelMenuItem(pum, label="Paste", command=cgmGEN.Callback(uiFunc_paste_action,self,i) )
+        mUI.MelMenuItem(pum, label="Duplicate", command=cgmGEN.Callback(uiFunc_duplicate_action,self,i) )
+        mUI.MelMenuItem(pum, divider=True )
+        mUI.MelMenuItem(pum, label="Move Up", command=cgmGEN.Callback(uiFunc_move_action,self,i,'up') )
+        mUI.MelMenuItem(pum, label="Move Down", command=cgmGEN.Callback(uiFunc_move_action,self,i,'down') )
+        mUI.MelMenuItem(pum, label="Move to Top", command=cgmGEN.Callback(uiFunc_move_action,self,i,'top') )
+        mUI.MelMenuItem(pum, label="Move to Bottom", command=cgmGEN.Callback(uiFunc_move_action,self,i,'bottom') )
+        mUI.MelMenuItem(pum, divider=True )
+        mUI.MelMenuItem( pum, l="Log Self",
+                         command=cgmGEN.Callback(uiFunc_logself_action,self,i))        
+        mUI.MelMenuItem(pum, label="Delete", command=cgmGEN.Callback(uiFunc_remove_action,self,i) )
+        mUI.MelMenuItem(pum, divider=True )
+        mUI.MelMenuItem(pum, label="Run", command=cgmGEN.Callback(uiFunc_run_action,self,i) )
+        
+        # Add conversion menu items for compatible filter types
+        if action.filterType in ['dragger', 'spring', 'designer spring']:
+            mUI.MelMenuItem(pum, divider=True )
+            
+            # Create submenu for conversion options
+            if action.filterType == 'dragger':
+                mUI.MelMenuItem(pum, label="Convert To Spring", command=cgmGEN.Callback(uiFunc_convert_filter,self,i,'spring') )
+                mUI.MelMenuItem(pum, label="Convert To Designer Spring", command=cgmGEN.Callback(uiFunc_convert_filter,self,i,'designer spring') )
+            elif action.filterType == 'spring':
+                mUI.MelMenuItem(pum, label="Convert To Dragger", command=cgmGEN.Callback(uiFunc_convert_filter,self,i,'dragger') )
+                mUI.MelMenuItem(pum, label="Convert To Designer Spring", command=cgmGEN.Callback(uiFunc_convert_filter,self,i,'designer spring') )
+            elif action.filterType == 'designer spring':
+                mUI.MelMenuItem(pum, label="Convert To Dragger", command=cgmGEN.Callback(uiFunc_convert_filter,self,i,'dragger') )
+                mUI.MelMenuItem(pum, label="Convert To Spring", command=cgmGEN.Callback(uiFunc_convert_filter,self,i,'spring') )
+
+
+        _dataColumn = mUI.MelColumnLayout(_frame,bgc=d_color['bgc'])#useTemplate = _ut) 
+        
+        self._actionFrames.append(_frame)
+
+        action.build_column(_dataColumn) 
+        
+        _row.setStretchWidget(_subColumn)
+        
+        mUI.MelSpacer(_row,w=_padding)
+    
+        _row.layout()         
+    
+    mc.setParent(self._actionsColumn)
+    cgmUI.add_LineSubBreak()      
+    """
+    _row = mUI.MelHSingleStretchLayout(self._actionsColumn,ut='cgmUISubTemplate',padding = 5)
+    
+    mUI.MelSpacer(_row,w=_padding)
+    
+    _row.setStretchWidget( cgmUI.add_Button(_row,'Run',
+        cgmGEN.Callback(uiFunc_run,self),                         
+        #lambda *a: attrToolsLib.doAddAttributesToSelected(self),
+        'Run',h=30) ) 
+    
+    mUI.MelSpacer(_row,w=_padding)
+
+    _row.layout() """   
+    
+    mc.setParent(self._actionsColumn)
+    cgmUI.add_LineSubBreak()  
+
 action_class = {
     'dragger':ui_post_dragger_column,
     'spring':ui_post_spring_column,
@@ -2505,11 +2988,4 @@ action_class = {
     'trajectory aim':ui_post_trajectory_aim_column,
     'keyframe to motion curve':ui_post_keyframe_to_motion_curve_column
 }
-"""
-action_class = {
-    'dragger':ui_post_dragger_column,
-    'spring':ui_post_spring_column,
-    'designer spring':ui_post_designer_spring_column,
-    'trajectory aim':ui_post_trajectory_aim_column,
-    'keyframe to motion curve':ui_post_keyframe_to_motion_curve_column
-}"""
+

@@ -653,7 +653,7 @@ def get_pos_by_vec_dist(startPos,vec,distance = 1):
     
     return _new.x,_new.y,_new.z
 
-def get_pos_by_axis_dist(obj, axis, distance = 1):
+def get_pos_by_axis_dist(obj, axis, distance = 1, asEuclid = False):
     """
     Get a point in space given an object, an axis and a distance
     
@@ -666,7 +666,10 @@ def get_pos_by_axis_dist(obj, axis, distance = 1):
     """
     obj =  VALID.mNodeString(obj)
     _vector = MATHUTILS.get_obj_vector(obj,axis,False)
-    return get_pos_by_vec_dist(POS.get(obj),_vector,distance)
+    _pos = get_pos_by_vec_dist(POS.get(obj),_vector,distance)
+    if asEuclid:
+        return MATHUTILS.Vector3(_pos[0],_pos[1],_pos[2])
+    return _pos
 
 
     

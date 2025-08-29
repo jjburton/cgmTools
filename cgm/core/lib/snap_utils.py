@@ -168,6 +168,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
             'matrix' -- use Bokser's fancy method
             'vector' -- maya standard with vector up axis
             'object' -- maya standard with object
+            'position' -- maya standard with position (will create up locator)
         ignoreAimAttrs(bool) -- whether to ignore the aim attribute on the control or look for them
 
     :returns
@@ -255,7 +256,7 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                                            upVector = mAxis_up.p_vector,
                                            worldUpType = 'scene',)
             mc.delete(_constraint + [_loc])"""
-        elif mode in ['local','world','vector','object']:
+        elif mode in ['local','world','vector','object','position']:
             _loc = mc.spaceLocator(name='test')[0]
             _loc_snap = POS.create_loc(_obj,False)
             
@@ -278,6 +279,16 @@ def aim_atPoint(obj = None, position = [0,0,0], aimAxis = "z+", upAxis = "y+", m
                                                worldUpType = 'object',
                                                worldUpObject = vectorUp)
                                                #worldUpVector = _vUp)
+            elif mode == 'position':
+                _uploc = mc.spaceLocator(name='uploc')[0]
+                mc.move (vectorUp[0],vectorUp[1],vectorUp[2], _uploc, ws=True)  
+                _constraint = mc.aimConstraint(_loc,_loc_snap,
+                                               maintainOffset = False,
+                                               aimVector = mAxis_aim.p_vector,
+                                               upVector = mAxis_up.p_vector,
+                                               worldUpType = 'object',
+                                               worldUpObject = _uploc)
+                mc.delete(_uploc)
             else:
                 if mode == 'vector':
                     _vUp = vectorUp

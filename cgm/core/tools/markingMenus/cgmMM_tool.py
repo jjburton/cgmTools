@@ -221,7 +221,7 @@ class cgmMarkingMenu(cgmUI.markingMenu):
             self.bUI_radialRoot_anim(parent)
         elif _mode == 2:
             log.debug("|{0}| >> sets mode...".format(self._str_MM))                                        
-            self.bUI_radialRoot_anim(parent)        
+            self.bUI_radialRoot_sets(parent)        
         elif _mode == 3:
             log.debug("|{0}| >> puppet mode...".format(self._str_MM))
             self.bUI_radialRoot_puppet(parent)  
@@ -397,55 +397,13 @@ class cgmMarkingMenu(cgmUI.markingMenu):
         LOCINATOR.uiRadialMenu_root(self,parent,'NE')
         
     def bUI_radialRoot_sets(self,parent):
-        self.bUI_radial_snap(parent,'N')
-        """
-        var_mmSetToolsMode = cgmMeta.cgmOptionVar('cgmVar_SetToolsMarkingMenuMode', defaultValue = 0)
-        val_mmSetToolsMode = var_mmSetToolsMode.value
-        
-        _b_sel = self._b_sel
-        
-        if val_mmSetToolsMode:
-            if val_mmSetToolsMode == 1:
-                _mode = 'active'
-            else:
-                _mode = 'loaded'
-            _sel_sets = SETTOOLS.uiFunc_multiSetsAction(_mode, action='query')
-            if _sel_sets:
-                _b_sel = True"""
-                
+        self.bUI_radialRoot_anim(parent)
+
         mc.menuItem(p=parent,
-                   en = _b_sel,
-                   l = 'dragBetween',
-                   #c = lambda*a:SETTOOLS.uiFunc_selectAndDo(ml_breakdownDragger.drag),
-                   c = lambda *a:ml_breakdownDragger.drag(),                   
-                   rp = "SE")        
-        mc.menuItem(p=parent,
-                    en = _b_sel,
-                    l = 'Reset',
-                    #c = lambda *a:SETTOOLS.uiFunc_selectAndDo(ml_resetChannels.main,**{'transformsOnly': self.var_resetMode.value}),                    
-                    c = lambda *a:RIGGEN.reset_channels_fromMode(self.var_resetMode.value),
-                    rp = "S")   
- 
-        
-        mc.menuItem(p=parent,l='Key',subMenu=True,
-                    en = _b_sel,
-                    rp = 'E')
-        
-        if _b_sel:
-            mc.menuItem(l = 'Regular',
-                        c = lambda*a:SETTOOLS.uiFunc_selectAndDo(setKey,'default'),
-                        #c = lambda*a:setKey('default'),
-                        rp = "E")            
-            mc.menuItem(l = 'Breakdown',
-                        c = lambda*a:SETTOOLS.uiFunc_selectAndDo(setKey,'breakdown'),                        
-                        #c=lambda*a:setKey('breakdown'),
-                        rp = "SE")  
-            mc.menuItem(l = 'Delete',
-                        c = lambda*a:SETTOOLS.uiFunc_selectAndDo(deleteKey),                                                
-                        #c = lambda*a:deleteKey(),
-                        rp = "N")     
-            
-        LOCINATOR.uiRadialMenu_root(self,parent,'NE')
+            l = 'Select',
+            c = lambda *a:SETTOOLS.uiFunc_multiSetsAction(None,'select'),
+            rp = 'W')
+
         
     def bUI_radialRoot_puppet(self,parent):
         self.bUI_radial_snap(parent,'N')    

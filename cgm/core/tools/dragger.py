@@ -139,14 +139,19 @@ class Dragger(PostBake.PostBake):
         if self.rotate:
             wantedTargetPos = ((VALID.euclidVector3Arg(self.obj.p_position) + self.dir) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
             
-            self.lastUp = MATH.Vector3.Lerp( self.lastUp, self._bakedLoc.getTransformDirection(self.aimUp.p_vector), min(deltaTime * self.angularUpDamp, 1.0) ).normalized()
+            # Lerp the up direction and apply object scale to create a world position
+            lerpedUpDirection = MATH.Vector3.Lerp( self.lastUp, self._bakedLoc.getTransformDirection(self.aimUp.p_vector), min(deltaTime * self.angularUpDamp, 1.0) ).normalized()
+            self.lastUp = lerpedUpDirection
+            # Calculate the world position where the up vector should point (like spring systems)
+            wantedUp = self._bakedLoc.p_position + (lerpedUpDirection * self.objectScale)
     
             self.aimTargetPos = (MATH.Vector3.Lerp(self.aimTargetPos, wantedTargetPos, deltaTime*self.angularDamp) - self.obj.p_position).normalized()*self.objectScale + self.obj.p_position
     
             self.lastFwd = MATH.Vector3.Lerp( self.lastFwd, self._bakedLoc.getTransformDirection(self.aimFwd.p_vector), min(deltaTime * self.angularDamp, 1.0) ).normalized()
             
-            SNAP.aim_atPoint(obj=self.obj.mNode, mode='local', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
-            
+            # SNAP.aim_atPoint(obj=self.obj.mNode, mode='vector', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.lastUp )
+            SNAP.aim_atPoint(obj=self.obj.mNode, mode='position', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=wantedUp )
+
             
             for a in 'XYZ':
                 for a2 in ['Min','Max']:

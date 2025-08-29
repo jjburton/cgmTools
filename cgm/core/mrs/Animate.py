@@ -70,6 +70,7 @@ import cgm.core.lib.list_utils as LISTS
 import cgm.core.rig.general_utils as RIGGEN
 import cgm.core.mrs.lib.animate_utils as MRSANIMUTILS
 import cgm.core.mrs.lib.shared_dat as MRSSHARE
+import cgm.core.lib.mayaSettings_utils as MAYASETTINGS
 
 import cgm.core.tools.markingMenus.lib.mm_utils as MMUTILS
 #reload(MMUTILS)
@@ -2313,8 +2314,9 @@ def uiCB_contextualAction(self,**kws):
         
     #@cgmGEN.Timer
     def key(f,l_controls):
-        for o in l_controls:#self.mDat.d_context['sControls']:
-            mc.setKeyframe(o,time = f)
+        if l_controls:
+            mc.setKeyframe(l_controls,time = f)
+
             
     if _contextTime == 'current' or _mode not in _l_timeFunctions:
         log.info(cgmGEN.logString_sub(None,'Current Only mode: {0}'.format(_mode)))
@@ -2500,13 +2502,15 @@ def uiCB_contextualAction(self,**kws):
                 r9Anim.MirrorHierarchy().makeSymmetrical(_l_cBuffer,
                                                          mode = '',
                                                          primeAxis = _primeAxisUse )        
-            log.info("hello")
             #self.mDat.key()
             
             if _mode in ['mirrorPull','mirrorPush']:
-                pprint.pprint(_l_mirrorBuffer)
-                for ctrl in _l_mirrorBuffer:
-                    mc.setKeyframe(ctrl)                
+                # pprint.pprint("mirror buffer" + _l_mirrorBuffer)
+                if _l_mirrorBuffer:
+                    mc.setKeyframe(_l_mirrorBuffer)                
+
+                # for ctrl in _l_mirrorBuffer:
+                #     mc.setKeyframe(ctrl)                
                 
             else:
                 self.mDat.key()
@@ -2555,7 +2559,8 @@ def uiCB_contextualAction(self,**kws):
     #if _autoKey:mc.autoKeyframe(state=False)
     _l_cBuffer = []
     #mc.refresh(su=1)
-    
+
+
     if _mode == 'pushKey':
         log.debug("|{0}| >> Push Key buffer".format(_str_func))
         self.mDat.snapShot_get()
@@ -2766,7 +2771,9 @@ def uiCB_contextualAction(self,**kws):
         #if err:
         #    cgmGEN.cgmExceptCB(Exception,err,localDat=vars())            
         return endCall(self)            
-        
+
+
+
         
         
         

@@ -99,7 +99,8 @@ class Spring(PostBake.PostBake):
 
         self.dir = self.obj.getTransformDirection(self.aimFwd.p_vector)*self.objectScale
         self.aimTargetPos = self.obj.p_position + self.dir
-        self.upTargetPos = self.obj.getTransformDirection(self.aimUp.p_vector)*self.objectScale
+        # Initialize upTargetPos as a world position (will be properly set in preBake)
+        self.upTargetPos = MATH.Vector3.zero()
         
         self.keyableAttrs = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz']
 
@@ -176,7 +177,8 @@ class Spring(PostBake.PostBake):
             self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale
     
             wantedTargetPos = ((VALID.euclidVector3Arg(self.obj.p_position) + self.dir) - self.obj.p_position).normalized() * self.objectScale + self.obj.p_position
-            wantedUp = self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale
+            # Calculate the world position where the up vector should point
+            wantedUp = self._bakedLoc.p_position + (self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale)
             
             self.angularForce = self.angularForce + ((wantedTargetPos - self.aimTargetPos) * self.angularSpringForce)
             self.angularForce = self.angularForce * (1.0 - self.angularDamp)
@@ -187,10 +189,9 @@ class Spring(PostBake.PostBake):
             self.aimTargetPos = self.aimTargetPos + (self.angularForce * deltaTime)
             self.upTargetPos = self.upTargetPos + (self.angularUpForce * deltaTime)
                     
-            SNAP.aim_atPoint(obj=self.obj.mNode, mode='local',position=self.aimTargetPos,
-                             aimAxis=self.aimFwd.p_string,upAxis=self.aimUp.p_string,
-                             vectorUp=self.upTargetPos.normalized())
-
+            SNAP.aim_atPoint(obj=self.obj.mNode, mode='position', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp= wantedUp  )
+            
+            
             for a in 'XYZ':
                 for a2 in ['Min','Max']:
                     _plugUse = 'rotate{}{}LimitUse'.format(a2,a)
@@ -202,12 +203,12 @@ class Spring(PostBake.PostBake):
                         if _value is not None:
                             if a2 == 'Min':
                                 if self.obj.getMayaAttr(_attr) < _value:
-                                    self.obj.setMayaAttr(_attr, _value,force=False)
+                                    self.obj.setMayaAttr(_attr, _value,force=False)                                 
                             else:
                                 if self.obj.getMayaAttr(_attr) > _value:
-                                    self.obj.setMayaAttr(_attr, _value,force=False)
+                                    self.obj.setMayaAttr(_attr, _value,force=False)                                 
 
-        if self.debug:
+        if self.debug and self.rotate:
             if not self._debugLoc:
                 self._debugLoc = cgmMeta.asMeta(LOC.create(name='debug_loc'))
             self._debugLoc.p_position = self.aimTargetPos
@@ -215,7 +216,7 @@ class Spring(PostBake.PostBake):
 
             if not self._wantedUpLoc:
                 self._wantedUpLoc = cgmMeta.asMeta(LOC.create(name='wanted_up_loc'))
-            self._wantedUpLoc.p_position = self.obj.p_position + self.upTargetPos
+            self._wantedUpLoc.p_position = wantedUp
             mc.setKeyframe(self._wantedUpLoc.mNode, at='translate')
 
             if not self._wantedPosLoc:
@@ -230,7 +231,8 @@ class Spring(PostBake.PostBake):
         self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale
         self.aimTargetPos = self.obj.p_position + self.dir
         
-        self.upTargetPos = self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale
+        # Calculate the world position where the up vector should point
+        self.upTargetPos = self._bakedLoc.p_position + (self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale)
         
         self.positionForce = MATH.Vector3.zero()
         self.angularForce = MATH.Vector3.zero()

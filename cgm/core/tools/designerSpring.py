@@ -10,13 +10,14 @@ Website : https://github.com/jjburton/cgmTools/wiki
 """
 
 from cgm.core import cgm_Meta as cgmMeta
-from cgm.core.lib import math_utils as MATH
+from cgm.core.lib import distance_utils, math_utils as MATH
 
 from cgm.core.cgmPy import validateArgs as VALID
 from cgm.core.lib import snap_utils as SNAP
 from cgm.core.classes import PostBake as PostBake
 from cgm.core.lib import locator_utils as LOC
 from cgm.core.lib import math_utils as COREMATH
+from cgm.core.lib import distance_utils as DIST
 
 import maya.cmds as mc
 import maya.mel as mel
@@ -128,7 +129,8 @@ class DesignerSpring(PostBake.PostBake):
 
         self.dir = self.obj.getTransformDirection(self.aimFwd.p_vector)*self.objectScale
         self.aimTargetPos = self.obj.p_position + self.dir
-        self.upTargetPos = self.obj.getTransformDirection(self.aimUp.p_vector)*self.objectScale
+        # Initialize upTargetPos as a world position (will be properly set in preBake)
+        self.upTargetPos = MATH.Vector3.zero()
         
         self.previousUpPosition = MATH.Vector3.zero()
         self.previousAimPosition = MATH.Vector3.zero()
@@ -244,11 +246,13 @@ class DesignerSpring(PostBake.PostBake):
             
             
             #Up ------------------------------------------------------------------------------------
-            wantedUp = self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale
-            
-            if self.firstFrame:# If our first frame, our wantedTargetPos is good as is...
+            # Calculate the world position where the up vector should point
+            wantedUp = self._bakedLoc.p_position + (self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale)
+            # wantedUp = self._bakedLoc.getPositionByAxisDistance(self.aimUp.p_string, self.objectScale,asEuclid=True)
 
+            if self.firstFrame:# If our first frame, our wantedTargetPos is good as is...
                 x =wantedUp
+                
             else:
                 x = self.previousUpPosition#obj.getPosition(asEuclid=1)
                 v = self.springUpVelocity#euclid.Vector3()
@@ -269,7 +273,7 @@ class DesignerSpring(PostBake.PostBake):
                 self.previousUpPosition = x            
                 self.upTargetPos  = x
             
-            SNAP.aim_atPoint(obj=self.obj.mNode, mode='local', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp=self.upTargetPos.normalized() )
+            SNAP.aim_atPoint(obj=self.obj.mNode, mode='position', position=self.aimTargetPos, aimAxis=self.aimFwd.p_string, upAxis=self.aimUp.p_string, vectorUp= wantedUp  )
             
             for a in 'XYZ':
                 for a2 in ['Min','Max']:
@@ -287,7 +291,7 @@ class DesignerSpring(PostBake.PostBake):
                                 if self.obj.getMayaAttr(_attr) > _value:
                                     self.obj.setMayaAttr(_attr, _value,force=False)                                 
 
-            if self.debug:
+            if self.debug and self.rotate:
                 if not self._debugLoc:
                     self._debugLoc = cgmMeta.asMeta(LOC.create(name='debug_loc'))
                 self._debugLoc.p_position = self.aimTargetPos
@@ -295,7 +299,7 @@ class DesignerSpring(PostBake.PostBake):
     
                 if not self._wantedUpLoc:
                     self._wantedUpLoc = cgmMeta.asMeta(LOC.create(name='wanted_up_loc'))
-                self._wantedUpLoc.p_position = self.obj.p_position + self.upTargetPos
+                self._wantedUpLoc.p_position = wantedUp
                 mc.setKeyframe(self._wantedUpLoc.mNode, at='translate')
 
             
@@ -306,7 +310,8 @@ class DesignerSpring(PostBake.PostBake):
         self.dir = self._bakedLoc.getTransformDirection(self.aimFwd.p_vector) * self.objectScale
         self.aimTargetPos = self.obj.p_position + self.dir
         
-        self.upTargetPos = self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale
+        # Calculate the world position where the up vector should point
+        self.upTargetPos = self._bakedLoc.p_position + (self._bakedLoc.getTransformDirection(self.aimUp.p_vector) * self.objectScale)
         
         self.positionForce = MATH.Vector3.zero()
         self.angularForce = MATH.Vector3.zero()

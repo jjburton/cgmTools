@@ -49,7 +49,10 @@ def camelCase(arg = None):
     """
     _str_funcName = 'camelCase'
     try:
-        l_split = arg.split(' ')
+        if '_' in arg:
+            l_split = arg.split('_')
+        else:  
+            l_split = arg.split(' ')            
         l_new = []
         _first = False
         #pprint.pprint(l_split)
@@ -168,4 +171,59 @@ def parseCommaString(input_string):
 
     # Split the string by comma and use strip to remove leading and trailing spaces
     return [value.strip() for value in input_string.split(',')]
+
+
+def findCommonParts(string_list):
+    """
+    Takes a list of strings, splits them by underscores, and finds common parts.
+    Returns a new string made from the common parts.
+    
+    Args:
+        string_list (list): List of strings to process
+        
+    Returns:
+        str: String made from common parts joined by underscores
+        
+    Example:
+        findCommonParts(['L_arm_ik', 'R_arm_ik']) -> 'arm_ik'
+        findCommonParts(['L_arm_ik', 'R_leg_ik']) -> 'ik'
+        findCommonParts(['L_arm', 'R_leg']) -> ''
+    """
+    _str_funcName = 'findCommonParts'
+    try:
+        if not string_list or len(string_list) < 2:
+            return ''
+            
+        # Split all strings by underscore
+        split_strings = []
+        for s in string_list:
+            if '_' in s:
+                split_strings.append(s.split('_'))
+            else:
+                split_strings.append([s])
+        
+        # Find common parts by comparing all split strings
+        common_parts = []
+        if split_strings:
+            # Start with the first string's parts
+            reference_parts = split_strings[0]
+            
+            # Check each part in the reference
+            for part in reference_parts:
+                is_common = True
+                # Check if this part exists in all other strings
+                for other_parts in split_strings[1:]:
+                    if part not in other_parts:
+                        is_common = False
+                        break
+                
+                if is_common:
+                    common_parts.append(part)
+        
+        # Join common parts with underscores
+        return camelCase('_'.join(common_parts))
+        
+    except Exception as err:
+        cgmGEN.cgmException(Exception, err)
+
 

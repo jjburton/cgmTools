@@ -3683,8 +3683,6 @@ def rig_controls(self):
         if self.mEyeLook:
             ml_controlsAll.append(self.mEyeLook)#we'll append to this list and connect them all at the end
         
-        
-        
         mRootParent = self.mDeformNull
         
         d_controlSpaces = self.atBuilderUtils('get_controlSpaceSetupDict')
@@ -5817,7 +5815,49 @@ def rig_cleanUp(self):
             d['plug'].p_defaultValue = _value
             d['plug'].value = _value
     
-    
+    #eyelook =================================================================================
+    if self.mEyeLook:
+        mEyeLook = self.mEyeLook
+        mModule = self.mModule
+        mPuppet = self.mPuppet
+        mBlockParent = mBlock.p_blockParent
+
+        #Connections... -----------------------------------------------------------------------        
+        log.debug("|{0}| >> Connections... ".format(_str_func))
+        mModule.connectChildNode(mEyeLook,'eyeLook')
+        mPuppet.msgList_append('eyeLook',mEyeLook,'puppet')
+        
+        if mBlockParent:
+            log.debug("|{0}| >> Adding to blockParent...".format(_str_func))
+            mModuleParent = mBlockParent.moduleTarget
+            mModuleParent.connectChildNode(mEyeLook,'eyeLook')
+            if mModuleParent.mClass == 'cgmRigModule':
+                mBlockParentRigNull = mModuleParent.rigNull
+                mBlockParentRigNull.msgList_append('controlsAll',mEyeLook)
+                mBlockParentRigNull.moduleSet.append(mEyeLook)
+                #mRigNull.faceSet.append(mCrv)
+                
+                #mCrv.connectParentNode(mBlockParentRigNull,'rigNull')
+                
+            else:
+                mModuleParent.puppetSet.append(mEyeLook)
+                mModuleParent.msgList_append('controlsAll',mEyeLook)
+                #mModuleParent.faceSet.append(mCrv)
+                
+
+        #Connections... -----------------------------------------------------------------------        
+        log.debug("|{0}| >> Heirarchy... ".format(_str_func))
+        mEyeLook.masterGroup.p_parent = self.mDeformNull
+        
+        for link in 'masterGroup','dynParentGroup':
+            if mEyeLook.getMessage(link):
+                mEyeLook.getMessageAsMeta(link).dagLock(True)
+                
+        mEyeLook.addAttr('cgmControlDat','','string')
+        mEyeLook.cgmControlDat = {'tags':['ik']}                
+        
+
+
     
     #Close out ===============================================================================================
     mRigNull.version = self.d_block['buildVersion']

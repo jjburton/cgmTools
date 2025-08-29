@@ -1160,36 +1160,131 @@ class BlockConfig(BaseDat):
         _str_func = 'BlockConfig.set'
         log.debug(log_start(_str_func))
     
+    def write(self, filepath = None, *arg, **kws):
+        """
+        Override write to use clean, serializable data.
+        """
+        _str_func = 'BlockConfig.write'
+        log.debug(log_start(_str_func))
+        
+        # Get clean data for saving
+        original_dat = self.dat
+        self.dat = self.get_save_data()
+        
+        try:
+            # Call parent write method
+            result = BaseDat.write(self, filepath, *arg, **kws)
+            return result
+        finally:
+            # Restore original data
+            self.dat = original_dat
+    
     def read(self, filepath = None, *arg,**kws):
-        BaseDat.read(self, filepath, *arg,**kws)
-        # Backward compatibility: convert old format to new if needed
+        _str_func = 'BlockConfig.read'
+        log.debug(log_start(_str_func))
+        
+        # Call parent read method
+        result = BaseDat.read(self, filepath, *arg, **kws)
+        
+        # Handle backward compatibility and format conversion
         if 'blockEntries' in self.dat:
-            # Already new format
+            # Check if blockEntries is in the new dictionary format (from save)
+            if isinstance(self.dat['blockEntries'], dict):
+                # Convert dictionary format back to list format
+                temp_entries = []
+                for index_str, entry in self.dat['blockEntries'].items():
+                    # Ensure index is an integer
+                    entry['index'] = int(index_str)
+                    temp_entries.append(entry)
+                # Sort by index to maintain order
+                temp_entries.sort(key=lambda x: x['index'])
+                self.dat['blockEntries'] = temp_entries
+                
+                # Rebuild mBlockDat
+                self.mBlockDat = []
+                for entry in self.dat['blockEntries']:
+                    if entry['config']:
+                        self.mBlockDat.append(BlockDat(dat=entry['config']))
+        
+        # Handle old format files
+        elif any(key in self.dat for key in ['blockList', 'config', 'uiStrings', 'indices']):
+            log.debug('Converting old format to new blockEntries format')
+            self.dat['blockEntries'] = []
+            
+            # Get the old data
+            block_list = self.dat.get('blockList', [])
+            config_data = self.dat.get('config', {})
+            ui_strings = self.dat.get('uiStrings', [])
+            indices = self.dat.get('indices', [])
+            
+            # Ensure we have valid data to work with
+            if not isinstance(block_list, list) or not block_list:
+                log.warning('No valid block_list found in old format, skipping conversion')
+                return result
+            
+            # Debug logging to understand the data format
+            log.debug(f'Old format data types - block_list: {type(block_list)}, config_data: {type(config_data)}, ui_strings: {type(ui_strings)}, indices: {type(indices)}')
+            log.debug(f'block_list length: {len(block_list) if isinstance(block_list, list) else "N/A"}')
+            if isinstance(config_data, dict):
+                log.debug(f'config_data keys: {list(config_data.keys())}')
+            elif isinstance(config_data, list):
+                log.debug(f'config_data length: {len(config_data)}')
+            
+            # Handle config data that might be either a list or dictionary
+            if isinstance(config_data, dict):
+                # If config is a dict, convert to list format for easier processing
+                config_list = []
+                for i in range(len(block_list)):
+                    config_list.append(config_data.get(str(i), {}))
+            else:
+                # If config is already a list, use it as is
+                config_list = config_data if isinstance(config_data, list) else []
+            
+            # Convert to new format
+            for i in range(len(block_list)):
+                # Safety checks for each data type
+                safe_name = ui_strings[i] if isinstance(ui_strings, list) and i < len(ui_strings) else f'Block_{i}'
+                safe_config = config_list[i] if isinstance(config_list, list) and i < len(config_list) else {}
+                safe_index = indices[i] if isinstance(indices, list) and i < len(indices) else i
+                
+                entry = {
+                    'block': None,  # Can't reconstruct live objects from file
+                    'name': safe_name,
+                    'config': safe_config,
+                    'index': safe_index
+                }
+                self.dat['blockEntries'].append(entry)
+            
+            # Clean up old keys
+            for old_key in ['blockList', 'config', 'uiStrings', 'indices']:
+                if old_key in self.dat:
+                    del self.dat[old_key]
+            
+            # Rebuild mBlockDat
             self.mBlockDat = []
             for entry in self.dat['blockEntries']:
-                self.mBlockDat.append(BlockDat(dat=entry['config']))
-        elif 'blockList' in self.dat and 'config' in self.dat:
-            # Old format: convert
-            blockEntries = []
-            blockList = self.dat['blockList']
-            configDict = self.dat['config']
-            names = self.dat.get('uiStrings', blockList)
-            indices = self.dat.get('indices', list(range(len(blockList))))
-            for i, idx in enumerate(indices):
-                blockEntries.append({
-                    'block': None,  # Can't reconstruct block reference
-                    'name': names[i] if i < len(names) else str(blockList[i]),
-                    'config': configDict.get(str(idx), {}),
-                    'index': i
-                })
-            self.dat = {'blockEntries': blockEntries}
-            self.mBlockDat = []
+                if entry['config']:
+                    self.mBlockDat.append(BlockDat(dat=entry['config']))
+        
+        return result
+    
+    def get_save_data(self):
+        _str_func = 'BlockConfig.get_save_data'
+        log.debug(log_start(_str_func))
+        save_data = {}
+        if 'blockEntries' in self.dat:
+            # Transform list of dictionaries into dictionary of dictionaries
+            # This format works better with configobj
+            save_data['blockEntries'] = {}
             for entry in self.dat['blockEntries']:
-                self.mBlockDat.append(BlockDat(dat=entry['config']))
-        else:
-            # Unknown format, fallback
-            self.mBlockDat = []
-        return True
+                index = entry['index']
+                clean_entry = {
+                    'name': entry['name'],
+                    'config': entry['config'],
+                    'index': entry['index']
+                }
+                save_data['blockEntries'][str(index)] = clean_entry
+        return save_data
 
 def config_get(ml_context = [], report = True):
     _str_func = 'config_get'        
