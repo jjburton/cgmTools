@@ -139,16 +139,10 @@ _sidePadding = 25
 
 def reloadMRSStuff():
     log.info("reloading...")
-    from cgm.core.mrs.lib import module_utils as MODULEUTILS
-    from cgm.core.mrs.lib import puppet_utils as PUPPETUTILS
-    
-    for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,IK,
-              BLOCKGEN,CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,RIGSHAPES,MRSPOST,MODULEUTILS,PUPPETUTILS,
-              MODULECONTROLFACTORY,MODULESHAPECASTER]:
-        print(m)
+    for m in [BLOCKGEN,MRSPOST,RIGSHAPES]:
         cgmGEN._reloadMod(m)
-    log.info(cgmGEN._str_subLine)
-    
+    BLOCKGEN.reloadMRSStuff()
+
 
 def check_cgm():
     return
@@ -7305,8 +7299,10 @@ class ui(cgmUI.cgmGUI):
                          c=lambda *a: BLOCKGEN.verify_sceneBlocks() )
         
         mUI.MelMenuItem( self.uiMenu_help, l="Reload BlocksStuff",
-                         c=lambda *a: reloadMRSStuff() )        
-        
+                         c=lambda *a: reloadMRSStuff() )   
+
+        mUI.MelMenuItem( self.uiMenu_help, l="Reload Modules",
+                    c=lambda *a: BLOCKGEN.reloadModules() )        
         
         mUI.MelMenuItem( self.uiMenu_help, l="Thanks!",
                          c=lambda *a: cgmUI.uiWindow_thanks() )
@@ -9414,6 +9410,139 @@ class ui_createBlock(CGMUI.cgmGUI):
         self.var_buildProfile = cgmMeta.cgmOptionVar('cgmVar_cgmMRSBuildProfile',
                                                     defaultValue = 'unityMed')
         
+        # Initialize helper system and restore existing helpers
+        self._init_helper_system()
+        
+    def _init_helper_system(self):
+        """Initialize helper system and restore existing helpers from scene"""
+        _str_func = '_init_helper_system'
+        log.info("|{0}| >> Initializing helper system...".format(_str_func))
+        
+        # Initialize HelperDag system
+        self.mHelper = HELPERS.HelperDag(self)
+        self.mDag = self.mHelper.mDag
+        self.ml_helpers = VALID.listArg(self.mDag.getMessageAsMeta('helpers'))
+        
+        # Debug: Check what we're getting from the DAG
+        log.debug("|{0}| >> DAG node: {1}".format(_str_func, self.mDag.mNode))
+        log.debug("|{0}| >> Raw helpers from DAG: {1}".format(_str_func, self.mDag.getMessageAsMeta('helpers')))
+        log.debug("|{0}| >> Processed helpers list: {1}".format(_str_func, self.ml_helpers))
+        
+        # Debug: List all objects that might be helpers
+        try:
+            all_objects = mc.ls('*helper*', type='transform')
+            log.debug("|{0}| >> All objects matching '*helper*': {1}".format(_str_func, all_objects))
+        except:
+            pass
+        
+        # Check if we have existing helpers in the scene
+        if self.ml_helpers:
+            log.info("|{0}| >> Found {1} existing helpers in scene".format(_str_func, len(self.ml_helpers)))
+            # Filter out any helpers that no longer exist in the scene
+            valid_helpers = []
+            for i, mHelper in enumerate(self.ml_helpers):
+                try:
+                    # Check if helper is valid and exists
+                    if (mHelper and 
+                        hasattr(mHelper, 'mNode') and 
+                        mHelper.mNode and 
+                        mc.objExists(mHelper.mNode)):
+                        valid_helpers.append(mHelper)
+                        log.debug("|{0}| >> Helper {1} is valid".format(_str_func, mHelper.mNode))
+                    else:
+                        log.warning("|{0}| >> Helper at index {1} ({2}) no longer exists, removing from list".format(_str_func, i, mHelper))
+                except Exception as e:
+                    log.warning("|{0}| >> Error validating helper at index {1} ({2}): {3}".format(_str_func, i, mHelper, str(e)))
+            
+            self.ml_helpers = valid_helpers
+            self.mDag.helpers = self.ml_helpers  # Update the DAG with valid helpers
+            
+            if self.ml_helpers:
+                log.info("|{0}| >> Restored {1} valid helpers".format(_str_func, len(self.ml_helpers)))
+                # Show user feedback about restored helpers
+                self._show_helper_restoration_feedback(len(self.ml_helpers))
+            else:
+                log.info("|{0}| >> No valid helpers found in DAG, trying fallback search...".format(_str_func))
+                # Fallback: search for helpers by name pattern
+                self._fallback_helper_search()
+        else:
+            log.info("|{0}| >> No existing helpers found in DAG, trying fallback search...".format(_str_func))
+            # Fallback: search for helpers by name pattern
+            self._fallback_helper_search()
+    
+    def _fallback_helper_search(self):
+        """Fallback method to search for helpers by name pattern"""
+        _str_func = '_fallback_helper_search'
+        log.info("|{0}| >> Searching for helpers by name pattern...".format(_str_func))
+        
+        # Search for objects that match helper naming patterns
+        helper_patterns = [
+            '*_helper',
+            'block_*_helper', 
+            '*helper*'
+        ]
+        
+        found_helpers = []
+        for pattern in helper_patterns:
+            try:
+                objects = mc.ls(pattern, type='transform')
+                if objects:
+                    log.debug("|{0}| >> Found objects with pattern '{1}': {2}".format(_str_func, pattern, objects))
+                    for obj in objects:
+                        try:
+                            mHelper = cgmMeta.asMeta(obj)
+                            if mHelper and mHelper.mNode and mc.objExists(mHelper.mNode):
+                                found_helpers.append(mHelper)
+                                log.debug("|{0}| >> Added helper: {1}".format(_str_func, obj))
+                        except Exception as e:
+                            log.warning("|{0}| >> Error converting {1} to meta: {2}".format(_str_func, obj, str(e)))
+            except Exception as e:
+                log.warning("|{0}| >> Error searching pattern '{1}': {2}".format(_str_func, pattern, str(e)))
+        
+        if found_helpers:
+            # Remove duplicates
+            unique_helpers = []
+            seen_nodes = set()
+            for helper in found_helpers:
+                if helper.mNode not in seen_nodes:
+                    unique_helpers.append(helper)
+                    seen_nodes.add(helper.mNode)
+            
+            self.ml_helpers = unique_helpers
+            self.mDag.helpers = self.ml_helpers  # Update the DAG
+            
+            log.info("|{0}| >> Found {1} helpers via fallback search".format(_str_func, len(self.ml_helpers)))
+            self._show_helper_restoration_feedback(len(self.ml_helpers))
+        else:
+            log.info("|{0}| >> No helpers found via fallback search".format(_str_func))
+    
+    def _show_helper_restoration_feedback(self, count):
+        """Show user feedback about restored helpers"""
+        if count > 0:
+            # Use Maya's built-in confirmation dialog to show the user
+            result = mc.confirmDialog(
+                title='Block Helpers Restored',
+                message='Found and restored {0} existing block helpers from the scene.\n\nThese helpers are now available for block creation.'.format(count),
+                button=['OK'],
+                defaultButton='OK',
+                cancelButton='OK',
+                dismissString='OK'
+            )
+    
+    def uiFunc_refresh_helpers(self):
+        """Manually refresh helpers from the scene"""
+        _str_func = 'uiFunc_refresh_helpers'
+        log.info("|{0}| >> Refreshing helpers from scene...".format(_str_func))
+        
+        # Re-initialize the helper system
+        self._init_helper_system()
+        
+        # Show feedback
+        if hasattr(self, 'ml_helpers') and self.ml_helpers:
+            log.info("|{0}| >> Refresh complete. Found {1} helpers".format(_str_func, len(self.ml_helpers)))
+        else:
+            log.info("|{0}| >> Refresh complete. No helpers found".format(_str_func))
+    
     def build_menus(self):
         self.uiMenu_FileMenu = mUI.MelMenu(l='File', pmc = cgmGEN.Callback(self.buildMenu_file))
         self.uiMenu_SetupMenu = mUI.MelMenu(l='Setup', pmc = cgmGEN.Callback(self.buildMenu_setup))
@@ -9443,7 +9572,12 @@ class ui_createBlock(CGMUI.cgmGUI):
         
         mUI.MelMenuItem( self.uiMenu_FileMenu, l="Load",)
                         # c = lambda *a:mc.evalDeferred(cgmGEN.Callback(uiFunc_load_actions,self)))
-    def buildMenu_setup(self):pass
+    def buildMenu_setup(self):
+        self.uiMenu_SetupMenu.clear()
+        
+        mUI.MelMenuItem(self.uiMenu_SetupMenu, l='Refresh Helpers',
+                       c=cgmGEN.Callback(self.uiFunc_refresh_helpers),
+                       ann='Refresh block helpers from the scene')
     
     def uiFunc_printDat(self,mode='all'):
         _str_func = 'uiFunc_print[{0}]'.format(self.__class__.TOOLNAME)            
@@ -10081,10 +10215,6 @@ class ui_createBlock(CGMUI.cgmGUI):
             self.uiFunc_setBlockType(self.var_blockType.getValue())
             self.uiFunc_getSize('default')
             self.uiFunc_setBlockProfile()
-            
-        self.mHelper = HELPERS.HelperDag(self)
-        self.mDag = self.mHelper.mDag
-        self.ml_helpers = VALID.listArg(self.mDag.getMessageAsMeta('helpers'))
             
             
 def buildFrame_helpers(self,parent,changeCommand = ''):

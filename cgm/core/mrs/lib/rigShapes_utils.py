@@ -967,7 +967,7 @@ def lever(self,ball = False):
 
 l_pivotOrder = BLOCKSHARE._l_pivotOrder
 d_pivotBankNames = BLOCKSHARE._d_pivotBankNames
-def pivotShapes(self, mPivotHelper = None, l_pivotOrder = l_pivotOrder):
+def pivotShapes(self, mPivotHelper = None, l_pivotOrder = l_pivotOrder, mode = 'default'):
     """
     Builder of shapes for pivot setup. Excpects to find pivotHelper on block
     
@@ -980,7 +980,7 @@ def pivotShapes(self, mPivotHelper = None, l_pivotOrder = l_pivotOrder):
     """
     _str_func = 'pivotShapes'
     log.debug(cgmGEN.logString_start(_str_func))
-    
+    log.info("|{0}| >> l_pivotOrder: {1}".format(_str_func,l_pivotOrder))
     mBlock = self.mBlock
     mRigNull = self.mRigNull
     _offset = self.v_offset
@@ -1002,7 +1002,7 @@ def pivotShapes(self, mPivotHelper = None, l_pivotOrder = l_pivotOrder):
             mPivotOrig = mPivotHelper.getMessage(str_a,asMeta=True)[0]
             
             if a in ['tilt','spin']:
-                if a == 'tilt':
+                if a == 'tilt' and mode != 'ballRotate':
                     _tag = 'front'
                 else:
                     _tag = 'center'

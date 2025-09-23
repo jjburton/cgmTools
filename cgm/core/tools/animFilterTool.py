@@ -166,6 +166,7 @@ class ui(cgmUI.cgmGUI):
     def uiStatus_fileClear(self):
         self.uiStatus_top(edit=True,bgc = CORESHARE._d_gui_state_colors.get('help'),label = '' )
         self._loadedFile = None
+        self.var_LastLoaded.setValue('')
         
             
     def build_menus(self):

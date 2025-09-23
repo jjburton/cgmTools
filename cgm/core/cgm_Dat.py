@@ -275,6 +275,7 @@ class data(object):
         '''
         Validates a given filepath or generates one with dialog if necessary
         '''        
+        log.debug("|validateFilepath| >> filepath: {0}".format(filepath))
         if filepath is None:
             startDir = self.startDir_get(startDirMode=startDirMode)
             log.debug(startDir)
@@ -658,6 +659,7 @@ class ui(CGMUI.cgmGUI):
     def uiFunc_dat_load(self,*args,**kws):
         _str_func = 'uiFunc_dat_load[{0}]'.format(self.__class__.TOOLNAME)            
         log.debug("|{0}| >>...".format(_str_func))
+        log.debug("|{0}| >> kws: {1}".format(_str_func, kws))
         
         if not kws.get('startDir'):
             kws['startDirMode'] = _l_startDirModes[self.var_startDirMode.value]

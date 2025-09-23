@@ -10,6 +10,7 @@ __MAYALOCAL = 'CORERIG'
 import copy
 import re
 import pprint
+import math
 
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 import logging
@@ -1855,3 +1856,172 @@ def simpleLoc(obj,forceBBCenter=False):
     return mc.rename(_loc, "{}_loc".format(NAMES.clean(NAMES.get_base(obj))))
 
 
+def add_ball_auto_roll(ball_grp,
+                       ctrl,
+                       radius=1.0,
+                       rotate_target=None,          # <- NEW: node to receive rotation (e.g. "Ball_ROT_GRP" or the mesh transform)
+                       connect_rotation=True,       # set False if you only want the translate wiring
+                       maintain_ground=True,
+                       lock_ctrl_translate=False,
+                       add_invert_attrs=True,
+                       invertX=False,               # invert mapping: rotateX -> translateZ
+                       invertZ=False,               # invert mapping: rotateZ -> translateX
+                       add_attrs=True,
+                       node_prefix=None):
+    """
+    Live rotate->translate 'rolling ball' relationship onto existing nodes.
+
+    Args:
+        ball_grp (str): Node that should RECEIVE translateX/Z from roll.
+        ctrl (str): Control whose rotateX and rotateZ will DRIVE the roll.
+        radius (float): Ball radius used in distance = radians * radius.
+        rotate_target (str or None): Node that should RECEIVE rotation from ctrl (e.g. a ROT_GRP or the mesh).
+        connect_rotation (bool): If True, connect ctrl.rotateX/Y/Z -> rotate_target.rotateX/Y/Z.
+        maintain_ground (bool): If True, keeps ball_grp.ty = ctrl.radius (or radius).
+        lock_ctrl_translate (bool): If True, locks ctrl.tx and ctrl.tz.
+        add_invert_attrs (bool): If True, adds bool attrs to flip the signs at any time.
+        invertX (bool): Default invert for rotateX -> translateZ.
+        invertZ (bool): Default invert for rotateZ -> translateX.
+        add_attrs (bool): If True, adds ctrl.radius and ctrl.translateDrive if missing.
+        node_prefix (str): Optional prefix for created node names.
+
+    Returns: dict with created node names and targets.
+    """
+    if not mc.objExists(ball_grp):
+        raise RuntimeError("ball_grp does not exist: {0}".format(ball_grp))
+    if not mc.objExists(ctrl):
+        raise RuntimeError("ctrl does not exist: {0}".format(ctrl))
+
+    base = node_prefix or ball_grp.split('|')[-1]
+
+    # -- Ensure driver attrs --
+    if add_attrs:
+        if not mc.attributeQuery('radius', n=ctrl, exists=True):
+            mc.addAttr(ctrl, ln='radius', at='double', k=True, min=0.0001, dv=float(radius))
+        else:
+            try:
+                mc.setAttr(ctrl + '.radius', float(radius))
+            except:
+                pass
+        if not mc.attributeQuery('translateDrive', n=ctrl, exists=True):
+            mc.addAttr(ctrl, ln='translateDrive', at='double', k=True, min=0.0, max=1.0, dv=1.0)
+
+    # Optional invert toggles on the control
+    if add_invert_attrs:
+        if not mc.attributeQuery('invertRotX_to_Z', n=ctrl, exists=True):
+            mc.addAttr(ctrl, ln='invertRotX_to_Z', at='bool', k=True, dv=1 if invertX else 0)
+        if not mc.attributeQuery('invertRotZ_to_X', n=ctrl, exists=True):
+            mc.addAttr(ctrl, ln='invertRotZ_to_X', at='bool', k=True, dv=1 if invertZ else 0)
+
+    # --- deg -> rad ---
+    md_deg2rad_x = mc.createNode('multiplyDivide', n=base + '_rotX_deg2rad_MD')
+    md_deg2rad_z = mc.createNode('multiplyDivide', n=base + '_rotZ_deg2rad_MD')
+    mc.setAttr(md_deg2rad_x + '.input2X', math.pi / 180.0)
+    mc.setAttr(md_deg2rad_z + '.input2X', math.pi / 180.0)
+    mc.connectAttr(ctrl + '.rotateX', md_deg2rad_x + '.input1X', f=True)
+    mc.connectAttr(ctrl + '.rotateZ', md_deg2rad_z + '.input1X', f=True)
+
+    # --- radians * radius ---
+    md_x_times_r = mc.createNode('multiplyDivide', n=base + '_rotX_radTimesR_MD')
+    md_z_times_r = mc.createNode('multiplyDivide', n=base + '_rotZ_radTimesR_MD')
+    mc.connectAttr(md_deg2rad_x + '.outputX', md_x_times_r + '.input1X', f=True)
+    mc.connectAttr(md_deg2rad_z + '.outputX', md_z_times_r + '.input1X', f=True)
+    if mc.attributeQuery('radius', n=ctrl, exists=True):
+        mc.connectAttr(ctrl + '.radius', md_x_times_r + '.input2X', f=True)
+        mc.connectAttr(ctrl + '.radius', md_z_times_r + '.input2X', f=True)
+    else:
+        mc.setAttr(md_x_times_r + '.input2X', float(radius))
+        mc.setAttr(md_z_times_r + '.input2X', float(radius))
+
+    # --- global strength 0..1 ---
+    md_x_strength = mc.createNode('multiplyDivide', n=base + '_rotX_strength_MD')
+    md_z_strength = mc.createNode('multiplyDivide', n=base + '_rotZ_strength_MD')
+    mc.connectAttr(md_x_times_r + '.outputX', md_x_strength + '.input1X', f=True)
+    mc.connectAttr(md_z_times_r + '.outputX', md_z_strength + '.input1X', f=True)
+    if mc.attributeQuery('translateDrive', n=ctrl, exists=True):
+        mc.connectAttr(ctrl + '.translateDrive', md_x_strength + '.input2X', f=True)
+        mc.connectAttr(ctrl + '.translateDrive', md_z_strength + '.input2X', f=True)
+    else:
+        mc.setAttr(md_x_strength + '.input2X', 1.0)
+        mc.setAttr(md_z_strength + '.input2X', 1.0)
+
+    # --- sign handling with blendColors (invert toggles) ---
+    md_neg_x = mc.createNode('multiplyDivide', n=base + '_rotX_neg_MD')
+    md_neg_z = mc.createNode('multiplyDivide', n=base + '_rotZ_neg_MD')
+    mc.setAttr(md_neg_x + '.input2X', -1.0)
+    mc.setAttr(md_neg_z + '.input2X', -1.0)
+    mc.connectAttr(md_x_strength + '.outputX', md_neg_x + '.input1X', f=True)
+    mc.connectAttr(md_z_strength + '.outputX', md_neg_z + '.input1X', f=True)
+
+    bc_x = mc.createNode('blendColors', n=base + '_rotX_invert_BC')  # drives TZ
+    bc_z = mc.createNode('blendColors', n=base + '_rotZ_invert_BC')  # drives TX
+    mc.connectAttr(md_x_strength + '.outputX', bc_x + '.color1R', f=True)  # non-inverted
+    mc.connectAttr(md_neg_x + '.outputX',     bc_x + '.color2R', f=True)  # inverted
+    mc.connectAttr(md_z_strength + '.outputX', bc_z + '.color1R', f=True)
+    mc.connectAttr(md_neg_z + '.outputX',     bc_z + '.color2R', f=True)
+
+    if mc.attributeQuery('invertRotX_to_Z', n=ctrl, exists=True):
+        mc.connectAttr(ctrl + '.invertRotX_to_Z', bc_x + '.blender', f=True)
+    else:
+        mc.setAttr(bc_x + '.blender', 1.0 if invertX else 0.0)
+    if mc.attributeQuery('invertRotZ_to_X', n=ctrl, exists=True):
+        mc.connectAttr(ctrl + '.invertRotZ_to_X', bc_z + '.blender', f=True)
+    else:
+        mc.setAttr(bc_z + '.blender', 1.0 if invertZ else 0.0)
+
+    # --- final translate connections: rotZ -> TX, rotX -> TZ ---
+    mc.connectAttr(bc_z + '.outputR', ball_grp + '.translateX', f=True)
+    mc.connectAttr(bc_x + '.outputR', ball_grp + '.translateZ', f=True)
+
+    # --- maintain ground ---
+    if maintain_ground:
+        if mc.attributeQuery('radius', n=ctrl, exists=True):
+            mc.connectAttr(ctrl + '.radius', ball_grp + '.ty', f=True)
+        else:
+            try:
+                mc.setAttr(ball_grp + '.ty', float(radius))
+            except:
+                pass
+
+    # --- optional rotation hookup ---
+    actually_rotating = None
+    if connect_rotation:
+        if not rotate_target or not mc.objExists(rotate_target):
+            rotate_target = ball_grp
+        if rotate_target and mc.objExists(rotate_target):
+            for ax in ('X','Y','Z'):
+                mc.connectAttr(ctrl + '.rotate' + ax, rotate_target + '.rotate' + ax, f=True)
+            actually_rotating = rotate_target
+        else:
+            # If user didn't pass a target, try to be helpful but non-destructive:
+            # Look for a single child transform under ball_grp that has shapes.
+            children = mc.listRelatives(ball_grp, c=True, type='transform') or []
+            shape_children = [c for c in children if mc.listRelatives(c, s=True)]
+            if len(shape_children) == 1:
+                rt = shape_children[0]
+                for ax in ('X','Y','Z'):
+                    mc.connectAttr(ctrl + '.rotate' + ax, rt + '.rotate' + ax, f=True)
+                actually_rotating = rt
+            # Otherwise skip (avoid surprise reparenting)
+
+    # Optional lock on ctrl translate for pure auto-roller workflow
+    if lock_ctrl_translate:
+        for a in ('tx','tz'):
+            try:
+                mc.setAttr(ctrl + '.' + a, l=True, k=False, cb=False)
+            except:
+                pass
+
+    print("Auto-roll wired: ctrl={0}, ball_grp={1}, rotate_target={2}".format(ctrl, ball_grp, actually_rotating or rotate_target))
+    return {
+        'ctrl': ctrl,
+        'ball_grp': ball_grp,
+        'rotate_target': actually_rotating or rotate_target,
+        'nodes': {
+            'deg2radX': md_deg2rad_x, 'deg2radZ': md_deg2rad_z,
+            'timesRX': md_x_times_r, 'timesRZ': md_z_times_r,
+            'strengthX': md_x_strength, 'strengthZ': md_z_strength,
+            'negX': md_neg_x, 'negZ': md_neg_z,
+            'invertBlendX': bc_x, 'invertBlendZ': bc_z,
+        }
+    }

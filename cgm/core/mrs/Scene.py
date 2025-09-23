@@ -1883,6 +1883,69 @@ example:
 
         self.LoadProject(self.mDat.str_filepath)
 
+    def uiProject_duplicate(self):
+        """
+        Duplicate the current project with a new name.
+        Prompts user for new project name, clears current project path,
+        sets new name in mDat, and triggers save as dialog.
+        """
+        _str_func = 'uiProject_duplicate'
+        log.debug("|{0}| >>...".format(_str_func))
+        
+        # Get current project name
+        current_name = self.mDat.d_project.get('name', 'Unnamed Project')
+        
+        # Prompt for new project name
+        result = mc.promptDialog(
+            title='Duplicate Project',
+            message='Enter new project name:',
+            button=['OK', 'Cancel'],
+            text=current_name + '_copy',
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel'
+        )
+        
+        if result != 'OK':
+            log.info("Project duplication cancelled by user")
+            return False
+            
+        new_name = mc.promptDialog(query=True, text=True)
+        
+        if not new_name or new_name.strip() == '':
+            log.warning("No project name entered")
+            return False
+            
+        new_name = new_name.strip()
+        
+        # If name is the same as current, don't proceed
+        if new_name == current_name:
+            log.warning("New project name is the same as current project name")
+            return False
+            
+        log.info("Duplicating project '{0}' as '{1}'".format(current_name, new_name))
+        
+        # Clear current project path and set new name
+        self.mDat.str_filepath = None
+        self.mDat.d_project['name'] = new_name
+        
+        # Clear UI fields
+        self.directory = ''
+        self.exportDirectoryTF.setValue('')
+        self.assetList['scrollList'].clear()
+        self.subTypeSearchList['scrollList'].clear()
+        self.variationList['scrollList'].clear()
+        self.versionList['scrollList'].clear()
+        
+        # Refresh display to show new project name
+        self.uiProject_refreshDisplay()
+        
+        # Trigger save as dialog
+        PROJECT.uiProject_saveAs(self)
+        
+        log.info("Project duplication completed successfully")
+        return True
+
     def buildMenu_first(self):
         self.uiMenu_FirstMenu.clear()
 
@@ -1928,6 +1991,9 @@ example:
         mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Save As",
                          c = lambda *a:mc.evalDeferred(cgmGEN.Callback(PROJECT.uiProject_saveAs,self),lp=True))
 
+        mUI.MelMenuItem( self.uiMenu_FirstMenu, l="Clone",
+                         ann='Create a duplicate of the current project with a new name',
+                         c = lambda *a:mc.evalDeferred(self.uiProject_duplicate,lp=True))
 
         mUI.MelMenuItemDiv( self.uiMenu_FirstMenu, label='Utils' )
 
@@ -5010,7 +5076,7 @@ example:
 
     def batch_buildFile(self, *args):
         _str_func = 'batch_buildFile'
-        log.debug(log_start(_str_func))
+        log.info(log_start(_str_func))
 
 
         if self.useMayaPy:
@@ -5040,7 +5106,7 @@ example:
                       'sampleBy':self.d_tf['exportOptions']['sampleBy'].getValue(),
                       'simplify':self.d_tf['exportOptions']['simplify'].getValue(),
                       'reducer':self.d_tf['exportOptions']['reducer'].getValue(),
-
+                      'exportShotsToIndividualFiles':self.d_tf['exportOptions']['exportShotsToIndividualFiles'].getValue(),
                       }
 
             for animDict in self.batchExportItems:
@@ -5202,7 +5268,7 @@ example:
     #   - just the asset name
     def RunExportCommand(self, *args):
         _str_func = 'RunExportCommand'
-        log.debug(log_start(_str_func))
+        log.info(log_start(_str_func))
 
         _l_openTokens = self.uiFunc_getOpenFilePathTokens()
 
@@ -5225,14 +5291,15 @@ example:
 
         d_userPaths = self.mDat.userPaths_get()
 
-
         postEuler = self.d_tf['exportOptions']['postEuler'].getValue()
         postTangent = self.d_tf['exportOptions']['postTangent'].getValue()
         sampleBy = self.d_tf['exportOptions']['sampleBy'].getValue()
         reducer = self.d_tf['exportOptions']['reducer'].getValue()
         simplify = self.d_tf['exportOptions']['simplify'].getValue()
+        exportShotsToIndividualFiles = self.d_tf['exportOptions']['exportShotsToIndividualFiles'].getValue()
 
         pprint.pprint(vars())
+        pprint.pprint(self.d_tf['exportOptions'])
 
         if postTangent == 'none':
             postTangent = False
@@ -5268,7 +5335,9 @@ example:
                 'workspace':d_userPaths['content'],
                 'simplify':simplify,
                 'reducer':reducer,
+                'exportShotsToIndividualFiles':exportShotsToIndividualFiles,
             }
+            pprint.pprint(d)
 
             BATCH.create_Scene_batchFile([d])
             return
@@ -5285,6 +5354,7 @@ example:
                     removeNamespace = self.d_tf['exportOptions']['removeNameSpace'].getValue(),
                     zeroRoot = self.d_tf['exportOptions']['zeroRoot'].getValue(),
                     animationName = _l_openTokens[0],#self.selectedSet,
+                    exportShotsToIndividualFiles = self.d_tf['exportOptions']['exportShotsToIndividualFiles'].getValue(),
                     tangent=postTangent,
                     euler=postEuler,                            
                     sampleBy=sampleBy,
@@ -5301,7 +5371,7 @@ example:
 
 def BatchExport(dataList = []):
     _str_func = 'BatchExport'
-    log.debug(log_start(_str_func))
+    log.info(log_start(_str_func))
 
     t1 = time.time()
 
@@ -5339,12 +5409,11 @@ def BatchExport(dataList = []):
             _d['reducer'] = False if fileDat.get('reducer',"False") == "False" else True
             
             _d['simplify'] = False if fileDat.get('simplify',"False") == "False" else True
-
+            _d['exportShotsToIndividualFiles'] = False if fileDat.get('exportShotsToIndividualFiles',"False") == "False" else True
             _d['sampleBy'] = float(fileDat.get('sampleBy',1.0))
 
             log.info(mFile)
-            #pprint.pprint(_d)
-
+            pprint.pprint(_d)
 
             _path = mFile.asString()
             if not mFile.exists():
@@ -5400,6 +5469,7 @@ def ExportScene(mode = -1,
                 animationName = None,
                 workspace = None,
                 updateAndIncrement = False,
+                exportShotsToIndividualFiles = True,
                 updateRigs = False,
                 euler = False,
                 sampleBy = 1.0,
@@ -5728,21 +5798,64 @@ def ExportScene(mode = -1,
                 log.info("{0} | {1}".format(i,o))
 
             if(exportFBXFile):
-                mel.eval('FBXExportSplitAnimationIntoTakes -c')
+                if exportShotsToIndividualFiles:
+                    # global FBX options you probably want once
+                    mel.eval('FBXResetExport;')
+                    mel.eval('FBXExportSplitAnimationIntoTakes -clear;')  # no multi-take
+                    # mel.eval('FBXExportBakeComplexAnimation -v true;')
+                    # mel.eval('FBXExportBakeComplexStep -v 1;')            # key every frame; adjust if needed
+                    mel.eval('FBXExportSkins -v true;')
+                    mel.eval('FBXExportConstraints -v false;')
+                    mel.eval('FBXExportSmoothingGroups -v true;')
+                    mel.eval('FBXExportInAscii -v false;')
 
-                if obj not in cameras:#...cameras we don't want in takes
-                    for shot in animList.shotList:
-                        log.info( log_msg(_str_func, "shot..."))
-                        log.info(shot)
-                        mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
+                    exportDir = os.path.split(exportFile)[0]
+                    baseName  = os.path.splitext(os.path.basename(exportFile))[0]
+                    
+                    # Create subdirectory for this baseName
+                    baseDir = os.path.join(exportDir, baseName)
+                    if not os.path.exists(baseDir):
+                        log.info("making export dir... {0}".format(baseDir))
+                        os.makedirs(baseDir)
 
-                exportDir = os.path.split(exportFile)[0]
-                if not os.path.exists(exportDir):
-                    log.info("making export dir... {0}".format(exportDir))
-                    os.makedirs(exportDir)
+                    if obj not in cameras:
+                        for shot in animList.shotList:
+                            shotName = shot[0]
+                            s, e = shot[1][0], shot[1][1]
+                            log.info(log_msg(_str_func, "shot..."))
+                            log.info((shotName, (s, e)))
 
-                log.info('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
-                mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
+                            safe = CORESTRING.stripInvalidChars(shotName)
+                            outFile = os.path.join(baseDir, "{}.fbx".format(safe)).replace('\\', '/')
+
+                            # Set time range for this shot and export
+                            mel.eval('FBXResetExport;')
+                            mel.eval('FBXExportSplitAnimationIntoTakes -clear;')
+                            mel.eval('FBXExportBakeComplexStart -v {0};'.format(int(s)))
+                            mel.eval('FBXExportBakeComplexEnd -v {0};'.format(int(e)))
+                            
+                            # Set Maya timeline to shot range
+                            mel.eval('playbackOptions -min {0} -max {1};'.format(int(s), int(e)))
+
+                            log.info('Export Command: FBXExport -f \"{}\" -s'.format(outFile))
+                            mel.eval('FBXExport -f \"{}\" -s'.format(outFile)) 
+
+                else:
+                    mel.eval('FBXExportSplitAnimationIntoTakes -c')
+
+                    if obj not in cameras:#...cameras we don't want in takes
+                        for shot in animList.shotList:
+                            log.info( log_msg(_str_func, "shot..."))
+                            log.info(shot)
+                            mel.eval('FBXExportSplitAnimationIntoTakes -v \"{}\" {} {}'.format(shot[0], shot[1][0], shot[1][1]))
+
+                    exportDir = os.path.split(exportFile)[0]
+                    if not os.path.exists(exportDir):
+                        log.info("making export dir... {0}".format(exportDir))
+                        os.makedirs(exportDir)
+
+                    log.info('Export Command: FBXExport -f \"{}\" -s'.format(exportFile))
+                    mel.eval('FBXExport -f \"{}\" -s'.format(exportFile.replace('\\', '/')))
 
                 if len(exportObjs) > 1 and removeNamespace:
                     # Deleting the exported transforms in case another file has duplicate export names

@@ -449,7 +449,7 @@ d_block_profiles = {
     'loftShapeEnd':'wideUp',
     'proxyLoft':3,
     'shapeDirection':'y-',
-    
+    'ikExtendSetup':'springFull',
     'baseAim':[0,-1,0],
     'baseUp':[0,0,1],
     'baseSize':[11.6,13,70],
@@ -908,7 +908,7 @@ d_attrsToMake = {'visMeasure':'bool',
                  'ikRPAim':'default:free',
                  'blockProfile':'string',#':'.join(d_block_profiles.keys()),
                  'rigSetup':'default:digit',#...this is to account for some different kinds of setup
-                 'ikEnd':'default:bank:foot:pad:hand:tipBase:tipEnd:tipMid:tipCombo:proxy',
+                 'ikEnd':'default:bank:foot:pad:hand:tipBase:tipEnd:tipMid:tipCombo:proxy:ball:wobble',
                  'ikRP_pos_mult':'float',
                  #'ikBase':'none:fkRoot',
                  #'hasLeverJoint':'bool',
@@ -2056,6 +2056,134 @@ def form(self):
             mProxy = mHandleFactory.addProxyHelper(shapeDirection = 'z+',baseSize=_bankSize)
             mProxy.p_parent = mEndHandle
             
+        elif _ikEnd == 'ball':
+            log.debug("|{0}| >> ball setup".format(_str_func)) 
+            #Enhanced Ball Pivot Setup ========================================================================================
+            _size_pivot = _size_width
+            _kws = {"baseShape":'squircle', 'l_pivots': ['pivotCenter']}
+
+            mPivot = BLOCKSHAPES.pivotHelper(self,mEndHandle,baseSize=_size_pivot,loft=False, mParent = mFormNull, **_kws)
+            mPivot.p_parent = mFormNull
+            # mDriverGroup = mEndHandle.doCreateAt(setClass=True)
+            # mDriverGroup.rename("Pivot_driver_grp")
+            # mDriverGroup.p_parent = mFormNull
+            # mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+            # mGroup.p_parent = mDriverGroup
+            # mc.scaleConstraint([mEndHandle.mNode],mDriverGroup.mNode, maintainOffset = True)
+
+            self.connectChildNode(mPivot,'pivotHelper')
+
+            #...Make Pivot point
+            #...Make Tilt shape
+            
+            crv = CURVES.create_fromName('arrowsOnBall', direction = 'y+', size = _size_pivot * 2.0)
+            mTilt = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+            
+            BLOCKSHAPES.color(self, mTilt,controlType='sub')
+            
+            
+            mTilt.doSnapTo(mEndHandle)
+            mTilt.p_parent = mPivot
+            mTilt.scale = 1,1,1
+
+            
+            mTilt.addAttr('cgmName','tilt')
+            mTilt.addAttr('cgmType','pivotHelper')            
+            mTilt.doName()
+            
+            mPivot.connectChildNode(mTilt,'pivotTilt')
+            self.msgList_append('prerigHandles',mTilt)
+            
+            #...Make Spin shape
+            mSpin = mHandleFactory.buildBaseShape('arrowRotate180_smallest')
+            BLOCKSHAPES.color(self, mSpin,controlType='sub')
+            
+            mSpin.p_parent = mPivot
+            mSpin.resetAttrs()
+            
+            mSpin.rx = 90
+            mSpin.rz = 90
+            # mSpin.scale = _size_pivot,_size_pivot,_size_pivot
+            
+            mSpin.addAttr('cgmName','spin')
+            mSpin.addAttr('cgmType','pivotHelper')            
+            mSpin.doName()                       
+            
+            mPivot.connectChildNode(mSpin,'pivotSpin')
+            self.msgList_append('prerigHandles',mSpin)
+
+            ballCrv = CURVES.create_fromName('sphere', direction = 'y+', size = _size_pivot * 2.0)
+            mBall = cgmMeta.validateObjArg(ballCrv, 'cgmObject', setClass=True)
+            BLOCKSHAPES.color(self, mBall,controlType='sub')
+            mBall.scale = _size_pivot,_size_pivot,_size_pivot
+            mBall.doSnapTo(mEndHandle)
+
+            mBall.addAttr('cgmName','ball')
+            mBall.addAttr('cgmType','pivotHelper')            
+            mBall.doName()
+            
+            mBall.p_parent = mPivot
+            mBall.doName()
+            mPivot.connectChildNode(mBall,'pivotBall')
+            self.msgList_append('prerigHandles',mBall)
+            
+        elif _ikEnd == 'wobble':
+            log.debug("|{0}| >> wobble setup".format(_str_func)) 
+            #Enhanced Wobble Pivot Setup ========================================================================================
+            _size_pivot = _size_width
+            _kws = {"baseShape":'squircle', 'l_pivots': ['pivotFront','pivotCenter']}
+
+            mPivot = BLOCKSHAPES.pivotHelper(self,mEndHandle,baseSize=_size_pivot,loft=False, mParent = mFormNull, **_kws)
+            mPivot.p_parent = mFormNull
+            mDriverGroup = mEndHandle.doCreateAt(setClass=True)
+            mDriverGroup.rename("Pivot_driver_grp")
+            mDriverGroup.p_parent = mFormNull
+            mGroup = mPivot.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
+            mGroup.p_parent = mDriverGroup
+            mc.scaleConstraint([mEndHandle.mNode],mDriverGroup.mNode, maintainOffset = True)
+
+            self.connectChildNode(mPivot,'pivotHelper')
+
+            #...Make Pivot point
+            #...Make Tilt shape
+            
+            crv = CURVES.create_fromName('arrowsOnBall', direction = 'y+', size = _size_pivot * 2.0)
+            mTilt = cgmMeta.validateObjArg(crv, 'cgmObject', setClass=True)
+            
+            BLOCKSHAPES.color(self, mTilt,controlType='sub')
+            
+            mTilt.scale = 2,2,2
+            
+            mTilt.doSnapTo(mEndHandle)
+            mTilt.p_parent = mFormNull
+            
+            
+            mTilt.addAttr('cgmName','tilt')
+            mTilt.addAttr('cgmType','pivotHelper')            
+            mTilt.doName()
+            
+            mPivot.connectChildNode(mTilt,'pivotTilt')
+            self.msgList_append('prerigHandles',mTilt)
+            
+            #...Make Spin shape
+            mSpin = mHandleFactory.buildBaseShape('arrowRotate180_smallest')
+            BLOCKSHAPES.color(self, mSpin,controlType='sub')
+            
+            mTilt.p_parent = mPivot
+            mTilt.resetAttrs()
+            
+            mSpin.rx = 90
+            mSpin.rz = 90
+            mSpin.scale = _size_pivot,_size_pivot,_size_pivot
+            mSpin.p_parent = mFormNull
+            
+            mSpin.addAttr('cgmName','spin')
+            mSpin.addAttr('cgmType','pivotHelper')            
+            mSpin.doName()                       
+            
+            mPivot.connectChildNode(mSpin,'pivotSpin')
+            self.msgList_append('prerigHandles',mSpin)
+            
             pos_proxy = SNAPCALLS.get_special_pos(mEndHandle.p_nameLong,
                                                  'axisBox','z+',False)
             
@@ -2065,18 +2193,17 @@ def form(self):
             
 
 
-        if _ikEnd in ['bank','foot','pad']:
-            
-            
+        if _ikEnd in ['bank','foot','pad','ball','wobble']:
             mPivotHelper = mEndHandle.pivotHelper
             mPivotHelper.doSnapTo(mEndHandle,True,True)
+
             
             if self.blockProfile in ['arm','finger','thumb']:
                 mGroup = mPivotHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
                 mc.parentConstraint([mEndHandle.mNode],mGroup.mNode,)
                 #mc.scaleConstraint([mEndHandle.mNode],mGroup.mNode,)
                 mGroup.dagLock()
-            elif _ikEnd == 'bank':
+            elif _ikEnd in ['bank','ball','wobble']:
                 mPivotHelper.p_parent = mFormNull
                 mGroup = mPivotHelper.doGroup(True,True,asMeta=True,typeModifier = 'track',setClass='cgmObject')
                 #mc.parentConstraint([mEndHandle.mNode],mGroup.mNode,)
@@ -2088,6 +2215,7 @@ def form(self):
                 mc.pointConstraint([mEndHandle.mNode],mGroup.mNode, skip='y')
                 mc.orientConstraint([mEndHandle.mNode],mGroup.mNode, skip=['z','x'])
                 mGroup.dagLock()
+
     
     #print.pprint(ml_handles_chain)
     SNAP.aim_atPoint(md_handles['end'].mNode, position=_l_basePos[0], 
@@ -2110,6 +2238,11 @@ def form(self):
         else:
             mPivotHelper.p_position = SNAPCALLS.get_special_pos(mEndHandle.mNode,'bb','y-')
 
+        if _ikEnd in ['ball']:#...snap to end handle
+                mBall.doSnapTo(mEndHandle)
+                mTilt.p_position = SNAPCALLS.get_special_pos(mEndHandle.mNode,'bb','y+')
+
+
     if _b_lever:
         md_handles['lever'].scaleX = md_handles['start'].scaleX
         md_handles['lever'].scaleY = md_handles['start'].scaleY
@@ -2126,56 +2259,6 @@ def form(self):
     else:
         self.UTILS.controller_walkChain(self,ml_handles_chain,'form')
         
-    
-    """
-    ml_done = []
-    md_controllers = {}
-    ml_controllers = []
-    if cgmGEN.__mayaVersion__ >= 2018:
-        print '2018...'
-        mMainController = cgmMeta.controller_get(self)
-        
-        for mHandle in ml_handles + ml_shapers + ml_midHandles:
-            if mHandle in ml_done:
-                continue
-            if not mHandle:
-                continue
-            mLoft = mHandle.getMessageAsMeta('loftCurve')
-            if mLoft:
-                mController = cgmMeta.controller_get(mLoft)
-                mController.visibilityMode = 2
-                ml_done.append(mController)
-                md_controllers[mLoft] = mController
-                ml_controllers.append(mController)
-                
-            mController = cgmMeta.controller_get(mHandle,True)
-            mController.visibilityMode = 2                            
-            ml_done.append(mHandle)
-            md_controllers[mHandle] = mController
-            ml_controllers.append(mController)
-
-        for mSet in ml_handles, ml_shapers,ml_loftHandles:
-            for i,mHandle in enumerate(mSet):
-                if mHandle not in ml_done:
-                    continue
-                
-                mController =  md_controllers[mHandle]
-                if not i:
-                    mController.parent_set(mMainController,msgConnect=True)
-                else:
-                    mController.parent_set(md_controllers[mSet[i-1]],msgConnect=False)
-                    
-                ml_done.append(mController)
-        
-        for mObj in ml_controllers:
-            try:
-                ATTR.connect("{0}.visProximityMode".format(self.mNode),
-                         "{0}.visibilityMode".format(mObj.mNode))    
-            except Exception,err:
-                log.error(err)
-                
-            self.msgList_append('formStuff',mObj)
-            """
 
     return True
     #except Exception,err:cgmGEN.cgmExceptCB(Exception,err,localDat=vars())        
@@ -2443,12 +2526,14 @@ def prerig(self):
             if mFootHelper.getMessage('topLoft'):
                 f_topLoft = DIST.get_between_points(mFootHelper.p_position,
                                                     mFootHelper.topLoft.p_position)
-            else:
+            elif mFootHelper.getMessage('pivotFront'):
                 f_topLoft = DIST.get_bb_size(mFootHelper.pivotFront.mNode,True,'max')
+            else:
+                f_topLoft = DIST.get_bb_size(mFootHelper.mNode,True,'max')
     
         _ikEnd = self.getEnumValueString('ikEnd')
         ml_noParent = []
-        if _ikEnd not in ['bank']:
+        if _ikEnd not in ['bank','ball','wobble']:
             if self.addBall and mFootHelper:
                 log.info(cgmGEN.logString_sub(_str_func,'add ball...'))                
                 mHelp = mFootHelper.pivotCenter
@@ -2481,6 +2566,7 @@ def prerig(self):
             
             log.debug("|{0}| >> ikSetup. End: {1}".format(_str_func,mEndHandle))
             mHandleFactory.setHandle(mEndHandle.mNode)
+            
             mHandleFactory.addPivotSetupHelper().p_parent = mPrerigNull
                 
         l_posUse = []
@@ -2580,7 +2666,7 @@ def prerig(self):
             mGroup = mHandle.doGroup(True,True,asMeta=True,typeModifier = 'master',setClass='cgmObject')
             
             if mFormHandle == ml_prerigTrackers[idx_end] or _worldAimNow:
-                if _ikEnd in ['foot','pad','bank'] and self.blockProfile not in ['arm']:
+                if _ikEnd in ['foot','pad','bank','ball','wobble'] and self.blockProfile not in ['arm']:
                     _worldAimNow = True
                     log.debug("|{0}| >> end handle aim: {1}".format(_str_func,mEndHandle))
                     _pivotUp = mPivotHelper.getAxisVector('y+')
@@ -4523,7 +4609,18 @@ def rig_digitShapes(self):
             mPivotHelper = mPivotHolderHandle.pivotHelper
             log.debug("|{0}| >> Pivot shapes...".format(_str_func))            
             #mBlock.atBlockUtils('pivots_buildShapes', mPivotHolderHandle.pivotHelper, mRigNull)
-            RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper)
+            
+            _ikEnd = mBlock.getEnumValueString('ikEnd')
+            if _ikEnd == 'wobble':
+                cgmGEN._reloadMod(RIGSHAPES)
+                #_l = ['center','front','spin','tilt']
+                _l = ['spin','tilt','center']
+                RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper, _l, mode = 'wobble')
+            elif _ikEnd == 'ball':
+                _l  = ['spin','tilt']
+                RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper, _l, mode = 'ball')  
+            else:
+                RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper)
 
         #IK End ================================================================================
         if mBlock.ikSetup:
@@ -5220,7 +5317,18 @@ def rig_shapes(self):
     if mPivotHelper:
         log.debug("|{0}| >> Pivot shapes...".format(_str_func))            
         #mBlock.atBlockUtils('pivots_buildShapes', mPivotHolderHandle.pivotHelper, mRigNull)
-        RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper)
+        
+        _ikEnd = mBlock.getEnumValueString('ikEnd')
+        if _ikEnd == 'wobble':
+            cgmGEN._reloadMod(RIGSHAPES)
+            #_l = ['center','front','spin','tilt']
+            _l = ['spin','tilt','center']
+            RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper, _l, mode = 'wobble')
+        elif _ikEnd == 'ball':
+            _l  = ['spin','tilt']
+            RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper, _l, mode = 'ballRotate')  
+        else:
+            RIGSHAPES.pivotShapes(self,mPivotHolderHandle.pivotHelper)
 
     
     #Lever =============================================================================
@@ -5846,7 +5954,16 @@ def rig_controls(self):
     # Pivots ================================================================================================
     #if mMainHandle.getMessage('pivotHelper'):
         #log.debug("|{0}| >> Pivot helper found".format(_str_func))
-    for a in 'center','front','back','left','right':#This order matters
+    
+    _ikEnd = mBlock.getEnumValueString('ikEnd')
+    if _ikEnd == 'wobble':
+        l_order = ['spin','tilt','center']
+    elif _ikEnd == 'ball':
+        l_order  = ['spin','tilt']
+    else:
+        l_order = ['center','front','back','left','right']
+    
+    for a in l_order:#This order matters
         str_a = 'pivot' + a.capitalize()
         if mRigNull.getMessage(str_a):
             log.debug("|{0}| >> Found: {1}".format(_str_func,str_a))
@@ -5863,8 +5980,13 @@ def rig_controls(self):
                                               makeAimable = False)
             
             mPivot = d_buffer['mObj']
-            for mShape in mPivot.getShapes(asMeta=True):
-                ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
+            
+            if _ikEnd not in ['wobble','ball']:
+                if _ikEnd == 'ball' and a in ['spin','tilt']:
+                    pass
+                else:
+                    for mShape in mPivot.getShapes(asMeta=True):
+                        ATTR.connect(mPlug_visSub.p_combinedShortName, "{0}.overrideVisibility".format(mShape.mNode))                
             ml_controlsAll.append(mPivot)
         log.debug(cgmGEN._str_subLine)
 
@@ -6836,7 +6958,7 @@ def rig_frame(self):
     mPlug_globalScale = self.d_module['mPlug_globalScale']
     mRoot = mRigNull.rigRoot
     ml_ikFullChain = mRigNull.msgList_get('ikFullChainJoints')
-    
+
     
     b_cog = False
     if mBlock.getMessage('cogHelper'):
@@ -6864,12 +6986,15 @@ def rig_frame(self):
     if mPivotHolderHandle.getMessage('pivotHelper'):
         log.debug("|{0}| >> Pivot setup initial".format(_str_func))
         
-        if str_rigSetup == 'digit':
-            mPivotDriverHandle = ml_formHandles[-2]
+        if str_ikEnd == 'ball':
+            mPivotResultDriver = mBlock.pivotHelper.pivotBall.doCreateAt()
         else:
-            mPivotDriverHandle = mPivotHolderHandle
-        
-        mPivotResultDriver = mPivotDriverHandle.doCreateAt()
+            if str_rigSetup == 'digit':
+                mPivotDriverHandle = ml_formHandles[-2]
+            else:
+                mPivotDriverHandle = mPivotHolderHandle
+            mPivotResultDriver = mPivotDriverHandle.doCreateAt()
+
         mPivotResultDriver.addAttr('cgmName','pivotResult')
         mPivotResultDriver.addAttr('cgmType','driver')
         mPivotResultDriver.doName()
@@ -6959,132 +7084,6 @@ def rig_frame(self):
         mRoot = mLimbRoot
 
     
-    """
-    #>> handleJoints ========================================================================================
-    if ml_handleJoints:
-        log.debug("|{0}| >> Handles setup...".format(_str_func))
-        
-        ml_handleParents = ml_fkJoints
-        if ml_blendJoints:
-            log.debug("|{0}| >> Handles parent: blend".format(_str_func))
-            ml_handleParents = ml_blendJoints            
-        
-        if str_ikBase == 'hips':
-            log.debug("|{0}| >> hips setup...".format(_str_func))
-            
-            ml_ribbonIkHandles = mRigNull.msgList_get('ribbonIKDrivers')
-            if not ml_ribbonIkHandles:
-                raise ValueError,"No ribbon IKDriversFound"
-            
-            reload(RIGCONSTRAINT)
-            RIGCONSTRAINT.build_aimSequence(ml_handleJoints,
-                                            ml_ribbonIkHandles,
-                                            [mRigNull.controlIKBase.mNode],#ml_handleParents,
-                                            mode = 'singleBlend',
-                                            upMode = 'objectRotation')
-            
-            mHipHandle = ml_handleJoints[0]
-            mHipHandle.masterGroup.p_parent = mRoot
-            mc.pointConstraint(mRigNull.controlIKBase.mNode,
-                               mHipHandle.masterGroup.mNode,
-                               maintainOffset = True)
-            
-        else:
-
-            for i,mHandle in enumerate(ml_handleJoints):
-                mHandle.masterGroup.parent = ml_handleParents[i]
-                s_rootTarget = False
-                s_targetForward = False
-                s_targetBack = False
-                mMasterGroup = mHandle.masterGroup
-                b_first = False
-                if mHandle == ml_handleJoints[0]:
-                    log.debug("|{0}| >> First handle: {1}".format(_str_func,mHandle))
-                    if len(ml_handleJoints) <=2:
-                        s_targetForward = ml_handleParents[-1].mNode
-                    else:
-                        s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
-                    s_rootTarget = mRoot.mNode
-                    b_first = True
-                    
-                elif mHandle == ml_handleJoints[-1]:
-                    log.debug("|{0}| >> Last handle: {1}".format(_str_func,mHandle))
-                    s_rootTarget = ml_handleParents[i].mNode                
-                    s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
-                else:
-                    log.debug("|{0}| >> Reg handle: {1}".format(_str_func,mHandle))            
-                    s_targetForward = ml_handleJoints[i+1].getMessage('masterGroup')[0]
-                    s_targetBack = ml_handleJoints[i-1].getMessage('masterGroup')[0]
-                    
-                #Decompose matrix for parent...
-                mUpDecomp = cgmMeta.cgmNode(nodeType = 'decomposeMatrix')
-                mUpDecomp.doStore('cgmName',ml_handleParents[i])                
-                mUpDecomp.addAttr('cgmType','aimMatrix',attrType='string',lock=True)
-                mUpDecomp.doName()
-                
-                ATTR.connect("%s.worldMatrix"%(ml_handleParents[i].mNode),"%s.%s"%(mUpDecomp.mNode,'inputMatrix'))
-                
-                if s_targetForward:
-                    mAimForward = mHandle.doCreateAt()
-                    mAimForward.parent = mMasterGroup            
-                    mAimForward.doStore('cgmTypeModifier','forward')
-                    mAimForward.doStore('cgmType','aimer')
-                    mAimForward.doName()
-                    
-                    _const=mc.aimConstraint(s_targetForward, mAimForward.mNode, maintainOffset = True, #skip = 'z',
-                                            aimVector = [0,0,1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
-                                            worldUpType = 'vector', worldUpVector = [0,0,0])            
-                    s_targetForward = mAimForward.mNode
-                    ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                 
-                    
-                else:
-                    s_targetForward = ml_handleParents[i].mNode
-                    
-                if s_targetBack:
-                    mAimBack = mHandle.doCreateAt()
-                    mAimBack.parent = mMasterGroup                        
-                    mAimBack.doStore('cgmTypeModifier','back')
-                    mAimBack.doStore('cgmType','aimer')
-                    mAimBack.doName()
-                    
-                    _const = mc.aimConstraint(s_targetBack, mAimBack.mNode, maintainOffset = True, #skip = 'z',
-                                              aimVector = [0,0,-1], upVector = [1,0,0], worldUpObject = ml_handleParents[i].mNode,
-                                              worldUpType = 'vector', worldUpVector = [0,0,0])  
-                    s_targetBack = mAimBack.mNode
-                    ATTR.connect("%s.%s"%(mUpDecomp.mNode,"outputRotate"),"%s.%s"%(_const[0],"upVector"))                                     
-                else:
-                    s_targetBack = s_rootTarget
-                    #ml_handleParents[i].mNode
-                
-                #pprint.pprint([s_targetForward,s_targetBack])
-                mAimGroup = mHandle.doGroup(True,asMeta=True,typeModifier = 'aim')
-                
-                mHandle.parent = False
-                
-                if b_first:
-                    const = mc.orientConstraint([s_targetBack, s_targetForward], mAimGroup.mNode, maintainOffset = True)[0]
-                else:
-                    const = mc.orientConstraint([s_targetForward, s_targetBack], mAimGroup.mNode, maintainOffset = True)[0]
-                    
-    
-                d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mHandle.mNode,'followRoot'],
-                                                                     [mHandle.mNode,'resultRootFollow'],
-                                                                     [mHandle.mNode,'resultAimFollow'],
-                                                                     keyable=True)
-                targetWeights = mc.orientConstraint(const,q=True, weightAliasList=True,maintainOffset=True)
-                
-                #Connect                                  
-                d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
-                d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
-                d_blendReturn['d_result1']['mi_plug'].p_hidden = True
-                d_blendReturn['d_result2']['mi_plug'].p_hidden = True
-                
-                mHandle.parent = mAimGroup#...parent back
-                
-                if mHandle in [ml_handleJoints[0],ml_handleJoints[-1]]:
-                    mHandle.followRoot = 1
-                else:
-                    mHandle.followRoot = .5"""
                     
     
     #>> Build IK ======================================================================================
@@ -7381,81 +7380,6 @@ def rig_frame(self):
                 ATTR.set_default(mIKControl.mNode, 'extendIK', 1.0)
                 mIKControl.extendIK = 0.0
                 
-                #old...
-                """
-                mBallOrientGroup = cgmMeta.validateObjArg(mIKBallRotationControl.doGroup(True,False,asMeta=True,typeModifier = 'orient'),'cgmObject',setClass=True)
-                ATTR.set(mBallOrientGroup.mNode, 'rotateOrder', _jointOrientation)
-                
-                
-                mLocBase = mIKBallRotationControl.doCreateAt()
-                mLocAim = mIKBallRotationControl.doCreateAt()
-                
-                mLocAim.doStore('cgmTypeModifier','aim')
-                mLocBase = mIKBallRotationControl.doCreateAt()
-                
-                mLocBase.doName()
-                mLocAim.doName()
-                
-                mLocAim.p_parent = mIKBallRotationControl.masterGroup
-                mLocBase.p_parent = mIKBallRotationControl.masterGroup
-                
-                
-                mAimTarget = mIKControlBase
-                    
-                
-                if self.d_module['direction'].lower() == 'left':
-                    v_aim = [0,0,1]
-                else:
-                    v_aim = [0,0,-1]
-                    
-                    
-                mc.aimConstraint(mAimTarget.mNode, mLocAim.mNode, maintainOffset = True,
-                                 aimVector = v_aim, upVector = [0,1,0], 
-                                 worldUpObject = mSpinGroupAdd.mNode,
-                                 worldUpType = 'objectrotation', 
-                                 worldUpVector = self.v_twistUp)
-                
-
-                    
-                
-                const = mc.orientConstraint([mLocAim.mNode,mLocBase.mNode],
-                                            mBallOrientGroup.mNode, maintainOffset = True)[0]
-                                
-                d_blendReturn = NODEFACTORY.createSingleBlendNetwork([mIKBallRotationControl.mNode,
-                                                                      'aimBack'],
-                                                                     [mIKBallRotationControl.mNode,'resRootFollow'],
-                                                                     [mIKBallRotationControl.mNode,'resAimFollow'],
-                                                                     keyable=True)
-            
-                targetWeights = mc.orientConstraint(const,q=True,
-                                                    weightAliasList=True,
-                                                    maintainOffset=True)
-            
-                #Connect                                  
-                d_blendReturn['d_result1']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[0]))
-                d_blendReturn['d_result2']['mi_plug'].doConnectOut('%s.%s' % (const,targetWeights[1]))
-                d_blendReturn['d_result1']['mi_plug'].p_hidden = True
-                d_blendReturn['d_result2']['mi_plug'].p_hidden = True                    
-                
-                
-                mBallOrientGroup.dagLock(True)
-                mLocAim.dagLock(True)
-                mLocBase.dagLock(True)
-                
-                mIKBallRotationControl.p_parent = mBallOrientGroup
-                
-                #Joint constraint -------------------------
-                mIKBallRotationControl.masterGroup.p_parent = mPivotResultDriver
-                mc.orientConstraint([mIKBallRotationControl.mNode],
-                                    ml_ikJoints[self.int_handleEndIdx].mNode,
-                                    maintainOffset = True)
-                mc.parentConstraint([mPivotResultDriver.mNode],
-                                    ml_ikJoints[self.int_handleEndIdx+1].mNode,
-                                    maintainOffset = True)
-                
-                ATTR.set_default(mIKBallRotationControl.mNode, 'aimBack', 1.0)
-                mIKBallRotationControl.aimBack = 0.0
-                """
                 
             elif str_ikEnd in ['bank','pad'] or self.b_pivotSetup:
                 mc.orientConstraint([mPivotResultDriver.mNode],
@@ -7754,12 +7678,14 @@ def rig_frameSingle(self):
         if mPivotHolderHandle.getMessage('pivotHelper'):
             log.debug("|{0}| >> Pivot setup initial".format(_str_func))
             
-            if str_rigSetup == 'digit':
-                mPivotDriverHandle = ml_formHandles[-2]
+            if str_ikEnd == 'ball':
+                mPivotResultDriver = mBlock.pivotHelper.pivotBall.doCreateAt()
             else:
-                mPivotDriverHandle = mPivotHolderHandle
-            
-            mPivotResultDriver = mPivotDriverHandle.doCreateAt()
+                if str_rigSetup == 'digit':
+                    mPivotDriverHandle = ml_formHandles[-2]
+                else:
+                    mPivotDriverHandle = mPivotHolderHandle
+                mPivotResultDriver = mPivotDriverHandle.doCreateAt()
             mPivotResultDriver.addAttr('cgmName','pivotResult')
             mPivotResultDriver.addAttr('cgmType','driver')
             mPivotResultDriver.doName()
@@ -8477,18 +8403,42 @@ def rig_pivotSetup(self):
         #pprint.pprint(vars())
         
 
+        #Enhanced Pivot Setup ========================================================================================
+        _pivot_kws = {}
+        specialPivotSetup = "default"
+        _ikEnd = mBlock.getEnumValueString('ikEnd')
+        mPivotResultDriven = mPivotResultDriver
+
+        if _ikEnd == 'wobble':
+            _pivot_kws['l_pivotOrder'] = ['spin','tilt','center']
+            specialPivotSetup = 'wobble'
+            _pivot_kws['setupWobble'] = True
+        elif _ikEnd == 'ball':
+            _pivot_kws['l_pivotOrder'] = ['spin','tilt']
+            specialPivotSetup = 'ballRotate'
+
+            mPivotResultDriven = mPivotResultDriver.doGroup(True, True, asMeta=True)
+            mPivotResultDriver.p_parent = False
+            
+
+            
         mBlock.atBlockUtils('pivots_setup',
                             mControl = mIKControl, 
                             mRigNull = mRigNull, 
-                            pivotResult = mPivotResultDriver,
+                            pivotResult = mPivotResultDriven,
                             mBallJoint= mBallPivotJoint,
                             mBallWiggleJoint = mBallWiggleJoint,
                             mToeJoint = mToeIK,
                             rollSetup = _mode,
+                            setup = specialPivotSetup,
                             #mDag = mIKHandleDriver,
-                            front = 'front', back = 'back')#front, back to clear the toe, heel defaults
-        
+                            front = 'front', back = 'back', **_pivot_kws)#front, back to clear the toe, heel defaults
 
+        #Reparent the children
+        if _ikEnd == 'ball':
+            mPivotResultDriver.p_parent = mPivotResultDriven
+        
+        
         if self.str_ikRollSetup == 'control' and mBlock.addBall:
             log.debug(cgmGEN.logString_start(_str_func,'Control ball setup...'))
             

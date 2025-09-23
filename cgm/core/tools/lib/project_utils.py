@@ -28,7 +28,7 @@ from cgm.core import cgm_General as cgmGEN
 
 #Data ================================================================================================
 _animatable_content = ['animation','template','rig','textures','poses','weights','geo']
-_fbxVersions = ['FBX202000' , 'FBX201900' , 'FBX201800' , 'FBX201600' , 'FBX201400' , 'FBX201300' , 'FBX201200' , 'FBX201100' , 'FBX201000' , 'FBX200900' , 'FBX200611']
+_fbxVersions = cgmGEN.get_mayaFBXVersionsAvailable()
 
 d_dirFramework = {
 'game':{'content':['Character','Environment','FX','Poses','Props','Cutscene',
@@ -204,6 +204,7 @@ _exportOptionSettings = [{'n':'removeNameSpace','t':'bool','dv':False},
                          {'n':'postEuler','t':'bool','dv':True},
                          {'n':'reducer','t':'bool','dv':False},
                          {'n':'simplify','t':'bool','dv':False},
+                         {'n':'exportShotsToIndividualFiles','t':'bool','dv':False},
 
 
                          {'n':'sampleBy','t':'float','dv':1.0},

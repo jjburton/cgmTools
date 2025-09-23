@@ -40,20 +40,30 @@ from cgm.core.classes import GuiFactory as CGMUI
 import cgm.core.lib.string_utils as STR
 from cgm.core.lib import attribute_utils as ATTR
 
-#from cgm.core.lib import curve_Utils as CURVES
 from cgm.core.lib import attribute_utils as ATTR
-#from cgm.core.lib import position_utils as POS
-#from cgm.core.lib import math_utils as MATH
-#from cgm.core.lib import distance_utils as DIST
-#from cgm.core.lib import snap_utils as SNAP
-#from cgm.core.lib import rigging_utils as RIGGING
-#from cgm.core.rigger.lib import joint_Utils as JOINTS
 from cgm.core.lib import search_utils as SEARCH
-#from cgm.core.lib import rayCaster as RAYS
-#from cgm.core.cgmPy import validateArgs as VALID
-#from cgm.core.cgmPy import path_Utils as PATH
-#from cgm.core.cgmPy import os_Utils as cgmOS
 from cgm.core.cgmPy import path_Utils as PATH
+
+from cgm.core.lib import shared_data as SHARED
+from cgm.core.mrs.lib import builder_utils as BUILDERUTILS
+from cgm.core.mrs.lib import block_utils as BLOCKUTILS
+from cgm.core.mrs.lib import blockShapes_utils as BLOCKSHAPES
+from cgm.core.mrs.lib import ModuleControlFactory as MODULECONTROLFACTORY
+from cgm.core.mrs.lib import ModuleShapeCaster as MODULESHAPECASTER
+from cgm.core.rig import ik_utils as IK
+import cgm.core.mrs.lib.shared_dat as BLOCKSHARE
+import cgm.core.tools.markingMenus.lib.contextual_utils as CONTEXT
+import cgm.core.lib.name_utils as NAMETOOLS
+from cgm.core.classes import GuiFactory as CGMUI
+from cgm.core.lib import attribute_utils as ATTR
+from cgm.core.lib import search_utils as SEARCH
+from cgm.core.cgmPy import validateArgs as VALID
+from cgm.core.cgmPy import path_Utils as PATH
+from cgm.core.lib import nameTools as NAMETOOLS
+from cgm.core.lib import nameTools as NAMETOOLS
+from cgm.core.mrs.lib import rigFrame_utils as RIGFRAME
+from cgm.core.mrs.lib import module_utils as MODULEUTILS
+from cgm.core.mrs.lib import puppet_utils as PUPPETUTILS
 
 
 def verify_sceneBlocks():
@@ -986,3 +996,25 @@ def get_modules_dat(update = False):
             
     CGM_RIGBLOCK_DAT = _d_modules, _d_categories, _l_unbuildable
     return _d_modules, _d_categories, _l_unbuildable
+
+
+def reloadMRSStuff():
+    log.info("reloading MRS Stuff...")
+    
+    for m in [BUILDERUTILS,BLOCKUTILS,BLOCKSHARE,SHARED,RIGFRAME,cgmGEN,IK,
+              CONTEXT,BLOCKSHAPES,NAMETOOLS,CGMUI,MODULEUTILS,PUPPETUTILS,
+              MODULECONTROLFACTORY,MODULESHAPECASTER]:
+        print(m)
+        cgmGEN._reloadMod(m)
+
+
+    log.info(cgmGEN._str_subLine)
+
+def reloadModules():
+    log.info("reloading Modules...")
+
+    for m in get_modules_dat()[0].values():
+        print(m)
+        cgmGEN._reloadMod(m)
+
+    log.info(cgmGEN._str_subLine)

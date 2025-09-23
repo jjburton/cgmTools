@@ -589,7 +589,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
         examples - all with example with count 5, min 0, max 1
             midPeak - [0.0, 0.5, 1.0, 0.5, 0.0]
             midBlendDown - [1.0, 1.0, 1.0, 0.5, 0.0]
-            blendUpMid - [0.0, 0.5, 1.0, 1.0, 1.0]
+            midBlendUp - [0.0, 0.5, 1.0, 1.0, 1.0]
             blendUp - [0.0, 0.25, 0.5, 0.75, 1.0]
             blendDown - [1.0, 0.75, 0.5, 0.25, 0.0]
 
@@ -611,7 +611,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
         if mode == 'blendDown':
             _res.reverse()
 
-    elif mode in ['midPeak','blendUpMid','midBlendDown']:
+    elif mode in ['midPeak','midBlendUp','midBlendDown']:
         if count == 2:
             _res = [maxValue,maxValue]
         elif count == 3:
@@ -629,7 +629,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
                 for i in range(idx_mid):
                     _res.append( (i * blendFactor) + minValue)
                 _rev = copy.copy(_res)
-                if mode == 'blendUpMid':
+                if mode == 'midBlendUp':
                     _res = _res + [maxValue for i in range(idx_mid)]
                 elif mode == 'midBlendDown':
                     _res.reverse()
@@ -643,7 +643,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
 
                 _res[-1] = maxValue
 
-                if mode == 'blendUpMid':
+                if mode == 'midBlendUp':
                     _res = _res + [maxValue for i in range(idx_mid-1)]
                 elif mode == 'midBlendDown':
                     _res.reverse()
@@ -653,7 +653,7 @@ def get_blendList(count, maxValue=1.0, minValue = 0.0, mode = 'midPeak'):
                     _rev.reverse()
                     _res.extend(_rev[1:])
 
-            if mode in ['midPeak','blendUpMid','midBlendDown']:
+            if mode in ['midPeak','midBlendUp','midBlendDown']:
                 _res[0] = minValue
                 _res[-1] = minValue
                 _res[idx_mid] = maxValue
@@ -908,12 +908,6 @@ def angleBetween(p1, p2, p3):
 #    # https://stackoverflow.com/questions/2827393/angles-between-two-n-dimensional-vectors-in-python
 #    return [average(a,b) for a,b in zip(v1,v2)]
     #return sum((a*b) for a, b in zip(v1, v2))
-
-def get_greatest(a,b):
-    return max(a,b)
-
-def get_least(a,b):
-    return min(a,b)
 
 def average_vector_args(vectors): 
     # Initialize the sum of the vector values 
