@@ -6992,7 +6992,7 @@ def test_nestedException(self,*args,**kws):
 def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
                      loftShape=None,l_basePos = None, baseSize=1.0,
                      sizeWidth = 1.0, sizeLoft=1.0,
-                     side = None,orientHelperPlug = 'orientHelper',formAim='toEnd',
+                     side = None, orientHelperPlug = 'orientHelper',formAim='toEnd',
                      shapersAim = 'toEnd',shapersAimUp = 'handle',
                      mFormNull = None,mNoTransformNull = None,
                      mDefineEndObj=None):
@@ -7125,7 +7125,12 @@ def form_segment(self,aShapers = 'numShapers',aSubShapers = 'numSubShapers',
     mBaseOrientCurve.p_parent =  mFormNull
     mOrientHelperAimGroup = mBaseOrientCurve.doGroup(True,asMeta=True,typeModifier = 'aim')
     mc.pointConstraint(md_handles['start'].mNode, mOrientHelperAimGroup.mNode )
-    
+    _const = mc.aimConstraint(ml_handles[1].mNode, mOrientHelperAimGroup.mNode, maintainOffset = False,
+                            aimVector = [0,0,1], upVector = [0,1,0], 
+                            worldUpObject = mRootUpHelper.mNode,
+                            worldUpType = 'objectrotation', 
+                            worldUpVector = [0,1,0])
+                            
     self.connectChildNode(mBaseOrientCurve.mNode,orientHelperPlug)
 
     mBaseOrientCurve.setAttrFlags(['ry','rx','translate','scale','v'])

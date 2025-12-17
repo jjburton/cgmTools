@@ -185,10 +185,90 @@ def Bake(assets, bakeSetName = 'bake_tdSet',
 
     return baked
 
+def BreakTextureLinks(exportObjs=None):
+    """
+    Break texture links by clearing fileTextureName attributes on all file texture nodes.
+    
+    Args:
+        exportObjs: Optional list of objects to scope texture breaking to.
+                    If None, breaks all file textures in the scene.
+    
+    Returns:
+        int: Number of texture links broken
+    """
+    _str_func = 'BreakTextureLinks'
+    log.info("{0} || Starting...".format(_str_func))
+    
+    # Find all file texture nodes
+    fileNodes = mc.ls(type='file')
+    
+    if not fileNodes:
+        log.info("{0} || No file texture nodes found".format(_str_func))
+        return 0
+    
+    # If exportObjs is provided, filter file nodes to only those connected to export objects
+    if exportObjs:
+        # Get all shading engines connected to export objects
+        shadingEngines = set()
+        for obj in exportObjs:
+            try:
+                shapes = mc.listRelatives(obj, shapes=True, fullPath=True) or []
+                for shape in shapes:
+                    # Get shading groups connected to this shape
+                    sg = mc.listConnections(shape, type='shadingEngine') or []
+                    shadingEngines.update(sg)
+            except:
+                pass
+        
+        # Get file nodes connected to these shading engines
+        connectedFileNodes = set()
+        for sg in shadingEngines:
+            try:
+                # Get file nodes connected through the shading network
+                files = mc.listConnections(sg, type='file', source=True, destination=False) or []
+                connectedFileNodes.update(files)
+            except:
+                pass
+        
+        # Filter to only connected file nodes
+        fileNodes = [f for f in fileNodes if f in connectedFileNodes]
+    
+    brokenCount = 0
+    failedNodes = []
+    
+    for fileNode in fileNodes:
+        try:
+            # Check if fileTextureName attribute exists and is not locked
+            if mc.objExists('{}.fileTextureName'.format(fileNode)):
+                if not mc.getAttr('{}.fileTextureName'.format(fileNode), lock=True):
+                    # Get current path for logging
+                    currentPath = mc.getAttr('{}.fileTextureName'.format(fileNode))
+                    
+                    # Clear the texture path
+                    mc.setAttr('{}.fileTextureName'.format(fileNode), '', type='string')
+                    
+                    log.info("{0} || Broke texture link: {1} | was: {2}".format(_str_func, fileNode, currentPath))
+                    brokenCount += 1
+                else:
+                    log.warning("{0} || Skipping locked file node: {1}".format(_str_func, fileNode))
+                    failedNodes.append(fileNode)
+        except Exception as err:
+            log.error("{0} || Failed to break texture link on {1}: {2}".format(_str_func, fileNode, err))
+            failedNodes.append(fileNode)
+    
+    if brokenCount > 0:
+        log.info("{0} || Broke {1} texture link(s)".format(_str_func, brokenCount))
+    
+    if failedNodes:
+        log.warning("{0} || Failed to break {1} texture link(s)".format(_str_func, len(failedNodes)))
+    
+    return brokenCount
+
 def Prep(removeNamespace = False, 
          deleteSetName = "delete_tdSet",
          exportSetName = "export_tdSet",
-         zeroRoot = False):
+         zeroRoot = False,
+         breakTextures = True):
     
     _str_func = 'Prep'
     
@@ -227,6 +307,13 @@ def Prep(removeNamespace = False,
             topRefFile = mc.referenceQuery(topRefNode, filename=True)
 
         mc.file(topRefFile, ir=True)
+
+    # Break texture links if requested
+    if breakTextures:
+        log.info("{0} || breaking texture links".format(_str_func))
+        # We'll break all textures in the scene since export objects aren't determined yet
+        # This ensures textures are broken before any further processing
+        BreakTextureLinks()
 
     log.info("{0} || namespaces".format(_str_func))
     

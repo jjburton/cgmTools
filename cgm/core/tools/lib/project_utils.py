@@ -205,6 +205,7 @@ _exportOptionSettings = [{'n':'removeNameSpace','t':'bool','dv':False},
                          {'n':'reducer','t':'bool','dv':False},
                          {'n':'simplify','t':'bool','dv':False},
                          {'n':'exportShotsToIndividualFiles','t':'bool','dv':False},
+                         {'n':'breakTextureLinks','t':'bool','dv':True},
 
 
                          {'n':'sampleBy','t':'float','dv':1.0},

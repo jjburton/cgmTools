@@ -225,7 +225,9 @@ d_attrsToMake = {'axisAim':":".join(CORESHARE._l_axis_by_string),
                  'proxyShape':'cube:sphere:cylinder:cone:torus:shapers:geoOnly',
                  #'pivotSetup':'simple:wobble',
                  'targetJoint':'messageSimple',
-                 'shapersAim':'toEnd:chain:orientToHandle',
+                 'formAim':'none:simple:chain',
+                 'shapersAim':'none:chain:orientToHandle',
+                 'shapersAimUp':'none:handle:blockOrient',
                  'dynParentMode':'space:orient:follow:point',
                  'dynParentScaleMode':'off:link:space',
                  'rootJoint':'messageSimple'}
@@ -260,7 +262,10 @@ d_defaultSettings = {'version':__version__,
                      'dynParentScaleMode':'off',
                      'loftList':['square','circle','square'],
                      'baseDat':{'lever':[0,0,-1],'aim':[0,0,1],'up':[0,1,0],'end':[0,0,1]},
-                     'proxyType':1}
+                     'proxyType':1,
+                     'formAim':'simple',
+                     'shapersAim':'chain',
+                     'shapersAimUp':'handle'}
 
 #=============================================================================================================
 #>> Wiring 
@@ -799,7 +804,8 @@ def form(self):
         self,
         aShapers = 'numShapers',aSubShapers = 'numSubShapers',
         loftShape=_loftShape,l_basePos = _l_basePos, baseSize=_size_handle,
-        orientHelperPlug='orientHelper',formAim =  self.getEnumValueString('shapersAim'),
+        orientHelperPlug='orientHelper',formAim =  self.getEnumValueString('formAim'),
+        shapersAim =  self.getEnumValueString('shapersAim'),shapersAimUp = self.getEnumValueString('shapersAimUp'),
         sizeWidth = _size_width, sizeLoft=_size_loft,side = _side,
         mFormNull = mFormNull,mNoTransformNull = mNoTransformNull,
         mDefineEndObj=mDefineEndObj)
@@ -2211,30 +2217,30 @@ def create_simpleMesh(self, deleteHistory = True, cap=True, skin = False, parent
             
         if ml_geo:
             for i,mGeo in enumerate(ml_geo):
-                #if mGeo == mMeshCheck:
-                #    continue
                 log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
                 if mGeo.getMayaType() == 'nurbsSurface':
-                    mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
-                                                        mode = 'general',
-                                                        uNumber = self.loftSplit, vNumber=self.loftSides)
+                    if str_proxyType == 'geoOnly':
+                        continue
+                    else:
+                        mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
+                                                            mode = 'general',
+                                                            uNumber = self.loftSplit, vNumber=self.loftSides)
                 else:
                     mMesh = mGeo.doDuplicate(po=False)
                     #mMesh.p_parent = False
                     #mDup = mBlock.proxyHelper.doDuplicate(po=False)
+                
+                mMesh.p_parent = False
                 ml_proxy.append(mMesh)
         else:
             log.debug("|{0}| >> no ml_geo".format(_str_func))          
         
         
-        
-
-        
         for mGeo in ml_proxy:
             CORERIG.color_mesh(mGeo.mNode)
         
         if len(ml_proxy) > 1:
-            log.info("|{0}| >> uniting proxy meshes...".format(_str_func,ml_proxy))
+            log.info(f"|{0}| >> uniting proxy meshes...{1}".format(_str_func,ml_proxy))
             _mesh = mc.polyUnite([mObj.mNode for mObj in ml_proxy], ch=False )[0]
             mMesh = cgmMeta.asMeta(_mesh)
             for mObj in ml_proxy[1:]:
@@ -2339,26 +2345,32 @@ def build_proxyMesh(self, forceNew = True, puppetMeshMode = False, skin = False,
         if str_proxyType == 'geoOnly' and not ml_geo:
             raise ValueError("No geo found and proxyShape is 'geoOnly'.")
         
-        if str_proxyType in ['shapers','comboMesh']:# and not ml_geo:
-            d_kws = {}
-            mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5, cap= self.proxyGeoCap)[0]
-            ml_proxy = [mMesh]
-            
+        # if str_proxyType in ['shapers','comboMesh']:# and not ml_geo:
+        #     d_kws = {}
+        #     mMesh = self.UTILS.create_simpleLoftMesh(self,divisions=5, cap= self.proxyGeoCap)[0]
+        #     ml_proxy = [mMesh]
+
+
         if ml_geo:
             for i,mGeo in enumerate(ml_geo):
                 #if mGeo == mMeshCheck:
                 #    continue
-                log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))                        
-                if mGeo.getMayaType() == 'nurbsSurface' and str_setup != 'geoOnly':
-                    mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
-                                                        mode = 'general',
-                                                        uNumber = mBlock.loftSplit,
-                                                        vNumber=mBlock.loftSides)
+                log.debug("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))  
+
+                if mGeo.getMayaType() == 'nurbsSurface':
+                    if str_proxyType == 'geoOnly':
+                        continue
+                    else:   
+                        mMesh = RIGCREATE.get_meshFromNurbs(mGeo,
+                                                            mode = 'general',
+                                                            uNumber = mBlock.loftSplit,
+                                                            vNumber=mBlock.loftSides)
                 else:
                     log.info("|{0}| >> proxyMesh creation from: {1}".format(_str_func,mGeo))
                     mMesh = mGeo.doDuplicate(po=False)
                     #mMesh.p_parent = False
                     #mDup = mBlock.proxyHelper.doDuplicate(po=False)
+                mMesh.p_parent = False
                 ml_proxy.append(mMesh)
         else:
             log.debug("|{0}| >> no ml_geo".format(_str_func))

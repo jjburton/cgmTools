@@ -1073,7 +1073,7 @@ def form(self):
     
         #cgmGEN.func_snapShot(vars())
     
-    
+        
         #if _loftSetup == 'default':
         md_handles,ml_handles,ml_shapers,ml_handles_chain = self.UTILS.form_segment(
             self,

@@ -5297,6 +5297,7 @@ example:
         reducer = self.d_tf['exportOptions']['reducer'].getValue()
         simplify = self.d_tf['exportOptions']['simplify'].getValue()
         exportShotsToIndividualFiles = self.d_tf['exportOptions']['exportShotsToIndividualFiles'].getValue()
+        breakTextureLinks = self.d_tf['exportOptions']['breakTextureLinks'].getValue()
 
         pprint.pprint(vars())
         pprint.pprint(self.d_tf['exportOptions'])
@@ -5336,6 +5337,7 @@ example:
                 'simplify':simplify,
                 'reducer':reducer,
                 'exportShotsToIndividualFiles':exportShotsToIndividualFiles,
+                'breakTextureLinks':breakTextureLinks,
             }
             pprint.pprint(d)
 
@@ -5361,6 +5363,7 @@ example:
                     workspace=d_userPaths['content'],
                     simplify=simplify,
                     reducer=reducer,
+                    breakTextureLinks=breakTextureLinks,
                     )        
 
         return True
@@ -5410,6 +5413,7 @@ def BatchExport(dataList = []):
             
             _d['simplify'] = False if fileDat.get('simplify',"False") == "False" else True
             _d['exportShotsToIndividualFiles'] = False if fileDat.get('exportShotsToIndividualFiles',"False") == "False" else True
+            _d['breakTextureLinks'] = False if fileDat.get('breakTextureLinks',"True") == "False" else True
             _d['sampleBy'] = float(fileDat.get('sampleBy',1.0))
 
             log.info(mFile)
@@ -5477,6 +5481,7 @@ def ExportScene(mode = -1,
                 deleteMesh = False,
                 reducer = False,
                 simplify = True,
+                breakTextureLinks = True,
                 ):
 
     if workspace:
@@ -5743,6 +5748,11 @@ def ExportScene(mode = -1,
         log.info("Export: {}".format(exportFile))
 
         if exportStatic:
+            # Break texture links for static export if enabled
+            if breakTextureLinks:
+                log.info(log_sub(_str_func, "Breaking texture links for static export"))
+                bakeAndPrep.BreakTextureLinks()
+            
             if(exportFBXFile):
                 exportDir = os.path.split(exportFile)[0]
                 if not os.path.exists(exportDir):
@@ -5771,7 +5781,7 @@ def ExportScene(mode = -1,
 
         else:
             if cgmObj.isReferenced():
-                bakeAndPrep.Prep(removeNamespace=removeNamespace, deleteSetName=deleteSetName,exportSetName=exportSetName, zeroRoot=zeroRoot)
+                bakeAndPrep.Prep(removeNamespace=removeNamespace, deleteSetName=deleteSetName,exportSetName=exportSetName, zeroRoot=zeroRoot, breakTextures=breakTextureLinks)
                 exportTransforms = mc.ls(sl=True)
             else:
                 _constraints = cgmObj.getConstraintsTo()
